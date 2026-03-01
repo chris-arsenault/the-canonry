@@ -1,33 +1,13 @@
-/* ChainLinkSection Component Styles */
+/* ChainLinkSection Component Styles
+ * Structural base: archivist-section.css */
 
 .chain-link-section {
-  margin-top: var(--spacing-xl);
-  border: 2px solid var(--color-bg-purple-border);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, rgb(139 92 246 / 5%) 0%, rgb(124 58 237 / 5%) 100%);
-  overflow: hidden;
-}
-
-.chain-link-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, rgb(139 92 246 / 15%) 0%, rgb(124 58 237 / 15%) 100%);
-  border-bottom: 1px solid rgb(139 92 246 / 20%);
-}
-
-.chain-link-icon {
-  font-size: var(--font-size-lg);
-  line-height: 1;
-}
-
-.chain-link-title {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-purple-300);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  --_section-border: var(--color-bg-purple-border);
+  --_section-bg: linear-gradient(135deg, rgb(139 92 246 / 5%) 0%, rgb(124 58 237 / 5%) 100%);
+  --_section-header-bg: linear-gradient(135deg, rgb(139 92 246 / 15%) 0%, rgb(124 58 237 / 15%) 100%);
+  --_section-separator: rgb(139 92 246 / 20%);
+  --_section-accent: var(--color-purple-300);
+  --_section-text: var(--color-purple-100);
 }
 
 .chain-link-flow {
@@ -114,9 +94,6 @@
 }
 
 .chain-link-text {
-  font-family: var(--font-serif);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-relaxed);
-  color: var(--color-purple-100);
-  font-style: italic;
 }

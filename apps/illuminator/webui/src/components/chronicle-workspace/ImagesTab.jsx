@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
 import ChronicleImagePanel from "../ChronicleImagePanel";
 import ChronicleImagePicker from "../ChronicleImagePicker";
-import { useImageUrl } from "@penguin-tales/image-store";
+import { useImageUrl } from "@the-canonry/image-store";
 import { analyzeImageRefCompatibility, createDefaultSelections } from "../../lib/imageRefCompatibility";
 import "./ImagesTab.css";
 
@@ -262,7 +262,7 @@ export default function ImagesTab({
   }, [onApplyImageRefSelections, activeVersionId, imageRefSelections]);
   return <div>
       {/* Cover Image */}
-      {(onGenerateCoverImageScene || onGenerateCoverImage) && <div className="itab-cover-section">
+      {(onGenerateCoverImageScene || onGenerateCoverImage) && <div className="ilu-section itab-cover-section">
           <div className="itab-cover-heading">Cover Image</div>
           <div className="itab-cover-layout">
             <div className="itab-cover-info">
@@ -285,13 +285,13 @@ export default function ImagesTab({
             </div>
             <div className="itab-cover-actions">
               <div className="itab-cover-btn-row">
-                {onGenerateCoverImageScene && <button onClick={onGenerateCoverImageScene} disabled={isGenerating} className={`itab-cover-btn ${isGenerating ? "itab-cover-btn-disabled" : "itab-cover-btn-enabled"}`}>
+                {onGenerateCoverImageScene && <button onClick={onGenerateCoverImageScene} disabled={isGenerating} className={`ilu-action-btn itab-cover-btn ${isGenerating ? "itab-cover-btn-disabled" : "itab-cover-btn-enabled"}`}>
                     {item.coverImage ? "Regen Scene" : "Gen Scene"}
                   </button>}
-                {onGenerateCoverImage && item.coverImage && (item.coverImage.status === "pending" || item.coverImage.status === "complete" || item.coverImage.status === "failed") && <button onClick={onGenerateCoverImage} disabled={isGenerating} className={`itab-cover-btn ${isGenerating ? "itab-cover-btn-disabled" : "itab-cover-btn-enabled"}`}>
+                {onGenerateCoverImage && item.coverImage && (item.coverImage.status === "pending" || item.coverImage.status === "complete" || item.coverImage.status === "failed") && <button onClick={onGenerateCoverImage} disabled={isGenerating} className={`ilu-action-btn itab-cover-btn ${isGenerating ? "itab-cover-btn-disabled" : "itab-cover-btn-enabled"}`}>
                       {item.coverImage.status === "complete" ? "Regen Image" : "Gen Image"}
                     </button>}
-                {onSelectExistingCoverImage && item.coverImage && !isGenerating && <button onClick={() => setShowCoverImagePicker(true)} className="itab-cover-btn itab-cover-btn-enabled">
+                {onSelectExistingCoverImage && item.coverImage && !isGenerating && <button onClick={() => setShowCoverImagePicker(true)} className="ilu-action-btn itab-cover-btn itab-cover-btn-enabled">
                     Select Existing
                   </button>}
               </div>
@@ -322,7 +322,7 @@ export default function ImagesTab({
           <ChronicleImagePanel imageRefs={item.imageRefs} entities={entityMap} onGenerateImage={onGenerateChronicleImage} onResetImage={onResetChronicleImage} onRegenerateDescription={onRegenerateDescription} onUpdateAnchorText={onUpdateChronicleAnchorText} onUpdateSize={onUpdateChronicleImageSize} onUpdateJustification={onUpdateChronicleImageJustification} onSelectExistingImage={onSelectExistingImage} projectId={item.projectId} chronicleId={item.chronicleId} chronicleText={chronicleText} isGenerating={isGenerating} styleLibrary={styleLibrary} styleSelection={styleSelection} cultures={cultures} cultureIdentities={cultureIdentities} worldContext={worldContext} chronicleTitle={item.title || item.name} imageSize={imageSize} imageQuality={imageQuality} imageModel={imageModel} imageGenSettings={imageGenSettings} onOpenImageSettings={onOpenImageSettings} />
         </div>}
 
-      {!item.imageRefs && !(onGenerateCoverImageScene || onGenerateCoverImage) && <div className="itab-empty">
+      {!item.imageRefs && !(onGenerateCoverImageScene || onGenerateCoverImage) && <div className="ilu-empty itab-empty">
           No images generated yet. Use the Pipeline tab to generate image refs and cover images.
         </div>}
     </div>;

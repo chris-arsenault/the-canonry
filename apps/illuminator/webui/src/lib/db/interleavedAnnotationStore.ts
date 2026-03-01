@@ -25,6 +25,7 @@ import {
 } from "../historianContextBuilders";
 import type { CorpusVoiceDigestCache, ReinforcementCache } from "../historianContextBuilders";
 import type { HistorianReviewConfig } from "../../hooks/useHistorianReview";
+import type { ReviewResult } from "./historianRunHelpers";
 import {
   dispatchReviewTask,
   pollReviewCompletion,
@@ -104,74 +105,88 @@ function computeNotesMaxOverride(index: number): number | undefined {
 // Work list construction
 // ============================================================================
 
+/**
+ * Compute a sort key for chronological ordering.
+ * Year-0 chronicles (mythology) are pushed to the end so the historian
+ * annotates them last, with a full corpus of prior notes to draw from.
+ */
+function chronicleSortKey(c: ChronicleNavItem): [number, number, number, string] {
+  const year = c.eraYear ?? Number.MAX_SAFE_INTEGER;
+  const zeroFlag = year === 0 ? 1 : 0;
+  const order = c.focalEraOrder ?? Number.MAX_SAFE_INTEGER;
+  return [zeroFlag, order, year, c.focalEraName || ""];
+}
+
+function sortChroniclesChronologically(items: ChronicleNavItem[]): void {
+  items.sort((a, b) => {
+    const [aZero, aOrder, aYear, aName] = chronicleSortKey(a);
+    const [bZero, bOrder, bYear, bName] = chronicleSortKey(b);
+    if (aZero !== bZero) return aZero - bZero;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    if (aYear !== bYear) return aYear - bYear;
+    return aName.localeCompare(bName);
+  });
+}
+
+/**
+ * Schedule entity work items for a single chronicle's referenced entities.
+ */
+function scheduleChronicleEntities(
+  chron: ChronicleNavItem,
+  chronicleTone: string,
+  entityNavItems: Map<string, EntityNavItem>,
+  scheduledEntityIds: Set<string>,
+  workItems: InterleavedWorkItem[]
+): void {
+  const roles = chron.roleAssignments || [];
+  const primaries = roles.filter((r) => r.isPrimary);
+  const supporting = roles.filter((r) => !r.isPrimary);
+  const orderedRoles = [...primaries, ...supporting];
+
+  for (const role of orderedRoles) {
+    if (scheduledEntityIds.has(role.entityId)) continue;
+    const nav = entityNavItems.get(role.entityId);
+    if (!nav || !nav.hasDescription) continue;
+
+    scheduledEntityIds.add(role.entityId);
+    workItems.push({
+      type: "entity",
+      entityId: role.entityId,
+      entityName: nav.name,
+      entityKind: nav.kind,
+      tone: chronicleTone,
+    });
+  }
+}
+
 function buildInterleavedWorkList(
   chronicleItems: ChronicleNavItem[],
   entityNavItems: Map<string, EntityNavItem>
 ): InterleavedWorkItem[] {
   const workItems: InterleavedWorkItem[] = [];
 
-  // 1. Filter eligible chronicles (complete status, no existing notes)
   const eligible = chronicleItems.filter(
     (c) => c.status === "complete" && c.historianNoteCount === 0
   );
+  sortChroniclesChronologically(eligible);
 
-  // 2. Sort in chronological order: focalEraOrder → eraYear → era name
-  //    Year-0 chronicles (mythology) are pushed to the end so the historian
-  //    annotates them last, with a full corpus of prior notes to draw from.
-  eligible.sort((a, b) => {
-    const yearA = a.eraYear ?? Number.MAX_SAFE_INTEGER;
-    const yearB = b.eraYear ?? Number.MAX_SAFE_INTEGER;
-    const aIsZero = yearA === 0 ? 1 : 0;
-    const bIsZero = yearB === 0 ? 1 : 0;
-    if (aIsZero !== bIsZero) return aIsZero - bIsZero;
-    const orderA = a.focalEraOrder ?? Number.MAX_SAFE_INTEGER;
-    const orderB = b.focalEraOrder ?? Number.MAX_SAFE_INTEGER;
-    if (orderA !== orderB) return orderA - orderB;
-    if (yearA !== yearB) return yearA - yearB;
-    return (a.focalEraName || "").localeCompare(b.focalEraName || "");
-  });
-
-  // 3. Track which entities are already scheduled or already annotated
   const scheduledEntityIds = new Set<string>();
   for (const [id, nav] of entityNavItems) {
     if (nav.hasHistorianNotes) scheduledEntityIds.add(id);
   }
 
-  // 4. Interleave: each chronicle followed by its referenced entities
   for (const chron of eligible) {
     const chronicleTone = chron.assignedTone || "weary";
-
     workItems.push({
       type: "chronicle",
       chronicleId: chron.chronicleId,
       title: chron.title || chron.name || "Untitled",
       tone: chronicleTone,
     });
-
-    // Get referenced entities from roleAssignments, primaries first
-    const roles = chron.roleAssignments || [];
-    const primaries = roles.filter((r) => r.isPrimary);
-    const supporting = roles.filter((r) => !r.isPrimary);
-    const orderedRoles = [...primaries, ...supporting];
-
-    for (const role of orderedRoles) {
-      if (scheduledEntityIds.has(role.entityId)) continue;
-
-      const nav = entityNavItems.get(role.entityId);
-      if (!nav || !nav.hasDescription) continue;
-
-      scheduledEntityIds.add(role.entityId);
-      workItems.push({
-        type: "entity",
-        entityId: role.entityId,
-        entityName: nav.name,
-        entityKind: nav.kind,
-        tone: chronicleTone,
-      });
-    }
+    scheduleChronicleEntities(chron, chronicleTone, entityNavItems, scheduledEntityIds, workItems);
   }
 
-  // 5. Append orphan entities (have descriptions but not referenced by any chronicle)
+  // Append orphan entities (have descriptions but not referenced by any chronicle)
   let orphanIndex = 0;
   for (const [id, nav] of entityNavItems) {
     if (scheduledEntityIds.has(id)) continue;
@@ -214,7 +229,7 @@ interface InterleavedCaches {
   reinforcement: ReinforcementCache;
 }
 
-async function createAndRunReview(config: HistorianReviewConfig): Promise<{ notes: any[]; prompts?: any; cost: number } | null> {
+async function createAndRunReview(config: HistorianReviewConfig): Promise<ReviewResult | null> {
   const runId = generateHistorianRunId();
   const now = Date.now();
   await createHistorianRun({
@@ -270,13 +285,93 @@ async function processEntityItem(
   return result.cost;
 }
 
+function getWorkItemLabel(item: InterleavedWorkItem): string {
+  if (item.type === "chronicle") return `Chronicle "${item.title}"`;
+  return `Entity "${item.entityName}"`;
+}
+
+function updateProgressCounters(
+  set: InterleavedSetFn,
+  processedItems: number,
+  processedChronicles: number,
+  processedEntities: number,
+  totalCost: number,
+  failedItems: Array<{ item: InterleavedWorkItem; error: string }>
+): void {
+  set((s) => ({
+    progress: {
+      ...s.progress,
+      processedItems,
+      processedChronicles,
+      processedEntities,
+      totalCost,
+      failedItems: [...failedItems],
+    },
+  }));
+}
+
+async function processWorkItem(
+  item: InterleavedWorkItem,
+  caches: InterleavedCaches,
+  maxNotes: number | undefined
+): Promise<{ cost: number; typeProcessed: "chronicle" | "entity" }> {
+  if (item.type === "chronicle") {
+    const cost = await processChronicleItem(item, caches, maxNotes);
+    return { cost, typeProcessed: "chronicle" };
+  }
+  const cost = await processEntityItem(item, caches, maxNotes);
+  return { cost, typeProcessed: "entity" };
+}
+
+interface RunCounters {
+  globalProcessed: number;
+  globalCost: number;
+  processedChronicles: number;
+  processedEntities: number;
+  failedItems: Array<{ item: InterleavedWorkItem; error: string }>;
+}
+
+/**
+ * Process a single work item, updating counters and progress. Returns true to continue, false to break.
+ */
+async function processOneItem(
+  item: InterleavedWorkItem,
+  itemIndex: number,
+  caches: InterleavedCaches,
+  counters: RunCounters,
+  set: InterleavedSetFn
+): Promise<boolean> {
+  try {
+    const maxNotes = computeNotesMaxOverride(itemIndex);
+    const { cost, typeProcessed } = await processWorkItem(item, caches, maxNotes);
+    if (cost < 0) return false;
+    if (typeProcessed === "chronicle") counters.processedChronicles++;
+    else counters.processedEntities++;
+    counters.globalCost += cost;
+    counters.globalProcessed++;
+  } catch (err) {
+    console.error(`[Interleaved Annotation] ${getWorkItemLabel(item)} failed:`, err);
+    counters.globalProcessed++;
+    if (item.type === "chronicle") counters.processedChronicles++;
+    else counters.processedEntities++;
+    counters.failedItems.push({ item, error: err instanceof Error ? err.message : String(err) });
+  }
+  updateProgressCounters(
+    set, counters.globalProcessed, counters.processedChronicles,
+    counters.processedEntities, counters.globalCost, counters.failedItems
+  );
+  return true;
+}
+
 async function runInterleavedAnnotation(
   workItems: InterleavedWorkItem[],
   set: InterleavedSetFn
 ): Promise<void> {
   try {
-    let globalProcessed = 0, globalCost = 0, processedChronicles = 0, processedEntities = 0;
-    const failedItems: Array<{ item: InterleavedWorkItem; error: string }> = [];
+    const counters: RunCounters = {
+      globalProcessed: 0, globalCost: 0,
+      processedChronicles: 0, processedEntities: 0, failedItems: [],
+    };
     const caches: InterleavedCaches = {
       corpusStrength: { runId: null, strength: null },
       voiceDigest: { runId: null, digest: null },
@@ -284,33 +379,11 @@ async function runInterleavedAnnotation(
     };
 
     for (let itemIndex = 0; itemIndex < workItems.length; itemIndex++) {
-      const item = workItems[itemIndex];
       if (cancelledFlag) break;
+      const item = workItems[itemIndex];
       set((s) => ({ progress: { ...s.progress, currentItem: item } }));
-
-      try {
-        const maxNotes = computeNotesMaxOverride(itemIndex);
-        let cost: number;
-        if (item.type === "chronicle") {
-          cost = await processChronicleItem(item as InterleavedWorkItem & { type: "chronicle" }, caches, maxNotes);
-          if (cost < 0) break;
-          processedChronicles++;
-        } else {
-          cost = await processEntityItem(item as InterleavedWorkItem & { type: "entity" }, caches, maxNotes);
-          if (cost < 0) break;
-          processedEntities++;
-        }
-        globalCost += cost;
-        globalProcessed++;
-        set((s) => ({ progress: { ...s.progress, processedItems: globalProcessed, processedChronicles, processedEntities, totalCost: globalCost, failedItems: [...failedItems] } }));
-      } catch (err) {
-        const label = item.type === "chronicle" ? `Chronicle "${(item as any).title}"` : `Entity "${(item as any).entityName}"`;
-        console.error(`[Interleaved Annotation] ${label} failed:`, err);
-        globalProcessed++;
-        if (item.type === "chronicle") processedChronicles++; else processedEntities++;
-        failedItems.push({ item, error: err instanceof Error ? err.message : String(err) });
-        set((s) => ({ progress: { ...s.progress, processedItems: globalProcessed, processedChronicles, processedEntities, totalCost: globalCost, failedItems: [...failedItems] } }));
-      }
+      const shouldContinue = await processOneItem(item, itemIndex, caches, counters, set);
+      if (!shouldContinue) break;
     }
 
     await useChronicleStore.getState().refreshAll();

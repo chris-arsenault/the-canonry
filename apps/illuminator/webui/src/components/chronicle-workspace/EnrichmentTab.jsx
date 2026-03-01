@@ -18,7 +18,7 @@ export default function EnrichmentTab({
 
   return (
     <div>
-      <div className="enrtab-container">
+      <div className="ilu-section enrtab-container">
         <div className="enrtab-heading">Post-Publish Enrichment</div>
         <div className="enrtab-sections">
           {/* Title */}

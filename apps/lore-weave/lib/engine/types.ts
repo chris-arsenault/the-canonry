@@ -247,7 +247,7 @@ export interface Graph {
   getAllRelationships(options?: { includeHistorical?: boolean }): Relationship[];
   getRelationshipCount(options?: { includeHistorical?: boolean }): number;
   findRelationships(criteria: RelationshipCriteria): Relationship[];
-  getEntityRelationships(entityId: string, direction?: 'src' | 'dst' | 'both', options?: { includeHistorical?: boolean }): Relationship[];
+  getEntityRelationships(entityId: string, direction?: Direction, options?: { includeHistorical?: boolean }): Relationship[];
   hasRelationship(srcId: string, dstId: string, kind?: string): boolean;
 
   // =============================================================================
@@ -846,6 +846,10 @@ export class GraphStore implements Graph {
   private entityMatchesCriteria(id: string, entity: HardState, criteria: EntityCriteria): boolean {
     if (!criteria.includeHistorical && entity.status === FRAMEWORK_STATUS.HISTORICAL) return false;
     if (criteria.exclude?.includes(id)) return false;
+    return this.entityMatchesFieldCriteria(entity, criteria);
+  }
+
+  private entityMatchesFieldCriteria(entity: HardState, criteria: EntityCriteria): boolean {
     if (criteria.kind && criteria.kind !== 'any' && entity.kind !== criteria.kind) return false;
     if (criteria.subtype && entity.subtype !== criteria.subtype) return false;
     if (criteria.status && entity.status !== criteria.status) return false;
@@ -878,21 +882,31 @@ export class GraphStore implements Graph {
   private collectConnectedIds(
     entityId: string,
     relationKind: string | undefined,
-    direction: 'src' | 'dst' | 'both',
+    direction: Direction,
     options?: { includeHistorical?: boolean }
   ): Set<string> {
+    const includeHistorical = options?.includeHistorical ?? false;
     const connectedIds = new Set<string>();
     for (const rel of this.#relationships) {
-      if (!options?.includeHistorical && rel.status === FRAMEWORK_STATUS.HISTORICAL) continue;
+      if (!includeHistorical && rel.status === FRAMEWORK_STATUS.HISTORICAL) continue;
       if (relationKind && rel.kind !== relationKind) continue;
-      if ((direction === 'src' || direction === 'both') && rel.src === entityId) {
-        connectedIds.add(rel.dst);
-      }
-      if ((direction === 'dst' || direction === 'both') && rel.dst === entityId) {
-        connectedIds.add(rel.src);
-      }
+      this.collectDirectionalIds(rel, entityId, direction, connectedIds);
     }
     return connectedIds;
+  }
+
+  private collectDirectionalIds(
+    rel: Relationship,
+    entityId: string,
+    direction: Direction,
+    ids: Set<string>
+  ): void {
+    if ((direction === 'src' || direction === 'both') && rel.src === entityId) {
+      ids.add(rel.dst);
+    }
+    if ((direction === 'dst' || direction === 'both') && rel.dst === entityId) {
+      ids.add(rel.src);
+    }
   }
 
   // ===========================================================================
@@ -900,85 +914,47 @@ export class GraphStore implements Graph {
   // ===========================================================================
 
   /**
-   * Create a new entity with contract enforcement.
-   * Enforces: id (required) → coordinates (required) → tags → name (auto-generated if not provided)
+   * Validate that all required fields are present and well-formed.
    */
-  createEntity(settings: CreateEntitySettings): Promise<string> {
-    const id = settings.id;
-    if (!id) {
-      throw new Error(
-        `createEntity: id is required for all entities. ` +
-        `Entity kind: ${settings.kind}, subtype: ${settings.subtype}.`
-      );
+  private validateCreateEntitySettings(settings: CreateEntitySettings): void {
+    const label = `Entity kind: ${settings.kind}, subtype: ${settings.subtype}`;
+    if (!settings.id) {
+      throw new Error(`createEntity: id is required for all entities. ${label}.`);
     }
-    if (this.#entities.has(id)) {
-      throw new Error(
-        `createEntity: id "${id}" already exists. ` +
-        `Entity kind: ${settings.kind}, subtype: ${settings.subtype}.`
-      );
+    if (this.#entities.has(settings.id)) {
+      throw new Error(`createEntity: id "${settings.id}" already exists. ${label}.`);
     }
-
-    // COORDINATES are REQUIRED - no silent defaults
     if (!settings.coordinates) {
-      throw new Error(
-        `createEntity: coordinates are required for all entities. ` +
-        `Entity kind: ${settings.kind}, subtype: ${settings.subtype}. ` +
-        `Provide coordinates explicitly.`
-      );
+      throw new Error(`createEntity: coordinates are required for all entities. ${label}. Provide coordinates explicitly.`);
     }
-
     const { x, y, z } = settings.coordinates;
     if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
-      throw new Error(
-        `createEntity: coordinates must include numeric x, y, z values. ` +
-        `Entity kind: ${settings.kind}, subtype: ${settings.subtype}. ` +
-        `Received: ${JSON.stringify(settings.coordinates)}.`
-      );
+      throw new Error(`createEntity: coordinates must include numeric x, y, z values. ${label}. Received: ${JSON.stringify(settings.coordinates)}.`);
     }
-
-    // Tags default to empty object - IMPORTANT: clone to avoid mutating source
-    const tags: EntityTags = { ...(settings.tags || {}) };
-
-    const name = settings.name;
-    if (!name) {
-      throw new Error(
-        `createEntity: name is required for GraphStore. ` +
-        `Runtime should generate names before calling createEntity. ` +
-        `Entity kind: ${settings.kind}, subtype: ${settings.subtype}.`
-      );
+    if (!settings.name) {
+      throw new Error(`createEntity: name is required for GraphStore. Runtime should generate names before calling createEntity. ${label}.`);
     }
-
     if (!settings.culture) {
-      throw new Error(
-        `createEntity: culture is required for all entities. ` +
-        `Entity kind: ${settings.kind}, subtype: ${settings.subtype}.`
-      );
+      throw new Error(`createEntity: culture is required for all entities. ${label}.`);
     }
     if (settings.culture.startsWith('$')) {
-      throw new Error(
-        `createEntity: culture must be a resolved value, not a variable reference. ` +
-        `Received: ${settings.culture}. Entity kind: ${settings.kind}, subtype: ${settings.subtype}.`
-      );
+      throw new Error(`createEntity: culture must be a resolved value, not a variable reference. Received: ${settings.culture}. ${label}.`);
     }
     if (!settings.status) {
-      throw new Error(
-        `createEntity: status is required for all entities. ` +
-        `Entity kind: ${settings.kind}, subtype: ${settings.subtype}.`
-      );
+      throw new Error(`createEntity: status is required for all entities. ${label}.`);
     }
     if (settings.prominence == null) {
-      throw new Error(
-        `createEntity: prominence is required for all entities. ` +
-        `Entity kind: ${settings.kind}, subtype: ${settings.subtype}.`
-      );
+      throw new Error(`createEntity: prominence is required for all entities. ${label}.`);
     }
+  }
 
-    // Build the full entity with lineage if mutation tracker has context
-    const entity: HardState = {
-      id,
+  private buildEntityFromSettings(settings: CreateEntitySettings): HardState {
+    const tags: EntityTags = { ...(settings.tags || {}) };
+    return {
+      id: settings.id,
       kind: settings.kind,
       subtype: settings.subtype,
-      name,
+      name: settings.name!,
       description: settings.description || '',
       narrativeHint: settings.narrativeHint,
       status: settings.status,
@@ -992,9 +968,19 @@ export class GraphStore implements Graph {
       allRegionIds: settings.allRegionIds,
       createdAt: this.tick,
       updatedAt: this.tick,
-      // Lineage: stamp createdBy from current execution context (see LINEAGE.md)
       createdBy: this.mutationTracker?.getCurrentContext() ?? undefined,
     };
+  }
+
+  /**
+   * Create a new entity with contract enforcement.
+   * Enforces: id (required) → coordinates (required) → tags → name (auto-generated if not provided)
+   */
+  createEntity(settings: CreateEntitySettings): Promise<string> {
+    this.validateCreateEntitySettings(settings);
+
+    const entity = this.buildEntityFromSettings(settings);
+    const id = settings.id;
 
     this.#entities.set(id, entity);
 
@@ -1014,7 +1000,7 @@ export class GraphStore implements Graph {
   }
 
   // Debug flag for tracing prominence mutations - set to true to enable logging
-  static DEBUG_PROMINENCE = false;
+  static readonly DEBUG_PROMINENCE = false;
 
   updateEntity(id: string, changes: Partial<HardState>): boolean {
     const entity = this.#entities.get(id);
@@ -1106,16 +1092,17 @@ export class GraphStore implements Graph {
   }
 
   findRelationships(criteria: RelationshipCriteria): Relationship[] {
-    return this.#relationships.filter(rel => {
-      // Filter historical by default unless explicitly included
-      if (!criteria.includeHistorical && rel.status === FRAMEWORK_STATUS.HISTORICAL) return false;
-      if (criteria.kind && rel.kind !== criteria.kind) return false;
-      if (criteria.src && rel.src !== criteria.src) return false;
-      if (criteria.dst && rel.dst !== criteria.dst) return false;
-      if (criteria.category && rel.category !== criteria.category) return false;
-      if (criteria.minStrength !== undefined && (rel.strength ?? 0) < criteria.minStrength) return false;
-      return true;
-    });
+    return this.#relationships.filter(rel => this.relationshipMatchesCriteria(rel, criteria));
+  }
+
+  private relationshipMatchesCriteria(rel: Relationship, criteria: RelationshipCriteria): boolean {
+    if (!criteria.includeHistorical && rel.status === FRAMEWORK_STATUS.HISTORICAL) return false;
+    if (criteria.kind && rel.kind !== criteria.kind) return false;
+    if (criteria.src && rel.src !== criteria.src) return false;
+    if (criteria.dst && rel.dst !== criteria.dst) return false;
+    if (criteria.category && rel.category !== criteria.category) return false;
+    if (criteria.minStrength !== undefined && (rel.strength ?? 0) < criteria.minStrength) return false;
+    return true;
   }
 
   getEntityRelationships(entityId: string, direction: 'src' | 'dst' | 'both' = 'both', options?: { includeHistorical?: boolean }): Relationship[] {
@@ -1146,59 +1133,37 @@ export class GraphStore implements Graph {
    * Distance is ALWAYS computed from Euclidean distance between entity coordinates.
    * @returns true if relationship was added, false if duplicate or invalid
    */
+  private computeEntityDistance(src: HardState, dst: HardState): number | undefined {
+    if (!src.coordinates || !dst.coordinates) return undefined;
+    const dx = src.coordinates.x - dst.coordinates.x;
+    const dy = src.coordinates.y - dst.coordinates.y;
+    const dz = (src.coordinates.z ?? 0) - (dst.coordinates.z ?? 0);
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
   addRelationship(kind: string, srcId: string, dstId: string, strength?: number, _distanceIgnored?: number, category?: string): boolean {
-    // Validate entities exist
     const srcEntity = this.#entities.get(srcId);
     const dstEntity = this.#entities.get(dstId);
+    if (!srcEntity || !dstEntity) return false;
 
-    if (!srcEntity || !dstEntity) {
-      return false;
-    }
-
-    // Check for duplicate
-    const exists = this.#relationships.some(
+    const isDuplicate = this.#relationships.some(
       r => r.src === srcId && r.dst === dstId && r.kind === kind
     );
-    if (exists) {
-      return false;  // Duplicate - silently skip
-    }
+    if (isDuplicate) return false;
 
-    // Compute distance from coordinates (relationship.distance === Euclidean distance)
-    let distance: number | undefined;
-    if (srcEntity.coordinates && dstEntity.coordinates) {
-      const dx = srcEntity.coordinates.x - dstEntity.coordinates.x;
-      const dy = srcEntity.coordinates.y - dstEntity.coordinates.y;
-      const dz = (srcEntity.coordinates.z ?? 0) - (dstEntity.coordinates.z ?? 0);
-      distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    }
+    const distance = this.computeEntityDistance(srcEntity, dstEntity);
 
-    // Build relationship with lineage if mutation tracker has context
     const relationship: Relationship = {
-      kind,
-      src: srcId,
-      dst: dstId,
-      strength: strength ?? 0.5,
-      distance,
-      category,
-      status: 'active',
-      createdAt: this.tick,
-      // Lineage: stamp createdBy from current execution context (see LINEAGE.md)
+      kind, src: srcId, dst: dstId,
+      strength: strength ?? 0.5, distance, category,
+      status: 'active', createdAt: this.tick,
       createdBy: this.mutationTracker?.getCurrentContext() ?? undefined,
     };
 
     this.#relationships.push(relationship);
-
-    // Record relationship creation for context-based event generation
-    this.mutationTracker?.recordRelationshipCreated({
-      srcId,
-      dstId,
-      kind,
-      strength: relationship.strength,
-    });
-
+    this.mutationTracker?.recordRelationshipCreated({ srcId, dstId, kind, strength: relationship.strength });
     srcEntity.updatedAt = this.tick;
     dstEntity.updatedAt = this.tick;
-
     return true;
   }
 

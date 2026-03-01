@@ -214,7 +214,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* Current Simulation */}
       {simCategorized && (
         <CostCard title="Current Simulation">
-          <div className="cpanel-section-hint">Costs from this simulation run.</div>
+          <div className="ilu-hint cpanel-section-hint">Costs from this simulation run.</div>
           <CostRow label="Text generations" value={simCategorized.text.actual} />
           <CostRow
             label={`  \u2514 ${simCategorized.text.count} requests`}
@@ -247,7 +247,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* Pending Queue */}
       {queueCosts.total > 0 && (
         <CostCard title="Pending Queue (Estimated)">
-          <div className="cpanel-section-hint">
+          <div className="ilu-hint cpanel-section-hint">
             Estimated costs for queued tasks not yet completed.
           </div>
           <CostRow label="Text generations" value={queueCosts.textEstimated} isEstimated />
@@ -264,7 +264,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* By Model */}
       {simulationCosts && Object.keys(simulationCosts.byModel).length > 0 && (
         <CostCard title="By Model (Simulation)">
-          <div className="cpanel-section-hint">Cost breakdown by model used.</div>
+          <div className="ilu-hint cpanel-section-hint">Cost breakdown by model used.</div>
           {Object.entries(simulationCosts.byModel)
             .sort((a, b) => b[1].actual - a[1].actual)
             .map(([model, data]) => (
@@ -276,7 +276,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* Project Total */}
       {projCategorized && (
         <CostCard title="Project Total">
-          <div className="cpanel-section-hint">
+          <div className="ilu-hint cpanel-section-hint">
             Accumulated costs for this project across all simulations.
           </div>
           <CostRow label="Text generations" value={projCategorized.text.actual} />
@@ -289,7 +289,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* All Time */}
       {allCategorized && (
         <CostCard title="All Time Total">
-          <div className="cpanel-section-hint">
+          <div className="ilu-hint cpanel-section-hint">
             Accumulated costs across all projects and sessions.
           </div>
           <CostRow label="Text generations" value={allCategorized.text.actual} />
@@ -313,7 +313,7 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
       {/* Empty state */}
       {!simulationCosts && !allTimeCosts && queueCosts.total === 0 && (
         <CostCard title="Cost Tracking">
-          <div className="cpanel-empty-hint">
+          <div className="ilu-hint cpanel-empty-hint">
             No costs recorded yet. Costs will appear here as you generate content.
           </div>
         </CostCard>

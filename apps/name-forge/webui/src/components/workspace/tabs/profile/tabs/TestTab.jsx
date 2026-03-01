@@ -4,7 +4,7 @@
 
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-import { NumberInput } from "@penguin-tales/shared-components";
+import { NumberInput, ErrorMessage } from "@the-canonry/shared-components";
 import { generateTestNames } from "../../../../../lib/browser-generator.js";
 
 export default function TestTab({ profile, cultureConfig }) {
@@ -58,7 +58,7 @@ export default function TestTab({ profile, cultureConfig }) {
         </button>
       </div>
 
-      {testError && <div className="error-box">{testError}</div>}
+      {testError && <ErrorMessage message={testError} />}
 
       {strategyUsage && Object.keys(strategyUsage).length > 0 && (
         <div className="strategy-usage-summary">

@@ -44,7 +44,7 @@ export default function ChronicleVersionSelector({
           setConfirmingDeleteId(null);
         }}
         disabled={disabled}
-        className="illuminator-select cvs-select-version"
+        className="illuminator-select ilu-compact-select cvs-select-version"
       >
         {versions.map((version) => (
           <option key={version.id} value={version.id}>
@@ -56,7 +56,7 @@ export default function ChronicleVersionSelector({
         value={compareToVersionId}
         onChange={(e) => onSelectCompareVersion(e.target.value)}
         disabled={disabled}
-        className="illuminator-select cvs-select-compare"
+        className="illuminator-select ilu-compact-select cvs-select-compare"
         title="Select a version to diff against"
       >
         <option value="">Compare to...</option>
@@ -69,12 +69,12 @@ export default function ChronicleVersionSelector({
           ))}
       </select>
       {isActive ? (
-        <span className="cvs-active-badge">Active</span>
+        <span className="ilu-active-badge">Active</span>
       ) : (
         <button
           onClick={() => onSetActiveVersion?.(selectedVersionId)}
           disabled={disabled || !onSetActiveVersion}
-          className="cvs-btn-make-active"
+          className="ilu-action-btn-sm"
         >
           Make Active
         </button>
@@ -85,7 +85,7 @@ export default function ChronicleVersionSelector({
           onBlur={() => setConfirmingDeleteId(null)}
           disabled={disabled}
           title={confirmingDelete ? "Click again to confirm deletion" : "Delete this version"}
-          className={`cvs-btn-delete${confirmingDelete ? " cvs-btn-delete-confirming" : ""}`}
+          className={`ilu-action-btn-sm cvs-btn-delete${confirmingDelete ? " cvs-btn-delete-confirming" : ""}`}
         >
           {confirmingDelete ? "Confirm Delete" : "Delete"}
         </button>

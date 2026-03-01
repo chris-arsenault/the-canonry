@@ -54,9 +54,9 @@ function LazyThumbnail({ imageId, alt, className }) {
   return (
     <div ref={ref} className={className}>
       {url ? (
-        <img src={url} alt={alt} className="cip-thumb-img" />
+        <img src={url} alt={alt} className="ilu-thumb-cover" />
       ) : (
-        <div className="cip-thumb-loading">Loading...</div>
+        <div className="ilu-thumb-placeholder">Loading...</div>
       )}
     </div>
   );
@@ -279,10 +279,10 @@ export default function ChronicleImagePicker({
           {/* Image grid */}
           <div className="cip-grid-area">
             {loading && images.length === 0 && (
-              <div className="cip-empty-state">Loading images...</div>
+              <div className="ilu-empty cip-empty-state">Loading images...</div>
             )}
             {!loading && images.length === 0 && (
-              <div className="cip-empty-state">
+              <div className="ilu-empty cip-empty-state">
                 No images found. Try unchecking filters to see more.
               </div>
             )}

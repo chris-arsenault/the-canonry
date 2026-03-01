@@ -5,7 +5,7 @@
  * Used for project export/import and reload defaults functionality.
  */
 
-import { openIlluminatorDb } from "../lib/illuminatorDbReader";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 // ============================================================================
 // Database Configuration

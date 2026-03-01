@@ -5,7 +5,7 @@
  * Pages are created/edited in Illuminator, but displayed here in Chronicler.
  */
 
-import { openIlluminatorDb } from "./illuminatorDbReader";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 const STATIC_PAGE_STORE_NAME = "staticPages";
 

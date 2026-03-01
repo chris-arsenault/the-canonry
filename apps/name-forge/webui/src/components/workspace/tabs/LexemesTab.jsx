@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-import { NumberInput } from "@penguin-tales/shared-components";
+import { NumberInput, ErrorMessage } from "@the-canonry/shared-components";
 import { LEXEME_CATEGORIES, WORD_STYLE_PRESETS } from "../../constants";
 import { generateLexemesWithAnthropic } from "../../../lib/anthropicClient";
 import { CopyLexemeModal } from "./CopyLexemeModal";
@@ -233,7 +233,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
           )}
         </p>
 
-        {error && <div className="error mb-md">{error}</div>}
+        {error && <ErrorMessage message={error} className="mb-md" />}
 
         {/* Lexeme Specs Section */}
         {lexemeSpecs.length > 0 && (
@@ -425,7 +425,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
           grammar rules into names.
         </p>
 
-        {error && <div className="error mb-md">{error}</div>}
+        {error && <ErrorMessage message={error} className="mb-md" />}
 
         <div className="form-group">
           <label htmlFor="spec-id">Spec ID</label>
@@ -622,7 +622,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
             : "Manually create a lexeme list. Perfect for titles, connectors, and culture-specific terms."}
         </p>
 
-        {error && <div className="error mb-md">{error}</div>}
+        {error && <ErrorMessage message={error} className="mb-md" />}
 
         <div className="form-group">
           <label htmlFor="list-id">List ID</label>

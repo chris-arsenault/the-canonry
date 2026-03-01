@@ -9,7 +9,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import "./EventSwimlanes.css";
 import { SWIMLANE_CONFIG } from "./scales";
-import { EVENT_COLORS } from "./SimulationTraceVisx";
+import { EVENT_COLORS } from "./traceConstants";
 
 const LANE_LABELS = {
   template: "Templates",

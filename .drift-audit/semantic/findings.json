@@ -1,0 +1,550 @@
+[
+  {
+    "clusterId": "cluster-001",
+    "verdict": "DUPLICATE",
+    "confidence": 0.95,
+    "role": "IndexedDB read operations \u2014 query illuminator DB for chronicles, entities, events, static pages, era narratives by simulation run or project ID",
+    "sharedBehavior": [
+      "opens illuminator DB via openIlluminatorDb()",
+      "creates readonly transaction on target store",
+      "queries by index (simulationRunId or projectId)",
+      "filters/sorts results in onsuccess callback",
+      "closes DB in finally block"
+    ],
+    "meaningfulDifferences": [
+      "chronicler filters for status==='complete' inline; canonry delegates to filterCompleted()",
+      "world-store uses generic getAllByIndex helper instead of raw IDB",
+      "canonry is JS, chronicler is TS, world-store is TS"
+    ],
+    "accidentalDifferences": [
+      "function naming: getCompletedChroniclesForSimulation vs getChronicles",
+      "error handling: canonry/chronicler wrap in try/catch, world-store does not",
+      "store name constants: CHRONICLE_STORE_NAME vs CHRONICLES_STORE"
+    ],
+    "featureGaps": [
+      "world-store has generic getRecord/getAllByIndex helpers that canonry/chronicler don't use",
+      "canonry has import/seed functions that world-store lacks"
+    ],
+    "consolidationComplexity": "MEDIUM",
+    "consolidationReasoning": "world-store already contains generic helpers (getRecord, getAllByIndex) that could replace all raw IDB boilerplate in canonry/storage and chronicler/lib. The challenge is that canonry/chronicler have additional filtering/projection logic that would need to be parameterized.",
+    "consumerImpact": "canonry App.jsx, chronicler components, illuminator components \u2014 3 apps import these functions",
+    "code_excerpts": [
+      {
+        "unitId": "apps/canonry/webui/src/storage/chronicleStorage.js::getCompletedChroniclesForSimulation",
+        "file": "apps/canonry/webui/src/storage/chronicleStorage.js",
+        "start_line": 15,
+        "end_line": 37,
+        "snippet": "export async function getCompletedChroniclesForSimulation(simulationRunId) {\n  if (!simulationRunId) return [];\n  try {\n    const db = await openIlluminatorDb();\n    try {\n      return await new Promise((resolve, reject) => {\n        const tx = db.transaction(CHRONICLE_STORE_NAME, \"readonly\");\n        const store = tx.objectStore(CHRONICLE_STORE_NAME);\n        const index = store.index(\"simulationRunId\");\n        const request = index.getAll(IDBKeyRange.only(simulationRunId));\n        request.onsuccess = () => resolve(filterCompleted(request.result || []));\n        request.onerror = () => reject(request.error);\n      });\n    } finally {\n      db.close();\n    }\n  } catch (err) {\n    console.error(\"[chronicleStorage] Failed to load chronicles:\", err);\n    return [];\n  }\n}"
+      },
+      {
+        "unitId": "apps/chronicler/webui/src/lib/chronicleStorage.ts::getCompletedChroniclesForSimulation",
+        "file": "apps/chronicler/webui/src/lib/chronicleStorage.ts",
+        "start_line": 109,
+        "end_line": 140,
+        "snippet": "export async function getCompletedChroniclesForSimulation(\n  simulationRunId: string\n): Promise<ChronicleRecord[]> {\n  if (!simulationRunId) return [];\n  try {\n    const db = await openIlluminatorDb();\n    try {\n      return await new Promise((resolve, reject) => {\n        const tx = db.transaction(CHRONICLE_STORE_NAME, \"readonly\");\n        const store = tx.objectStore(CHRONICLE_STORE_NAME);\n        const index = store.index(\"simulationRunId\");\n        const request = index.getAll(IDBKeyRange.only(simulationRunId));\n        request.onsuccess = () => {\n          const allChronicles = request.result as ChronicleRecord[];\n          const completed = allChronicles.filter((c) => c.status === \"complete\" && c.acceptedAt);\n          completed.sort((a, b) => (b.acceptedAt || 0) - (a.acceptedAt || 0));\n          resolve(completed);\n        };\n        request.onerror = () => reject(request.error);\n      });\n    } finally {\n      db.close();\n    }\n  } catch (err) {\n    console.error(\"[chronicleStorage] Failed to load chronicles:\", err);\n    return [];\n  }\n}"
+      },
+      {
+        "unitId": "packages/world-store/src/index.ts::getChronicles",
+        "file": "packages/world-store/src/index.ts",
+        "start_line": 190,
+        "end_line": 200,
+        "snippet": "export async function getChronicles(simulationRunId: string): Promise<ChronicleRecord[]> {\n  const db = await openIlluminatorDb();\n  const records = await getAllByIndex<ChronicleRecord>(\n    db,\n    CHRONICLES_STORE,\n    'simulationRunId',\n    simulationRunId,\n  );\n  db.close();\n  return records;\n}"
+      }
+    ],
+    "target_interface": "Consolidate all read operations into world-store using its existing getRecord/getAllByIndex generic helpers. Each query becomes a thin wrapper: getChroniclesForSimulation(id, { filter?, sort? })"
+  },
+  {
+    "clusterId": "cluster-002",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 shared UI components exported through barrel files",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "These are the same components re-exported through barrel index.js files in coherence-engine and name-forge. The app-level shared/index.js files contain pure re-exports from @the-canonry/shared-components, not independent implementations.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-003",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.95,
+    "role": "Re-export chain \u2014 dropdown/select components plus a few domain-specific editors that share hook profiles",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [
+      "SelectionFiltersEditor and EffectsTab are domain-specific editors, not generic shared components"
+    ],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "Cluster is dominated by ChipSelect, ReferenceDropdown, SearchableDropdown re-export chains. The domain editors (OutcomeTab, EffectsTab, SelectionFiltersEditor) were pulled in by shared hook profiles (useState, useMemo, useEffect) \u2014 structural similarity, not semantic duplication.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-004",
+    "verdict": "OVERLAPPING",
+    "confidence": 0.85,
+    "role": "IndexedDB write/mutation operations \u2014 persist world data, import bundles, manage simulation slots across canonry storage and illuminator repository layers",
+    "sharedBehavior": [
+      "opens illuminator DB via openIlluminatorDb()",
+      "creates readwrite transactions",
+      "puts/deletes records in IDB stores",
+      "closes DB after operation"
+    ],
+    "meaningfulDifferences": [
+      "canonry storage handles bulk import (importChronicles, importEntities, importNarrativeEvents, importStaticPages)",
+      "illuminator has Dexie-based repository with richer typed CRUD",
+      "canonry worldStore manages slot lifecycle (save/load/clear) which is app-specific"
+    ],
+    "accidentalDifferences": [
+      "canonry uses raw IDB API, illuminator uses Dexie ORM",
+      "different error handling patterns",
+      "JS vs TS"
+    ],
+    "featureGaps": [
+      "illuminator repositories have typed Dexie schemas; canonry storage does not",
+      "canonry has slot management (saveToSlot, loadSlot, clearSlot) that illuminator accesses via world-store"
+    ],
+    "consolidationComplexity": "HIGH",
+    "consolidationReasoning": "The write paths are more heterogeneous than the reads (cluster-001). Canonry's import functions handle bulk seeding from bundles, while illuminator's repositories handle per-record CRUD during enrichment workflows. Consolidation would require establishing world-store as the canonical write layer and migrating both apps, but the slot management and import logic are app-specific enough to resist full unification.",
+    "consumerImpact": "canonry App.jsx + storage modules, illuminator stores + repositories",
+    "code_excerpts": [
+      {
+        "unitId": "apps/canonry/webui/src/storage/chronicleStorage.js::importChronicles",
+        "file": "apps/canonry/webui/src/storage/chronicleStorage.js",
+        "start_line": 71,
+        "end_line": 95,
+        "snippet": "export async function importChronicles(projectId, chronicles, options = {}) {\n  if (!projectId || !Array.isArray(chronicles) || chronicles.length === 0) {\n    return { imported: 0, overwritten: 0, skipped: 0 };\n  }\n  const db = await openIlluminatorDb();\n  const { simulationRunId } = options;\n  let imported = 0;\n  let overwritten = 0;\n  let skipped = 0;\n  // ... raw IDB put() loop\n}"
+      },
+      {
+        "unitId": "packages/world-store/src/index.ts::getSlotRecord",
+        "file": "packages/world-store/src/index.ts",
+        "start_line": 130,
+        "end_line": 138,
+        "snippet": "export async function getSlotRecord(\n  projectId: string,\n  slotIndex: number,\n): Promise<SimulationSlotRecord | null> {\n  const db = await openIlluminatorDb();\n  const record = await getRecord<SimulationSlotRecord>(db, SLOTS_STORE, [projectId, slotIndex]);\n  db.close();\n  return record;\n}"
+      },
+      {
+        "unitId": "apps/illuminator/webui/src/lib/db/entityRepository.ts::seedEntities",
+        "file": "apps/illuminator/webui/src/lib/db/entityRepository.ts",
+        "start_line": 31,
+        "end_line": 40,
+        "snippet": "export async function seedEntities(\n  simulationRunId: string,\n  entities: WorldEntity[]\n): Promise<void> {\n  const records: PersistedEntity[] = entities.map((e) => ({\n    ...e,\n    simulationRunId,\n  }));\n  await db.entities.bulkPut(records);\n}"
+      }
+    ],
+    "target_interface": "Move generic slot and import operations to world-store. Let app-specific workflow logic remain in app code but delegate DB writes through world-store."
+  },
+  {
+    "clusterId": "cluster-005",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 validation badges (ErrorBadge, OrphanBadge, SectionHeader, TabValidationBadge)",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "Same re-export chain pattern as cluster-002. Components defined in shared-components, re-exported through app barrel files.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-006",
+    "verdict": "OVERLAPPING",
+    "confidence": 0.88,
+    "role": "Illuminator Dexie repository layer \u2014 typed CRUD for entities, events, relationships, chronicles, schemas, static pages against the illuminator IndexedDB",
+    "sharedBehavior": [
+      "accesses illuminator database",
+      "reads/writes same stores as canonry/storage and world-store",
+      "query by simulationRunId or entity ID"
+    ],
+    "meaningfulDifferences": [
+      "illuminator uses Dexie ORM (db.entities.where/put/delete)",
+      "canonry uses raw IDB API",
+      "world-store uses raw IDB with generic helpers",
+      "illuminator has richer operations (isSeeded, seedEntities, refreshEraSummaries)"
+    ],
+    "accidentalDifferences": [
+      "three different access patterns for the same physical database",
+      "different typing strategies (Dexie typed tables vs manual TS vs untyped JS)"
+    ],
+    "featureGaps": [
+      "illuminator has seed detection (isSeeded, isNarrativeEventsSeeded, isRelationshipsSeeded)",
+      "illuminator has batch refresh operations (refreshEraSummariesInChronicles)",
+      "world-store has buildWorldStateForSlot() that reads across stores"
+    ],
+    "consolidationComplexity": "HIGH",
+    "consolidationReasoning": "Three apps access the same DB through three different access layers. Illuminator's Dexie layer is the richest but only works within illuminator. A unified approach would make world-store the single access layer using Dexie, replacing raw IDB in canonry and chronicler. This is a large architectural change touching 50+ functions.",
+    "consumerImpact": "illuminator (22 repository functions), canonry (15+ storage functions), chronicler (8 storage functions), world-store (15 functions)",
+    "code_excerpts": [
+      {
+        "unitId": "apps/illuminator/webui/src/lib/db/entityRepository.ts::getEntitiesForRun",
+        "file": "apps/illuminator/webui/src/lib/db/entityRepository.ts",
+        "start_line": 126,
+        "end_line": 128,
+        "snippet": "export async function getEntitiesForRun(simulationRunId: string): Promise<PersistedEntity[]> {\n  return db.entities.where(\"simulationRunId\").equals(simulationRunId).toArray();\n}"
+      },
+      {
+        "unitId": "packages/world-store/src/index.ts::getEntities",
+        "file": "packages/world-store/src/index.ts",
+        "start_line": 154,
+        "end_line": 164,
+        "snippet": "export async function getEntities(simulationRunId: string): Promise<WorldEntity[]> {\n  const db = await openIlluminatorDb();\n  const records = await getAllByIndex<WorldEntity & { simulationRunId?: string }>(\n    db,\n    ENTITIES_STORE,\n    'simulationRunId',\n    simulationRunId,\n  );\n  db.close();\n  return records.map(stripSimulationRunId) as WorldEntity[];\n}"
+      },
+      {
+        "unitId": "apps/illuminator/webui/src/lib/db/entityRepository.ts::isSeeded",
+        "file": "apps/illuminator/webui/src/lib/db/entityRepository.ts",
+        "start_line": 22,
+        "end_line": 25,
+        "snippet": "export async function isSeeded(simulationRunId: string): Promise<boolean> {\n  const count = await db.entities.where(\"simulationRunId\").equals(simulationRunId).count();\n  return count > 0;\n}"
+      },
+      {
+        "unitId": "apps/canonry/webui/src/storage/entityStorage.js::getEntityCountForRun",
+        "file": "apps/canonry/webui/src/storage/entityStorage.js",
+        "start_line": 80,
+        "end_line": 95,
+        "snippet": "export async function getEntityCountForRun(simulationRunId) {\n  if (!simulationRunId) return 0;\n  const db = await openIlluminatorDb();\n  try {\n    return await new Promise((resolve, reject) => {\n      const tx = db.transaction(ENTITIES_STORE_NAME, \"readonly\");\n      const store = tx.objectStore(ENTITIES_STORE_NAME);\n      const index = store.index(\"simulationRunId\");\n      const request = index.count(simulationRunId);\n      request.onsuccess = () => resolve(request.result || 0);\n      request.onerror = () => reject(request.error);\n    });\n  } finally {\n    db.close();\n  }\n}"
+      }
+    ],
+    "target_interface": "Migrate world-store to Dexie. Move all repository operations into world-store. Apps import from world-store instead of maintaining local storage/repository layers."
+  },
+  {
+    "clusterId": "cluster-007",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.85,
+    "role": "Default-exported lazy-loaded view components plus index re-exports",
+    "sharedBehavior": [
+      "default export pattern",
+      "use Object.entries and useMemo for data processing"
+    ],
+    "meaningfulDifferences": [
+      "DependencyViewer shows dependency graphs",
+      "ConfigurationSummary shows config overview",
+      "ResultsViewer shows simulation results",
+      "OptimizerWorkshop shows optimization UI"
+    ],
+    "accidentalDifferences": [
+      "shared useMemo + Object.entries pattern"
+    ],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "Structural similarity from shared React patterns (useMemo, Object.entries().map). These components serve completely different purposes \u2014 dependency visualization, config summary, simulation results, and optimization. Not semantic drift.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-008",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 IconButton component",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "IconButton defined once in shared-components, re-exported through barrel files.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-009",
+    "verdict": "DUPLICATE",
+    "confidence": 0.98,
+    "role": "Prefixed ID generation \u2014 produce unique IDs in the format prefix_timestamp_uuid-slice for database records",
+    "sharedBehavior": [
+      "uses Date.now() for timestamp component",
+      "uses crypto.randomUUID().slice() for random component",
+      "returns template string: prefix_timestamp_random"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [
+      "different prefix strings (cost_, dynrun_, eranarr_, enver_, histrun_, static_, revrun_, event_)",
+      "UUID slice length varies: 6, 8, or 9 characters"
+    ],
+    "featureGaps": [
+      "lore-weave's generateEventId has a fallback for missing crypto.randomUUID"
+    ],
+    "consolidationComplexity": "LOW",
+    "consolidationReasoning": "All 7 illuminator functions are trivially identical: prefix_${Date.now()}_${crypto.randomUUID().slice(0, N)}. A single generatePrefixedId(prefix, sliceLength?) utility replaces all of them.",
+    "consumerImpact": "7 illuminator repository files, 1 lore-weave core file",
+    "code_excerpts": [
+      {
+        "unitId": "apps/illuminator/webui/src/lib/db/dynamicsRepository.ts::generateRunId",
+        "file": "apps/illuminator/webui/src/lib/db/dynamicsRepository.ts",
+        "start_line": 10,
+        "end_line": 12,
+        "snippet": "export function generateRunId(): string {\n  return `dynrun_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;\n}"
+      },
+      {
+        "unitId": "apps/illuminator/webui/src/lib/db/costRepository.ts::generateCostId",
+        "file": "apps/illuminator/webui/src/lib/db/costRepository.ts",
+        "start_line": 16,
+        "end_line": 18,
+        "snippet": "export function generateCostId(): string {\n  return `cost_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;\n}"
+      },
+      {
+        "unitId": "apps/illuminator/webui/src/lib/db/eraNarrativeRepository.ts::generateEraNarrativeId",
+        "file": "apps/illuminator/webui/src/lib/db/eraNarrativeRepository.ts",
+        "start_line": 15,
+        "end_line": 17,
+        "snippet": "export function generateEraNarrativeId(): string {\n  return `eranarr_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;\n}"
+      },
+      {
+        "unitId": "apps/illuminator/webui/src/lib/db/historianRepository.ts::generateHistorianRunId",
+        "file": "apps/illuminator/webui/src/lib/db/historianRepository.ts",
+        "start_line": 10,
+        "end_line": 12,
+        "snippet": "export function generateHistorianRunId(): string {\n  return `histrun_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;\n}"
+      },
+      {
+        "unitId": "apps/illuminator/webui/src/lib/db/summaryRevisionRepository.ts::generateRevisionRunId",
+        "file": "apps/illuminator/webui/src/lib/db/summaryRevisionRepository.ts",
+        "start_line": 14,
+        "end_line": 16,
+        "snippet": "export function generateRevisionRunId(): string {\n  return `revrun_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;\n}"
+      },
+      {
+        "unitId": "apps/illuminator/webui/src/lib/db/staticPageRepository.ts::generatePageId",
+        "file": "apps/illuminator/webui/src/lib/db/staticPageRepository.ts",
+        "start_line": 10,
+        "end_line": 12,
+        "snippet": "export function generatePageId(): string {\n  return `static_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;\n}"
+      },
+      {
+        "unitId": "apps/illuminator/webui/src/lib/db/eraNarrativeRepository.ts::generateVersionId",
+        "file": "apps/illuminator/webui/src/lib/db/eraNarrativeRepository.ts",
+        "start_line": 19,
+        "end_line": 21,
+        "snippet": "export function generateVersionId(): string {\n  return `enver_${Date.now()}_${crypto.randomUUID().slice(0, 6)}`;\n}"
+      },
+      {
+        "unitId": "apps/lore-weave/lib/core/idGeneration.ts::generateEventId",
+        "file": "apps/lore-weave/lib/core/idGeneration.ts",
+        "start_line": 18,
+        "end_line": 23,
+        "snippet": "export function generateEventId(): string {\n  const cryptoObj = (globalThis as { crypto?: ... }).crypto;\n  if (cryptoObj?.randomUUID) {\n    return `event_${cryptoObj.randomUUID()}`;\n  }\n  return `event_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;\n}"
+      }
+    ],
+    "target_interface": "export function generatePrefixedId(prefix: string, uuidSliceLength: number = 8): string {\n  return `${prefix}_${Date.now()}_${crypto.randomUUID().slice(0, uuidSliceLength)}`;\n}"
+  },
+  {
+    "clusterId": "cluster-010",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 ModalShell component",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "ModalShell defined once in shared-components, re-exported through barrel files.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-011",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 LevelSelector component",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "LevelSelector defined once in shared-components, re-exported through barrel files.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-012",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 useEditorState hook",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "useEditorState defined once in shared-components, re-exported through barrel files. Note: the structural manifest already tracks the coherence-engine diverged copy separately (shared-hook-divergence).",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-013",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 getElementValidation utility",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "getElementValidation defined once in shared-components/utils, re-exported through barrel files.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-014",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 EraBadges component",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "EraBadges defined once in shared-components, re-exported through barrel files.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-015",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.95,
+    "role": "Re-export chain \u2014 DetailUsageBadges / UsageBadges component",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [
+      "coherence-engine exports as UsageBadges (different name) from dependency-viewer/components/index.js"
+    ],
+    "accidentalDifferences": [
+      "component name: UsageBadges vs DetailUsageBadges"
+    ],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "Mostly re-export chain. The coherence-engine UsageBadges name divergence is minor.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-016",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 PressureChangesEditor component",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "PressureChangesEditor defined once in shared-components, re-exported through barrel files.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-017",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 CategorySection component",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "CategorySection defined once in shared-components, re-exported through barrel files.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-018",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.99,
+    "role": "Re-export chain \u2014 useLocalInputState hook",
+    "sharedBehavior": [
+      "re-export from @the-canonry/shared-components"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "useLocalInputState defined once in shared-components, re-exported through barrel files. Note: the structural manifest already tracks the dead copy in coherence-engine (shared-hook-divergence).",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-019",
+    "verdict": "FALSE_POSITIVE",
+    "confidence": 0.95,
+    "role": "Re-export chain \u2014 name-forge mutation functions exported through barrel files",
+    "sharedBehavior": [
+      "re-export from name-forge/lib/optimizer/mutations.ts"
+    ],
+    "meaningfulDifferences": [],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "Functions defined in mutations.ts, re-exported through optimizer/index.ts, then lib/index.ts. Standard barrel export architecture, not duplication.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-020",
+    "verdict": "RELATED",
+    "confidence": 0.75,
+    "role": "Modal/overlay components with keyboard event listeners \u2014 serving different purposes (era narrative, relationship stories, image lightbox, entity details, image modal)",
+    "sharedBehavior": [
+      "document.addEventListener for keyboard/click events",
+      "useCallback + useEffect + useRef hook combo",
+      "overlay/fullscreen presentation"
+    ],
+    "meaningfulDifferences": [
+      "EraNarrative renders narrative text content",
+      "RelationshipStoryModal displays relationship story data",
+      "ImageLightbox is an image viewer with zoom/navigation",
+      "EntityDetailView shows entity metadata",
+      "ImageModal displays image with metadata"
+    ],
+    "accidentalDifferences": [
+      "shared keyboard handler boilerplate (already captured by modal-close-behavior-drift manifest entry)"
+    ],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "These components share infrastructure (keyboard handling, overlay pattern) but serve genuinely different purposes. The shared infrastructure concern is already captured by the modal-implementation-drift and modal-close-behavior-drift manifest entries.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  },
+  {
+    "clusterId": "cluster-021",
+    "verdict": "RELATED",
+    "confidence": 0.8,
+    "role": "ID generation functions with heterogeneous strategies \u2014 counter-based, timestamp-based, and entity-prefixed",
+    "sharedBehavior": [
+      "generate unique string IDs for database records"
+    ],
+    "meaningfulDifferences": [
+      "generateImageId uses entityId+timestamp (domain-specific composite key)",
+      "generateId uses incrementing counter (stateful, session-scoped)",
+      "generateLoreId uses timestamp+counter hybrid (also stateful)"
+    ],
+    "accidentalDifferences": [],
+    "featureGaps": [],
+    "consolidationComplexity": "N/A",
+    "consolidationReasoning": "Unlike cluster-009 where all functions are trivially identical, these three serve different needs: generateImageId creates entity-scoped IDs, generateId is a simple sequential counter for simulation entities, generateLoreId is a hybrid. Should remain separate.",
+    "consumerImpact": "N/A",
+    "code_excerpts": []
+  }
+]

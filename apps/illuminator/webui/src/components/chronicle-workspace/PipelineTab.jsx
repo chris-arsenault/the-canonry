@@ -46,7 +46,7 @@ function RefinementRow({
         <button
           onClick={onAction}
           disabled={isGenerating || running}
-          className={`pt-refrow-btn ${isGenerating || running ? "pt-refrow-btn-disabled" : "pt-refrow-btn-enabled"}`}
+          className={`ilu-action-btn pt-refrow-btn ${isGenerating || running ? "pt-refrow-btn-disabled" : "pt-refrow-btn-enabled"}`}
         >
           {actionLabel || (done ? "Regenerate" : "Generate")}
         </button>
@@ -107,7 +107,7 @@ export default function PipelineTab({
   return (
     <div>
       {/* Refinement Checklist */}
-      <div className="pt-checklist">
+      <div className="ilu-section pt-checklist">
         <div className="pt-checklist-header">
           <span>Refinements</span>
           <span className="pt-checklist-count">{completedCount}/5 complete</span>
@@ -166,7 +166,7 @@ export default function PipelineTab({
               <button
                 onClick={onGenerateTitle}
                 disabled={isGenerating || titleState.running}
-                className={`pt-refrow-btn ${isGenerating || titleState.running ? "pt-refrow-btn-disabled" : "pt-refrow-btn-enabled"}`}
+                className={`ilu-action-btn pt-refrow-btn ${isGenerating || titleState.running ? "pt-refrow-btn-disabled" : "pt-refrow-btn-enabled"}`}
               >
                 {titleState.generatedAt ? "Regenerate" : "Generate"}
               </button>
@@ -213,7 +213,7 @@ export default function PipelineTab({
               <button
                 onClick={onValidate}
                 disabled={isGenerating}
-                className={`pt-refrow-btn ${isGenerating ? "pt-refrow-btn-disabled" : "pt-refrow-btn-enabled"}`}
+                className={`ilu-action-btn pt-refrow-btn ${isGenerating ? "pt-refrow-btn-disabled" : "pt-refrow-btn-enabled"}`}
               >
                 {item.cohesionReport ? "Revalidate" : "Validate"}
               </button>

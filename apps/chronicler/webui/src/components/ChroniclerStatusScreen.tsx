@@ -1,5 +1,6 @@
 import styles from "./ChroniclerStatusScreen.module.css";
 import React from "react";
+import { ErrorMessage } from "@the-canonry/shared-components";
 
 interface ChroniclerStatusScreenProps {
   loading: boolean;
@@ -26,8 +27,7 @@ export default function ChroniclerStatusScreen({
       <div className={styles.container}>
         <div className={styles.content}>
           <div className={styles.icon}>&#x2756;</div>
-          <div className={styles.title}>World Data Unavailable</div>
-          <div className={styles.detail}>{loadError}</div>
+          <ErrorMessage title="World Data Unavailable" message={loadError} />
         </div>
       </div>
     );

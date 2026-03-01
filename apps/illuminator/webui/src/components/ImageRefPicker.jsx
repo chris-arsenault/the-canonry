@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
-import { ModalShell } from "@penguin-tales/shared-components";
+import { ModalShell } from "@the-canonry/shared-components";
 import { searchImages, getImageDataUrl } from "../lib/db/imageRepository";
 
 const PAGE_SIZE = 12;

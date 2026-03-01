@@ -14,7 +14,7 @@ import {
   getRelationships,
   getTagsArray,
 } from "../utils/dataTransform.ts";
-import { useImageUrl } from "@penguin-tales/image-store";
+import { useImageUrl } from "@the-canonry/image-store";
 import LoreSection from "./LoreSection.tsx";
 import RelationshipStoryModal from "./RelationshipStoryModal.tsx";
 import ChainLinkSection from "./ChainLinkSection.tsx";

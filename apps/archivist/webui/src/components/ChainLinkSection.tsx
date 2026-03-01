@@ -1,4 +1,5 @@
 import type { ChainLinkLore } from "../types/world.ts";
+import "./archivist-section.css";
 import "./ChainLinkSection.css";
 import React from "react";
 
@@ -13,10 +14,10 @@ export default function ChainLinkSection({ lore }: Readonly<ChainLinkSectionProp
   const clue = parts[1] || "";
 
   return (
-    <div className="chain-link-section">
-      <div className="chain-link-header">
-        <span className="chain-link-icon">🔍</span>
-        <span className="chain-link-title">Mystery Clue</span>
+    <div className="archivist-section chain-link-section">
+      <div className="archivist-section-hdr">
+        <span className="archivist-section-icon">🔍</span>
+        <span className="archivist-section-title">Mystery Clue</span>
       </div>
 
       <div className="chain-link-flow">
@@ -35,11 +36,11 @@ export default function ChainLinkSection({ lore }: Readonly<ChainLinkSectionProp
       <div className="chain-link-content">
         <div className="chain-link-observation">
           <div className="chain-link-section-label">Observation</div>
-          <div className="chain-link-text">{observation}</div>
+          <div className="archivist-narrative chain-link-text">{observation}</div>
         </div>
         <div className="chain-link-clue">
           <div className="chain-link-section-label">Clue</div>
-          <div className="chain-link-text">{clue}</div>
+          <div className="archivist-narrative chain-link-text">{clue}</div>
         </div>
       </div>
     </div>

@@ -266,13 +266,6 @@
   flex-shrink: 0;
 }
 
-.sp-empty-state {
-  color: #666;
-  font-size: 13px;
-  text-align: center;
-  padding: 40px;
-}
-
 .sp-empty-text {
   color: #666;
   font-size: 12px;

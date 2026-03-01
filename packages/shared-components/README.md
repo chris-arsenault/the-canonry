@@ -2,7 +2,7 @@
 
 > The UI glue that keeps every Canonry tool feeling like the same suite.
 
-@penguin-tales/shared-components provides React components, utilities, and shared CSS for the Canonry micro-frontends. It exports form controls, validation badges, usage helpers, and a shared design system layer.
+@the-canonry/shared-components provides React components, utilities, and shared CSS for the Canonry micro-frontends. It exports form controls, validation badges, usage helpers, and a shared design system layer.
 
 [![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green)](https://nodejs.org/)
@@ -32,7 +32,7 @@
 
 ```bash
 # From npm (when published)
-npm install @penguin-tales/shared-components
+npm install @the-canonry/shared-components
 
 # Or link locally during development
 npm install file:packages/shared-components
@@ -41,8 +41,8 @@ npm install file:packages/shared-components
 ## Quick Start
 
 ```jsx
-import '@penguin-tales/shared-components/styles';
-import { TagSelector, computeUsageMap } from '@penguin-tales/shared-components';
+import '@the-canonry/shared-components/styles';
+import { TagSelector, computeUsageMap } from '@the-canonry/shared-components';
 
 export function TagPicker({ tagRegistry, selectedTags, onChange }) {
   return (
@@ -62,9 +62,9 @@ const usage = computeUsageMap(schema, pressures, eras, generators, systems, acti
 
 Common entry points:
 
-- `@penguin-tales/shared-components` - Components, hooks, and utilities
-- `@penguin-tales/shared-components/styles` - Shared CSS bundle
-- `@penguin-tales/shared-components/TagSelector` - Direct TagSelector export
+- `@the-canonry/shared-components` - Components, hooks, and utilities
+- `@the-canonry/shared-components/styles` - Shared CSS bundle
+- `@the-canonry/shared-components/TagSelector` - Direct TagSelector export
 
 ## Development
 

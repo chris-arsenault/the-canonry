@@ -8,6 +8,7 @@
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import { TONE_META } from "./HistorianToneSelector";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./HistorianReviewModal.css";
 
 // ============================================================================
@@ -242,7 +243,7 @@ export default function HistorianReviewModal({
         <div className="hrm-modal-content">
           {isGenerating && <div className="hrm-generating-message">The historian is reviewing the text\u2026</div>}
 
-          {isFailed && <div className="hrm-failed-message">Review failed: {run.error || "Unknown error"}</div>}
+          {isFailed && <ErrorMessage message={`Review failed: ${run.error || "Unknown error"}`} className="hrm-failed-message" />}
 
           {isReviewing && <div className="hrm-review-layout">
               {/* Annotated source text */}

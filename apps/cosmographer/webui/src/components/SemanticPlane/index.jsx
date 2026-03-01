@@ -8,7 +8,7 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import PlaneCanvas from "./PlaneCanvas.jsx";
-import { TagSelector, NumberInput } from "@penguin-tales/shared-components";
+import { TagSelector, NumberInput } from "@the-canonry/shared-components";
 import "./SemanticPlane.css";
 
 export default function SemanticPlaneEditor({ project, onSave, axisDefinitions = [] }) {

@@ -17,7 +17,7 @@ own overlay, header, close button, and dismiss behavior. Patterns varied:
 - **CSS classes**: Each modal used its own prefix (`rfm-`, `hcpm-`, `tapm-`,
   `static-page-modal-`, etc.) for identical structural elements
 
-A shared `ModalShell` component existed in `@penguin-tales/shared-components`
+A shared `ModalShell` component existed in `@the-canonry/shared-components`
 but was only used by 5 modals in name-forge and coherence-engine.
 
 ## Decision

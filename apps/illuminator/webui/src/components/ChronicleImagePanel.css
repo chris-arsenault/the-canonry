@@ -1,3 +1,4 @@
+/* Shared panel utilities available: see panel-utilities.css in shared-components */
 /* ChronicleImagePanel styles */
 
 /* Shared card layout for entity ref and prompt request cards */
@@ -306,10 +307,8 @@
 }
 
 /* Panel layout */
+/* Shared: compose with .ilu-empty — matching base props (padding, text-align, color) removed */
 .cip-empty-state {
-  padding: 24px;
-  text-align: center;
-  color: var(--text-muted);
   background: var(--bg-secondary);
   border-radius: 8px;
   border: 1px solid var(--border-color);

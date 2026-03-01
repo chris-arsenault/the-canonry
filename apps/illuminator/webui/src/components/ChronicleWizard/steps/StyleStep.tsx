@@ -177,7 +177,7 @@ export default function StyleStep({ styles }: Readonly<StyleStepProps>) {
         ) : null}
 
         {filteredStyles.length === 0 && (
-          <div className="sstep-empty">
+          <div className="ilu-empty sstep-empty">
             No styles match your search.
           </div>
         )}

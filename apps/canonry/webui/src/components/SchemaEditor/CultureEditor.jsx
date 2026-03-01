@@ -15,7 +15,7 @@ import {
   SectionHeader,
   EmptyState,
   InfoBox,
-} from "@penguin-tales/shared-components";
+} from "@the-canonry/shared-components";
 import "./CultureEditor.css";
 
 const PRESET_COLORS = [

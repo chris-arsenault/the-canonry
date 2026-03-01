@@ -10,7 +10,7 @@
 
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
-import { ModalShell } from "@penguin-tales/shared-components";
+import { ModalShell } from "@the-canonry/shared-components";
 import { TONE_META } from "./HistorianToneSelector";
 import "./ToneAssignmentPreviewModal.css";
 const ANNOTATION_TONES = ["witty", "weary", "elegiac", "cantankerous", "rueful", "conspiratorial", "bemused"];

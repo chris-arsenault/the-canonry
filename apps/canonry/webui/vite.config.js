@@ -57,7 +57,7 @@ export default defineConfig({
           entryGlobalName: 'chronicler',
         },
       },
-      shared: sharedDeps('zustand', '@penguin-tales/image-store'),
+      shared: sharedDeps('zustand', '@the-canonry/image-store'),
     }),
   ],
   build: {

@@ -7,7 +7,7 @@
 
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
-import { ModalShell } from "@penguin-tales/shared-components";
+import { ModalShell } from "@the-canonry/shared-components";
 import { useEntityNavList } from "../lib/db/entitySelectors";
 
 export default function EntityLinkPicker({ onSelect, onClose }) {

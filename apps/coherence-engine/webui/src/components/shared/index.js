@@ -1,7 +1,7 @@
 /**
  * Shared components for all editor modules
  *
- * Re-exports from @penguin-tales/shared-components package.
+ * Re-exports from @the-canonry/shared-components package.
  * CSS styles are imported via main.jsx from the package.
  */
 
@@ -38,7 +38,11 @@ export {
   // Hooks
   useLocalInputState,
   useEditorState,
+  useExpandSingle,
+  useExpandSet,
+  useExpandBoolean,
+  expandableProps,
 
   // Utils
   getElementValidation,
-} from "@penguin-tales/shared-components";
+} from "@the-canonry/shared-components";

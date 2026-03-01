@@ -1,28 +1,5 @@
 /* ImagePickerModal - prefix: ipm */
 
-/* LazyThumbnail */
-.ipm-thumbnail-img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.ipm-thumbnail-placeholder {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
 /* Modal overrides */
 .ipm-modal {
   max-width: 900px;
@@ -79,8 +56,6 @@
 .ipm-loading,
 .ipm-empty {
   padding: 40px;
-  text-align: center;
-  color: var(--text-muted);
 }
 
 .ipm-grid {

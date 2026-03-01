@@ -9,7 +9,7 @@ import {
   TagSelector,
   ToolUsageBadges as UsageBadges,
   getEntityKindUsageSummary,
-} from "@penguin-tales/shared-components";
+} from "@the-canonry/shared-components";
 import "./EntityEditor.css";
 
 export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = {} }) {

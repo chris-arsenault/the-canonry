@@ -288,14 +288,14 @@ export default function EnrichmentQueue({
           ))}
 
           {filteredGroups.length === 0 && (
-            <div className="eq-empty">No tasks match current filters</div>
+            <div className="ilu-empty eq-empty">No tasks match current filters</div>
           )}
         </div>
       </div>
 
       {/* Selection actions */}
       {selectedTasks.size > 0 && (
-        <div className="eq-selection-bar">
+        <div className="ilu-selection-bar eq-selection-bar">
           <span className="eq-selection-count">
             {selectedTasks.size} task{selectedTasks.size !== 1 ? "s" : ""} selected
           </span>

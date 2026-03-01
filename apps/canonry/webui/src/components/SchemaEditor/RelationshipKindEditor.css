@@ -42,11 +42,6 @@
   font-size: 16px;
 }
 
-.rke-chip-framework {
-  pointer-events: none;
-  opacity: 0.6;
-}
-
 .rke-maintenance-label {
   margin-bottom: 8px;
 }
@@ -64,21 +59,11 @@
   gap: 8px;
 }
 
-.rke-select-compact {
-  width: auto;
-  padding: 6px 10px;
-}
-
 .rke-cullable-label {
   display: flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
-}
-
-.rke-checkbox {
-  width: 14px;
-  height: 14px;
 }
 
 .rke-verbs-label {

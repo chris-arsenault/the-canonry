@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import { DomainTab, LexemesTab, GrammarsTab, ProfileTab } from "./tabs";
 
 function EntityWorkspace({
@@ -118,8 +119,8 @@ function EntityWorkspace({
         </div>
 
         {error && (
-          <div className="error mt-sm">
-            {error}
+          <div className="flex items-center mt-sm">
+            <ErrorMessage message={error} />
             <button className="secondary ml-sm" onClick={() => setError(null)}>
               Dismiss
             </button>

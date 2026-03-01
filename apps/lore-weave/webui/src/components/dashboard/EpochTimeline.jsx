@@ -275,11 +275,11 @@ export default function EpochTimeline({
 
             {/* Pressure Gauges with hover details */}
             {pressures && Object.keys(pressures).length > 0 && (
-              <div className="et-section-spacer">
-                <div className="et-section-label">
+              <div className="lw-section-spacer">
+                <div className="lw-section-label">
                   Current Pressures
                   {pressureDetails && (
-                    <span className="et-section-label-hint">
+                    <span className="lw-section-label-hint">
                       (hover for epoch details
                       {pressureDetails.ticksAggregated
                         ? `, ${pressureDetails.ticksAggregated} ticks`
@@ -303,8 +303,8 @@ export default function EpochTimeline({
               </div>
             )}
 
-            <div className="et-section-spacer">
-              <div className="et-section-label">
+            <div className="lw-section-spacer">
+              <div className="lw-section-label">
                 Graph Connectivity
               </div>
               <div className="lw-flex-col lw-gap-sm">

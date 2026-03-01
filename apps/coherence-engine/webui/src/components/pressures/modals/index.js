@@ -2,4 +2,4 @@
  * Modal components for PressuresEditor
  */
 
-export { FactorEditorModal } from "./FactorEditorModal";
+export { FactorEditorModal } from "./FactorEditorModal.tsx";

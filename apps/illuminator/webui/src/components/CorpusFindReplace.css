@@ -1,3 +1,4 @@
+/* Shared panel utilities available: see panel-utilities.css in shared-components */
 /* CorpusFindReplace.css — co-located styles for CorpusFindReplace.tsx */
 
 /* ── Layout ── */
@@ -159,12 +160,8 @@
   margin-bottom: 16px;
 }
 
+/* Shared: compose with .ilu-section-label — base props removed */
 .cfr-context-heading {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   margin-bottom: 6px;
 }
 
@@ -175,14 +172,11 @@
   gap: 12px;
 }
 
+/* Shared: compose with .ilu-section-label — matching props removed, font-size differs (10px vs 11px) */
 .cfr-field-label {
   display: block;
   font-size: 10px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   margin-bottom: 6px;
-  font-weight: 600;
 }
 
 .cfr-field-label-tight {
@@ -345,14 +339,9 @@
 }
 
 /* ── Error banner ── */
+/* Shared: compose with .ilu-error-banner — base props removed */
 .cfr-error-banner {
   margin-bottom: 12px;
-  padding: 8px 14px;
-  background: rgb(239 68 68 / 10%);
-  border-radius: 6px;
-  border: 1px solid rgb(239 68 68 / 30%);
-  font-size: 11px;
-  color: #ef4444;
 }
 
 .cfr-error-inline {

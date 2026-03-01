@@ -9,7 +9,7 @@
 
 import React, { useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
-import { CoverageMatrix } from "@penguin-tales/shared-components";
+import { CoverageMatrix } from "@the-canonry/shared-components";
 
 export default function RelationshipKindMatrix({
   relationshipKinds = [],

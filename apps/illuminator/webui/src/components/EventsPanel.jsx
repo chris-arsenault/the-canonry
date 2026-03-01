@@ -301,7 +301,7 @@ export default function EventsPanel({
           </div>
           <div className="events-panel-filter-actions">
             <div className="events-panel-filter-sort-label">Sorted by significance</div>
-            <button onClick={handleExportEvents} disabled={events.length === 0} className="events-panel-export-btn">
+            <button onClick={handleExportEvents} disabled={events.length === 0} className="ilu-action-btn-sm events-panel-export-btn">
               Export JSON
             </button>
           </div>
@@ -347,7 +347,7 @@ export default function EventsPanel({
           setKindFilter("all");
           setEraFilter("all");
           setTagFilter("");
-        }} className="events-panel-clear-filters-btn">
+        }} className="ilu-action-btn-sm events-panel-clear-filters-btn">
               Clear filters
             </button>}
         </div>

@@ -1,4 +1,4 @@
-import { useNarrativeStore, FetchBackend } from "@penguin-tales/narrative-store";
+import { useNarrativeStore, FetchBackend } from "@the-canonry/narrative-store";
 
 const DEFAULT_BUNDLE_PATH = "bundles/default/bundle.json";
 const DEFAULT_BUNDLE_MANIFEST_PATH = "bundles/default/bundle.manifest.json";

@@ -133,7 +133,7 @@ export default function StyleSelector({
   if (compact) {
     return (
       <div className="stsel-compact">
-        <span className="stsel-compact-label">Style:</span>
+        <span className="ilu-hint">Style:</span>
         <select
           value={selectedArtisticStyleId || RANDOM_ID}
           onChange={(e) => onArtisticStyleChange(e.target.value || RANDOM_ID)}
@@ -190,7 +190,7 @@ export default function StyleSelector({
     <div className="stsel-grid">
       {/* Artistic Style */}
       <div>
-        <label htmlFor="artistic-style" className="stsel-label">Artistic Style</label>
+        <label htmlFor="artistic-style" className="ilu-hint stsel-label">Artistic Style</label>
         <select id="artistic-style"
           value={selectedArtisticStyleId || RANDOM_ID}
           onChange={(e) => onArtisticStyleChange(e.target.value || RANDOM_ID)}
@@ -205,13 +205,13 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedArtistic && (
-          <div className="stsel-description">{selectedArtistic.description}</div>
+          <div className="ilu-hint-sm stsel-description">{selectedArtistic.description}</div>
         )}
       </div>
 
       {/* Composition Style */}
       <div>
-        <label htmlFor={compositionId} className="stsel-label">
+        <label htmlFor={compositionId} className="ilu-hint stsel-label">
           Composition Style{entityKind && ` (for ${entityKind})`}
         </label>
         <select id={compositionId}
@@ -232,13 +232,13 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedComposition && (
-          <div className="stsel-description">{selectedComposition.description}</div>
+          <div className="ilu-hint-sm stsel-description">{selectedComposition.description}</div>
         )}
       </div>
 
       {/* Color Palette */}
       <div>
-        <label htmlFor="color-palette" className="stsel-label">Color Palette</label>
+        <label htmlFor="color-palette" className="ilu-hint stsel-label">Color Palette</label>
         <select id="color-palette"
           value={selectedColorPaletteId || RANDOM_ID}
           onChange={(e) => onColorPaletteChange(e.target.value || RANDOM_ID)}
@@ -253,7 +253,7 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedColorPalette && (
-          <div className="stsel-description">{selectedColorPalette.description}</div>
+          <div className="ilu-hint-sm stsel-description">{selectedColorPalette.description}</div>
         )}
       </div>
     </div>

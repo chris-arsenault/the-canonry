@@ -6,6 +6,7 @@ import coseBilkent from "cytoscape-cose-bilkent";
 import type { WorldState } from "../types/world.ts";
 import type { EntityKindDefinition, ProminenceScale } from "@canonry/world-schema";
 import { transformWorldData } from "../utils/dataTransform.ts";
+import "./visualization-overlay.css";
 import "./GraphView.css";
 
 cytoscape.use(coseBilkent as cytoscape.Ext);
@@ -462,7 +463,7 @@ export default function GraphView({
   }, [selectedNodeId]);
 
   return (
-    <div className="gv-wrapper">
+    <div className="viz-container viz-theme-blue">
       <div
         ref={containerRef}
         className="cytoscape-container gv-cytoscape"
@@ -470,10 +471,10 @@ export default function GraphView({
 
       {/* Legend - Dynamic from schema */}
       <div
-        className="absolute bottom-6 left-6 rounded-xl text-white text-sm shadow-2xl border border-blue-500-30 overflow-hidden gv-legend"
+        className="absolute bottom-6 left-6 rounded-xl text-white text-sm shadow-2xl border border-blue-500-30 overflow-hidden viz-legend"
       >
         <div
-          className="px-5 py-3 border-b border-blue-500-20 gv-legend-header"
+          className="px-5 py-3 border-b border-blue-500-20 viz-legend-header"
         >
           <div className="font-bold text-blue-200 uppercase tracking-wider text-xs">Legend</div>
         </div>
@@ -481,9 +482,9 @@ export default function GraphView({
           {entityKindSchemas.map((ek) => (
             <div key={ek.kind} className="flex items-center gap-3">
               <div
-                className={`w-5 h-5 shadow-lg flex-shrink-0 gv-legend-swatch ${shapeToLegendClass(ek.style?.shape || "ellipse")}`}
+                className={`w-5 h-5 shadow-lg flex-shrink-0 viz-legend-swatch ${shapeToLegendClass(ek.style?.shape || "ellipse")}`}
                 style={{
-                  '--gv-swatch-color': (() => {
+                  '--viz-swatch-color': (() => {
                     if (!ek.style?.color) {
                       throw new Error(
                         `Archivist: entity kind "${ek.kind}" is missing style.color.`
@@ -500,7 +501,7 @@ export default function GraphView({
           ))}
         </div>
         <div
-          className="px-5 py-3 border-t border-blue-500-20 gv-legend-footer"
+          className="px-5 py-3 border-t border-blue-500-20 viz-legend-footer"
         >
           <div className="text-xs text-blue-300 italic">Size indicates prominence</div>
         </div>
@@ -508,10 +509,10 @@ export default function GraphView({
 
       {/* Controls hint */}
       <div
-        className="absolute top-6 left-6 rounded-xl text-white text-xs shadow-2xl border border-blue-500-30 overflow-hidden gv-controls"
+        className="absolute top-6 left-6 rounded-xl text-white text-xs shadow-2xl border border-blue-500-30 overflow-hidden viz-controls"
       >
         <div
-          className="px-5 py-3 border-b border-blue-500-20 gv-controls-header"
+          className="px-5 py-3 border-b border-blue-500-20 viz-controls-header"
         >
           <div className="font-bold text-blue-200 uppercase tracking-wider">Controls</div>
         </div>

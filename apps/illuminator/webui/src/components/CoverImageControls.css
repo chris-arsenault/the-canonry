@@ -1,3 +1,4 @@
+/* Shared panel utilities available: see panel-utilities.css in shared-components */
 /* CoverImageControls — prefix: cic */
 
 /* ============================================================================
@@ -102,19 +103,8 @@
   gap: 8px;
 }
 
+/* Shared: compose with .ilu-action-btn — base props removed */
 .cic-action-btn {
-  padding: 8px 14px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 12px;
   height: 32px;
   white-space: nowrap;
-}
-
-.cic-action-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
 }

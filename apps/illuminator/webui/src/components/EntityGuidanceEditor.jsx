@@ -14,7 +14,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import PropTypes from "prop-types";
-import { LocalTextArea } from "@penguin-tales/shared-components";
+import { LocalTextArea } from "@the-canonry/shared-components";
 import { useEntityNavList, useEntityNavItems } from "../lib/db/entitySelectors";
 import { useEntityStore } from "../lib/db/entityStore";
 import { useRelationshipsByEntity } from "../lib/db/relationshipSelectors";

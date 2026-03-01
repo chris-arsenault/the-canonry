@@ -5,7 +5,7 @@
  * Chronicler reads completed chronicles directly from here.
  */
 
-import { openIlluminatorDb } from "./illuminatorDbReader";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 const CHRONICLE_STORE_NAME = "chronicles";
 

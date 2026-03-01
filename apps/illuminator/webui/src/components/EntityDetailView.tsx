@@ -5,7 +5,7 @@
  * Rendered inside EntityBrowser, replacing the entity list when an entity is selected.
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import type {
   NetworkDebugInfo,
   DescriptionChainDebug,
@@ -20,11 +20,15 @@ import { useEntityCrud } from "../hooks/useEntityCrud";
 import { useHistorianActions } from "../hooks/useHistorianActions";
 import { useIlluminatorModals } from "../lib/db/modalStore";
 import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
+import { useExpandBoolean } from "@canonry/shared-components";
 import HistoryCompressionPreviewModal from "./HistoryCompressionPreviewModal";
 import BackrefImageEditor from "./BackrefImageEditor";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import EntityDetailSidebar from "./EntityDetailSidebar";
 import "./EntityDetailView.css";
+
+// ─── Types ───────────────────────────────────────────────────────────────
 
 interface EntityEnrichment {
   text?: {
@@ -54,7 +58,7 @@ interface EntityEnrichment {
   }>;
 }
 
-interface Entity {
+export interface Entity {
   id: string;
   name: string;
   kind: string;
@@ -75,65 +79,13 @@ interface EntityDetailViewProps {
   onBack: () => void;
 }
 
-function formatDate(timestamp: number | undefined): string {
-  if (!timestamp) return "Unknown";
-  return new Date(timestamp).toLocaleString();
-}
-
-function formatCost(cost: number | undefined): string {
-  if (!cost) return "N/A";
-  return `$${cost.toFixed(4)}`;
-}
-
-// ---------------------------------------------------------------------------
-// Sidebar sub-components
-// ---------------------------------------------------------------------------
-
-function MetadataRow({ label, value }: Readonly<{ label: string; value: string | undefined | null }>) {
-  if (!value) return null;
-  return (
-    <div className="edv-meta-row">
-      <div className="edv-meta-row-label">{label}</div>
-      <div className="edv-meta-row-value">{value}</div>
-    </div>
-  );
-}
-
-function ExpandableSection({
-  title,
-  content,
-  charCount,
-}: Readonly<{
-  title: string;
-  content: string | undefined;
-  charCount?: number;
-}>) {
-  const [expanded, setExpanded] = useState(false);
-  if (!content) return null;
-
-  return (
-    <div className="edv-expandable">
-      <button onClick={() => setExpanded(!expanded)} className="edv-expandable-toggle">
-        <span className={`edv-expandable-arrow ${expanded ? "edv-expandable-arrow-open" : ""}`}>
-          ▶
-        </span>
-        <span className="edv-expandable-title">{title}</span>
-        {charCount !== undefined && <span className="edv-expandable-chars">{charCount} chars</span>}
-      </button>
-      {expanded && <div className="edv-expandable-content">{content}</div>}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Main content sub-components
-// ---------------------------------------------------------------------------
+// ─── Sub-components ──────────────────────────────────────────────────────
 
 function VisualTraitsList({ traits }: Readonly<{ traits: string[] }>) {
   if (!traits || traits.length === 0) return null;
   return (
     <div className="edv-traits">
-      <div className="edv-traits-label">Visual Traits</div>
+      <div className="ilu-hint-sm edv-traits-label">Visual Traits</div>
       <div className="edv-traits-list">
         {traits.map((trait, i) => (
           <span key={i} className="edv-traits-tag">
@@ -142,6 +94,53 @@ function VisualTraitsList({ traits }: Readonly<{ traits: string[] }>) {
         ))}
       </div>
     </div>
+  );
+}
+
+function AliasEditInput({
+  value,
+  onChange,
+  onSave,
+  onCancel,
+  placeholder,
+}: Readonly<{
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  placeholder?: string;
+}>) {
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") onSave();
+      if (e.key === "Escape") onCancel();
+    },
+    [onSave, onCancel]
+  );
+
+  const handleBlur = useCallback(() => {
+    if (value.trim()) onSave();
+    else onCancel();
+  }, [value, onSave, onCancel]);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+    [onChange]
+  );
+
+  return (
+    <span className="edv-aliases-edit-wrap">
+      <input
+        // eslint-disable-next-line jsx-a11y/no-autofocus
+        autoFocus
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        className="edv-aliases-edit-input edv-aliases-edit-input-dynamic"
+      />
+    </span>
   );
 }
 
@@ -159,17 +158,10 @@ function AliasesList({
 
   const editable = !!onUpdate;
 
-  const handleStartEdit = (i: number) => {
-    if (!editable) return;
-    setEditingIndex(i);
-    setEditValue(aliases[i]);
-  };
-
-  const handleSaveEdit = () => {
+  const handleSaveEdit = useCallback(() => {
     if (editingIndex === null || !onUpdate) return;
     const trimmed = editValue.trim();
     if (!trimmed) {
-      // Empty = delete
       onUpdate(aliases.filter((_, i) => i !== editingIndex));
     } else {
       const updated = [...aliases];
@@ -178,29 +170,36 @@ function AliasesList({
     }
     setEditingIndex(null);
     setEditValue("");
-  };
+  }, [editingIndex, editValue, aliases, onUpdate]);
 
-  const handleRemove = (i: number) => {
-    if (!onUpdate) return;
-    onUpdate(aliases.filter((_, idx) => idx !== i));
-  };
+  const handleCancelEdit = useCallback(() => {
+    setEditingIndex(null);
+    setEditValue("");
+  }, []);
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     const trimmed = addValue.trim();
     if (!trimmed || !onUpdate) return;
     onUpdate([...aliases, trimmed]);
     setAddValue("");
     setAdding(false);
-  };
+  }, [addValue, aliases, onUpdate]);
+
+  const handleCancelAdd = useCallback(() => {
+    setAdding(false);
+    setAddValue("");
+  }, []);
+
+  const handleStartAdding = useCallback(() => setAdding(true), []);
 
   if ((!aliases || aliases.length === 0) && !editable) return null;
 
   return (
     <div className="edv-aliases">
-      <div className="edv-aliases-label">
+      <div className="ilu-hint-sm edv-aliases-label">
         Aliases
         {editable && !adding && (
-          <button onClick={() => setAdding(true)} className="edv-aliases-add-btn">
+          <button onClick={handleStartAdding} className="edv-aliases-add-btn">
             + Add
           </button>
         )}
@@ -208,88 +207,121 @@ function AliasesList({
       <div className="edv-aliases-list">
         {aliases.map((alias, i) =>
           editingIndex === i ? (
-            <span key={i} className="edv-aliases-edit-wrap">
-              <input
-                // eslint-disable-next-line jsx-a11y/no-autofocus
-                autoFocus
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSaveEdit();
-                  if (e.key === "Escape") {
-                    setEditingIndex(null);
-                    setEditValue("");
-                  }
-                }}
-                onBlur={handleSaveEdit}
-                className="edv-aliases-edit-input"
-                style={{ "--edv-input-width": `${Math.max(editValue.length, 4) * 7.5 + 20}px` } as React.CSSProperties}
-              />
-            </span>
-          ) : (
-            <span
+            <AliasEditInput
               key={i}
-              className={`edv-aliases-tag ${editable ? "edv-aliases-tag-editable" : ""}`}
-              onClick={() => handleStartEdit(i)}
-              title={editable ? "Click to edit" : undefined}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-            >
-              {alias}
-              {editable && (
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemove(i);
-                  }}
-                  className="edv-aliases-remove"
-                  title="Remove alias"
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-                >
-                  ×
-                </span>
-              )}
-            </span>
+              value={editValue}
+              onChange={setEditValue}
+              onSave={handleSaveEdit}
+              onCancel={handleCancelEdit}
+            />
+          ) : (
+            <AliasTag
+              key={i}
+              alias={alias}
+              index={i}
+              editable={editable}
+              onStartEdit={(idx) => {
+                setEditingIndex(idx);
+                setEditValue(aliases[idx]);
+              }}
+              onRemove={onUpdate ? (idx) => onUpdate(aliases.filter((_, j) => j !== idx)) : undefined}
+            />
           )
         )}
         {adding && (
-          <span className="edv-aliases-edit-wrap">
-            <input
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
-              value={addValue}
-              onChange={(e) => setAddValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAdd();
-                if (e.key === "Escape") {
-                  setAdding(false);
-                  setAddValue("");
-                }
-              }}
-              onBlur={() => {
-                if (addValue.trim()) handleAdd();
-                else setAdding(false);
-              }}
-              placeholder="New alias"
-              className="edv-aliases-edit-input"
-              style={{ "--edv-input-width": `${Math.max(addValue.length, 8) * 7.5 + 20}px` } as React.CSSProperties}
-            />
-          </span>
+          <AliasEditInput
+            value={addValue}
+            onChange={setAddValue}
+            onSave={handleAdd}
+            onCancel={handleCancelAdd}
+            placeholder="New alias"
+          />
         )}
       </div>
       {aliases.length === 0 && !adding && editable && (
-        <div className="edv-aliases-empty">No aliases</div>
+        <div className="ilu-hint edv-aliases-empty">No aliases</div>
       )}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// EntityDetailView
-// ---------------------------------------------------------------------------
+function AliasTag({
+  alias,
+  index,
+  editable,
+  onStartEdit,
+  onRemove,
+}: Readonly<{
+  alias: string;
+  index: number;
+  editable: boolean;
+  onStartEdit: (i: number) => void;
+  onRemove?: (i: number) => void;
+}>) {
+  const handleClick = useCallback(() => {
+    if (editable) onStartEdit(index);
+  }, [editable, onStartEdit, index]);
+
+  const handleRemoveClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onRemove?.(index);
+    },
+    [onRemove, index]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
+    },
+    []
+  );
+
+  return (
+    <span
+      className={`edv-aliases-tag ${editable ? "edv-aliases-tag-editable" : ""}`}
+      onClick={handleClick}
+      title={editable ? "Click to edit" : undefined}
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
+      {alias}
+      {editable && onRemove && (
+        <span
+          onClick={handleRemoveClick}
+          className="edv-aliases-remove"
+          title="Remove alias"
+          role="button"
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+        >
+          x
+        </span>
+      )}
+    </span>
+  );
+}
+
+// ─── Markdown components (stable reference) ──────────────────────────────
+
+const markdownComponents = {
+  h2: ({ children }: { children: React.ReactNode }) => <h2 className="edv-md-h2">{children}</h2>,
+  h3: ({ children }: { children: React.ReactNode }) => <h3 className="edv-md-h3">{children}</h3>,
+  p: ({ children }: { children: React.ReactNode }) => <p className="edv-md-p">{children}</p>,
+  ul: ({ children }: { children: React.ReactNode }) => <ul className="edv-md-ul">{children}</ul>,
+  ol: ({ children }: { children: React.ReactNode }) => <ol className="edv-md-ol">{children}</ol>,
+  li: ({ children }: { children: React.ReactNode }) => <li className="edv-md-li">{children}</li>,
+  table: ({ children }: { children: React.ReactNode }) => (
+    <table className="edv-md-table">{children}</table>
+  ),
+  th: ({ children }: { children: React.ReactNode }) => <th className="edv-md-th">{children}</th>,
+  td: ({ children }: { children: React.ReactNode }) => <td className="edv-md-td">{children}</td>,
+};
+
+const remarkPlugins = [remarkGfm];
+
+// ─── Main component ──────────────────────────────────────────────────────
 
 export default function EntityDetailView({ entity, entities, onBack }: Readonly<EntityDetailViewProps>) {
   const prominenceScale = useProminenceScale();
@@ -365,13 +397,14 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
   const chainDebug: DescriptionChainDebug | undefined = textEnrichment?.chainDebug;
 
   // Legacy single debug
-  let legacyDebug: NetworkDebugInfo | undefined = textEnrichment?.debug;
-  if (!legacyDebug && !chainDebug) {
+  const legacyDebug: NetworkDebugInfo | undefined = useMemo(() => {
+    if (textEnrichment?.debug) return textEnrichment.debug;
+    if (chainDebug) return undefined;
     const descriptionQueueItem = queue.find(
       (item) => item.entityId === entity.id && item.type === "description" && item.debug
     );
-    legacyDebug = descriptionQueueItem?.debug;
-  }
+    return descriptionQueueItem?.debug;
+  }, [textEnrichment?.debug, chainDebug, queue, entity.id]);
 
   // Escape key goes back (unless editing inline)
   const handleKeyDown = useCallback(
@@ -388,7 +421,107 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
 
   // Description history
   const historyLen = enrichment?.descriptionHistory?.length || 0;
-  const lastEntry = historyLen > 0 ? enrichment.descriptionHistory[historyLen - 1] : null;
+  const lastEntry = historyLen > 0 ? enrichment?.descriptionHistory?.[historyLen - 1] ?? null : null;
+
+  // Stable callbacks for historian actions
+  const handleHistorianEditionCb = useCallback(
+    (tone: string) => void handleHistorianEdition(entity.id, tone),
+    [handleHistorianEdition, entity.id]
+  );
+  const handleHistorianReEditCb = useCallback(
+    (tone: string) => void handleHistorianEdition(entity.id, tone, true),
+    [handleHistorianEdition, entity.id]
+  );
+  const handleHistorianReviewCb = useCallback(
+    (tone: string) => void handleHistorianReview(entity.id, tone),
+    [handleHistorianReview, entity.id]
+  );
+  const handleClearNotesCb = useCallback(
+    () => void handleClearNotes(entity.id),
+    [handleClearNotes, entity.id]
+  );
+
+  const handleRestoreVersionCb = useCallback(
+    (entityId: string, historyIndex: number) => void handleRestoreDescription(entityId, historyIndex),
+    [handleRestoreDescription]
+  );
+
+  const handleUpdateNotesCb = useCallback(
+    (noteId: string, updates: Record<string, unknown>) =>
+      void handleUpdateHistorianNote("entity", entity.id, noteId, updates),
+    [handleUpdateHistorianNote, entity.id]
+  );
+
+  const handleUndoDescriptionCb = useCallback(
+    () => void handleUndoDescription(entity.id),
+    [handleUndoDescription, entity.id]
+  );
+  const handleOpenRenameCb = useCallback(
+    () => openRename(entity.id),
+    [openRename, entity.id]
+  );
+  const handleOpenPatchEventsCb = useCallback(
+    () => openPatchEvents(entity.id),
+    [openPatchEvents, entity.id]
+  );
+
+  const handleSummaryDraftChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => setSummaryDraft(e.target.value),
+    []
+  );
+  const handleSummaryKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        saveSummary();
+      }
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        cancelSummary();
+      }
+    },
+    [saveSummary, cancelSummary]
+  );
+  const handleDescDraftChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => setDescriptionDraft(e.target.value),
+    []
+  );
+  const handleDescKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        saveDescription();
+      }
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        cancelDescription();
+      }
+    },
+    [saveDescription, cancelDescription]
+  );
+
+  const handleUpdateAliasesCb = useCallback(
+    (aliases: string[]) => void handleUpdateAliases(entity.id, aliases),
+    [handleUpdateAliases, entity.id]
+  );
+
+  const handleUpdateBackrefsCb = useCallback(
+    (entityId: string, updatedBackrefs: Parameters<typeof handleUpdateBackrefs>[1]) =>
+      void handleUpdateBackrefs(entityId, updatedBackrefs),
+    [handleUpdateBackrefs]
+  );
+
+  const visualTraits = textEnrichment?.visualTraits || emptyStringArray;
+  const aliases = textEnrichment?.aliases || emptyStringArray;
+
+  const hasEdition = enrichment?.descriptionHistory?.some(
+    (h: { source?: string }) => h.source === "historian-edition"
+  );
+  const hasEditionOrLegacy = enrichment?.descriptionHistory?.some(
+    (h: { source?: string }) =>
+      h.source === "historian-edition" || h.source === "legacy-copy-edit"
+  );
+  const hasNotes = enrichment?.historianNotes != null && enrichment.historianNotes.length > 0;
 
   return (
     <>
@@ -396,17 +529,17 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
         {/* Header bar */}
         <div className="edv-header">
           <button onClick={onBack} className="edv-back-btn">
-            ← Back
+            &larr; Back
           </button>
           <div className="edv-header-info">
             <div className="edv-entity-name">{entity.name}</div>
             <div className="edv-entity-meta">
-              {entity.kind}/{entity.subtype} ·{" "}
+              {entity.kind}/{entity.subtype} &middot;{" "}
               {prominenceLabelFromScale(entity.prominence, prominenceScale)}
-              {entity.culture && ` · ${entity.culture}`}
+              {entity.culture && ` \u00b7 ${entity.culture}`}
             </div>
           </div>
-          <div className="edv-esc-hint">Esc to go back</div>
+          <div className="ilu-hint-sm edv-esc-hint">Esc to go back</div>
         </div>
 
         {/* Two-column body */}
@@ -415,15 +548,11 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
           <div className="edv-main">
             {/* Summary */}
             {(entity.summary || handleUpdateSummary) && (
-              <div className="edv-section">
-                <div className="edv-section-label">
+              <div className="edv-section-block">
+                <div className="ilu-hint-sm edv-section-label">
                   Summary
                   {handleUpdateSummary && !editingSummary && (
-                    <button
-                      onClick={startEditSummary}
-                      title="Edit summary"
-                      className="edv-inline-btn"
-                    >
+                    <button onClick={startEditSummary} title="Edit summary" className="edv-inline-btn">
                       Edit
                     </button>
                   )}
@@ -433,17 +562,8 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                     // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
                     value={summaryDraft}
-                    onChange={(e) => setSummaryDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                        e.preventDefault();
-                        saveSummary();
-                      }
-                      if (e.key === "Escape") {
-                        e.stopPropagation();
-                        cancelSummary();
-                      }
-                    }}
+                    onChange={handleSummaryDraftChange}
+                    onKeyDown={handleSummaryKeyDown}
                     onBlur={saveSummary}
                     className="edv-summary-textarea"
                   />
@@ -457,8 +577,8 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
 
             {/* Visual Thesis */}
             {textEnrichment?.visualThesis && (
-              <div className="edv-section">
-                <div className="edv-section-label edv-section-label-visual-thesis">
+              <div className="edv-section-block">
+                <div className="ilu-hint-sm edv-section-label edv-section-label-visual-thesis">
                   Visual Thesis
                 </div>
                 <p className="edv-visual-thesis">{textEnrichment.visualThesis}</p>
@@ -467,8 +587,8 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
 
             {/* Full Description */}
             {(entity.description || handleUpdateDescription) && (
-              <div className="edv-section">
-                <div className="edv-section-label edv-section-label-wrap">
+              <div className="edv-section-block">
+                <div className="ilu-hint-sm edv-section-label edv-section-label-wrap">
                   Full Description
                   {historyLen > 0 && (
                     <span className="edv-version-hint">
@@ -477,31 +597,27 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                   )}
                   {historyLen > 0 && handleUndoDescription && (
                     <button
-                      onClick={() => void handleUndoDescription(entity.id)}
+                      onClick={handleUndoDescriptionCb}
                       title={`Revert to previous version (from ${lastEntry?.source || "unknown"}, ${lastEntry?.replacedAt ? new Date(lastEntry.replacedAt).toLocaleDateString() : "unknown"})`}
                       className="edv-inline-btn"
                     >
-                      ↩ Undo
+                      &larr; Undo
                     </button>
                   )}
                   {handleUpdateDescription && !editingDescription && (
-                    <button
-                      onClick={startEditDescription}
-                      title="Edit description"
-                      className="edv-inline-btn"
-                    >
+                    <button onClick={startEditDescription} title="Edit description" className="edv-inline-btn">
                       Edit
                     </button>
                   )}
                   <button
-                    onClick={() => openRename(entity.id)}
+                    onClick={handleOpenRenameCb}
                     title="Rename this entity with full propagation across all references"
                     className="edv-inline-btn"
                   >
                     Rename
                   </button>
                   <button
-                    onClick={() => openPatchEvents(entity.id)}
+                    onClick={handleOpenPatchEventsCb}
                     title="Repair stale names in narrative event history for this entity"
                     className="edv-inline-btn"
                   >
@@ -510,57 +626,47 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                 </div>
                 {historianConfigured && (
                   <>
-                    <div className="edv-section-label">
+                    <div className="ilu-hint-sm edv-section-label">
                       Historian
                       <HistorianToneSelector
-                        onSelect={(tone: string) => void handleHistorianEdition(entity.id, tone)}
+                        onSelect={handleHistorianEditionCb}
                         disabled={isHistorianEditionActive}
                         label="Copy Edit"
                         hasNotes={false}
                       />
-                      {enrichment?.descriptionHistory?.some(
-                        (h: { source?: string }) => h.source === "historian-edition"
-                      ) && (
+                      {hasEdition && (
                         <HistorianToneSelector
-                          onSelect={(tone: string) => void handleHistorianEdition(entity.id, tone, true)}
+                          onSelect={handleHistorianReEditCb}
                           disabled={isHistorianEditionActive}
                           label="Re-Edit"
                           hasNotes={false}
                         />
                       )}
                       <HistorianToneSelector
-                        onSelect={(tone: string) => void handleHistorianReview(entity.id, tone)}
+                        onSelect={handleHistorianReviewCb}
                         disabled={isHistorianActive}
                         label="Annotate"
-                        hasNotes={
-                          enrichment?.historianNotes && enrichment.historianNotes.length > 0
-                        }
+                        hasNotes={hasNotes}
                       />
-                      {handleClearNotes &&
-                        enrichment?.historianNotes &&
-                        enrichment.historianNotes.length > 0 && (
-                          <button
-                            onClick={() => void handleClearNotes(entity.id)}
-                            title="Remove all annotations from this entity"
-                            className="edv-inline-btn-ghost"
-                          >
-                            Clear Notes
-                          </button>
-                        )}
-                    </div>
-                    {enrichment?.descriptionHistory?.some(
-                      (h: { source?: string }) =>
-                        h.source === "historian-edition" || h.source === "legacy-copy-edit"
-                    ) &&
-                      entity.description && (
-                        <HistorianEditionComparison
-                          entityId={entity.id}
-                          currentDescription={entity.description}
-                          descriptionHistory={enrichment.descriptionHistory}
-                          historianNotes={enrichment.historianNotes}
-                          onRestoreVersion={(entityId, historyIndex) => void handleRestoreDescription(entityId, historyIndex)}
-                        />
+                      {handleClearNotes && hasNotes && (
+                        <button
+                          onClick={handleClearNotesCb}
+                          title="Remove all annotations from this entity"
+                          className="edv-inline-btn-ghost"
+                        >
+                          Clear Notes
+                        </button>
                       )}
+                    </div>
+                    {hasEditionOrLegacy && entity.description && (
+                      <HistorianEditionComparison
+                        entityId={entity.id}
+                        currentDescription={entity.description}
+                        descriptionHistory={enrichment?.descriptionHistory}
+                        historianNotes={enrichment?.historianNotes}
+                        onRestoreVersion={handleRestoreVersionCb}
+                      />
+                    )}
                   </>
                 )}
                 {editingDescription ? (
@@ -568,17 +674,8 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                     // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
                     value={descriptionDraft}
-                    onChange={(e) => setDescriptionDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                        e.preventDefault();
-                        saveDescription();
-                      }
-                      if (e.key === "Escape") {
-                        e.stopPropagation();
-                        cancelDescription();
-                      }
-                    }}
+                    onChange={handleDescDraftChange}
+                    onKeyDown={handleDescKeyDown}
                     onBlur={saveDescription}
                     className="edv-desc-textarea"
                   />
@@ -587,20 +684,8 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                     {entity.description ? (
                       <div className="edv-description entity-description-md">
                         <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            h2: ({ children }) => <h2 className="edv-md-h2">{children}</h2>,
-                            h3: ({ children }) => <h3 className="edv-md-h3">{children}</h3>,
-                            p: ({ children }) => <p className="edv-md-p">{children}</p>,
-                            ul: ({ children }) => <ul className="edv-md-ul">{children}</ul>,
-                            ol: ({ children }) => <ol className="edv-md-ol">{children}</ol>,
-                            li: ({ children }) => <li className="edv-md-li">{children}</li>,
-                            table: ({ children }) => (
-                              <table className="edv-md-table">{children}</table>
-                            ),
-                            th: ({ children }) => <th className="edv-md-th">{children}</th>,
-                            td: ({ children }) => <td className="edv-md-td">{children}</td>,
-                          }}
+                          remarkPlugins={remarkPlugins}
+                          components={markdownComponents}
                         >
                           {entity.description}
                         </ReactMarkdown>
@@ -608,14 +693,12 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                     ) : (
                       <p className="edv-no-desc">No description</p>
                     )}
-                    {enrichment?.historianNotes && enrichment.historianNotes.length > 0 && (
+                    {hasNotes && (
                       <HistorianMarginNotes
-                        notes={enrichment.historianNotes}
+                        notes={enrichment?.historianNotes}
                         sourceText={entity.description}
                         className="edv-margin-notes-spaced"
-                        onUpdateNote={(noteId: string, updates: Record<string, unknown>) =>
-                          void handleUpdateHistorianNote("entity", entity.id, noteId, updates)
-                        }
+                        onUpdateNote={handleUpdateNotesCb}
                       />
                     )}
                   </>
@@ -624,12 +707,12 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
             )}
 
             {/* Visual Traits */}
-            <VisualTraitsList traits={textEnrichment?.visualTraits || []} />
+            <VisualTraitsList traits={visualTraits} />
 
             {/* Aliases */}
             <AliasesList
-              aliases={textEnrichment?.aliases || []}
-              onUpdate={(aliases) => void handleUpdateAliases(entity.id, aliases)}
+              aliases={aliases}
+              onUpdate={handleUpdateAliasesCb}
             />
 
             {/* Chronicle Images */}
@@ -639,7 +722,7 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
                 <BackrefImageEditor
                   entity={entity}
                   entities={entities}
-                  onUpdateBackrefs={(...args) => void handleUpdateBackrefs(...args)}
+                  onUpdateBackrefs={handleUpdateBackrefsCb}
                   alwaysExpanded
                 />
               </>
@@ -647,129 +730,19 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
 
             {/* No enrichment fallback */}
             {!(entity.summary || entity.description) && (
-              <div className="edv-no-enrichment">
+              <div className="ilu-empty edv-no-enrichment">
                 No description enrichment available. Queue a description task for this entity.
               </div>
             )}
           </div>
 
           {/* Sidebar */}
-          <div className="edv-sidebar">
-            <h4 className="edv-sidebar-title">Entity Metadata</h4>
-
-            {/* Basic info */}
-            <MetadataRow label="Entity ID" value={entity.id} />
-            <MetadataRow label="Status" value={entity.status} />
-            <MetadataRow label="Created" value={formatDate(entity.createdAt)} />
-            <MetadataRow label="Updated" value={formatDate(entity.updatedAt)} />
-
-            {/* Description generation info */}
-            {textEnrichment && (
-              <>
-                <div className="edv-sidebar-divider" />
-                <div className="edv-sidebar-section-label">Description Generation</div>
-                <MetadataRow label="Model" value={textEnrichment.model} />
-                <MetadataRow label="Generated" value={formatDate(textEnrichment.generatedAt)} />
-                <MetadataRow
-                  label="Estimated Cost"
-                  value={formatCost(textEnrichment.estimatedCost)}
-                />
-                <MetadataRow label="Actual Cost" value={formatCost(textEnrichment.actualCost)} />
-                {textEnrichment.inputTokens !== undefined && (
-                  <MetadataRow
-                    label="Tokens"
-                    value={`${textEnrichment.inputTokens} in / ${textEnrichment.outputTokens || 0} out`}
-                  />
-                )}
-              </>
-            )}
-
-            {/* Debug Info */}
-            {(chainDebug || legacyDebug) && (
-              <>
-                <div className="edv-sidebar-divider" />
-                <div className="edv-sidebar-section-label">Debug Info</div>
-
-                {chainDebug && (
-                  <>
-                    {chainDebug.narrative && (
-                      <div className="edv-debug-step">
-                        <div className="edv-debug-step-label edv-debug-step-label-narrative">
-                          Step 1: Narrative
-                        </div>
-                        <ExpandableSection
-                          title="Request"
-                          content={chainDebug.narrative.request}
-                          charCount={chainDebug.narrative.request?.length}
-                        />
-                        <ExpandableSection
-                          title="Response"
-                          content={chainDebug.narrative.response}
-                          charCount={chainDebug.narrative.response?.length}
-                        />
-                      </div>
-                    )}
-                    {chainDebug.thesis && (
-                      <div className="edv-debug-step">
-                        <div className="edv-debug-step-label edv-debug-step-label-thesis">
-                          Step 2: Visual Thesis
-                        </div>
-                        <ExpandableSection
-                          title="Request"
-                          content={chainDebug.thesis.request}
-                          charCount={chainDebug.thesis.request?.length}
-                        />
-                        <ExpandableSection
-                          title="Response"
-                          content={chainDebug.thesis.response}
-                          charCount={chainDebug.thesis.response?.length}
-                        />
-                      </div>
-                    )}
-                    {chainDebug.traits && (
-                      <div className="edv-debug-step">
-                        <div className="edv-debug-step-label edv-debug-step-label-traits">
-                          Step 3: Visual Traits
-                        </div>
-                        <ExpandableSection
-                          title="Request"
-                          content={chainDebug.traits.request}
-                          charCount={chainDebug.traits.request?.length}
-                        />
-                        <ExpandableSection
-                          title="Response"
-                          content={chainDebug.traits.response}
-                          charCount={chainDebug.traits.response?.length}
-                        />
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {!chainDebug && legacyDebug && (
-                  <>
-                    <ExpandableSection
-                      title="Request"
-                      content={legacyDebug.request}
-                      charCount={legacyDebug.request?.length}
-                    />
-                    <ExpandableSection
-                      title="Response"
-                      content={legacyDebug.response}
-                      charCount={legacyDebug.response?.length}
-                    />
-                  </>
-                )}
-              </>
-            )}
-
-            {!chainDebug && !legacyDebug && textEnrichment && (
-              <div className="edv-no-debug">
-                Debug info not available. This entity may have been enriched before debug
-                persistence was added.
-              </div>
-            )}
-          </div>
+          <EntityDetailSidebar
+            entity={entity}
+            textEnrichment={textEnrichment}
+            chainDebug={chainDebug}
+            legacyDebug={legacyDebug}
+          />
         </div>
       </div>
 
@@ -785,3 +758,5 @@ export default function EntityDetailView({ entity, entities, onBack }: Readonly<
     </>
   );
 }
+
+const emptyStringArray: string[] = [];

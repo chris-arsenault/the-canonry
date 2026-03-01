@@ -1,4 +1,8 @@
 /* BackportConfigModal — bcm- prefix */
+/* Shared utilities available: .ilu-section, .ilu-container, .ilu-container-header,
+   .ilu-container-header-bordered, .ilu-action-btn, .ilu-empty, .ilu-footer,
+   .ilu-warning-banner, .ilu-error-banner, .ilu-section-label, .ilu-footer-btn
+   (from packages/shared-components/src/styles/components/panel-utilities.css) */
 
 .bcm-overlay {
   position: fixed;
@@ -78,11 +82,8 @@
   margin-bottom: 8px;
 }
 
+/* Shared: compose with .ilu-section-label */
 .bcm-section-label {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 600;
 }
 
 .bcm-action-group {
@@ -252,6 +253,7 @@
 }
 
 /* Footer */
+/* Similar to .ilu-footer but padding is 12px 20px 16px (not 12px 20px) */
 .bcm-footer {
   padding: 12px 20px 16px;
   border-top: 1px solid var(--border-color);
@@ -261,7 +263,6 @@
   flex-shrink: 0;
 }
 
+/* Shared: compose with .ilu-footer-btn */
 .bcm-footer-btn {
-  padding: 6px 16px;
-  font-size: 12px;
 }

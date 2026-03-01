@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./CorpusFindReplace.css";
 import {
   getChronicle,
@@ -375,7 +376,7 @@ function ContextSection({
   const totalMatches = sourceGroups.reduce((sum, g) => sum + g.matches.length, 0);
   return (
     <div className="cfr-context-section">
-      <div className="cfr-context-heading">
+      <div className="ilu-section-label cfr-context-heading">
         {contextLabel} ({totalMatches})
       </div>
       {sourceGroups.map((group) => (
@@ -1300,7 +1301,7 @@ export default function CorpusFindReplace() {
             </button>
           </div>
 
-          {error && <div className="cfr-error-banner">{error}</div>}
+          {error && <ErrorMessage message={error} className="ilu-error-banner cfr-error-banner" />}
 
           {/* Grouped matches */}
           {groupedByContext.map((ctxGroup) => (
@@ -1371,7 +1372,7 @@ export default function CorpusFindReplace() {
             )}{" "}
             LLM calls
           </div>
-          {error && <div className="cfr-error-inline">{error}</div>}
+          {error && <ErrorMessage message={error} className="cfr-error-inline" />}
         </div>
       )}
 

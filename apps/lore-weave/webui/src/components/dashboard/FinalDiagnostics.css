@@ -39,16 +39,6 @@
   background-color: #a78bfa;
 }
 
-.fd-section-spacer {
-  margin-top: 16px;
-}
-
-.fd-section-label {
-  font-size: 12px;
-  color: var(--lw-text-muted);
-  margin-bottom: 8px;
-}
-
 .fd-agent-item {
   border-left: var(--fd-agent-border-left, 3px solid var(--lw-border-color));
 }

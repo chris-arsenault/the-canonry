@@ -13,6 +13,7 @@ import React, { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { diffWords } from "diff";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./SummaryRevisionModal.css";
 
 // ============================================================================
@@ -399,7 +400,7 @@ export default function SummaryRevisionModal({
             </div>
           )}
 
-          {isFailed && currentBatch?.error && <div className="srm-error">{currentBatch.error}</div>}
+          {isFailed && currentBatch?.error && <ErrorMessage message={currentBatch.error} className="srm-error" />}
 
           {/* Patches */}
           {allPatches.length > 0 && (

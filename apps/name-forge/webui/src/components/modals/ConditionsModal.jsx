@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { ModalShell, TagSelector } from "@penguin-tales/shared-components";
+import { ModalShell, TagSelector } from "@the-canonry/shared-components";
 import { PROMINENCE_LEVELS } from "../constants";
 
 function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = [], onAddTag }) {

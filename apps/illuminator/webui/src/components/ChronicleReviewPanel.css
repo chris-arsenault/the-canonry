@@ -1,20 +1,18 @@
 /* ChronicleReviewPanel — crp- prefix */
+/* Shared utilities available: .ilu-section, .ilu-container, .ilu-container-header,
+   .ilu-container-header-bordered, .ilu-action-btn, .ilu-empty, .ilu-footer,
+   .ilu-warning-banner, .ilu-error-banner, .ilu-section-label
+   (from packages/shared-components/src/styles/components/panel-utilities.css) */
 
 /* ========== PerspectiveSynthesisViewer ========== */
 
+/* Shared: compose with .ilu-container */
 .crp-synth {
   margin-bottom: 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  overflow: hidden;
 }
 
+/* Shared: compose with .ilu-container-header */
 .crp-synth-header {
-  padding: 12px 16px;
-  background: var(--bg-tertiary);
-  display: flex;
-  align-items: center;
   gap: 12px;
   cursor: pointer;
 }
@@ -69,18 +67,18 @@
   color: var(--text-secondary);
 }
 
-.crp-synth-section {
+.crp-synth-subsection {
   margin-bottom: 16px;
 }
 
-.crp-synth-section-label {
+.crp-synth-subsection-label {
   font-size: 11px;
   font-weight: 500;
   color: var(--text-muted);
   margin-bottom: 4px;
 }
 
-.crp-synth-section-text {
+.crp-synth-subsection-text {
   font-size: 12px;
   color: var(--text-secondary);
 }
@@ -108,20 +106,13 @@
 
 /* ========== AssembledContentViewer ========== */
 
+/* Shared: compose with .ilu-container */
 .crp-acv {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  overflow: hidden;
 }
 
+/* Shared: compose with .ilu-container-header + .ilu-container-header-bordered */
 .crp-acv-header {
-  padding: 12px 16px;
-  background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
   justify-content: space-between;
-  align-items: center;
 }
 
 .crp-acv-word-count {
@@ -195,7 +186,7 @@
   color: var(--text-secondary);
 }
 
-.crp-preview-section {
+.crp-preview-area {
   margin-top: 24px;
 }
 

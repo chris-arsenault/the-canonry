@@ -3,12 +3,13 @@
  */
 
 import { db } from "./illuminatorDb";
+import { generatePrefixedId } from "./generatePrefixedId";
 import type { DynamicsRun, DynamicsRunStatus } from "../dynamicsGenerationTypes";
 
 export type { DynamicsRun, DynamicsRunStatus };
 
 export function generateRunId(): string {
-  return `dynrun_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+  return generatePrefixedId("dynrun");
 }
 
 export async function createDynamicsRun(

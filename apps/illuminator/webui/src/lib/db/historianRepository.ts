@@ -3,12 +3,13 @@
  */
 
 import { db } from "./illuminatorDb";
+import { generatePrefixedId } from "./generatePrefixedId";
 import type { HistorianRun, HistorianRunStatus, HistorianNote } from "../historianTypes";
 
 export type { HistorianRun, HistorianRunStatus, HistorianNote };
 
 export function generateHistorianRunId(): string {
-  return `histrun_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+  return generatePrefixedId("histrun");
 }
 
 export async function createHistorianRun(run: HistorianRun): Promise<HistorianRun> {

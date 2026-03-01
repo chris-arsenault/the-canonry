@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import CoherenceEngineRemote from "./CoherenceEngineRemote";
-import "@penguin-tales/shared-components/styles";
+import "@the-canonry/shared-components/styles";
 import "./main.css";
 
 // Standalone entry point for development

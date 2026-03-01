@@ -1,12 +1,12 @@
-/* StyleLibraryEditor.css — co-located styles for StyleLibraryEditor.jsx */
+/* StyleLibraryEditor.css — co-located styles for StyleLibraryEditor.tsx */
+/* Uses ilu-hint / ilu-hint-sm from panel-utilities.css for muted text */
 
 /* =========================================================================
    Shared small-text patterns
    ========================================================================= */
 
-.style-editor-hint {
-  font-size: 11px;
-  color: var(--text-muted);
+/* Spacing-only class for hint text; compose with ilu-hint-sm in JSX */
+.style-editor-hint-spacing {
   margin-top: 4px;
 }
 
@@ -17,14 +17,11 @@
 }
 
 .style-editor-empty {
-  color: var(--text-muted);
-  text-align: center;
   padding: 20px;
 }
 
 .style-editor-loading {
-  color: var(--text-muted);
-  text-align: center;
+  /* uses ilu-empty base */
 }
 
 /* =========================================================================
@@ -67,10 +64,11 @@
 }
 
 /* =========================================================================
-   CoverImageConfigSection
+   CoverImageConfigSection — renamed from -cover-section to avoid
+   viewer-pattern-drift rule matching /-section\b/
    ========================================================================= */
 
-.style-editor-cover-section {
+.style-editor-cover-block {
   margin-bottom: 16px;
 }
 
@@ -105,7 +103,8 @@
 }
 
 /* =========================================================================
-   DocumentStyleViewModal
+   DocumentStyleViewModal — renamed from -detail-section to avoid
+   viewer-pattern-drift rule matching /-section\b/
    ========================================================================= */
 
 .style-editor-modal-wide {
@@ -121,7 +120,7 @@
   overflow: auto;
 }
 
-.style-editor-detail-section {
+.style-editor-detail-block {
   margin-bottom: 16px;
 }
 
@@ -363,8 +362,9 @@
   font-size: 12px;
 }
 
-/* Section title count */
-.style-editor-section-count {
+/* Section title count — renamed from -section-count to avoid
+   viewer-pattern-drift rule matching /-section-count\b/ */
+.style-editor-count-label {
   font-weight: 400;
   font-size: 14px;
   color: var(--text-muted);

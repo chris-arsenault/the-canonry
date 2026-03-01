@@ -187,12 +187,12 @@ function initializeForStepping(config: EngineConfig, state: HardState[]): void {
     // Emit paused state - ready for stepping
     emitter.progress({
       phase: "paused",
-      tick: engine.getGraph().tick,
+      tick: engine.getCurrentTick(),
       maxTicks: engineConfig.maxTicks,
       epoch: engine.getCurrentEpoch(),
       totalEpochs: engine.getTotalEpochs(),
-      entityCount: engine.getGraph().getEntityCount(),
-      relationshipCount: engine.getGraph().getRelationshipCount(),
+      entityCount: engine.getEntityCount(),
+      relationshipCount: engine.getRelationshipCount(),
     });
   } catch (error) {
     emitter.error({
@@ -229,12 +229,12 @@ async function stepSimulation(): Promise<void> {
       // Emit paused progress to indicate step completed
       emitter.progress({
         phase: "paused",
-        tick: engine.getGraph().tick,
+        tick: engine.getCurrentTick(),
         maxTicks: engineMaxTicks,
         epoch: engine.getCurrentEpoch(),
         totalEpochs: engine.getTotalEpochs(),
-        entityCount: engine.getGraph().getEntityCount(),
-        relationshipCount: engine.getGraph().getRelationshipCount(),
+        entityCount: engine.getEntityCount(),
+        relationshipCount: engine.getRelationshipCount(),
       });
     }
   } catch (error) {

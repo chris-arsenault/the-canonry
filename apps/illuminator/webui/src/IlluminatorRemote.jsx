@@ -34,7 +34,7 @@ import { upsertRunIndexes } from "./lib/db/indexRepository";
 import { useIndexStore } from "./lib/db/indexStore";
 import * as entityRepo from "./lib/db/entityRepository";
 import IlluminatorTabContent from "./components/IlluminatorTabContent";
-import { EmptyState } from "@penguin-tales/shared-components";
+import { EmptyState } from "@the-canonry/shared-components";
 import IlluminatorSidebar from "./components/IlluminatorSidebar";
 import IlluminatorModals from "./components/IlluminatorModals";
 

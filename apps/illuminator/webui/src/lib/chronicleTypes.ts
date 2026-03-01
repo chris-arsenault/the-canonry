@@ -598,7 +598,7 @@ export interface AssemblyResult {
 export type ChronicleImageSize = "small" | "medium" | "large" | "full-width";
 
 /** Base properties shared by all image reference types */
-interface BaseChronicleImageRef {
+export interface BaseChronicleImageRef {
   /** Unique ID for this image reference */
   refId: string;
   /** Text phrase to anchor image near (for paragraph-level positioning) */
@@ -974,6 +974,8 @@ export interface ChronicleRecord {
     entityDirectives?: Array<{ entityId: string; entityName: string; directive: string }>;
     /** Optional narrative direction from wizard */
     narrativeDirection?: string;
+    /** World dynamics resolved for this chronicle (post-filter/override). */
+    worldDynamicsResolved?: string[];
   };
 
   // Perspective synthesis (required for all new chronicles)

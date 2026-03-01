@@ -4,7 +4,7 @@
 
 import React, { useMemo } from "react";
 import PropTypes from "prop-types";
-import { getElementValidation } from "@penguin-tales/shared-components";
+import { getElementValidation } from "@the-canonry/shared-components";
 import { ErrorBadge, OrphanBadge, EraBadges, EnableToggle } from "../../shared";
 
 /**

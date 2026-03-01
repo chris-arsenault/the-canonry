@@ -1,4 +1,4 @@
-# variables.tf - Input variables for penguin-tales viewer infrastructure
+# variables.tf - Input variables for the-canonry viewer infrastructure
 
 variable "aws_region" {
   description = "AWS region to deploy resources"

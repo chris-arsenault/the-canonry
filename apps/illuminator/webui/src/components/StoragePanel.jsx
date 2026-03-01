@@ -350,7 +350,7 @@ export default function StoragePanel({ projectId: _projectId }) {
   if (loading) {
     return (
       <div className="illuminator-card">
-        <div className="storage-panel-loading">Loading storage data...</div>
+        <div className="ilu-empty storage-panel-loading">Loading storage data...</div>
       </div>
     );
   }
@@ -379,18 +379,18 @@ export default function StoragePanel({ projectId: _projectId }) {
           </div>
         </div>
 
-        <div className="storage-panel-stats-grid">
-          <div className="storage-panel-stat-card">
-            <div className="storage-panel-stat-value">{stats.totalCount}</div>
-            <div className="storage-panel-stat-label">Total Images</div>
+        <div className="ilu-stats-grid storage-panel-stats-grid">
+          <div className="ilu-stat-card storage-panel-stat-card">
+            <div className="ilu-stat-value storage-panel-stat-value">{stats.totalCount}</div>
+            <div className="ilu-stat-label storage-panel-stat-label">Total Images</div>
           </div>
-          <div className="storage-panel-stat-card">
-            <div className="storage-panel-stat-value">{formatBytes(stats.totalSize)}</div>
-            <div className="storage-panel-stat-label">Total Size</div>
+          <div className="ilu-stat-card storage-panel-stat-card">
+            <div className="ilu-stat-value storage-panel-stat-value">{formatBytes(stats.totalSize)}</div>
+            <div className="ilu-stat-label storage-panel-stat-label">Total Size</div>
           </div>
-          <div className="storage-panel-stat-card">
-            <div className="storage-panel-stat-value">{Object.keys(stats.byProject).length}</div>
-            <div className="storage-panel-stat-label">Projects</div>
+          <div className="ilu-stat-card storage-panel-stat-card">
+            <div className="ilu-stat-value storage-panel-stat-value">{Object.keys(stats.byProject).length}</div>
+            <div className="ilu-stat-label storage-panel-stat-label">Projects</div>
           </div>
         </div>
 
@@ -518,7 +518,7 @@ export default function StoragePanel({ projectId: _projectId }) {
 
         {/* Image grid */}
         {filteredImages.length === 0 ? (
-          <div className="storage-panel-empty">
+          <div className="ilu-empty storage-panel-empty">
             No images stored yet. Generate images in the Entities tab.
           </div>
         ) : (
@@ -558,10 +558,10 @@ export default function StoragePanel({ projectId: _projectId }) {
                     <img
                       src={thumbnailUrls[img.imageId]}
                       alt={img.entityName || img.imageId}
-                      className="storage-panel-thumbnail-img"
+                      className="ilu-thumb-cover"
                     />
                   ) : (
-                    <div className="storage-panel-thumbnail-placeholder">Loading...</div>
+                    <div className="ilu-thumb-placeholder">Loading...</div>
                   )}
                 </div>
 

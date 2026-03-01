@@ -10,7 +10,7 @@
 import "./HistoryCompressionPreviewModal.css";
 import React from "react";
 import PropTypes from "prop-types";
-import { ModalShell } from "@penguin-tales/shared-components";
+import { ModalShell } from "@the-canonry/shared-components";
 
 export default function HistoryCompressionPreviewModal({
   entityName,

@@ -3,4 +3,4 @@
  */
 
 export { DependencySection } from "./DependencySection";
-export { DetailUsageBadges as UsageBadges } from "@penguin-tales/shared-components";
+export { DetailUsageBadges as UsageBadges } from "@the-canonry/shared-components";

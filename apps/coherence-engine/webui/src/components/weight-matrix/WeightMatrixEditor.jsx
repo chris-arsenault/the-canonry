@@ -306,7 +306,7 @@ export default function WeightMatrixEditor({
       setSelectedRows(new Set(filteredItems.map(i => i.id)));
     }
   };
-  return <div className="weight-matrix-editor">
+  return <div className="mat-layout weight-matrix-editor">
       <div className="header">
         <h1 className="title">Weight Matrix</h1>
         <p className="subtitle">
@@ -343,7 +343,7 @@ export default function WeightMatrixEditor({
         </div>}
 
       {/* Toolbar */}
-      <div className="matrix-toolbar">
+      <div className="mat-toolbar matrix-toolbar">
         <div className="toolbar-left">
           {/* View Mode Toggle */}
           <div className="view-toggle">
@@ -358,7 +358,7 @@ export default function WeightMatrixEditor({
           </div>
 
           {/* Search */}
-          <input type="text" className="matrix-search" placeholder="Search..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+          <input type="text" className="mat-search matrix-search" placeholder="Search..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
         </div>
 
         <div className="toolbar-right">
@@ -380,8 +380,8 @@ export default function WeightMatrixEditor({
       </div>
 
       {/* Matrix Grid */}
-      <div className="matrix-container">
-        <table className="matrix-table">
+      <div className="mat-scroll-area">
+        <table className="mat-table matrix-table">
           <thead>
             <tr>
               <th className="checkbox-col">
@@ -403,7 +403,7 @@ export default function WeightMatrixEditor({
               </tr> : filteredItems.map(item => {
             const isUsed = isUsedInAnyEra(item.id);
             const activeCount = countActiveEras(item.id);
-            return <tr key={item.id} className={`matrix-row ${!isUsed ? "unused" : ""} ${selectedRows.has(item.id) ? "selected" : ""}`}>
+            return <tr key={item.id} className={`mat-row matrix-row ${!isUsed ? "unused" : ""} ${selectedRows.has(item.id) ? "selected" : ""}`}>
                     <td className="checkbox-col">
                       <input type="checkbox" checked={selectedRows.has(item.id)} onChange={() => toggleRowSelection(item.id)} />
                     </td>
@@ -452,7 +452,7 @@ export default function WeightMatrixEditor({
       </div>
 
       {/* Legend */}
-      <div className="matrix-legend">
+      <div className="mat-legend matrix-legend">
         <span className="legend-label">Weight:</span>
         <div className="legend-scale">
           <span className="legend-item weight-cell-none">

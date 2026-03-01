@@ -264,7 +264,7 @@ export default function EnsembleConstellation({
       ref={svgRef}
       width={width}
       height={height}
-      className="ec-svg"
+      className="viz-svg ec-svg"
     >
       {/* Orbit guides */}
       <circle
@@ -348,7 +348,7 @@ export default function EnsembleConstellation({
         return (
           <g
             key={node.id}
-            className="ec-cursor-pointer"
+            className="viz-cursor-pointer"
             onClick={() => handleNodeClick(node.id)}
             onMouseEnter={() => setHoveredNodeId(node.id)}
             onMouseLeave={() => setHoveredNodeId(null)}
@@ -424,7 +424,7 @@ export default function EnsembleConstellation({
                 fontSize="14"
                 fill="white"
                 fontWeight="bold"
-                className="ec-no-pointer"
+                className="viz-no-pointer"
               >
                 ★
               </text>
@@ -440,7 +440,7 @@ export default function EnsembleConstellation({
                 fontSize="9"
                 fill="white"
                 fontWeight="500"
-                className="ec-no-pointer"
+                className="viz-no-pointer"
               >
                 {node.kind.charAt(0).toUpperCase()}
               </text>
@@ -486,7 +486,7 @@ export default function EnsembleConstellation({
         }
 
         return (
-          <g className="ec-no-pointer">
+          <g className="viz-no-pointer">
             <rect
               x={tooltipNode.x - 52}
               y={tooltipNode.y + style.radius + 4}

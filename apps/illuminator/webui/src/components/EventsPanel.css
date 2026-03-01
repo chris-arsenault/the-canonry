@@ -1,3 +1,4 @@
+/* Shared panel utilities available: see panel-utilities.css in shared-components */
 /* EventsPanel.css — co-located styles for EventsPanel.jsx */
 
 /* ─── EventKindBadge ─── */
@@ -276,20 +277,8 @@
   color: var(--text-muted);
 }
 
-.events-panel-export-btn {
-  padding: 6px 12px;
-  font-size: 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.events-panel-export-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
+/* Shared: compose with .ilu-action-btn-sm — all base props removed */
+.events-panel-export-btn { }
 
 /* Filters row */
 .events-panel-filters-row {
@@ -329,15 +318,8 @@
   color: var(--text-primary);
 }
 
-.events-panel-clear-filters-btn {
-  padding: 6px 12px;
-  font-size: 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  cursor: pointer;
-  color: var(--text-secondary);
-}
+/* Shared: compose with .ilu-action-btn-sm — all base props removed */
+.events-panel-clear-filters-btn { }
 
 /* Events list */
 .events-panel-list {

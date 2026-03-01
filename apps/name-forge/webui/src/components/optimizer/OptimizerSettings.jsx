@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { NumberInput } from "@penguin-tales/shared-components";
+import { NumberInput } from "@the-canonry/shared-components";
 import { ALGORITHMS } from "./constants";
 
 /**

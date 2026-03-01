@@ -9,7 +9,8 @@ import "./index.css";
 import WorldExplorer from "./components/WorldExplorer.tsx";
 import type { WorldState } from "./types/world.ts";
 import { validateWorldData } from "./utils/schemaValidation.ts";
-import { buildWorldStateForSlot } from "@penguin-tales/world-store";
+import { buildWorldStateForSlot } from "@the-canonry/world-store";
+import { ErrorMessage } from "@the-canonry/shared-components";
 
 export interface ArchivistRemoteProps {
   projectId?: string;
@@ -83,8 +84,7 @@ export default function ArchivistRemote({
       <div className="archivist-error-state">
         <div className="archivist-state-content">
           <div className="archivist-state-icon">❌</div>
-          <div className="archivist-state-title">World data unavailable</div>
-          <div className="archivist-state-message">{effectiveLoadError}</div>
+          <ErrorMessage title="World data unavailable" message={effectiveLoadError} />
         </div>
       </div>
     );

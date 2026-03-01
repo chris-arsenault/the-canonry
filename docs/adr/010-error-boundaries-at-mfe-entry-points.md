@@ -16,7 +16,7 @@ unmounted the entire component tree up to the nearest error boundary. Since
 most Host components had no error boundary, a render crash in any remote would
 take down the entire host app with an unrecoverable white screen.
 
-A shared `ErrorBoundary` component existed in `@penguin-tales/shared-components`
+A shared `ErrorBoundary` component existed in `@the-canonry/shared-components`
 but was not consistently used across all MFE entry points.
 
 ## Decision
@@ -24,7 +24,7 @@ but was not consistently used across all MFE entry points.
 ### Every MFE Host wraps Suspense with ErrorBoundary
 
 All 7 Host files use the shared `ErrorBoundary` from
-`@penguin-tales/shared-components`:
+`@the-canonry/shared-components`:
 
 - IlluminatorHost
 - CoherenceEngineHost
@@ -53,7 +53,7 @@ reload.
 
 ### ErrorBoundary lives in shared-components
 
-The canonical `ErrorBoundary` is in `@penguin-tales/shared-components`. MFE
+The canonical `ErrorBoundary` is in `@the-canonry/shared-components`. MFE
 apps must not create local error boundary implementations.
 
 ## Consequences

@@ -3,6 +3,7 @@
  */
 
 import { db } from "./illuminatorDb";
+import { generatePrefixedId } from "./generatePrefixedId";
 import type {
   EraNarrativeRecord,
   EraNarrativeCoverImage,
@@ -13,11 +14,11 @@ import type {
 export type { EraNarrativeRecord };
 
 export function generateEraNarrativeId(): string {
-  return `eranarr_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+  return generatePrefixedId("eranarr");
 }
 
 export function generateVersionId(): string {
-  return `enver_${Date.now()}_${crypto.randomUUID().slice(0, 6)}`;
+  return generatePrefixedId("enver", 6);
 }
 
 export async function createEraNarrative(record: EraNarrativeRecord): Promise<EraNarrativeRecord> {

@@ -1,10 +1,14 @@
-.cs-warning-list-spaced {
+.cs-warning-gap {
   margin-top: 8px;
 }
 
-.cs-empty-state-compact {
+.cs-compact-placeholder {
   height: auto;
   padding: 20px;
+}
+
+.cs-padded-card {
+  padding: var(--spacing-lg, 16px) var(--spacing-xl, 24px);
 }
 
 .cs-culture-badge {

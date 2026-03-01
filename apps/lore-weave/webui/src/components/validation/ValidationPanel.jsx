@@ -5,15 +5,17 @@
 import React, { useMemo } from "react";
 import PropTypes from "prop-types";
 import { validateAllConfigs } from "../../../../lib/engine/configSchemaValidator";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./ValidationPanel.css";
 
 function ErrorCard({ error }) {
   return (
     <div className="validation-panel-error-card">
-      <div className="validation-panel-error-header">
-        <div className="validation-panel-error-path">{error.path}</div>
-        <div className="validation-panel-error-message">{error.message}</div>
-      </div>
+      <ErrorMessage
+        title={error.path}
+        message={error.message}
+        className="validation-panel-error-header"
+      />
       <div className="validation-panel-error-body">
         <div className="validation-panel-error-row">
           <span className="validation-panel-error-label">Expected:</span>

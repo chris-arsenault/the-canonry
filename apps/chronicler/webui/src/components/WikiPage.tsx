@@ -27,12 +27,12 @@ import {
   useImageUrls,
   useImageMetadata,
   useImageStore,
-} from "@penguin-tales/image-store";
+} from "@the-canonry/image-store";
 import {
   useEntityNarrativeEvents,
   useEntityNarrativeLoading,
-} from "@penguin-tales/narrative-store";
-import { SeedModal } from "@penguin-tales/shared-components";
+} from "@the-canonry/narrative-store";
+import { SeedModal } from "@the-canonry/shared-components";
 
 /** Seed data shape for the generation context modal */
 interface ChronicleSeedData {

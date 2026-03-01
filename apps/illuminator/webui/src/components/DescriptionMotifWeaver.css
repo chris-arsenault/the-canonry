@@ -1,4 +1,8 @@
 /* DescriptionMotifWeaver styles */
+/* Shared utilities available: .ilu-section, .ilu-container, .ilu-container-header,
+   .ilu-container-header-bordered, .ilu-action-btn, .ilu-empty, .ilu-footer,
+   .ilu-warning-banner, .ilu-error-banner, .ilu-section-label, .ilu-footer-btn
+   (from packages/shared-components/src/styles/components/panel-utilities.css) */
 
 /* CandidateRow */
 .dmw-candidate-row {
@@ -248,6 +252,7 @@
   color: #ef4444;
 }
 
+/* Similar to .ilu-empty but padding is 30px 0 (not 24px) */
 .dmw-empty-state {
   text-align: center;
   padding: 30px 0;
@@ -307,6 +312,7 @@
   text-decoration: underline;
 }
 
+/* Similar to .ilu-error-banner but uses rgba() syntax vs rgb() — kept to avoid visual diff */
 .dmw-review-error {
   margin-bottom: 12px;
   padding: 8px 14px;
@@ -324,13 +330,8 @@
 }
 
 /* Footer */
+/* Shared: compose with .ilu-footer */
 .dmw-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
 }
 
 .dmw-footer-btn {
@@ -341,4 +342,8 @@
 .dmw-footer-btn-secondary {
   padding: 6px 16px;
   font-size: 12px;
+}
+
+.dmw-footer-btn-disabled {
+  opacity: 0.5;
 }

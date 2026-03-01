@@ -13,7 +13,7 @@
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import ChronicleImagePanel from "./ChronicleImagePanel";
-import { ExpandableSeedSection } from "@penguin-tales/shared-components";
+import { ExpandableSeedSection } from "@the-canonry/shared-components";
 import "./CohesionReportViewer.css";
 const STATUS_STYLES = {
   excellent: {
@@ -213,7 +213,7 @@ export default function CohesionReportViewer({
             </button>}
         </div>}
 
-      <div className="crv-refinements">
+      <div className="ilu-section crv-refinements">
         <div className="crv-refinements-title">Optional Refinements</div>
         <div className="crv-refinements-list">
           {/* Summary */}
@@ -315,7 +315,7 @@ export default function CohesionReportViewer({
             </div>}
         </div>}
 
-      {activeTab === "checks" && <div className="crv-checks-panel">
+      {activeTab === "checks" && <div className="ilu-container crv-checks-panel">
           <CheckItem label="Structure" check={report.checks.plotStructure} />
           <CheckItem label="Entity Consistency" check={report.checks.entityConsistency} />
           <CheckItem label="Resolution" check={report.checks.resolution} />

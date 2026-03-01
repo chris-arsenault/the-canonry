@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./CultureSidebar.css";
 function CultureSidebar({
   cultures,
@@ -95,7 +96,7 @@ function CultureSidebar({
               <input id="display-name" type="text" value={newCultureName} onChange={e => setNewCultureName(e.target.value)} placeholder="Elven" />
             </div>
 
-            {error && <div className="error">{error}</div>}
+            {error && <ErrorMessage message={error} />}
 
             <div className="culture-form-buttons">
               <button className="primary" onClick={handleCreateCulture}>

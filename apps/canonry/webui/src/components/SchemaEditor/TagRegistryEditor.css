@@ -59,11 +59,6 @@
   margin-bottom: 4px;
 }
 
-.tre-select-compact {
-  width: auto;
-  padding: 6px 10px;
-}
-
 .tre-axis-group {
   display: flex;
   gap: 12px;
@@ -75,11 +70,6 @@
   align-items: center;
   gap: 4px;
   cursor: pointer;
-}
-
-.tre-checkbox {
-  width: 14px;
-  height: 14px;
 }
 
 .tre-description-wrapper {
@@ -139,11 +129,6 @@
 .tre-chip-compact {
   padding: 4px 8px;
   font-size: 12px;
-}
-
-.tre-chip-framework {
-  pointer-events: none;
-  opacity: 0.6;
 }
 
 .tre-chip-remove-sm {

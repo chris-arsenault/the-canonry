@@ -71,13 +71,13 @@ export default function VersionsTab({
           </span>
         </div>
         <div className="vtab-button-row">
-          <button onClick={onCompareVersions} disabled={isGenerating || compareRunning || combineRunning || versions.length < 2} className="vtab-action-btn">
+          <button onClick={onCompareVersions} disabled={isGenerating || compareRunning || combineRunning || versions.length < 2} className="ilu-action-btn vtab-action-btn">
             {compareRunning ? "Comparing..." : "Compare Versions"}
           </button>
-          <button onClick={onCombineVersions} disabled={isGenerating || compareRunning || combineRunning || copyEditRunning || versions.length < 2} className="vtab-action-btn">
+          <button onClick={onCombineVersions} disabled={isGenerating || compareRunning || combineRunning || copyEditRunning || versions.length < 2} className="ilu-action-btn vtab-action-btn">
             {combineRunning ? "Combining..." : "Combine Versions"}
           </button>
-          <button onClick={onCopyEdit} disabled={isGenerating || compareRunning || combineRunning || copyEditRunning || !item.assembledContent} title="Polish pass — smooths voice, trims to word count target, tightens prose. Produces a new version." className="vtab-action-btn">
+          <button onClick={onCopyEdit} disabled={isGenerating || compareRunning || combineRunning || copyEditRunning || !item.assembledContent} title="Polish pass — smooths voice, trims to word count target, tightens prose. Produces a new version." className="ilu-action-btn vtab-action-btn">
             {copyEditRunning ? "Copy-editing..." : "Copy-edit"}
           </button>
           <button onClick={() => {
@@ -111,7 +111,7 @@ export default function VersionsTab({
               contentLength: v.content?.length || 0
             }))
           });
-        }} disabled={isGenerating} title="Dump generationHistory to console" className="vtab-action-btn">
+        }} disabled={isGenerating} title="Dump generationHistory to console" className="ilu-action-btn vtab-action-btn">
             Dump Versions
           </button>
         </div>
@@ -204,8 +204,8 @@ export default function VersionsTab({
       </div>
 
       {/* Comparison Report */}
-      {item.comparisonReport && <div className="vtab-report-section">
-          <div className="vtab-report-header">
+      {item.comparisonReport && <div className="ilu-container vtab-report-section">
+          <div className="ilu-container-header vtab-report-header">
             <span className="vtab-report-title">Comparison Report</span>
             <div className="vtab-report-actions">
               {item.comparisonReportGeneratedAt && <span className="vtab-report-timestamp">

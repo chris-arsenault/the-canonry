@@ -9,7 +9,7 @@
 
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { loadImageManifest } from "./awsS3";
-import { openIlluminatorDb } from "../lib/illuminatorDbReader";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 async function readBodyAsBlob(body, mimeType) {
   if (typeof body.arrayBuffer === "function") {

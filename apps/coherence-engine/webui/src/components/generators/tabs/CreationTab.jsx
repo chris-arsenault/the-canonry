@@ -4,7 +4,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
-import TagSelector from "@penguin-tales/shared-components/TagSelector";
+import TagSelector from "@the-canonry/shared-components/TagSelector";
 import {
   ReferenceDropdown,
   LevelSelector,

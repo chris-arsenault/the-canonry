@@ -13,6 +13,7 @@ import {
   type TraitPalette,
   type PaletteItem,
 } from "../lib/db/traitRepository";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./TraitPaletteSection.css";
 import type { QueueItem, EnrichmentType } from "../lib/enrichmentTypes";
 import type { EnrichedEntity } from "../hooks/useEnrichmentQueue";
@@ -227,7 +228,7 @@ export default function TraitPaletteSection({
   if (loading) {
     return (
       <div className="illuminator-card">
-        <div className="tps-loading">
+        <div className="ilu-empty tps-loading">
           Loading trait palettes...
         </div>
       </div>
@@ -240,7 +241,7 @@ export default function TraitPaletteSection({
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Trait Palettes</h2>
         </div>
-        <div className="tps-empty">
+        <div className="ilu-empty tps-empty">
           No entity kinds available. Load a world with entity kinds defined to use trait palettes.
         </div>
       </div>
@@ -274,14 +275,14 @@ export default function TraitPaletteSection({
       </p>
 
       {/* Summary stats */}
-      <div className="tps-stats-grid">
-        <div className="tps-stat-card">
-          <div className="tps-stat-value">{entityKinds.length}</div>
-          <div className="tps-stat-label">Entity Kinds</div>
+      <div className="ilu-stats-grid">
+        <div className="ilu-stat-card">
+          <div className="ilu-stat-value">{entityKinds.length}</div>
+          <div className="ilu-stat-label">Entity Kinds</div>
         </div>
-        <div className="tps-stat-card">
-          <div className="tps-stat-value">{totalCategories}</div>
-          <div className="tps-stat-label">Total Categories</div>
+        <div className="ilu-stat-card">
+          <div className="ilu-stat-value">{totalCategories}</div>
+          <div className="ilu-stat-label">Total Categories</div>
         </div>
       </div>
 
@@ -341,7 +342,7 @@ export default function TraitPaletteSection({
               {isSelected && (
                 <div className="tps-kind-body">
                   {!palette || palette.items.length === 0 ? (
-                    <div className="tps-kind-empty">
+                    <div className="ilu-empty tps-kind-empty">
                       No palette categories yet. Click &quot;Expand Palette&quot; to generate some.
                     </div>
                   ) : (
@@ -404,9 +405,11 @@ export default function TraitPaletteSection({
           <div className="tps-error-content">
             <strong>Recent errors:</strong>
             {recentErrors.map((err) => (
-              <div key={err.id} className="tps-error-item">
-                {err.paletteEntityKind}: {err.error}
-              </div>
+              <ErrorMessage
+                key={err.id}
+                message={`${err.paletteEntityKind}: ${err.error}`}
+                className="tps-error-item"
+              />
             ))}
           </div>
         </div>

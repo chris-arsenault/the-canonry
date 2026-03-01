@@ -8,7 +8,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
-import { useImageUrl } from "@penguin-tales/image-store";
+import { useImageUrl } from "@the-canonry/image-store";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./ImageModal.css";
 
 /**
@@ -217,10 +218,7 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
           <div className="imod-loading">Loading image...</div>
         )}
         {!loading && (error || !imageUrl) && (
-          <div className="imod-error">
-            <div className="imod-error-title">Image not available</div>
-            <div className="imod-error-detail">{error || "Image not found in storage"}</div>
-          </div>
+          <ErrorMessage title="Image not available" message={error || "Image not found in storage"} className="imod-error" />
         )}
         {!loading && !error && imageUrl && (
           <img

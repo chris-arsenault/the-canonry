@@ -13,6 +13,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./ChroniclePanel.css";
 import { useEntityNavList, useEntityNavItems } from "../lib/db/entitySelectors";
 import { getEntitiesForRun, resetEntitiesToPreBackportState } from "../lib/db/entityRepository";
@@ -2485,7 +2486,7 @@ export default function ChroniclePanel({
     }}>
           <span>
             {(() => {
-          if (!eraSummaryRefreshResult.success) return `Error: ${eraSummaryRefreshResult.error}`;
+          if (!eraSummaryRefreshResult.success) return <ErrorMessage message={eraSummaryRefreshResult.error} />;
           if (eraSummaryRefreshResult.count > 0) {
             const plural = eraSummaryRefreshResult.count !== 1 ? "s" : "";
             return `Updated era summaries in ${eraSummaryRefreshResult.count} chronicle${plural}`;
@@ -2534,7 +2535,7 @@ export default function ChroniclePanel({
     }}>
           <span>
             {(() => {
-          if (!resetBackportResult.success) return `Error: ${resetBackportResult.error}`;
+          if (!resetBackportResult.success) return <ErrorMessage message={resetBackportResult.error} />;
           const cPlural = resetBackportResult.chronicleCount !== 1 ? "s" : "";
           const ePlural = resetBackportResult.entityCount !== 1 ? "ies" : "y";
           return `Reset ${resetBackportResult.chronicleCount} chronicle${cPlural}, restored ${resetBackportResult.entityCount} entit${ePlural}`;
@@ -2549,7 +2550,7 @@ export default function ChroniclePanel({
     }}>
           <span>
             {(() => {
-          if (!reconcileBackportResult.success) return `Error: ${reconcileBackportResult.error}`;
+          if (!reconcileBackportResult.success) return <ErrorMessage message={reconcileBackportResult.error} />;
           const plural = reconcileBackportResult.count !== 1 ? "s" : "";
           return `Reconciled ${reconcileBackportResult.count} chronicle${plural} from entity backrefs`;
         })()}

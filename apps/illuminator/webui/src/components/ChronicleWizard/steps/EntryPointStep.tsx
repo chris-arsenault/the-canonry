@@ -330,7 +330,7 @@ export default function EntryPointStep({ entities, relationships, events }: Read
           {/* Entity list - fills remaining height */}
           <div className="eps-entity-list">
             {filteredEntities.length === 0 ? (
-              <div className="eps-empty-list">
+              <div className="ilu-empty eps-empty-list">
                 No entities match the selected filters.
               </div>
             ) : (

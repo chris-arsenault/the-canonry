@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@canonry/world-schema": "workspace:*",
-    "@penguin-tales/shared-components": "workspace:*",
+    "@the-canonry/shared-components": "workspace:*",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "seedrandom": "^3.0.5",

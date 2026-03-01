@@ -15,7 +15,7 @@ import Navigation from "./components/Navigation";
 import SchemaEditor from "./components/SchemaEditor";
 import LandingPage from "./components/LandingPage";
 import HelpModal from "./components/HelpModal";
-import { computeTagUsage, computeSchemaUsage } from "@penguin-tales/shared-components";
+import { computeTagUsage, computeSchemaUsage, ErrorMessage } from "@the-canonry/shared-components";
 import { validateAllConfigs } from "../../../lore-weave/lib/engine/configSchemaValidator";
 import { mergeFrameworkSchemaSlice, FRAMEWORK_ENTITY_KIND_VALUES, FRAMEWORK_RELATIONSHIP_KIND_VALUES, FRAMEWORK_CULTURES, FRAMEWORK_CULTURE_DEFINITIONS, FRAMEWORK_TAG_VALUES } from "@canonry/world-schema";
 import NameForgeHost from "./remotes/NameForgeHost";
@@ -25,7 +25,7 @@ import LoreWeaveHost from "./remotes/LoreWeaveHost";
 import IlluminatorHost from "./remotes/IlluminatorHost";
 import ArchivistHost from "./remotes/ArchivistHost";
 import ChroniclerHost from "./remotes/ChroniclerHost";
-import { useImageStore, IndexedDBBackend } from "@penguin-tales/image-store";
+import { useImageStore, IndexedDBBackend } from "@the-canonry/image-store";
 import { getImagesByProject, getImageBlob, getImageMetadata } from "./lib/imageExportHelpers";
 import { getStaticPagesForProject, importStaticPages } from "./storage/staticPageStorage";
 import { getCompletedChroniclesForSimulation, getCompletedChroniclesForProject, importChronicles, getChronicleCountForProject } from "./storage/chronicleStorage";
@@ -2184,9 +2184,7 @@ export default function App() {
           <img src="/tsonu-combined.png" alt="tsonu" height="14" />
         </a>
       </footer>
-      {error && <div className="inline-extracted-6">
-          Error: {error}
-        </div>}
+      {error && <ErrorMessage message={error} />}
       {exportModalSlotIndex !== null && <div className="modal-overlay" onMouseDown={handleExportModalMouseDown} onClick={handleExportModalClick} role="button" tabIndex={0} onKeyDown={e => {
       if (e.key === "Enter" || e.key === " ") handleExportModalClick(e);
     }}>

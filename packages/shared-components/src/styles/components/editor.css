@@ -946,7 +946,7 @@
   min-width: 0;
 }
 
-.slot-item-name {
+.slot-label {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-medium);
   color: var(--color-text);
@@ -955,7 +955,7 @@
   white-space: nowrap;
 }
 
-.slot-item-empty .slot-item-name {
+.slot-item-empty .slot-label {
   color: var(--color-text-dim);
   font-style: italic;
 }

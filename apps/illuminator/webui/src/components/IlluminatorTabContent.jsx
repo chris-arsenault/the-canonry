@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./IlluminatorTabContent.css";
 import EntityBrowser from "./EntityBrowser";
 import ChroniclePanel from "./ChroniclePanel";
@@ -225,7 +226,7 @@ function ConfigureTab(props) {
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Data Sync</h2>
         </div>
-        <p className="itc-sync-hint">
+        <p className="ilu-hint itc-sync-hint">
           Import simulation output into Dexie. This is manual by design.
         </p>
         <div className="itc-sync-actions">
@@ -246,13 +247,11 @@ function ConfigureTab(props) {
             Overwrite from Hard State
           </button>
         </div>
-        <div className="itc-sync-summary">{props.hardStateSummary}</div>
+        <div className="ilu-hint-sm itc-sync-summary">{props.hardStateSummary}</div>
         {props.dataSyncStatus && (
-          <div
-            className={`itc-sync-status ${props.dataSyncStatus.type === "error" ? "itc-sync-status-error" : "itc-sync-status-success"}`}
-          >
-            {props.dataSyncStatus.message}
-          </div>
+          props.dataSyncStatus.type === "error"
+            ? <ErrorMessage message={props.dataSyncStatus.message} className="itc-sync-status" />
+            : <div className="itc-sync-status ilu-status-success">{props.dataSyncStatus.message}</div>
         )}
       </div>
     </div>

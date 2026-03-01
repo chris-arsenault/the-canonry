@@ -14,12 +14,13 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor";
-import { useImageUrl } from "@penguin-tales/image-store";
+import { useImageUrl } from "@the-canonry/image-store";
 import ImageModal from "./ImageModal";
 import ChronicleImagePicker from "./ChronicleImagePicker";
 import { resolveStyleSelection } from "./StyleSelector";
 import { ImageSettingsSummary } from "./ImageSettingsDrawer";
 import { buildChronicleScenePrompt } from "../lib/promptBuilders";
+import { ErrorMessage } from "@the-canonry/shared-components";
 // imageSettings import removed - controls now in ImageSettingsDrawer
 import type { ChronicleImageRefs, EntityImageRef, PromptRequestRef } from "../lib/chronicleTypes";
 import type { StyleInfo } from "../lib/promptBuilders";
@@ -697,9 +698,7 @@ function PromptRequestCard({
         )}
 
         {imageRef.error && (
-          <div className="cip-error-message">
-            Error: {imageRef.error}
-          </div>
+          <ErrorMessage message={imageRef.error} className="cip-error-message" />
         )}
 
         <div className="cip-action-row">
@@ -910,7 +909,7 @@ export default function ChronicleImagePanel({
   // No image refs yet
   if (!imageRefs) {
     return (
-      <div className="cip-empty-state">
+      <div className="ilu-empty cip-empty-state">
         No image references generated yet. Use the &quot;Generate&quot; button above to create image
         placement suggestions.
       </div>
@@ -921,7 +920,7 @@ export default function ChronicleImagePanel({
 
   if (totalRefs === 0) {
     return (
-      <div className="cip-empty-state">
+      <div className="ilu-empty cip-empty-state">
         No image references in this chronicle.
       </div>
     );

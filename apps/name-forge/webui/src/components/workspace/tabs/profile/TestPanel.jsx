@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
 
 /**
  * Test panel for generating test names from a profile
@@ -31,7 +32,7 @@ export default function TestPanel({
         </div>
       </div>
 
-      {testError && <div className="error mb-md text-small">{testError}</div>}
+      {testError && <ErrorMessage message={testError} className="mb-md text-small" />}
 
       {strategyUsage && (
         <div className="strategy-usage-panel">

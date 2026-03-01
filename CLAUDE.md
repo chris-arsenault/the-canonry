@@ -23,7 +23,7 @@ The architecture provides a **domain-agnostic TypeScript framework** with **JSON
 ## Repository Structure
 
 ```
-penguin-tales/                    # Repository root
+the-canonry/                    # Repository root
 ├── apps/
 │   ├── lore-weave/              # World generation framework
 │   │   ├── lib/                 # Core library

@@ -29,6 +29,7 @@ import {
   EnsembleHealthBar,
   FilterChips,
 } from "../visualizations";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./RoleAssignmentStep.css";
 
 /** Get roles from either story or document style */
@@ -306,9 +307,7 @@ export default function RoleAssignmentStep() {
       {validation.errors.length > 0 && (
         <div className="ras-errors">
           {validation.errors.map((error, i) => (
-            <div key={i} className="ras-error">
-              {error}
-            </div>
+            <ErrorMessage key={i} message={error} className="ras-error" />
           ))}
         </div>
       )}

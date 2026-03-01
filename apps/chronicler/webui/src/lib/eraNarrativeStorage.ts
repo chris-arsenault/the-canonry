@@ -5,7 +5,7 @@
  * Chronicler reads completed era narratives directly from here.
  */
 
-import { openIlluminatorDb } from "./illuminatorDbReader";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 const ERA_NARRATIVE_STORE_NAME = "eraNarratives";
 

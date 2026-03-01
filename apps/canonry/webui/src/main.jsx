@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import "@penguin-tales/shared-components/styles";
+import "@the-canonry/shared-components/styles";
 import App from "./App";
 
 // Debug boot log to confirm client initialization in production

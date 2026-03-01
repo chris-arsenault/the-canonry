@@ -13,6 +13,7 @@ import PropTypes from "prop-types";
 import { useChronicleStore } from "../lib/db/chronicleStore";
 import { batchUpdateChronicleEraYears } from "../lib/db/chronicleRepository";
 import { useHistorianChronology } from "../hooks/useHistorianChronology";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./ChronologyModal.css";
 
 export default function ChronologyModal({
@@ -292,8 +293,7 @@ export default function ChronologyModal({
           {/* Failed state */}
           {isFailed && (
             <div className="chm-failed">
-              <div className="chm-failed-msg">Chronology failed</div>
-              <div className="chm-failed-error">{run?.error}</div>
+              <ErrorMessage title="Chronology failed" message={run?.error} className="chm-failed-error" />
               <button onClick={handleCancel} className="illuminator-button">
                 Dismiss
               </button>

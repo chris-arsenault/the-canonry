@@ -35,10 +35,10 @@ export const sharedDepsBase = {
 export const sharedDepsExtended = {
   ...sharedDepsBase,
   zustand: { singleton: true },
-  '@penguin-tales/shared-components': { singleton: true },
-  '@penguin-tales/image-store': { singleton: true },
-  '@penguin-tales/world-store': { singleton: true },
-  '@penguin-tales/narrative-store': { singleton: true },
+  '@the-canonry/shared-components': { singleton: true },
+  '@the-canonry/image-store': { singleton: true },
+  '@the-canonry/world-store': { singleton: true },
+  '@the-canonry/narrative-store': { singleton: true },
 };
 
 /**
@@ -54,7 +54,7 @@ export const sharedDepsExtended = {
  *
  * @example
  * // react/react-dom + zustand + image-store
- * sharedDeps('zustand', '@penguin-tales/image-store')
+ * sharedDeps('zustand', '@the-canonry/image-store')
  */
 export function sharedDeps(...keys) {
   if (keys.length === 0) return { ...sharedDepsBase };

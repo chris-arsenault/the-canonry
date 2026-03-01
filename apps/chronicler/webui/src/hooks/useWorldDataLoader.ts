@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { WorldState } from "../types/world.ts";
-import { buildWorldStateForSlot } from "@penguin-tales/world-store";
-import { IndexedDBBackend, useNarrativeStore } from "@penguin-tales/narrative-store";
+import { buildWorldStateForSlot } from "@the-canonry/world-store";
+import { IndexedDBBackend, useNarrativeStore } from "@the-canonry/narrative-store";
 
 interface WorldDataLoaderOptions {
   projectId?: string;

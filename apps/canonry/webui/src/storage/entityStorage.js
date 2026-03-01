@@ -4,7 +4,7 @@
  * Writes merged entity records to the `entities` store via raw IndexedDB.
  */
 
-import { openIlluminatorDb } from "../lib/illuminatorDbReader";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 const ENTITIES_STORE_NAME = "entities";
 

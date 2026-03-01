@@ -131,21 +131,12 @@
 }
 
 .eq-empty {
-  text-align: center;
   padding: 40px;
-  color: var(--text-muted);
 }
 
 .eq-selection-bar {
   position: sticky;
   bottom: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--accent-color);
-  border-radius: 6px;
 }
 
 .eq-selection-count {

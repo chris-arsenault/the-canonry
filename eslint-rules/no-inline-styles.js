@@ -57,15 +57,20 @@ export default {
  * Does NOT allow: style={{ '--foo': val, color: 'red' }} (mixed)
  */
 function isCustomPropertiesOnly(valueNode) {
-  // style={expr} → valueNode is JSXExpressionContainer
+  // style={expr} -> valueNode is JSXExpressionContainer
   if (!valueNode || valueNode.type !== "JSXExpressionContainer") return false;
 
-  const expr = valueNode.expression;
+  let expr = valueNode.expression;
 
-  // style={{ ... }} → expr is ObjectExpression
+  // Unwrap TypeScript `as` casts: style={{ ... } as React.CSSProperties}
+  if (expr && expr.type === "TSAsExpression") {
+    expr = expr.expression;
+  }
+
+  // style={{ ... }} -> expr is ObjectExpression
   if (!expr || expr.type !== "ObjectExpression") return false;
 
-  // Empty object {} — technically no visual styles, allow it
+  // Empty object {} -- technically no visual styles, allow it
   if (expr.properties.length === 0) return true;
 
   return expr.properties.every((prop) => {

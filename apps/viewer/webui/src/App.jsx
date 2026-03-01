@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
-import ChroniclerRemote from "@chronicler/ChroniclerRemote.tsx";
-import parchmentTileUrl from "@chronicler/assets/textures/parchment-tile.jpg";
+import ChroniclerRemote from "../../../chronicler/webui/src/ChroniclerRemote.tsx";
+import parchmentTileUrl from "../../../chronicler/webui/src/assets/textures/parchment-tile.jpg";
 import HeaderSearch from "./HeaderSearch";
 import StatusScreen from "./StatusScreen";
 import useBundleLoader from "./useBundleLoader";

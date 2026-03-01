@@ -6,6 +6,7 @@
  */
 
 import { db } from "./illuminatorDb";
+import { generatePrefixedId } from "./generatePrefixedId";
 import type { CostRecord, CostType, CostRecordInput, CostSummary } from "../costTypes";
 
 // Re-export types for consumers
@@ -14,7 +15,7 @@ export type { CostRecord, CostType, CostRecordInput, CostSummary };
 const LOG_PREFIX = "[CostStorage]";
 
 export function generateCostId(): string {
-  return `cost_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
+  return generatePrefixedId("cost", 9);
 }
 
 export function createCostRecord(input: CostRecordInput): CostRecord {

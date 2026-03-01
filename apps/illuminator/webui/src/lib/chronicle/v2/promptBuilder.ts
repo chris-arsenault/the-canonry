@@ -3,402 +3,34 @@
  *
  * Single-shot prompt construction for both story and document formats.
  * Includes full narrative style fidelity - structure, scenes, cast rules, etc.
+ *
+ * Split into modules:
+ * - promptSections.ts: Shared formatting helpers and section builders
+ * - documentPrompt.ts: Document format prompt construction
+ * - creativePrompt.ts: Creative freedom mode prompt construction
  */
 
-import type {
-  ChronicleGenerationContext,
-  EntityContext,
-  NarrativeEventContext,
-  ChronicleTemporalContext,
-  EraTemporalInfo,
-} from "../chronicleTypes";
-import { collapseBidirectionalRelationships, type CollapsedRelationship } from "../selectionWizard";
+import type { ChronicleGenerationContext } from "../../chronicleTypes";
 import {
   type NarrativeStyle,
   type StoryNarrativeStyle,
-  type DocumentNarrativeStyle,
   type ProminenceScale,
-  buildProminenceScale,
-  DEFAULT_PROMINENCE_DISTRIBUTION,
-  prominenceLabelFromScale,
 } from "@canonry/world-schema";
 import type { V2SelectionResult } from "./types";
-
-import type { EntityDirective } from "../../perspectiveSynthesizer";
-
-// =============================================================================
-// Entity Formatting
-// =============================================================================
-
-/**
- * Format a single entity with full details (for entry point).
- */
-function resolveProminenceLabel(
-  value: EntityContext["prominence"] | number | undefined,
-  scale: ProminenceScale
-): string {
-  if (value == null) return "unknown";
-  if (typeof value === "number") {
-    return prominenceLabelFromScale(value, scale);
-  }
-  const trimmed = String(value).trim();
-  if (!trimmed) return "unknown";
-  if (scale.labels.includes(trimmed)) return trimmed;
-  const numeric = Number(trimmed);
-  if (Number.isFinite(numeric)) {
-    return prominenceLabelFromScale(numeric, scale);
-  }
-  return trimmed;
-}
-
-function buildProminenceScaleForEntities(
-  entities: Array<EntityContext | undefined>
-): ProminenceScale {
-  const values = entities
-    .filter((e): e is EntityContext => Boolean(e))
-    .map((e) => Number(e.prominence))
-    .filter((value) => Number.isFinite(value));
-  return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
-}
-
-function formatEntityFull(e: EntityContext, scale: ProminenceScale): string {
-  const desc = e.description || "(no description available)";
-  const tags =
-    e.tags && Object.keys(e.tags).length > 0
-      ? Object.entries(e.tags)
-          .map(([k, v]) => `${k}=${v}`)
-          .join(", ")
-      : null;
-
-  const kindLabel = e.subtype ? `${e.kind}/${e.subtype}` : e.kind;
-  const lines = [
-    `Kind: ${kindLabel}`,
-    `Prominence: ${resolveProminenceLabel(e.prominence, scale)}`,
-    e.culture ? `Culture: ${e.culture}` : null,
-    tags ? `Tags: ${tags}` : null,
-    "",
-    desc,
-  ].filter((line) => line !== null);
-
-  return lines.join("\n");
-}
-
-/**
- * Format a single entity briefly (for supporting characters).
- * Uses ### to nest under ## Supporting Characters section.
- */
-function formatEntityBrief(e: EntityContext, scale: ProminenceScale): string {
-  const desc = e.description || "(no description available)";
-  const briefKindLabel = e.subtype ? `${e.kind}/${e.subtype}` : e.kind;
-  const cultureSuffix = e.culture ? `, Culture: ${e.culture}` : "";
-  return `### ${e.name} (${briefKindLabel})
-Prominence: ${resolveProminenceLabel(e.prominence, scale)}${cultureSuffix}
-${desc}`;
-}
-
-/**
- * Format a collapsed relationship (potentially bidirectional).
- */
-function formatCollapsedRelationship(collapsed: CollapsedRelationship): string {
-  const { primary, isBidirectional } = collapsed;
-  if (isBidirectional) {
-    return `- ${primary.sourceName} <--[${primary.kind}]--> ${primary.targetName} (mutual)`;
-  }
-  return `- ${primary.sourceName} --[${primary.kind}]--> ${primary.targetName}`;
-}
-
-/**
- * Format an event.
- */
-function formatEvent(e: NarrativeEventContext): string {
-  const significance = Math.round(e.significance * 100);
-  const subjectLine = e.subjectName ? ` (subject: ${e.subjectName})` : "";
-  const objectLine = e.objectName ? ` (object: ${e.objectName})` : "";
-  const participantNames = e.participants?.map((p) => p.name).filter(Boolean) ?? [];
-  const uniqueParticipants = Array.from(new Set(participantNames)).filter(
-    (name) => name !== e.subjectName && name !== e.objectName
-  );
-  const participantsLine =
-    uniqueParticipants.length > 0 ? ` (participants: ${uniqueParticipants.join(", ")})` : "";
-  return `- [${e.eventKind}, ${significance}%] ${e.headline}${subjectLine}${objectLine}${participantsLine}`;
-}
-
-// =============================================================================
-// Section Builders
-// =============================================================================
-
-/**
- * Build the world section of the prompt.
- * Contains world context only - style/tone guidance is handled separately.
- */
-function buildWorldSection(context: ChronicleGenerationContext): string {
-  const lines = [`# World: ${context.worldName}`, context.worldDescription || ""].filter(Boolean);
-
-  if (context.canonFacts && context.canonFacts.length > 0) {
-    lines.push("");
-    lines.push("Canon Facts:");
-    lines.push(
-      "(Facts marked with [FACET: ...] include a lens specific to this chronicle. Prioritize the facet - it shows how the universal truth applies to these particular entities and circumstances. The base fact provides context; the facet is your guide.)"
-    );
-    for (const fact of context.canonFacts) {
-      lines.push(`- ${fact}`);
-    }
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Build the data section (relationships + events).
- * Collapses bidirectional relationships into single entries with (mutual) indicator.
- */
-function buildDataSection(selection: V2SelectionResult): string {
-  const lines: string[] = [];
-
-  if (selection.relationships.length > 0) {
-    const collapsed = collapseBidirectionalRelationships(selection.relationships);
-    lines.push("# Relationships");
-    for (const rel of collapsed) {
-      lines.push(formatCollapsedRelationship(rel));
-    }
-  }
-
-  if (selection.events.length > 0) {
-    if (lines.length > 0) lines.push("");
-    lines.push("# TIMELINE");
-    lines.push("## Events");
-    for (const evt of selection.events) {
-      lines.push(formatEvent(evt));
-    }
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Build the temporal context section.
- * Provides era information and timeline context for the chronicle.
- */
-function buildTemporalSection(
-  temporalContext: ChronicleTemporalContext | undefined,
-  temporalNarrative: string | undefined
-): string {
-  if (!temporalContext && !temporalNarrative) return "";
-
-  const lines: string[] = ["# Historical Context"];
-
-  if (temporalContext) {
-    const focal = temporalContext.focalEra;
-
-    // Focal era name and summary
-    lines.push(`## Era: ${focal.name}`);
-    if (focal.summary) {
-      lines.push(focal.summary);
-    }
-
-    // World timeline (natural language) - always show
-    lines.push("");
-    lines.push(buildWorldTimeline(temporalContext.allEras, focal.id));
-
-    // Note about events from other eras
-    if (temporalContext.isMultiEra) {
-      lines.push("");
-      lines.push(
-        "Some events listed may be from earlier eras. Treat these as historical background that shaped the present, not as scenes to dramatize."
-      );
-    }
-  }
-
-  // Synthesized dynamics (from perspective synthesis)
-  if (temporalNarrative) {
-    lines.push("");
-    lines.push("## Current Conditions");
-    lines.push(temporalNarrative);
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Add "the" article to an era name, handling names that already start with "The".
- */
-function withArticle(name: string): string {
-  // If name starts with "The ", convert to lowercase "the "
-  if (name.startsWith("The ")) {
-    return "the " + name.slice(4);
-  }
-  return "the " + name;
-}
-
-/**
- * Build a natural language world timeline.
- * E.g., "The world passed through the Dawn Age, then the Age of Expansion. It now exists in the Clever Ice Age."
- */
-function buildWorldTimeline(eras: EraTemporalInfo[], focalEraId: string): string {
-  const sorted = [...eras].sort((a, b) => a.order - b.order);
-  const focalIndex = sorted.findIndex((e) => e.id === focalEraId);
-
-  if (focalIndex === -1) return "";
-
-  const past = sorted.slice(0, focalIndex);
-  const current = sorted[focalIndex];
-  const future = sorted.slice(focalIndex + 1);
-
-  const parts: string[] = [];
-
-  if (past.length > 0) {
-    const pastNames = past.map((e) => withArticle(e.name)).join(", then ");
-    parts.push(`The world passed through ${pastNames}.`);
-  }
-
-  parts.push(`It now exists in ${withArticle(current.name)}.`);
-
-  if (future.length > 0) {
-    const futureNames = future.map((e) => withArticle(e.name)).join(", then ");
-    parts.push(`${futureNames} ${future.length === 1 ? "lies" : "lie"} ahead.`);
-  }
-
-  return parts.join(" ");
-}
-
-/**
- * Build the name bank section.
- * Provides culture-appropriate names for invented characters.
- * This is practical data, not prose guidance.
- */
-function buildNameBankSection(
-  nameBank: Record<string, string[]> | undefined,
-  entities: EntityContext[]
-): string {
-  if (!nameBank || Object.keys(nameBank).length === 0) {
-    return "";
-  }
-
-  const entityCultures = new Set(
-    entities.map((e) => e.culture).filter((c): c is string => Boolean(c))
-  );
-
-  const lines: string[] = ["# Name Bank"];
-  lines.push("Culture-appropriate names for invented characters:");
-
-  // Cultures from entities first
-  for (const cultureId of entityCultures) {
-    if (nameBank[cultureId] && nameBank[cultureId].length > 0) {
-      lines.push(`- ${cultureId}: ${nameBank[cultureId].join(", ")}`);
-    }
-  }
-
-  // Any additional cultures in name bank
-  for (const [cultureId, names] of Object.entries(nameBank)) {
-    if (!entityCultures.has(cultureId) && names.length > 0) {
-      lines.push(`- ${cultureId}: ${names.join(", ")}`);
-    }
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Build the narrative voice section.
- * Renders the synthesized voice from perspective synthesis as key-value pairs.
- */
-function buildNarrativeVoiceSection(narrativeVoice: Record<string, string> | undefined): string {
-  if (!narrativeVoice || Object.keys(narrativeVoice).length === 0) {
-    return "";
-  }
-
-  const lines: string[] = ["# Story Bible: Tone & Atmosphere"];
-  lines.push("Reference notes on emotional texture — draw on these:");
-  lines.push("");
-
-  for (const [key, value] of Object.entries(narrativeVoice)) {
-    lines.push(`**${key}**: ${value}`);
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Build the entity directives section.
- * Renders per-entity writing directives from perspective synthesis.
- */
-function buildEntityDirectivesSection(entityDirectives: EntityDirective[] | undefined): string {
-  if (!entityDirectives || entityDirectives.length === 0) {
-    return "";
-  }
-
-  const lines: string[] = ["# Story Bible: Character Notes"];
-  lines.push(
-    "Background on relationships and history — bring alive through specificity, don't explain:"
-  );
-  lines.push("");
-
-  for (const directive of entityDirectives) {
-    lines.push(`**${directive.entityName}**: ${directive.directive}`);
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Build the narrative lens section.
- * Provides contextual framing from an intangible entity (rule, occurrence, ability)
- * that shapes the story without being a cast member.
- */
-function buildNarrativeLensSection(
-  context: ChronicleGenerationContext,
-  scale: ProminenceScale
-): string {
-  if (!context.lensEntity) {
-    return "";
-  }
-
-  const entity = context.lensEntity;
-  const desc = entity.description || entity.summary || "(no description available)";
-  const tags =
-    entity.tags && Object.keys(entity.tags).length > 0
-      ? Object.entries(entity.tags)
-          .map(([k, v]) => `${k}=${v}`)
-          .join(", ")
-      : null;
-
-  const lensKindLabel = entity.subtype ? `${entity.kind}/${entity.subtype}` : entity.kind;
-  const lensCultureSuffix = entity.culture ? `, Culture: ${entity.culture}` : "";
-  const lines: string[] = ["# Narrative Lens"];
-  lines.push("This story exists in the shadow of:");
-  lines.push("");
-  lines.push(`## ${entity.name} (${lensKindLabel})`);
-  lines.push(
-    `Prominence: ${resolveProminenceLabel(entity.prominence, scale)}${lensCultureSuffix}`
-  );
-  if (tags) lines.push(`Tags: ${tags}`);
-  lines.push("");
-  lines.push(desc);
-  lines.push("");
-  lines.push(
-    "Lens Guidance: This entity is NOT a character in the story. It is the context — the constraint, the backdrop, the thing everyone knows but no one can change. It should be felt in characters' choices, in what is possible and impossible, in what goes unsaid. Reference it naturally, never explain it to the reader as if they don't know it."
-  );
-
-  return lines.join("\n");
-}
-
-// =============================================================================
-// Narrative Direction (optional, from wizard)
-// =============================================================================
-
-/**
- * Build the narrative direction section.
- * Only emits content when narrativeDirection is present.
- * When empty/undefined, returns empty string — no prompt change.
- */
-function buildNarrativeDirectionSection(narrativeDirection: string | undefined): string {
-  if (!narrativeDirection) return "";
-
-  return `# Narrative Direction
-This chronicle has a specific narrative purpose:
-"${narrativeDirection}"
-Write to fulfill this direction. Every structural and tonal choice should serve it.`;
-}
+import {
+  formatEntityFull,
+  formatEntityBrief,
+  buildProminenceScaleForEntities,
+  buildWorldSection,
+  buildDataSection,
+  buildTemporalSection,
+  buildNameBankSection,
+  buildNarrativeVoiceSection,
+  buildEntityDirectivesSection,
+  buildNarrativeLensSection,
+  buildNarrativeDirectionSection,
+} from "./promptSections";
+import { buildDocumentPrompt, getDocumentWordCount } from "./documentPrompt";
 
 // =============================================================================
 // Story Format - Structure & Style Building
@@ -429,7 +61,7 @@ function buildStoryStructureSection(style: StoryNarrativeStyle): string {
  * Build the unified cast section for story format.
  * Combines role expectations with character data so the LLM sees roles and characters together.
  */
-function buildUnifiedCastSection(
+export function buildUnifiedCastSection(
   selection: V2SelectionResult,
   primaryEntityIds: Set<string>,
   style: StoryNarrativeStyle,
@@ -485,7 +117,7 @@ function buildUnifiedCastSection(
 /**
  * Build the event usage section for story format.
  */
-function buildEventUsageSection(style: StoryNarrativeStyle): string {
+export function buildEventUsageSection(style: StoryNarrativeStyle): string {
   if (!style.eventInstructions) {
     return "";
   }
@@ -499,7 +131,10 @@ ${style.eventInstructions}`;
  * Combines world tone/voice guidance with prose instructions from the narrative style.
  * This is the single location for all writing style guidance.
  */
-function buildUnifiedStyleSection(tone: string | undefined, style: StoryNarrativeStyle): string {
+export function buildUnifiedStyleSection(
+  tone: string | undefined,
+  style: StoryNarrativeStyle
+): string {
   const lines: string[] = [`# Writing Style`];
   let hasContent = false;
 
@@ -640,339 +275,6 @@ Requirements:
 }
 
 // =============================================================================
-// Document Format - Structure & Style Building
-// =============================================================================
-
-/**
- * Get word count range from document style.
- * Handles both new format (pacing.wordCount) and legacy format (documentConfig.wordCount).
- */
-function getDocumentWordCount(style: DocumentNarrativeStyle): { min: number; max: number } {
-  // New format
-  if (style.pacing?.wordCount) {
-    return style.pacing.wordCount;
-  }
-  // Legacy format fallback
-  const legacy = style as unknown as {
-    documentConfig?: { wordCount?: { min: number; max: number } };
-  };
-  if (legacy.documentConfig?.wordCount) {
-    return legacy.documentConfig.wordCount;
-  }
-  // Default fallback
-  return { min: 400, max: 600 };
-}
-
-/**
- * Get document instructions from style.
- * Handles both new format (documentInstructions) and legacy format (documentConfig fields).
- */
-function getDocumentInstructions(style: DocumentNarrativeStyle): string {
-  // New format
-  if (style.documentInstructions) {
-    return style.documentInstructions;
-  }
-  // Legacy format - try to construct from old fields
-  const legacy = style as unknown as {
-    documentConfig?: {
-      documentType?: string;
-      contentInstructions?: string;
-      voice?: string;
-      toneKeywords?: string[];
-      sections?: Array<{
-        name: string;
-        purpose: string;
-        wordCountTarget?: number;
-        optional?: boolean;
-      }>;
-    };
-  };
-  if (legacy.documentConfig) {
-    const doc = legacy.documentConfig;
-    const lines: string[] = [];
-    if (doc.documentType) {
-      lines.push(`Document Type: ${doc.documentType}`);
-    }
-    if (doc.contentInstructions) {
-      lines.push("", doc.contentInstructions);
-    }
-    if (doc.voice) {
-      lines.push("", `Voice: ${doc.voice}`);
-    }
-    if (doc.toneKeywords?.length) {
-      lines.push(`Tone: ${doc.toneKeywords.join(", ")}`);
-    }
-    if (doc.sections?.length) {
-      lines.push("", "Sections:");
-      doc.sections.forEach((s, i) => {
-        lines.push(`${i + 1}. ${s.name}: ${s.purpose}`);
-      });
-    }
-    return lines.join("\n");
-  }
-  return "";
-}
-
-/**
- * Build the document instructions section.
- * Uses the unified documentInstructions field (structure, voice, tone all in one).
- */
-function buildDocumentInstructionsSection(style: DocumentNarrativeStyle): string {
-  const instructions = getDocumentInstructions(style);
-  if (!instructions) {
-    return style.craftPosture
-      ? `# Document Instructions\n\n## Craft Posture\nHow to relate to the material — density, withholding, and elaboration:\n${style.craftPosture}`
-      : "";
-  }
-
-  const lines = [`# Document Instructions`, instructions];
-
-  if (style.craftPosture) {
-    lines.push("");
-    lines.push(`## Craft Posture`);
-    lines.push("How to relate to the material — density, withholding, and elaboration:");
-    lines.push(style.craftPosture);
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Get roles from document style.
- * Handles both new format (roles) and legacy format (entityRules.roles).
- */
-function getDocumentRoles(
-  style: DocumentNarrativeStyle
-): Array<{ role: string; count: { min: number; max: number }; description: string }> {
-  // New format
-  if (style.roles && style.roles.length > 0) {
-    return style.roles;
-  }
-  // Legacy format fallback
-  const legacy = style as unknown as {
-    entityRules?: {
-      roles?: Array<{ role: string; count: { min: number; max: number }; description: string }>;
-    };
-  };
-  if (legacy.entityRules?.roles) {
-    return legacy.entityRules.roles;
-  }
-  return [];
-}
-
-/**
- * Get event instructions from document style.
- * Handles both new format (eventInstructions) and legacy format (documentConfig.eventUsage).
- */
-function getDocumentEventInstructions(style: DocumentNarrativeStyle): string {
-  // New format
-  if (style.eventInstructions) {
-    return style.eventInstructions;
-  }
-  // Legacy format fallback
-  const legacy = style as unknown as { documentConfig?: { eventUsage?: string } };
-  if (legacy.documentConfig?.eventUsage) {
-    return legacy.documentConfig.eventUsage;
-  }
-  return "";
-}
-
-/**
- * Build the document event usage section.
- */
-function buildDocumentEventUsageSection(style: DocumentNarrativeStyle): string {
-  const instructions = getDocumentEventInstructions(style);
-  if (!instructions) {
-    return "";
-  }
-
-  return `# How to Use Events
-${instructions}`;
-}
-
-/**
- * Build the perspective section for document format.
- * Contains the PS-synthesized perspective brief and suggested motifs.
- *
- * NOTE: No format receives coreTone directly — it conflicts with narrative style proseInstructions
- * (e.g. "dark, war-weary" fights Dreamscape's "hallucinatory, fluid"). PS already receives
- * coreTone as input and incorporates it into its synthesis. The generation prompt gets only
- * PS brief + motifs + narrative style proseInstructions.
- */
-function buildDocumentStyleSection(tone: string | undefined): string {
-  if (!tone) return "";
-  return `# Perspective\n\n${tone}`;
-}
-
-/**
- * Build the unified cast section for document format.
- * Combines role expectations with character data so the LLM sees roles and characters together.
- */
-function buildUnifiedDocumentCastSection(
-  selection: V2SelectionResult,
-  primaryEntityIds: Set<string>,
-  style: DocumentNarrativeStyle,
-  prominenceScale: ProminenceScale
-): string {
-  const lines: string[] = [`# Cast (${selection.entities.length} characters)`];
-  lines.push("");
-  lines.push(
-    "**Temporal context**: Entity descriptions reflect their CURRENT state — who they became, how they ended up. This chronicle depicts PAST EVENTS when characters who are now dead/changed were alive and active. Write them as they WERE during the story, not as they ARE now."
-  );
-  const roles = getDocumentRoles(style);
-
-  // Role expectations first - so LLM knows what to look for
-  if (roles.length > 0) {
-    lines.push("");
-    lines.push("## Document Roles");
-    lines.push("Assign characters from below to these roles:");
-    for (const role of roles) {
-      const countStr =
-        role.count.min === role.count.max
-          ? `${role.count.min}`
-          : `${role.count.min}-${role.count.max}`;
-      lines.push(`- **${role.role}** (${countStr}): ${role.description}`);
-    }
-  }
-
-  // Primary characters
-  const primaryEntities = selection.entities.filter((e) => primaryEntityIds.has(e.id));
-  const supportingEntities = selection.entities.filter((e) => !primaryEntityIds.has(e.id));
-
-  if (primaryEntities.length > 0) {
-    lines.push("");
-    lines.push("## Primary Characters");
-    for (const entity of primaryEntities) {
-      lines.push("");
-      lines.push(`### ${entity.name}`);
-      lines.push(formatEntityFull(entity, prominenceScale));
-    }
-  }
-
-  // Supporting characters
-  if (supportingEntities.length > 0) {
-    lines.push("");
-    lines.push("## Supporting Characters");
-    for (const entity of supportingEntities) {
-      lines.push("");
-      lines.push(formatEntityBrief(entity, prominenceScale));
-    }
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Build complete prompt for document format.
- *
- * Section order matches story prompt structure:
- *
- * TASK DATA (how to write it):
- * 1. TASK - Word count, requirements
- * 2. DOCUMENT INSTRUCTIONS - Structure, voice, tone guidance
- * 3. EVENT USAGE - How to incorporate world events
- * 4. NARRATIVE VOICE - Synthesized prose guidance
- * 5. ENTITY WRITING DIRECTIVES - Per-entity guidance
- * 6. WRITING STYLE - World tone + perspective brief + motifs
- *
- * WORLD DATA (what to write about):
- * 7. CAST - Document roles + characters
- * 8. WORLD - Setting context
- * 9. NAME BANK - Culture-appropriate names
- * 10. HISTORICAL CONTEXT - Era, timeline
- * 11. RELATIONSHIPS + EVENTS - Data section
- */
-function buildDocumentPrompt(
-  context: ChronicleGenerationContext,
-  selection: V2SelectionResult,
-  primaryEntityIds: Set<string>,
-  narrativeVoiceSection: string,
-  entityDirectivesSection: string,
-  nameBankSection: string,
-  style: DocumentNarrativeStyle,
-  prominenceScale: ProminenceScale
-): string {
-  const wordCount = getDocumentWordCount(style);
-  const wordRange = `${wordCount.min}-${wordCount.max}`;
-
-  // === TASK DATA ===
-
-  // 1. TASK
-  const taskSection = `# Task
-Write a ${wordRange} word ${style.name}.
-
-Requirements:
-- Follow the document structure and voice guidance below
-- Assign the provided characters to the document roles defined below
-- Incorporate the listed events naturally as context or content
-- Follow the Entity Writing Directives for each character's speech and behavior
-- Ground the document in the historical era and timeline provided
-- Make the document feel authentic - as if it exists within the world
-- Write the document directly with no meta-commentary`;
-
-  // 2. DOCUMENT INSTRUCTIONS
-  const instructionsSection = buildDocumentInstructionsSection(style);
-
-  // 3. EVENT USAGE
-  const eventSection = buildDocumentEventUsageSection(style);
-
-  // 4. NARRATIVE VOICE (synthesized)
-
-  // 5. ENTITY WRITING DIRECTIVES (synthesized)
-
-  // 6. WRITING STYLE (world tone + perspective brief + motifs)
-  const styleSection = buildDocumentStyleSection(context.tone);
-
-  // === WORLD DATA ===
-
-  // 7. CAST (unified roles + characters)
-  const castSection = buildUnifiedDocumentCastSection(
-    selection,
-    primaryEntityIds,
-    style,
-    prominenceScale
-  );
-
-  // 7b. NARRATIVE LENS (contextual frame entity)
-  const lensSection = buildNarrativeLensSection(context, prominenceScale);
-
-  // 8. WORLD (setting context)
-  const worldSection = buildWorldSection(context);
-
-  // 9. NAME BANK (practical data)
-
-  // 10. HISTORICAL CONTEXT
-  const temporalSection = buildTemporalSection(context.temporalContext, context.temporalNarrative);
-
-  // 11. RELATIONSHIPS + EVENTS
-  const dataSection = buildDataSection(selection);
-
-  // NARRATIVE DIRECTION (optional, between task and instructions)
-  const narrativeDirectionSection = buildNarrativeDirectionSection(context.narrativeDirection);
-
-  // Combine sections in order: TASK DATA then WORLD DATA
-  const sections = [
-    // TASK DATA
-    taskSection,
-    narrativeDirectionSection,
-    instructionsSection,
-    eventSection,
-    narrativeVoiceSection,
-    entityDirectivesSection,
-    styleSection,
-    // WORLD DATA
-    castSection,
-    lensSection,
-    worldSection,
-    nameBankSection,
-    temporalSection,
-    dataSection,
-  ].filter(Boolean);
-
-  return sections.join("\n\n");
-}
-
-// =============================================================================
 // Public API
 // =============================================================================
 
@@ -984,7 +286,7 @@ export function buildV2Prompt(
   style: NarrativeStyle,
   selection: V2SelectionResult
 ): string {
-  const primaryEntityIds = new Set(context.focus?.primaryEntityIds || []);
+  const primaryEntityIds = new Set(context.focus?.primaryEntityIds ?? []);
   const narrativeVoiceSection = buildNarrativeVoiceSection(context.narrativeVoice);
   const entityDirectivesSection = buildEntityDirectivesSection(context.entityDirectives);
   const nameBankSection = buildNameBankSection(context.nameBank, selection.entities);
@@ -1025,7 +327,7 @@ export function buildV2Prompt(
 export function getMaxTokensFromStyle(style: NarrativeStyle): number {
   const maxWords =
     style.format === "story"
-      ? (style).pacing.totalWordCount.max
+      ? style.pacing.totalWordCount.max
       : getDocumentWordCount(style).max;
 
   // Add 50% buffer for safety, but never go below a practical minimum.
@@ -1040,7 +342,13 @@ export function getMaxTokensFromStyle(style: NarrativeStyle): number {
  */
 export function getV2SystemPrompt(style: NarrativeStyle): string {
   if (style.format === "story") {
-    return `You are an expert fantasy author writing engaging fiction. Your readers expect vivid characters, emotional truth, and prose that lands.
+    return getStorySystemPrompt();
+  }
+  return getDocumentSystemPrompt();
+}
+
+function getStorySystemPrompt(): string {
+  return `You are an expert fantasy author writing engaging fiction. Your readers expect vivid characters, emotional truth, and prose that lands.
 
 Your prompt contains:
 
@@ -1062,8 +370,10 @@ WORLD DATA (what to write about):
 CRITICAL: Entity descriptions reflect who characters BECAME. Write them as they WERE during the story's events. A character described as dead was alive when your story takes place.
 
 Craft defines how to write; Story Bible is background reference. The world exists through what characters notice, do, and feel.`;
-  } else {
-    return `You are crafting an in-universe document that feels authentic and alive. Your prompt contains:
+}
+
+function getDocumentSystemPrompt(): string {
+  return `You are crafting an in-universe document that feels authentic and alive. Your prompt contains:
 
 CRAFT (how to write):
 - Document Instructions: Structure, voice, tone - THIS DEFINES YOUR DOCUMENT
@@ -1085,194 +395,4 @@ CRITICAL: Entity descriptions reflect who characters BECAME. If depicting past e
 Document Instructions define the document's structure and format — they are primary. The Perspective provides thematic focus, not prose style. Write as the document's author would write, not as a storyteller.
 
 Write authentically as if the document exists within the world. No meta-commentary.`;
-  }
-}
-
-// =============================================================================
-// Creative Freedom Mode
-// =============================================================================
-
-/**
- * System prompt for creative freedom generation.
- *
- * Key differences from structured (getV2SystemPrompt):
- * - Fiction writer identity with competitive frame ("structured version already exists")
- * - Pushes toward risk: "find what it missed — the angle, the voice, the structure it didn't try"
- * - Anti-AI-tells: "the measure is whether a reader would say 'this is a story'"
- * - Same PS, same data — only the generation prompt framing differs.
- */
-export function getCreativeSystemPrompt(): string {
-  return `You are a fiction writer. Find the one detail that makes this story specific — the gesture, the object, the sensory moment no other story contains. Build outward from there. The measure is whether a reader finishes this and sits with it. Avoid the patterns, rhythms, and hedging that mark machine-generated text.
-
-Your prompt contains:
-
-GUIDANCE (pre-synthesized — follow their intent, find your own voice):
-- Tone & Atmosphere: Synthesized prose guidance for this chronicle
-- Character Notes: Per-entity guidance for portrayal
-
-WORLD DATA (what to write about):
-- Cast: Characters and narrative roles
-- World: Setting, canon facts, events, relationships
-
-Entity descriptions reflect who characters BECAME. Write them as they WERE during the story's events.
-
-Tone & Atmosphere and Character Notes are pre-synthesized guidance — follow their intent closely, but express them in your own voice.`;
-}
-
-/**
- * Build the creative freedom prompt for story format.
- *
- * This is a FULLY SEPARATE prompt from buildStoryPrompt — intentional duplication.
- * Same PS outputs, same world data, same entity selection. The differences from
- * the structured prompt are:
- *
- * 1. Fiction writer identity focused on finding the specific, haunting detail
- * 2. Creative target ("one image the reader won't forget") instead of requirements list
- * 3. Structure presented as a starting shape, not a prescription
- * 4. Same craft posture as structured — constraints fuel creativity, not freedom
- *
- * The creative mode runs the same PS as the structured prompt, so it receives
- * the same narrative voice, entity directives, faceted facts, and motifs.
- * The difference is purely in how the generation prompt frames and presents
- * this material to the LLM.
- */
-export function buildCreativeStoryPrompt(
-  context: ChronicleGenerationContext,
-  selection: V2SelectionResult
-): string {
-  const style = context.narrativeStyle as StoryNarrativeStyle;
-  const pacing = style.pacing;
-  const wordRange = `${pacing.totalWordCount.min}-${pacing.totalWordCount.max}`;
-
-  const primaryEntityIds = new Set(context.focus?.primaryEntityIds || []);
-  const prominenceScale = buildProminenceScaleForEntities([
-    ...selection.entities,
-    context.lensEntity,
-  ]);
-
-  // === TASK DATA ===
-
-  // 1. TASK — creative target, not permissions list
-  const taskSection = `# Task
-Write a ${wordRange} word story.
-
-Find the one image the reader won't forget. Build outward from there.
-
-- You may reassign characters to different roles or invent minor characters
-- The narrative structure below is a starting shape, not a requirement
-- Write directly with no section headers or meta-commentary`;
-
-  // 2. NARRATIVE STRUCTURE — softened: presented as suggestion
-  const structureSection = buildCreativeStructureSection(style);
-
-  // 3. EVENT USAGE
-  const eventSection = buildEventUsageSection(style);
-
-  // 4. NARRATIVE VOICE — V0-style header (not "Story Bible")
-  let narrativeVoiceSection = "";
-  if (context.narrativeVoice && Object.keys(context.narrativeVoice).length > 0) {
-    const voiceLines: string[] = ["# Tone & Atmosphere"];
-    voiceLines.push("Synthesized prose guidance for this chronicle:");
-    voiceLines.push("");
-    for (const [key, value] of Object.entries(context.narrativeVoice)) {
-      voiceLines.push(`**${key}**: ${value}`);
-    }
-    narrativeVoiceSection = voiceLines.join("\n");
-  }
-
-  // 5. ENTITY WRITING DIRECTIVES — V0-style header (not "Story Bible")
-  let entityDirectivesSection = "";
-  if (context.entityDirectives && context.entityDirectives.length > 0) {
-    const directiveLines: string[] = ["# Character Notes"];
-    directiveLines.push(
-      "Specific guidance for writing each entity — interpret creatively, don't reproduce this language directly:"
-    );
-    directiveLines.push("");
-    for (const directive of context.entityDirectives) {
-      directiveLines.push(`**${directive.entityName}**: ${directive.directive}`);
-    }
-    entityDirectivesSection = directiveLines.join("\n");
-  }
-
-  // 6. WRITING STYLE — same as structured, including craft posture
-  const styleSection = buildCreativeStyleSection(context.tone, style);
-
-  // === WORLD DATA ===
-
-  // 7. CAST (unified roles + characters — same as structured)
-  const castSection = buildUnifiedCastSection(selection, primaryEntityIds, style, prominenceScale);
-
-  // 7b. NARRATIVE LENS (contextual frame entity)
-  const lensSection = buildNarrativeLensSection(context, prominenceScale);
-
-  // 8. WORLD (setting context only, no style)
-  const worldSection = buildWorldSection(context);
-
-  // 9. NAME BANK (practical data)
-  const nameBankSection = buildNameBankSection(context.nameBank, selection.entities);
-
-  // 10. HISTORICAL CONTEXT
-  const temporalSection = buildTemporalSection(context.temporalContext, context.temporalNarrative);
-
-  // 11 & 12. RELATIONSHIPS + EVENTS
-  const dataSection = buildDataSection(selection);
-
-  // NARRATIVE DIRECTION (optional, between task and structure)
-  const narrativeDirectionSection = buildNarrativeDirectionSection(context.narrativeDirection);
-
-  // Combine sections in order: TASK DATA then WORLD DATA
-  const sections = [
-    // TASK DATA
-    taskSection,
-    narrativeDirectionSection,
-    structureSection,
-    eventSection,
-    narrativeVoiceSection,
-    entityDirectivesSection,
-    styleSection,
-    // WORLD DATA
-    castSection,
-    lensSection,
-    worldSection,
-    nameBankSection,
-    temporalSection,
-    dataSection,
-  ].filter(Boolean);
-
-  return sections.join("\n\n");
-}
-
-/**
- * Build narrative structure section for creative mode.
- * Same beat sheet content but framed as a starting shape rather than prescription.
- */
-function buildCreativeStructureSection(style: StoryNarrativeStyle): string {
-  const lines: string[] = ["# Narrative Structure"];
-  lines.push("One possible shape for this story. Use it, adapt it, or find a better one.");
-
-  // Scene count guidance
-  if (style.pacing?.sceneCount) {
-    lines.push("");
-    lines.push(`Target: ${style.pacing.sceneCount.min}-${style.pacing.sceneCount.max} scenes`);
-  }
-
-  // Narrative instructions (plot structure, scenes, beats, emotional arcs)
-  if (style.narrativeInstructions) {
-    lines.push("");
-    lines.push(style.narrativeInstructions);
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Build writing style section for creative mode.
- * Same as structured — craft posture included. Constraints fuel creativity;
- * removing them produces safer, more median output, not wilder output.
- */
-function buildCreativeStyleSection(
-  tone: ChronicleGenerationContext["tone"],
-  style: StoryNarrativeStyle
-): string {
-  return buildUnifiedStyleSection(tone, style);
 }

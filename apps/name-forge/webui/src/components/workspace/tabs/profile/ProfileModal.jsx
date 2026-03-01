@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import PropTypes from "prop-types";
-import { ModalShell } from "@penguin-tales/shared-components";
+import { ModalShell } from "@the-canonry/shared-components";
 import { OverviewTab, SingleGroupTab, TestTab } from "./tabs";
 
 export default function ProfileModal({

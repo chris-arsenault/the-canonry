@@ -119,7 +119,7 @@ export default function BackportConfigModal({
           {/* Entity selection */}
           <div className="bcm-section">
             <div className="bcm-section-header">
-              <span className="bcm-section-label">
+              <span className="ilu-section-label bcm-section-label">
                 Entities ({selectedCount} selected
                 {pendingEntities.length < entities.length ? `, ${doneCount} done` : ""})
               </span>
@@ -158,10 +158,10 @@ export default function BackportConfigModal({
 
         {/* Footer */}
         <div className="bcm-footer">
-          <button onClick={onCancel} className="illuminator-button illuminator-button-secondary bcm-footer-btn">
+          <button onClick={onCancel} className="illuminator-button illuminator-button-secondary ilu-footer-btn bcm-footer-btn">
             Cancel
           </button>
-          <button onClick={() => onStart(Array.from(selectedIds), customInstructions.trim())} disabled={selectedCount === 0} className="illuminator-button illuminator-button-primary bcm-footer-btn">
+          <button onClick={() => onStart(Array.from(selectedIds), customInstructions.trim())} disabled={selectedCount === 0} className="illuminator-button illuminator-button-primary ilu-footer-btn bcm-footer-btn">
             Start Backport ({selectedCount} {selectedCount === 1 ? "entity" : "entities"})
           </button>
         </div>

@@ -4,8 +4,9 @@
  * Uses fuse.js for fuzzy matching across page titles and content.
  */
 
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import Fuse from "fuse.js";
+import { useKeyboardNavigation } from "@the-canonry/shared-components";
 import type { WikiPage } from "../types/world.ts";
 import styles from "./WikiSearch.module.css";
 
@@ -51,32 +52,27 @@ export default function WikiSearch({
     return fuse.search(query).slice(0, 10);
   }, [fuse, query]);
 
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isOpen || results.length === 0) return;
+  // Keyboard navigation via shared hook
+  const handleEnter = useCallback(
+    (id: string) => {
+      onSelect(id);
+      setIsOpen(false);
+      onQueryChange("");
+    },
+    [onSelect, onQueryChange]
+  );
 
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setSelectedIndex((i) => Math.min(i + 1, results.length - 1));
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelectedIndex((i) => Math.max(i - 1, 0));
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (results[selectedIndex]) {
-          onSelect(results[selectedIndex].item.id);
-          setIsOpen(false);
-          onQueryChange("");
-        }
-        break;
-      case "Escape":
-        setIsOpen(false);
-        break;
-    }
-  };
+  const handleEscape = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const handleKeyDown = useKeyboardNavigation({
+    results,
+    selectedIndex,
+    setSelectedIndex,
+    onSelect: handleEnter,
+    onEscape: handleEscape,
+  });
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -106,7 +102,7 @@ export default function WikiSearch({
           setIsOpen(true);
         }}
         onFocus={() => setIsOpen(true)}
-        onKeyDown={handleKeyDown}
+        onKeyDown={(e) => { if (isOpen) handleKeyDown(e); }}
         className={styles.input}
       />
 

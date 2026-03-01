@@ -1,15 +1,7 @@
 /* EnsembleConstellation styles */
+@import "./visualization-base.css";
 
 .ec-svg {
-  display: block;
   background: var(--bg-secondary);
   border-radius: 8px;
-}
-
-.ec-cursor-pointer {
-  cursor: pointer;
-}
-
-.ec-no-pointer {
-  pointer-events: none;
 }

@@ -7,7 +7,7 @@ import PropTypes from "prop-types";
 import { LinePath } from "@visx/shape";
 import { AxisLeft, AxisBottom } from "@visx/axis";
 import { GridRows, GridColumns } from "@visx/grid";
-import { PRESSURE_COLORS } from "./SimulationTraceVisx";
+import { PRESSURE_COLORS } from "./traceConstants";
 
 /**
  * Pressure chart component

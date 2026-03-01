@@ -357,9 +357,9 @@
   min-width: 100px;
 }
 
+/* Compose with .ilu-hint-sm for base font-size/color */
 .eb-enrichment-hint {
-  font-size: 11px;
-  color: var(--text-muted);
+  /* spacing only — font-size/color from .ilu-hint-sm */
 }
 
 /* Min Event Significance */
@@ -384,9 +384,9 @@
   font-size: 13px;
 }
 
+/* Compose with .ilu-hint-sm for base font-size/color */
 .eb-event-significance-hint {
-  font-size: 11px;
-  color: var(--text-muted);
+  /* font-size/color from .ilu-hint-sm */
   display: block;
   margin-top: 4px;
 }
@@ -400,14 +400,8 @@
 
 /* Selection actions bar */
 .eb-selection-bar {
-  display: flex;
-  align-items: center;
   gap: 12px;
-  padding: 12px 16px;
   margin-bottom: 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--accent-color);
-  border-radius: 6px;
   flex-wrap: wrap;
   flex-shrink: 0;
 }
@@ -463,14 +457,10 @@
 
 .eb-list-empty {
   padding: 40px;
-  text-align: center;
-  color: var(--text-muted);
 }
 
 .eb-list-loading {
   padding: 16px;
-  text-align: center;
-  color: var(--text-muted);
   font-size: 12px;
 }
 

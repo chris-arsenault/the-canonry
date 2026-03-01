@@ -1,62 +1,6 @@
-/* TimelineView3D Component Styles */
-
-/* WebGL fallback container */
-.tv3d-no-webgl {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #0a1929;
-  color: #93c5fd;
-}
-
-.tv3d-no-webgl-inner {
-  text-align: center;
-  max-width: 400px;
-}
-
-.tv3d-no-webgl-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.tv3d-no-webgl-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #fff;
-  margin-bottom: 8px;
-}
-
-.tv3d-no-webgl-message {
-  font-size: 13px;
-}
-
-/* Main container */
-.tv3d-container {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-
-/* Legend panel */
-.tv3d-legend {
-  background: linear-gradient(135deg, rgba(50, 40, 20, 0.95) 0%, rgba(20, 15, 5, 0.95) 100%);
-}
-
-.tv3d-legend-header {
-  background: rgba(255, 215, 0, 0.1);
-}
-
-.tv3d-legend-footer {
-  background: rgba(255, 215, 0, 0.05);
-}
-
-/* Legend swatch with dynamic color */
-.tv3d-legend-swatch {
-  background-color: var(--tv3d-swatch-color);
-}
+/* TimelineView3D Component Styles — component-specific only.
+ * Shared overlay panel styles live in visualization-overlay.css.
+ */
 
 /* Era swatch (non-round, golden) */
 .tv3d-era-swatch {
@@ -66,13 +10,4 @@
 /* Era link indicator */
 .tv3d-era-link {
   background-color: #FFD700;
-}
-
-/* Controls hint panel */
-.tv3d-controls {
-  background: linear-gradient(135deg, rgba(50, 40, 20, 0.95) 0%, rgba(20, 15, 5, 0.95) 100%);
-}
-
-.tv3d-controls-header {
-  background: rgba(255, 215, 0, 0.1);
 }

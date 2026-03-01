@@ -2,7 +2,7 @@
  * Chronicle Storage - Read-only access to chronicles in the illuminator DB
  */
 
-import { openIlluminatorDb } from "../lib/illuminatorDbReader";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 const CHRONICLE_STORE_NAME = "chronicles";
 

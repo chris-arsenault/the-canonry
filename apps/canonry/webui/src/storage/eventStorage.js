@@ -4,7 +4,7 @@
  * Writes merged event records to the `narrativeEvents` store via raw IndexedDB.
  */
 
-import { openIlluminatorDb } from "../lib/illuminatorDbReader";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 const EVENTS_STORE_NAME = "narrativeEvents";
 

@@ -19,6 +19,7 @@ import { useEraTemporalInfo } from "../lib/db/indexSelectors";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
 import { useIlluminatorModals } from "../lib/db/modalStore";
 import { getEraNarrativesForEra, deleteEraNarrative, resolveActiveContent } from "../lib/db/eraNarrativeRepository";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./EraNarrativeModal.css";
 const PILL_ID = "era-narrative";
 const TONE_OPTIONS = [{
@@ -540,8 +541,7 @@ export default function EraNarrativeModal({
 
           {/* Failed */}
           {isFailed && <div className="era-narr-failed">
-              <div className="era-narr-failed-title">Generation failed</div>
-              <div className="era-narr-failed-error">{narrative?.error}</div>
+              <ErrorMessage title="Generation failed" message={narrative?.error} className="era-narr-failed-error" />
               <button onClick={cancel} className="illuminator-button">
                 Dismiss
               </button>

@@ -2,14 +2,10 @@
 
 .tps-loading {
   padding: 20px;
-  text-align: center;
-  color: var(--text-muted);
 }
 
 .tps-empty {
   padding: 20px;
-  text-align: center;
-  color: var(--text-muted);
 }
 
 .tps-header-actions {
@@ -28,29 +24,8 @@
   margin-bottom: 16px;
 }
 
-.tps-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.tps-stat-card {
-  padding: 10px;
-  background: var(--bg-tertiary);
-  border-radius: 6px;
-  text-align: center;
-}
-
-.tps-stat-value {
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.tps-stat-label {
-  font-size: 11px;
-  color: var(--text-muted);
-}
+/* Stats grid: uses shared ilu-stats-grid, ilu-stat-card, ilu-stat-value, ilu-stat-label
+ * from panel-utilities.css — no local overrides needed. */
 
 .tps-kind-list {
   display: flex;
@@ -127,8 +102,6 @@
 
 .tps-kind-empty {
   padding: 20px;
-  text-align: center;
-  color: var(--text-muted);
   font-size: 12px;
 }
 

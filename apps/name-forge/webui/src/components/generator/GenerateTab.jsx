@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
-import { TagSelector, NumberInput } from "@penguin-tales/shared-components";
+import { TagSelector, NumberInput, ErrorMessage } from "@the-canonry/shared-components";
 import { generateTestNames } from "../../lib/browser-generator.js";
 
 /**
@@ -366,7 +366,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
               </div>
             )}
 
-            {error && <div className="error mt-md">{error}</div>}
+            {error && <ErrorMessage message={error} className="mt-md" />}
           </div>
 
           {/* Strategy Usage */}

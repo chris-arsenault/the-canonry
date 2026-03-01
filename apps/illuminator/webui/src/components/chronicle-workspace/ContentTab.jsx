@@ -37,8 +37,8 @@ function AssembledContentViewer({
   }
 
   return (
-    <div className="ctab-viewer">
-      <div className="ctab-viewer-toolbar">
+    <div className="ilu-container ctab-viewer">
+      <div className="ilu-container-header ctab-viewer-toolbar">
         <span className="ctab-word-count">
           {wordCount.toLocaleString()} words
           {diffParts && (
@@ -194,7 +194,7 @@ export default function ContentTab({
     <div>
       {/* Summary (collapsible) */}
       {item.summary && (
-        <div className="ctab-summary-section">
+        <div className="ilu-container ctab-summary-section">
           <div
             onClick={() => setSummaryExpanded((v) => !v)}
             className={`ctab-summary-header ${summaryExpanded ? "ctab-summary-header-expanded" : ""}`}

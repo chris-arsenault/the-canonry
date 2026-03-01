@@ -7,7 +7,7 @@
 
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
-import { TagSelector } from "@penguin-tales/shared-components";
+import { TagSelector } from "@the-canonry/shared-components";
 import "./AxisRegistry.css";
 
 export default function AxisRegistryEditor({
@@ -199,25 +199,25 @@ export default function AxisRegistryEditor({
   };
 
   return (
-    <div className="axr-container">
-      <div className="axr-header">
-        <div className="axr-title">Axis Registry</div>
-        <div className="axr-subtitle">
+    <div className="cosmo-editor-container">
+      <div className="cosmo-editor-header">
+        <div className="cosmo-editor-title">Axis Registry</div>
+        <div className="cosmo-editor-subtitle">
           Define reusable semantic axes. Tags are auto-configured when you save.
         </div>
       </div>
 
-      <div className="axr-toolbar">
-        <span className="axr-count">
+      <div className="cosmo-toolbar">
+        <span className="cosmo-count">
           {axisDefinitions.length} {axisDefinitions.length === 1 ? "axis" : "axes"} defined
         </span>
-        <button className="axr-add-button" onClick={openNewModal}>
+        <button className="cosmo-add-btn" onClick={openNewModal}>
           + New Axis
         </button>
       </div>
 
       {axisDefinitions.length === 0 ? (
-        <div className="axr-empty-state">
+        <div className="cosmo-empty-state">
           No axes defined yet. Create your first axis to start building semantic planes.
         </div>
       ) : (
@@ -233,11 +233,11 @@ export default function AxisRegistryEditor({
                       <div className="axr-axis-description">{axis.description}</div>
                     )}
                   </div>
-                  <div className="axr-actions">
-                    <button className="axr-edit-button" onClick={() => openEditModal(axis)}>
+                  <div className="cosmo-actions">
+                    <button className="cosmo-edit-btn" onClick={() => openEditModal(axis)}>
                       Edit
                     </button>
-                    <button className="axr-delete-button" onClick={() => deleteAxis(axis.id)}>
+                    <button className="cosmo-delete-btn" onClick={() => deleteAxis(axis.id)}>
                       Delete
                     </button>
                   </div>
@@ -245,7 +245,7 @@ export default function AxisRegistryEditor({
 
                 <div className="axr-axis-range">
                   <span className="axr-tag">{axis.lowTag}</span>
-                  <span className="axr-arrow">←―――→</span>
+                  <span className="cosmo-arrow">←―――→</span>
                   <span className="axr-tag">{axis.highTag}</span>
                 </div>
 
@@ -270,16 +270,16 @@ export default function AxisRegistryEditor({
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="axr-modal" onClick={closeModal} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") closeModal(); }} >
-          <div className="axr-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
-            <div className="axr-modal-title">
+        <div className="cosmo-modal" onClick={closeModal} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") closeModal(); }} >
+          <div className="cosmo-modal-content axr-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+            <div className="cosmo-modal-title">
               {editingAxis ? `Edit Axis: ${editingAxis.name}` : "New Axis Definition"}
             </div>
 
-            <div className="axr-form-group">
-              <label htmlFor="name" className="axr-label">Name</label>
+            <div className="cosmo-form-group">
+              <label htmlFor="name" className="cosmo-label">Name</label>
               <input id="name"
-                className="axr-input"
+                className="cosmo-input"
                 placeholder="e.g., Power, Alignment, Element"
                 value={formData.name}
                 onChange={(e) => handleNameChange(e.target.value)}
@@ -288,24 +288,24 @@ export default function AxisRegistryEditor({
               />
             </div>
 
-            <div className="axr-form-group">
-              <label htmlFor="id" className="axr-label">ID</label>
+            <div className="cosmo-form-group">
+              <label htmlFor="id" className="cosmo-label">ID</label>
               <input id="id"
-                className="axr-input"
+                className="cosmo-input"
                 placeholder="e.g., power, alignment, element"
                 value={formData.id}
                 onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                 disabled={!!editingAxis}
               />
-              <div className="axr-hint">
+              <div className="cosmo-hint">
                 {editingAxis ? "ID cannot be changed" : "Auto-generated from name"}
               </div>
             </div>
 
-            <div className="axr-form-group">
-              <label htmlFor="description-optional" className="axr-label">Description (optional)</label>
+            <div className="cosmo-form-group">
+              <label htmlFor="description-optional" className="cosmo-label">Description (optional)</label>
               <input id="description-optional"
-                className="axr-input"
+                className="cosmo-input"
                 placeholder="Brief description of this axis"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -314,8 +314,8 @@ export default function AxisRegistryEditor({
 
             <div className="axr-input-row">
               <div className="axr-input-half">
-                <div className="axr-form-group">
-                  <label className="axr-label">Low Tag (0)
+                <div className="cosmo-form-group">
+                  <label className="cosmo-label">Low Tag (0)
                   <TagSelector
                     tagRegistry={tagRegistry}
                     value={formData.lowTag ? [formData.lowTag] : []}
@@ -328,8 +328,8 @@ export default function AxisRegistryEditor({
                 </div>
               </div>
               <div className="axr-input-half">
-                <div className="axr-form-group">
-                  <label className="axr-label">High Tag (100)
+                <div className="cosmo-form-group">
+                  <label className="cosmo-label">High Tag (100)
                   <TagSelector
                     tagRegistry={tagRegistry}
                     value={formData.highTag ? [formData.highTag] : []}
@@ -343,17 +343,17 @@ export default function AxisRegistryEditor({
               </div>
             </div>
 
-            <div className="axr-hint">
+            <div className="cosmo-hint">
               Tags will be auto-created in the registry with isAxis=true and set as mutually
               exclusive.
             </div>
 
-            <div className="axr-modal-actions">
-              <button className="axr-cancel-button" onClick={closeModal}>
+            <div className="cosmo-modal-actions">
+              <button className="cosmo-cancel-btn" onClick={closeModal}>
                 Cancel
               </button>
               <button
-                className="axr-save-button"
+                className="cosmo-save-btn axr-save-button"
                 style={{ '--axr-save-opacity': formData.name && formData.lowTag && formData.highTag ? 1 : 0.5 }}
                 onClick={saveAxis}
                 disabled={!formData.name || !formData.lowTag || !formData.highTag}

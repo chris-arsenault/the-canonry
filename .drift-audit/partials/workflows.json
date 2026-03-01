@@ -1,0 +1,590 @@
+[
+  {
+    "id": "bulk-modal-shell-adoption",
+    "name": "BulkOperationShell Adoption Consistency",
+    "type": "behavioral",
+    "domain": "Multi-Step Workflow Consistency",
+    "description": "Three of the eight bulk operation modals (BulkEraNarrativeModal, InterleavedAnnotationModal, CorpusFindReplace) bypass BulkOperationShell entirely, duplicating its overlay, header, minimize-to-pill, footer, and phase-detection patterns inline. The remaining five (BulkHistorianModal, BulkBackportModal, BulkChronicleAnnotationModal, BulkToneRankingModal, BulkFactCoverageModal) properly compose through the shared shell.",
+    "impact": "MEDIUM",
+    "total_files": 8,
+    "variants": [
+      {
+        "name": "shell-composed",
+        "description": "Modal composes through BulkOperationShell, which handles overlay, header, pill lifecycle, footer buttons, and phase detection. Modal only provides body content.",
+        "file_count": 5,
+        "files": [
+          "apps/illuminator/webui/src/components/BulkHistorianModal.jsx",
+          "apps/illuminator/webui/src/components/BulkBackportModal.jsx",
+          "apps/illuminator/webui/src/components/BulkChronicleAnnotationModal.jsx",
+          "apps/illuminator/webui/src/components/BulkToneRankingModal.jsx",
+          "apps/illuminator/webui/src/components/BulkFactCoverageModal.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/BulkHistorianModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/BulkHistorianModal.jsx",
+            "start_line": 51,
+            "end_line": 56,
+            "snippet": "return <BulkOperationShell pillId=\"bulk-historian\" title={title} progress={progress}\n  onConfirm={onConfirm} onCancel={onCancel} onClose={onClose}\n  confirmLabel={progress ? getConfirmLabel(progress) : \"\"}\n  statusText={progress ? getStatusText(progress) : \"\"}\n  pillStatusText={progress ? getPillText(progress) : \"\"}>"
+          }
+        ],
+        "implementation_details": "Delegates all structural concerns (overlay div, dialog width switching, header with minimize button and status, footer with confirm/cancel/close buttons, pill lifecycle via floatingPillStore) to BulkOperationShell. Modal only renders phase-specific body content as children."
+      },
+      {
+        "name": "inline-overlay-and-pill",
+        "description": "Modal renders its own overlay, header, footer, minimize button, pill lifecycle, and progress bar — duplicating BulkOperationShell's concerns.",
+        "file_count": 3,
+        "files": [
+          "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx",
+          "apps/illuminator/webui/src/components/InterleavedAnnotationModal.jsx",
+          "apps/illuminator/webui/src/components/CorpusFindReplace.tsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx",
+            "start_line": 191,
+            "end_line": 213,
+            "snippet": "return <div className=\"benm-overlay\">\n  <div className=\"benm-modal\" style={{ \"--benm-modal-width\": isConfirming ? \"540px\" : \"560px\" }}>\n    <div className=\"benm-header\">\n      <div className=\"benm-header-row\">\n        <h2 className=\"benm-title\">Bulk Era Narrative</h2>\n        <div className=\"benm-header-actions\">\n          {!isConfirming && <button onClick={() => useFloatingPillStore.getState().minimize({\n            id: PILL_ID, label: \"Bulk Era Narrative\",\n            statusText: ..., statusColor: ..., tabId: \"chronicle\"\n          })} className=\"illuminator-button benm-minimize-btn\">...</button>}\n          <span className=\"benm-status-label\" style={{ \"--benm-status-color\": statusColor }}>...</span>"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/InterleavedAnnotationModal.jsx",
+            "start_line": 44,
+            "end_line": 65,
+            "snippet": "return <div className=\"iam-overlay\">\n  <div className=\"iam-dialog\" style={{ \"--iam-dialog-width\": isConfirming ? \"560px\" : \"480px\" }}>\n    <div className=\"iam-header\">\n      <div className=\"iam-header-row\">\n        <h2 className=\"iam-title\">Interleaved Annotation</h2>\n        <div className=\"iam-header-actions\">\n          {!isConfirming && <button onClick={() => useFloatingPillStore.getState().minimize({\n            id: PILL_ID, label: \"Interleaved Annotation\",\n            statusText: ..., statusColor: ...\n          })} className=\"illuminator-button iam-minimize-btn\">...</button>}"
+          }
+        ],
+        "implementation_details": "Each modal manually implements: overlay div, dialog with CSS custom property width, header row with title + minimize button + status span, footer with confirm/cancel/close buttons, plus useEffect hooks for pill update and pill cleanup when idle. All of this is identical to what BulkOperationShell provides. BulkEraNarrativeModal also has its own progress bar, terminal message divs, and cost display instead of using BulkProgressBar, BulkTerminalMessage, and BulkCost."
+      }
+    ],
+    "behavior_matrix": {
+      "BulkHistorianModal": {
+        "uses_shell": "yes — <BulkOperationShell pillId=\"bulk-historian\">",
+        "uses_shared_progress_bar": "yes — <BulkProgressBar>",
+        "uses_shared_terminal": "yes — <BulkTerminalMessage>",
+        "uses_shared_failed_list": "yes — <BulkFailedList>",
+        "uses_shared_cost": "yes — <BulkCost>"
+      },
+      "BulkBackportModal": {
+        "uses_shell": "yes — <BulkOperationShell pillId=\"bulk-backport\">",
+        "uses_shared_progress_bar": "no — custom bbm-progress-* classes with own progress bar",
+        "uses_shared_terminal": "yes — <BulkTerminalMessage>",
+        "uses_shared_failed_list": "no — no failed items list (chronicle-level failure only)",
+        "uses_shared_cost": "yes — <BulkCost>"
+      },
+      "BulkChronicleAnnotationModal": {
+        "uses_shell": "yes — <BulkOperationShell pillId=\"bulk-chronicle-annotation\">",
+        "uses_shared_progress_bar": "yes — <BulkProgressBar>",
+        "uses_shared_terminal": "yes — <BulkTerminalMessage>",
+        "uses_shared_failed_list": "yes — <BulkFailedList>",
+        "uses_shared_cost": "yes — <BulkCost>"
+      },
+      "BulkToneRankingModal": {
+        "uses_shell": "yes — <BulkOperationShell pillId=\"bulk-tone-ranking\">",
+        "uses_shared_progress_bar": "yes — <BulkProgressBar>",
+        "uses_shared_terminal": "yes — <BulkTerminalMessage>",
+        "uses_shared_failed_list": "no — single LLM call, no per-item failures",
+        "uses_shared_cost": "yes — <BulkCost>"
+      },
+      "BulkFactCoverageModal": {
+        "uses_shell": "yes — <BulkOperationShell pillId=\"bulk-fact-coverage\">",
+        "uses_shared_progress_bar": "yes — <BulkProgressBar>",
+        "uses_shared_terminal": "yes — <BulkTerminalMessage>",
+        "uses_shared_failed_list": "yes — <BulkFailedList>",
+        "uses_shared_cost": "yes — <BulkCost>"
+      },
+      "BulkEraNarrativeModal": {
+        "uses_shell": "no — inline benm-overlay, benm-modal, benm-header, benm-footer",
+        "uses_shared_progress_bar": "no — custom benm-progress-* classes",
+        "uses_shared_terminal": "no — custom benm-terminal-msg divs",
+        "uses_shared_failed_list": "no — no failed items list",
+        "uses_shared_cost": "no — custom benm-stats div"
+      },
+      "InterleavedAnnotationModal": {
+        "uses_shell": "no — inline iam-overlay, iam-dialog, iam-header, iam-footer",
+        "uses_shared_progress_bar": "no — custom iam-progress-* classes",
+        "uses_shared_terminal": "no — custom iam-terminal-* divs",
+        "uses_shared_failed_list": "no — custom iam-failed-section div",
+        "uses_shared_cost": "no — custom iam-cost div"
+      }
+    },
+    "missing_behavior_complexity": {
+      "BulkEraNarrativeModal_shell_adoption": "moderate — needs to restructure JSX to pass body as children to BulkOperationShell. The streaming step progress UI (threads/generate/edit with live word counts) is unique to this modal and stays as custom body content. The overlay, header, footer, and pill lifecycle are straightforward to delegate.",
+      "InterleavedAnnotationModal_shell_adoption": "moderate — same restructuring as above. The work-item list with chronicle/entity interleaving is unique body content that stays custom. Shell handles the wrapper.",
+      "BulkBackportModal_shared_progress_bar": "trivial — currently uses custom bbm-progress-* classes; could switch to <BulkProgressBar> with minor CSS adjustment"
+    },
+    "analysis": "This is genuine drift, not intentional variation. BulkEraNarrativeModal and InterleavedAnnotationModal were likely developed after BulkOperationShell was created but before its API was stabilized to handle their needs. Both modals duplicate the exact same overlay/dialog/header/minimize/footer/pill lifecycle pattern, just with different CSS prefixes (benm-*, iam-*). The user-visible impact is subtle but real: the three non-shell modals have slightly different minimize button placement, different status color computation (inline style vs CSS class), and different dialog width values. Unification target: extend BulkOperationShell to accept the streaming step progress and interleaved work list as children, then migrate BulkEraNarrativeModal and InterleavedAnnotationModal to compose through it.",
+    "recommendation": "Migrate BulkEraNarrativeModal and InterleavedAnnotationModal to compose through BulkOperationShell. The shell already supports custom body content via children, custom widths via confirmWidth/processWidth, and custom pill text via pillStatusText. The only missing capability is the streaming step progress display (unique to era narratives) — this stays as body content inside the shell.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "bulk-store-architecture",
+    "name": "State Management Pattern for Bulk Operations",
+    "type": "behavioral",
+    "domain": "Multi-Step Workflow Consistency",
+    "description": "Bulk operations use two incompatible state management patterns: React hooks with useState/useRef (useBulkHistorian, useBulkBackport) vs Zustand stores with module-level flags (bulkEraNarrativeStore, bulkChronicleAnnotationStore, interleavedAnnotationStore). The Zustand pattern survives tab switches; the hook pattern does not.",
+    "impact": "MEDIUM",
+    "total_files": 5,
+    "variants": [
+      {
+        "name": "react-hook-with-refs",
+        "description": "State managed by useState inside a custom hook. Module-level cancelledRef and activeRef survive unmounts, but progress state is lost on tab switch because useState is destroyed.",
+        "file_count": 2,
+        "files": [
+          "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+          "apps/illuminator/webui/src/hooks/useBulkBackport.ts"
+        ],
+        "sample_file": "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+            "start_line": 102,
+            "end_line": 120,
+            "snippet": "export function useBulkHistorian(deps: {\n  buildReviewContext: ...\n  applyReviewNotes: ...\n  reloadEntities: ...\n  getEntityNav: ...\n}): UseBulkHistorianReturn {\n  const [progress, setProgress] = useState<BulkHistorianProgress>(IDLE_PROGRESS);\n  const cancelledRef = useRef(false);\n  const activeRef = useRef(false);\n  const depsRef = useRef(deps);\n  const scanRef = useRef<{ operation; tone; entities; reEdition? } | null>(null);"
+          }
+        ],
+        "implementation_details": "Uses useState for progress, useRef for cancellation/active flags and scan data. The async processing loop is a fire-and-forget IIFE inside confirmBulkHistorian that calls setProgress. If the component unmounts mid-run (tab switch), the async loop continues but setProgress becomes a no-op on the unmounted component — the user loses visibility into progress."
+      },
+      {
+        "name": "zustand-with-module-flags",
+        "description": "State managed by Zustand store with module-level activeFlag, cancelledFlag, and scanData variables. Progress survives tab switches because the Zustand store persists globally.",
+        "file_count": 3,
+        "files": [
+          "apps/illuminator/webui/src/lib/db/bulkEraNarrativeStore.ts",
+          "apps/illuminator/webui/src/lib/db/bulkChronicleAnnotationStore.ts",
+          "apps/illuminator/webui/src/lib/db/interleavedAnnotationStore.ts"
+        ],
+        "sample_file": "apps/illuminator/webui/src/lib/db/bulkEraNarrativeStore.ts",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/lib/db/bulkEraNarrativeStore.ts",
+            "start_line": 72,
+            "end_line": 83,
+            "snippet": "// Module-level flags (survive component unmounts)\nlet activeFlag = false;\nlet cancelledFlag = false;\nlet scanData: {\n  eras: BulkEraNarrativeEraSummary[];\n  tone: EraNarrativeTone;\n  projectId: string;\n  simulationRunId: string;\n  eraTemporalInfo: EraTemporalEntry[];\n  chronicleItems: ChronicleNavItem[];\n  narrativeWeightMap: Record<string, string>;\n} | null = null;"
+          },
+          {
+            "file": "apps/illuminator/webui/src/lib/db/bulkChronicleAnnotationStore.ts",
+            "start_line": 63,
+            "end_line": 71,
+            "snippet": "// Module-level flags (survive component unmounts)\nlet activeFlag = false;\nlet cancelledFlag = false;\nlet scanData: {\n  operation: \"run\" | \"clear\";\n  chronicles: BulkAnnotationChronicleSummary[];\n} | null = null;"
+          }
+        ],
+        "implementation_details": "Module-level flags (activeFlag, cancelledFlag, scanData) are declared outside the store for the async loop to reference. The store's set() function updates Zustand state from the async loop. Since Zustand state is global, the modal can unmount and remount (tab switch) and still show current progress. The async loop itself runs independently of React lifecycle."
+      }
+    ],
+    "behavior_matrix": {
+      "useBulkHistorian": {
+        "state_management": "useState + useRef",
+        "survives_tab_switch": "no — progress lost, async loop becomes invisible",
+        "cancellation_mechanism": "cancelledRef.current = true",
+        "scan_data_storage": "scanRef (useRef)",
+        "active_guard": "activeRef.current"
+      },
+      "useBulkBackport": {
+        "state_management": "useState + useRef",
+        "survives_tab_switch": "no — progress lost, async loop becomes invisible",
+        "cancellation_mechanism": "cancelledRef.current = true",
+        "scan_data_storage": "scanRef (useRef)",
+        "active_guard": "activeRef.current"
+      },
+      "bulkChronicleAnnotationStore": {
+        "state_management": "Zustand + module-level flags",
+        "survives_tab_switch": "yes — Zustand store persists",
+        "cancellation_mechanism": "cancelledFlag = true (module-level)",
+        "scan_data_storage": "scanData (module-level let)",
+        "active_guard": "activeFlag (module-level let)"
+      },
+      "bulkEraNarrativeStore": {
+        "state_management": "Zustand + module-level flags",
+        "survives_tab_switch": "yes — Zustand store persists",
+        "cancellation_mechanism": "cancelledFlag = true (module-level)",
+        "scan_data_storage": "scanData (module-level let)",
+        "active_guard": "activeFlag (module-level let)"
+      },
+      "interleavedAnnotationStore": {
+        "state_management": "Zustand + module-level flags",
+        "survives_tab_switch": "yes — Zustand store persists",
+        "cancellation_mechanism": "cancelledFlag = true (module-level)",
+        "scan_data_storage": "scanData (module-level let)",
+        "active_guard": "activeFlag (module-level let)"
+      }
+    },
+    "missing_behavior_complexity": {
+      "useBulkHistorian_to_zustand": "moderate — requires extracting the buildReviewContext/applyReviewNotes/reloadEntities/getEntityNav deps from React hook closures into a store initialization pattern (similar to how bulkEraNarrativeStore accesses useChronicleStore.getState()). The async processing loop itself would be unchanged.",
+      "useBulkBackport_to_zustand": "moderate — same pattern. The assembleContextForChronicle, applyPatches, getEligibleChronicleIds deps need to be passed into the store at prepare time rather than captured via useRef."
+    },
+    "analysis": "This is genuine drift. The Zustand stores (bulkChronicleAnnotationStore, bulkEraNarrativeStore, interleavedAnnotationStore) were written later and intentionally chose the module-flag + Zustand pattern to fix the tab-switch problem that affects the earlier hook-based implementations. The comments in bulkChronicleAnnotationStore explicitly say 'State lives in Zustand so it survives component unmounts during tab switches. Same pattern as toneRankingStore.' The user-visible impact is significant: if a user starts a bulk historian operation and switches to a different tab, the progress display disappears and cannot be recovered without waiting for the floating pill to update. The Zustand-based operations maintain full progress visibility across tab switches.",
+    "recommendation": "Migrate useBulkHistorian and useBulkBackport to Zustand stores with module-level flags, matching the pattern established by bulkChronicleAnnotationStore. This requires passing the dep callbacks (buildReviewContext, applyPatches, etc.) into the store at prepare time rather than capturing them in React closures.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "workflow-phase-lifecycle",
+    "name": "Prepare/Confirm/Cancel/Close Lifecycle Consistency",
+    "type": "behavioral",
+    "domain": "Multi-Step Workflow Consistency",
+    "description": "All bulk operations follow a prepare/confirm/cancel/close lifecycle, but the API naming is inconsistent across stores and hooks, making the pattern harder to recognize and compose.",
+    "impact": "LOW",
+    "total_files": 5,
+    "variants": [
+      {
+        "name": "operation-suffixed-naming",
+        "description": "Methods named prepare{Operation}, confirm{Operation}, cancel{Operation} — no close method.",
+        "file_count": 2,
+        "files": [
+          "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+          "apps/illuminator/webui/src/hooks/useBulkBackport.ts"
+        ],
+        "sample_file": "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+            "start_line": 66,
+            "end_line": 78,
+            "snippet": "export interface UseBulkHistorianReturn {\n  progress: BulkHistorianProgress;\n  isActive: boolean;\n  prepareBulkHistorian: (\n    operation: BulkHistorianOperation,\n    tone: HistorianTone,\n    entityIds: string[],\n    reEdition?: boolean\n  ) => void;\n  confirmBulkHistorian: () => void;\n  cancelBulkHistorian: () => void;\n  setTone: (tone: HistorianTone) => void;\n}"
+          }
+        ],
+        "implementation_details": "Hook exposes prepareBulkHistorian, confirmBulkHistorian, cancelBulkHistorian. No explicit close/cleanup method — cancelling from confirming state resets to IDLE_PROGRESS directly. Progress resets implicitly when the parent re-creates the hook."
+      },
+      {
+        "name": "generic-suffixed-naming",
+        "description": "Methods named prepare{Verb}, confirm{Verb}, cancel{Verb}, close{Verb} where Verb is the operation type.",
+        "file_count": 3,
+        "files": [
+          "apps/illuminator/webui/src/lib/db/bulkChronicleAnnotationStore.ts",
+          "apps/illuminator/webui/src/lib/db/bulkEraNarrativeStore.ts",
+          "apps/illuminator/webui/src/lib/db/interleavedAnnotationStore.ts"
+        ],
+        "sample_file": "apps/illuminator/webui/src/lib/db/bulkEraNarrativeStore.ts",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/lib/db/bulkEraNarrativeStore.ts",
+            "start_line": 258,
+            "end_line": 275,
+            "snippet": "interface BulkEraNarrativeStore {\n  progress: BulkEraNarrativeProgress;\n  prepareBulk: (...) => void;\n  setEraTone: (eraId: string, tone: EraNarrativeTone) => void;\n  setAllTones: (tone: EraNarrativeTone) => void;\n  confirmBulk: () => void;\n  cancelBulk: () => void;\n  closeBulk: () => void;\n}"
+          },
+          {
+            "file": "apps/illuminator/webui/src/lib/db/bulkChronicleAnnotationStore.ts",
+            "start_line": 207,
+            "end_line": 213,
+            "snippet": "interface BulkChronicleAnnotationStore {\n  progress: BulkAnnotationProgress;\n  prepareAnnotation: (operation: \"run\" | \"clear\", chronicleItems: ChronicleNavItem[]) => void;\n  confirmAnnotation: () => void;\n  cancelAnnotation: () => void;\n  closeAnnotation: () => void;\n}"
+          }
+        ],
+        "implementation_details": "Zustand stores expose prepare{X}, confirm{X}, cancel{X}, close{X}. The close method is distinct from cancel: close resets to idle only when not active (for dismissing terminal state), while cancel sets the cancellation flag. The naming varies: prepareBulk vs prepareAnnotation vs prepareInterleaved."
+      }
+    ],
+    "behavior_matrix": {
+      "useBulkHistorian": {
+        "prepare": "prepareBulkHistorian(operation, tone, entityIds, reEdition?)",
+        "confirm": "confirmBulkHistorian()",
+        "cancel": "cancelBulkHistorian()",
+        "close": "— (no explicit close)"
+      },
+      "useBulkBackport": {
+        "prepare": "prepareBulkBackport(simulationRunId, projectId)",
+        "confirm": "confirmBulkBackport()",
+        "cancel": "cancelBulkBackport()",
+        "close": "— (no explicit close)"
+      },
+      "bulkChronicleAnnotationStore": {
+        "prepare": "prepareAnnotation(operation, chronicleItems)",
+        "confirm": "confirmAnnotation()",
+        "cancel": "cancelAnnotation()",
+        "close": "closeAnnotation()"
+      },
+      "bulkEraNarrativeStore": {
+        "prepare": "prepareBulk(chronicleItems, wizardEras, ...7 params)",
+        "confirm": "confirmBulk()",
+        "cancel": "cancelBulk()",
+        "close": "closeBulk()"
+      },
+      "interleavedAnnotationStore": {
+        "prepare": "prepareInterleaved(chronicleItems, entityNavItems)",
+        "confirm": "confirmInterleaved()",
+        "cancel": "cancelInterleaved()",
+        "close": "closeInterleaved()"
+      }
+    },
+    "missing_behavior_complexity": {
+      "add_close_to_hooks": "trivial — add a closeBulk callback that resets progress to IDLE_PROGRESS when !activeRef.current",
+      "unify_naming": "trivial — rename all to prepare/confirm/cancel/close without operation-specific suffixes"
+    },
+    "analysis": "This is mostly cosmetic drift. All five implementations follow the same prepare/confirm/cancel lifecycle, but the method names diverge (prepareBulkHistorian vs prepareBulk vs prepareAnnotation vs prepareInterleaved). The Zustand stores have an additional close method that the hooks lack — this is a functional gap since the hooks have no way to dismiss terminal state without parent involvement. The impact on users is nil (these are internal APIs), but the inconsistency makes it harder for developers to work across bulk operations. A shared interface type (e.g., BulkOperationLifecycle<TProgress>) would clarify the contract.",
+    "recommendation": "Define a shared BulkOperationLifecycle interface: { progress: TProgress; prepare: (...) => void; confirm: () => void; cancel: () => void; close: () => void }. Rename all methods to match. Add close() to the hook-based implementations.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "progress-status-union",
+    "name": "Progress Status Union Type Consistency",
+    "type": "behavioral",
+    "domain": "Multi-Step Workflow Consistency",
+    "description": "All bulk workflows use a status union type, but the simulation worker uses a different, richer set of states. The bulk operations are consistent with each other (idle|confirming|running|complete|cancelled|failed); the simulation worker uses (idle|initializing|validating|running|finalizing|paused|complete|error).",
+    "impact": "LOW",
+    "total_files": 6,
+    "variants": [
+      {
+        "name": "bulk-status-union",
+        "description": "Status: 'idle' | 'confirming' | 'running' | 'complete' | 'cancelled' | 'failed'",
+        "file_count": 5,
+        "files": [
+          "apps/illuminator/webui/src/hooks/useBulkHistorian.ts:53",
+          "apps/illuminator/webui/src/hooks/useBulkBackport.ts:60",
+          "apps/illuminator/webui/src/lib/db/bulkEraNarrativeStore.ts:44",
+          "apps/illuminator/webui/src/lib/db/bulkChronicleAnnotationStore.ts:38",
+          "apps/illuminator/webui/src/lib/db/interleavedAnnotationStore.ts:43"
+        ],
+        "sample_file": "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+            "start_line": 52,
+            "end_line": 54,
+            "snippet": "export interface BulkHistorianProgress {\n  status: \"idle\" | \"confirming\" | \"running\" | \"complete\" | \"cancelled\" | \"failed\";"
+          }
+        ],
+        "implementation_details": "All five bulk operation stores/hooks use the exact same 6-state union. This is fully consistent and represents a well-established pattern."
+      },
+      {
+        "name": "simulation-status-union",
+        "description": "Status: 'idle' | 'initializing' | 'validating' | 'running' | 'finalizing' | 'paused' | 'complete' | 'error'",
+        "file_count": 1,
+        "files": [
+          "apps/lore-weave/webui/src/hooks/useSimulationWorker.ts:44-53"
+        ],
+        "sample_file": "apps/lore-weave/webui/src/hooks/useSimulationWorker.ts",
+        "code_excerpts": [
+          {
+            "file": "apps/lore-weave/webui/src/hooks/useSimulationWorker.ts",
+            "start_line": 44,
+            "end_line": 53,
+            "snippet": "export interface SimulationState {\n  status:\n    | \"idle\"\n    | \"initializing\"\n    | \"validating\"\n    | \"running\"\n    | \"finalizing\"\n    | \"paused\"\n    | \"complete\"\n    | \"error\";"
+          }
+        ],
+        "implementation_details": "The simulation worker has a richer status set because it represents a different kind of workflow: a long-running computational task with validation, pausing, and finalization phases. Uses 'error' instead of 'failed'. Has no 'confirming' or 'cancelled' states. Has unique 'initializing', 'validating', 'finalizing', 'paused' states."
+      }
+    ],
+    "behavior_matrix": {
+      "bulk operations (5 stores)": {
+        "idle": "yes",
+        "confirming": "yes",
+        "running": "yes",
+        "complete": "yes",
+        "cancelled": "yes",
+        "failed": "yes",
+        "initializing": "no",
+        "validating": "no",
+        "finalizing": "no",
+        "paused": "no",
+        "error": "no (uses 'failed')"
+      },
+      "simulation worker": {
+        "idle": "yes",
+        "confirming": "no (config is in a separate ParameterForm)",
+        "running": "yes",
+        "complete": "yes",
+        "cancelled": "no (uses abort to idle)",
+        "failed": "no (uses 'error')",
+        "initializing": "yes",
+        "validating": "yes",
+        "finalizing": "yes",
+        "paused": "yes",
+        "error": "yes"
+      }
+    },
+    "missing_behavior_complexity": {},
+    "analysis": "This is intentional variation, not drift. The simulation worker in lore-weave is a fundamentally different kind of workflow from the bulk LLM-powered operations in illuminator. The simulation is a pausable, steppable computational task with explicit validation and finalization phases — concepts that don't apply to sequential LLM calls. The five bulk operations are perfectly consistent with each other, which is the important finding. The simulation worker's different status set is appropriate for its domain. The one minor inconsistency is 'error' vs 'failed' — these mean the same thing but use different names. This is worth noting but not worth unifying since they're in different apps.",
+    "recommendation": "No unification needed between simulation and bulk operations — these are different workflow categories. The internal consistency of the five bulk operations is excellent.",
+    "evidence_quality": "high",
+    "status": "not_applicable"
+  },
+  {
+    "id": "bulk-error-recovery",
+    "name": "Error Recovery and Partial Failure Handling",
+    "type": "behavioral",
+    "domain": "Multi-Step Workflow Consistency",
+    "description": "Bulk operations handle per-item failures inconsistently. Some collect failed items and continue processing, some skip without recording failure, and the backport modal tracks failure at the chronicle level but not at the entity level within a chronicle.",
+    "impact": "MEDIUM",
+    "total_files": 5,
+    "variants": [
+      {
+        "name": "collect-and-continue",
+        "description": "Failed items are recorded in a failedEntities/failedChronicles/failedItems array with error messages. Processing continues. Failed list shown in terminal state.",
+        "file_count": 4,
+        "files": [
+          "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+          "apps/illuminator/webui/src/lib/db/bulkChronicleAnnotationStore.ts",
+          "apps/illuminator/webui/src/components/BulkFactCoverageModal.jsx",
+          "apps/illuminator/webui/src/lib/db/interleavedAnnotationStore.ts"
+        ],
+        "sample_file": "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/hooks/useBulkHistorian.ts",
+            "start_line": 452,
+            "end_line": 466,
+            "snippet": "} catch (err) {\n  console.error(`[Bulk Historian] Entity ${entity.entityName} failed:`, err);\n  globalProcessed++;\n  failedEntities.push({\n    entityId: entity.entityId,\n    entityName: entity.entityName,\n    error: err instanceof Error ? err.message : String(err),\n  });\n  setProgress((p) => ({\n    ...p,\n    processedEntities: globalProcessed,\n    totalCost: globalCost,\n    failedEntities: [...failedEntities],\n  }));\n}"
+          }
+        ],
+        "implementation_details": "Per-item errors are caught, logged to console, recorded in a typed array with entityId/name/error, and the processing loop continues. The modal shows a BulkFailedList component in terminal state. Progress counter includes both succeeded and failed items."
+      },
+      {
+        "name": "chronicle-level-failure-only",
+        "description": "Failure tracked at the chronicle level (an entire chronicle fails), not per-entity within a batch. On batch failure, the chronicle is marked failed and remaining batches are skipped.",
+        "file_count": 1,
+        "files": [
+          "apps/illuminator/webui/src/hooks/useBulkBackport.ts"
+        ],
+        "sample_file": "apps/illuminator/webui/src/hooks/useBulkBackport.ts",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/hooks/useBulkBackport.ts",
+            "start_line": 431,
+            "end_line": 449,
+            "snippet": "} catch (err) {\n  console.error(\n    `[Bulk Backport] Batch ${bi + 1}/${chunks.length} failed for chronicle ${chronicleId}:`,\n    err\n  );\n  chronicleProgress[ci] = {\n    ...chronicleProgress[ci],\n    status: \"failed\",\n    error: err instanceof Error ? err.message : String(err),\n  };\n  setProgress((p) => ({\n    ...p,\n    chronicles: [...chronicleProgress],\n    processedEntities: globalProcessed,\n    totalCost: globalCost,\n  }));\n  chronicleFailed = true;\n  break;\n}"
+          }
+        ],
+        "implementation_details": "When a batch fails, the entire chronicle is marked as failed and the inner batch loop breaks. Processing continues to the next chronicle. No per-entity error tracking. Terminal UI shows failed chronicle count but not individual entity failures."
+      },
+      {
+        "name": "stop-on-first-error",
+        "description": "Error from processEra propagates to the global catch, stopping all processing and setting global 'failed' status.",
+        "file_count": 1,
+        "files": [
+          "apps/illuminator/webui/src/lib/db/bulkEraNarrativeStore.ts"
+        ],
+        "sample_file": "apps/illuminator/webui/src/lib/db/bulkEraNarrativeStore.ts",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/lib/db/bulkEraNarrativeStore.ts",
+            "start_line": 336,
+            "end_line": 355,
+            "snippet": "async function runBulkEraNarratives(\n  eras: Array<{ eraId: string; eraName: string; tone: EraNarrativeTone }>,\n  ...\n): Promise<void> {\n  try {\n    let globalProcessed = 0, globalCost = 0, globalWords = 0;\n    for (const era of eras) {\n      if (cancelledFlag) break;\n      const result = await processEra(era, ...);\n      if (!result) break;\n      globalCost += result.cost;\n      globalWords += result.words;\n      globalProcessed++;\n      set((s) => ({ progress: { ...s.progress, processedEras: globalProcessed, ... } }));\n    }\n    const finalStatus = cancelledFlag ? \"cancelled\" : \"complete\";\n    ...\n  } catch (err) {\n    console.error(\"[Bulk Era Narrative] Failed:\", err);\n    set((s) => ({ progress: { ...s.progress, status: \"failed\", error: ... } }));\n  }\n}"
+          }
+        ],
+        "implementation_details": "processEra throws on failure, which propagates to the global catch in runBulkEraNarratives. There is no per-era failure collection — the first error stops all remaining eras and sets the entire operation to 'failed'. This is the only bulk operation that doesn't attempt to continue after a per-item failure."
+      }
+    ],
+    "behavior_matrix": {
+      "BulkHistorian": {
+        "per_item_failure": "yes — failedEntities array with entityId, entityName, error",
+        "continues_on_failure": "yes",
+        "failure_display": "BulkFailedList + inline count",
+        "retry_support": "no"
+      },
+      "BulkBackport": {
+        "per_item_failure": "chronicle-level only — whole chronicle marked failed on batch error",
+        "continues_on_failure": "yes (to next chronicle, not next batch)",
+        "failure_display": "failedChronicles count in terminal message",
+        "retry_support": "no"
+      },
+      "BulkChronicleAnnotation": {
+        "per_item_failure": "yes — failedChronicles array with chronicleId, title, error",
+        "continues_on_failure": "yes",
+        "failure_display": "BulkFailedList",
+        "retry_support": "no"
+      },
+      "BulkEraNarrative": {
+        "per_item_failure": "no — error stops processing, sets global 'failed' status",
+        "continues_on_failure": "no — throws from processEra propagates to runBulkEraNarratives catch",
+        "failure_display": "global error message only",
+        "retry_support": "no"
+      },
+      "InterleavedAnnotation": {
+        "per_item_failure": "yes — failedItems array with {item, error}",
+        "continues_on_failure": "yes",
+        "failure_display": "custom iam-failed-section",
+        "retry_support": "no"
+      },
+      "BulkToneRanking": {
+        "per_item_failure": "n/a — single batch LLM call",
+        "continues_on_failure": "n/a",
+        "failure_display": "global error only",
+        "retry_support": "no"
+      },
+      "BulkFactCoverage": {
+        "per_item_failure": "yes — failedChronicles array",
+        "continues_on_failure": "yes",
+        "failure_display": "BulkFailedList",
+        "retry_support": "no"
+      }
+    },
+    "missing_behavior_complexity": {
+      "BulkEraNarrative_collect_and_continue": "moderate — currently throws from processEra and catches globally. Would need to wrap each era in try/catch within the runBulkEraNarratives loop and maintain a failedEras array, similar to how useBulkHistorian handles per-entity failures.",
+      "retry_failed_items": "significant — all bulk operations would need to store enough context to re-run individual failed items. Currently scanData is cleared after the run completes."
+    },
+    "analysis": "This is a mix of drift and intentional variation. BulkHistorian, BulkChronicleAnnotation, BulkFactCoverage, and InterleavedAnnotation correctly implement collect-and-continue with per-item failure tracking — this is the dominant pattern (4 of 7). BulkEraNarrative deviates by stopping on the first era failure rather than collecting failures and continuing. This is likely unintentional since it handles the same kind of sequential LLM-powered processing as the other bulk operations. BulkBackport's chronicle-level-only tracking is reasonable given its batch structure but inconsistent with the per-entity tracking in other modals. BulkToneRanking's all-or-nothing approach is appropriate for its single-call nature. No bulk operation supports retry of failed items — this is a consistent gap across all implementations.",
+    "recommendation": "Add per-era failure collection to bulkEraNarrativeStore's runBulkEraNarratives loop (wrap processEra in try/catch, push to failedEras array, continue). Consider adding a shared 'retry failed' capability as a future enhancement to BulkOperationShell.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "streaming-progress-display",
+    "name": "Streaming/Live Progress Display During Processing",
+    "type": "behavioral",
+    "domain": "Multi-Step Workflow Consistency",
+    "description": "Most bulk operations show only a progress bar and current-item name during processing. BulkEraNarrativeModal uniquely shows live streaming text with word counts and per-step progress (threads/generate/edit). This creates a significantly richer user experience for era narratives compared to all other bulk operations.",
+    "impact": "LOW",
+    "total_files": 7,
+    "variants": [
+      {
+        "name": "progress-bar-and-current-name",
+        "description": "Shows a progress bar (N/total), current item name, and optionally a status message. No live text streaming.",
+        "file_count": 6,
+        "files": [
+          "apps/illuminator/webui/src/components/BulkHistorianModal.jsx",
+          "apps/illuminator/webui/src/components/BulkBackportModal.jsx",
+          "apps/illuminator/webui/src/components/BulkChronicleAnnotationModal.jsx",
+          "apps/illuminator/webui/src/components/BulkToneRankingModal.jsx",
+          "apps/illuminator/webui/src/components/BulkFactCoverageModal.jsx",
+          "apps/illuminator/webui/src/components/InterleavedAnnotationModal.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/BulkHistorianModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/BulkHistorianModal.jsx",
+            "start_line": 128,
+            "end_line": 154,
+            "snippet": "<BulkProgressBar processed={progress.processedEntities}\n  total={progress.totalEntities} status={progress.status} />\n<div className=\"bhm-progress-counts\">\n  {progress.processedEntities} / {progress.totalEntities} entities\n  {progress.failedEntities.length > 0 && <span className=\"bhm-progress-failed-count\">\n    {progress.failedEntities.length} failed\n  </span>}\n</div>\n{progress.currentEntityName && !isTerminal && <div className=\"bhm-current-entity\">\n  <div className=\"bhm-current-entity-name\">\n    {progress.currentEntityTone && TONE_META[progress.currentEntityTone] &&\n      <span>{TONE_META[...].symbol}</span>}\n    {progress.currentEntityName}\n  </div>\n  <div className=\"bhm-current-entity-status\">Generating annotations...</div>\n</div>}"
+          }
+        ],
+        "implementation_details": "Standard pattern: BulkProgressBar shows N/total and percentage bar, followed by a text counter, followed by the current item name with a static status message like 'Generating annotations...' or 'Analyzing fact coverage...'. No visibility into what the LLM is producing in real time."
+      },
+      {
+        "name": "streaming-with-step-progress",
+        "description": "Shows per-step progress within the current item (threads/generate/edit), live word counts from streaming LLM output, and mini progress bars per step.",
+        "file_count": 1,
+        "files": [
+          "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx",
+            "start_line": 287,
+            "end_line": 358,
+            "snippet": "// Current era — step progress with live word counts\n{progress.currentEraName && !isTerminal && (() => {\n  const stepOrder = [\"threads\", \"generate\", \"edit\"];\n  const activeIdx = stepOrder.indexOf(progress.currentStep);\n  const thinkingWords = streamEntry?.thinking\n    ? streamEntry.thinking.split(/\\s+/).filter(Boolean).length : 0;\n  const outputWords = streamEntry?.text\n    ? streamEntry.text.split(/\\s+/).filter(Boolean).length : 0;\n  return <div className=\"benm-current-era\">\n    <div className=\"benm-steps\">\n      {stepOrder.map((step, idx) => {\n        const isDone = idx < activeIdx;\n        const isActive = idx === activeIdx;\n        return <div className=\"benm-step-row\">\n          <span className=\"benm-step-icon\">{icon}</span>\n          <span className=\"benm-step-label\">{STEP_LABEL[step]}</span>\n          {isActive && <div className=\"benm-step-active-content\">\n            <div className=\"benm-step-bar-track\">\n              <div className=\"benm-step-bar-fill\" style={{width: barPercent}} />\n            </div>\n            <span className=\"benm-step-counters\">\n              T {thinkingWords} / O {outputWords}\n            </span>\n          </div>}\n        </div>;\n      })}\n    </div>\n  </div>;\n})()}"
+          }
+        ],
+        "implementation_details": "Subscribes to useThinkingStore for real-time streaming deltas from the active enrichment task. Shows a three-step progress indicator (Threads done / Writing active / Editing pending) with the active step displaying a mini progress bar based on output word count and live T (thinking) / O (output) word counters. This gives the user detailed insight into what the LLM is producing in real time."
+      }
+    ],
+    "behavior_matrix": {
+      "BulkHistorianModal": { "progress_detail": "progress bar + current entity name + static status" },
+      "BulkBackportModal": { "progress_detail": "progress bar + current chronicle + batch counter" },
+      "BulkChronicleAnnotationModal": { "progress_detail": "progress bar + current chronicle title + tone" },
+      "BulkToneRankingModal": { "progress_detail": "progress bar only (single call)" },
+      "BulkFactCoverageModal": { "progress_detail": "progress bar + current chronicle title + static 'Analyzing...'" },
+      "InterleavedAnnotationModal": { "progress_detail": "progress bar + dual counter (chronicles/entities) + current item icon+name" },
+      "BulkEraNarrativeModal": { "progress_detail": "progress bar + step progress (threads/generate/edit) + live word counts + mini per-step bars" }
+    },
+    "missing_behavior_complexity": {
+      "add_streaming_to_other_modals": "significant — requires subscribing to useThinkingStore, finding the active enrichment task ID, and building a streaming text display. Each bulk modal would need to know which enrichment queue task corresponds to its current item."
+    },
+    "analysis": "This is likely intentional variation rather than drift. Era narrative generation is a uniquely long-running operation (3 LLM calls per era, potentially 10+ minutes per era) that benefits from detailed progress feedback. Other bulk operations (historian annotation, backport, etc.) complete individual items in seconds, making streaming text display less valuable. The era narrative modal was purpose-built to show this level of detail because of the operation's duration and complexity. However, the fact that the streaming infrastructure (useThinkingStore) exists and could theoretically be wired into other modals means this could be considered a progressive enhancement opportunity rather than drift to fix.",
+    "recommendation": "No immediate action needed. The streaming progress is justified by the operation's duration. If users request more detailed progress for other bulk operations, the infrastructure (useThinkingStore, enrichment task ID tracking) is already in place.",
+    "evidence_quality": "high",
+    "status": "not_applicable"
+  }
+]

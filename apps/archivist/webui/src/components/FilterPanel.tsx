@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo } from "react";
+import { useExpandBoolean } from "@the-canonry/shared-components";
 import type { EntityKind, Filters, Prominence, WorldState } from "../types/world.ts";
 import {
   getAllTags,
@@ -22,6 +23,252 @@ interface FilterPanelProps {
   onToggleStats: () => void;
 }
 
+// ---------------------------------------------------------------------------
+// Extracted sub-components
+// ---------------------------------------------------------------------------
+
+const VIEW_MODES: { key: ViewMode; label: string; title: string }[] = [
+  { key: "graph3d", label: "3D", title: "3D Graph View" },
+  { key: "graph2d", label: "2D", title: "2D Graph View" },
+  { key: "map", label: "Map", title: "Coordinate Map View" },
+  { key: "timeline", label: "Time", title: "Timeline View - Eras along axis" },
+];
+
+function ViewControls({
+  viewMode,
+  onViewModeChange,
+  onRecalculateLayout,
+  onToggleStats,
+}: Readonly<{
+  viewMode: ViewMode;
+  onViewModeChange: (m: ViewMode) => void;
+  onRecalculateLayout: () => void;
+  onToggleStats: () => void;
+}>) {
+  return (
+    <div className="view-controls">
+      <div className="view-mode-buttons">
+        {VIEW_MODES.map((m) => (
+          <button
+            key={m.key}
+            className={`view-mode-btn ${viewMode === m.key ? "active" : ""}`}
+            onClick={() => onViewModeChange(m.key)}
+            title={m.title}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <div className="view-actions">
+        <button className="view-action-btn" onClick={onRecalculateLayout} title="Recalculate Layout">
+          recalc
+        </button>
+        <button className="view-action-btn" onClick={onToggleStats} title="Toggle Stats Panel">
+          stats
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const EDGE_METRICS: { key: EdgeMetric; label: string }[] = [
+  { key: "strength", label: "Strength" },
+  { key: "distance", label: "Distance" },
+  { key: "none", label: "Equal" },
+];
+
+function EdgeMetricSelector({
+  edgeMetric,
+  onEdgeMetricChange,
+}: Readonly<{
+  edgeMetric: EdgeMetric;
+  onEdgeMetricChange: (m: EdgeMetric) => void;
+}>) {
+  return (
+    <div className="edge-metric-group">
+      <span className="filter-section-label">Edge Spring</span>
+      <div className="edge-metric-buttons">
+        {EDGE_METRICS.map((m) => (
+          <button
+            key={m.key}
+            className={`edge-metric-btn ${edgeMetric === m.key ? "active" : ""}`}
+            onClick={() => onEdgeMetricChange(m.key)}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RelationshipTypeAccordion({
+  filters,
+  onChange,
+  sortedTypes,
+  typeCounts,
+}: Readonly<{
+  filters: Filters;
+  onChange: (f: Filters) => void;
+  sortedTypes: string[];
+  typeCounts: Record<string, number>;
+}>) {
+  const { expanded: isRelTypesExpanded, toggle } = useExpandBoolean();
+
+  const toggleType = useCallback(
+    (type: string) => {
+      let next: string[];
+      if (filters.relationshipTypes.length === 0) {
+        next = [type];
+      } else if (filters.relationshipTypes.includes(type)) {
+        next = filters.relationshipTypes.filter((t) => t !== type);
+      } else {
+        next = [...filters.relationshipTypes, type];
+      }
+      onChange({ ...filters, relationshipTypes: next });
+    },
+    [filters, onChange],
+  );
+
+  return (
+    <div className="fp-group">
+      <div className="filter-accordion-container">
+        <button onClick={toggle} className="filter-accordion-header">
+          <div className="filter-accordion-header-left">
+            <span className="filter-accordion-icon">{isRelTypesExpanded ? "\u2212" : "+"}</span>
+            <span className="filter-accordion-title">Relationship Types</span>
+          </div>
+          <span className="filter-accordion-badge">
+            {filters.relationshipTypes.length === 0 ? "All" : filters.relationshipTypes.length}
+          </span>
+        </button>
+        {isRelTypesExpanded && (
+          <div className="filter-accordion-content">
+            <div className="filter-accordion-controls">
+              <button
+                onClick={() => onChange({ ...filters, relationshipTypes: [] })}
+                className="filter-accordion-control-btn"
+              >
+                Show All
+              </button>
+            </div>
+            {sortedTypes.map((type) => {
+              const isChecked =
+                filters.relationshipTypes.length === 0 || filters.relationshipTypes.includes(type);
+              return (
+                <label key={type} className="filter-checkbox-label">
+                  <input type="checkbox" checked={isChecked} onChange={() => toggleType(type)} />
+                  <span>
+                    {type.replace(/_/g, " ")} ({typeCounts[type]})
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TimeRangeSlider({
+  filters,
+  onChange,
+  maxTick,
+}: Readonly<{
+  filters: Filters;
+  onChange: (f: Filters) => void;
+  maxTick: number;
+}>) {
+  return (
+    <div className="fp-group">
+      <span className="filter-section-label">Time Range</span>
+      <div className="time-range-box">
+        <div className="time-range-labels">
+          <span className="time-range-label">
+            Start: <span className="time-range-label-value">{filters.timeRange[0]}</span>
+          </span>
+          <span className="time-range-label">
+            End: <span className="time-range-label-value">{filters.timeRange[1]}</span>
+          </span>
+        </div>
+        <div className="time-range-sliders">
+          <input
+            type="range"
+            min={0}
+            max={maxTick}
+            value={filters.timeRange[0]}
+            onChange={(e) =>
+              onChange({ ...filters, timeRange: [parseInt(e.target.value), filters.timeRange[1]] })
+            }
+          />
+          <input
+            type="range"
+            min={0}
+            max={maxTick}
+            value={filters.timeRange[1]}
+            onChange={(e) =>
+              onChange({ ...filters, timeRange: [filters.timeRange[0], parseInt(e.target.value)] })
+            }
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StrengthSlider({
+  filters,
+  onChange,
+}: Readonly<{ filters: Filters; onChange: (f: Filters) => void }>) {
+  return (
+    <div className="fp-group">
+      <span className="filter-section-label">
+        Min Relationship Strength{" "}
+        <span className="text-blue-400 font-normal">({filters.minStrength.toFixed(2)})</span>
+      </span>
+      <div className="strength-slider-container">
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={filters.minStrength}
+          onChange={(e) => onChange({ ...filters, minStrength: parseFloat(e.target.value) })}
+          className="strength-slider"
+        />
+        <div className="strength-slider-labels">
+          <span>0.0</span>
+          <span>0.5</span>
+          <span>1.0</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorldStats({ worldData }: Readonly<{ worldData: WorldState }>) {
+  return (
+    <div className="fp-stats">
+      <div className="world-stats-title">World Stats</div>
+      <div className="world-stats-grid">
+        <div className="world-stat-card">
+          <div className="world-stat-label">Entities</div>
+          <div className="world-stat-value">{worldData.metadata.entityCount}</div>
+        </div>
+        <div className="world-stat-card">
+          <div className="world-stat-label">Relations</div>
+          <div className="world-stat-value">{worldData.metadata.relationshipCount}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
 export default function FilterPanel({
   filters,
   onChange,
@@ -37,138 +284,70 @@ export default function FilterPanel({
   const relationshipTypeCounts = getRelationshipTypeCounts(worldData);
   const maxTick = worldData.metadata.tick;
 
-  const allRelationshipTypes = worldData.schema.relationshipKinds.map((rel) => rel.kind);
-  // Sort relationship types by count (descending)
-  const sortedRelationshipTypes = [...allRelationshipTypes].sort((a, b) => {
-    return (relationshipTypeCounts[b] || 0) - (relationshipTypeCounts[a] || 0);
-  });
-
-  const [isRelTypesExpanded, setIsRelTypesExpanded] = useState(false);
-
   const entityKindSchemas = worldData.schema.entityKinds;
-  const entityKinds: EntityKind[] = entityKindSchemas.map((ek) => ek.kind);
-
+  const entityKinds: EntityKind[] = useMemo(
+    () => entityKindSchemas.map((ek) => ek.kind),
+    [entityKindSchemas],
+  );
   const prominenceLevels: Prominence[] = getProminenceLevels(worldData.schema);
 
-  // Build a map from kind to display name (from schema if available, otherwise use kind as-is)
-  const kindDisplayNames = Object.fromEntries(
-    entityKindSchemas.map((ek) => [ek.kind, ek.style?.displayName || ek.description || ek.kind])
+  const kindDisplayNames = useMemo(
+    () =>
+      Object.fromEntries(
+        entityKindSchemas.map((ek) => [ek.kind, ek.style?.displayName || ek.description || ek.kind]),
+      ),
+    [entityKindSchemas],
   );
 
-  const toggleKind = (kind: EntityKind) => {
-    const kinds = filters.kinds.includes(kind)
-      ? filters.kinds.filter((k) => k !== kind)
-      : [...filters.kinds, kind];
-    onChange({ ...filters, kinds });
-  };
+  const sortedRelationshipTypes = useMemo(() => {
+    const all = entityKindSchemas.length > 0
+      ? worldData.schema.relationshipKinds.map((rel) => rel.kind)
+      : [];
+    return [...all].sort((a, b) => (relationshipTypeCounts[b] || 0) - (relationshipTypeCounts[a] || 0));
+  }, [worldData.schema.relationshipKinds, relationshipTypeCounts, entityKindSchemas.length]);
 
-  const toggleTag = (tag: string) => {
-    const tags = filters.tags.includes(tag)
-      ? filters.tags.filter((t) => t !== tag)
-      : [...filters.tags, tag];
-    onChange({ ...filters, tags });
-  };
+  const toggleKind = useCallback(
+    (kind: EntityKind) => {
+      const kinds = filters.kinds.includes(kind)
+        ? filters.kinds.filter((k) => k !== kind)
+        : [...filters.kinds, kind];
+      onChange({ ...filters, kinds });
+    },
+    [filters, onChange],
+  );
 
-  const toggleRelationshipType = (type: string) => {
-    let relationshipTypes: string[];
+  const toggleTag = useCallback(
+    (tag: string) => {
+      const tags = filters.tags.includes(tag)
+        ? filters.tags.filter((t) => t !== tag)
+        : [...filters.tags, tag];
+      onChange({ ...filters, tags });
+    },
+    [filters, onChange],
+  );
 
-    if (filters.relationshipTypes.length === 0) {
-      // Currently showing all - user wants to filter to ONLY this type
-      relationshipTypes = [type];
-    } else if (filters.relationshipTypes.includes(type)) {
-      // Type is selected, uncheck it
-      relationshipTypes = filters.relationshipTypes.filter((t) => t !== type);
-      // If nothing left selected, go back to showing all
-      // (empty array = no filter = show all)
-    } else {
-      // Type not selected, add it
-      relationshipTypes = [...filters.relationshipTypes, type];
-    }
-
-    onChange({ ...filters, relationshipTypes });
-  };
+  const showEdgeMetric = viewMode === "graph3d" || viewMode === "graph2d";
 
   return (
     <div className="filter-panel">
-      {/* View Controls */}
-      <div className="view-controls">
-        <div className="view-mode-buttons">
-          <button
-            className={`view-mode-btn ${viewMode === "graph3d" ? "active" : ""}`}
-            onClick={() => onViewModeChange("graph3d")}
-            title="3D Graph View"
-          >
-            3D
-          </button>
-          <button
-            className={`view-mode-btn ${viewMode === "graph2d" ? "active" : ""}`}
-            onClick={() => onViewModeChange("graph2d")}
-            title="2D Graph View"
-          >
-            2D
-          </button>
-          <button
-            className={`view-mode-btn ${viewMode === "map" ? "active" : ""}`}
-            onClick={() => onViewModeChange("map")}
-            title="Coordinate Map View"
-          >
-            Map
-          </button>
-          <button
-            className={`view-mode-btn ${viewMode === "timeline" ? "active" : ""}`}
-            onClick={() => onViewModeChange("timeline")}
-            title="Timeline View - Eras along axis"
-          >
-            Time
-          </button>
-        </div>
-        <div className="view-actions">
-          <button
-            className="view-action-btn"
-            onClick={onRecalculateLayout}
-            title="Recalculate Layout"
-          >
-            ♻️
-          </button>
-          <button className="view-action-btn" onClick={onToggleStats} title="Toggle Stats Panel">
-            📊
-          </button>
-        </div>
-      </div>
+      <ViewControls
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        onRecalculateLayout={onRecalculateLayout}
+        onToggleStats={onToggleStats}
+      />
 
-      {/* Edge Metric (for graph views) */}
-      {(viewMode === "graph3d" || viewMode === "graph2d") && (
-        <div className="edge-metric-section">
-          <span className="filter-section-label">Edge Spring</span>
-          <div className="edge-metric-buttons">
-            <button
-              className={`edge-metric-btn ${edgeMetric === "strength" ? "active" : ""}`}
-              onClick={() => onEdgeMetricChange("strength")}
-            >
-              Strength
-            </button>
-            <button
-              className={`edge-metric-btn ${edgeMetric === "distance" ? "active" : ""}`}
-              onClick={() => onEdgeMetricChange("distance")}
-            >
-              Distance
-            </button>
-            <button
-              className={`edge-metric-btn ${edgeMetric === "none" ? "active" : ""}`}
-              onClick={() => onEdgeMetricChange("none")}
-            >
-              Equal
-            </button>
-          </div>
-        </div>
+      {showEdgeMetric && (
+        <EdgeMetricSelector edgeMetric={edgeMetric} onEdgeMetricChange={onEdgeMetricChange} />
       )}
 
-      <div className="filter-panel-divider"></div>
+      <div className="filter-panel-divider" />
 
       {/* Search */}
-      <div className="filter-section">
+      <div className="fp-group">
         <label htmlFor="search" className="filter-section-label">Search</label>
-        <input id="search"
+        <input
+          id="search"
           type="text"
           value={filters.searchQuery}
           onChange={(e) => onChange({ ...filters, searchQuery: e.target.value })}
@@ -178,7 +357,7 @@ export default function FilterPanel({
       </div>
 
       {/* Entity Types */}
-      <div className="filter-section">
+      <div className="fp-group">
         <span className="filter-section-label">Entity Types</span>
         <div className="filter-checkbox-group">
           {entityKinds.map((kind) => (
@@ -194,158 +373,49 @@ export default function FilterPanel({
         </div>
       </div>
 
-      {/* Relationship Types */}
-      <div className="filter-section">
-        <div className="filter-accordion-container">
-          <button
-            onClick={() => setIsRelTypesExpanded(!isRelTypesExpanded)}
-            className="filter-accordion-header"
-          >
-            <div className="filter-accordion-header-left">
-              <span className="filter-accordion-icon">{isRelTypesExpanded ? "−" : "+"}</span>
-              <span className="filter-accordion-title">Relationship Types</span>
-            </div>
-            <span className="filter-accordion-badge">
-              {filters.relationshipTypes.length === 0 ? "All" : filters.relationshipTypes.length}
-            </span>
-          </button>
-          {isRelTypesExpanded && (
-            <div className="filter-accordion-content">
-              <div className="filter-accordion-controls">
-                <button
-                  onClick={() => onChange({ ...filters, relationshipTypes: [] })}
-                  className="filter-accordion-control-btn"
-                >
-                  Show All
-                </button>
-              </div>
-              {sortedRelationshipTypes.map((type) => {
-                // Empty array = show all (all appear checked)
-                // Non-empty = only selected types are checked
-                const isChecked =
-                  filters.relationshipTypes.length === 0
-                    ? true
-                    : filters.relationshipTypes.includes(type);
-                return (
-                  <label key={type} className="filter-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => toggleRelationshipType(type)}
-                    />
-                    <span>
-                      {type.replace(/_/g, " ")} ({relationshipTypeCounts[type]})
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+      <RelationshipTypeAccordion
+        filters={filters}
+        onChange={onChange}
+        sortedTypes={sortedRelationshipTypes}
+        typeCounts={relationshipTypeCounts}
+      />
 
       {/* Minimum Prominence */}
-      <div className="filter-section">
+      <div className="fp-group">
         <label htmlFor="minimum-prominence" className="filter-section-label">Minimum Prominence</label>
-        <select id="minimum-prominence"
+        <select
+          id="minimum-prominence"
           value={filters.minProminence}
           onChange={(e) => onChange({ ...filters, minProminence: e.target.value as Prominence })}
           className="filter-select"
         >
           {prominenceLevels.map((level) => (
-            <option key={level} value={level}>
-              {level}
-            </option>
+            <option key={level} value={level}>{level}</option>
           ))}
         </select>
       </div>
 
-      {/* Time Range */}
-      <div className="filter-section">
-        <span className="filter-section-label">Time Range</span>
-        <div className="time-range-box">
-          <div className="time-range-labels">
-            <span className="time-range-label">
-              Start: <span className="time-range-label-value">{filters.timeRange[0]}</span>
-            </span>
-            <span className="time-range-label">
-              End: <span className="time-range-label-value">{filters.timeRange[1]}</span>
-            </span>
-          </div>
-          <div className="time-range-sliders">
-            <input
-              type="range"
-              min={0}
-              max={maxTick}
-              value={filters.timeRange[0]}
-              onChange={(e) =>
-                onChange({
-                  ...filters,
-                  timeRange: [parseInt(e.target.value), filters.timeRange[1]],
-                })
-              }
-            />
-            <input
-              type="range"
-              min={0}
-              max={maxTick}
-              value={filters.timeRange[1]}
-              onChange={(e) =>
-                onChange({
-                  ...filters,
-                  timeRange: [filters.timeRange[0], parseInt(e.target.value)],
-                })
-              }
-            />
-          </div>
-        </div>
-      </div>
+      <TimeRangeSlider filters={filters} onChange={onChange} maxTick={maxTick} />
 
       {/* Tags */}
-      <div className="filter-section">
+      <div className="fp-group">
         <span className="filter-section-label">
           Tags <span className="text-blue-400 font-normal">({filters.tags.length} selected)</span>
         </span>
         <div className="tags-box">
           {allTags.map((tag) => (
             <label key={tag} className="filter-checkbox-label">
-              <input
-                type="checkbox"
-                checked={filters.tags.includes(tag)}
-                onChange={() => toggleTag(tag)}
-              />
+              <input type="checkbox" checked={filters.tags.includes(tag)} onChange={() => toggleTag(tag)} />
               <span>{tag}</span>
             </label>
           ))}
         </div>
       </div>
 
-      {/* Minimum Relationship Strength */}
-      <div className="filter-section">
-        <span className="filter-section-label">
-          Min Relationship Strength{" "}
-          <span className="text-blue-400 font-normal">({filters.minStrength.toFixed(2)})</span>
-        </span>
-        <div className="strength-slider-container">
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={filters.minStrength}
-            onChange={(e) => onChange({ ...filters, minStrength: parseFloat(e.target.value) })}
-            className="strength-slider"
-          />
-          <div className="strength-slider-labels">
-            <span>0.0</span>
-            <span>0.5</span>
-            <span>1.0</span>
-          </div>
-        </div>
-      </div>
+      <StrengthSlider filters={filters} onChange={onChange} />
 
-      {/* CatalyzedBy Relationships */}
-      <div className="filter-section">
+      {/* CatalyzedBy */}
+      <div className="fp-group">
         <label className="filter-checkbox-label catalyzed-checkbox">
           <input
             type="checkbox"
@@ -355,20 +425,17 @@ export default function FilterPanel({
           <span>Show Catalyzed-By Chains</span>
         </label>
         <div className="filter-help-text">
-          Visualizes meta-relationships showing which events or entities catalyzed the formation of
-          relationships
+          Visualizes meta-relationships showing which events or entities catalyzed the formation of relationships
         </div>
       </div>
 
-      {/* Historical Relationships */}
-      <div className="filter-section">
+      {/* Historical */}
+      <div className="fp-group">
         <label className="filter-checkbox-label historical-checkbox">
           <input
             type="checkbox"
             checked={filters.showHistoricalRelationships}
-            onChange={(e) =>
-              onChange({ ...filters, showHistoricalRelationships: e.target.checked })
-            }
+            onChange={(e) => onChange({ ...filters, showHistoricalRelationships: e.target.checked })}
           />
           <span>Show Historical Relationships</span>
         </label>
@@ -377,7 +444,7 @@ export default function FilterPanel({
         </div>
       </div>
 
-      {/* Reset Button */}
+      {/* Reset */}
       <button
         onClick={() =>
           onChange({
@@ -397,20 +464,7 @@ export default function FilterPanel({
         Reset Filters
       </button>
 
-      {/* Stats */}
-      <div className="world-stats-section">
-        <div className="world-stats-title">World Stats</div>
-        <div className="world-stats-grid">
-          <div className="world-stat-card">
-            <div className="world-stat-label">Entities</div>
-            <div className="world-stat-value">{worldData.metadata.entityCount}</div>
-          </div>
-          <div className="world-stat-card">
-            <div className="world-stat-label">Relations</div>
-            <div className="world-stat-value">{worldData.metadata.relationshipCount}</div>
-          </div>
-        </div>
-      </div>
+      <WorldStats worldData={worldData} />
     </div>
   );
 }

@@ -393,7 +393,7 @@ export default function EventResolutionStep() {
               );
             })}
           {relevantEvents.length === 0 && (
-            <div className="ers-empty-events">
+            <div className="ilu-empty ers-empty-events">
               No events involve assigned entities
             </div>
           )}

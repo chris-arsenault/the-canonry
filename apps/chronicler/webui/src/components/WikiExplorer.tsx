@@ -19,7 +19,7 @@ import type {
   PageIndexEntry,
   DisambiguationEntry,
 } from "../types/world.ts";
-import { useImageUrl } from "@penguin-tales/image-store";
+import { useImageUrl } from "@the-canonry/image-store";
 import { buildPageIndex, buildPageById } from "../lib/wikiBuilder.ts";
 import {
   getCompletedChroniclesForSimulation,
@@ -939,7 +939,7 @@ function HomePage({
     let fullUrl = featuredImageUrl;
     if (featuredArticle.enrichment?.image?.imageId) {
       try {
-        const { useImageStore } = await import("@penguin-tales/image-store");
+        const { useImageStore } = await import("@the-canonry/image-store");
         const loaded = await useImageStore
           .getState()
           .loadUrl(featuredArticle.enrichment.image.imageId, "full");

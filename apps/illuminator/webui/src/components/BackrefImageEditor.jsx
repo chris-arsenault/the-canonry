@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
-import { useImageUrls } from "@penguin-tales/image-store";
+import { useImageUrls } from "@the-canonry/image-store";
 import { getChronicle } from "../lib/db/chronicleRepository";
 import "./BackrefImageEditor.css";
 

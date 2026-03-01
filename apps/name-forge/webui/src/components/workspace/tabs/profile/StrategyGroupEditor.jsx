@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { TagSelector, NumberInput } from "@penguin-tales/shared-components";
+import { TagSelector, NumberInput } from "@the-canonry/shared-components";
 import MultiSelectPills from "./MultiSelectPills";
 import TagsInput from "./TagsInput";
 

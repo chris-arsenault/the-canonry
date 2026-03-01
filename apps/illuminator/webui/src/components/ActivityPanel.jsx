@@ -10,6 +10,7 @@
 import React, { useMemo, useState, useRef, useCallback } from "react";
 import PropTypes from "prop-types";
 import { useThinkingStore } from "../lib/db/thinkingStore";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./ActivityPanel.css";
 function formatDuration(ms) {
   if (ms < 1000) return `${ms}ms`;
@@ -225,7 +226,7 @@ export default function ActivityPanel({
         const activityError = formatActivityError(item);
         return <div key={item.id}>
                 <TaskRow item={item} onRetry={onRetry} onViewDebug={setDebugItem} />
-                {activityError && <div className="ap-error-detail">{activityError}</div>}
+                {activityError && <ErrorMessage message={activityError} className="ap-error-detail" />}
               </div>;
       })}
         </div>}

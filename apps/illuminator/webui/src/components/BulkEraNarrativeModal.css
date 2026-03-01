@@ -1,87 +1,5 @@
-/* BulkEraNarrativeModal — bulk era narrative pipeline progress */
-
-/* Overlay backdrop */
-.benm-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgb(0 0 0 / 50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-/* Modal container */
-.benm-modal {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  max-width: 95vw;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
-  width: var(--benm-modal-width);
-}
-
-/* Header */
-.benm-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color);
-  flex-shrink: 0;
-}
-
-.benm-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.benm-title {
-  margin: 0;
-  font-size: 16px;
-}
-
-.benm-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.benm-minimize-btn {
-  padding: 2px 8px;
-  font-size: 11px;
-}
-
-.benm-status-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--benm-status-color);
-}
-
-/* Body */
-.benm-body {
-  padding: 20px;
-  min-height: 0;
-}
-
-.benm-body-confirming {
-  overflow-y: auto;
-  flex: 1;
-}
-
-.benm-body-processing {
-  overflow-y: visible;
-}
-
-/* Section label */
-.benm-section-label {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
+/* BulkEraNarrativeModal — content-specific styles (prefix: benm-)
+ * Overlay, header, footer, terminal, and cost styles are in BulkOperationShell.css */
 
 /* Era list section */
 .benm-era-section {
@@ -335,29 +253,6 @@
   color: var(--text-muted);
 }
 
-/* Terminal state messages */
-.benm-terminal-msg {
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  font-size: 12px;
-}
-
-.benm-terminal-msg-complete {
-  background: rgb(16 185 129 / 10%);
-  border: 1px solid rgb(16 185 129 / 20%);
-}
-
-.benm-terminal-msg-cancelled {
-  background: rgb(245 158 11 / 10%);
-  border: 1px solid rgb(245 158 11 / 20%);
-}
-
-.benm-terminal-msg-failed {
-  background: rgb(239 68 68 / 10%);
-  border: 1px solid rgb(239 68 68 / 20%);
-}
-
 /* Cost + words */
 .benm-stats {
   font-size: 11px;
@@ -366,19 +261,4 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-}
-
-/* Footer */
-.benm-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.benm-footer-btn {
-  padding: 6px 16px;
-  font-size: 12px;
 }

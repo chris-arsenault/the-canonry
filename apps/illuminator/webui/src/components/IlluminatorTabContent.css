@@ -1,8 +1,8 @@
-/* IlluminatorTabContent.css -- co-located styles for IlluminatorTabContent.jsx */
+/* IlluminatorTabContent.css -- co-located styles for IlluminatorTabContent.jsx
+ * Muted hint text: compose with ilu-hint / ilu-hint-sm from panel-utilities.css.
+ * Status colors: compose with ilu-status-* from panel-utilities.css. */
 
 .itc-sync-hint {
-  font-size: 12px;
-  color: var(--text-muted);
   margin-bottom: 12px;
 }
 
@@ -14,19 +14,9 @@
 
 .itc-sync-summary {
   margin-top: 10px;
-  font-size: 11px;
-  color: var(--text-muted);
 }
 
 .itc-sync-status {
   margin-top: 10px;
   font-size: 12px;
-}
-
-.itc-sync-status-error {
-  color: #ef4444;
-}
-
-.itc-sync-status-success {
-  color: #10b981;
 }

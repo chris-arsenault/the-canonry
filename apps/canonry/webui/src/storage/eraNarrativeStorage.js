@@ -5,7 +5,7 @@
  * Returns at most one narrative per era (the most recently updated).
  */
 
-import { openIlluminatorDb } from "../lib/illuminatorDbReader";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 const STORE_NAME = "eraNarratives";
 

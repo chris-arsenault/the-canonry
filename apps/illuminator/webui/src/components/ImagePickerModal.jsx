@@ -54,9 +54,9 @@ function LazyThumbnail({ imageId, alt, className }) {
   return (
     <div ref={ref} className={className}>
       {url ? (
-        <img src={url} alt={alt} className="ipm-thumbnail-img" />
+        <img src={url} alt={alt} className="ilu-thumb-cover" />
       ) : (
-        <div className="ipm-thumbnail-placeholder">Loading...</div>
+        <div className="ilu-thumb-placeholder">Loading...</div>
       )}
     </div>
   );
@@ -285,10 +285,10 @@ export default function ImagePickerModal({
           {/* Image grid */}
           <div className="ipm-grid-container">
             {loading && (
-              <div className="ipm-loading">Loading images...</div>
+              <div className="ilu-empty ipm-loading">Loading images...</div>
             )}
             {!loading && images.length === 0 && (
-              <div className="ipm-empty">
+              <div className="ilu-empty ipm-empty">
                 No images found. Try adjusting the filters or generate some images first.
               </div>
             )}

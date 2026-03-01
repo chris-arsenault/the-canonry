@@ -4,6 +4,7 @@ import type { WorldState } from "../types/world.ts";
 import type { ProminenceScale } from "@canonry/world-schema";
 import { getKindColor, prominenceToNumber } from "../utils/dataTransform.ts";
 import * as THREE from "three";
+import "./visualization-overlay.css";
 import "./TimelineView3D.css";
 
 export type EdgeMetric = "strength" | "distance" | "none";
@@ -459,13 +460,13 @@ export default function TimelineView3D({
 
   if (!webglAvailable) {
     return (
-      <div className="tv3d-no-webgl">
-        <div className="tv3d-no-webgl-inner">
-          <div className="tv3d-no-webgl-icon">&#x1F4A0;</div>
-          <div className="tv3d-no-webgl-title">
+      <div className="viz-no-webgl">
+        <div className="viz-no-webgl-inner">
+          <div className="viz-no-webgl-icon">&#x1F4A0;</div>
+          <div className="viz-no-webgl-title">
             WebGL not available
           </div>
-          <div className="tv3d-no-webgl-message">
+          <div className="viz-no-webgl-message">
             3D timeline view requires WebGL. Switch to the <strong>2D Graph</strong> or{" "}
             <strong>Map</strong> view instead.
           </div>
@@ -475,7 +476,7 @@ export default function TimelineView3D({
   }
 
   return (
-    <div ref={containerRef} className="tv3d-container">
+    <div ref={containerRef} className="viz-container viz-theme-golden">
       {isReady && (
         <ForceGraph3D
           key={graphKey}
@@ -514,10 +515,10 @@ export default function TimelineView3D({
 
       {/* Legend */}
       <div
-        className="absolute bottom-6 left-6 rounded-xl text-white text-sm shadow-2xl border border-amber-500/30 overflow-hidden tv3d-legend"
+        className="absolute bottom-6 left-6 rounded-xl text-white text-sm shadow-2xl border border-amber-500/30 overflow-hidden viz-legend"
       >
         <div
-          className="px-5 py-3 border-b border-amber-500/20 tv3d-legend-header"
+          className="px-5 py-3 border-b border-amber-500/20 viz-legend-header"
         >
           <div className="font-bold text-amber-200 uppercase tracking-wider text-xs">
             Timeline View
@@ -533,8 +534,8 @@ export default function TimelineView3D({
           {legendItems.map((item) => (
             <div key={item.kind} className="flex items-center gap-3">
               <div
-                className="w-5 h-5 rounded-full shadow-lg flex-shrink-0 tv3d-legend-swatch"
-                style={{ '--tv3d-swatch-color': item.color } as React.CSSProperties}
+                className="w-5 h-5 rounded-full shadow-lg flex-shrink-0 viz-legend-swatch"
+                style={{ '--viz-swatch-color': item.color } as React.CSSProperties}
               ></div>
               <span className="font-medium">{item.label}</span>
             </div>
@@ -547,7 +548,7 @@ export default function TimelineView3D({
           </div>
         </div>
         <div
-          className="px-5 py-3 border-t border-amber-500/20 tv3d-legend-footer"
+          className="px-5 py-3 border-t border-amber-500/20 viz-legend-footer"
         >
           <div className="text-xs text-amber-300 italic">
             Entities cluster near their creation era
@@ -557,10 +558,10 @@ export default function TimelineView3D({
 
       {/* Controls hint */}
       <div
-        className="absolute top-6 left-6 rounded-xl text-white text-xs shadow-2xl border border-amber-500/30 overflow-hidden tv3d-controls"
+        className="absolute top-6 left-6 rounded-xl text-white text-xs shadow-2xl border border-amber-500/30 overflow-hidden viz-controls"
       >
         <div
-          className="px-5 py-3 border-b border-amber-500/20 tv3d-controls-header"
+          className="px-5 py-3 border-b border-amber-500/20 viz-controls-header"
         >
           <div className="font-bold text-amber-200 uppercase tracking-wider">Timeline Controls</div>
         </div>

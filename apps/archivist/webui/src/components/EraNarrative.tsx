@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import type { EraNarrativeLore } from "../types/world.ts";
+import "./archivist-section.css";
 import "./EraNarrative.css";
 
 interface EraNarrativeProps {
@@ -26,7 +27,7 @@ export default function EraNarrative({ lore, onClose }: Readonly<EraNarrativePro
 
   return (
     <div
-      className="era-narrative-overlay"
+      className="archivist-modal-overlay era-narrative-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
       role="button"
@@ -46,11 +47,11 @@ export default function EraNarrative({ lore, onClose }: Readonly<EraNarrativePro
           <span className="era-narrative-era era-narrative-era-to">{lore.metadata.to}</span>
         </div>
 
-        <div className="era-narrative-content">{narrative}</div>
+        <div className="archivist-narrative era-narrative-content">{narrative}</div>
 
-        <div className="era-narrative-footer">
+        <div className="archivist-section-footer era-narrative-footer">
           <span className="era-narrative-tick">Tick {lore.metadata.tick}</span>
-          <button onClick={onClose} className="era-narrative-close">
+          <button onClick={onClose} className="archivist-close-btn era-narrative-close">
             Close
           </button>
         </div>

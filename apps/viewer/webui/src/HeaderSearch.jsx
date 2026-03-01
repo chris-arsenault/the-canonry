@@ -6,7 +6,8 @@ import {
   getEntities,
   getSlotRecord,
   getStaticPages,
-} from "@penguin-tales/world-store";
+} from "@the-canonry/world-store";
+import { useKeyboardNavigation } from "@the-canonry/shared-components";
 
 function staticPageToSearchEntry(page) {
   if (!page?.pageId) return null;
@@ -89,33 +90,6 @@ function useSearchIndex(projectId, slotIndex, dexieSeededAt) {
   return { pages, isIndexLoading };
 }
 
-function useKeyboardNavigation(results, selectedIndex, setSelectedIndex, onSelect) {
-  return useCallback(
-    (e) => {
-      if (results.length === 0) return;
-
-      switch (e.key) {
-        case "ArrowDown":
-          e.preventDefault();
-          setSelectedIndex((i) => Math.min(i + 1, results.length - 1));
-          break;
-        case "ArrowUp":
-          e.preventDefault();
-          setSelectedIndex((i) => Math.max(i - 1, 0));
-          break;
-        case "Enter":
-          e.preventDefault();
-          if (results[selectedIndex]) onSelect(results[selectedIndex].item.id);
-          break;
-        case "Escape":
-          onSelect(null);
-          break;
-      }
-    },
-    [results, selectedIndex, setSelectedIndex, onSelect]
-  );
-}
-
 export default function HeaderSearch({ projectId, slotIndex, dexieSeededAt, onNavigate }) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -151,12 +125,13 @@ export default function HeaderSearch({ projectId, slotIndex, dexieSeededAt, onNa
     [onNavigate]
   );
 
-  const handleKeyDown = useKeyboardNavigation(
+  const handleKeyDown = useKeyboardNavigation({
     results,
     selectedIndex,
     setSelectedIndex,
-    handleSelect
-  );
+    onSelect: (id) => handleSelect(id),
+    onEscape: () => handleSelect(null),
+  });
 
   useEffect(() => {
     const onClickOutside = (e) => {

@@ -1,10 +1,9 @@
 /* BulkChronicleAnnotationModal — content-specific styles (prefix: bcam-)
  * Overlay, dialog, header, footer, progress bar, terminal, failed list, and cost
- * styles are provided by BulkOperationShell.css. */
-
-.bcam-warning-text {
-  color: #f59e0b;
-}
+ * styles are provided by BulkOperationShell.css.
+ * Muted hint text: compose with ilu-hint-sm from panel-utilities.css.
+ * Warning color: compose with ilu-status-warning from panel-utilities.css.
+ * Truncation: compose with truncate/flex-1 from utilities.css. */
 
 /* Chronicle list items — two-column layout with tone */
 .bcam-chronicle-item {
@@ -18,13 +17,6 @@
 
 .bcam-chronicle-item:last-child {
   border-bottom: none;
-}
-
-.bcam-chronicle-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
 }
 
 .bcam-chronicle-tone {
@@ -45,8 +37,6 @@
 }
 
 .bcam-progress-stats {
-  font-size: 11px;
-  color: var(--text-muted);
   display: flex;
   justify-content: space-between;
 }

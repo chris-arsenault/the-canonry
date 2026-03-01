@@ -1,0 +1,144 @@
+/**
+ * NumberInput - Reusable number input that properly handles negative numbers
+ *
+ * Fixes the common bug where typing a minus sign is blocked because the
+ * onChange handler immediately parses and rejects "-" as invalid.
+ *
+ * Uses internal string state during editing, only parsing to number on blur
+ * or when the full value is valid. Tracks focus state to prevent parent
+ * re-renders from disrupting user input.
+ */
+
+import React, { useState, useCallback } from 'react';
+
+interface NumberInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'step'> {
+  value?: number | null;
+  onChange: (value: number | undefined) => void;
+  className?: string;
+  min?: number;
+  max?: number;
+  step?: number | string;
+  placeholder?: string;
+  allowEmpty?: boolean;
+  integer?: boolean;
+  disabled?: boolean;
+}
+
+function formatValue(val: number | null | undefined | string): string {
+  if (val === undefined || val === null || val === '') return '';
+  return String(val);
+}
+
+/**
+ * @param {Object} props
+ * @param {number|undefined|null} props.value - The numeric value
+ * @param {Function} props.onChange - Called with the parsed number when valid
+ * @param {string} [props.className] - CSS class for the input
+ * @param {number} [props.min] - Minimum value
+ * @param {number} [props.max] - Maximum value
+ * @param {number|string} [props.step] - Step value for increment/decrement
+ * @param {string} [props.placeholder] - Placeholder text
+ * @param {boolean} [props.allowEmpty] - If true, empty string calls onChange(undefined)
+ * @param {boolean} [props.integer] - If true, only allow integers
+ * @param {boolean} [props.disabled] - Disable the input
+ */
+export function NumberInput({
+  value,
+  onChange,
+  className = 'input',
+  min,
+  max,
+  step: _step,
+  placeholder,
+  allowEmpty = false,
+  integer = false,
+  disabled = false,
+  ...rest
+}: NumberInputProps) {
+  const externalDisplayValue = formatValue(value);
+  // Internal string state for editing
+  const [localValue, setLocalValue] = useState(() => externalDisplayValue);
+  // Track focus in state so render can safely choose draft vs external value
+  const [isFocused, setIsFocused] = useState(false);
+
+  const parseValue = useCallback((str: string): number | null => {
+    if (str === '' || str === '-' || str === '.' || str === '-.') {
+      return null; // Intermediate state, not a valid number yet
+    }
+    const parsed = integer ? parseInt(str, 10) : parseFloat(str);
+    if (isNaN(parsed)) return null;
+    return parsed;
+  }, [integer]);
+
+  const handleFocus = useCallback(() => {
+    setLocalValue(externalDisplayValue);
+    setIsFocused(true);
+  }, [externalDisplayValue]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+
+    // Allow empty, minus sign, decimal point, or any numeric pattern
+    // This regex allows intermediate states like "-", ".", "-.", "1.", "-1."
+    /* eslint-disable sonarjs/slow-regex -- short user input (single number field value) */
+    const validPattern = integer
+      ? /^-?\d*$/  // Integer: optional minus, digits only
+      : /^-?\d*\.?\d*$/; // Float: optional minus, digits, optional decimal, more digits
+    /* eslint-enable sonarjs/slow-regex */
+
+    if (!validPattern.test(newValue)) {
+      return; // Reject invalid characters
+    }
+
+    setLocalValue(newValue);
+
+    // Try to parse and update parent if it's a complete valid number
+    const parsed = parseValue(newValue);
+    if (parsed !== null) {
+      // Apply min/max constraints
+      let constrained = parsed;
+      if (min !== undefined && constrained < min) constrained = min;
+      if (max !== undefined && constrained > max) constrained = max;
+      onChange(constrained);
+    } else if (allowEmpty && newValue === '') {
+      onChange(undefined);
+    }
+  }, [onChange, min, max, allowEmpty, integer, parseValue]);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+
+    // On blur, ensure the display value matches the actual value
+    const parsed = parseValue(localValue);
+    if (parsed !== null) {
+      // Apply constraints and update
+      let constrained = parsed;
+      if (min !== undefined && constrained < min) constrained = min;
+      if (max !== undefined && constrained > max) constrained = max;
+      setLocalValue(formatValue(constrained));
+      onChange(constrained);
+    } else if (allowEmpty && localValue === '') {
+      onChange(undefined);
+    } else {
+      // Revert to the parent's value if local is invalid
+      setLocalValue(externalDisplayValue);
+    }
+  }, [allowEmpty, externalDisplayValue, localValue, max, min, onChange, parseValue]);
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={isFocused ? localValue : externalDisplayValue}
+      onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      className={className}
+      placeholder={placeholder}
+      disabled={disabled}
+      {...rest}
+    />
+  );
+}
+
+export default NumberInput;

@@ -52,17 +52,17 @@ export default function WorkspaceHeader({
         {isComplete && onUnpublish && (
           <button
             onClick={onUnpublish}
-            className="wsh-btn-unpublish"
+            className="ilu-action-btn wsh-btn-unpublish"
             title="Revert to assembly review without discarding content"
           >
             Unpublish
           </button>
         )}
-        <button onClick={onRegenerate} disabled={isGenerating} className="wsh-btn-regenerate">
+        <button onClick={onRegenerate} disabled={isGenerating} className="ilu-action-btn wsh-btn-regenerate">
           &#x27F3; {isComplete ? "Restart" : "Regenerate"}
         </button>
         <div className="workspace-overflow-menu" ref={menuRef}>
-          <button onClick={() => setMenuOpen(!menuOpen)} className="wsh-btn-overflow">
+          <button onClick={() => setMenuOpen(!menuOpen)} className="ilu-action-btn wsh-btn-overflow">
             &hellip;
           </button>
           {menuOpen && (

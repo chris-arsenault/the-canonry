@@ -68,8 +68,8 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
 
         {/* Population deviations */}
         {populationReport && populationReport.entityMetrics.length > 0 && (
-          <div className="pm-section-spacer">
-            <div className="pm-section-label">
+          <div className="lw-section-spacer">
+            <div className="lw-section-label">
               Population Health
             </div>
             <div className="lw-flex-col lw-gap-sm">

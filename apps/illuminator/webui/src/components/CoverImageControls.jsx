@@ -4,8 +4,9 @@
  * Used by both chronicle PipelineTab and EraNarrativeViewer.
  */
 
-import { useImageUrl } from "@penguin-tales/image-store";
+import { useImageUrl } from "@the-canonry/image-store";
 import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./CoverImageControls.css";
 import React from "react";
 export function CoverImagePreview({
@@ -22,7 +23,7 @@ export function CoverImagePreview({
     return <div className="cic-loading">Loading image...</div>;
   }
   if (error || !url) {
-    return <div className="cic-error">Failed to load image{error ? `: ${error}` : ""}</div>;
+    return <ErrorMessage message={`Failed to load image${error ? `: ${error}` : ""}`} className="cic-error" />;
   }
   return <div className="cic-preview-wrapper">
       <img src={url} alt="Cover" onClick={onImageClick ? () => onImageClick(imageId, "Cover Image") : undefined} className={`cic-preview-img${onImageClick ? " cic-preview-img-clickable" : ""}`} role="button" tabIndex={0} onKeyDown={e => {
@@ -62,10 +63,10 @@ export function CoverImageControls({
       </div>
       <div className="cic-actions">
         <div className="cic-button-row">
-          {onGenerateCoverImageScene && <button onClick={onGenerateCoverImageScene} disabled={isGenerating} className="cic-action-btn">
+          {onGenerateCoverImageScene && <button onClick={onGenerateCoverImageScene} disabled={isGenerating} className="ilu-action-btn cic-action-btn">
               {item.coverImage ? "Regen Scene" : "Gen Scene"}
             </button>}
-          {onGenerateCoverImage && item.coverImage && (item.coverImage.status === "pending" || item.coverImage.status === "complete" || item.coverImage.status === "failed") && <button onClick={onGenerateCoverImage} disabled={isGenerating} className="cic-action-btn">
+          {onGenerateCoverImage && item.coverImage && (item.coverImage.status === "pending" || item.coverImage.status === "complete" || item.coverImage.status === "failed") && <button onClick={onGenerateCoverImage} disabled={isGenerating} className="ilu-action-btn cic-action-btn">
                 {item.coverImage.status === "complete" ? "Regen Image" : "Gen Image"}
               </button>}
         </div>

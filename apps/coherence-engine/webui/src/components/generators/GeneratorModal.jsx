@@ -4,7 +4,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
-import { getElementValidation } from "@penguin-tales/shared-components";
+import { getElementValidation } from "@the-canonry/shared-components";
 import { TABS } from "./constants";
 import { ModalShell, TabValidationBadge, OrphanBadge } from "../shared";
 import {

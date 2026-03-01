@@ -18,6 +18,7 @@
 import React, { useEffect } from "react";
 import PropTypes from "prop-types";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./BulkOperationShell.css";
 const STATUS_COLORS = {
   running: "#f59e0b",
@@ -169,10 +170,12 @@ export function BulkFailedList({
   return <div className="bulk-failed-section">
       <div className="bulk-failed-label">Failed ({items.length})</div>
       <div className="bulk-failed-list">
-        {items.map((item, i) => <div key={item.id || item.chronicleId || item.entityId || i} className="bulk-failed-item">
-            <span className="bulk-failed-item-title">{item[labelKey]}</span>
-            <span className="bulk-failed-item-error">{item[errorKey]}</span>
-          </div>)}
+        {items.map((item, i) => <ErrorMessage
+            key={item.id || item.chronicleId || item.entityId || i}
+            title={item[labelKey]}
+            message={item[errorKey]}
+            className="bulk-failed-item"
+          />)}
       </div>
     </div>;
 }

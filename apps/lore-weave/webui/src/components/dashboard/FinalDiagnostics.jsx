@@ -145,8 +145,8 @@ function AgentsTab({ catalystStats }) {
       </div>
 
       {catalystStats.topAgents.length > 0 && (
-        <div className="fd-section-spacer">
-          <div className="fd-section-label">
+        <div className="lw-section-spacer">
+          <div className="lw-section-label">
             Top Agents by Actions
           </div>
           <div className="lw-flex-col lw-gap-sm">
@@ -172,7 +172,7 @@ function AgentsTab({ catalystStats }) {
       )}
 
       {unusedCount > 0 && (
-        <div className="fd-section-spacer">
+        <div className="lw-section-spacer">
           <div className="lw-unused-header" onClick={() => setShowUnused(!showUnused)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
             <span className="lw-unused-toggle">{showUnused ? "▼" : "▶"}</span>
             <span className="lw-unused-title">Unused Actions ({unusedCount})</span>

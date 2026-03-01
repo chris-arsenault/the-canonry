@@ -3,6 +3,7 @@
  */
 
 import { db } from "./illuminatorDb";
+import { generatePrefixedId } from "./generatePrefixedId";
 import type {
   SummaryRevisionRun,
   SummaryRevisionRunStatus,
@@ -12,7 +13,7 @@ import type {
 export type { SummaryRevisionRun, SummaryRevisionRunStatus, SummaryRevisionBatch };
 
 export function generateRevisionRunId(): string {
-  return `revrun_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+  return generatePrefixedId("revrun");
 }
 
 export async function createRevisionRun(

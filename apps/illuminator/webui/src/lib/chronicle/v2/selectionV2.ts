@@ -5,7 +5,7 @@
  * from the chronicle focus for prompt building.
  */
 
-import type { ChronicleGenerationContext } from "../chronicleTypes";
+import type { ChronicleGenerationContext } from "../../chronicleTypes";
 import type { V2SelectionConfig, V2SelectionResult } from "./types";
 import { DEFAULT_V2_CONFIG } from "./types";
 
@@ -30,7 +30,7 @@ export function selectEntitiesV2(
   const selectedRelationships = context.focus.selectedRelationshipIds?.length
     ? context.relationships.filter((r) => {
         const relId = `${r.src}:${r.dst}:${r.kind}`;
-        return context.focus!.selectedRelationshipIds.includes(relId);
+        return context.focus.selectedRelationshipIds.includes(relId);
       })
     : context.relationships.filter(
         (r) => selectedEntityIds.has(r.src) && selectedEntityIds.has(r.dst)

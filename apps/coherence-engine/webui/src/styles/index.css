@@ -1,28 +1,23 @@
 /**
- * Main CSS entry point
- * Import this file once in your app's root component
+ * Coherence Engine CSS entry point
+ *
+ * Base theme and component styles come from @the-canonry/shared-components
+ * (imported in CoherenceEngineRemote.jsx). This file imports only:
+ * - Theme extensions (extra variables)
+ * - Compact overrides (tighter spacing for dense config UI)
+ * - App-specific component styles not covered by shared-components
  */
 
-/* Design tokens */
+/* Theme extensions (extra variables for nesting hierarchy) */
 @import url("./theme.css");
 
-/* Base styles */
-@import url("./base.css");
+/* Compact overrides for shared component styles */
+@import url("./components/compact-overrides.css");
 
-/* Component styles */
-@import url("./components/card.css");
-@import url("./components/form.css");
-@import url("./components/button.css");
-@import url("./components/modal.css");
+/* App-specific component styles (card.css and editor.css removed — compact
+   overrides are in compact-overrides.css; base styles from shared-components) */
 @import url("./components/badge.css");
-@import url("./components/toggle.css");
-@import url("./components/section.css");
-@import url("./components/empty-state.css");
-@import url("./components/item-row.css");
-@import url("./components/dropdown.css");
-@import url("./components/level-selector.css");
-@import url("./components/editor.css");
-@import url("./components/actions.css");
+@import url("./components/tab-form.css");
 
-/* Utilities */
+/* App-specific utilities */
 @import url("./utilities.css");

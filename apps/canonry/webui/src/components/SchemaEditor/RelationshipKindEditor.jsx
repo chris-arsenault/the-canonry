@@ -9,11 +9,12 @@ import {
   FormGroup,
   SectionHeader,
   EmptyState,
-} from "@penguin-tales/shared-components";
+} from "@the-canonry/shared-components";
 import {
   ToolUsageBadges as UsageBadges,
   getRelationshipKindUsageSummary,
-} from "@penguin-tales/shared-components";
+} from "@the-canonry/shared-components";
+import "./schema-editor-shared.css";
 import "./RelationshipKindEditor.css";
 
 export default function RelationshipKindEditor({
@@ -200,7 +201,7 @@ export default function RelationshipKindEditor({
                           {entityKinds.map((ek) => (
                             <div
                               key={ek.kind}
-                              className={`chip chip-clickable ${rel.srcKinds?.includes(ek.kind) ? "chip-active" : ""} ${isFramework ? "rke-chip-framework" : ""}`}
+                              className={`chip chip-clickable ${rel.srcKinds?.includes(ek.kind) ? "chip-active" : ""} ${isFramework ? "se-chip-framework" : ""}`}
                               onClick={() => toggleEntityKind(rel.kind, "srcKinds", ek.kind)}
                               role="button"
                               tabIndex={0}
@@ -225,7 +226,7 @@ export default function RelationshipKindEditor({
                           {entityKinds.map((ek) => (
                             <div
                               key={ek.kind}
-                              className={`chip chip-clickable ${rel.dstKinds?.includes(ek.kind) ? "chip-active" : ""} ${isFramework ? "rke-chip-framework" : ""}`}
+                              className={`chip chip-clickable ${rel.dstKinds?.includes(ek.kind) ? "chip-active" : ""} ${isFramework ? "se-chip-framework" : ""}`}
                               onClick={() => toggleEntityKind(rel.kind, "dstKinds", ek.kind)}
                               role="button"
                               tabIndex={0}
@@ -249,7 +250,7 @@ export default function RelationshipKindEditor({
                     <div className="rke-maintenance-field">
                       <span className="text-small text-muted">Decay</span>
                       <select
-                        className="input rke-select-compact"
+                        className="input se-select-compact"
                         value={rel.decayRate || "medium"}
                         disabled={isFramework}
                         onChange={(e) => updateRel(rel.kind, { decayRate: e.target.value })}
@@ -263,7 +264,7 @@ export default function RelationshipKindEditor({
                     <div className="rke-maintenance-field">
                       <span className="text-small text-muted">Polarity</span>
                       <select
-                        className="input rke-select-compact"
+                        className="input se-select-compact"
                         value={rel.polarity || "neutral"}
                         disabled={isFramework}
                         onChange={(e) => updateRel(rel.kind, { polarity: e.target.value })}
@@ -280,7 +281,7 @@ export default function RelationshipKindEditor({
                         checked={rel.cullable !== false}
                         disabled={isFramework}
                         onChange={(e) => updateRel(rel.kind, { cullable: e.target.checked })}
-                        className="rke-checkbox"
+                        className="se-checkbox-sm"
                       />
                       <span className="text-small">Cullable</span>
                     </label>

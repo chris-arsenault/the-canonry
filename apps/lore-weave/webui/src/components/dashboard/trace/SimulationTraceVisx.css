@@ -118,7 +118,7 @@
   color: white;
 }
 
-.lw-trace-view-toggles {
+.lw-trace-view-pressure-toggles {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -368,7 +368,7 @@
   color: #ef4444;
 }
 
-.lw-trace-view-detail-section-header {
+.lw-trace-view-detail-sub-header {
   font-size: 10px;
   font-weight: 600;
   color: var(--lw-text-muted);
@@ -479,7 +479,15 @@
   border-bottom: 1px solid rgb(255 255 255 / 8%);
 }
 
-.lw-trace-view-template-section {
+.lw-trace-view-template-entities,
+.lw-trace-view-template-rels,
+.lw-trace-view-template-pressures,
+.lw-trace-view-template-era-transition,
+.lw-trace-view-template-activity-summary,
+.lw-trace-view-template-participants,
+.lw-trace-view-template-selection-ctx,
+.lw-trace-view-template-outcome,
+.lw-trace-view-template-block {
   margin-top: 10px;
 }
 
@@ -622,13 +630,15 @@
 }
 
 /* Tags sections */
-.lw-trace-view-entity-tags-section,
-.lw-trace-view-entity-derived-section {
+.lw-trace-view-entity-tag-group,
+.lw-trace-view-entity-derived-group,
+.lw-trace-view-entity-exit-conditions {
   margin-bottom: 10px;
 }
 
-.lw-trace-view-entity-tags-section:last-child,
-.lw-trace-view-entity-derived-section:last-child {
+.lw-trace-view-entity-tag-group:last-child,
+.lw-trace-view-entity-derived-group:last-child,
+.lw-trace-view-entity-exit-conditions:last-child {
   margin-bottom: 0;
 }
 

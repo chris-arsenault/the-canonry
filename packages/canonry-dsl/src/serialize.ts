@@ -1,4 +1,4 @@
-/* eslint-disable sonarjs/cognitive-complexity */
+/* eslint-disable sonarjs/cognitive-complexity, max-lines, complexity, max-lines-per-function, max-depth */
 const INDENT = '  ';
 const KEYWORDS = new Set(['do', 'end', 'true', 'false', 'null']);
 const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_-]*$/;
@@ -221,7 +221,7 @@ function mergeNamingResourceEntries(entries: Record<string, unknown>[]): Record<
     const id = entry.id;
     if (typeof id !== 'string') continue;
     const signature = signatureForNamingResource(entry);
-    const bySignature = grouped.get(id) ?? new Map();
+    const bySignature = grouped.get(id) ?? new Map<string, { item: Record<string, unknown>; cultures: Set<string> }>();
     const existing = bySignature.get(signature);
     const cultureValues = entry.cultureId;
     const cultureIds: string[] = [];
@@ -631,11 +631,11 @@ function formatOperatorKeyword(operator: string): string | null {
 function formatPressureChangeLines(value: unknown, indentLevel: number): string[] | null {
   if (!isRecord(value)) return null;
   const entries = Object.entries(value)
-    .filter(([, entry]) => typeof entry === 'number')
-    .sort(([a], [b]) => String(a).localeCompare(String(b)));
+    .filter((pair): pair is [string, number] => typeof pair[1] === 'number')
+    .sort(([a], [b]) => a.localeCompare(b));
   if (entries.length === 0) return [];
   return entries.map(([key, entry]) =>
-    `${indent(indentLevel)}pressure ${formatLabel(String(key))} ${entry}`
+    `${indent(indentLevel)}pressure ${formatLabel(key)} ${String(entry)}`
   );
 }
 
@@ -1166,7 +1166,7 @@ function formatMetaEntityBlock(value: unknown, indentLevel: number): string[] | 
   }
   if (meta.prominenceFromSize !== undefined && isRecord(meta.prominenceFromSize)) {
     const entries = Object.entries(meta.prominenceFromSize)
-      .map(([key, entry]) => `${formatLabel(key)} ${entry}`);
+      .map(([key, entry]) => `${formatLabel(key)} ${String(entry)}`);
     if (entries.length > 0) {
       lines.push(`${indent(innerIndent)}prominence_from_size ${entries.join(' ')}`);
     }
@@ -1396,10 +1396,12 @@ function formatProminenceSnapshotLine(value: unknown, indentLevel: number): stri
   if (!isRecord(value)) return null;
   const snapshot = cloneAndStripRefs(value) as Record<string, unknown>;
   const parts = [`${indent(indentLevel)}prominence_snapshot`];
-  if (snapshot.enabled !== undefined) {
+  if (typeof snapshot.enabled === 'boolean' || typeof snapshot.enabled === 'string') {
     parts.push('enabled', String(snapshot.enabled));
   }
-  if (snapshot.minProminence !== undefined) {
+  if (typeof snapshot.minProminence === 'string') {
+    parts.push('min_prominence', formatLabel(snapshot.minProminence));
+  } else if (typeof snapshot.minProminence === 'number') {
     parts.push('min_prominence', formatLabel(String(snapshot.minProminence)));
   }
   return parts.join(' ');
@@ -1899,9 +1901,9 @@ function formatTagDiffusionSystem(config: Record<string, unknown>, indentLevel: 
     delete remaining.selection;
   }
 
-  if (remaining.connectionKind !== undefined && remaining.connectionDirection !== undefined) {
+  if (typeof remaining.connectionKind === 'string' && typeof remaining.connectionDirection === 'string') {
     lines.push(
-      `${indent(indentLevel)}connection ${formatLabel(String(remaining.connectionKind))} ${String(remaining.connectionDirection)}`
+      `${indent(indentLevel)}connection ${formatLabel(remaining.connectionKind)} ${remaining.connectionDirection}`
     );
     delete remaining.connectionKind;
     delete remaining.connectionDirection;
@@ -3707,9 +3709,11 @@ function formatSeedEntityBlock(item: Record<string, unknown>): string | null {
   } else if (isRecord(coords) && typeof coords.x === 'number' && typeof coords.y === 'number' && typeof coords.z === 'number') {
     lines.push(`${indent(1)}coords ${coords.x} ${coords.y} ${coords.z}`);
   } else if (Array.isArray(coords) && coords.length >= 3) {
-    const [x, y, z] = coords;
-    if ([x, y, z].every((value) => typeof value === 'number')) {
-      lines.push(`${indent(1)}coords ${x} ${y} ${z}`);
+    const x: unknown = coords[0];
+    const y: unknown = coords[1];
+    const z: unknown = coords[2];
+    if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') {
+      lines.push(`${indent(1)}coords ${String(x)} ${String(y)} ${String(z)}`);
     } else {
       lines.push(`${indent(1)}coords none`);
     }
@@ -3769,21 +3773,22 @@ function formatEntityKindBlock(item: Record<string, unknown>): string | null {
     delete remaining.isFramework;
   }
 
-  const subtypes = remaining.subtypes;
+  const subtypes: unknown = remaining.subtypes;
   delete remaining.subtypes;
-  const statuses = remaining.statuses;
+  const statuses: unknown = remaining.statuses;
   delete remaining.statuses;
-  const requiredRelationships = remaining.requiredRelationships;
+  const requiredRelationships: unknown = remaining.requiredRelationships;
   delete remaining.requiredRelationships;
   const semanticPlane = remaining.semanticPlane;
   delete remaining.semanticPlane;
 
   if (Array.isArray(subtypes)) {
-    const subtypeLines = formatSubtypeLines(subtypes, 1);
+    const typedSubtypes = subtypes.filter(isRecord);
+    const subtypeLines = formatSubtypeLines(typedSubtypes, 1);
     if (subtypeLines) {
       lines.push(...subtypeLines);
     } else {
-      const subtypeBlock = formatSubtypesBlock(subtypes, 1);
+      const subtypeBlock = formatSubtypesBlock(typedSubtypes, 1);
       if (subtypeBlock) {
         lines.push(...subtypeBlock);
       } else {
@@ -3795,11 +3800,12 @@ function formatEntityKindBlock(item: Record<string, unknown>): string | null {
   }
 
   if (Array.isArray(statuses)) {
-    const statusLines = formatStatusLines(statuses, 1);
+    const typedStatuses = statuses.filter(isRecord);
+    const statusLines = formatStatusLines(typedStatuses, 1);
     if (statusLines) {
       lines.push(...statusLines);
     } else {
-      const statusBlock = formatStatusesBlock(statuses, 1);
+      const statusBlock = formatStatusesBlock(typedStatuses, 1);
       if (statusBlock) {
         lines.push(...statusBlock);
       } else {
@@ -3811,11 +3817,12 @@ function formatEntityKindBlock(item: Record<string, unknown>): string | null {
   }
 
   if (Array.isArray(requiredRelationships)) {
-    const requiredLines = formatRequiredRelationshipLines(requiredRelationships, 1);
+    const typedReqs = requiredRelationships.filter(isRecord);
+    const requiredLines = formatRequiredRelationshipLines(typedReqs, 1);
     if (requiredLines) {
       lines.push(...requiredLines);
     } else {
-      const requiredBlock = formatRequiredRelationshipsBlock(requiredRelationships, 1);
+      const requiredBlock = formatRequiredRelationshipsBlock(typedReqs, 1);
       if (requiredBlock) {
         lines.push(...requiredBlock);
       } else {
@@ -4094,7 +4101,7 @@ function formatSemanticPlaneBlock(plane: Record<string, unknown>, indentLevel: n
   } else {
     axesLines = null;
   }
-  const regionLines = Array.isArray(regions) ? formatRegionBlocks(regions, indentLevel + 1) : null;
+  const regionLines = Array.isArray(regions) ? formatRegionBlocks(regions.filter(isRecord), indentLevel + 1) : null;
   if (!axesLines && !regionLines) return null;
 
   const lines: string[] = [];
@@ -4220,9 +4227,12 @@ function formatBoundsLine(bounds: Record<string, unknown>, indentLevel: number):
   }
 
   if (shape === 'rect') {
-    const { x1, y1, x2, y2 } = bounds;
-    if ([x1, y1, x2, y2].every((value) => typeof value === 'number')) {
-      return `${indent(indentLevel)}bounds ${formatLabel(shape)} ${x1} ${y1} ${x2} ${y2}`;
+    const bx1 = bounds.x1;
+    const by1 = bounds.y1;
+    const bx2 = bounds.x2;
+    const by2 = bounds.y2;
+    if (typeof bx1 === 'number' && typeof by1 === 'number' && typeof bx2 === 'number' && typeof by2 === 'number') {
+      return `${indent(indentLevel)}bounds ${formatLabel(shape)} ${String(bx1)} ${String(by1)} ${String(bx2)} ${String(by2)}`;
     }
     return null;
   }
@@ -4235,7 +4245,7 @@ function formatBoundsLine(bounds: Record<string, unknown>, indentLevel: number):
       if (!isRecord(point) || typeof point.x !== 'number' || typeof point.y !== 'number') {
         return null;
       }
-      coords.push(`${point.x} ${point.y}`);
+      coords.push(`${String(point.x)} ${String(point.y)}`);
     }
     return `${indent(indentLevel)}bounds ${formatLabel(shape)} ${coords.join(' ')}`;
   }
@@ -4254,22 +4264,25 @@ function formatBoundsBlock(bounds: Record<string, unknown>, indentLevel: number)
     const center = bounds.center;
     const radius = bounds.radius;
     if (isRecord(center) && typeof center.x === 'number' && typeof center.y === 'number') {
-      lines.push(`${indent(indentLevel + 1)}center ${center.x} ${center.y}`);
+      lines.push(`${indent(indentLevel + 1)}center ${String(center.x)} ${String(center.y)}`);
     } else {
       return null;
     }
     if (typeof radius === 'number') {
-      lines.push(`${indent(indentLevel + 1)}radius ${radius}`);
+      lines.push(`${indent(indentLevel + 1)}radius ${String(radius)}`);
     } else {
       return null;
     }
   } else if (shape === 'rect') {
-    const { x1, y1, x2, y2 } = bounds;
-    if ([x1, y1, x2, y2].every((value) => typeof value === 'number')) {
-      lines.push(`${indent(indentLevel + 1)}x1 ${x1}`);
-      lines.push(`${indent(indentLevel + 1)}y1 ${y1}`);
-      lines.push(`${indent(indentLevel + 1)}x2 ${x2}`);
-      lines.push(`${indent(indentLevel + 1)}y2 ${y2}`);
+    const rx1 = bounds.x1;
+    const ry1 = bounds.y1;
+    const rx2 = bounds.x2;
+    const ry2 = bounds.y2;
+    if (typeof rx1 === 'number' && typeof ry1 === 'number' && typeof rx2 === 'number' && typeof ry2 === 'number') {
+      lines.push(`${indent(indentLevel + 1)}x1 ${String(rx1)}`);
+      lines.push(`${indent(indentLevel + 1)}y1 ${String(ry1)}`);
+      lines.push(`${indent(indentLevel + 1)}x2 ${String(rx2)}`);
+      lines.push(`${indent(indentLevel + 1)}y2 ${String(ry2)}`);
     } else {
       return null;
     }
@@ -4659,9 +4672,10 @@ function formatPhonologyBlock(phonology: Record<string, unknown>, indentLevel: n
     pushInlinePairLine(lines, 'templates', syllableTemplates, indentLevel + 1);
   }
   if (Array.isArray(lengthRange) && lengthRange.length >= 2) {
-    const [min, max] = lengthRange;
-    if (typeof min === 'number' && typeof max === 'number') {
-      lines.push(`${indent(indentLevel + 1)}length ${min} ${max}`);
+    const rangeMin: unknown = lengthRange[0];
+    const rangeMax: unknown = lengthRange[1];
+    if (typeof rangeMin === 'number' && typeof rangeMax === 'number') {
+      lines.push(`${indent(indentLevel + 1)}length ${String(rangeMin)} ${String(rangeMax)}`);
     } else {
       pushAttributeLine(lines, 'lengthRange', lengthRange, indentLevel + 1);
     }
@@ -5995,7 +6009,8 @@ function formatResourceRefValue(value: unknown): unknown {
     return formatResourceRef(value);
   }
   if (Array.isArray(value)) {
-    return value.map((entry) => (typeof entry === 'string' ? formatResourceRef(entry) : entry));
+    const items: unknown[] = value;
+    return items.map((entry: unknown) => (typeof entry === 'string' ? formatResourceRef(entry) : entry));
   }
   return value;
 }

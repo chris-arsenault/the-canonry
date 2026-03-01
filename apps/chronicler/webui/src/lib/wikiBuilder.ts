@@ -252,6 +252,50 @@ function getEntityAliases(entity: HardState): string[] {
     : [];
 }
 
+function buildEntityIndexEntry(
+  entity: HardState,
+  worldData: WorldState,
+  resolvedProminenceScale: ProminenceScale
+): { entry: PageIndexEntry; aliases: string[] } {
+  const summary = entity.summary || "";
+  const aliases = getEntityAliases(entity);
+  const entry: PageIndexEntry = {
+    id: entity.id,
+    title: entity.name,
+    type: entity.kind === "era" ? "era" : "entity",
+    slug: slugify(entity.name),
+    summary: summary || undefined,
+    aliases: aliases.length > 0 ? aliases : undefined,
+    categories: buildEntityCategories(entity, worldData, resolvedProminenceScale),
+    entityKind: entity.kind,
+    entitySubtype: entity.subtype,
+    prominence: entity.prominence,
+    culture: entity.culture,
+    linkedEntities: [],
+    lastUpdated: entity.updatedAt || entity.createdAt,
+  };
+  return { entry, aliases };
+}
+
+function registerEntitySlugsAndAliases(
+  entity: HardState,
+  aliases: string[],
+  state: PageIndexState
+): void {
+  const slugAliases: string[] = entity.enrichment?.slugAliases ?? [];
+  for (const sa of slugAliases) {
+    if (sa && !state.bySlug.has(sa)) {
+      state.bySlug.set(sa, entity.id);
+    }
+  }
+  for (const alias of aliases) {
+    const normalized = alias.toLowerCase();
+    if (!state.byName.has(normalized) && !state.byAlias.has(normalized)) {
+      state.byAlias.set(normalized, entity.id);
+    }
+  }
+}
+
 function indexEntityEntries(
   worldData: WorldState,
   resolvedProminenceScale: ProminenceScale,
@@ -259,25 +303,8 @@ function indexEntityEntries(
   state: PageIndexState
 ): void {
   for (const entity of worldData.hardState) {
-    const summary = entity.summary || "";
-    const aliases = getEntityAliases(entity);
+    const { entry, aliases } = buildEntityIndexEntry(entity, worldData, resolvedProminenceScale);
     const hasEraNarrative = entity.kind === "era" && eraNarrativeByEraId.has(entity.id);
-
-    const entry: PageIndexEntry = {
-      id: entity.id,
-      title: entity.name,
-      type: entity.kind === "era" ? "era" : "entity",
-      slug: slugify(entity.name),
-      summary: summary || undefined,
-      aliases: aliases.length > 0 ? aliases : undefined,
-      categories: buildEntityCategories(entity, worldData, resolvedProminenceScale),
-      entityKind: entity.kind,
-      entitySubtype: entity.subtype,
-      prominence: entity.prominence,
-      culture: entity.culture,
-      linkedEntities: [],
-      lastUpdated: entity.updatedAt || entity.createdAt,
-    };
 
     state.byId.set(entry.id, entry);
 
@@ -290,19 +317,7 @@ function indexEntityEntries(
       }
     }
 
-    const slugAliases: string[] = entity.enrichment?.slugAliases ?? [];
-    for (const sa of slugAliases) {
-      if (sa && !state.bySlug.has(sa)) {
-        state.bySlug.set(sa, entity.id);
-      }
-    }
-
-    for (const alias of aliases) {
-      const normalized = alias.toLowerCase();
-      if (!state.byName.has(normalized) && !state.byAlias.has(normalized)) {
-        state.byAlias.set(normalized, entity.id);
-      }
-    }
+    registerEntitySlugsAndAliases(entity, aliases, state);
   }
 }
 
@@ -645,6 +660,81 @@ export function buildPageIndex(
  * @param chronicles - Completed ChronicleRecords from IndexedDB (for chronicle pages)
  * @param staticPages - Published StaticPages from IndexedDB
  */
+function buildCategoryPageById(
+  pageId: string,
+  pageIndex: WikiPageIndex
+): WikiPage | null {
+  const catId = pageId.replace("category-", "");
+  const category = pageIndex.categories.find((c) => c.id === catId);
+  if (!category) return null;
+
+  const pagesInCategory = pageIndex.entries
+    .filter((e) => e.categories.includes(catId))
+    .map((e) => ({
+      id: e.id,
+      title: e.title,
+      type: e.type,
+      slug: e.slug,
+      content: { sections: [], summary: e.summary },
+      categories: e.categories,
+      linkedEntities: e.linkedEntities,
+      images: [],
+      lastUpdated: e.lastUpdated,
+    })) as WikiPage[];
+
+  return buildCategoryPage(category, pagesInCategory);
+}
+
+interface PageBuildContext {
+  pageId: string;
+  worldData: WorldState;
+  loreData: LoreData | null;
+  imageData: ImageMetadata | null;
+  pageIndex: WikiPageIndex;
+  chronicles: ChronicleRecord[];
+  staticPages: StaticPage[];
+  prominenceScale: ProminenceScale;
+  eraNarratives: EraNarrativeViewRecord[];
+}
+
+function buildPageByType(indexEntry: PageIndexEntry, ctx: PageBuildContext): WikiPage | null {
+  const { pageId, worldData, pageIndex } = ctx;
+  const aliasIndex = pageIndex.byAlias;
+
+  if (indexEntry.type === "entity" || indexEntry.type === "era") {
+    const entity = worldData.hardState.find((e) => e.id === pageId);
+    if (!entity) return null;
+    const loreIndex = buildLoreIndex(ctx.loreData);
+    const imageIndex = buildImageIndex(worldData, ctx.imageData);
+    return buildEntityPage(entity, worldData, loreIndex, imageIndex, aliasIndex, ctx.prominenceScale, ctx.chronicles);
+  }
+  if (indexEntry.type === "era_narrative") {
+    const narrative = ctx.eraNarratives.find((n) => n.narrativeId === pageId);
+    if (!narrative) return null;
+    return buildEraNarrativePage(narrative, worldData, aliasIndex, pageIndex.byName);
+  }
+  if (indexEntry.type === "chronicle") {
+    const chronicle = ctx.chronicles.find((c) => c.chronicleId === pageId);
+    if (!chronicle) return null;
+    return buildChroniclePageFromChronicle(chronicle, worldData, aliasIndex, pageIndex.byName);
+  }
+  if (indexEntry.type === "category") {
+    return buildCategoryPageById(pageId, pageIndex);
+  }
+  if (indexEntry.type === "static") {
+    const staticPage = ctx.staticPages.find((p) => p.pageId === pageId);
+    if (!staticPage) return null;
+    return buildStaticPageFromStaticPage(staticPage, worldData, ctx.loreData, aliasIndex, pageIndex.byName);
+  }
+  if (indexEntry.type === "region") {
+    const regionId = pageId.replace("region:", "");
+    const regionInfo = findRegionById(worldData, regionId);
+    if (!regionInfo) return null;
+    return buildRegionPage(regionInfo.region, regionInfo.entityKind, worldData, aliasIndex);
+  }
+  return null;
+}
+
 export function buildPageById(
   pageId: string,
   worldData: WorldState,
@@ -659,94 +749,22 @@ export function buildPageById(
   const resolvedProminenceScale = resolveProminenceScale(worldData, prominenceScale);
   let indexEntry = pageIndex.byId.get(pageId);
   if (!indexEntry) {
-    // Slug fallback: supports renamed entity URLs and slug-based deep links
     const resolvedId = pageIndex.bySlug.get(pageId);
     if (resolvedId) indexEntry = pageIndex.byId.get(resolvedId);
     if (!indexEntry) return null;
   }
 
-  const loreIndex = buildLoreIndex(loreData);
-  const imageIndex = buildImageIndex(worldData, imageData);
-
-  // Build alias index from page index
-  const aliasIndex = pageIndex.byAlias;
-
-  // Entity page
-  if (indexEntry.type === "entity" || indexEntry.type === "era") {
-    const entity = worldData.hardState.find((e) => e.id === pageId);
-    if (!entity) return null;
-    return buildEntityPage(
-      entity,
-      worldData,
-      loreIndex,
-      imageIndex,
-      aliasIndex,
-      resolvedProminenceScale,
-      chronicles
-    );
-  }
-
-  // Era narrative page - long-form era synthesis
-  if (indexEntry.type === "era_narrative") {
-    const narrative = eraNarratives.find((n) => n.narrativeId === pageId);
-    if (!narrative) return null;
-    return buildEraNarrativePage(narrative, worldData, aliasIndex, pageIndex.byName);
-  }
-
-  // Chronicle page - look up in ChronicleRecords
-  if (indexEntry.type === "chronicle") {
-    const chronicle = chronicles.find((c) => c.chronicleId === pageId);
-    if (!chronicle) return null;
-    return buildChroniclePageFromChronicle(chronicle, worldData, aliasIndex, pageIndex.byName);
-  }
-
-  // Category page
-  if (indexEntry.type === "category") {
-    const catId = pageId.replace("category-", "");
-    const category = pageIndex.categories.find((c) => c.id === catId);
-    if (!category) return null;
-
-    // Build minimal page list for category
-    const pagesInCategory = pageIndex.entries
-      .filter((e) => e.categories.includes(catId))
-      .map((e) => ({
-        id: e.id,
-        title: e.title,
-        type: e.type,
-        slug: e.slug,
-        content: { sections: [], summary: e.summary },
-        categories: e.categories,
-        linkedEntities: e.linkedEntities,
-        images: [],
-        lastUpdated: e.lastUpdated,
-      })) as WikiPage[];
-
-    return buildCategoryPage(category, pagesInCategory);
-  }
-
-  // Static page - look up in StaticPages
-  if (indexEntry.type === "static") {
-    const staticPage = staticPages.find((p) => p.pageId === pageId);
-    if (!staticPage) return null;
-    return buildStaticPageFromStaticPage(
-      staticPage,
-      worldData,
-      loreData,
-      aliasIndex,
-      pageIndex.byName
-    );
-  }
-
-  // Region page
-  if (indexEntry.type === "region") {
-    // Extract region ID from page ID (format: "region:region_id")
-    const regionId = pageId.replace("region:", "");
-    const regionInfo = findRegionById(worldData, regionId);
-    if (!regionInfo) return null;
-    return buildRegionPage(regionInfo.region, regionInfo.entityKind, worldData, aliasIndex);
-  }
-
-  return null;
+  return buildPageByType(indexEntry, {
+    pageId,
+    worldData,
+    loreData,
+    imageData,
+    pageIndex,
+    chronicles,
+    staticPages,
+    prominenceScale: resolvedProminenceScale,
+    eraNarratives,
+  });
 }
 
 /**
@@ -966,12 +984,14 @@ function buildChroniclePageFromChronicle(
           ? chronicle.coverImage.generatedImageId
           : undefined,
       historianNotes: (chronicle.historianNotes || [])
+        // eslint-disable-next-line sonarjs/deprecation -- legacy fallback: `enabled` migrates to `display`
         .filter((n) => (n.display || (n.enabled === false ? "disabled" : "full")) !== "disabled")
         .map((n) => ({
           noteId: n.noteId,
           anchorPhrase: n.anchorPhrase,
           text: n.text,
           type: n.type,
+          // eslint-disable-next-line sonarjs/deprecation -- legacy fallback: `enabled` migrates to `display`
           display: (n.display || (n.enabled === false ? "disabled" : "full")) as "popout" | "full",
         })),
     },
@@ -990,76 +1010,64 @@ interface TemplateContext {
   loreData: LoreData | null;
 }
 
+function resolveTemplateVariable(trimmed: string, worldData: WorldState): string | null {
+  if (trimmed === "world.context") {
+    const era = worldData.metadata?.era;
+    const tick = worldData.metadata?.tick;
+    if (!era) return "";
+    const tickSuffix = tick ? ` (Tick ${tick})` : "";
+    return `Era: ${era}${tickSuffix}`;
+  }
+  if (trimmed === "cultures") {
+    const cultures = worldData.schema?.cultures || [];
+    if (cultures.length === 0) return "_No cultures defined_";
+    return cultures
+      .map((c: { id: string; name?: string }) => `- **${c.name || c.id}**`)
+      .join("\n");
+  }
+  if (trimmed === "eras") {
+    const eras = worldData.hardState.filter((e) => e.kind === "era");
+    if (eras.length === 0) return "_No eras_";
+    return eras.map((e) => `- [[${e.name}]]`).join("\n");
+  }
+  if (trimmed === "stats") {
+    const entityCount = worldData.hardState.length;
+    const relCount = worldData.relationships.length;
+    const eraCount = worldData.hardState.filter((e) => e.kind === "era").length;
+    return `- **Entities:** ${entityCount}\n- **Relationships:** ${relCount}\n- **Eras:** ${eraCount}`;
+  }
+  if (trimmed === "kinds") {
+    const kindCounts = new Map<string, number>();
+    for (const e of worldData.hardState) {
+      kindCounts.set(e.kind, (kindCounts.get(e.kind) || 0) + 1);
+    }
+    return Array.from(kindCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([kind, count]) => `- **${kind}:** ${count}`)
+      .join("\n");
+  }
+  if (trimmed.startsWith("entity:")) {
+    const entityName = trimmed.slice(7).trim();
+    const entity = worldData.hardState.find(
+      (e) => e.name.toLowerCase() === entityName.toLowerCase()
+    );
+    if (!entity) return `_Entity "${entityName}" not found_`;
+    const kindLabel = entity.subtype ? `${entity.kind} - ${entity.subtype}` : entity.kind;
+    return `**[[${entity.name}]]** (${kindLabel})`;
+  }
+  return null; // unknown variable
+}
+
 /**
  * Process template variables in content
- * Supports: {{world.context}}, {{cultures}}, {{eras}}, {{entity:Name}}, {{stats}}
+ * Supports: {{world.context}}, {{cultures}}, {{eras}}, {{entity:Name}}, {{stats}}, {{kinds}}
  */
 function processTemplateVariables(content: string, ctx: TemplateContext): string {
   const { worldData } = ctx;
-
   // eslint-disable-next-line sonarjs/slow-regex -- character-class bounded, no backtracking
   return content.replace(/\{\{([^}]+)\}\}/g, (match: string, variable: string) => {
-    const trimmed = variable.trim();
-
-    // {{world.context}} - World metadata summary
-    if (trimmed === "world.context") {
-      // WorldMetadata doesn't have description, return era info instead
-      const era = worldData.metadata?.era;
-      const tick = worldData.metadata?.tick;
-      if (!era) return "";
-      const tickSuffix = tick ? ` (Tick ${tick})` : "";
-      return `Era: ${era}${tickSuffix}`;
-    }
-
-    // {{cultures}} - List of cultures
-    if (trimmed === "cultures") {
-      const cultures = worldData.schema?.cultures || [];
-      if (cultures.length === 0) return "_No cultures defined_";
-      return cultures
-        .map((c: { id: string; name?: string }) => `- **${c.name || c.id}**`)
-        .join("\n");
-    }
-
-    // {{eras}} - List of eras
-    if (trimmed === "eras") {
-      const eras = worldData.hardState.filter((e) => e.kind === "era");
-      if (eras.length === 0) return "_No eras_";
-      return eras.map((e) => `- [[${e.name}]]`).join("\n");
-    }
-
-    // {{stats}} - World statistics
-    if (trimmed === "stats") {
-      const entityCount = worldData.hardState.length;
-      const relCount = worldData.relationships.length;
-      const eraCount = worldData.hardState.filter((e) => e.kind === "era").length;
-      return `- **Entities:** ${entityCount}\n- **Relationships:** ${relCount}\n- **Eras:** ${eraCount}`;
-    }
-
-    // {{entity:Name}} - Entity summary
-    if (trimmed.startsWith("entity:")) {
-      const entityName = trimmed.slice(7).trim();
-      const entity = worldData.hardState.find(
-        (e) => e.name.toLowerCase() === entityName.toLowerCase()
-      );
-      if (!entity) return `_Entity "${entityName}" not found_`;
-      const kindLabel = entity.subtype ? `${entity.kind} - ${entity.subtype}` : entity.kind;
-      return `**[[${entity.name}]]** (${kindLabel})`;
-    }
-
-    // {{kinds}} - List of entity kinds with counts
-    if (trimmed === "kinds") {
-      const kindCounts = new Map<string, number>();
-      for (const e of worldData.hardState) {
-        kindCounts.set(e.kind, (kindCounts.get(e.kind) || 0) + 1);
-      }
-      return Array.from(kindCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .map(([kind, count]) => `- **${kind}:** ${count}`)
-        .join("\n");
-    }
-
-    // Unknown variable - return as-is
-    return match;
+    const resolved = resolveTemplateVariable(variable.trim(), worldData);
+    return resolved ?? match;
   });
 }
 
@@ -1305,6 +1313,43 @@ function findSectionForAnchor(sections: WikiSection[], anchorText: string): Wiki
   return sections[0];
 }
 
+/** Resolve the image ID for a chronicle image ref. */
+function resolveImageRefId(
+  ref: ChronicleImageRef,
+  worldData: WorldState
+): string | undefined {
+  if (ref.type === "entity_ref" && ref.entityId) {
+    const entity = worldData.hardState.find((e) => e.id === ref.entityId);
+    const imageId = entity?.enrichment?.image?.imageId;
+    if (!imageId) {
+      console.warn("[wikiBuilder] entity_ref has no image:", ref.refId, ref.entityId);
+    }
+    return imageId;
+  }
+  if (ref.type === "prompt_request" && ref.generatedImageId) {
+    return ref.generatedImageId;
+  }
+  if (ref.type === "prompt_request") {
+    console.warn("[wikiBuilder] prompt_request missing generatedImageId:", ref.refId, ref);
+  }
+  return undefined;
+}
+
+/** Build a WikiSectionImage from a resolved ref. */
+function buildSectionImage(ref: ChronicleImageRef, imageId: string): WikiSectionImage {
+  return {
+    refId: ref.refId,
+    type: ref.type === "entity_ref" ? "entity_ref" : "chronicle_image",
+    entityId: ref.type === "entity_ref" ? ref.entityId : undefined,
+    imageId,
+    anchorText: ref.anchorText,
+    anchorIndex: ref.anchorIndex,
+    size: ref.size,
+    justification: ref.justification,
+    caption: ref.caption,
+  };
+}
+
 /**
  * Attach images to their corresponding sections based on anchorText
  */
@@ -1313,84 +1358,132 @@ function attachImagesToSections(
   refs: ChronicleImageRef[],
   worldData: WorldState
 ): void {
-  if (DEBUG_WIKI_BUILDER) {
-    console.log("[wikiBuilder] attachImagesToSections called with:", {
-      sectionCount: sections.length,
-      refCount: refs.length,
-      refs: refs.map((r) => ({
-        refId: r.refId,
-        type: r.type,
-        status: r.status,
-        anchorText: r.anchorText?.slice(0, 50),
-        anchorIndex: r.anchorIndex,
-        size: r.size,
-        hasGeneratedImageId: !!r.generatedImageId,
-      })),
-    });
-  }
-
   for (const ref of refs) {
-    // Skip prompt requests that aren't complete
     if (ref.type === "prompt_request" && ref.status !== "complete") {
-      console.warn("[wikiBuilder] Skipping incomplete prompt_request:", ref.refId, ref.status);
       continue;
     }
 
-    // Find the target section by anchor text
     const section = findSectionForAnchor(sections, ref.anchorText);
-    if (!section) {
-      console.warn("[wikiBuilder] Could not find section for anchor:", ref.anchorText, ref);
-      continue;
-    }
+    if (!section) continue;
 
-    // Resolve the image ID
-    let imageId: string | undefined;
-    if (ref.type === "entity_ref" && ref.entityId) {
-      // Look up entity's image
-      const entity = worldData.hardState.find((e) => e.id === ref.entityId);
-      imageId = entity?.enrichment?.image?.imageId;
-      if (!imageId) {
-        console.warn("[wikiBuilder] entity_ref has no image:", ref.refId, ref.entityId);
-      }
-    } else if (ref.type === "prompt_request" && ref.generatedImageId) {
-      imageId = ref.generatedImageId;
-    } else if (ref.type === "prompt_request") {
-      console.warn("[wikiBuilder] prompt_request missing generatedImageId:", ref.refId, ref);
-    }
-
+    const imageId = resolveImageRefId(ref, worldData);
     if (!imageId) continue;
 
-    if (DEBUG_WIKI_BUILDER) {
-      console.log("[wikiBuilder] Attaching image:", {
-        refId: ref.refId,
-        type: ref.type,
-        imageId,
-        anchorText: ref.anchorText?.slice(0, 50),
-        toSection: section.heading,
-        sectionContentPreview: section.content.slice(0, 100),
-      });
-    }
-
-    // Initialize images array if needed
     if (!section.images) {
       section.images = [];
     }
-
-    // Add the image to the section
-    const sectionImage: WikiSectionImage = {
-      refId: ref.refId,
-      type: ref.type === "entity_ref" ? "entity_ref" : "chronicle_image",
-      entityId: ref.type === "entity_ref" ? ref.entityId : undefined,
-      imageId,
-      anchorText: ref.anchorText,
-      anchorIndex: ref.anchorIndex,
-      size: ref.size,
-      justification: ref.justification,
-      caption: ref.caption,
-    };
-
-    section.images.push(sectionImage);
+    section.images.push(buildSectionImage(ref, imageId));
   }
+}
+
+/**
+ * Append wiki sections from a lore record's structured wikiContent, or fall back to raw text.
+ */
+function appendLoreSections(
+  sections: WikiSection[],
+  sectionIndex: { value: number },
+  loreRecord: LoreRecord,
+  fallbackHeading: string
+): void {
+  if (loreRecord.wikiContent?.sections && loreRecord.wikiContent.sections.length > 0) {
+    for (const section of loreRecord.wikiContent.sections) {
+      sections.push({
+        id: `section-${sectionIndex.value++}`,
+        heading: section.heading,
+        level: section.level || 2,
+        content: section.content,
+      });
+    }
+  } else if (loreRecord.text) {
+    sections.push({
+      id: `section-${sectionIndex.value++}`,
+      heading: fallbackHeading,
+      level: 2,
+      content: loreRecord.text,
+    });
+  }
+}
+
+/**
+ * Build the content sections for an entity page from lore records and relationships.
+ */
+function buildEntitySections(
+  entity: HardState,
+  entityLore: LoreRecord[],
+  worldData: WorldState
+): WikiSection[] {
+  const sections: WikiSection[] = [];
+  const sectionIndex = { value: 0 };
+
+  const enhancedPage = entityLore.find((l) => l.type === "enhanced_entity_page");
+  const entityChronicle = entityLore.find((l) => l.type === "entity_chronicle");
+  const eraChapter = entityLore.find((l) => l.type === "era_chapter");
+
+  // Prefer enhanced page with structured sections, fall back to entity.description
+  if (enhancedPage?.wikiContent?.sections && enhancedPage.wikiContent.sections.length > 0) {
+    appendLoreSections(sections, sectionIndex, enhancedPage, "Overview");
+  } else if (entity.description) {
+    sections.push({
+      id: `section-${sectionIndex.value++}`,
+      heading: "Overview",
+      level: 2,
+      content: entity.description,
+    });
+  }
+
+  if (entityChronicle?.text) {
+    appendLoreSections(sections, sectionIndex, entityChronicle, "Chronicle");
+  }
+
+  if (entity.kind === "era" && eraChapter?.text) {
+    appendLoreSections(sections, sectionIndex, eraChapter, "Chronicle");
+  }
+
+  const relationships = worldData.relationships.filter(
+    (r) => r.src === entity.id || r.dst === entity.id
+  );
+  if (relationships.length > 0) {
+    sections.push({
+      id: `section-${sectionIndex.value++}`,
+      heading: "Relationships",
+      level: 2,
+      content: formatRelationships(entity.id, relationships, worldData),
+    });
+  }
+
+  return sections;
+}
+
+/** Resolve historian notes for display, filtering disabled ones. */
+function resolveHistorianNotes(
+  notes: NonNullable<HardState["enrichment"]>["historianNotes"]
+): Array<{ noteId: string; anchorPhrase: string; text: string; type: string; display: "popout" | "full" }> {
+  if (!notes) return [];
+  return notes
+    // eslint-disable-next-line sonarjs/deprecation -- legacy fallback: `enabled` migrates to `display`
+    .filter((n) => (n.display || (n.enabled === false ? "disabled" : "full")) !== "disabled")
+    .map((n) => ({
+      noteId: n.noteId,
+      anchorPhrase: n.anchorPhrase,
+      text: n.text,
+      type: n.type,
+      // eslint-disable-next-line sonarjs/deprecation -- legacy fallback: `enabled` migrates to `display`
+      display: (n.display || (n.enabled === false ? "disabled" : "full")) as "popout" | "full",
+    }));
+}
+
+/** Build the images array for an entity page. */
+function buildEntityImages(entityId: string, entityName: string, imageIndex: Map<string, ImageInfo>): WikiPage["images"] {
+  const imageInfo = imageIndex.get(entityId);
+  if (!imageInfo) return [];
+  return [{
+    entityId,
+    path: imageInfo.path,
+    caption: entityName,
+    width: imageInfo.width,
+    height: imageInfo.height,
+    aspect: imageInfo.aspect,
+  }];
 }
 
 /**
@@ -1406,111 +1499,8 @@ function buildEntityPage(
   _chronicles: ChronicleRecord[] = []
 ): WikiPage {
   const entityLore = loreIndex.get(entity.id) || [];
-  // Summary and description are now directly on entity
-  const summary = entity.summary || "";
-  // Aliases are in enrichment.text
-  const aliases = Array.isArray(entity.enrichment?.text?.aliases)
-    ? entity.enrichment.text.aliases
-        .filter((alias): alias is string => typeof alias === "string")
-        .map((alias) => alias.trim())
-        .filter(Boolean)
-    : [];
-  const eraChapter = entityLore.find((l) => l.type === "era_chapter");
-  const entityChronicle = entityLore.find((l) => l.type === "entity_chronicle");
-  const enhancedPage = entityLore.find((l) => l.type === "enhanced_entity_page");
-
-  // Get relationships
-  const relationships = worldData.relationships.filter(
-    (r) => r.src === entity.id || r.dst === entity.id
-  );
-
-  // Build sections
-  const sections: WikiSection[] = [];
-  let sectionIndex = 0;
-
-  // Prefer enhanced page with structured sections, fall back to entity.description
-  if (enhancedPage?.wikiContent?.sections && enhancedPage.wikiContent.sections.length > 0) {
-    // Use structured sections from enhanced page
-    for (const section of enhancedPage.wikiContent.sections) {
-      sections.push({
-        id: `section-${sectionIndex++}`,
-        heading: section.heading,
-        level: section.level || 2,
-        content: section.content,
-      });
-    }
-  } else if (entity.description) {
-    sections.push({
-      id: `section-${sectionIndex++}`,
-      heading: "Overview",
-      level: 2,
-      content: entity.description,
-    });
-  }
-
-  // Long-form chronicle for mythic entities
-  if (entityChronicle?.text) {
-    // If chronicle has structured sections from wikiContent, use those
-    if (entityChronicle.wikiContent?.sections && entityChronicle.wikiContent.sections.length > 0) {
-      for (const section of entityChronicle.wikiContent.sections) {
-        sections.push({
-          id: `section-${sectionIndex++}`,
-          heading: section.heading,
-          level: section.level || 2,
-          content: section.content,
-        });
-      }
-    } else {
-      sections.push({
-        id: `section-${sectionIndex++}`,
-        heading: "Chronicle",
-        level: 2,
-        content: entityChronicle.text,
-      });
-    }
-  }
-
-  // Era chapter content (for era entities)
-  if (entity.kind === "era" && eraChapter?.text) {
-    // If chapter has structured sections from wikiContent, use those
-    if (eraChapter.wikiContent?.sections && eraChapter.wikiContent.sections.length > 0) {
-      for (const section of eraChapter.wikiContent.sections) {
-        sections.push({
-          id: `section-${sectionIndex++}`,
-          heading: section.heading,
-          level: section.level || 2,
-          content: section.content,
-        });
-      }
-    } else {
-      sections.push({
-        id: `section-${sectionIndex++}`,
-        heading: "Chronicle",
-        level: 2,
-        content: eraChapter.text,
-      });
-    }
-  }
-
-  // Relationships section
-  if (relationships.length > 0) {
-    const relContent = formatRelationships(entity.id, relationships, worldData);
-    sections.push({
-      id: `section-${sectionIndex++}`,
-      heading: "Relationships",
-      level: 2,
-      content: relContent,
-    });
-  }
-
-  // Build infobox
-  const infobox = buildEntityInfobox(entity, worldData, imageIndex, prominenceScale);
-
-  // Extract linked entities from content
-  const linkedEntities = extractLinkedEntities(sections, worldData, aliasIndex);
-
-  // Build categories for this entity
-  const categories = buildEntityCategories(entity, worldData, prominenceScale);
+  const aliases = getEntityAliases(entity);
+  const sections = buildEntitySections(entity, entityLore, worldData);
 
   return {
     id: entity.id,
@@ -1520,32 +1510,13 @@ function buildEntityPage(
     aliases: aliases.length > 0 ? aliases : undefined,
     content: {
       sections,
-      summary: summary || undefined,
-      infobox,
-      historianNotes: (entity.enrichment?.historianNotes || [])
-        .filter((n) => (n.display || (n.enabled === false ? "disabled" : "full")) !== "disabled")
-        .map((n) => ({
-          noteId: n.noteId,
-          anchorPhrase: n.anchorPhrase,
-          text: n.text,
-          type: n.type,
-          display: (n.display || (n.enabled === false ? "disabled" : "full")) as "popout" | "full",
-        })),
+      summary: entity.summary || undefined,
+      infobox: buildEntityInfobox(entity, worldData, imageIndex, prominenceScale),
+      historianNotes: resolveHistorianNotes(entity.enrichment?.historianNotes),
     },
-    categories,
-    linkedEntities,
-    images: imageIndex.has(entity.id)
-      ? [
-          {
-            entityId: entity.id,
-            path: imageIndex.get(entity.id)!.path,
-            caption: entity.name,
-            width: imageIndex.get(entity.id)!.width,
-            height: imageIndex.get(entity.id)!.height,
-            aspect: imageIndex.get(entity.id)!.aspect,
-          },
-        ]
-      : [],
+    categories: buildEntityCategories(entity, worldData, prominenceScale),
+    linkedEntities: extractLinkedEntities(sections, worldData, aliasIndex),
+    images: buildEntityImages(entity.id, entity.name, imageIndex),
     lastUpdated: entity.updatedAt || entity.createdAt,
   };
 }

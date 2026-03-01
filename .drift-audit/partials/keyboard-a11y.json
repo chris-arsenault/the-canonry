@@ -1,0 +1,628 @@
+[
+  {
+    "id": "modal-dialog-role-semantics",
+    "name": "Modal Overlay ARIA Role Semantics",
+    "type": "behavioral",
+    "domain": "Keyboard & Accessibility Patterns",
+    "description": "Modal overlays across the codebase use role=\"button\" on the backdrop div instead of role=\"dialog\" with aria-modal=\"true\". Only one component in the entire codebase (ImageLightbox.tsx in chronicler) uses the correct role=\"dialog\" + aria-modal pattern. The remaining ~20+ modal overlays all use role=\"button\" on both the backdrop and the inner content div (which has e.stopPropagation()), making them semantically incorrect. Screen readers will announce these as buttons rather than dialogs.",
+    "impact": "MEDIUM",
+    "total_files": 22,
+    "variants": [
+      {
+        "name": "role-dialog-with-aria-modal",
+        "description": "Correct semantic: role=\"dialog\" + aria-modal=\"true\" + aria-label on the overlay container. The only implementation in the entire codebase that follows ARIA dialog pattern.",
+        "file_count": 1,
+        "files": [
+          "apps/chronicler/webui/src/components/ImageLightbox.tsx:56-64"
+        ],
+        "sample_file": "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+            "start_line": 56,
+            "end_line": 64,
+            "snippet": "<div\n  className={styles.overlay}\n  onMouseDown={handleOverlayMouseDown}\n  onClick={handleOverlayClick}\n  role=\"dialog\"\n  aria-modal=\"true\"\n  aria-label={title || \"Image viewer\"}\n  tabIndex={0}\n  onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") handleOverlayClick(e); }}\n>"
+          }
+        ],
+        "implementation_details": "Uses role=\"dialog\" with aria-modal=\"true\" and aria-label. Has escape key handler via global useEffect listener and scroll lock with previous-value preservation. This is the only ARIA-correct dialog in the codebase."
+      },
+      {
+        "name": "role-button-on-overlay",
+        "description": "Semantically incorrect: role=\"button\" on the modal overlay backdrop, plus role=\"button\" on the inner content div (which only exists for e.stopPropagation()). Screen readers announce these as nested buttons.",
+        "file_count": 21,
+        "files": [
+          "packages/shared-components/src/components/ModalShell.jsx:76-77",
+          "apps/illuminator/webui/src/components/ImageModal.jsx:197-204",
+          "apps/illuminator/webui/src/components/ChronicleWizard/ChronicleWizard.tsx",
+          "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+          "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+          "apps/illuminator/webui/src/components/ImageSettingsDrawer.tsx",
+          "apps/illuminator/webui/src/components/ActivityPanel.jsx",
+          "apps/illuminator/webui/src/components/preprint/ContentTreeView.tsx",
+          "apps/cosmographer/webui/src/components/SemanticPlane/index.jsx",
+          "apps/cosmographer/webui/src/components/AxisRegistry/index.jsx",
+          "apps/cosmographer/webui/src/components/RelationshipEditor/index.jsx",
+          "apps/canonry/webui/src/App.jsx",
+          "apps/canonry/webui/src/components/HelpModal.jsx",
+          "apps/lore-weave/webui/src/components/DebugSettingsModal.jsx",
+          "apps/archivist/webui/src/components/RelationshipStoryModal.tsx",
+          "apps/coherence-engine/webui/src/components/pressures/modals/FactorEditorModal.jsx",
+          "apps/illuminator/webui/src/components/QuickCheckModal.jsx",
+          "apps/illuminator/webui/src/components/ChronologyModal.jsx",
+          "apps/illuminator/webui/src/components/EraNarrativeModal.jsx",
+          "apps/illuminator/webui/src/components/EntityRenameModal.tsx",
+          "apps/name-forge/webui/src/components/optimizer/ResultsModal.jsx"
+        ],
+        "sample_file": "packages/shared-components/src/components/ModalShell.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/ModalShell.jsx",
+            "start_line": 76,
+            "end_line": 77,
+            "snippet": "<div className=\"modal-overlay\" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick} role=\"button\" tabIndex={0} onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") handleOverlayClick(e); }} >\n  <div className={`modal ${className}`.trim()} onClick={(e) => e.stopPropagation()} role=\"button\" tabIndex={0} onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") e.currentTarget.click(); }} >"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/ImageModal.jsx",
+            "start_line": 197,
+            "end_line": 204,
+            "snippet": "<div className=\"imod-overlay\" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick} role=\"button\" tabIndex={0} onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") handleOverlayClick(e); }} >\n  <div className={`imod-header ...`} onClick={(e) => e.stopPropagation()} role=\"button\" tabIndex={0} onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") e.currentTarget.click(); }} >"
+          }
+        ],
+        "implementation_details": "Every modal that uses ModalShell inherits this pattern. Additionally, many custom modals that bypass ModalShell also manually replicate role=\"button\" on overlays. The inner content div receives role=\"button\" + e.stopPropagation() which is semantically wrong — it's not a button, it's a dialog container."
+      }
+    ],
+    "behavior_matrix": {
+      "ModalShell (shared)": {
+        "overlay_role": "role=\"button\" (incorrect)",
+        "content_role": "role=\"button\" (incorrect)",
+        "aria_modal": false,
+        "aria_label": false
+      },
+      "ImageLightbox (chronicler)": {
+        "overlay_role": "role=\"dialog\" (correct)",
+        "content_role": "N/A (content inside dialog)",
+        "aria_modal": true,
+        "aria_label": "aria-label={title || 'Image viewer'}"
+      },
+      "ImageModal (illuminator)": {
+        "overlay_role": "role=\"button\" (incorrect)",
+        "content_role": "role=\"button\" (incorrect)",
+        "aria_modal": false,
+        "aria_label": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "role_dialog_on_overlay": "trivial — change role=\"button\" to role=\"dialog\" + add aria-modal=\"true\" on ModalShell (1 file fix propagates to ~10 consumers)",
+      "aria_label_on_modals": "trivial — add aria-label={title} prop pass-through in ModalShell, already has title prop",
+      "remove_role_button_from_inner_div": "trivial — remove role/tabIndex/onKeyDown from inner content div, replace with role=\"document\" or remove entirely"
+    },
+    "analysis": "This is clear drift, not intentional variation. ImageLightbox in chronicler was likely written by someone aware of ARIA dialog semantics, while ModalShell and all other modals use role=\"button\" as a mechanical lint-fix for clickable divs without considering the semantic meaning. The user-visible impact is that screen readers announce modal overlays as \"button\" instead of \"dialog\", breaking the modal mental model for assistive technology users. The fix should target ModalShell first (role=\"dialog\" + aria-modal=\"true\" + aria-label={title}), which would propagate to ~10 consumers. Custom modals should follow suit. The inner content div should have its role=\"button\" removed entirely.",
+    "recommendation": "Update ModalShell overlay to use role=\"dialog\" aria-modal=\"true\" aria-label={title}. Remove role/tabIndex/onKeyDown from the inner content div. Add an eslint rule against role=\"button\" on elements with modal-overlay CSS classes.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "toggle-switch-semantics",
+    "name": "Toggle/Switch ARIA Semantics",
+    "type": "behavioral",
+    "domain": "Keyboard & Accessibility Patterns",
+    "description": "The shared EnableToggle component uses role=\"button\" instead of role=\"switch\" with aria-checked. This means screen readers cannot communicate the on/off state of toggles — users only hear \"button\" with no indication of the current value. Zero files in the codebase use role=\"switch\" or aria-checked anywhere. The toggle's visual state (CSS class toggle-on) is invisible to assistive technology.",
+    "impact": "MEDIUM",
+    "total_files": 5,
+    "variants": [
+      {
+        "name": "role-button-toggle",
+        "description": "Toggle uses role=\"button\" without aria-checked. Screen readers announce it as a generic button with no state information.",
+        "file_count": 5,
+        "files": [
+          "packages/shared-components/src/components/EnableToggle.jsx:27-35",
+          "apps/coherence-engine/webui/src/components/generators/cards/GeneratorListCard.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/cards/SystemListCard.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/OverviewTab.jsx"
+        ],
+        "sample_file": "packages/shared-components/src/components/EnableToggle.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/EnableToggle.jsx",
+            "start_line": 27,
+            "end_line": 35,
+            "snippet": "<div\n  onClick={handleClick}\n  className={`toggle ${enabled ? 'toggle-on' : ''}`}\n  role=\"button\"\n  tabIndex={0}\n  onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") handleClick(e); }}\n>\n  <div className=\"toggle-knob\" />\n</div>"
+          }
+        ],
+        "implementation_details": "The EnableToggle shared component renders a visual toggle (sliding knob) but uses role=\"button\" instead of role=\"switch\". The enabled prop controls the CSS class toggle-on for visual styling but is never communicated to assistive technology via aria-checked. All 4 call sites in coherence-engine inherit this limitation."
+      }
+    ],
+    "behavior_matrix": {
+      "EnableToggle (shared)": {
+        "role": "role=\"button\" (should be role=\"switch\")",
+        "aria_checked": false,
+        "keyboard_activation": "Enter/Space via onKeyDown",
+        "visual_state": "CSS class toggle-on"
+      }
+    },
+    "missing_behavior_complexity": {
+      "role_switch": "trivial — change role=\"button\" to role=\"switch\" (1 line in 1 file)",
+      "aria_checked": "trivial — add aria-checked={enabled} (1 line in 1 file)"
+    },
+    "analysis": "This is not drift (there's only one implementation) but rather a missing accessibility pattern on the canonical shared component. The EnableToggle visually communicates a binary state via a sliding knob, which is the classic switch pattern. Using role=\"button\" means screen readers announce it generically as \"button\" with no state indication, rather than \"switch, on\" or \"switch, off\". The fix is a 2-line change to the shared component (role=\"switch\" + aria-checked={enabled}), which propagates to all consumers automatically.",
+    "recommendation": "Change EnableToggle to use role=\"switch\" aria-checked={enabled}. Also add an aria-label prop defaulting to the existing label text if provided.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "collapsible-section-aria-expanded",
+    "name": "Collapsible Section aria-expanded Consistency",
+    "type": "behavioral",
+    "domain": "Keyboard & Accessibility Patterns",
+    "description": "56 files implement expand/collapse patterns (via expanded/setExpanded state, ExpandableCard component, or custom expand icons). Only 1 file (WikiNav.tsx in chronicler) uses aria-expanded on the toggle button to communicate the expanded state to assistive technology. The remaining 55 files, including the shared ExpandableCard component, visually show expanded/collapsed state (via arrow icon rotation) but never communicate it to screen readers.",
+    "impact": "MEDIUM",
+    "total_files": 56,
+    "variants": [
+      {
+        "name": "aria-expanded-on-button",
+        "description": "Correct pattern: native <button> elements with aria-expanded={boolean} communicating collapsed/expanded state to assistive technology.",
+        "file_count": 1,
+        "files": [
+          "apps/chronicler/webui/src/components/WikiNav.tsx:191-195",
+          "apps/chronicler/webui/src/components/WikiNav.tsx:231-235",
+          "apps/chronicler/webui/src/components/WikiNav.tsx:400-404"
+        ],
+        "sample_file": "apps/chronicler/webui/src/components/WikiNav.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/chronicler/webui/src/components/WikiNav.tsx",
+            "start_line": 191,
+            "end_line": 196,
+            "snippet": "<button\n  className={styles.sectionTitleCollapsible}\n  onClick={() => setLoreExpanded(!loreExpanded)}\n  aria-expanded={loreExpanded}\n>\n  <span className={styles.collapseIcon}>{loreExpanded ? \"▼\" : \"▶\"}</span>"
+          }
+        ],
+        "implementation_details": "WikiNav uses native <button> elements with aria-expanded for its 3 collapsible sections (Lore, era groups, Appendices). This is the only file in the entire codebase that communicates collapsed/expanded state to assistive technology."
+      },
+      {
+        "name": "visual-only-expand-via-shared-component",
+        "description": "ExpandableCard shared component: uses a clickable div with role=\"button\" and a rotated arrow icon to indicate state. No aria-expanded attribute. All consumers (~20+ files) inherit this limitation.",
+        "file_count": 20,
+        "files": [
+          "packages/shared-components/src/components/ExpandableCard.jsx:40-41",
+          "apps/coherence-engine/webui/src/components/generators/GeneratorsEditor.jsx",
+          "apps/coherence-engine/webui/src/components/systems/SystemsEditor.jsx",
+          "apps/coherence-engine/webui/src/components/pressures/PressuresEditor.jsx",
+          "apps/coherence-engine/webui/src/components/eras/ErasEditor.jsx",
+          "apps/coherence-engine/webui/src/components/validation/cards/IssueCard.jsx",
+          "apps/coherence-engine/webui/src/components/dependency-viewer/components/DependencySection.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/EntityKindEditor.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/CultureEditor.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/TagRegistryEditor.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/DomainTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/GrammarsTab.jsx",
+          "apps/illuminator/webui/src/components/EntityDetailView.tsx",
+          "apps/illuminator/webui/src/components/HistorianMarginNotes.jsx",
+          "apps/illuminator/webui/src/components/CoveragePanel.jsx",
+          "apps/illuminator/webui/src/components/EntityCoveragePanel.jsx",
+          "apps/illuminator/webui/src/components/CohesionReportViewer.jsx",
+          "apps/archivist/webui/src/components/DiscoveryStory.tsx",
+          "apps/archivist/webui/src/components/TimelineControl.tsx"
+        ],
+        "sample_file": "packages/shared-components/src/components/ExpandableCard.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/ExpandableCard.jsx",
+            "start_line": 40,
+            "end_line": 55,
+            "snippet": "<div className={`expandable-card ${className}`.trim()}>\n  <div className=\"expandable-card-header\" onClick={handleToggle} role=\"button\" tabIndex={0} onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") handleToggle(); }} >\n    <div className=\"expandable-card-left\">\n      <span className={`expand-icon ${expanded ? 'expand-icon-expanded' : 'expand-icon-collapsed'}`}>▶</span>\n      <div className=\"expandable-card-title\">\n        <span className=\"expandable-card-name\">{title}</span>\n        {subtitle && <span className=\"expandable-card-id\">{subtitle}</span>}\n      </div>\n    </div>\n    {actions && <div className=\"expandable-card-actions\">{actions}</div>}\n  </div>\n  {expanded && <div className=\"expandable-card-content\">{children}</div>}\n</div>"
+          }
+        ],
+        "implementation_details": "The ExpandableCard shared component has role=\"button\" and tabIndex={0} on the header div, plus a rotated arrow icon to show state visually. But it lacks aria-expanded={expanded}. All consumers (~20 files across coherence-engine, canonry, name-forge, illuminator, archivist) inherit this limitation."
+      },
+      {
+        "name": "visual-only-expand-custom",
+        "description": "Custom expand/collapse implementations (not using ExpandableCard) that visually show state via arrow icons or toggle buttons but lack aria-expanded.",
+        "file_count": 35,
+        "files": [
+          "apps/illuminator/webui/src/components/WorldContextEditor.jsx",
+          "apps/illuminator/webui/src/components/EventsPanel.jsx",
+          "apps/illuminator/webui/src/components/ImageModal.jsx",
+          "apps/illuminator/webui/src/components/ImagePickerModal.jsx",
+          "apps/illuminator/webui/src/components/ChronicleReviewPanel.jsx",
+          "apps/illuminator/webui/src/components/CorpusFindReplace.tsx",
+          "apps/illuminator/webui/src/components/DescriptionMotifWeaver.tsx",
+          "apps/illuminator/webui/src/components/TraitPaletteSection.tsx",
+          "apps/illuminator/webui/src/components/ChronologyModal.jsx",
+          "apps/illuminator/webui/src/components/SummaryRevisionModal.jsx",
+          "apps/illuminator/webui/src/components/EntityRenameModal.tsx",
+          "apps/illuminator/webui/src/components/HistorianEditionComparison.tsx",
+          "apps/illuminator/webui/src/components/chronicle-workspace/ContentTab.jsx",
+          "apps/illuminator/webui/src/components/chronicle-workspace/ReferenceTab.jsx",
+          "apps/illuminator/webui/src/components/BackrefImageEditor.jsx",
+          "apps/illuminator/webui/src/components/EnrichmentQueue.jsx",
+          "apps/lore-weave/webui/src/components/dashboard/LogStream.jsx",
+          "apps/lore-weave/webui/src/components/dashboard/TemplateUsage.jsx",
+          "apps/cosmographer/webui/src/components/CultureEditor/index.jsx",
+          "apps/coherence-engine/webui/src/components/generators/applicability/ApplicabilityRuleCard.jsx",
+          "apps/coherence-engine/webui/src/components/generators/filters/SelectionFilterCard.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/RelationshipsTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/VariablesTab.jsx",
+          "apps/coherence-engine/webui/src/components/pressures/cards/PressureCard.jsx",
+          "apps/coherence-engine/webui/src/components/shared/MutationCard.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/ConnectionEvolutionTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/ThresholdTriggerTab.jsx",
+          "apps/coherence-engine/webui/src/components/actions/tabs/VariablesTab.jsx",
+          "apps/coherence-engine/webui/src/components/eras/EraCard.jsx",
+          "apps/name-forge/webui/src/components/optimizer/OptimizerWorkshop.jsx",
+          "apps/name-forge/webui/src/components/optimizer/ResultsModal.jsx",
+          "apps/chronicler/webui/src/components/EntityTimeline.tsx",
+          "apps/archivist/webui/src/components/EntityDetail.tsx",
+          "apps/illuminator/webui/src/components/HistorianConfigEditor.jsx"
+        ],
+        "sample_file": "apps/lore-weave/webui/src/components/dashboard/TemplateUsage.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/lore-weave/webui/src/components/dashboard/TemplateUsage.jsx",
+            "start_line": 0,
+            "end_line": 0,
+            "snippet": "// Typical custom expand pattern across the codebase:\n<div className=\"section-header\" onClick={() => setExpanded(!expanded)} role=\"button\" tabIndex={0} onKeyDown={...}>\n  <span className={expanded ? 'expand-icon-expanded' : 'expand-icon-collapsed'}>▶</span>\n  <span>Section Title</span>\n</div>\n{expanded && <div className=\"section-content\">...</div>}"
+          }
+        ],
+        "implementation_details": "35+ files implement custom expand/collapse without using ExpandableCard. All use visual indicators (arrow rotation, text change) but none include aria-expanded. Many use role=\"button\" + tabIndex={0} for keyboard access."
+      }
+    ],
+    "behavior_matrix": {
+      "WikiNav (chronicler)": {
+        "element": "native <button>",
+        "aria_expanded": true,
+        "visual_indicator": "text change (▼/▶)",
+        "keyboard": "native button (Enter/Space)"
+      },
+      "ExpandableCard (shared)": {
+        "element": "div with role=\"button\"",
+        "aria_expanded": false,
+        "visual_indicator": "▶ icon with CSS rotation",
+        "keyboard": "Enter/Space via onKeyDown"
+      },
+      "Custom expand patterns (35 files)": {
+        "element": "div with role=\"button\" or native button",
+        "aria_expanded": false,
+        "visual_indicator": "▶/▼ text or icon",
+        "keyboard": "Enter/Space via onKeyDown"
+      }
+    },
+    "missing_behavior_complexity": {
+      "aria_expanded_on_ExpandableCard": "trivial — add aria-expanded={expanded} to the header div in ExpandableCard (1 line, propagates to ~20 consumers)",
+      "aria_expanded_on_custom_sections": "moderate — 35 individual files need aria-expanded added to their expand toggle element; no shared abstraction to fix"
+    },
+    "analysis": "This is clear drift. WikiNav in chronicler correctly implements aria-expanded on collapsible sections, while all other 55 files across every app omit it. The shared ExpandableCard component is the highest-leverage fix point — adding aria-expanded={expanded} to its header div would immediately fix ~20 consumers. The remaining 35 custom implementations would need individual fixes. The user-visible impact is that screen reader users cannot determine whether a section is collapsed or expanded — they can activate the toggle but have no feedback about the resulting state. This is a W3C ARIA authoring practices requirement for disclosure widgets.",
+    "recommendation": "Add aria-expanded={expanded} to ExpandableCard header div — this is a 1-line fix propagating to ~20 consumers. For custom implementations, consider extracting a useExpandable hook or converting them to use ExpandableCard. Add an eslint rule: any element with expand-icon or expand/collapse CSS classes must have aria-expanded.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "search-keyboard-navigation-duplication",
+    "name": "Search Keyboard Navigation Duplication",
+    "type": "behavioral",
+    "domain": "Keyboard & Accessibility Patterns",
+    "description": "Two search components implement nearly identical arrow-key navigation (ArrowUp/ArrowDown to move selection, Enter to select, Escape to close) but with different code structures and subtly different Escape behavior. HeaderSearch (viewer) extracts this into a reusable useKeyboardNavigation hook, while WikiSearch (chronicler) duplicates the same logic inline. Their Escape behaviors also diverge: HeaderSearch clears the query and closes; WikiSearch closes the dropdown but preserves the query text.",
+    "impact": "LOW",
+    "total_files": 2,
+    "variants": [
+      {
+        "name": "extracted-hook-escape-clears",
+        "description": "Arrow-key navigation extracted into a useKeyboardNavigation custom hook. Escape clears the search query and closes the dropdown.",
+        "file_count": 1,
+        "files": [
+          "apps/viewer/webui/src/HeaderSearch.jsx:92-117"
+        ],
+        "sample_file": "apps/viewer/webui/src/HeaderSearch.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/viewer/webui/src/HeaderSearch.jsx",
+            "start_line": 92,
+            "end_line": 117,
+            "snippet": "function useKeyboardNavigation(results, selectedIndex, setSelectedIndex, onSelect) {\n  return useCallback(\n    (e) => {\n      if (results.length === 0) return;\n      switch (e.key) {\n        case \"ArrowDown\":\n          e.preventDefault();\n          setSelectedIndex((i) => Math.min(i + 1, results.length - 1));\n          break;\n        case \"ArrowUp\":\n          e.preventDefault();\n          setSelectedIndex((i) => Math.max(i - 1, 0));\n          break;\n        case \"Enter\":\n          e.preventDefault();\n          if (results[selectedIndex]) onSelect(results[selectedIndex].item.id);\n          break;\n        case \"Escape\":\n          onSelect(null);\n          break;\n      }\n    },\n    [results, selectedIndex, setSelectedIndex, onSelect]\n  );\n}"
+          }
+        ],
+        "implementation_details": "Extracts keyboard navigation into a reusable useKeyboardNavigation hook that returns a useCallback handler. Escape calls onSelect(null) which triggers full close + query clear in the parent's handleSelect callback. The hook is generic enough to be reused."
+      },
+      {
+        "name": "inline-handler-escape-preserves-query",
+        "description": "Arrow-key navigation implemented as an inline handleKeyDown function. Escape closes the dropdown but preserves the search query text in the input.",
+        "file_count": 1,
+        "files": [
+          "apps/chronicler/webui/src/components/WikiSearch.tsx:55-79"
+        ],
+        "sample_file": "apps/chronicler/webui/src/components/WikiSearch.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/chronicler/webui/src/components/WikiSearch.tsx",
+            "start_line": 55,
+            "end_line": 79,
+            "snippet": "const handleKeyDown = (e: React.KeyboardEvent) => {\n  if (!isOpen || results.length === 0) return;\n  switch (e.key) {\n    case \"ArrowDown\":\n      e.preventDefault();\n      setSelectedIndex((i) => Math.min(i + 1, results.length - 1));\n      break;\n    case \"ArrowUp\":\n      e.preventDefault();\n      setSelectedIndex((i) => Math.max(i - 1, 0));\n      break;\n    case \"Enter\":\n      e.preventDefault();\n      if (results[selectedIndex]) {\n        onSelect(results[selectedIndex].item.id);\n        setIsOpen(false);\n        onQueryChange(\"\");\n      }\n      break;\n    case \"Escape\":\n      setIsOpen(false);\n      break;\n  }\n};"
+          }
+        ],
+        "implementation_details": "Inline handleKeyDown function, not wrapped in useCallback. Escape only calls setIsOpen(false) — the query text remains in the input. The early return guard (!isOpen || results.length === 0) means Escape does nothing when there are no results, unlike HeaderSearch which always handles Escape."
+      }
+    ],
+    "behavior_matrix": {
+      "HeaderSearch (viewer)": {
+        "code_structure": "useKeyboardNavigation custom hook + useCallback",
+        "arrow_keys": "ArrowUp/ArrowDown with Math.min/max bounds",
+        "enter": "onSelect(results[selectedIndex].item.id)",
+        "escape": "onSelect(null) — clears query + closes",
+        "guard": "results.length === 0 early return"
+      },
+      "WikiSearch (chronicler)": {
+        "code_structure": "inline handleKeyDown function, no useCallback",
+        "arrow_keys": "ArrowUp/ArrowDown with Math.min/max bounds",
+        "enter": "onSelect(...) + setIsOpen(false) + onQueryChange('')",
+        "escape": "setIsOpen(false) only — query preserved",
+        "guard": "!isOpen || results.length === 0 early return"
+      }
+    },
+    "missing_behavior_complexity": {
+      "shared_hook": "moderate — extract useKeyboardNavigation to shared-components or a shared hooks package, decide on canonical Escape behavior (clear vs preserve), update both consumers"
+    },
+    "analysis": "This is structural duplication with a subtle behavioral divergence. The arrow-key navigation logic is identical between the two files, differing only in code organization (extracted hook vs inline) and Escape behavior (clear-all vs close-only). The Escape behavior difference may be intentional — HeaderSearch is a global search bar where clearing on Escape makes sense, while WikiSearch is a sidebar search where preserving the query lets users refine. However, the code duplication is unnecessary since the shared hook could accept a configuration parameter for Escape behavior. The user-visible impact is minor (slightly different Escape semantics in two search inputs), but consolidating the code would prevent future divergence.",
+    "recommendation": "Move useKeyboardNavigation from HeaderSearch to shared-components with an onEscape callback parameter. WikiSearch and HeaderSearch can each pass their preferred Escape behavior.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "scroll-lock-overflow-restore",
+    "name": "Body Scroll Lock Restore Pattern Inconsistency",
+    "type": "behavioral",
+    "domain": "Keyboard & Accessibility Patterns",
+    "description": "Components that lock body scroll (overflow: hidden) on mount use two different restore strategies: (A) restore to empty string '' — used by ImageModal and ChronicleWizard, and (B) save previous overflow value and restore it — used by ModalShell and ImageLightbox. Pattern A can clobber a previous overflow setting if modals are stacked.",
+    "impact": "LOW",
+    "total_files": 4,
+    "variants": [
+      {
+        "name": "restore-to-empty-string",
+        "description": "Sets document.body.style.overflow = 'hidden' on mount, restores to '' on cleanup. Does not preserve any previous overflow value.",
+        "file_count": 2,
+        "files": [
+          "apps/illuminator/webui/src/components/ImageModal.jsx:179-190",
+          "apps/illuminator/webui/src/components/ChronicleWizard/ChronicleWizard.tsx:158-174"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ImageModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ImageModal.jsx",
+            "start_line": 179,
+            "end_line": 190,
+            "snippet": "useEffect(() => {\n  if (isOpen) {\n    document.addEventListener(\"keydown\", handleKeyDown);\n    document.body.style.overflow = \"hidden\";\n  }\n  return () => {\n    document.removeEventListener(\"keydown\", handleKeyDown);\n    document.body.style.overflow = \"\";\n  };\n}, [isOpen, handleKeyDown]);"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/ChronicleWizard/ChronicleWizard.tsx",
+            "start_line": 158,
+            "end_line": 174,
+            "snippet": "useEffect(() => {\n  if (!isOpen) return;\n  const handleKeyDown = (e: KeyboardEvent) => {\n    if (e.key === \"Escape\") { handleClose(); }\n  };\n  document.addEventListener(\"keydown\", handleKeyDown);\n  document.body.style.overflow = \"hidden\";\n  return () => {\n    document.removeEventListener(\"keydown\", handleKeyDown);\n    document.body.style.overflow = \"\";\n  };\n}, [isOpen, handleClose]);"
+          }
+        ],
+        "implementation_details": "Both files set overflow to '' on cleanup instead of restoring the saved previous value. This is incorrect if the page already had overflow: hidden or overflow: auto before the modal opened."
+      },
+      {
+        "name": "save-and-restore-previous",
+        "description": "Saves document.body.style.overflow before setting hidden, restores the saved value on cleanup.",
+        "file_count": 2,
+        "files": [
+          "packages/shared-components/src/components/ModalShell.jsx:59-63",
+          "apps/chronicler/webui/src/components/ImageLightbox.tsx:41-49"
+        ],
+        "sample_file": "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+            "start_line": 41,
+            "end_line": 49,
+            "snippet": "useEffect(() => {\n  if (!isOpen) return undefined;\n  document.addEventListener(\"keydown\", handleKeyDown);\n  const previousOverflow = document.body.style.overflow;\n  document.body.style.overflow = \"hidden\";\n  return () => {\n    document.removeEventListener(\"keydown\", handleKeyDown);\n    document.body.style.overflow = previousOverflow;\n  };\n}, [isOpen, handleKeyDown]);"
+          },
+          {
+            "file": "packages/shared-components/src/components/ModalShell.jsx",
+            "start_line": 59,
+            "end_line": 63,
+            "snippet": "useEffect(() => {\n  const prev = document.body.style.overflow;\n  document.body.style.overflow = 'hidden';\n  return () => { document.body.style.overflow = prev; };\n}, []);"
+          }
+        ],
+        "implementation_details": "ModalShell and ImageLightbox both correctly save the previous overflow value and restore it on cleanup. ModalShell uses a simpler form (runs once on mount), while ImageLightbox guards on isOpen."
+      }
+    ],
+    "behavior_matrix": {
+      "ModalShell (shared)": {
+        "scroll_lock": true,
+        "restore_strategy": "save previous, restore on cleanup (correct)"
+      },
+      "ImageModal (illuminator)": {
+        "scroll_lock": true,
+        "restore_strategy": "restore to empty string (incorrect for nested modals)"
+      },
+      "ChronicleWizard (illuminator)": {
+        "scroll_lock": true,
+        "restore_strategy": "restore to empty string (incorrect for nested modals)"
+      },
+      "ImageLightbox (chronicler)": {
+        "scroll_lock": true,
+        "restore_strategy": "save previous, restore on cleanup (correct)"
+      }
+    },
+    "missing_behavior_complexity": {
+      "fix_restore_pattern": "trivial — save previousOverflow before setting hidden, restore it in cleanup (2-line change per file)"
+    },
+    "analysis": "ModalShell and ImageLightbox correctly save and restore the previous overflow value, while ImageModal and ChronicleWizard (which bypass ModalShell and implement their own scroll lock) blindly restore to empty string. This is drift caused by ad-hoc reimplementation — when these components built their own modal infrastructure, they didn't copy the correct save/restore pattern from ModalShell. The user-visible impact is low in practice because modals are rarely stacked in this app, but the pattern is technically incorrect and could cause scroll jumping if body had a non-default overflow value. The fix is trivial: save previousOverflow before setting hidden.",
+    "recommendation": "Update ImageModal and ChronicleWizard to save/restore previous overflow value, matching the ModalShell and ImageLightbox pattern. Consider extracting a useScrollLock hook to shared-components to prevent future drift.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "listbox-option-role-incomplete",
+    "name": "Incomplete Listbox/Option ARIA Pattern",
+    "type": "behavioral",
+    "domain": "Keyboard & Accessibility Patterns",
+    "description": "ChroniclePanel's entity suggestion dropdown uses role=\"option\" on items but lacks a parent role=\"listbox\" container, tabIndex on options, and keyboard navigation. The SearchableDropdown shared component has a similar dropdown pattern but uses role=\"button\" on options instead. Neither implements the ARIA listbox pattern correctly.",
+    "impact": "LOW",
+    "total_files": 3,
+    "variants": [
+      {
+        "name": "role-option-without-listbox",
+        "description": "Uses role=\"option\" on suggestion items but lacks the required parent role=\"listbox\" container. No tabIndex or keyboard navigation on option elements.",
+        "file_count": 1,
+        "files": [
+          "apps/illuminator/webui/src/components/ChroniclePanel.jsx:2036-2041"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+            "start_line": 2036,
+            "end_line": 2041,
+            "snippet": "{showEntitySuggestions && entitySuggestions.length > 0 && <div className=\"chron-filter-bar-suggestions\">\n  {entitySuggestions.map(entity => <div key={entity.id} role=\"option\" onMouseDown={e => {\n    e.preventDefault();\n    setEntitySearchQuery(entity.name || \"\");\n    setEntitySearchSelectedId(entity.id);\n  }}>"
+          }
+        ],
+        "implementation_details": "The suggestions container div has no role=\"listbox\", which is required when children use role=\"option\". Options use onMouseDown (not onClick) with no tabIndex or keyboard navigation. Screen readers will see orphaned role=\"option\" elements outside a listbox context."
+      },
+      {
+        "name": "role-button-on-dropdown-options",
+        "description": "SearchableDropdown and ChipSelect shared components use role=\"button\" + tabIndex={0} + onKeyDown on each dropdown option. Not semantically ideal (should be listbox/option) but at least keyboard accessible.",
+        "file_count": 2,
+        "files": [
+          "packages/shared-components/src/components/SearchableDropdown.jsx:93-104",
+          "packages/shared-components/src/components/ChipSelect.jsx:109-119"
+        ],
+        "sample_file": "packages/shared-components/src/components/SearchableDropdown.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/SearchableDropdown.jsx",
+            "start_line": 93,
+            "end_line": 104,
+            "snippet": "filteredItems.map((item) => (\n  <div\n    key={item.id}\n    className=\"dropdown-option\"\n    onClick={() => handleSelect(item)}\n    role=\"button\"\n    tabIndex={0}\n    onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") e.currentTarget.click(); }}\n  >\n    {item.name || item.id}\n  </div>\n))"
+          }
+        ],
+        "implementation_details": "Uses role=\"button\" on each option (not role=\"option\"), with keyboard activation via Enter/Space. No arrow-key navigation between options — users must Tab through each option individually. No Escape key to close the dropdown."
+      }
+    ],
+    "behavior_matrix": {
+      "ChroniclePanel entity suggestions": {
+        "container_role": "none (should be listbox)",
+        "option_role": "role=\"option\" (correct role, wrong context)",
+        "keyboard_nav": "none",
+        "tabIndex": "none",
+        "close_on_escape": false
+      },
+      "SearchableDropdown (shared)": {
+        "container_role": "none (should be listbox)",
+        "option_role": "role=\"button\" (should be option)",
+        "keyboard_nav": "Tab only (no arrow keys)",
+        "tabIndex": "tabIndex={0} on each option",
+        "close_on_escape": false
+      },
+      "ChipSelect (shared)": {
+        "container_role": "none (should be listbox)",
+        "option_role": "role=\"button\" (should be option)",
+        "keyboard_nav": "Tab only (no arrow keys)",
+        "tabIndex": "tabIndex={0} on each option",
+        "close_on_escape": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "listbox_pattern": "moderate — add role=\"listbox\" to container, role=\"option\" to items, aria-activedescendant on the input, and arrow-key navigation handler",
+      "escape_to_close": "trivial — add Escape key handler in the dropdown's keydown listener"
+    },
+    "analysis": "This is drift between two components that serve the same purpose (suggestion/option selection) but implement ARIA differently. ChroniclePanel uses the semantically correct role=\"option\" but in the wrong structural context (no parent listbox), while SearchableDropdown uses role=\"button\" which is keyboard-accessible but not semantically correct for a selection list. Neither supports arrow-key navigation between options or Escape to close. The correct ARIA pattern for a dropdown is role=\"listbox\" on the container with role=\"option\" on each item, aria-activedescendant pointing to the focused option, and ArrowUp/ArrowDown to navigate. The user-visible impact is that keyboard-only users must Tab through every option in SearchableDropdown (no arrow-key shortcuts), and screen reader users get confused by orphaned role=\"option\" in ChroniclePanel.",
+    "recommendation": "Implement the ARIA combobox/listbox pattern on SearchableDropdown: role=\"listbox\" on options container, role=\"option\" on items, arrow-key navigation, Escape to close. Then have ChroniclePanel use SearchableDropdown or replicate the same pattern.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "aria-label-sparse-usage",
+    "name": "Sparse and Inconsistent aria-label Usage",
+    "type": "behavioral",
+    "domain": "Keyboard & Accessibility Patterns",
+    "description": "Only 5 files in the entire codebase use aria-label, all in chronicler and illuminator apps. Zero files use aria-describedby, aria-haspopup, aria-pressed, aria-selected, or aria-live. Icon-only buttons (close ×, expand ▶, sidebar <, >, add +) across the codebase lack aria-label, making them inaccessible to screen readers.",
+    "impact": "LOW",
+    "total_files": 5,
+    "variants": [
+      {
+        "name": "aria-label-present",
+        "description": "Components that include aria-label on interactive elements, providing screen reader context.",
+        "file_count": 5,
+        "files": [
+          "apps/chronicler/webui/src/components/WikiNav.tsx:159",
+          "apps/chronicler/webui/src/components/WikiExplorer.tsx:687",
+          "apps/chronicler/webui/src/components/WikiExplorer.tsx:1052",
+          "apps/chronicler/webui/src/components/ImageLightbox.tsx:62",
+          "apps/illuminator/webui/src/components/CoveragePanel.jsx:426"
+        ],
+        "sample_file": "apps/chronicler/webui/src/components/WikiNav.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/chronicler/webui/src/components/WikiNav.tsx",
+            "start_line": 156,
+            "end_line": 162,
+            "snippet": "<button\n  onClick={onCloseDrawer}\n  className={styles.drawerClose}\n  aria-label=\"Close navigation\"\n>\n  ×\n</button>"
+          },
+          {
+            "file": "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+            "start_line": 60,
+            "end_line": 64,
+            "snippet": "role=\"dialog\"\naria-modal=\"true\"\naria-label={title || \"Image viewer\"}\ntabIndex={0}"
+          }
+        ],
+        "implementation_details": "The chronicler app is the only one with consistent aria-label usage (4 out of 5 occurrences). All are on native <button> elements or dialog containers. This suggests the chronicler app was built with more accessibility awareness than other apps."
+      },
+      {
+        "name": "aria-label-absent-icon-buttons",
+        "description": "Icon-only buttons (×, +, ▶, <, >) that lack aria-label. Screen readers will announce them as just 'button' or read the raw Unicode character.",
+        "file_count": 50,
+        "files": [
+          "packages/shared-components/src/components/ModalShell.jsx:84",
+          "packages/shared-components/src/components/AddCard.jsx:17-24",
+          "apps/illuminator/webui/src/components/ImageModal.jsx:207",
+          "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/EffectsTab.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/EntityKindEditor.jsx"
+        ],
+        "sample_file": "packages/shared-components/src/components/ModalShell.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/ModalShell.jsx",
+            "start_line": 84,
+            "end_line": 84,
+            "snippet": "<button className=\"btn-close\" onClick={onClose}>×</button>"
+          }
+        ],
+        "implementation_details": "The ModalShell close button renders just '×' with no aria-label. Screen readers announce this as 'times button' or 'multiplication sign button'. This is inherited by every modal using ModalShell (~10+ files). Similarly, AddCard renders '+' without aria-label."
+      }
+    ],
+    "behavior_matrix": {
+      "chronicler app": {
+        "aria_label_on_icon_buttons": "yes (WikiNav close button, WikiExplorer buttons)",
+        "aria_label_on_dialogs": "yes (ImageLightbox)",
+        "aria_describedby": false,
+        "aria_live": false
+      },
+      "illuminator app": {
+        "aria_label_on_icon_buttons": "1 instance (CoveragePanel checkbox)",
+        "aria_label_on_dialogs": false,
+        "aria_describedby": false,
+        "aria_live": false
+      },
+      "all other apps": {
+        "aria_label_on_icon_buttons": false,
+        "aria_label_on_dialogs": false,
+        "aria_describedby": false,
+        "aria_live": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "aria_label_on_ModalShell_close": "trivial — add aria-label=\"Close\" to the btn-close button (1 line in 1 file, propagates to ~10+ consumers)",
+      "aria_label_on_AddCard": "trivial — add aria-label={label} to the div (1 line in 1 file)",
+      "aria_label_on_icon_buttons_everywhere": "moderate — requires auditing all icon-only buttons across the codebase and adding labels individually"
+    },
+    "analysis": "The chronicler app demonstrates good aria-label practices (4 out of 5 codebase-wide usages), while all other apps have virtually zero aria-label usage. This is partially drift (chronicler vs others) and partially a baseline accessibility gap. The highest-leverage fix is adding aria-label to ModalShell's close button, which propagates to all consumers. The absence of aria-describedby, aria-live, and aria-haspopup across the entire codebase suggests these attributes weren't part of the development culture. This is acceptable for an internal tool but becomes a real barrier if the chronicler (public-facing wiki) needs to meet WCAG standards.",
+    "recommendation": "Add aria-label=\"Close\" to ModalShell btn-close button. Add aria-label=\"Close\" prop pass-through for custom close buttons. For the chronicler app specifically, audit all interactive elements for aria-label as it may have public-facing accessibility requirements.",
+    "evidence_quality": "high",
+    "status": "pending"
+  }
+]

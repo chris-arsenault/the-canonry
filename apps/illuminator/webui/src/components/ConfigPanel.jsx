@@ -9,7 +9,7 @@
  */
 
 import LLMCallConfigPanel from "./LLMCallConfigPanel";
-import { LocalTextArea } from "@penguin-tales/shared-components";
+import { LocalTextArea } from "@the-canonry/shared-components";
 import { IMAGE_MODELS } from "../lib/imageSettings";
 import "./ConfigPanel.css";
 import React from "react";
@@ -85,7 +85,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
           </select>
         </div>
 
-        <p className="cfgp-hint">
+        <p className="ilu-hint-sm cfgp-hint">
           Size and quality settings are in the Image Settings panel (sidebar).
         </p>
       </div>
@@ -94,7 +94,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Multishot Prompting</h2>
         </div>
-        <p className="cfgp-section-desc">Improve image generation by chaining multiple AI calls.</p>
+        <p className="ilu-hint cfgp-section-desc">Improve image generation by chaining multiple AI calls.</p>
 
         <div className="illuminator-checkbox-group cfgp-checkbox-spacer">
           <input
@@ -106,7 +106,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
           />
           <label htmlFor="requireDescription">Require description before image</label>
         </div>
-        <p className="cfgp-checkbox-hint">
+        <p className="ilu-hint-sm cfgp-checkbox-hint">
           Enforces description generation before image generation. The description will be included
           in the image prompt.
         </p>
@@ -121,7 +121,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
           />
           <label htmlFor="useClaudeForImagePrompt">Use Claude to format image prompt</label>
         </div>
-        <p className="cfgp-checkbox-hint-tight">
+        <p className="ilu-hint-sm cfgp-checkbox-hint-tight">
           Sends the image prompt through Claude first to optimize it for the image model.
         </p>
 
@@ -137,7 +137,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
                 rows={4}
               />
               </label>
-              <p className="cfgp-hint">
+              <p className="ilu-hint-sm cfgp-hint">
                 Domain-specific rules injected into all image prompts. Use this to enforce species,
                 setting constraints, or other world-specific requirements.
               </p>
@@ -151,7 +151,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
                 placeholder={DEFAULT_IMAGE_PROMPT_TEMPLATE}
               />
               </label>
-              <p className="cfgp-hint">
+              <p className="ilu-hint-sm cfgp-hint">
                 Used for entity portrait images. Use {"{{modelName}}"} for the image model name,{" "}
                 {"{{prompt}}"} for the original prompt, and {"{{globalImageRules}}"} for the global
                 rules above.
@@ -169,7 +169,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
                 placeholder={DEFAULT_CHRONICLE_IMAGE_PROMPT_TEMPLATE}
               />
               </label>
-              <p className="cfgp-hint">
+              <p className="ilu-hint-sm cfgp-hint">
                 Used for chronicle cover and scene images. Use {"{{modelName}}"} for the image model
                 name, {"{{prompt}}"} for the original prompt, and {"{{globalImageRules}}"} for the
                 global rules above.
@@ -197,7 +197,7 @@ export default function ConfigPanel({ config, onConfigChange }) {
             />
             <span className="cfgp-worker-count">{config.numWorkers || 4}</span>
           </div>
-          <p className="cfgp-hint">
+          <p className="ilu-hint-sm cfgp-hint">
             Number of concurrent API calls. Higher = faster but may hit rate limits.
           </p>
         </div>
@@ -207,12 +207,12 @@ export default function ConfigPanel({ config, onConfigChange }) {
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">About</h2>
         </div>
-        <p className="cfgp-about-text">
+        <p className="ilu-hint cfgp-about-text">
           Illuminator enriches your world simulation with LLM-generated content. Use the{" "}
           <strong>Entities</strong> tab to generate descriptions and images for entities. Use the{" "}
           <strong>Chronicle</strong> tab to generate multi-entity narratives and in-world documents.
         </p>
-        <p className="cfgp-about-text-spaced">
+        <p className="ilu-hint cfgp-about-text-spaced">
           All enrichments are saved automatically to your current world slot.
         </p>
       </div>

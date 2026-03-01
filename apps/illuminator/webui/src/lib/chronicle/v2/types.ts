@@ -4,7 +4,7 @@
  * Minimal types for the single-shot chronicle generation pipeline.
  */
 
-import type { EntityContext, RelationshipContext, NarrativeEventContext } from "../chronicleTypes";
+import type { EntityContext, RelationshipContext, NarrativeEventContext } from "../../chronicleTypes";
 
 /**
  * Configuration for V2 selection limits.

@@ -9,7 +9,9 @@
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useExpandSet } from "@the-canonry/shared-components";
 import { useEntityNavList } from "../lib/db/entitySelectors";
+import type { EntityNavItem } from "../lib/db/entityNav";
 import * as entityRepo from "../lib/db/entityRepository";
 import { useRelationships } from "../lib/db/relationshipSelectors";
 import { useNarrativeEvents } from "../lib/db/narrativeEventSelectors";
@@ -37,30 +39,6 @@ import "./EntityRenameModal.css";
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-interface Entity {
-  id: string;
-  name: string;
-  kind: string;
-  subtype?: string;
-  culture?: string;
-  summary?: string;
-  description?: string;
-  enrichment?: {
-    descriptionHistory?: Array<{
-      description: string;
-      replacedAt: number;
-      source: string;
-    }>;
-  };
-}
-
-interface Relationship {
-  kind: string;
-  src: string;
-  dst: string;
-  status?: string;
-}
 
 type ModalMode = "rename" | "patch";
 
@@ -108,11 +86,11 @@ interface SourceGroup {
 // Constants
 // ---------------------------------------------------------------------------
 
-const TYPE_COLORS: Record<string, string> = {
-  full: "#22c55e",
-  partial: "#f59e0b",
-  metadata: "#6366f1",
-  id_slug: "#06b6d4",
+const TYPE_BADGE_CLASSES: Record<string, string> = {
+  full: "erm-type-badge-full",
+  partial: "erm-type-badge-partial",
+  metadata: "erm-type-badge-metadata",
+  id_slug: "erm-type-badge-id_slug",
 };
 const TYPE_LABELS: Record<string, string> = {
   full: "full",
@@ -124,6 +102,63 @@ const TYPE_LABELS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 // Match Row — actionable match with diff + accept/reject/edit
 // ---------------------------------------------------------------------------
+
+interface MatchPreview {
+  ctxBefore: string;
+  strikethrough: string;
+  replacement: string;
+  ctxAfter: string;
+}
+
+function computePreview(
+  match: RenameMatch,
+  rawReplacementText: string,
+  decision: DecisionState,
+): MatchPreview {
+  if (
+    decision.action === "reject" ||
+    decision.action === "edit" ||
+    match.matchType === "metadata"
+  ) {
+    return {
+      ctxBefore: match.contextBefore,
+      strikethrough: match.matchedText,
+      replacement: rawReplacementText,
+      ctxAfter: match.contextAfter,
+    };
+  }
+  const adjusted = adjustReplacementForGrammar(
+    match.contextBefore,
+    match.contextAfter,
+    match.position,
+    match.matchedText,
+    rawReplacementText,
+  );
+
+  const absorbedBefore = match.position - adjusted.position;
+  const absorbedAfter = adjusted.originalLength - match.matchedText.length - absorbedBefore;
+
+  let ctxBefore = match.contextBefore;
+  let strikethrough = match.matchedText;
+  let ctxAfter = match.contextAfter;
+
+  if (absorbedBefore > 0) {
+    ctxBefore = match.contextBefore.slice(0, match.contextBefore.length - absorbedBefore);
+    strikethrough =
+      match.contextBefore.slice(match.contextBefore.length - absorbedBefore) + strikethrough;
+  }
+  if (absorbedAfter > 0) {
+    strikethrough = strikethrough + match.contextAfter.slice(0, absorbedAfter);
+    ctxAfter = match.contextAfter.slice(absorbedAfter);
+  }
+
+  return {
+    ctxBefore,
+    strikethrough,
+    replacement: adjusted.replacement,
+    ctxAfter,
+  };
+}
 
 function MatchRow({
   match,
@@ -140,65 +175,20 @@ function MatchRow({
 }>) {
   const rawReplacementText = decision.action === "edit" ? decision.editText : newName;
 
-  // Compute grammar-adjusted replacement for preview (text matches only)
-  const preview = useMemo(() => {
-    if (
-      decision.action === "reject" ||
-      decision.action === "edit" ||
-      match.matchType === "metadata"
-    ) {
-      return {
-        ctxBefore: match.contextBefore,
-        strikethrough: match.matchedText,
-        replacement: rawReplacementText,
-        ctxAfter: match.contextAfter,
-      };
-    }
-    const adjusted = adjustReplacementForGrammar(
-      match.contextBefore,
-      match.contextAfter,
-      match.position,
-      match.matchedText,
-      rawReplacementText
-    );
+  const preview = useMemo(
+    () => computePreview(match, rawReplacementText, decision),
+    [match, rawReplacementText, decision],
+  );
 
-    const absorbedBefore = match.position - adjusted.position;
-    const absorbedAfter = adjusted.originalLength - match.matchedText.length - absorbedBefore;
-
-    let ctxBefore = match.contextBefore;
-    let strikethrough = match.matchedText;
-    let ctxAfter = match.contextAfter;
-
-    if (absorbedBefore > 0) {
-      ctxBefore = match.contextBefore.slice(0, match.contextBefore.length - absorbedBefore);
-      strikethrough =
-        match.contextBefore.slice(match.contextBefore.length - absorbedBefore) + strikethrough;
-    }
-    if (absorbedAfter > 0) {
-      strikethrough = strikethrough + match.contextAfter.slice(0, absorbedAfter);
-      ctxAfter = match.contextAfter.slice(absorbedAfter);
-    }
-
-    return {
-      ctxBefore,
-      strikethrough,
-      replacement: adjusted.replacement,
-      ctxAfter,
-    };
-  }, [match, rawReplacementText, decision.action]);
+  const badgeClass = TYPE_BADGE_CLASSES[match.matchType] || "erm-type-badge-unknown";
 
   return (
     <div
       className={`erm-match-row ${decision.action === "reject" ? "erm-match-row-rejected" : "erm-match-row-accepted"}`}
     >
       {/* Field label + type badge */}
-      <div
-        className="erm-match-header"
-      >
-        <span
-          className="erm-type-badge"
-          style={{ background: TYPE_COLORS[match.matchType] || "#666" }}
-        >
+      <div className="erm-match-header">
+        <span className={`erm-type-badge ${badgeClass}`}>
           {TYPE_LABELS[match.matchType] || match.matchType}
         </span>
         <span className="erm-field-label">{match.field}</span>
@@ -208,17 +198,11 @@ function MatchRow({
       </div>
 
       {/* Context snippet with diff (grammar-adjusted) */}
-      <div
-        className="erm-snippet"
-      >
+      <div className="erm-snippet">
         <span className="erm-context-text">{preview.ctxBefore}</span>
-        <span className="erm-strikethrough">
-          {preview.strikethrough}
-        </span>
+        <span className="erm-strikethrough">{preview.strikethrough}</span>
         {decision.action !== "reject" && (
-          <span className="erm-replacement">
-            {preview.replacement}
-          </span>
+          <span className="erm-replacement">{preview.replacement}</span>
         )}
         <span className="erm-context-text">{preview.ctxAfter}</span>
       </div>
@@ -252,17 +236,7 @@ function MatchRow({
 // Source Section — collapsible accordion for one entity or chronicle
 // ---------------------------------------------------------------------------
 
-function SourceSection({
-  group,
-  expanded,
-  onToggle,
-  decisions,
-  newName,
-  onChangeAction,
-  onChangeEditText,
-  onAcceptAll,
-  onRejectAll,
-}: Readonly<{
+interface SourceSectionProps {
   group: SourceGroup;
   expanded: boolean;
   onToggle: () => void;
@@ -272,8 +246,9 @@ function SourceSection({
   onChangeEditText: (matchId: string, text: string) => void;
   onAcceptAll: () => void;
   onRejectAll: () => void;
-}>) {
-  // Per-source stats
+}
+
+function computeSourceStats(group: SourceGroup, decisions: Map<string, DecisionState>) {
   let accepts = 0,
     rejects = 0,
     edits = 0;
@@ -284,40 +259,80 @@ function SourceSection({
     else if (d.action === "reject") rejects++;
     else if (d.action === "edit") edits++;
   }
-  const total = group.matches.length;
+  return { accepts, rejects, edits, total: group.matches.length };
+}
+
+function SourceSection({
+  group,
+  expanded,
+  onToggle,
+  decisions,
+  newName,
+  onChangeAction,
+  onChangeEditText,
+  onAcceptAll,
+  onRejectAll,
+}: Readonly<SourceSectionProps>) {
+  const { accepts, rejects, edits, total } = useMemo(
+    () => computeSourceStats(group, decisions),
+    [group, decisions],
+  );
+
+  const handleAcceptClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onAcceptAll();
+    },
+    [onAcceptAll],
+  );
+
+  const handleRejectClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onRejectAll();
+    },
+    [onRejectAll],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") onToggle();
+    },
+    [onToggle],
+  );
+
+  const tierLabel = group.tier ? `, ${group.tier}` : "";
+  const connLabel =
+    group.connections.length > 0 ? ` + ${group.connections.length} conn` : "";
 
   return (
-    <div
-      className="erm-source-section"
-    >
+    <div className="viewer-section erm-source-section">
       {/* Clickable header */}
       <div
         onClick={onToggle}
         className="erm-source-header"
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(e); }}
+        onKeyDown={handleKeyDown}
       >
         {/* Expand indicator */}
-        <span className="erm-expand-icon">
+        <span className="viewer-expand-icon erm-expand-icon">
           {expanded ? "\u25BC" : "\u25B6"}
         </span>
 
         {/* Source name */}
-        <span className="erm-source-name">
-          {group.sourceName}
-        </span>
+        <span className="erm-source-name">{group.sourceName}</span>
 
         {/* Type + tier badge */}
         <span className="erm-source-badge">
           {group.sourceType}
-          {group.tier ? `, ${group.tier}` : ""}
+          {tierLabel}
         </span>
 
         {/* Match stats */}
         <span className="erm-match-count">
           {total} {total === 1 ? "match" : "matches"}
-          {group.connections.length > 0 && ` + ${group.connections.length} conn`}
+          {connLabel}
         </span>
         {accepts > 0 && (
           <span className="erm-stat-accepts">
@@ -340,20 +355,14 @@ function SourceSection({
 
         {/* Per-source bulk actions (stop propagation so click doesn't toggle) */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAcceptAll();
-          }}
+          onClick={handleAcceptClick}
           title="Accept all matches in this source"
           className="erm-bulk-accept-btn"
         >
           {"all\u2713"}
         </button>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onRejectAll();
-          }}
+          onClick={handleRejectClick}
           title="Reject all matches in this source"
           className="erm-bulk-reject-btn"
         >
@@ -383,18 +392,10 @@ function SourceSection({
 
           {/* Connection info for this source */}
           {group.connections.length > 0 && (
-            <div className="erm-connection-section">
+            <div className="viewer-section erm-connection-section">
               {group.connections.map((conn) => (
-                <div
-                  key={conn.id}
-                  className="erm-connection-item"
-                >
-                  <span
-                    className="erm-fk-badge"
-                    style={{ background: TYPE_COLORS.id_slug }}
-                  >
-                    FK
-                  </span>
+                <div key={conn.id} className="erm-connection-item">
+                  <span className="erm-fk-badge erm-fk-badge-colored">FK</span>
                   <span>{conn.contextBefore}</span>
                   <span>{conn.contextAfter}</span>
                 </div>
@@ -405,6 +406,273 @@ function SourceSection({
       )}
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Input Phase sub-components
+// ---------------------------------------------------------------------------
+
+interface PatchInputPhaseProps {
+  entity: EntityNavItem;
+  oldNameInput: string;
+  onOldNameChange: (value: string) => void;
+  onScan: () => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+}
+
+function PatchInputPhase({
+  entity,
+  oldNameInput,
+  onOldNameChange,
+  onScan,
+  inputRef,
+}: Readonly<PatchInputPhaseProps>) {
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onOldNameChange(e.target.value),
+    [onOldNameChange],
+  );
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && oldNameInput.trim()) void onScan();
+    },
+    [oldNameInput, onScan],
+  );
+
+  return (
+    <>
+      <div className="erm-input-row">
+        <input
+          ref={inputRef}
+          type="text"
+          value={oldNameInput}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Enter old/stale name to find..."
+          className="erm-name-input"
+        />
+      </div>
+      <p className="ilu-hint-sm erm-help-text">
+        Enter the old or stale name to search for. All occurrences will be shown for review and
+        replaced with the current name &ldquo;{entity.name}&rdquo;.
+      </p>
+    </>
+  );
+}
+
+interface RenameInputPhaseProps {
+  entity: EntityNavItem;
+  newName: string;
+  onNewNameChange: (value: string) => void;
+  onScan: () => void;
+  onRollName: () => void;
+  isRolling: boolean;
+  addOldNameAsAlias: boolean;
+  onAliasChange: (checked: boolean) => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+}
+
+function RenameInputPhase({
+  entity,
+  newName,
+  onNewNameChange,
+  onScan,
+  onRollName,
+  isRolling,
+  addOldNameAsAlias,
+  onAliasChange,
+  inputRef,
+}: Readonly<RenameInputPhaseProps>) {
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onNewNameChange(e.target.value),
+    [onNewNameChange],
+  );
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && newName.trim()) void onScan();
+    },
+    [newName, onScan],
+  );
+  const handleRoll = useCallback(() => void onRollName(), [onRollName]);
+  const handleAliasChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onAliasChange(e.target.checked),
+    [onAliasChange],
+  );
+
+  return (
+    <>
+      <div className="erm-input-row">
+        <input
+          ref={inputRef}
+          type="text"
+          value={newName}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Enter new name..."
+          className="erm-name-input"
+        />
+        {entity.culture && (
+          <button
+            onClick={handleRoll}
+            disabled={isRolling}
+            className="illuminator-button illuminator-button-secondary erm-roll-btn"
+            title="Generate a culture-appropriate name using Name Forge"
+          >
+            {isRolling ? "Rolling..." : "Roll Name"}
+          </button>
+        )}
+      </div>
+      <label className="erm-alias-label">
+        <input
+          type="checkbox"
+          checked={addOldNameAsAlias}
+          onChange={handleAliasChange}
+        />
+        Add &ldquo;{entity.name}&rdquo; as alias (keeps wiki links working)
+      </label>
+      <p className="ilu-hint-sm erm-help-text">
+        Enter a new name or use Roll Name to generate one from Name Forge. The scan will find all
+        references to &ldquo;{entity.name}&rdquo; across related entities and chronicles.
+      </p>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Connection-only group list
+// ---------------------------------------------------------------------------
+
+interface ConnectionOnlyListProps {
+  groups: SourceGroup[];
+}
+
+function ConnectionOnlyList({ groups }: Readonly<ConnectionOnlyListProps>) {
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="viewer-section erm-conn-only-section">
+      <div className="erm-conn-only-header">
+        Connections without text matches ({groups.length})
+      </div>
+      {groups.map((group) => {
+        const refCount = group.connections.length > 1 ? `, ${group.connections.length} refs` : "";
+        return (
+          <div key={group.sourceId} className="erm-conn-only-item">
+            <span className="erm-fk-badge erm-fk-badge-colored">FK</span>
+            <span className="erm-conn-only-name">{group.sourceName}</span>
+            <span>
+              ({group.sourceType}
+              {refCount})
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers for source group computation
+// ---------------------------------------------------------------------------
+
+const TIER_ORDER: Record<string, number> = {
+  "this entity": 0,
+  self: 0,
+  related: 1,
+  participant: 1,
+  cast: 1,
+  mention: 2,
+  general: 2,
+};
+const TYPE_ORDER: Record<string, number> = { entity: 0, event: 1, chronicle: 2 };
+
+function buildSourceGroups(scanResult: RenameScanResult, entityId: string): SourceGroup[] {
+  const groupMap = new Map<
+    string,
+    {
+      sourceName: string;
+      sourceType: "entity" | "chronicle" | "event";
+      matches: RenameMatch[];
+      connections: RenameMatch[];
+    }
+  >();
+
+  for (const match of scanResult.matches) {
+    let entry = groupMap.get(match.sourceId);
+    if (!entry) {
+      entry = {
+        sourceName: match.sourceName,
+        sourceType: match.sourceType,
+        matches: [],
+        connections: [],
+      };
+      groupMap.set(match.sourceId, entry);
+    }
+    if (match.matchType === "id_slug") {
+      entry.connections.push(match);
+    } else {
+      entry.matches.push(match);
+    }
+  }
+
+  const groups: SourceGroup[] = [];
+  for (const [sourceId, entry] of groupMap) {
+    const isSelf = sourceId === entityId && entry.sourceType === "entity";
+    const firstMatch = entry.matches[0] || entry.connections[0];
+    const tier = isSelf ? "this entity" : (firstMatch?.tier ?? "general");
+
+    groups.push({
+      sourceId,
+      sourceName: entry.sourceName,
+      sourceType: entry.sourceType,
+      isSelf,
+      tier,
+      matches: entry.matches,
+      connections: entry.connections,
+    });
+  }
+
+  groups.sort((a, b) => {
+    if (a.isSelf) return -1;
+    if (b.isSelf) return 1;
+    const typeA = TYPE_ORDER[a.sourceType] ?? 9;
+    const typeB = TYPE_ORDER[b.sourceType] ?? 9;
+    if (typeA !== typeB) return typeA - typeB;
+    const ta = TIER_ORDER[a.tier] ?? 9;
+    const tb = TIER_ORDER[b.tier] ?? 9;
+    if (ta !== tb) return ta - tb;
+    return a.sourceName.localeCompare(b.sourceName);
+  });
+
+  return groups;
+}
+
+function computeStats(scanResult: RenameScanResult, decisions: Map<string, DecisionState>) {
+  let accepts = 0,
+    rejects = 0,
+    edits = 0,
+    connections = 0;
+  for (const match of scanResult.matches) {
+    if (match.matchType === "id_slug") {
+      connections++;
+      continue;
+    }
+    const state = decisions.get(match.id);
+    if (!state) continue;
+    if (state.action === "accept") accepts++;
+    else if (state.action === "reject") rejects++;
+    else if (state.action === "edit") edits++;
+  }
+  return { accepts, rejects, edits, total: accepts + rejects + edits, connections };
+}
+
+function getPhaseTitle(phase: Phase, isPatch: boolean, applyProgress: string): string {
+  if (phase === "applying") return applyProgress;
+  if (isPatch) return "Patch Complete";
+  return "Rename Complete";
+}
+
+function getFooterOpacityClass(hasInput: boolean): string {
+  return hasInput ? "erm-footer-btn-active" : "erm-footer-btn-disabled";
 }
 
 // ---------------------------------------------------------------------------
@@ -422,20 +690,22 @@ export default function EntityRenameModal({
   const navEntities = useEntityNavList();
   const relationships = useRelationships();
   const narrativeEvents = useNarrativeEvents();
-  const entity = useMemo(() => navEntities.find((e) => e.id === entityId), [navEntities, entityId]);
+  const entity = useMemo(
+    () => navEntities.find((e) => e.id === entityId),
+    [navEntities, entityId],
+  );
 
   const isPatch = mode === "patch";
 
   const [phase, setPhase] = useState<Phase>("input");
   const [addOldNameAsAlias, setAddOldNameAsAlias] = useState(true);
-  // In patch mode: newName = entity.name (current, correct), oldNameInput = user-entered stale name
   const [newName, setNewName] = useState(isPatch ? entity?.name || "" : "");
   const [oldNameInput, setOldNameInput] = useState(
-    isPatch ? entityId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : ""
+    isPatch ? entityId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "",
   );
   const [scanResult, setScanResult] = useState<RenameScanResult | null>(null);
   const [decisions, setDecisions] = useState<Map<string, DecisionState>>(new Map());
-  const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+  const expandState = useExpandSet();
   const [applyProgress, setApplyProgress] = useState("");
   const [applyResult, setApplyResult] = useState("");
   const [isRolling, setIsRolling] = useState(false);
@@ -475,28 +745,12 @@ export default function EntityRenameModal({
   }, [entity, cultures]);
 
   // --- Scanning ---
-  const scanOldName = isPatch ? oldNameInput.trim() : entity.name;
+  const scanOldName = isPatch ? oldNameInput.trim() : (entity?.name ?? "");
 
   const handleScan = useCallback(async () => {
+    if (!entity) return;
     if (isPatch ? !oldNameInput.trim() : !newName.trim()) return;
     setPhase("scanning");
-
-    console.log("[EntityRenameModal] handleScan starting", {
-      scanOldName,
-      newName,
-      narrativeEventCount: narrativeEvents?.length ?? 0,
-    });
-
-    // Sample a narrative event to check if it has patched or original text
-    if (narrativeEvents && narrativeEvents.length > 0) {
-      const sample = narrativeEvents[0];
-      console.log("[EntityRenameModal] Sample narrative event", {
-        id: sample.id,
-        description: sample.description?.substring(0, 200),
-        action: sample.action?.substring(0, 200),
-        hasSimulationRunId: "simulationRunId" in sample,
-      });
-    }
 
     try {
       const [chronicles, fullEntities] = await Promise.all([
@@ -509,18 +763,14 @@ export default function EntityRenameModal({
         fullEntities,
         chronicles,
         relationships,
-        narrativeEvents
+        narrativeEvents,
       );
       // Filter out no-op matches where the matched text already equals the new name
       const effectiveName = isPatch ? entity.name : newName;
       result.matches = result.matches.filter(
-        (m) => m.matchType === "id_slug" || m.matchedText !== effectiveName
+        (m) => m.matchType === "id_slug" || m.matchedText !== effectiveName,
       );
 
-      console.log("[EntityRenameModal] Scan result", {
-        totalMatches: result.matches.length,
-        eventMatches: result.matches.filter((m) => m.sourceType === "event").length,
-      });
       setScanResult(result);
 
       // Initialize decisions: accept for full+metadata, reject for partial.
@@ -536,7 +786,7 @@ export default function EntityRenameModal({
       setDecisions(initial);
 
       // Self entity starts expanded
-      setExpandedSources(new Set([entityId]));
+      expandState.set(new Set([entityId]));
       setPhase("preview");
     } catch (err) {
       console.error("[EntityRename] Scan failed:", err);
@@ -552,6 +802,7 @@ export default function EntityRenameModal({
     simulationRunId,
     relationships,
     narrativeEvents,
+    expandState,
   ]);
 
   // --- Decision handling ---
@@ -567,7 +818,7 @@ export default function EntityRenameModal({
         return next;
       });
     },
-    [newName]
+    [newName],
   );
 
   const handleChangeEditText = useCallback(
@@ -582,7 +833,7 @@ export default function EntityRenameModal({
         return next;
       });
     },
-    [newName]
+    [newName],
   );
 
   // --- Bulk actions (global) ---
@@ -635,19 +886,6 @@ export default function EntityRenameModal({
     });
   }, []);
 
-  // --- Expand/collapse ---
-  const toggleSource = useCallback((sourceId: string) => {
-    setExpandedSources((prev) => {
-      const next = new Set(prev);
-      if (next.has(sourceId)) {
-        next.delete(sourceId);
-      } else {
-        next.add(sourceId);
-      }
-      return next;
-    });
-  }, []);
-
   // --- Apply ---
   const handleApply = useCallback(async () => {
     if (!scanResult) return;
@@ -665,13 +903,6 @@ export default function EntityRenameModal({
 
       setApplyProgress("Building patches...");
       const patches = buildRenamePatches(scanResult, newName, decisionArray);
-      console.log("[EntityRenameModal] Built patches", {
-        entityPatchCount: patches.entityPatches.length,
-        eventPatchCount: patches.eventPatches.length,
-        chroniclePatchCount: patches.chroniclePatches.length,
-        eventPatchIds: patches.eventPatches.map((p) => p.eventId),
-        eventPatchKeys: patches.eventPatches.map((p) => Object.keys(p.changes)),
-      });
 
       // Apply chronicle patches directly (chronicles have their own IDB store)
       let chronicleCount = 0;
@@ -680,7 +911,7 @@ export default function EntityRenameModal({
         chronicleCount = await applyChroniclePatches(
           patches.chroniclePatches,
           getChronicle,
-          putChronicle
+          putChronicle,
         );
       }
 
@@ -703,123 +934,30 @@ export default function EntityRenameModal({
       setPhase("done");
     } catch (err) {
       console.error("[EntityRename] Apply failed:", err);
-      setApplyProgress(`Error: ${err}`);
+      setApplyProgress(`Error: ${String(err)}`);
     }
   }, [scanResult, decisions, newName, entityId, onApply, isPatch, addOldNameAsAlias]);
 
   // --- Stats ---
   const stats = useMemo(() => {
     if (!scanResult) return { accepts: 0, rejects: 0, edits: 0, total: 0, connections: 0 };
-    let accepts = 0,
-      rejects = 0,
-      edits = 0,
-      connections = 0;
-    for (const match of scanResult.matches) {
-      if (match.matchType === "id_slug") {
-        connections++;
-        continue;
-      }
-      const state = decisions.get(match.id);
-      if (!state) continue;
-      if (state.action === "accept") accepts++;
-      else if (state.action === "reject") rejects++;
-      else if (state.action === "edit") edits++;
-    }
-    return { accepts, rejects, edits, total: accepts + rejects + edits, connections };
+    return computeStats(scanResult, decisions);
   }, [scanResult, decisions]);
 
   // --- Source groups (accordion data) ---
   const sourceGroups = useMemo(() => {
     if (!scanResult) return [];
-
-    // Build a map of sourceId → { matches, connections }
-    const groupMap = new Map<
-      string,
-      {
-        sourceName: string;
-        sourceType: "entity" | "chronicle" | "event";
-        matches: RenameMatch[];
-        connections: RenameMatch[];
-      }
-    >();
-
-    for (const match of scanResult.matches) {
-      let entry = groupMap.get(match.sourceId);
-      if (!entry) {
-        entry = {
-          sourceName: match.sourceName,
-          sourceType: match.sourceType,
-          matches: [],
-          connections: [],
-        };
-        groupMap.set(match.sourceId, entry);
-      }
-      if (match.matchType === "id_slug") {
-        entry.connections.push(match);
-      } else {
-        entry.matches.push(match);
-      }
-    }
-
-    // Convert to sorted array: self first, then entities, then chronicles
-    // Tier is derived from the matches themselves (set by the scan function).
-    const groups: SourceGroup[] = [];
-    for (const [sourceId, entry] of groupMap) {
-      const isSelf = sourceId === entityId && entry.sourceType === "entity";
-
-      // Use the tier from the first match/connection — all matches for a given
-      // source share the same tier since it's set per-scan-pass.
-      const firstMatch = entry.matches[0] || entry.connections[0];
-      const tier = isSelf ? "this entity" : (firstMatch?.tier ?? "general");
-
-      groups.push({
-        sourceId,
-        sourceName: entry.sourceName,
-        sourceType: entry.sourceType,
-        isSelf,
-        tier,
-        matches: entry.matches,
-        connections: entry.connections,
-      });
-    }
-
-    // Sort: self first, then entities (related before general), then events, then chronicles
-    // Tier priority: FK-confirmed tiers sort before text-only mentions
-    const tierOrder: Record<string, number> = {
-      "this entity": 0,
-      self: 0,
-      related: 1,
-      participant: 1,
-      cast: 1,
-      mention: 2,
-      general: 2,
-    };
-    const typeOrder: Record<string, number> = { entity: 0, event: 1, chronicle: 2 };
-    groups.sort((a, b) => {
-      if (a.isSelf) return -1;
-      if (b.isSelf) return 1;
-      // entities before events before chronicles
-      const typeA = typeOrder[a.sourceType] ?? 9;
-      const typeB = typeOrder[b.sourceType] ?? 9;
-      if (typeA !== typeB) return typeA - typeB;
-      // FK-confirmed before text-only mentions
-      const ta = tierOrder[a.tier] ?? 9;
-      const tb = tierOrder[b.tier] ?? 9;
-      if (ta !== tb) return ta - tb;
-      return a.sourceName.localeCompare(b.sourceName);
-    });
-
-    return groups;
+    return buildSourceGroups(scanResult, entityId);
   }, [scanResult, entityId]);
 
   // Separate: sources with actionable matches vs connection-only sources
   const actionableGroups = useMemo(
     () => sourceGroups.filter((g) => g.matches.length > 0),
-    [sourceGroups]
+    [sourceGroups],
   );
   const connectionOnlyGroups = useMemo(
     () => sourceGroups.filter((g) => g.matches.length === 0 && g.connections.length > 0),
-    [sourceGroups]
+    [sourceGroups],
   );
 
   // ---------------------------------------------------------------------------
@@ -828,23 +966,25 @@ export default function EntityRenameModal({
 
   if (!entity) return null;
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget && phase !== "applying") onClose();
+  };
+
+  const handleBackdropKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click();
+  };
+
   return (
     <div
       className="erm-backdrop"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && phase !== "applying") onClose();
-      }}
+      onClick={handleBackdropClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
+      onKeyDown={handleBackdropKeyDown}
     >
-      <div
-        className="erm-card"
-      >
+      <div className="erm-card">
         {/* Header */}
-        <div
-          className="erm-header"
-        >
+        <div className="erm-header">
           <div>
             <h2 className="erm-title">
               {isPatch ? "Patch Stale Names" : "Rename Entity"}
@@ -866,82 +1006,35 @@ export default function EntityRenameModal({
         </div>
 
         {/* Scrollable content */}
-        <div
-          className="erm-body"
-        >
+        <div className="erm-body">
           {/* Phase 1: Name Input */}
           {phase === "input" && (
             <div>
               <div className="erm-current-name-box">
-                <div className="erm-current-name-label">
-                  Current Name
-                </div>
-                <div className="erm-current-name-value">
-                  {entity.name}
-                </div>
+                <div className="erm-current-name-label">Current Name</div>
+                <div className="erm-current-name-value">{entity.name}</div>
               </div>
 
               {isPatch ? (
-                /* Patch mode: user enters the OLD stale name to find */
-                <>
-                  <div className="erm-input-row">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={oldNameInput}
-                      onChange={(e) => setOldNameInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && oldNameInput.trim()) void handleScan();
-                      }}
-                      placeholder="Enter old/stale name to find..."
-                      className="erm-name-input"
-                    />
-                  </div>
-                  <p className="erm-help-text">
-                    Enter the old or stale name to search for. All occurrences will be shown for
-                    review and replaced with the current name &ldquo;{entity.name}&rdquo;.
-                  </p>
-                </>
+                <PatchInputPhase
+                  entity={entity}
+                  oldNameInput={oldNameInput}
+                  onOldNameChange={setOldNameInput}
+                  onScan={handleScan}
+                  inputRef={inputRef}
+                />
               ) : (
-                /* Rename mode: user enters the NEW name */
-                <>
-                  <div className="erm-input-row">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newName.trim()) void handleScan();
-                      }}
-                      placeholder="Enter new name..."
-                      className="erm-name-input"
-                    />
-                    {entity.culture && (
-                      <button
-                        onClick={() => void handleRollName()}
-                        disabled={isRolling}
-                        className="illuminator-button illuminator-button-secondary erm-roll-btn"
-                        title="Generate a culture-appropriate name using Name Forge"
-                      >
-                        {isRolling ? "Rolling..." : "Roll Name"}
-                      </button>
-                    )}
-                  </div>
-                  <label className="erm-alias-label">
-                    <input
-                      type="checkbox"
-                      checked={addOldNameAsAlias}
-                      onChange={(e) => setAddOldNameAsAlias(e.target.checked)}
-                    />
-                    Add &ldquo;{entity.name}&rdquo; as alias (keeps wiki links working)
-                  </label>
-                  <p className="erm-help-text">
-                    Enter a new name or use Roll Name to generate one from Name Forge. The scan will
-                    find all references to &ldquo;
-                    {entity.name}&rdquo; across related entities and chronicles.
-                  </p>
-                </>
+                <RenameInputPhase
+                  entity={entity}
+                  newName={newName}
+                  onNewNameChange={setNewName}
+                  onScan={handleScan}
+                  onRollName={handleRollName}
+                  isRolling={isRolling}
+                  addOldNameAsAlias={addOldNameAsAlias}
+                  onAliasChange={setAddOldNameAsAlias}
+                  inputRef={inputRef}
+                />
               )}
             </div>
           )}
@@ -949,9 +1042,7 @@ export default function EntityRenameModal({
           {/* Phase: Scanning */}
           {phase === "scanning" && (
             <div className="erm-centered-phase">
-              <div className="erm-phase-title">
-                Scanning entities and chronicles...
-              </div>
+              <div className="erm-phase-title">Scanning entities and chronicles...</div>
               <div className="erm-phase-subtitle">
                 Looking for references to &ldquo;{scanOldName}&rdquo;
               </div>
@@ -976,16 +1067,10 @@ export default function EntityRenameModal({
                   <span className="erm-stat-connections">+ {stats.connections} connections</span>
                 )}
                 <div className="erm-stats-spacer" />
-                <button
-                  onClick={handleAcceptAll}
-                  className="erm-accept-all-btn"
-                >
+                <button onClick={handleAcceptAll} className="erm-accept-all-btn">
                   Accept All
                 </button>
-                <button
-                  onClick={handleRejectAllPartials}
-                  className="erm-reject-partials-btn"
-                >
+                <button onClick={handleRejectAllPartials} className="erm-reject-partials-btn">
                   Reject All Partials
                 </button>
               </div>
@@ -995,8 +1080,8 @@ export default function EntityRenameModal({
                 <SourceSection
                   key={group.sourceId}
                   group={group}
-                  expanded={expandedSources.has(group.sourceId)}
-                  onToggle={() => toggleSource(group.sourceId)}
+                  expanded={expandState.expanded.has(group.sourceId)}
+                  onToggle={() => expandState.toggle(group.sourceId)}
                   decisions={decisions}
                   newName={newName}
                   onChangeAction={handleChangeAction}
@@ -1007,31 +1092,7 @@ export default function EntityRenameModal({
               ))}
 
               {/* Connection-only sources (no text matches, just FK refs) */}
-              {connectionOnlyGroups.length > 0 && (
-                <div className="erm-conn-only-section">
-                  <div className="erm-conn-only-header">
-                    Connections without text matches ({connectionOnlyGroups.length})
-                  </div>
-                  {connectionOnlyGroups.map((group) => (
-                    <div
-                      key={group.sourceId}
-                      className="erm-conn-only-item"
-                    >
-                      <span
-                        className="erm-fk-badge"
-                        style={{ background: TYPE_COLORS.id_slug }}
-                      >
-                        FK
-                      </span>
-                      <span className="erm-conn-only-name">{group.sourceName}</span>
-                      <span>
-                        ({group.sourceType}
-                        {group.connections.length > 1 ? `, ${group.connections.length} refs` : ""})
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <ConnectionOnlyList groups={connectionOnlyGroups} />
 
               {actionableGroups.length === 0 && connectionOnlyGroups.length === 0 && (
                 <div className="erm-empty-preview">
@@ -1045,16 +1106,10 @@ export default function EntityRenameModal({
           {(phase === "applying" || phase === "done") && (
             <div className="erm-centered-phase">
               <div className="erm-phase-title">
-                {(() => {
-                  if (phase === "applying") return applyProgress;
-                  if (isPatch) return "Patch Complete";
-                  return "Rename Complete";
-                })()}
+                {getPhaseTitle(phase, isPatch, applyProgress)}
               </div>
               {phase === "done" && applyResult && (
-                <div className="erm-done-subtitle">
-                  {applyResult}
-                </div>
+                <div className="ilu-hint erm-done-subtitle">{applyResult}</div>
               )}
             </div>
           )}
@@ -1066,8 +1121,7 @@ export default function EntityRenameModal({
             <button
               onClick={() => void handleScan()}
               disabled={isPatch ? !oldNameInput.trim() : !newName.trim()}
-              className="illuminator-button erm-footer-btn"
-              style={{ '--erm-opacity': (isPatch ? oldNameInput.trim() : newName.trim()) ? 1 : 0.5, opacity: 'var(--erm-opacity)' } as React.CSSProperties}
+              className={`illuminator-button erm-footer-btn ${getFooterOpacityClass(isPatch ? !!oldNameInput.trim() : !!newName.trim())}`}
             >
               Scan References
             </button>
@@ -1083,18 +1137,14 @@ export default function EntityRenameModal({
               <button
                 onClick={() => void handleApply()}
                 disabled={stats.accepts === 0 && stats.edits === 0}
-                className="illuminator-button erm-footer-btn"
-                style={{ opacity: stats.accepts === 0 && stats.edits === 0 ? 0.5 : 1 }}
+                className={`illuminator-button erm-footer-btn ${getFooterOpacityClass(stats.accepts > 0 || stats.edits > 0)}`}
               >
                 {isPatch ? "Apply Patch" : "Apply Rename"} ({stats.accepts + stats.edits} changes)
               </button>
             </>
           )}
           {phase === "done" && (
-            <button
-              onClick={onClose}
-              className="illuminator-button erm-footer-btn"
-            >
+            <button onClick={onClose} className="illuminator-button erm-footer-btn">
               Done
             </button>
           )}

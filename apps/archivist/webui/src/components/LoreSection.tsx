@@ -1,4 +1,5 @@
 import type { DescriptionLore } from "../types/world.ts";
+import "./archivist-section.css";
 import "./LoreSection.css";
 import React from "react";
 
@@ -8,12 +9,12 @@ interface LoreSectionProps {
 
 export default function LoreSection({ lore }: Readonly<LoreSectionProps>) {
   return (
-    <div className="lore-section">
-      <div className="lore-header">
-        <span className="lore-icon">📖</span>
-        <span className="lore-title">Lore</span>
+    <div className="archivist-section lore-section">
+      <div className="archivist-section-hdr">
+        <span className="archivist-section-icon">📖</span>
+        <span className="archivist-section-title">Lore</span>
       </div>
-      <div className="lore-content">{lore.text}</div>
+      <div className="archivist-narrative lore-content">{lore.text}</div>
     </div>
   );
 }

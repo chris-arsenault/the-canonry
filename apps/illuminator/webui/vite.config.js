@@ -27,7 +27,7 @@ export default defineConfig({
         "./coordinateStateRepository": "./src/lib/db/coordinateStateRepository.ts",
         "./schemaRepository": "./src/lib/db/schemaRepository.ts",
       },
-      shared: sharedDeps("zustand", "@penguin-tales/image-store"),
+      shared: sharedDeps("zustand", "@the-canonry/image-store"),
     }),
   ],
   // Base path - use /illuminator/ in dev (via proxy) and production

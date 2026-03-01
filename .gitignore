@@ -30,3 +30,4 @@ tsconfig.tsbuildinfo
 !eslint.config.js
 validity-search-4-runs/
 offline-review-docs/
+.drift-audit/semantic/semantic-embeddings.json

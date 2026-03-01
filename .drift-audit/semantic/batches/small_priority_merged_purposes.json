@@ -1,0 +1,86 @@
+[
+  {
+    "unitId": "packages/image-store/src/hooks.ts::useImageUrl",
+    "purpose": "Loads a single image URL and its metadata from the image store on demand, returning the resolved URL along with loading and error state."
+  },
+  {
+    "unitId": "packages/image-store/src/hooks.ts::useImageUrls",
+    "purpose": "Batch-loads multiple image URLs from the image store in a single request, returning a map of image IDs to resolved URLs with loading state."
+  },
+  {
+    "unitId": "packages/image-store/src/hooks.ts::useImageMetadata",
+    "purpose": "Fetches and caches metadata (dimensions, entity info) for a set of image IDs from the image store, deduplicating requests when IDs have not changed."
+  },
+  {
+    "unitId": "packages/image-store/src/index.ts::useImageUrl",
+    "purpose": "Re-exported duplicate of hooks.ts useImageUrl that loads a single image URL and its metadata from the image store on demand, returning the resolved URL along with loading and error state."
+  },
+  {
+    "unitId": "packages/image-store/src/index.ts::useImageUrls",
+    "purpose": "Re-exported duplicate of hooks.ts useImageUrls that batch-loads multiple image URLs from the image store in a single request, returning a map of image IDs to resolved URLs with loading state."
+  },
+  {
+    "unitId": "packages/image-store/src/index.ts::useImageMetadata",
+    "purpose": "Re-exported duplicate of hooks.ts useImageMetadata that fetches and caches metadata for a set of image IDs from the image store, deduplicating requests when IDs have not changed."
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useEntityNarrativeEvents",
+    "purpose": "Triggers lazy loading of narrative events for a specific entity and returns the cached event list from the narrative store."
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useNarrativeStatus",
+    "purpose": "Returns the current overall status object (loading, error, ready flags) of the narrative store."
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useNarrativeLoading",
+    "purpose": "Returns whether the narrative store is currently performing a global loading operation."
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useEntityNarrativeLoading",
+    "purpose": "Returns whether narrative events for a specific entity are currently being fetched."
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useEntityNarrativeReady",
+    "purpose": "Returns whether narrative events for a specific entity have been fully loaded and are ready for display."
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useAllNarrativeEvents",
+    "purpose": "Returns every narrative event currently held in the narrative store as a flat array."
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useAllNarrativeEventsLoading",
+    "purpose": "Returns whether the full set of all narrative events is currently being fetched."
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useAllNarrativeEventsLoaded",
+    "purpose": "Returns whether the full set of all narrative events has finished loading."
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/components/Ornaments.tsx::ParchmentTexture",
+    "purpose": "Generates a seamlessly tileable parchment background by blending two source images through a canvas frequency-blend and mirror-tile pipeline, or uses a pre-baked tile URL when provided."
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/components/Ornaments.tsx::ParchmentDebugPanel",
+    "purpose": "Provides a collapsible developer panel with sliders to live-tune parchment texture parameters (opacity, blur radius, detail strength) and reset them to defaults."
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/components/Ornaments.tsx::PageFrame",
+    "purpose": "Renders decorative scroll-corner ornaments at the four corners of a page container for a manuscript-style visual frame."
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/components/Ornaments.tsx::SectionDivider",
+    "purpose": "Renders an ornamental SVG filigree divider with gold scrollwork and frost-blue accent tendrils for separating content sections."
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/components/Ornaments.tsx::FrostEdge",
+    "purpose": "Renders an SVG decorative frost-crystal band with irregular ice spikes and a blue-tinted gradient bar, positionable at the top or bottom edge of a container."
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/hooks/useBreakpoint.ts::useBreakpoint",
+    "purpose": "Tracks the browser window width and returns the current responsive breakpoint category (mobile, tablet, or desktop)."
+  },
+  {
+    "unitId": "apps/canonry/webui/src/storage/useProjectStorage.js::useProjectStorage",
+    "purpose": "Manages the full lifecycle of domain-configuration projects in IndexedDB, providing CRUD operations, import/export as zip files, duplication, and automatic seeding of a default project on first use."
+  }
+]

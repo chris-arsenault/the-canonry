@@ -14,7 +14,7 @@
 
 import React, { useMemo } from "react";
 import PropTypes from "prop-types";
-import "@penguin-tales/shared-components/styles";
+import "@the-canonry/shared-components/styles";
 import "./styles/index.css";
 import "./CoherenceEngineRemote.css";
 import { ErasEditor } from "./components/eras";
@@ -25,7 +25,7 @@ import SystemsEditor from "./components/SystemsEditor";
 import ValidationEditor, { getValidationStatus } from "./components/ValidationEditor";
 import { WeightMatrixEditor } from "./components/weight-matrix";
 import CausalLoopEditor from "./components/CausalLoopEditor";
-import { computeUsageMap } from "@penguin-tales/shared-components";
+import { computeUsageMap } from "@the-canonry/shared-components";
 
 const TABS = [
   { id: "validation", label: "Validation" },
@@ -222,20 +222,20 @@ export default function CoherenceEngineRemote({
         );
       default:
         return (
-          <div className="cer-placeholder">
-            <div className="cer-placeholder-icon"></div>
-            <div className="cer-placeholder-title">{currentSection.title}</div>
-            <div className="cer-placeholder-desc">{currentSection.description}</div>
+          <div className="rs-placeholder">
+            <div className="rs-placeholder-icon"></div>
+            <div className="rs-placeholder-title">{currentSection.title}</div>
+            <div className="rs-placeholder-desc">{currentSection.description}</div>
           </div>
         );
     }
   };
 
   return (
-    <div className="cer-container">
+    <div className="rs-container cer-shell">
       {/* Left sidebar with nav */}
-      <div className="cer-sidebar">
-        <nav className="cer-nav">
+      <div className="rs-sidebar">
+        <nav className="rs-nav">
           {TABS.map((tab) => {
             // Show status indicator for validation tab
             const showStatus = tab.id === "validation";
@@ -245,15 +245,15 @@ export default function CoherenceEngineRemote({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`cer-nav-button ${activeTab === tab.id ? "cer-nav-button-active" : "cer-nav-button-inactive"}`}
+                className={`rs-nav-button ${activeTab === tab.id ? "rs-nav-button-active" : "rs-nav-button-inactive"}`}
               >
-                <span className="cer-nav-button-content">
+                <span className="rs-nav-button-content">
                   <span>{tab.label}</span>
                   {showStatus && (
                     <span
-                      className="cer-status-dot"
+                      className="rs-status-dot"
                       // eslint-disable-next-line local/no-inline-styles -- dynamic color from validation status
-                      style={{ '--cer-status-color': statusColor, backgroundColor: 'var(--cer-status-color)' }}
+                      style={{ '--rs-status-color': statusColor, backgroundColor: 'var(--rs-status-color)' }}
                       title={(() => {
                         if (validationStatus.status === "clean") return "All validations passed";
                         const plural = validationStatus.totalIssues === 1 ? "" : "s";
@@ -269,8 +269,8 @@ export default function CoherenceEngineRemote({
       </div>
 
       {/* Main content area */}
-      <div className="cer-main">
-        <div className="cer-content">{renderContent()}</div>
+      <div className="rs-main">
+        <div className="rs-content">{renderContent()}</div>
       </div>
     </div>
   );

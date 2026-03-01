@@ -156,7 +156,7 @@ export default function HistorianEditionComparison({
             <select
               value={selectedIdx}
               onChange={(e) => setSelectedIdx(Number(e.target.value))}
-              className="illuminator-select hec-select"
+              className="illuminator-select ilu-compact-select hec-select"
             >
               {versions.map((v, i) => (
                 <option key={i} value={i}>
@@ -167,7 +167,7 @@ export default function HistorianEditionComparison({
             <select
               value={compareIdx}
               onChange={(e) => setCompareIdx(Number(e.target.value))}
-              className="illuminator-select hec-compare-select"
+              className="illuminator-select ilu-compact-select hec-compare-select"
               title="Select a version to diff against"
             >
               <option value={-1}>Compare to...</option>
@@ -183,13 +183,13 @@ export default function HistorianEditionComparison({
                 })}
             </select>
             {selected.isCurrent ? (
-              <span className="hec-active-badge">
+              <span className="ilu-active-badge">
                 Active
               </span>
             ) : (
               <button
                 onClick={() => onRestoreVersion(entityId, selected.historyIndex)}
-                className="hec-make-active-btn"
+                className="ilu-action-btn-sm hec-make-active-btn"
               >
                 Make Active
               </button>
@@ -208,7 +208,7 @@ export default function HistorianEditionComparison({
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                className="hec-export-btn"
+                className="ilu-action-btn-sm hec-export-btn"
                 title="Export pre-historian, legacy, and active versions as JSON"
               >
                 Export

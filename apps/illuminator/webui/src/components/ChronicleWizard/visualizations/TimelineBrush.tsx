@@ -173,7 +173,7 @@ export default function TimelineBrush({
       ref={svgRef}
       width={width}
       height={height}
-      className="tb-svg"
+      className="viz-svg tb-svg"
       style={{
         '--tb-cursor': getCursor(dragMode === "none" ? "create" : dragMode),
       } as React.CSSProperties}
@@ -204,7 +204,7 @@ export default function TimelineBrush({
             fill="rgba(99, 102, 241, 0.3)"
             stroke="var(--accent-color)"
             strokeWidth={1}
-            className="tb-grab"
+            className="viz-grab"
             onMouseDown={(e) => handleMouseDown(e, "move")}
           />
 
@@ -216,7 +216,7 @@ export default function TimelineBrush({
             height={24}
             rx={2}
             fill="var(--accent-color)"
-            className="tb-ew-resize"
+            className="viz-ew-resize"
             onMouseDown={(e) => handleMouseDown(e, "left")}
           />
 
@@ -228,7 +228,7 @@ export default function TimelineBrush({
             height={24}
             rx={2}
             fill="var(--accent-color)"
-            className="tb-ew-resize"
+            className="viz-ew-resize"
             onMouseDown={(e) => handleMouseDown(e, "right")}
           />
 
@@ -241,7 +241,7 @@ export default function TimelineBrush({
               fontSize="10"
               fontWeight="500"
               fill="var(--accent-color)"
-              className="tb-no-pointer"
+              className="viz-no-pointer"
             >
               {selection[0]} – {selection[1]}
             </text>
@@ -257,7 +257,7 @@ export default function TimelineBrush({
           textAnchor="middle"
           fontSize="11"
           fill="var(--text-muted)"
-          className="tb-no-pointer"
+          className="viz-no-pointer"
         >
           Drag to select time range
         </text>

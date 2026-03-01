@@ -270,7 +270,7 @@ export default function ResultsPanel({ tasks, entities = [], onRegenerateTask })
 
       {/* Selection actions */}
       {selectedEntities.size > 0 && (
-        <div className="rp-selection-bar">
+        <div className="ilu-selection-bar rp-selection-bar">
           <span className="rp-selection-count">
             {selectedEntities.size} entit{selectedEntities.size !== 1 ? "ies" : "y"} selected
           </span>

@@ -8,7 +8,7 @@
  * 3. Deprecated method definitions that should have been removed
  */
 
-module.exports = {
+export default {
   meta: {
     type: 'problem',
     docs: {
@@ -41,7 +41,8 @@ module.exports = {
         }
 
         // Check for @deprecated in comments - if present, method should be deleted
-        const comments = context.getCommentsBefore(node);
+        const sourceCode = context.sourceCode || context.getSourceCode();
+        const comments = sourceCode.getCommentsBefore(node);
         const hasDeprecated = comments.some(c => c.value.includes('@deprecated'));
         if (hasDeprecated) {
           context.report({

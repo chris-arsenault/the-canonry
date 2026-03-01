@@ -10,6 +10,7 @@
 
 import React, { useMemo } from "react";
 import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./ProgressPanel.css";
 export default function ProgressPanel({
   status,
@@ -51,7 +52,7 @@ export default function ProgressPanel({
           </div>
         </div>
 
-        {!hasRequiredKeys && isIdle && <div className="pp-key-warning">Set API keys in the sidebar to start enrichment</div>}
+        {!hasRequiredKeys && isIdle && <div className="ilu-warning-banner pp-key-warning">Set API keys in the sidebar to start enrichment</div>}
 
         {/* Progress bar */}
         <div className="pp-progress-section">
@@ -105,12 +106,12 @@ export default function ProgressPanel({
             <h2 className="illuminator-card-title pp-error-title">Errors ({errorTasks.length})</h2>
           </div>
           <div className="pp-error-list">
-            {errorTasks.map(task => <div key={task.id} className="pp-error-item">
-                <div className="pp-error-item-name">
-                  {task.entityName} - {task.type}
-                </div>
-                <div className="pp-error-item-message">{task.error || "Unknown error"}</div>
-              </div>)}
+            {errorTasks.map(task => <ErrorMessage
+                key={task.id}
+                title={`${task.entityName} - ${task.type}`}
+                message={task.error || "Unknown error"}
+                className="pp-error-item"
+              />)}
           </div>
         </div>}
 

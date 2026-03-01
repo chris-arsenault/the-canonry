@@ -1,5 +1,41 @@
 /* EntityRenameModal styles */
 
+/* Type badge color variants */
+.erm-type-badge-full {
+  background: #22c55e;
+}
+
+.erm-type-badge-partial {
+  background: #f59e0b;
+}
+
+.erm-type-badge-metadata {
+  background: #6366f1;
+}
+
+.erm-type-badge-id_slug {
+  background: #06b6d4;
+}
+
+.erm-type-badge-unknown {
+  background: #666;
+}
+
+/* FK badge uses id_slug color */
+.erm-fk-badge-colored {
+  background: #06b6d4;
+}
+
+/* Footer button disabled state */
+.erm-footer-btn-disabled {
+  opacity: 0.5;
+}
+
+/* Preview footer button disabled state */
+.erm-footer-btn-active {
+  opacity: 1;
+}
+
 /* MatchRow */
 .erm-match-row {
   padding: 6px 10px;
@@ -334,9 +370,8 @@
   cursor: pointer;
 }
 
+/* Compose with ilu-hint-sm from panel-utilities.css for font-size/color */
 .erm-help-text {
-  font-size: 11px;
-  color: var(--text-muted);
   line-height: 1.6;
 }
 
@@ -443,10 +478,8 @@
   font-size: 12px;
 }
 
-/* Done phase */
+/* Done phase — compose with ilu-hint from panel-utilities.css for font-size/color */
 .erm-done-subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
   margin-top: 8px;
 }
 

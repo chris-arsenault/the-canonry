@@ -16,11 +16,12 @@
 
 import React, { useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
-import SemanticPlaneEditor from "./components/SemanticPlane/index.jsx";
+import SemanticPlaneEditor from "./components/SemanticPlane/index.tsx";
 import CultureEditor from "./components/CultureEditor/index.jsx";
 import EntityEditor from "./components/EntityEditor/index.jsx";
 import RelationshipEditor from "./components/RelationshipEditor/index.jsx";
-import AxisRegistryEditor from "./components/AxisRegistry/index.jsx";
+import AxisRegistryEditor from "./components/AxisRegistry/index.tsx";
+import "@the-canonry/shared-components/styles";
 import "./CosmographerRemote.css";
 
 const TABS = [
@@ -93,9 +94,9 @@ export default function CosmographerRemote({
 
   if (!hasSchema) {
     return (
-      <div className="cosmo-container">
-        <div className="cosmo-no-schema">
-          <div className="cosmo-no-schema-title">No Schema Defined</div>
+      <div className="rs-container">
+        <div className="rs-no-data">
+          <div className="rs-no-data-title">No Schema Defined</div>
           <div>
             Define entity kinds and cultures in the <strong>Enumerist</strong> tab first, then
             return here to place entities and manage relationships.
@@ -144,15 +145,15 @@ export default function CosmographerRemote({
   };
 
   return (
-    <div className="cosmo-container">
+    <div className="rs-container">
       {/* Left sidebar with nav */}
-      <div className="cosmo-sidebar">
-        <nav className="cosmo-nav">
+      <div className="rs-sidebar">
+        <nav className="rs-nav">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`cosmo-nav-button ${activeTab === tab.id ? "cosmo-nav-button-active" : "cosmo-nav-button-inactive"}`}
+              className={`rs-nav-button ${activeTab === tab.id ? "rs-nav-button-active" : "rs-nav-button-inactive"}`}
             >
               {tab.label}
             </button>
@@ -161,8 +162,8 @@ export default function CosmographerRemote({
       </div>
 
       {/* Main content area */}
-      <div className="cosmo-main">
-        <div className="cosmo-content">{renderContent()}</div>
+      <div className="rs-main">
+        <div className="rs-content">{renderContent()}</div>
       </div>
     </div>
   );

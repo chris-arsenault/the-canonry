@@ -4,7 +4,28 @@ import type {
   SectionGoalCheck,
   CohesionIssue,
   ChroniclePlan,
-} from "../chronicleTypes";
+} from "../../chronicleTypes";
+
+/**
+ * Shape we expect from the LLM's JSON validation response.
+ * All fields are optional/unknown because we normalise defensively.
+ */
+interface RawValidationResponse {
+  overallScore?: unknown;
+  checks?: {
+    plotStructure?: unknown;
+    entityConsistency?: unknown;
+    sectionGoals?: unknown;
+    resolution?: unknown;
+    factualAccuracy?: unknown;
+    themeExpression?: unknown;
+  };
+  issues?: unknown[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 export function parseValidationResponse(response: string, plan: ChroniclePlan): CohesionReport {
   let jsonStr = response;
@@ -14,19 +35,21 @@ export function parseValidationResponse(response: string, plan: ChroniclePlan): 
     jsonStr = jsonMatch[1];
   }
 
-  const parsed = JSON.parse(jsonStr.trim());
+  const raw = JSON.parse(jsonStr.trim()) as unknown;
+  const parsed: RawValidationResponse = isRecord(raw) ? raw : {};
+  const checks = isRecord(parsed.checks) ? parsed.checks : {};
 
   const report: CohesionReport = {
     overallScore: typeof parsed.overallScore === "number" ? parsed.overallScore : 50,
     checks: {
-      plotStructure: normalizeCheck(parsed.checks?.plotStructure),
-      entityConsistency: normalizeCheck(parsed.checks?.entityConsistency),
-      sectionGoals: normalizeSectionGoals(parsed.checks?.sectionGoals, plan.sections),
-      resolution: normalizeCheck(parsed.checks?.resolution),
-      factualAccuracy: normalizeCheck(parsed.checks?.factualAccuracy),
-      themeExpression: normalizeCheck(parsed.checks?.themeExpression),
+      plotStructure: normalizeCheck(checks.plotStructure),
+      entityConsistency: normalizeCheck(checks.entityConsistency),
+      sectionGoals: normalizeSectionGoals(checks.sectionGoals, plan.sections),
+      resolution: normalizeCheck(checks.resolution),
+      factualAccuracy: normalizeCheck(checks.factualAccuracy),
+      themeExpression: normalizeCheck(checks.themeExpression),
     },
-    issues: (parsed.issues || []).map(normalizeIssue),
+    issues: (Array.isArray(parsed.issues) ? parsed.issues : []).map(normalizeIssue),
     generatedAt: Date.now(),
   };
 
@@ -34,13 +57,12 @@ export function parseValidationResponse(response: string, plan: ChroniclePlan): 
 }
 
 function normalizeCheck(check: unknown): CohesionCheck {
-  if (!check || typeof check !== "object") {
+  if (!isRecord(check)) {
     return { pass: false, notes: "Not evaluated" };
   }
-  const obj = check as Record<string, unknown>;
   return {
-    pass: Boolean(obj.pass),
-    notes: String(obj.notes || ""),
+    pass: Boolean(check.pass),
+    notes: typeof check.notes === "string" ? check.notes : "",
   };
 }
 
@@ -54,20 +76,19 @@ function normalizeSectionGoals(goals: unknown, sections: { id: string }[]): Sect
   }
 
   return goals.map((g: unknown) => {
-    if (!g || typeof g !== "object") {
+    if (!isRecord(g)) {
       return { sectionId: "unknown", pass: false, notes: "Invalid" };
     }
-    const obj = g as Record<string, unknown>;
     return {
-      sectionId: String(obj.sectionId || "unknown"),
-      pass: Boolean(obj.pass),
-      notes: String(obj.notes || ""),
+      sectionId: typeof g.sectionId === "string" ? g.sectionId : "unknown",
+      pass: Boolean(g.pass),
+      notes: typeof g.notes === "string" ? g.notes : "",
     };
   });
 }
 
 function normalizeIssue(issue: unknown): CohesionIssue {
-  if (!issue || typeof issue !== "object") {
+  if (!isRecord(issue)) {
     return {
       severity: "minor",
       checkType: "unknown",
@@ -75,12 +96,11 @@ function normalizeIssue(issue: unknown): CohesionIssue {
       suggestion: "",
     };
   }
-  const obj = issue as Record<string, unknown>;
   return {
-    severity: obj.severity === "critical" ? "critical" : "minor",
-    sectionId: obj.sectionId ? String(obj.sectionId) : undefined,
-    checkType: String(obj.checkType || "unknown"),
-    description: String(obj.description || ""),
-    suggestion: String(obj.suggestion || ""),
+    severity: issue.severity === "critical" ? "critical" : "minor",
+    sectionId: typeof issue.sectionId === "string" ? issue.sectionId : undefined,
+    checkType: typeof issue.checkType === "string" ? issue.checkType : "unknown",
+    description: typeof issue.description === "string" ? issue.description : "",
+    suggestion: typeof issue.suggestion === "string" ? issue.suggestion : "",
   };
 }

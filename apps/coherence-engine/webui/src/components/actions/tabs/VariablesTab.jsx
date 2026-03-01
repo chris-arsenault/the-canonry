@@ -5,7 +5,6 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import VariableSelectionEditor from "../../shared/VariableSelectionEditor";
-import "./VariablesTab.css";
 
 /**
  * Safely display a value that should be a string.
@@ -60,7 +59,7 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
           <div className="item-card-title">
             <span className="variable-ref">{name}</span>
             {isRequired && (
-              <span className="badge badge-warning avt-required-badge">
+              <span className="badge badge-warning tab-required-badge">
                 Required
               </span>
             )}
@@ -92,7 +91,7 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
         <div className="item-card-body">
           {/* Required checkbox */}
           <div className="mb-xl">
-            <label className="avt-checkbox-label">
+            <label className="tab-checkbox-label">
               <input
                 type="checkbox"
                 checked={isRequired}
@@ -101,7 +100,7 @@ function VariableCard({ name, config, onChange, onRemove, schema, availableRefs 
               <span className="label mb-0">
                 Required
               </span>
-              <span className="text-muted avt-required-hint">
+              <span className="text-muted tab-required-hint">
                 (Action won&apos;t execute unless this variable resolves)
               </span>
             </label>

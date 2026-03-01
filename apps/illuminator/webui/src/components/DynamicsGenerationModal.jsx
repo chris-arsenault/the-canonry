@@ -10,6 +10,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./DynamicsGenerationModal.css";
 
 // ============================================================================
@@ -162,7 +163,7 @@ export default function DynamicsGenerationModal({
 
           {isGenerating && <div className="dgm-generating">Generating...</div>}
 
-          {isFailed && <div className="dgm-failed">{run.error || "Generation failed"}</div>}
+          {isFailed && <ErrorMessage message={run.error || "Generation failed"} className="dgm-failed" />}
 
           {/* Proposed dynamics inside scrollable area */}
           {isReviewable && run.proposedDynamics && (

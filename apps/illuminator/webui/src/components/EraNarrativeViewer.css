@@ -9,7 +9,6 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: var(--text-muted);
 }
 
 /* =========================================================================
@@ -18,12 +17,10 @@
 
 .era-narrative-ref-thumb-loading {
   font-size: 10px;
-  color: var(--text-muted);
 }
 
 .era-narrative-ref-thumb-empty {
   font-size: 16px;
-  color: var(--text-muted);
 }
 
 .era-narrative-ref-thumb-img {
@@ -87,10 +84,7 @@
   font-weight: 500;
 }
 
-.era-narrative-word-count {
-  font-size: 12px;
-  color: var(--text-muted);
-}
+/* word-count composes ilu-hint — only component-specific overrides here */
 
 .era-narrative-export-btn {
   background: none;
@@ -98,7 +92,6 @@
   border-radius: 4px;
   padding: 3px 10px;
   font-size: 11px;
-  color: var(--text-muted);
   cursor: pointer;
 }
 
@@ -115,20 +108,10 @@
 }
 
 .era-narrative-version-select {
-  width: auto;
   min-width: 240px;
-  font-size: 12px;
-  padding: 4px 6px;
 }
 
-.era-narrative-active-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  background: rgb(16 185 129 / 15%);
-  color: #10b981;
-  border-radius: 999px;
-  font-weight: 500;
-}
+/* active-badge: compose ilu-active-badge in JSX — no local redeclaration */
 
 .era-narrative-make-active-btn {
   padding: 2px 8px;
@@ -225,20 +208,16 @@
 .era-narrative-prose-empty {
   padding: 24px;
   text-align: center;
-  color: var(--text-muted);
   margin-bottom: 20px;
 }
 
 /* =========================================================================
-   Cover image section
+   Cover image section — composes ilu-section in JSX
    ========================================================================= */
 
 .era-narrative-cover-section {
   margin-bottom: 16px;
   padding: 12px 14px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
 }
 
 /* =========================================================================
@@ -249,14 +228,12 @@
   margin-bottom: 16px;
 }
 
+/* image-refs-empty composes ilu-section in JSX */
 .era-narrative-image-refs-empty {
-  padding: 12px 14px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 12px 14px;
 }
 
 .era-narrative-image-refs-title {
@@ -264,28 +241,17 @@
   font-weight: 500;
 }
 
-.era-narrative-image-refs-desc {
-  font-size: 12px;
-  color: var(--text-muted);
-}
+/* image-refs-desc composes ilu-hint in JSX */
 
+/* generate-btn composes ilu-action-btn in JSX */
 .era-narrative-generate-btn {
-  padding: 8px 14px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 12px;
   height: 32px;
   white-space: nowrap;
 }
 
 /* Chronicle ref images heading */
 .era-narrative-chronicle-refs-heading {
-  font-size: 12px;
   font-weight: 500;
-  color: var(--text-muted);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -344,9 +310,8 @@
   font-weight: 500;
 }
 
+/* chronicle-ref-anchor composes ilu-hint-sm in JSX */
 .era-narrative-chronicle-ref-anchor {
-  font-size: 11px;
-  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -358,7 +323,6 @@
 
 .era-narrative-chronicle-ref-size {
   font-size: 10px;
-  color: var(--text-muted);
   white-space: nowrap;
   align-self: center;
 }
@@ -367,21 +331,11 @@
   margin-bottom: 12px;
 }
 
-/* Regenerate button */
+/* Regenerate button — composes ilu-action-btn-sm in JSX */
 .era-narrative-regen-row {
   margin-top: 8px;
   display: flex;
   justify-content: flex-end;
-}
-
-.era-narrative-regen-btn {
-  padding: 6px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 11px;
 }
 
 /* =========================================================================
@@ -412,7 +366,6 @@
 
 .era-narrative-collapsible-chevron {
   font-size: 11px;
-  color: var(--text-muted);
 }
 
 /* =========================================================================
@@ -430,7 +383,6 @@
   font-size: 12px;
   font-weight: 600;
   margin-bottom: 4px;
-  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -479,8 +431,6 @@
 }
 
 .era-narrative-thread-desc {
-  font-size: 12px;
-  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -492,14 +442,10 @@
 }
 
 .era-narrative-thread-actors {
-  font-size: 11px;
-  color: var(--text-muted);
   margin-top: 4px;
 }
 
 .era-narrative-thread-material-summary {
-  font-size: 11px;
-  color: var(--text-muted);
   cursor: pointer;
 }
 
@@ -541,7 +487,6 @@
 
 .era-narrative-sd-actors {
   font-weight: 400;
-  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -574,8 +519,6 @@
 }
 
 .era-narrative-quote-origin {
-  font-size: 11px;
-  color: var(--text-muted);
   margin-top: 4px;
 }
 
@@ -604,12 +547,7 @@
   font-weight: 500;
 }
 
-.era-narrative-movement-years {
-  color: var(--text-muted);
-}
-
 .era-narrative-movement-focus {
-  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -633,8 +571,6 @@
 }
 
 .era-narrative-image-label {
-  font-size: 11px;
-  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
@@ -673,14 +609,7 @@
   font-weight: 500;
 }
 
-.era-narrative-brief-year {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
 .era-narrative-brief-prep {
-  font-size: 12px;
-  color: var(--text-muted);
   line-height: 1.5;
   white-space: pre-wrap;
   max-height: 120px;
@@ -696,8 +625,6 @@
   gap: 16px;
   align-items: center;
   padding: 8px 0;
-  font-size: 11px;
-  color: var(--text-muted);
   border-top: 1px solid var(--border-color);
   margin-top: auto;
 }

@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
 export default function StatusScreen({ status, error, bundleRequestUrl, onRetry, worldData }) {
   if (status === "loading") {
     return (
@@ -19,10 +20,10 @@ export default function StatusScreen({ status, error, bundleRequestUrl, onRetry,
       <div className="app">
         <div className="state-screen">
           <div className="state-card">
-            <div className="state-title state-error">Bundle unavailable</div>
-            <div className="state-detail">
-              {error?.message || "Failed to load the viewer bundle."}
-            </div>
+            <ErrorMessage
+              title="Bundle unavailable"
+              message={error?.message || "Failed to load the viewer bundle."}
+            />
             <div className="state-detail">Expected at: {bundleRequestUrl}</div>
             <div className="state-actions">
               <button className="button" onClick={onRetry} type="button">

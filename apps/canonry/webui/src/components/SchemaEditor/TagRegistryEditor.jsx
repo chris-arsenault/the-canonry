@@ -12,8 +12,9 @@ import {
   SectionHeader,
   EmptyState,
   NumberInput,
-} from "@penguin-tales/shared-components";
-import { ToolUsageBadges as UsageBadges } from "@penguin-tales/shared-components";
+} from "@the-canonry/shared-components";
+import { ToolUsageBadges as UsageBadges } from "@the-canonry/shared-components";
+import "./schema-editor-shared.css";
 import "./TagRegistryEditor.css";
 
 // Category colors (dynamic - keep as objects)
@@ -333,7 +334,7 @@ export default function TagRegistryEditor({
                       Category
                     </div>
                     <select
-                      className="input tre-select-compact"
+                      className="input se-select-compact"
                       value={tag.category}
                       onChange={(e) => updateTag(tag.tag, { category: e.target.value })}
                       disabled={isFramework}
@@ -350,7 +351,7 @@ export default function TagRegistryEditor({
                       Rarity
                     </div>
                     <select
-                      className="input tre-select-compact"
+                      className="input se-select-compact"
                       value={tag.rarity}
                       onChange={(e) => updateTag(tag.tag, { rarity: e.target.value })}
                       disabled={isFramework}
@@ -369,7 +370,7 @@ export default function TagRegistryEditor({
                         checked={tag.isAxis || false}
                         disabled={isFramework}
                         onChange={(e) => updateTag(tag.tag, { isAxis: e.target.checked })}
-                        className="tre-checkbox"
+                        className="se-checkbox-sm"
                       />
                       <span className="text-small">Axis</span>
                     </label>
@@ -445,7 +446,7 @@ export default function TagRegistryEditor({
                           return (
                             <div
                               key={ek.kind}
-                              className={`chip chip-clickable ${isSelected ? "chip-active" : ""} ${isFramework ? "tre-chip-framework" : "tre-chip-compact"}`}
+                              className={`chip chip-clickable ${isSelected ? "chip-active" : ""} ${isFramework ? "se-chip-framework" : "tre-chip-compact"}`}
                               onClick={() => handleEntityKindToggle(tag, ek, isFramework)}
                               role="button"
                               tabIndex={0}

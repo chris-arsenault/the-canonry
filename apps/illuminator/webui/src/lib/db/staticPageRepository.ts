@@ -3,12 +3,13 @@
  */
 
 import { db } from "./illuminatorDb";
+import { generatePrefixedId } from "./generatePrefixedId";
 import type { StaticPage, StaticPageStatus } from "../staticPageTypes";
 
 export type { StaticPage, StaticPageStatus };
 
 export function generatePageId(): string {
-  return `static_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+  return generatePrefixedId("static");
 }
 
 export function generateSlug(title: string): string {

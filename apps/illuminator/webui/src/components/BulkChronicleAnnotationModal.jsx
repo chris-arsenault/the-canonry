@@ -82,7 +82,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
                 auto-applied (no manual review step). Chronicles processed sequentially — one
                 LLM call each.
                 {withTones < progress.totalChronicles && (
-                  <span className="bcam-warning-text">
+                  <span className="ilu-status-warning">
                     {" "}
                     {progress.totalChronicles - withTones} chronicle
                     {progress.totalChronicles - withTones !== 1 ? "s" : ""} have no assigned
@@ -90,7 +90,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
                   </span>
                 )}
                 {withNotes > 0 && (
-                  <span className="bcam-warning-text">
+                  <span className="ilu-status-warning">
                     {" "}
                     {withNotes} chronicle{withNotes !== 1 ? "s" : ""} already have annotations —
                     they will be replaced.
@@ -109,7 +109,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
             <div className="bulk-item-list">
               {progress.chronicles.map((chron) => (
                 <div key={chron.chronicleId} className="bcam-chronicle-item">
-                  <span className="bcam-chronicle-title">{chron.title}</span>
+                  <span className="truncate flex-1">{chron.title}</span>
                   {!isClear && (
                     <span className="bcam-chronicle-tone">
                       {chron.assignedTone || "weary"}
@@ -138,7 +138,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
                 status={progress.status}
               />
 
-              <div className="bcam-progress-stats">
+              <div className="ilu-hint-sm bcam-progress-stats">
                 <span>
                   {progress.processedChronicles} / {progress.totalChronicles}{" "}
                   {isClear ? "cleared" : "annotated"}

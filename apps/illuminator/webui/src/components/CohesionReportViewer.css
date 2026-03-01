@@ -1,4 +1,5 @@
 /* CohesionReportViewer.css - Extracted from inline styles */
+/* Shared: panel-utilities.css provides .ilu-section, .ilu-container */
 
 /* ==========================================================================
    ScoreGauge
@@ -336,12 +337,9 @@
 }
 
 /* Refinements panel */
+/* Shared: compose with .ilu-section */
 .crv-refinements {
   margin-bottom: 24px;
-  padding: 16px;
-  background: var(--bg-secondary);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
 }
 
 .crv-refinements-title {
@@ -496,11 +494,9 @@
 }
 
 /* Checks tab */
+/* Shared: compose with .ilu-container */
 .crv-checks-panel {
-  background: var(--bg-secondary);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  overflow: hidden;
+  /* base: .ilu-container */
 }
 
 .crv-section-goals-header {

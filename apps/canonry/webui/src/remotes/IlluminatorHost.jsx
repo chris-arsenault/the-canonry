@@ -7,7 +7,7 @@
 
 import React, { Suspense, lazy } from "react";
 import PropTypes from "prop-types";
-import { ErrorBoundary } from "@penguin-tales/shared-components";
+import { ErrorBoundary } from "@the-canonry/shared-components";
 import RemotePlaceholder from "./RemotePlaceholder";
 import { colors, typography } from "../theme";
 

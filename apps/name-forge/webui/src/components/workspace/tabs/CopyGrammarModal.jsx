@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { ModalShell } from "@penguin-tales/shared-components";
+import { ModalShell } from "@the-canonry/shared-components";
 import { previewGrammarNames } from "../../../lib/browser-generator";
 
 const EMPTY_LEXEME_LISTS = Object.freeze({});

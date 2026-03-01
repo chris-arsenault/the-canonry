@@ -22,7 +22,7 @@ import ImageModal from "./ImageModal";
 import ImagePickerModal from "./ImagePickerModal";
 import EntityDetailView from "./EntityDetailView";
 import { ImageSettingsSummary } from "./ImageSettingsDrawer";
-import { useImageUrl } from "@penguin-tales/image-store";
+import { useImageUrl } from "@the-canonry/image-store";
 import { formatCost } from "../lib/costEstimation";
 import { prominenceLabelFromScale, prominenceThresholdFromScale } from "@canonry/world-schema";
 import "./EntityBrowser.css";
@@ -1559,7 +1559,7 @@ export default function EntityBrowser({
 
       {/* Selection actions - fixed */}
       {selectedIds.size > 0 && (
-        <div className="eb-selection-bar">
+        <div className="ilu-selection-bar eb-selection-bar">
           <span className="eb-selection-count">{selectedIds.size} selected</span>
           <button
             onClick={() => void queueSelectedDescriptions()}
@@ -1638,7 +1638,7 @@ export default function EntityBrowser({
           {/* Entity rows - scrollable container with progressive rendering */}
           <div ref={entityListRef} className="eb-list-scroll">
             {filteredNavItems.length === 0 ? (
-              <div className="eb-list-empty">No entities match the current filters.</div>
+              <div className="ilu-empty eb-list-empty">No entities match the current filters.</div>
             ) : (
               <>
                 {visibleNavItems.map((nav) => {
@@ -1689,7 +1689,7 @@ export default function EntityBrowser({
                   );
                 })}
                 {visibleCount < filteredNavItems.length && (
-                  <div className="eb-list-loading">
+                  <div className="ilu-empty eb-list-loading">
                     Loading more... ({visibleCount} of {filteredNavItems.length})
                   </div>
                 )}

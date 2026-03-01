@@ -1,3 +1,4 @@
+/* Shared panel utilities available: see panel-utilities.css in shared-components */
 /* RevisionFilterModal — rfm- prefix */
 /* Overlay, header, close button, scroll lock, and Escape are provided by ModalShell */
 
@@ -81,7 +82,5 @@
 }
 
 /* Footer button sizing (layout provided by modal-footer) */
-.rfm-footer-btn {
-  padding: 6px 16px;
-  font-size: 12px;
-}
+/* Shared: compose with .ilu-footer-btn — all base props removed */
+.rfm-footer-btn { }

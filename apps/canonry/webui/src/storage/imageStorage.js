@@ -5,7 +5,7 @@
  * Does NOT touch blobs.
  */
 
-import { openIlluminatorDb } from "../lib/illuminatorDbReader";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 const IMAGES_STORE_NAME = "images";
 

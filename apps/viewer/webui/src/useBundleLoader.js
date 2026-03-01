@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useImageStore, CDNBackend } from "@penguin-tales/image-store";
-import { useNarrativeStore } from "@penguin-tales/narrative-store";
+import { useImageStore, CDNBackend } from "@the-canonry/image-store";
+import { useNarrativeStore } from "@the-canonry/narrative-store";
 import { overwriteWorldDataInDexie } from "./lib/illuminatorDbWriter";
 import {
   resolveBundleUrl,

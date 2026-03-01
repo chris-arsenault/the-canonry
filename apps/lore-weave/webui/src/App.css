@@ -1236,6 +1236,23 @@
   gap: var(--lw-space-lg);
 }
 
+/* Dashboard section utilities (shared across dashboard panels) */
+
+.lw-section-spacer {
+  margin-top: 16px;
+}
+
+.lw-section-label {
+  font-size: 12px;
+  color: var(--lw-text-muted);
+  margin-bottom: 8px;
+}
+
+.lw-section-label-hint {
+  margin-left: 8px;
+  opacity: 0.6;
+}
+
 /* ========================================
    Modal Components
    ======================================== */

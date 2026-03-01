@@ -1,0 +1,27 @@
+/* Shared SVG visualization utilities for ChronicleWizard visualizations.
+ * Import this in any visualization component that renders an SVG canvas.
+ * See docs/patterns/visualization-base-css.md for usage guide.
+ */
+
+/* SVG container base — display:block removes inline-element whitespace gap */
+.viz-svg {
+  display: block;
+}
+
+/* Pointer-event suppression for overlay text / decorations */
+.viz-no-pointer {
+  pointer-events: none;
+}
+
+/* Cursor utilities */
+.viz-cursor-pointer {
+  cursor: pointer;
+}
+
+.viz-grab {
+  cursor: grab;
+}
+
+.viz-ew-resize {
+  cursor: ew-resize;
+}

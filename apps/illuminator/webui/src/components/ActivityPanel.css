@@ -1,3 +1,4 @@
+/* Shared panel utilities available: see panel-utilities.css in shared-components */
 /* ActivityPanel — prefix: ap- */
 
 /* TaskRow */
@@ -85,6 +86,7 @@
   padding: 0;
 }
 
+/* Shared: similar to .ilu-container-header but padding is 12px not 12px 16px */
 .ap-section-header {
   padding: 12px;
   border-bottom: 1px solid var(--border-color);
@@ -114,6 +116,7 @@
 }
 
 /* Empty state */
+/* Shared: similar to .ilu-empty but padding is 40px not 24px */
 .ap-empty-state {
   text-align: center;
   padding: 40px;

@@ -1,4 +1,8 @@
-/* ChronicleVersionSelector.css -- co-located styles for ChronicleVersionSelector.jsx */
+/* ChronicleVersionSelector.css -- co-located styles for ChronicleVersionSelector.jsx
+ * Base button styles: ilu-action-btn-sm (panel-utilities.css)
+ * Base badge styles:  ilu-active-badge  (panel-utilities.css)
+ * Base select styles: ilu-compact-select (panel-utilities.css)
+ */
 
 .cvs-container {
   display: flex;
@@ -7,61 +11,22 @@
   flex-wrap: wrap;
 }
 
+/* Compose with: ilu-compact-select */
 .cvs-select-version {
-  width: auto;
   min-width: 240px;
-  font-size: 12px;
-  padding: 4px 6px;
 }
 
+/* Compose with: ilu-compact-select */
 .cvs-select-compare {
-  width: auto;
   min-width: 160px;
-  font-size: 12px;
-  padding: 4px 6px;
 }
 
-.cvs-active-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  background: rgb(16 185 129 / 15%);
-  color: #10b981;
-  border-radius: 999px;
-  font-weight: 500;
-}
-
-.cvs-btn-make-active {
-  padding: 6px 12px;
-  font-size: 11px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.cvs-btn-make-active:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
+/* Compose with: ilu-action-btn-sm — adds transition for confirm animation */
 .cvs-btn-delete {
-  padding: 6px 12px;
-  font-size: 11px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-muted);
-  cursor: pointer;
   transition:
     background 0.15s,
     color 0.15s,
     border-color 0.15s;
-}
-
-.cvs-btn-delete:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
 }
 
 .cvs-btn-delete-confirming {

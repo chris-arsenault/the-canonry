@@ -8,7 +8,7 @@
 
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-import { ModalShell } from "@penguin-tales/shared-components";
+import { ModalShell } from "@the-canonry/shared-components";
 import "./RevisionFilterModal.css";
 
 export default function RevisionFilterModal({
@@ -28,14 +28,14 @@ export default function RevisionFilterModal({
     <>
       <button
         onClick={onCancel}
-        className="illuminator-button illuminator-button-secondary rfm-footer-btn"
+        className="illuminator-button illuminator-button-secondary ilu-footer-btn rfm-footer-btn"
       >
         Cancel
       </button>
       <button
         onClick={() => onStart(excludeChronicle)}
         disabled={available === 0}
-        className="illuminator-button illuminator-button-primary rfm-footer-btn"
+        className="illuminator-button illuminator-button-primary ilu-footer-btn rfm-footer-btn"
       >
         Start Revision ({available} entities)
       </button>

@@ -1,4 +1,4 @@
-import type { ChroniclePlan, ChronicleGenerationContext, CohesionReport } from "../chronicleTypes";
+import type { ChroniclePlan, ChronicleGenerationContext, CohesionReport } from "../../chronicleTypes";
 
 function formatTags(tags?: Record<string, string>): string {
   if (!tags || Object.keys(tags).length === 0) return "(none)";

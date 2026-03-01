@@ -10,9 +10,11 @@ export {
   buildV2Prompt,
   getMaxTokensFromStyle,
   getV2SystemPrompt,
+} from "./promptBuilder";
+export {
   buildCreativeStoryPrompt,
   getCreativeSystemPrompt,
-} from "./promptBuilder";
+} from "./creativePrompt";
 export {
   DEFAULT_V2_CONFIG,
   type V2SelectionConfig,
@@ -20,7 +22,7 @@ export {
   type V2GenerationResult,
 } from "./types";
 
-import type { EntityContext } from "../chronicleTypes";
+import type { EntityContext } from "../../chronicleTypes";
 
 /**
  * Escape special regex characters in a string.
@@ -68,7 +70,7 @@ export function applyWikilinks(content: string, entities: EntityContext[]): stri
   const combinedPattern = new RegExp(`(${patterns.join("|")})`, "gi");
 
   // Single pass replacement - check each match to see if already linked
-  return content.replace(combinedPattern, (match, _group, offset) => {
+  return content.replace(combinedPattern, (match: string, _group: string, offset: number) => {
     // Check if this position is already inside a wikilink
     if (isInsideWikilink(content, offset)) {
       return match;
