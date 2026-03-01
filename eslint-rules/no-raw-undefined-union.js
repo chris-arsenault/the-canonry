@@ -35,13 +35,14 @@ export default {
         ) {
           return true;
         }
-        // Stop climbing at function or type boundaries that aren't property sigs
+        // Stop climbing at function, generic, or type boundaries that aren't property sigs
         if (
           current.type === 'TSFunctionType' ||
           current.type === 'TSMethodSignature' ||
           current.type === 'FunctionDeclaration' ||
           current.type === 'ArrowFunctionExpression' ||
-          current.type === 'TSTypeAliasDeclaration' && current.parent?.type !== 'TSPropertySignature'
+          current.type === 'TSTypeParameterInstantiation' ||
+          current.type === 'TSTypeAliasDeclaration'
         ) {
           return false;
         }
