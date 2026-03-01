@@ -40,6 +40,7 @@ import noEscapeHatches from "./eslint-rules/no-escape-hatches.js";
 import noManualAsyncState from "./eslint-rules/no-manual-async-state.js";
 import noManualExpandState from "./eslint-rules/no-manual-expand-state.js";
 import noManualViewHeader from "./eslint-rules/no-manual-view-header.js";
+import noRawUndefinedUnion from "./eslint-rules/no-raw-undefined-union.js";
 
 const localPlugin = {
   rules: {
@@ -75,6 +76,7 @@ const localPlugin = {
     "no-manual-async-state": noManualAsyncState,
     "no-manual-expand-state": noManualExpandState,
     "no-manual-view-header": noManualViewHeader,
+    "no-raw-undefined-union": noRawUndefinedUnion,
   },
 };
 
@@ -163,6 +165,7 @@ export default tseslint.config(
       "local/no-inline-keyboard-nav": "warn",
       "local/no-non-vitest-testing": "warn",
       "local/no-js-file-extension": "warn",
+      "local/no-raw-undefined-union": "warn",
     },
   },
 
@@ -242,6 +245,7 @@ export default tseslint.config(
       "local/no-manual-async-state": "warn",
       "local/no-manual-expand-state": "warn",
       "local/no-manual-view-header": "warn",
+      "local/no-raw-undefined-union": "warn",
       "no-restricted-imports": ["warn", {
         paths: [{
           name: "prop-types",
