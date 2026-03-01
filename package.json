@@ -37,7 +37,8 @@
     "install:canonry": "pnpm install",
     "deploy:canonry": "bash infrastructure/terraform/deploy.sh",
     "deploy:viewer": "bash infrastructure/terraform-viewer/deploy.sh",
-    "deploy:all": "pnpm run deploy:canonry && pnpm run deploy:viewer"
+    "deploy:all": "pnpm run deploy:canonry && pnpm run deploy:viewer",
+    "audit:optionality": "tsx scripts/audit-optional-properties.ts"
   },
   "keywords": [
     "procedural-generation",
@@ -65,6 +66,8 @@
     "prettier": "^3.8.1",
     "stylelint": "^16.26.1",
     "stylelint-config-standard": "^39.0.1",
+    "ts-morph": "^27.0.2",
+    "tsx": "^4.21.0",
     "turbo": "^2.5.0",
     "typescript-eslint": "^8.55.0"
   },
