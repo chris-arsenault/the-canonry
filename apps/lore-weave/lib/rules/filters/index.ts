@@ -12,6 +12,61 @@ import { EntityResolver } from '../resolver';
 import { evaluateGraphPath, GraphPathOptions } from '../graphPath';
 import { prominenceThreshold } from '../types';
 
+type RelLink = { kind: string; strength?: number; src: string; dst: string };
+
+/** Build an undirected adjacency map from matching relationship links. */
+function buildRelationshipAdjacency(
+  rels: RelLink[],
+  relationshipKinds: string[],
+  minStrength: number
+): Map<string, Set<string>> {
+  const adjacency = new Map<string, Set<string>>();
+  for (const link of rels) {
+    if (!relationshipKinds.includes(link.kind)) continue;
+    if ((link.strength ?? 0) < minStrength) continue;
+    if (!adjacency.has(link.src)) adjacency.set(link.src, new Set());
+    if (!adjacency.has(link.dst)) adjacency.set(link.dst, new Set());
+    adjacency.get(link.src)!.add(link.dst);
+    adjacency.get(link.dst)!.add(link.src);
+  }
+  return adjacency;
+}
+
+/** Count connected-component size via BFS from startId. */
+function computeComponentSize(adjacency: Map<string, Set<string>>, startId: string): number {
+  const visited = new Set<string>([startId]);
+  const stack = [startId];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    const neighbors = adjacency.get(current);
+    if (neighbors) {
+      for (const neighborId of neighbors) {
+        if (!visited.has(neighborId)) {
+          visited.add(neighborId);
+          stack.push(neighborId);
+        }
+      }
+    }
+  }
+  return visited.size;
+}
+
+/** Check if a relationship link matches direction and optional withEntity constraints. */
+function linkMatchesConstraints(
+  link: RelLink,
+  entityId: string,
+  direction?: string,
+  withEntityId?: string
+): boolean {
+  if (direction === 'src' && link.src !== entityId) return false;
+  if (direction === 'dst' && link.dst !== entityId) return false;
+  if (withEntityId !== undefined) {
+    const otherId = link.src === entityId ? link.dst : link.src;
+    return otherId === withEntityId;
+  }
+  return true;
+}
+
 function resolveGraphPathOptions(graphPathOptions?: GraphPathOptions): GraphPathOptions {
   if (graphPathOptions?.filterEvaluator) {
     return graphPathOptions;
@@ -69,15 +124,9 @@ export function applySelectionFilter(
       const withEntity = filter.with ? resolver.resolveEntity(filter.with) : undefined;
       return entities.filter(entity => {
         const relationships = graphView.getRelationships(entity.id, filter.kind);
-        return relationships.some(link => {
-          if (filter.direction === 'src' && link.src !== entity.id) return false;
-          if (filter.direction === 'dst' && link.dst !== entity.id) return false;
-          if (withEntity) {
-            const otherId = link.src === entity.id ? link.dst : link.src;
-            return otherId === withEntity.id;
-          }
-          return true;
-        });
+        return relationships.some(link =>
+          linkMatchesConstraints(link, entity.id, filter.direction, withEntity?.id)
+        );
       });
     }
 
@@ -86,14 +135,9 @@ export function applySelectionFilter(
       const withEntity = filter.with ? resolver.resolveEntity(filter.with) : undefined;
       return entities.filter(entity => {
         const relationships = graphView.getRelationships(entity.id, filter.kind);
-        const hasRel = relationships.some(link => {
-          if (withEntity) {
-            const otherId = link.src === entity.id ? link.dst : link.src;
-            return otherId === withEntity.id;
-          }
-          return true;
-        });
-        return !hasRel;
+        return !relationships.some(link =>
+          linkMatchesConstraints(link, entity.id, undefined, withEntity?.id)
+        );
       });
     }
 
@@ -192,41 +236,13 @@ export function applySelectionFilter(
 
     case 'component_size': {
       const graphView = resolver.getGraphView();
-      const rels = graphView.getAllRelationships();
-      const minStrength = filter.minStrength ?? 0;
-
-      // Build adjacency index for the specified relationship kinds
-      const adjacency = new Map<string, Set<string>>();
-      for (const link of rels) {
-        if (!filter.relationshipKinds.includes(link.kind)) continue;
-        if ((link.strength ?? 0) < minStrength) continue;
-
-        // Bidirectional edges (undirected graph)
-        if (!adjacency.has(link.src)) adjacency.set(link.src, new Set());
-        if (!adjacency.has(link.dst)) adjacency.set(link.dst, new Set());
-        adjacency.get(link.src)!.add(link.dst);
-        adjacency.get(link.dst)!.add(link.src);
-      }
-
+      const adjacency = buildRelationshipAdjacency(
+        graphView.getAllRelationships(),
+        filter.relationshipKinds,
+        filter.minStrength ?? 0
+      );
       return entities.filter(entity => {
-        // DFS to find component size
-        const visited = new Set<string>([entity.id]);
-        const stack = [entity.id];
-
-        while (stack.length > 0) {
-          const current = stack.pop()!;
-          const neighbors = adjacency.get(current);
-          if (neighbors) {
-            for (const neighborId of neighbors) {
-              if (!visited.has(neighborId)) {
-                visited.add(neighborId);
-                stack.push(neighborId);
-              }
-            }
-          }
-        }
-
-        const componentSize = visited.size;
+        const componentSize = computeComponentSize(adjacency, entity.id);
         const minOk = filter.min === undefined || componentSize >= filter.min;
         const maxOk = filter.max === undefined || componentSize <= filter.max;
         return minOk && maxOk;

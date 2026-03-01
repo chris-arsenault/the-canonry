@@ -18,9 +18,9 @@ interface ToolBadgeConfig {
 }
 
 interface ToolUsageBadgesProps {
-  usage?: Record<string, number>;
-  compact?: boolean;
-  showZero?: boolean;
+  readonly usage?: Record<string, number>;
+  readonly compact?: boolean;
+  readonly showZero?: boolean;
 }
 
 // Badge configurations for different tool types

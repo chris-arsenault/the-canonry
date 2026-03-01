@@ -10,9 +10,9 @@ interface Era {
 }
 
 interface EraBadgesProps {
-  eras?: Era[];
-  maxVisible?: number;
-  className?: string;
+  readonly eras?: Era[];
+  readonly maxVisible?: number;
+  readonly className?: string;
 }
 
 const ERA_ICON = '🕰️';

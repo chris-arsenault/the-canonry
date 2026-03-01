@@ -5,17 +5,17 @@
 import React from 'react';
 
 interface CategorySectionProps {
-  id?: string;
-  icon?: string;
-  label: string;
-  items: unknown[];
-  expanded: boolean;
-  onToggleExpand: (e?: React.MouseEvent | React.KeyboardEvent) => void;
-  allEnabled?: boolean;
-  onToggleAll?: () => void;
-  renderItem: (item: unknown, index: number) => React.ReactNode;
-  gridClassName?: string;
-  className?: string;
+  readonly id?: string;
+  readonly icon?: string;
+  readonly label: string;
+  readonly items: unknown[];
+  readonly expanded: boolean;
+  readonly onToggleExpand: (e?: React.MouseEvent | React.KeyboardEvent) => void;
+  readonly allEnabled?: boolean;
+  readonly onToggleAll?: () => void;
+  readonly renderItem: (item: unknown, index: number) => React.ReactNode;
+  readonly gridClassName?: string;
+  readonly className?: string;
 }
 
 /**

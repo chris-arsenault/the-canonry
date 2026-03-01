@@ -41,67 +41,48 @@ function safeDisplay(value, fallback = "?", label = "value") {
 // findMatchingNamingProfile - Helper for naming profile matching
 // ============================================================================
 
+/** Check if a group's conditions match the given entity attributes */
+function groupConditionsMatch(cond, entityKind, subtype, prominence, tags) {
+  if (cond.entityKinds?.length > 0 && !cond.entityKinds.includes(entityKind)) return false;
+  if (cond.subtypes?.length > 0 && (!subtype || !cond.subtypes.includes(subtype))) return false;
+  if (cond.prominence?.length > 0 && !cond.prominence.includes(prominence)) return false;
+  if (cond.tags?.length > 0) {
+    const entityTags = Object.keys(tags || {});
+    if (cond.tagMatchAll && !cond.tags.every((t) => entityTags.includes(t))) return false;
+    if (!cond.tagMatchAll && !cond.tags.some((t) => entityTags.includes(t))) return false;
+  }
+  return true;
+}
+
+/** Check if a strategy group has no meaningful conditions (i.e., is a default catch-all) */
+function isDefaultGroup(group) {
+  if (!group.conditions) return true;
+  return Object.keys(group.conditions).every((k) => {
+    const val = group.conditions[k];
+    return !val || (Array.isArray(val) && val.length === 0);
+  });
+}
+
 /**
  * Find which naming profile matches a creation entry's conditions
  */
 function findMatchingNamingProfile(culture, entityKind, subtype, prominence, tags = {}) {
-  if (!culture) return null;
+  if (!culture?.naming?.profiles) return null;
+  const { profiles } = culture.naming;
 
-  const naming = culture.naming;
-  if (!naming?.profiles) return null;
-
-  for (const profile of naming.profiles) {
+  for (const profile of profiles) {
     for (const group of profile.strategyGroups || []) {
-      const cond = group.conditions || {};
-
-      // Check entity kind
-      if (cond.entityKinds?.length > 0 && !cond.entityKinds.includes(entityKind)) {
-        continue;
+      if (groupConditionsMatch(group.conditions || {}, entityKind, subtype, prominence, tags)) {
+        return { profileId: profile.id, groupName: group.name };
       }
-
-      // Check subtype
-      if (cond.subtypes?.length > 0) {
-        if (!subtype || !cond.subtypes.includes(subtype)) continue;
-      }
-
-      // Check prominence
-      if (cond.prominence?.length > 0 && !cond.prominence.includes(prominence)) {
-        continue;
-      }
-
-      // Check tags
-      if (cond.tags?.length > 0) {
-        const entityTags = Object.keys(tags || {});
-        if (cond.tagMatchAll) {
-          if (!cond.tags.every((t) => entityTags.includes(t))) continue;
-        } else {
-          if (!cond.tags.some((t) => entityTags.includes(t))) continue;
-        }
-      }
-
-      // Found a match!
-      return {
-        profileId: profile.id,
-        groupName: group.name,
-      };
     }
   }
 
   // No conditional group matched - check for default (no conditions)
-  for (const profile of naming.profiles) {
+  for (const profile of profiles) {
     for (const group of profile.strategyGroups || []) {
-      if (
-        !group.conditions ||
-        Object.keys(group.conditions).every((k) => {
-          const val = group.conditions[k];
-          return !val || (Array.isArray(val) && val.length === 0);
-        })
-      ) {
-        return {
-          profileId: profile.id,
-          groupName: group.name || "Default",
-          isDefault: true,
-        };
+      if (isDefaultGroup(group)) {
+        return { profileId: profile.id, groupName: group.name || "Default", isDefault: true };
       }
     }
   }

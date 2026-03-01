@@ -6,11 +6,12 @@ import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { NumberInput, ErrorMessage } from "@the-canonry/shared-components";
 import { generateTestNames } from "../../../../../lib/browser-generator.js";
+import { useAsyncAction } from "../../../../../hooks/useAsyncAction";
 
 export default function TestTab({ profile, cultureConfig }) {
   const [testNames, setTestNames] = useState([]);
   const [testLoading, setTestLoading] = useState(false);
-  const [testError, setTestError] = useState(null);
+  const { error: testError, setError: setTestError } = useAsyncAction();
   const [strategyUsage, setStrategyUsage] = useState(null);
   const [count, setCount] = useState(10);
 

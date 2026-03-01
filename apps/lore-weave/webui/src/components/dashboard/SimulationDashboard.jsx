@@ -12,6 +12,26 @@ import FinalDiagnostics from "./FinalDiagnostics";
 import LogStream from "./LogStream";
 
 /**
+ * Accumulate feedback items from one tick into the running feedback sum map.
+ */
+function aggregateFeedbackByLabel(feedbackSum, feedbackItems) {
+  for (const f of feedbackItems) {
+    const current = feedbackSum.get(f.label) || {
+      label: f.label,
+      type: f.type,
+      totalRawValue: 0,
+      coefficient: f.coefficient,
+      totalContribution: 0,
+      ticksSeen: 0,
+    };
+    current.totalRawValue += f.rawValue;
+    current.totalContribution += f.contribution;
+    current.ticksSeen++;
+    feedbackSum.set(f.label, current);
+  }
+}
+
+/**
  * Aggregate all pressure updates for the current epoch into a single summary.
  * This combines per-tick feedback contributions, discrete modifications, etc.
  */
@@ -70,37 +90,9 @@ function aggregatePressureUpdates(pressureUpdates, currentEpochNumber) {
       agg.totalSmoothedDelta += p.breakdown.smoothedDelta;
       agg.homeostasis = p.breakdown.homeostasis;
 
-      // Aggregate positive feedback by label
-      for (const f of p.breakdown.positiveFeedback) {
-        const current = agg.positiveFeedbackSum.get(f.label) || {
-          label: f.label,
-          type: f.type,
-          totalRawValue: 0,
-          coefficient: f.coefficient,
-          totalContribution: 0,
-          ticksSeen: 0,
-        };
-        current.totalRawValue += f.rawValue;
-        current.totalContribution += f.contribution;
-        current.ticksSeen++;
-        agg.positiveFeedbackSum.set(f.label, current);
-      }
-
-      // Aggregate negative feedback by label
-      for (const f of p.breakdown.negativeFeedback) {
-        const current = agg.negativeFeedbackSum.get(f.label) || {
-          label: f.label,
-          type: f.type,
-          totalRawValue: 0,
-          coefficient: f.coefficient,
-          totalContribution: 0,
-          ticksSeen: 0,
-        };
-        current.totalRawValue += f.rawValue;
-        current.totalContribution += f.contribution;
-        current.ticksSeen++;
-        agg.negativeFeedbackSum.set(f.label, current);
-      }
+      // Aggregate positive and negative feedback by label
+      aggregateFeedbackByLabel(agg.positiveFeedbackSum, p.breakdown.positiveFeedback);
+      aggregateFeedbackByLabel(agg.negativeFeedbackSum, p.breakdown.negativeFeedback);
     }
   }
 

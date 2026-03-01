@@ -28,6 +28,14 @@ function getStatusText(progress) {
   return "";
 }
 
+function isTerminalStatus(progress) {
+  return (
+    progress?.status === "complete" ||
+    progress?.status === "cancelled" ||
+    progress?.status === "failed"
+  );
+}
+
 function getPillText(progress) {
   if (progress.status === "running")
     return `${progress.processedChronicles}/${progress.totalChronicles}`;
@@ -41,10 +49,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
   const isClear = progress?.operation === "clear";
   const title = isClear ? "Clear Annotations" : "Run Annotations";
   const isConfirming = progress?.status === "confirming";
-  const isTerminal =
-    progress?.status === "complete" ||
-    progress?.status === "cancelled" ||
-    progress?.status === "failed";
+  const isTerminal = isTerminalStatus(progress);
 
   const withNotes = progress?.chronicles?.filter((c) => c.hasNotes).length || 0;
   const withTones = progress?.chronicles?.filter((c) => c.assignedTone).length || 0;
@@ -52,6 +57,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
   const confirmLabel = isClear
     ? `Clear (${progress?.totalChronicles || 0} chronicles)`
     : `Annotate (${progress?.totalChronicles || 0} chronicles)`;
+  const processedSuffix = progress?.processedChronicles === 1 ? "" : "s";
 
   return (
     <BulkOperationShell
@@ -153,7 +159,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
           {progress.status === "complete" && (
             <BulkTerminalMessage status="complete">
               {isClear
-                ? `Cleared annotations from ${progress.processedChronicles} chronicle${progress.processedChronicles !== 1 ? "s" : ""}.`
+                ? `Cleared annotations from ${progress.processedChronicles} chronicle${processedSuffix}.`
                 : `Annotated ${progress.processedChronicles} of ${progress.totalChronicles} chronicles.`}
               {progress.failedChronicles.length > 0 &&
                 ` (${progress.failedChronicles.length} failed)`}

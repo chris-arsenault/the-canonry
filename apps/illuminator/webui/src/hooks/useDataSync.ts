@@ -25,7 +25,7 @@ import { useChronicleStore } from "../lib/db/chronicleStore";
 import { refreshEraSummariesInChronicles } from "../lib/db/chronicleRepository";
 import { computeRunIndexes } from "../lib/db/indexComputation";
 import { upsertRunIndexes } from "../lib/db/indexRepository";
-import type { SimulationSlotRecord, PersistedEntity } from "../lib/db/illuminatorDb";
+import type { SimulationSlotRecord } from "../lib/db/illuminatorDb";
 import type { ApplyEnrichmentOutput } from "../lib/enrichmentTypes";
 import type { CanonrySchemaSlice, WorldEntity, NarrativeEvent, WorldRelationship, CoordinateState } from "@canonry/world-schema";
 import type { EraTemporalEntry } from "../lib/db/indexTypes";
@@ -383,7 +383,7 @@ export function useDataSync({
     const handler = (event: Event) => {
       if (!simulationRunId) return;
       const detail = (event as CustomEvent<{ entityIds?: string[] }>)?.detail;
-      reloadEntities(detail?.entityIds);
+      void reloadEntities(detail?.entityIds);
     };
     window.addEventListener("entities-updated", handler);
     return () => window.removeEventListener("entities-updated", handler);

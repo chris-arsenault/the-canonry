@@ -16,7 +16,7 @@
 import { useState, useCallback } from "react";
 import { useSummaryRevision } from "./useSummaryRevision";
 import type { SummaryRevisionConfig } from "./useSummaryRevision";
-import type { SummaryRevisionRun, SummaryRevisionPatch } from "../lib/summaryRevisionTypes";
+import type { SummaryRevisionPatch } from "../lib/summaryRevisionTypes";
 import * as entityRepo from "../lib/db/entityRepository";
 import { useEntityStore } from "../lib/db/entityStore";
 import { getEntityUsageStats } from "../lib/db/chronicleRepository";
@@ -236,7 +236,7 @@ async function buildRevisionStartPayload(params: BuildRevisionStartParams): Prom
     .filter((e) => e.summary && e.description)
     .map((e) => mapEntityToRevisionEntity(e, mapParams));
 
-  startRevision({
+  void startRevision({
     projectId,
     simulationRunId,
     worldDynamicsContext: dynamicsContext,
@@ -349,7 +349,7 @@ export function useRevisionFlow({
   );
 
   const handleAcceptRevision = useCallback(() => {
-    handleRevisionApplied(applyAcceptedPatches());
+    void handleRevisionApplied(applyAcceptedPatches());
   }, [applyAcceptedPatches, handleRevisionApplied]);
 
   return {

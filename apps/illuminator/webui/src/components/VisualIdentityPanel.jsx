@@ -91,9 +91,9 @@ function CultureIdentityEditor({
   const handleDeleteSingle = key => {
     if (!selectedCulture) return;
     const {
-      [key]: _omitKey,
+      [key]: _omitKey, // eslint-disable-line sonarjs/no-unused-vars
       ...rest
-    } = currentIdentity; // eslint-disable-line sonarjs/no-unused-vars
+    } = currentIdentity;
     onIdentitiesChange({
       ...identities,
       [selectedCulture]: rest
@@ -107,9 +107,9 @@ function CultureIdentityEditor({
     for (const culture of cultures) {
       if (newIdentities[culture.id]) {
         const {
-          [key]: _omitKey,
+          [key]: _omitKey, // eslint-disable-line sonarjs/no-unused-vars
           ...rest
-        } = newIdentities[culture.id]; // eslint-disable-line sonarjs/no-unused-vars
+        } = newIdentities[culture.id];
         newIdentities[culture.id] = rest;
       }
     }

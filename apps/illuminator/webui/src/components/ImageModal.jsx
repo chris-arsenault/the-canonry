@@ -213,6 +213,7 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
       {/* Image container - adjusted for sidebar */}
       <div
         className={`imod-image-container ${hasSidebar ? "imod-image-container-sidebar-open" : "imod-image-container-sidebar-closed"}`}
+        onClick={(e) => e.stopPropagation()}
       >
         {loading && (
           <div className="imod-loading">Loading image...</div>
@@ -225,10 +226,6 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
             src={imageUrl}
             alt={title}
             className="imod-full-image"
-            onClick={(e) => e.stopPropagation()}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
           />
         )}
       </div>

@@ -132,6 +132,17 @@ Continue refining the world dynamics based on user feedback. Propose updated dyn
   return sections.join("\n\n");
 }
 
+function parseDynamicsLLMResponse(resultText: string): DynamicsLLMResponse {
+  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
+  const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("No JSON object found");
+  const parsed = JSON.parse(jsonMatch[0]) as DynamicsLLMResponse;
+  if (!Array.isArray(parsed.dynamics)) throw new Error("Missing dynamics array");
+  if (typeof parsed.reasoning !== "string") parsed.reasoning = "";
+  if (typeof parsed.complete !== "boolean") parsed.complete = false;
+  return parsed;
+}
+
 // ============================================================================
 // Task Execution
 // ============================================================================
@@ -188,13 +199,7 @@ async function executeDynamicsGenerationTask(
     // Parse LLM response
     let parsed: DynamicsLLMResponse;
     try {
-      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No JSON object found");
-      parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.dynamics)) throw new Error("Missing dynamics array");
-      if (typeof parsed.reasoning !== "string") parsed.reasoning = "";
-      if (typeof parsed.complete !== "boolean") parsed.complete = false;
+      parsed = parseDynamicsLLMResponse(resultText);
     } catch (err) {
       const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
       await updateDynamicsRun(runId, { status: "failed", error: errorMsg });

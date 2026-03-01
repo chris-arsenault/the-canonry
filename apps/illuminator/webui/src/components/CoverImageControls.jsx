@@ -23,12 +23,15 @@ export function CoverImagePreview({
     return <div className="cic-loading">Loading image...</div>;
   }
   if (error || !url) {
-    return <ErrorMessage message={`Failed to load image${error ? `: ${error}` : ""}`} className="cic-error" />;
+    const errorSuffix = error ? `: ${error}` : "";
+    return <ErrorMessage message={`Failed to load image${errorSuffix}`} className="cic-error" />;
   }
   return <div className="cic-preview-wrapper">
-      <img src={url} alt="Cover" onClick={onImageClick ? () => onImageClick(imageId, "Cover Image") : undefined} className={`cic-preview-img${onImageClick ? " cic-preview-img-clickable" : ""}`} role="button" tabIndex={0} onKeyDown={e => {
+      <button type="button" className={`cic-preview-btn${onImageClick ? " cic-preview-btn-clickable" : ""}`} onClick={onImageClick ? () => onImageClick(imageId, "Cover Image") : undefined} tabIndex={0} onKeyDown={e => {
       if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
-    }} />
+    }}>
+        <img src={url} alt="Cover" className="cic-preview-img" />
+      </button>
     </div>;
 }
 export function CoverImageControls({
@@ -55,9 +58,12 @@ export function CoverImageControls({
           </div>}
         {item.coverImage && item.coverImage.status === "generating" && <div className="cic-status cic-status-generating">Generating image...</div>}
         {item.coverImage && item.coverImage.status === "complete" && <div className="cic-status cic-status-complete">Complete</div>}
-        {item.coverImage && item.coverImage.status === "failed" && <div className="cic-status cic-status-failed">
-            Failed{item.coverImage.error ? `: ${item.coverImage.error}` : ""}
-          </div>}
+        {item.coverImage && item.coverImage.status === "failed" && (
+          <ErrorMessage
+            message={`Failed${item.coverImage.error ? `: ${item.coverImage.error}` : ""}`}
+            className="cic-status"
+          />
+        )}
         {item.coverImage?.sceneDescription && <div className="cic-scene-description">{item.coverImage.sceneDescription}</div>}
         <CoverImagePreview imageId={item.coverImage?.generatedImageId} onImageClick={onImageClick} />
       </div>

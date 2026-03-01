@@ -16,7 +16,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useChronicleLoreBackport } from "./useChronicleLoreBackport";
 import type { ChronicleLoreBackportConfig } from "./useChronicleLoreBackport";
 import { useBulkBackport } from "./useBulkBackport";
-import type { BackportContext, BulkBackportProgress } from "./useBulkBackport";
+import type { BulkBackportProgress } from "./useBulkBackport";
 import type { SummaryRevisionRun, SummaryRevisionPatch, RevisionEntityContext } from "../lib/summaryRevisionTypes";
 import type { ChronicleRecord, EntityBackportEntry } from "../lib/chronicleTypes";
 import * as entityRepo from "../lib/db/entityRepository";
@@ -272,7 +272,7 @@ function runBackportConfigStart(
   const selectedEntities = backportConfig.entities.filter((e) => selectedEntityIds.includes(e.id));
   if (selectedEntities.length === 0) return;
   backportSentEntityIdsRef.current = selectedEntityIds;
-  startBackport({
+  void startBackport({
     projectId,
     simulationRunId,
     chronicleId: backportConfig.chronicleId,

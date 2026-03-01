@@ -81,7 +81,7 @@ export default function ArchivistRemote({
 
   if (effectiveLoadError) {
     return (
-      <div className="archivist-error-state">
+      <div className="archivist-unavailable-state">
         <div className="archivist-state-content">
           <div className="archivist-state-icon">❌</div>
           <ErrorMessage title="World data unavailable" message={effectiveLoadError} />
@@ -106,7 +106,7 @@ export default function ArchivistRemote({
 
   if (schemaIssues.length > 0) {
     return (
-      <div className="archivist-error-state">
+      <div className="archivist-unavailable-state">
         <div className="archivist-state-content">
           <div className="archivist-state-icon">❌</div>
           <div className="archivist-state-title">World data is missing required schema fields</div>

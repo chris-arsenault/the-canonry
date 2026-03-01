@@ -227,6 +227,25 @@ ${mode.rule5}
 // Corpus Voice Digest prompt section
 // ============================================================================
 
+function buildSuperlativeClaimsSection(claims: string[]): string | null {
+  if (claims.length === 0) return null;
+  const repeated = claims.filter((c) => c.startsWith("[repeated]"));
+  const singular = claims.filter((c) => !c.startsWith("[repeated]"));
+  const claimLines: string[] = [];
+  claimLines.push("STRONG CLAIMS YOU HAVE MADE (for reference, not instruction):");
+  if (repeated.length > 0) {
+    claimLines.push("You made the same claim about multiple texts:");
+    for (const c of repeated.slice(0, 4)) claimLines.push(`- ${c.replace("[repeated] ", "")}`);
+  }
+  if (singular.length > 0) {
+    for (const c of singular.slice(0, 6)) claimLines.push(`- ${c}`);
+  }
+  claimLines.push(
+    "Most annotations will not reference these. If a text naturally brings one of these topics to mind, you know what you said before — you might confirm it, qualify it, or note that this surpasses it. Do not force references to prior claims."
+  );
+  return claimLines.join("\n");
+}
+
 function buildVoiceDigestSection(digest: CorpusVoiceDigest | undefined): string | null {
   if (!digest || digest.totalNotes === 0) return null;
 
@@ -260,26 +279,8 @@ function buildVoiceDigestSection(digest: CorpusVoiceDigest | undefined): string 
   }
 
   // Superlative claims — reference material, not instruction
-  if (digest.superlativeClaims.length > 0) {
-    const repeated = digest.superlativeClaims.filter((c) => c.startsWith("[repeated]"));
-    const singular = digest.superlativeClaims.filter((c) => !c.startsWith("[repeated]"));
-    const claimLines: string[] = [];
-
-    claimLines.push("STRONG CLAIMS YOU HAVE MADE (for reference, not instruction):");
-
-    if (repeated.length > 0) {
-      claimLines.push("You made the same claim about multiple texts:");
-      for (const c of repeated.slice(0, 4)) claimLines.push(`- ${c.replace("[repeated] ", "")}`);
-    }
-    if (singular.length > 0) {
-      for (const c of singular.slice(0, 6)) claimLines.push(`- ${c}`);
-    }
-    claimLines.push(
-      "Most annotations will not reference these. If a text naturally brings one of these topics to mind, you know what you said before — you might confirm it, qualify it, or note that this surpasses it. Do not force references to prior claims."
-    );
-
-    parts.push(claimLines.join("\n"));
-  }
+  const claimsSection = buildSuperlativeClaimsSection(digest.superlativeClaims);
+  if (claimsSection) parts.push(claimsSection);
 
   // Overused openings
   if (digest.overusedOpenings.length > 0) {
@@ -419,6 +420,59 @@ Entity: ${entity.entityName} (${entity.entityKind})`);
   return sections.join("\n\n");
 }
 
+function buildFactCoverageGuidanceSection(
+  factCoverageGuidance: FactGuidanceTarget[],
+  noteRange: { min: number; max: number }
+): string | null {
+  const allTargets = factCoverageGuidance;
+  const maxRequired = noteRange.max <= 4 ? 1 : allTargets.length;
+  const parts: string[] = [];
+  const required = allTargets.slice(0, maxRequired);
+  const optional = allTargets.slice(maxRequired);
+  const surfaceRequired = required.filter((t) => t.action === "surface");
+  const connectRequired = required.filter((t) => t.action === "connect");
+  if (surfaceRequired.length > 0) {
+    parts.push(
+      `REQUIRED — The following canon truths appear subtly in this text. You MUST produce an annotation for each one, anchored to the passage where the reference occurs. Connect the passage to the broader canon truth so the reader sees what they might otherwise miss:\n` +
+        surfaceRequired.map((t) => `- ${t.factId}: evidence — "${t.evidence}"`).join("\n")
+    );
+  }
+  if (connectRequired.length > 0) {
+    parts.push(
+      `REQUIRED — The following canon truths are underrepresented across the chronicles. You MUST produce an annotation for each one. Find the most natural passage in the text and write a scholarly aside that connects it to the canon truth — even if the connection is oblique:\n` +
+        connectRequired.map((t) => `- ${t.factId}: ${t.factText}`).join("\n")
+    );
+  }
+  if (optional.length > 0) {
+    const optSurface = optional.filter((t) => t.action === "surface");
+    const optConnect = optional.filter((t) => t.action === "connect");
+    const optLines: string[] = [];
+    for (const t of optSurface) optLines.push(`- ${t.factId}: evidence — "${t.evidence}"`);
+    for (const t of optConnect) optLines.push(`- ${t.factId}: ${t.factText}`);
+    parts.push(`OPTIONAL — If a natural opening presents itself, consider annotating these as well:\n` + optLines.join("\n"));
+  }
+  if (parts.length === 0) return null;
+  return `=== FACT COVERAGE GUIDANCE ===\n${parts.join("\n\n")}`;
+}
+
+function buildTemporalContextSection(chronicle: ChronicleContext): string | null {
+  if (!chronicle.focalEra && !chronicle.temporalNarrative) return null;
+  const temporalParts: string[] = [];
+  if (chronicle.focalEra) {
+    const focalEraDesc = chronicle.focalEra.description ? "\n" + chronicle.focalEra.description : "";
+    temporalParts.push(`Focal Era: ${chronicle.focalEra.name}${focalEraDesc}`);
+  }
+  if (chronicle.temporalNarrative) {
+    temporalParts.push(
+      `Temporal Narrative (the synthesized stakes for this chronicle):\n${chronicle.temporalNarrative}`
+    );
+  }
+  if (chronicle.temporalCheckReport) {
+    temporalParts.push(`Editorial Note — Temporal Alignment Analysis:\n${chronicle.temporalCheckReport}`);
+  }
+  return `=== TEMPORAL CONTEXT ===\n${temporalParts.join("\n\n")}`;
+}
+
 function buildChronicleUserPrompt(
   narrative: string,
   chronicle: ChronicleContext,
@@ -462,58 +516,14 @@ function buildChronicleUserPrompt(
   }
 
   // Fact coverage guidance
-  // When note ceiling is tight (max 4 or fewer), only require 1 fact to give the historian
-  // more voice latitude. The second target becomes a suggestion.
   if (world.factCoverageGuidance && world.factCoverageGuidance.length > 0) {
-    const allTargets = world.factCoverageGuidance;
-    const maxRequired = noteRange.max <= 4 ? 1 : allTargets.length;
-    const parts: string[] = [];
-
-    const required = allTargets.slice(0, maxRequired);
-    const optional = allTargets.slice(maxRequired);
-
-    const surfaceRequired = required.filter((t) => t.action === "surface");
-    const connectRequired = required.filter((t) => t.action === "connect");
-
-    if (surfaceRequired.length > 0) {
-      parts.push(
-        `REQUIRED — The following canon truths appear subtly in this text. You MUST produce an annotation for each one, anchored to the passage where the reference occurs. Connect the passage to the broader canon truth so the reader sees what they might otherwise miss:\n` +
-          surfaceRequired.map((t) => `- ${t.factId}: evidence — "${t.evidence}"`).join("\n")
-      );
-    }
-    if (connectRequired.length > 0) {
-      parts.push(
-        `REQUIRED — The following canon truths are underrepresented across the chronicles. You MUST produce an annotation for each one. Find the most natural passage in the text and write a scholarly aside that connects it to the canon truth — even if the connection is oblique:\n` +
-          connectRequired.map((t) => `- ${t.factId}: ${t.factText}`).join("\n")
-      );
-    }
-
-    if (optional.length > 0) {
-      const optSurface = optional.filter((t) => t.action === "surface");
-      const optConnect = optional.filter((t) => t.action === "connect");
-      const optLines: string[] = [];
-      for (const t of optSurface) optLines.push(`- ${t.factId}: evidence — "${t.evidence}"`);
-      for (const t of optConnect) optLines.push(`- ${t.factId}: ${t.factText}`);
-      parts.push(
-        `OPTIONAL — If a natural opening presents itself, consider annotating these as well:\n` +
-          optLines.join("\n")
-      );
-    }
-
-    if (parts.length > 0) {
-      sections.push(`=== FACT COVERAGE GUIDANCE ===\n${parts.join("\n\n")}`);
-    }
+    const factGuidanceSection = buildFactCoverageGuidanceSection(world.factCoverageGuidance, noteRange);
+    if (factGuidanceSection) sections.push(factGuidanceSection);
   }
 
   // Temporal context (for chronicle reviews)
-  if (chronicle.focalEra || chronicle.temporalNarrative) {
-    const temporalParts: string[] = [];
-    if (chronicle.focalEra) {
-      const focalEraDesc = chronicle.focalEra.description ? "\n" + chronicle.focalEra.description : "";
-      temporalParts.push(
-        `Focal Era: ${chronicle.focalEra.name}${focalEraDesc}`
-      );
-    }
+  const temporalSection = buildTemporalContextSection(chronicle);
+  if (temporalSection) sections.push(temporalSection);
     if (chronicle.temporalNarrative) {
       temporalParts.push(
         `Temporal Narrative (the synthesized stakes for this chronicle):\n${chronicle.temporalNarrative}`
@@ -558,6 +568,33 @@ Title: "${chronicle.title}"`);
 // ============================================================================
 // Task Execution
 // ============================================================================
+
+const VALID_HISTORIAN_NOTE_TYPES = new Set<HistorianNoteType>([
+  "commentary", "correction", "tangent", "skepticism", "pedantic", "temporal",
+]);
+
+function parseHistorianLLMResponse(resultText: string): { notes: HistorianNote[] } | { error: string } {
+  let parsed: HistorianLLMResponse;
+  try {
+    // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
+    const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON object found");
+    parsed = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed.notes)) throw new Error("Missing notes array");
+  } catch (err) {
+    return { error: `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}` };
+  }
+  const notes: HistorianNote[] = parsed.notes
+    .filter((n) => n.anchorPhrase && n.text && VALID_HISTORIAN_NOTE_TYPES.has(n.type))
+    .map((n, i) => ({
+      noteId: `note_${Date.now()}_${i}`,
+      anchorPhrase: n.anchorPhrase,
+      text: n.text,
+      type: n.type,
+      display: (n.weight === "minor" ? "popout" : "full") as HistorianNoteDisplay,
+    }));
+  return { notes };
+}
 
 async function executeHistorianReviewTask(
   task: WorkerTask,
@@ -686,37 +723,13 @@ async function executeHistorianReviewTask(
     }
 
     // Parse LLM response
-    let parsed: HistorianLLMResponse;
-    try {
-      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No JSON object found");
-      parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.notes)) throw new Error("Missing notes array");
-    } catch (err) {
-      const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
+    const parseResult = parseHistorianLLMResponse(resultText);
+    if ("error" in parseResult) {
+      const errorMsg = parseResult.error;
       await updateHistorianRun(runId, { status: "failed", error: errorMsg });
       return { success: false, error: errorMsg };
     }
-
-    // Assign note IDs and validate
-    const validTypes = new Set<HistorianNoteType>([
-      "commentary",
-      "correction",
-      "tangent",
-      "skepticism",
-      "pedantic",
-      "temporal",
-    ]);
-    const notes: HistorianNote[] = parsed.notes
-      .filter((n) => n.anchorPhrase && n.text && validTypes.has(n.type))
-      .map((n, i) => ({
-        noteId: `note_${Date.now()}_${i}`,
-        anchorPhrase: n.anchorPhrase,
-        text: n.text,
-        type: n.type,
-        display: (n.weight === "minor" ? "popout" : "full") as HistorianNoteDisplay,
-      }));
+    const { notes } = parseResult;
 
     // Write notes to run, mark as reviewing
     await updateHistorianRun(runId, {

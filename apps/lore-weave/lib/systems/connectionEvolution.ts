@@ -180,30 +180,23 @@ function mergeMutationResult(
 ): void {
   if (!result.applied) return;
 
-  if (result.entityModifications.length > 0) {
-    for (const mod of result.entityModifications) {
-      modifications.push(narrativeGroupId ? { ...mod, narrativeGroupId } : mod);
-    }
+  for (const mod of result.entityModifications) {
+    modifications.push(narrativeGroupId ? { ...mod, narrativeGroupId } : mod);
   }
 
-  if (result.relationshipsCreated.length > 0) {
-    for (const rel of result.relationshipsCreated) {
-      const relWithGroup = {
-        kind: rel.kind,
-        src: rel.src,
-        dst: rel.dst,
-        strength: rel.strength,
-        category: rel.category,
-        ...(narrativeGroupId ? { narrativeGroupId } : {}),
-      };
-      relationships.push(relWithGroup);
-    }
+  for (const rel of result.relationshipsCreated) {
+    relationships.push({
+      kind: rel.kind,
+      src: rel.src,
+      dst: rel.dst,
+      strength: rel.strength,
+      category: rel.category,
+      ...(narrativeGroupId ? { narrativeGroupId } : {}),
+    });
   }
 
-  if (result.relationshipsAdjusted.length > 0) {
-    for (const adj of result.relationshipsAdjusted) {
-      relationshipsAdjusted.push(narrativeGroupId ? { ...adj, narrativeGroupId } : adj);
-    }
+  for (const adj of result.relationshipsAdjusted) {
+    relationshipsAdjusted.push(narrativeGroupId ? { ...adj, narrativeGroupId } : adj);
   }
 
   for (const [pressureId, delta] of Object.entries(result.pressureChanges)) {
@@ -380,6 +373,30 @@ function isPairExcluded(
   return false;
 }
 
+/** Checks component size limit and, if passing, updates the adjacency map. Returns false if pair should be rejected. */
+function checkComponentSizeLimit(
+  srcId: string,
+  dstId: string,
+  config: ConnectionEvolutionConfig,
+  adjacency: Map<string, Set<string>>
+): boolean {
+  if (!config.pairComponentSizeLimit) return true;
+  const combinedSize = getCombinedComponentSize(srcId, dstId, adjacency);
+  if (combinedSize > config.pairComponentSizeLimit.max) return false;
+  if (!adjacency.has(srcId)) adjacency.set(srcId, new Set());
+  if (!adjacency.has(dstId)) adjacency.set(dstId, new Set());
+  adjacency.get(srcId)!.add(dstId);
+  adjacency.get(dstId)!.add(srcId);
+  return true;
+}
+
+function addToPairGraph(srcId: string, dstId: string, pairGraph: Map<string, Set<string>>): void {
+  if (!pairGraph.has(srcId)) pairGraph.set(srcId, new Set());
+  if (!pairGraph.has(dstId)) pairGraph.set(dstId, new Set());
+  pairGraph.get(srcId)!.add(dstId);
+  pairGraph.get(dstId)!.add(srcId);
+}
+
 function collectValidPairs(
   matchingEntities: HardState[],
   rule: EvolutionRule,
@@ -399,21 +416,10 @@ function collectValidPairs(
 
       if (graphView.hasRelationship(src.id, dst.id, rule.action.kind)) continue;
       if (isPairExcluded(src.id, dst.id, config.pairExcludeRelationships, graphView)) continue;
-
-      if (config.pairComponentSizeLimit && adjacency) {
-        const combinedSize = getCombinedComponentSize(src.id, dst.id, adjacency);
-        if (combinedSize > config.pairComponentSizeLimit.max) continue;
-        if (!adjacency.has(src.id)) adjacency.set(src.id, new Set());
-        if (!adjacency.has(dst.id)) adjacency.set(dst.id, new Set());
-        adjacency.get(src.id)!.add(dst.id);
-        adjacency.get(dst.id)!.add(src.id);
-      }
+      if (adjacency && !checkComponentSizeLimit(src.id, dst.id, config, adjacency)) continue;
 
       validPairs.push({ src, dst });
-      if (!pairGraph.has(src.id)) pairGraph.set(src.id, new Set());
-      if (!pairGraph.has(dst.id)) pairGraph.set(dst.id, new Set());
-      pairGraph.get(src.id)!.add(dst.id);
-      pairGraph.get(dst.id)!.add(src.id);
+      addToPairGraph(src.id, dst.id, pairGraph);
     }
   }
 

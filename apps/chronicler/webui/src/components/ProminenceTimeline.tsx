@@ -53,6 +53,15 @@ interface ProminenceTimelineProps {
 /**
  * Extract prominence change data points from narrative events
  */
+function findCrossedThreshold(thresholds: number[], previousValue: number, newValue: number): number | null {
+  for (const threshold of thresholds) {
+    const crossedUp = previousValue < threshold && newValue >= threshold;
+    const crossedDown = previousValue >= threshold && newValue < threshold;
+    if (crossedUp || crossedDown) return threshold;
+  }
+  return null;
+}
+
 function extractProminenceData(
   events: NarrativeEvent[],
   entityId: string,
@@ -62,7 +71,6 @@ function extractProminenceData(
   const dataPoints: ProminenceDataPoint[] = [];
   const thresholds = prominenceScale.thresholds;
 
-  // Sort events by tick
   const sortedEvents = [...events].sort((a, b) => a.tick - b.tick);
 
   for (const event of sortedEvents) {
@@ -73,18 +81,6 @@ function extractProminenceData(
       if (effect.type === "field_changed" && effect.field === "prominence") {
         const previousValue = effect.previousValue as number;
         const newValue = effect.newValue as number;
-
-        // Check if this change crosses a threshold (1, 2, 3, or 4)
-        let crossesThreshold: number | null = null;
-        for (const threshold of thresholds) {
-          const crossedUp = previousValue < threshold && newValue >= threshold;
-          const crossedDown = previousValue >= threshold && newValue < threshold;
-          if (crossedUp || crossedDown) {
-            crossesThreshold = threshold;
-            break;
-          }
-        }
-
         dataPoints.push({
           tick: event.tick,
           era: event.era,
@@ -92,7 +88,7 @@ function extractProminenceData(
           newValue,
           description: effect.description,
           eventId: event.id,
-          crossesThreshold,
+          crossesThreshold: findCrossedThreshold(thresholds, previousValue, newValue),
         });
       }
     }

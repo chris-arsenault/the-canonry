@@ -22,6 +22,147 @@ import {
 
 type ProcessedStatus = "complete" | "error";
 
+type ProcessedMap = Map<string, ProcessedStatus>;
+
+function syncProcessedMarkers(queue: QueueItem[], processed: ProcessedMap): void {
+  for (const item of queue) {
+    if ((item.status === "queued" || item.status === "running") && processed.has(item.id)) {
+      processed.delete(item.id);
+    }
+  }
+  const queueIds = new Set(queue.map((item) => item.id));
+  for (const id of processed.keys()) {
+    if (!queueIds.has(id)) processed.delete(id);
+  }
+}
+
+function queueChronicleImageUpdate(
+  chronicleId: string,
+  imageRefId: string,
+  isCover: boolean,
+  isComplete: boolean,
+  imageId: string,
+  taskError: string | undefined,
+  updates: Promise<unknown>[]
+): void {
+  const isSuccess = isComplete && !!imageId;
+  const error = !isSuccess
+    ? isComplete
+      ? "Image generation returned no image id"
+      : (taskError ?? "Image generation failed")
+    : undefined;
+  if (isCover) {
+    updates.push(
+      isSuccess
+        ? updateChronicleCoverImageStatus(chronicleId, { status: "complete", generatedImageId: imageId })
+        : updateChronicleCoverImageStatus(chronicleId, { status: "failed", error })
+    );
+  } else {
+    updates.push(
+      isSuccess
+        ? updateChronicleImageRef(chronicleId, imageRefId, { status: "complete", generatedImageId: imageId })
+        : updateChronicleImageRef(chronicleId, imageRefId, { status: "failed", error })
+    );
+  }
+}
+
+function processChronicleImageTask(
+  task: QueueItem,
+  updates: Promise<unknown>[],
+  chronicleIds: Set<string>
+): void {
+  if (!task.chronicleId || !task.imageRefId) return;
+  const isCover = task.imageRefId === "__cover_image__";
+  const imageId = task.result?.imageId ?? "";
+  queueChronicleImageUpdate(
+    task.chronicleId,
+    task.imageRefId,
+    isCover,
+    task.status === "complete",
+    imageId,
+    task.error,
+    updates
+  );
+  chronicleIds.add(task.chronicleId);
+}
+
+function queueEraNarrativeImageUpdate(
+  narrativeId: string,
+  imageRefId: string,
+  isCover: boolean,
+  isComplete: boolean,
+  imageId: string,
+  taskError: string | undefined,
+  updates: Promise<unknown>[]
+): void {
+  const isSuccess = isComplete && !!imageId;
+  const error = !isSuccess
+    ? isComplete
+      ? "Image generation returned no image id"
+      : (taskError ?? "Image generation failed")
+    : undefined;
+  if (isCover) {
+    updates.push(
+      isSuccess
+        ? updateEraNarrativeCoverImageStatus(narrativeId, "complete", imageId)
+        : updateEraNarrativeCoverImageStatus(narrativeId, "failed", undefined, error)
+    );
+  } else {
+    updates.push(
+      isSuccess
+        ? updateEraNarrativeImageRefStatus(narrativeId, imageRefId, "complete", imageId)
+        : updateEraNarrativeImageRefStatus(narrativeId, imageRefId, "failed", undefined, error)
+    );
+  }
+}
+
+function processEraNarrativeImageTask(task: QueueItem, updates: Promise<unknown>[]): void {
+  const narrativeId = task.chronicleId;
+  if (!narrativeId || !task.imageRefId) return;
+  const isCover = task.imageRefId === "__cover_image__";
+  const imageId = task.result?.imageId ?? "";
+  queueEraNarrativeImageUpdate(
+    narrativeId,
+    task.imageRefId,
+    isCover,
+    task.status === "complete",
+    imageId,
+    task.error,
+    updates
+  );
+  // No chronicle refresh needed — EraNarrativeViewer polls directly
+}
+
+// Returns true if refreshAll should be triggered
+function dispatchCompletedTask(
+  task: QueueItem,
+  updates: Promise<unknown>[],
+  chronicleIds: Set<string>
+): boolean {
+  if (task.type === "image" && task.imageType === "chronicle") {
+    processChronicleImageTask(task, updates, chronicleIds);
+    return false;
+  }
+  if (task.type === "image" && task.imageType === "era_narrative") {
+    processEraNarrativeImageTask(task, updates);
+    return false;
+  }
+  if (task.type === "historianPrep") {
+    if (task.chronicleId) chronicleIds.add(task.chronicleId);
+    return false;
+  }
+  if (task.type === "entityChronicle") {
+    const chronicleId = task.result?.chronicleId ?? task.chronicleId;
+    if (chronicleId) {
+      chronicleIds.add(chronicleId);
+    } else {
+      console.log("[ChronicleQueueWatcher] No chronicleId found on task, triggering refreshAll");
+      return true;
+    }
+  }
+  return false;
+}
+
 export function useChronicleQueueWatcher(queue: QueueItem[]): void {
   const processedRef = useRef<Map<string, ProcessedStatus>>(new Map());
   const activeRef = useRef(true);
@@ -35,19 +176,7 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
 
   useEffect(() => {
     const processed = processedRef.current;
-
-    // Clear processed markers if task is retried (queued/running again).
-    for (const item of queue) {
-      if ((item.status === "queued" || item.status === "running") && processed.has(item.id)) {
-        processed.delete(item.id);
-      }
-    }
-
-    // Prune processed entries for tasks no longer in queue.
-    const queueIds = new Set(queue.map((item) => item.id));
-    for (const id of processed.keys()) {
-      if (!queueIds.has(id)) processed.delete(id);
-    }
+    syncProcessedMarkers(queue, processed);
 
     const chronicleTasks = queue.filter(
       (item) =>
@@ -82,140 +211,7 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
 
       for (const task of completedTasks) {
         processed.set(task.id, task.status as ProcessedStatus);
-
-        if (task.type === "image" && task.imageType === "chronicle") {
-          if (!task.chronicleId || !task.imageRefId) continue;
-          const chronicleId = task.chronicleId;
-          const isCover = task.imageRefId === "__cover_image__";
-          const imageId = task.result?.imageId || "";
-
-          if (task.status === "complete") {
-            if (!imageId) {
-              const error = "Image generation returned no image id";
-              if (isCover) {
-                updates.push(
-                  updateChronicleCoverImageStatus(chronicleId, {
-                    status: "failed",
-                    error,
-                  })
-                );
-              } else {
-                updates.push(
-                  updateChronicleImageRef(chronicleId, task.imageRefId, {
-                    status: "failed",
-                    error,
-                  })
-                );
-              }
-            } else if (isCover) {
-              updates.push(
-                updateChronicleCoverImageStatus(chronicleId, {
-                  status: "complete",
-                  generatedImageId: imageId,
-                })
-              );
-            } else {
-              updates.push(
-                updateChronicleImageRef(chronicleId, task.imageRefId, {
-                  status: "complete",
-                  generatedImageId: imageId,
-                })
-              );
-            }
-          } else {
-            const error = task.error || "Image generation failed";
-            if (isCover) {
-              updates.push(
-                updateChronicleCoverImageStatus(chronicleId, {
-                  status: "failed",
-                  error,
-                })
-              );
-            } else {
-              updates.push(
-                updateChronicleImageRef(chronicleId, task.imageRefId, {
-                  status: "failed",
-                  error,
-                })
-              );
-            }
-          }
-
-          chronicleIds.add(chronicleId);
-          continue;
-        }
-
-        // Era narrative images — chronicleId is repurposed as narrativeId
-        if (task.type === "image" && task.imageType === "era_narrative") {
-          const narrativeId = task.chronicleId;
-          if (!narrativeId || !task.imageRefId) continue;
-          const isCover = task.imageRefId === "__cover_image__";
-          const imageId = task.result?.imageId || "";
-
-          if (task.status === "complete") {
-            if (!imageId) {
-              const error = "Image generation returned no image id";
-              if (isCover) {
-                updates.push(
-                  updateEraNarrativeCoverImageStatus(narrativeId, "failed", undefined, error)
-                );
-              } else {
-                updates.push(
-                  updateEraNarrativeImageRefStatus(
-                    narrativeId,
-                    task.imageRefId,
-                    "failed",
-                    undefined,
-                    error
-                  )
-                );
-              }
-            } else if (isCover) {
-              updates.push(updateEraNarrativeCoverImageStatus(narrativeId, "complete", imageId));
-            } else {
-              updates.push(
-                updateEraNarrativeImageRefStatus(narrativeId, task.imageRefId, "complete", imageId)
-              );
-            }
-          } else {
-            const error = task.error || "Image generation failed";
-            if (isCover) {
-              updates.push(
-                updateEraNarrativeCoverImageStatus(narrativeId, "failed", undefined, error)
-              );
-            } else {
-              updates.push(
-                updateEraNarrativeImageRefStatus(
-                  narrativeId,
-                  task.imageRefId,
-                  "failed",
-                  undefined,
-                  error
-                )
-              );
-            }
-          }
-          // No chronicle refresh needed — EraNarrativeViewer polls directly
-          continue;
-        }
-
-        if (task.type === "historianPrep") {
-          if (task.chronicleId) chronicleIds.add(task.chronicleId);
-          continue;
-        }
-
-        if (task.type === "entityChronicle") {
-          // Prefer result's chronicleId (the actual ID that was updated) over input chronicleId
-          const chronicleId = task.result?.chronicleId || task.chronicleId;
-          if (chronicleId) {
-            chronicleIds.add(chronicleId);
-          } else {
-            console.log(
-              "[ChronicleQueueWatcher] No chronicleId found on task, triggering refreshAll"
-            );
-            refreshAll = true;
-          }
-        }
+        refreshAll = refreshAll || dispatchCompletedTask(task, updates, chronicleIds);
       }
 
       const store = useChronicleStore.getState();

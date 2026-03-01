@@ -278,6 +278,31 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
 }
 
 /**
+/**
+ * Gather all image IDs needed for display from a single chronicle record.
+ */
+function gatherChronicleImageIds(chronicle, entities) {
+  const ids = [];
+  if (chronicle.coverImage?.generatedImageId) {
+    ids.push(chronicle.coverImage.generatedImageId);
+  }
+  if (chronicle.imageRefs?.refs) {
+    for (const ref of chronicle.imageRefs.refs) {
+      if (ref.type === "prompt_request" && ref.generatedImageId) {
+        ids.push(ref.generatedImageId);
+      }
+    }
+  }
+  for (const role of chronicle.roleAssignments || []) {
+    const ent = entities.find((e) => e.id === role.entityId);
+    if (ent?.enrichment?.image?.imageId) {
+      ids.push(ent.enrichment.image.imageId);
+    }
+  }
+  return ids;
+}
+
+/**
  * BackrefImageEditor - Main editor component
  *
  * Props:
@@ -329,25 +354,7 @@ export default function BackrefImageEditor({
   const allImageIds = useMemo(() => {
     const ids = [];
     for (const chronicle of chronicles.values()) {
-      // Cover image
-      if (chronicle.coverImage?.generatedImageId) {
-        ids.push(chronicle.coverImage.generatedImageId);
-      }
-      // Scene images
-      if (chronicle.imageRefs?.refs) {
-        for (const ref of chronicle.imageRefs.refs) {
-          if (ref.type === "prompt_request" && ref.generatedImageId) {
-            ids.push(ref.generatedImageId);
-          }
-        }
-      }
-      // Entity portraits from cast
-      for (const role of chronicle.roleAssignments || []) {
-        const ent = entities.find((e) => e.id === role.entityId);
-        if (ent?.enrichment?.image?.imageId) {
-          ids.push(ent.enrichment.image.imageId);
-        }
-      }
+      ids.push(...gatherChronicleImageIds(chronicle, entities));
     }
     return [...new Set(ids)];
   }, [chronicles, entities]);

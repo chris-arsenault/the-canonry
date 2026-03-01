@@ -5,18 +5,18 @@
 import React from 'react';
 
 interface ErrorBadgeProps {
-  count?: number;
-  className?: string;
+  readonly count?: number;
+  readonly className?: string;
 }
 
 interface OrphanBadgeProps {
-  isOrphan?: boolean;
-  className?: string;
+  readonly isOrphan?: boolean;
+  readonly className?: string;
 }
 
 interface TabValidationBadgeProps {
-  count?: number;
-  className?: string;
+  readonly count?: number;
+  readonly className?: string;
 }
 
 /**

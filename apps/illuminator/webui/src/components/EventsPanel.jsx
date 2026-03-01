@@ -121,11 +121,9 @@ function EventCard({
             <EventKindBadge kind={event.eventKind} />
             <span className="events-panel-card-tick">tick {event.tick}</span>
           </div>
-          <h3 className="events-panel-card-headline" onClick={onToggle} role="button" tabIndex={0} onKeyDown={e => {
-          if (e.key === "Enter" || e.key === " ") onToggle(e);
-        }}>
+          <button type="button" className="events-panel-card-headline" onClick={onToggle}>
             {event.headline}
-          </h3>
+          </button>
         </div>
         <SignificanceBar value={event.significance} />
       </div>

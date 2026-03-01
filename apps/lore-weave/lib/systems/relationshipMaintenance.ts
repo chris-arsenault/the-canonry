@@ -99,6 +99,46 @@ function areInProximity(
   );
 }
 
+function buildMaintenanceDescription(
+  decayed: number, reinforced: number, archived: number, removed: number, originalCount: number
+): string {
+  const parts: string[] = [];
+  if (decayed > 0) parts.push(`${decayed} decayed`);
+  if (reinforced > 0) parts.push(`${reinforced} reinforced`);
+  if (archived > 0) parts.push(`${archived} archived`);
+  if (removed > 0) parts.push(`${removed} removed (orphaned)`);
+  return parts.length > 0
+    ? `Relationship maintenance: ${parts.join(', ')} (${originalCount} total)`
+    : `Relationship maintenance: all ${originalCount} relationships stable`;
+}
+
+function computeUpdatedStrength(
+  rel: Relationship,
+  isYoung: boolean,
+  decayRate: DecayRate,
+  metricCtx: ReturnType<typeof createSystemContext>,
+  modifier: number,
+  proximityRelationshipKinds: string[],
+  reinforcementBonus: number,
+  maxStrength: number,
+  graphView: WorldRuntime
+): { strength: number; decayed: boolean; reinforced: boolean } {
+  let strength = rel.strength ?? 0.5;
+  let decayed = false;
+  let reinforced = false;
+  if (!isYoung && decayRate !== 'none') {
+    const decayAmount = getDecayAmount(decayRate, metricCtx) * modifier;
+    strength = Math.max(0, strength - decayAmount);
+    decayed = true;
+  }
+  if (proximityRelationshipKinds.length > 0 &&
+      areInProximity(graphView, rel.src, rel.dst, proximityRelationshipKinds)) {
+    strength = Math.min(maxStrength, strength + reinforcementBonus * modifier);
+    reinforced = true;
+  }
+  return { strength, decayed, reinforced };
+}
+
 // =============================================================================
 // SYSTEM CREATION
 // =============================================================================
@@ -173,67 +213,35 @@ export function createRelationshipMaintenanceSystem(config: RelationshipMaintena
         const decayRate = getDecayRate(graphView, rel.kind);
         const cullable = isCullable(graphView, rel.kind);
 
-        let strength = rel.strength ?? 0.5;
+        const update = computeUpdatedStrength(
+          rel, isYoung, decayRate, metricCtx, modifier,
+          proximityRelationshipKinds, reinforcementBonus, maxStrength, graphView
+        );
+        if (update.decayed) decayed++;
+        if (update.reinforced) reinforced++;
+        const strength = update.strength;
 
-        // === DECAY ===
-        // Apply decay to relationships that aren't young and have decay enabled
-        if (!isYoung && decayRate !== 'none') {
-          const decayAmount = getDecayAmount(decayRate, metricCtx) * modifier;
-          strength = Math.max(0, strength - decayAmount);
-          decayed++;
-        }
-
-        // === REINFORCEMENT ===
-        // Strengthen relationships when entities are in proximity
-        if (proximityRelationshipKinds.length > 0 &&
-            areInProximity(graphView, rel.src, rel.dst, proximityRelationshipKinds)) {
-          strength = Math.min(maxStrength, strength + reinforcementBonus * modifier);
-          reinforced++;
-        }
-
-        // === CULLING (now archives instead of deleting) ===
-        // Archive weak relationships that are cullable and past grace period
+        // === CULLING (archives instead of deleting) ===
         if (!isYoung && cullable && strength < cullThreshold) {
           archived++;
-
-          // Mark as historical instead of removing
           rel.status = 'historical';
           rel.archivedAt = graphView.tick;
-
-          if (srcEntity) {
-            srcEntity.updatedAt = graphView.tick;
-            modifiedEntityIds.add(srcEntity.id);
-          }
-          if (dstEntity) {
-            dstEntity.updatedAt = graphView.tick;
-            modifiedEntityIds.add(dstEntity.id);
-          }
-
+          srcEntity.updatedAt = graphView.tick;
+          modifiedEntityIds.add(srcEntity.id);
+          dstEntity.updatedAt = graphView.tick;
+          modifiedEntityIds.add(dstEntity.id);
           maintainedRelationships.push(rel);
           continue;
         }
 
-        // Update strength if changed
-        if (rel.strength !== strength) {
-          rel.strength = strength;
-        }
-
+        if (rel.strength !== strength) rel.strength = strength;
         maintainedRelationships.push(rel);
       }
 
       // Update graph with all maintained relationships
       graphView.setRelationships(maintainedRelationships);
 
-      // Build description
-      const parts: string[] = [];
-      if (decayed > 0) parts.push(`${decayed} decayed`);
-      if (reinforced > 0) parts.push(`${reinforced} reinforced`);
-      if (archived > 0) parts.push(`${archived} archived`);
-      if (removed > 0) parts.push(`${removed} removed (orphaned)`);
-
-      const description = parts.length > 0
-        ? `Relationship maintenance: ${parts.join(', ')} (${originalCount} total)`
-        : `Relationship maintenance: all ${originalCount} relationships stable`;
+      const description = buildMaintenanceDescription(decayed, reinforced, archived, removed, originalCount);
 
       return {
         relationshipsAdded: [],

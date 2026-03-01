@@ -123,6 +123,135 @@ function buildTemporalDescription(focalEra, tickRange, scope, isMultiEra, eraCou
   }
   return `${scopeText} during the ${focalEra.name} (${duration} ticks)`;
 }
+// ===========================================================================
+// ChronicleItemCard helpers (module-level to avoid nesting complexity penalty)
+// ===========================================================================
+
+function getBackportSym(backportDone, backportTotal) {
+  return {
+    symbol: "\u21C4",
+    title: `Backport: ${backportDone}/${backportTotal} entities`,
+    color: backportDone === backportTotal ? "#10b981" : "#f59e0b"
+  };
+}
+
+function getTemporalSym(hasTemporalCheck) {
+  return {
+    symbol: "\u29D6",
+    title: hasTemporalCheck ? "Temporal alignment checked" : "Temporal narrative (no alignment check)",
+    color: hasTemporalCheck ? "#f59e0b" : "var(--text-muted)"
+  };
+}
+
+const TONE_SYMBOLS = { witty: "\u2736", weary: "\u25CB", forensic: "\u25C8", elegiac: "\u25C7", cantankerous: "\u266F" };
+const TONE_LABELS = { witty: "Witty", weary: "Weary", forensic: "Forensic", elegiac: "Elegiac", cantankerous: "Cantankerous" };
+
+function buildInlineSymbols(item) {
+  const syms = [];
+  if (item.focusType === "ensemble") {
+    syms.push({ symbol: "\u25C7\u25C7", title: "Ensemble", color: "#a855f7" });
+  } else if (item.primaryCount > 0) {
+    syms.push({ symbol: "\u25C6", title: "Single focus", color: "#3b82f6" });
+  } else {
+    syms.push({ symbol: "\u25CB", title: "No primary entity", color: "var(--text-muted)" });
+  }
+  if (item.perspectiveSynthesis) {
+    syms.push({ symbol: "\u2726", title: "Perspective synthesis", color: "#06b6d4" });
+  }
+  if (item.combineInstructions) {
+    syms.push({ symbol: "\u2727", title: "Versions combined", color: "#f59e0b" });
+  }
+  if (item.coverImageComplete) {
+    syms.push({ symbol: "\u25A3", title: "Cover image generated", color: "#10b981" });
+  }
+  if (item.backportDone > 0) {
+    syms.push(getBackportSym(item.backportDone, item.backportTotal));
+  }
+  if (item.historianNoteCount > 0) {
+    syms.push({ symbol: "\u2020", title: "Historian notes", color: "#8b7355" });
+  }
+  if (item.lens) {
+    syms.push({ symbol: "\u25C8", title: `Lens: ${item.lens.entityName}`, color: "#8b5cf6" });
+  }
+  if (item.hasTemporalNarrative) {
+    syms.push(getTemporalSym(item.hasTemporalCheck));
+  }
+  if (item.hasHistorianPrep) {
+    syms.push({ symbol: "\u270E", title: "Historian prep brief", color: "#8b7355" });
+  }
+  if (item.assignedTone) {
+    syms.push({
+      symbol: TONE_SYMBOLS[item.assignedTone] || "?",
+      title: `Tone: ${TONE_LABELS[item.assignedTone] || item.assignedTone}`,
+      color: "#b8860b"
+    });
+  }
+  return syms;
+}
+
+// ===========================================================================
+// handleBulkDetectTertiary helpers
+// ===========================================================================
+
+function buildWikiEntitiesForTertiary(freshEntities) {
+  const wikiEntities = [];
+  for (const entity of freshEntities) {
+    if (entity.kind === "era") continue;
+    wikiEntities.push({ id: entity.id, name: entity.name });
+    const aliases = entity.enrichment?.text?.aliases;
+    if (Array.isArray(aliases)) {
+      for (const alias of aliases) {
+        if (typeof alias === "string" && alias.length >= 3) {
+          wikiEntities.push({ id: entity.id, name: alias });
+        }
+      }
+    }
+  }
+  return wikiEntities;
+}
+
+function computeTertiaryCastEntries(record, freshEntities, wikiEntities, findEntityMentionsFn) {
+  const content = record.finalContent || record.assembledContent;
+  if (!content) return null;
+  const mentions = findEntityMentionsFn(content, wikiEntities);
+  const declaredIds = new Set(record.selectedEntityIds || []);
+  const prevDecisions = new Map((record.tertiaryCast || []).map(e => [e.entityId, e.accepted]));
+  const seen = new Set();
+  const entries = [];
+  for (const m of mentions) {
+    if (declaredIds.has(m.entityId) || seen.has(m.entityId)) continue;
+    seen.add(m.entityId);
+    const entity = freshEntities.find(e => e.id === m.entityId);
+    if (entity) {
+      entries.push({
+        entityId: entity.id,
+        name: entity.name,
+        kind: entity.kind,
+        matchedAs: content.slice(m.start, m.end),
+        matchStart: m.start,
+        matchEnd: m.end,
+        accepted: prevDecisions.get(entity.id) ?? true
+      });
+    }
+  }
+  return entries;
+}
+
+// ===========================================================================
+// handleWizardGenerate helpers
+// ===========================================================================
+
+function extractProseHints(entityGuidance) {
+  const proseHints = {};
+  if (!entityGuidance) return proseHints;
+  for (const [kind, guidance] of Object.entries(entityGuidance)) {
+    if (guidance?.proseHint) {
+      proseHints[kind] = guidance.proseHint;
+    }
+  }
+  return proseHints;
+}
+
 function ChronicleItemCard({
   item,
   isSelected,
@@ -187,127 +316,7 @@ function ChronicleItemCard({
   };
 
   // Inline symbols for title row
-  const inlineSymbols = useMemo(() => {
-    const syms = [];
-
-    // Focus type: ◆ solo, ◇◇ ensemble, ○ no primary
-    if (item.focusType === "ensemble") {
-      syms.push({
-        symbol: "\u25C7\u25C7",
-        title: "Ensemble",
-        color: "#a855f7"
-      });
-    } else if (item.primaryCount > 0) {
-      syms.push({
-        symbol: "\u25C6",
-        title: "Single focus",
-        color: "#3b82f6"
-      });
-    } else {
-      syms.push({
-        symbol: "\u25CB",
-        title: "No primary entity",
-        color: "var(--text-muted)"
-      });
-    }
-
-    // Perspective synthesis
-    if (item.perspectiveSynthesis) {
-      syms.push({
-        symbol: "\u2726",
-        title: "Perspective synthesis",
-        color: "#06b6d4"
-      });
-    }
-
-    // Combined versions
-    if (item.combineInstructions) {
-      syms.push({
-        symbol: "\u2727",
-        title: "Versions combined",
-        color: "#f59e0b"
-      });
-    }
-
-    // Cover image generated
-    if (item.coverImageComplete) {
-      syms.push({
-        symbol: "\u25A3",
-        title: "Cover image generated",
-        color: "#10b981"
-      });
-    }
-
-    // Lore backported (per-entity progress)
-    if (item.backportDone > 0) {
-      const allDone = item.backportDone === item.backportTotal;
-      syms.push({
-        symbol: "\u21C4",
-        title: `Backport: ${item.backportDone}/${item.backportTotal} entities`,
-        color: allDone ? "#10b981" : "#f59e0b"
-      });
-    }
-
-    // Historian notes
-    if (item.historianNoteCount > 0) {
-      syms.push({
-        symbol: "\u2020",
-        title: "Historian notes",
-        color: "#8b7355"
-      });
-    }
-
-    // Narrative lens
-    if (item.lens) {
-      syms.push({
-        symbol: "\u25C8",
-        title: `Lens: ${item.lens.entityName}`,
-        color: "#8b5cf6"
-      });
-    }
-
-    // Temporal alignment check
-    if (item.hasTemporalNarrative) {
-      syms.push({
-        symbol: "\u29D6",
-        title: item.hasTemporalCheck ? "Temporal alignment checked" : "Temporal narrative (no alignment check)",
-        color: item.hasTemporalCheck ? "#f59e0b" : "var(--text-muted)"
-      });
-    }
-
-    // Historian prep
-    if (item.hasHistorianPrep) {
-      syms.push({
-        symbol: "\u270E",
-        title: "Historian prep brief",
-        color: "#8b7355"
-      });
-    }
-
-    // Assigned tone
-    if (item.assignedTone) {
-      const toneSymbols = {
-        witty: "\u2736",
-        weary: "\u25CB",
-        forensic: "\u25C8",
-        elegiac: "\u25C7",
-        cantankerous: "\u266F"
-      };
-      const toneLabels = {
-        witty: "Witty",
-        weary: "Weary",
-        forensic: "Forensic",
-        elegiac: "Elegiac",
-        cantankerous: "Cantankerous"
-      };
-      syms.push({
-        symbol: toneSymbols[item.assignedTone] || "?",
-        title: `Tone: ${toneLabels[item.assignedTone] || item.assignedTone}`,
-        color: "#b8860b"
-      });
-    }
-    return syms;
-  }, [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.backportDone, item.backportTotal, item.historianNoteCount, item.lens, item.hasTemporalNarrative, item.hasTemporalCheck, item.hasHistorianPrep, item.assignedTone]);
+  const inlineSymbols = useMemo(() => buildInlineSymbols(item), [item.focusType, item.primaryCount, item.perspectiveSynthesis, item.combineInstructions, item.coverImageComplete, item.backportDone, item.backportTotal, item.historianNoteCount, item.lens, item.hasTemporalNarrative, item.hasTemporalCheck, item.hasHistorianPrep, item.assignedTone]);
 
   // Compact numeric badge: cast count + scene image count
   const castCount = (item.primaryCount || 0) + (item.supportingCount || 0);
@@ -1487,74 +1496,26 @@ export default function ChroniclePanel({
   // Bulk re-detect tertiary cast on all eligible chronicles
   const handleBulkDetectTertiary = useCallback(async () => {
     if (!simulationRunId) return;
-    setTertiaryDetectResult({
-      running: true,
-      count: 0
-    });
+    setTertiaryDetectResult({ running: true, count: 0 });
     try {
       const freshEntities = await getEntitiesForRun(simulationRunId);
-      const wikiEntities = [];
-      for (const entity of freshEntities) {
-        if (entity.kind === "era") continue;
-        wikiEntities.push({
-          id: entity.id,
-          name: entity.name
-        });
-        const aliases = entity.enrichment?.text?.aliases;
-        if (Array.isArray(aliases)) {
-          for (const alias of aliases) {
-            if (typeof alias === "string" && alias.length >= 3) {
-              wikiEntities.push({
-                id: entity.id,
-                name: alias
-              });
-            }
-          }
-        }
-      }
+      const wikiEntities = buildWikiEntitiesForTertiary(freshEntities);
       const eligible = chronicleItems.filter(c => c.status === "complete" || c.status === "assembly_ready");
       let updated = 0;
       for (const navItem of eligible) {
         const record = await getChronicle(navItem.chronicleId);
         if (!record) continue;
-        const content = record.finalContent || record.assembledContent;
-        if (!content) continue;
-        const mentions = findEntityMentions(content, wikiEntities);
-        const declaredIds = new Set(record.selectedEntityIds || []);
-        const prevDecisions = new Map((record.tertiaryCast || []).map(e => [e.entityId, e.accepted]));
-        const seen = new Set();
-        const entries = [];
-        for (const m of mentions) {
-          if (declaredIds.has(m.entityId) || seen.has(m.entityId)) continue;
-          seen.add(m.entityId);
-          const entity = freshEntities.find(e => e.id === m.entityId);
-          if (entity) {
-            entries.push({
-              entityId: entity.id,
-              name: entity.name,
-              kind: entity.kind,
-              matchedAs: content.slice(m.start, m.end),
-              matchStart: m.start,
-              matchEnd: m.end,
-              accepted: prevDecisions.get(entity.id) ?? true
-            });
-          }
-        }
+        const entries = computeTertiaryCastEntries(record, freshEntities, wikiEntities, findEntityMentions);
+        if (entries === null) continue;
         await updateChronicleTertiaryCast(navItem.chronicleId, entries);
         updated++;
       }
       await refresh();
-      setTertiaryDetectResult({
-        success: true,
-        count: updated
-      });
+      setTertiaryDetectResult({ success: true, count: updated });
       setTimeout(() => setTertiaryDetectResult(null), 4000);
     } catch (err) {
       console.error("[Chronicle] Bulk tertiary detect failed:", err);
-      setTertiaryDetectResult({
-        success: false,
-        error: String(err)
-      });
+      setTertiaryDetectResult({ success: false, error: String(err) });
       setTimeout(() => setTertiaryDetectResult(null), 6000);
     }
   }, [simulationRunId, chronicleItems, refresh]);
@@ -1723,12 +1684,7 @@ export default function ChroniclePanel({
     }
 
     // Extract prose hints from entity guidance (if available)
-    const proseHints = {};
-    for (const [kind, guidance] of Object.entries(entityGuidance || {})) {
-      if (guidance?.proseHint) {
-        proseHints[kind] = guidance.proseHint;
-      }
-    }
+    const proseHints = extractProseHints(entityGuidance);
 
     // Build the chronicle generation context (chronicle-first)
     const context = buildChronicleContext(selections, chronicleWorldData, wc, narrativeStyle, wizardNameBank, proseHints, cultureIdentities?.descriptive, wizardConfig.temporalContext, wizardConfig.narrativeDirection);
@@ -2035,7 +1991,7 @@ export default function ChroniclePanel({
           setEntitySearchSelectedId(null);
         }} onFocus={() => setShowEntitySuggestions(true)} onBlur={() => setTimeout(() => setShowEntitySuggestions(false), 100)} />
           {showEntitySuggestions && entitySuggestions.length > 0 && <div className="chron-filter-bar-suggestions">
-              {entitySuggestions.map(entity => <div key={entity.id} role="option" onMouseDown={e => {
+              {entitySuggestions.map(entity => <button type="button" key={entity.id} onMouseDown={e => {
             e.preventDefault();
             setEntitySearchQuery(entity.name || "");
             setEntitySearchSelectedId(entity.id);
@@ -2043,7 +1999,7 @@ export default function ChroniclePanel({
           }} className="chron-filter-bar-suggestion-item">
                   <span className="chron-filter-bar-suggestion-name">{entity.name}</span>
                   <span className="chron-filter-bar-suggestion-kind">{entity.kind}</span>
-                </div>)}
+                </button>)}
             </div>}
         </div>
       </div>
@@ -2348,12 +2304,12 @@ export default function ChroniclePanel({
           {!(isEraNarrativeSelected && selectedEraNarrativeId) && selectedItem && <>
               {/* Pipeline stage content */}
               {/* Not started = generation failed before producing content */}
-              {selectedItem.status === "not_started" && <div className="chron-detail-failed">
-                  <h3 className="chron-detail-failed-title">Generation Failed</h3>
-                  <p className="chron-detail-failed-msg">
+              {selectedItem.status === "not_started" && <div className="chron-detail-aborted">
+                  <h3 className="chron-detail-aborted-title">Generation Failed</h3>
+                  <p className="chron-detail-aborted-msg">
                     {selectedItem.failureReason || "Chronicle generation failed before producing content."}
                   </p>
-                  <button onClick={handleRegenerate} className="illuminator-button illuminator-button-primary chron-detail-failed-btn">
+                  <button onClick={handleRegenerate} className="illuminator-button illuminator-button-primary chron-detail-aborted-btn">
                     Delete &amp; Restart
                   </button>
                 </div>}
@@ -2374,12 +2330,12 @@ export default function ChroniclePanel({
                   </button>
                 </div>}
 
-              {selectedItem.status === "failed" && <div className="chron-detail-failed">
-                  <h3 className="chron-detail-failed-title">Generation Failed</h3>
-                  <p className="chron-detail-failed-msg">
+              {selectedItem.status === "failed" && <div className="chron-detail-aborted">
+                  <h3 className="chron-detail-aborted-title">Generation Failed</h3>
+                  <p className="chron-detail-aborted-msg">
                     {selectedItem.failureReason || "Chronicle generation failed. Please regenerate to try again."}
                   </p>
-                  <button onClick={handleRegenerate} className="illuminator-button illuminator-button-primary chron-detail-failed-btn">
+                  <button onClick={handleRegenerate} className="illuminator-button illuminator-button-primary chron-detail-aborted-btn">
                     Regenerate
                   </button>
                 </div>}

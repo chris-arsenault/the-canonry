@@ -1397,10 +1397,10 @@ function formatProminenceSnapshotLine(value: unknown, indentLevel: number): stri
   const snapshot = cloneAndStripRefs(value) as Record<string, unknown>;
   const parts = [`${indent(indentLevel)}prominence_snapshot`];
   if (typeof snapshot.enabled === 'boolean' || typeof snapshot.enabled === 'string') {
-    parts.push('enabled', String(snapshot.enabled));
+    parts.push('enabled', String(snapshot.enabled as boolean | string));
   }
   if (typeof snapshot.minProminence === 'string') {
-    parts.push('min_prominence', formatLabel(snapshot.minProminence));
+    parts.push('min_prominence', formatLabel(snapshot.minProminence as string));
   } else if (typeof snapshot.minProminence === 'number') {
     parts.push('min_prominence', formatLabel(String(snapshot.minProminence)));
   }
@@ -1903,7 +1903,7 @@ function formatTagDiffusionSystem(config: Record<string, unknown>, indentLevel: 
 
   if (typeof remaining.connectionKind === 'string' && typeof remaining.connectionDirection === 'string') {
     lines.push(
-      `${indent(indentLevel)}connection ${formatLabel(remaining.connectionKind)} ${remaining.connectionDirection}`
+      `${indent(indentLevel)}connection ${formatLabel(remaining.connectionKind as string)} ${remaining.connectionDirection as string}`
     );
     delete remaining.connectionKind;
     delete remaining.connectionDirection;

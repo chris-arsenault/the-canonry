@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useAsyncAction } from "../../../hooks/useAsyncAction";
 import PropTypes from "prop-types";
 import { ErrorMessage } from "@the-canonry/shared-components";
 import "./CultureSidebar.css";
@@ -12,7 +13,7 @@ function CultureSidebar({
   const [creatingCulture, setCreatingCulture] = useState(false);
   const [newCultureId, setNewCultureId] = useState("");
   const [newCultureName, setNewCultureName] = useState("");
-  const [error, setError] = useState(null);
+  const { error, setError } = useAsyncAction();
   const handleCreateCulture = () => {
     if (!newCultureId.trim()) {
       setError("Culture ID is required");

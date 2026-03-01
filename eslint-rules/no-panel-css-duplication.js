@@ -16,21 +16,22 @@ import { readFileSync, existsSync } from "fs";
 import { resolve, dirname, basename } from "path";
 
 // CSS property patterns that indicate duplication of panel-utilities.css
+// Each entry is an array of patterns that must ALL match the CSS content.
 const DUPLICATED_PATTERNS = [
   // .ilu-section pattern
-  /background:\s*var\(--bg-secondary\);\s*[\s\S]*?border-radius:\s*8px;\s*[\s\S]*?border:\s*1px solid var\(--border-color\)/,
+  [/background:\s*var\(--bg-secondary\)/, /border-radius:\s*8px/, /border:\s*1px solid var\(--border-color\)/],
   // .ilu-action-btn pattern
-  /padding:\s*8px 14px;\s*[\s\S]*?background:\s*var\(--bg-tertiary\);\s*[\s\S]*?border-radius:\s*6px/,
+  [/padding:\s*8px 14px/, /background:\s*var\(--bg-tertiary\)/, /border-radius:\s*6px/],
   // .ilu-container pattern
-  /background:\s*var\(--bg-secondary\);\s*[\s\S]*?overflow:\s*hidden/,
+  [/background:\s*var\(--bg-secondary\)/, /overflow:\s*hidden/],
   // .ilu-empty pattern (empty state)
-  /text-align:\s*center;\s*[\s\S]*?color:\s*var\(--text-muted\)/,
+  [/text-align:\s*center/, /color:\s*var\(--text-muted\)/],
   // .ilu-selection-bar pattern
-  /display:\s*flex;\s*[\s\S]*?align-items:\s*center;\s*[\s\S]*?justify-content:\s*space-between;\s*[\s\S]*?background:\s*var\(--bg-secondary\);\s*[\s\S]*?border:\s*1px solid var\(--accent-color\)/,
+  [/display:\s*flex/, /align-items:\s*center/, /justify-content:\s*space-between/, /background:\s*var\(--bg-secondary\)/, /border:\s*1px solid var\(--accent-color\)/],
   // .ilu-stats-grid pattern
-  /display:\s*grid;\s*[\s\S]*?grid-template-columns:\s*repeat\(auto-fit/,
+  [/display:\s*grid/, /grid-template-columns:\s*repeat\(auto-fit/],
   // .ilu-thumb-cover pattern (absolute positioned cover image)
-  /position:\s*absolute;\s*[\s\S]*?object-fit:\s*cover;\s*[\s\S]*?width:\s*100%;\s*[\s\S]*?height:\s*100%/,
+  [/position:\s*absolute/, /object-fit:\s*cover/, /width:\s*100%/, /height:\s*100%/],
 ];
 
 // Minimum number of duplicated patterns to trigger a warning
@@ -85,8 +86,8 @@ export default {
 
         // Count how many duplicated patterns appear
         let matchCount = 0;
-        for (const pattern of DUPLICATED_PATTERNS) {
-          if (pattern.test(cssContent)) {
+        for (const patterns of DUPLICATED_PATTERNS) {
+          if (patterns.every((p) => p.test(cssContent))) {
             matchCount++;
           }
         }

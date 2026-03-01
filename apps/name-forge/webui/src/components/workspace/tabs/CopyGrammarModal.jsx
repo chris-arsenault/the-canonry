@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useAsyncAction } from "../../../hooks/useAsyncAction";
 import PropTypes from "prop-types";
 import { ModalShell } from "@the-canonry/shared-components";
 import { previewGrammarNames } from "../../../lib/browser-generator";
@@ -114,7 +115,7 @@ function substituteToken(token, substitutions) {
  */
 function GrammarPreview({ grammar, domains, lexemeLists }) {
   const [names, setNames] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { busy: loading, run } = useAsyncAction();
 
   useEffect(() => {
     if (!grammar?.rules || Object.keys(grammar.rules).length === 0) {
@@ -123,26 +124,15 @@ function GrammarPreview({ grammar, domains, lexemeLists }) {
     }
 
     let cancelled = false;
-    setLoading(true);
-
-    previewGrammarNames({ grammar, domains, lexemeLists, count: 6 })
-      .then((result) => {
-        if (!cancelled) {
-          setNames(result);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setNames([]);
-          setLoading(false);
-        }
-      });
+    void run("preview", async () => {
+      const result = await previewGrammarNames({ grammar, domains, lexemeLists, count: 6 });
+      if (!cancelled) setNames(result);
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [grammar, domains, lexemeLists]);
+  }, [grammar, domains, lexemeLists, run]);
 
   if (!grammar?.rules || Object.keys(grammar.rules).length === 0) {
     return (

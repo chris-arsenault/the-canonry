@@ -5,12 +5,12 @@
 import React from 'react';
 
 interface SectionHeaderProps {
-  title: string;
-  description?: string;
-  icon?: string;
-  count?: string | number;
-  actions?: React.ReactNode;
-  className?: string;
+  readonly title: string;
+  readonly description?: string;
+  readonly icon?: string;
+  readonly count?: string | number;
+  readonly actions?: React.ReactNode;
+  readonly className?: string;
 }
 
 /**

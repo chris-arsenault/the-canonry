@@ -7,6 +7,7 @@
 import React, { useMemo, useEffect, useState, useCallback } from "react";
 import PropTypes from "prop-types";
 import { getChroniclesForSimulation } from "../lib/db/chronicleRepository";
+import { useAsyncAction } from "../hooks/useAsyncAction";
 import "./CoveragePanel.css";
 const STORAGE_KEY = "illuminator:coverageChronicleToggles";
 const normalizeFact = (fact, index) => {
@@ -114,7 +115,7 @@ export default function CoveragePanel({
   onWorldContextChange
 }) {
   const [chronicles, setChronicles] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { busy: loading, run } = useAsyncAction();
   const [expanded, setExpanded] = useState(true);
   const [disabledChronicles, setDisabledChronicles] = useState(() => {
     try {
@@ -133,19 +134,14 @@ export default function CoveragePanel({
   useEffect(() => {
     if (!simulationRunId) return;
     let cancelled = false;
-    setLoading(true);
-    getChroniclesForSimulation(simulationRunId).then(records => {
+    void run("load", async () => {
+      const records = await getChroniclesForSimulation(simulationRunId);
       if (!cancelled) setChronicles(records);
-    }).catch(err => {
-      console.error("[Coverage] Failed to load chronicles:", err);
-      if (!cancelled) setChronicles([]);
-    }).finally(() => {
-      if (!cancelled) setLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [simulationRunId]);
+  }, [simulationRunId, run]);
   const toggleChronicle = useCallback(chronicleId => {
     setDisabledChronicles(prev => ({
       ...prev,

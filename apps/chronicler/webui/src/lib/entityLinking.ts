@@ -171,6 +171,50 @@ const defaultLinkStyle: React.CSSProperties = {
   textDecoration: "none",
 };
 
+/** Process one React node (string or non-string) for a single entity match. */
+function replaceEntityInPart(
+  part: React.ReactNode,
+  entityId: string,
+  entityName: string,
+  firstOccurrenceOnly: boolean,
+  alreadyFound: boolean,
+  linkStyle: React.CSSProperties,
+  onNavigate: (entityId: string) => void,
+  onHoverEnter: ((id: string, e: React.MouseEvent) => void) | undefined,
+  onHoverLeave: (() => void) | undefined
+): { nodes: React.ReactNode[]; found: boolean } {
+  if (typeof part !== "string") return { nodes: [part], found: false };
+  if (firstOccurrenceOnly && alreadyFound) return { nodes: [part], found: false };
+
+  const regex = new RegExp(buildNamePattern(entityName), "gi");
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  const segments: React.ReactNode[] = [];
+  let found = false;
+
+  while ((match = regex.exec(part)) !== null) {
+    if (match.index > lastIndex) segments.push(part.slice(lastIndex, match.index));
+    segments.push(
+      React.createElement("span", {
+        key: `${entityId}-${match.index}`,
+        style: linkStyle,
+        onClick: (e: React.MouseEvent) => { e.stopPropagation(); onNavigate(entityId); },
+        onMouseEnter: onHoverEnter ? (e: React.MouseEvent) => onHoverEnter(entityId, e) : undefined,
+        onMouseLeave: onHoverLeave,
+      }, match[0])
+    );
+    lastIndex = regex.lastIndex;
+    found = true;
+    if (firstOccurrenceOnly) break;
+  }
+
+  if (segments.length > 0) {
+    if (lastIndex < part.length) segments.push(part.slice(lastIndex));
+    return { nodes: segments, found };
+  }
+  return { nodes: [part], found: false };
+}
+
 /**
  * Convert text to React nodes with clickable entity links.
  * Used for non-markdown content like timeline tables where we need React elements.
@@ -187,91 +231,28 @@ export function linkifyText(
   onNavigate: (entityId: string) => void,
   options: LinkifyOptions = {}
 ): React.ReactNode {
-  const {
-    linkStyle = defaultLinkStyle,
-    firstOccurrenceOnly = true,
-    onHoverEnter,
-    onHoverLeave,
-  } = options;
+  const { linkStyle = defaultLinkStyle, firstOccurrenceOnly = true, onHoverEnter, onHoverLeave } = options;
 
-  // Sort by name length (longest first) to match longer names first
   const sortedEntities = [...entities].sort((a, b) => b.name.length - a.name.length);
-
   let result: React.ReactNode[] = [text];
   const linkedNames = new Set<string>();
 
   for (const { name, id } of sortedEntities) {
     if (name.length < 3) continue;
-
-    // Skip if we already linked this name and firstOccurrenceOnly is true
     const nameLower = name.toLowerCase();
     if (firstOccurrenceOnly && linkedNames.has(nameLower)) continue;
 
-    const regex = new RegExp(buildNamePattern(name), "gi");
-    const newResult: React.ReactNode[] = [];
     let foundMatch = false;
-
+    const newResult: React.ReactNode[] = [];
     for (const part of result) {
-      if (typeof part !== "string") {
-        newResult.push(part);
-        continue;
-      }
-
-      // Skip if firstOccurrenceOnly and we already found a match for this name
-      if (firstOccurrenceOnly && foundMatch) {
-        newResult.push(part);
-        continue;
-      }
-
-      let lastIndex = 0;
-      let match: RegExpExecArray | null;
-      const segments: React.ReactNode[] = [];
-
-      while ((match = regex.exec(part)) !== null) {
-        // Add text before match
-        if (match.index > lastIndex) {
-          segments.push(part.slice(lastIndex, match.index));
-        }
-
-        // Add linked entity
-        segments.push(
-          React.createElement(
-            "span",
-            {
-              key: `${id}-${match.index}`,
-              style: linkStyle,
-              onClick: (e: React.MouseEvent) => {
-                e.stopPropagation();
-                onNavigate(id);
-              },
-              onMouseEnter: onHoverEnter ? (e: React.MouseEvent) => onHoverEnter(id, e) : undefined,
-              onMouseLeave: onHoverLeave,
-            },
-            match[0]
-          )
-        );
-
-        lastIndex = regex.lastIndex;
-        foundMatch = true;
-
-        // If firstOccurrenceOnly, stop after first match
-        if (firstOccurrenceOnly) break;
-      }
-
-      if (segments.length > 0) {
-        // Add remaining text after last match
-        if (lastIndex < part.length) {
-          segments.push(part.slice(lastIndex));
-        }
-        newResult.push(...segments);
-      } else {
-        newResult.push(part);
-      }
+      const { nodes, found } = replaceEntityInPart(
+        part, id, name, firstOccurrenceOnly, foundMatch,
+        linkStyle, onNavigate, onHoverEnter, onHoverLeave
+      );
+      newResult.push(...nodes);
+      if (found) foundMatch = true;
     }
-
-    if (foundMatch) {
-      linkedNames.add(nameLower);
-    }
+    if (foundMatch) linkedNames.add(nameLower);
     result = newResult;
   }
 

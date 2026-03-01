@@ -16,19 +16,20 @@ import { readFileSync, existsSync } from "fs";
 import { resolve, dirname, basename } from "path";
 
 // CSS property patterns that indicate duplication of matrix-base.css
+// Each entry is an array of patterns that must ALL match the CSS content.
 const DUPLICATED_PATTERNS = [
   // mat-layout pattern: flex column container at full height
-  /display:\s*flex;\s*[\s\S]*?flex-direction:\s*column;\s*[\s\S]*?height:\s*100%/,
+  [/display:\s*flex/, /flex-direction:\s*column/, /height:\s*100%/],
   // mat-scroll-area pattern: scrollable table container
-  /flex:\s*1;\s*[\s\S]*?overflow:\s*auto;\s*[\s\S]*?border-radius:\s*12px/,
+  [/flex:\s*1/, /overflow:\s*auto/, /border-radius:\s*12px/],
   // mat-table pattern: full-width collapsed table
-  /width:\s*100%;\s*[\s\S]*?border-collapse:\s*collapse;\s*[\s\S]*?font-size:\s*13px/,
+  [/width:\s*100%/, /border-collapse:\s*collapse/, /font-size:\s*13px/],
   // mat-table th pattern: sticky uppercase header
-  /position:\s*sticky;\s*[\s\S]*?text-transform:\s*uppercase;\s*[\s\S]*?letter-spacing:\s*0\.5px/,
+  [/position:\s*sticky/, /text-transform:\s*uppercase/, /letter-spacing:\s*0\.5px/],
   // mat-search pattern: dark search input with focus accent
-  /background:\s*rgb\(15 23 42\s*\/\s*60%\);\s*[\s\S]*?border:\s*1px solid rgb\(59 130 246\s*\/\s*20%\);\s*[\s\S]*?border-radius:\s*6px;\s*[\s\S]*?color:\s*#fff/,
+  [/background:\s*rgb\(15 23 42[ ]*\/[ ]*60%\)/, /border:\s*1px solid rgb\(59 130 246[ ]*\/[ ]*20%\)/, /color:\s*#fff/],
   // mat-legend pattern: legend bar with bg/border
-  /background:\s*rgb\(15 23 42\s*\/\s*40%\);\s*[\s\S]*?border:\s*1px solid rgb\(59 130 246\s*\/\s*15%\);\s*[\s\S]*?border-radius:\s*8px/,
+  [/background:\s*rgb\(15 23 42[ ]*\/[ ]*40%\)/, /border:\s*1px solid rgb\(59 130 246[ ]*\/[ ]*15%\)/, /border-radius:\s*8px/],
 ];
 
 // Minimum number of duplicated patterns to trigger a warning
@@ -82,8 +83,8 @@ export default {
 
         // Count how many duplicated patterns appear
         let matchCount = 0;
-        for (const pattern of DUPLICATED_PATTERNS) {
-          if (pattern.test(cssContent)) {
+        for (const patterns of DUPLICATED_PATTERNS) {
+          if (patterns.every((p) => p.test(cssContent))) {
             matchCount++;
           }
         }

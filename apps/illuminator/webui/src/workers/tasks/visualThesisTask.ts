@@ -74,6 +74,50 @@ Output 2-4 traits, one per line. Each 3-8 words, adding something NEW.`;
 }
 
 // ---------------------------------------------------------------------------
+// Execution Helpers
+// ---------------------------------------------------------------------------
+
+async function fetchTraitGuidanceSafe(
+  projectId: string | undefined,
+  simulationRunId: string | undefined,
+  entityKind: string | undefined,
+  entitySubtype: string | undefined,
+  entityEraId: string | undefined
+): Promise<TraitGuidance | undefined> {
+  if (!projectId || !simulationRunId || !entityKind) return undefined;
+  try {
+    return await getTraitGuidance(projectId, simulationRunId, entityKind, entitySubtype, entityEraId);
+  } catch (err) {
+    console.warn("[Worker] Failed to fetch trait guidance:", err);
+    return undefined;
+  }
+}
+
+async function registerTraitsSafe(
+  projectId: string | undefined,
+  simulationRunId: string | undefined,
+  entityKind: string | undefined,
+  entityId: string | undefined,
+  entityName: string | undefined,
+  visualTraits: string[]
+): Promise<void> {
+  if (!projectId || !simulationRunId || !entityKind || visualTraits.length === 0) return;
+  try {
+    await registerUsedTraits(projectId, simulationRunId, entityKind, entityId ?? "", entityName ?? "", visualTraits);
+    await incrementPaletteUsage(projectId, entityKind, visualTraits);
+  } catch (err) {
+    console.warn("[Worker] Failed to register traits:", err);
+  }
+}
+
+function parseVisualTraits(text: string): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.replace(/^[-*\u2022]\s*/, "").trim())
+    .filter((line) => line.length > 0);
+}
+
+// ---------------------------------------------------------------------------
 // Task Handler
 // ---------------------------------------------------------------------------
 
@@ -187,20 +231,9 @@ Generate the visual thesis.`;
 
     const traitsConfig = getCallConfig(config, "description.visualTraits");
 
-    let traitGuidance: TraitGuidance | undefined;
-    try {
-      if (task.projectId && task.simulationRunId && task.entityKind) {
-        traitGuidance = await getTraitGuidance(
-          task.projectId,
-          task.simulationRunId,
-          task.entityKind,
-          task.entitySubtype,
-          task.entityEraId
-        );
-      }
-    } catch (err) {
-      console.warn("[Worker] Failed to fetch trait guidance:", err);
-    }
+    const traitGuidance = await fetchTraitGuidanceSafe(
+      task.projectId, task.simulationRunId, task.entityKind, task.entitySubtype, task.entityEraId
+    );
 
     if (!task.visualTraitsInstructions) {
       return {
@@ -249,10 +282,7 @@ Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
       };
     }
 
-    const visualTraits = traitsResult.text
-      .split("\n")
-      .map((line) => line.replace(/^[-*\u2022]\s*/, "").trim())
-      .filter((line) => line.length > 0);
+    const visualTraits = parseVisualTraits(traitsResult.text);
 
     totalInputTokens += traitsCall.usage.inputTokens;
     totalOutputTokens += traitsCall.usage.outputTokens;
@@ -262,21 +292,9 @@ Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
     // Register traits and save cost record
     // ========================================================================
 
-    try {
-      if (task.projectId && task.simulationRunId && task.entityKind && visualTraits.length > 0) {
-        await registerUsedTraits(
-          task.projectId,
-          task.simulationRunId,
-          task.entityKind,
-          task.entityId,
-          task.entityName,
-          visualTraits
-        );
-        await incrementPaletteUsage(task.projectId, task.entityKind, visualTraits);
-      }
-    } catch (err) {
-      console.warn("[Worker] Failed to register traits:", err);
-    }
+    await registerTraitsSafe(
+      task.projectId, task.simulationRunId, task.entityKind, task.entityId, task.entityName, visualTraits
+    );
 
     const estimatedTotals = {
       estimatedCost: thesisCall.estimate.estimatedCost + traitsCall.estimate.estimatedCost,

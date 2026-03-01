@@ -12,11 +12,11 @@ interface ChipSelectOption {
 }
 
 interface ChipSelectProps {
-  value?: string[];
-  onChange: (value: string[]) => void;
-  options: ChipSelectOption[];
-  placeholder?: string;
-  label?: string;
+  readonly value?: string[];
+  readonly onChange: (value: string[]) => void;
+  readonly options: ChipSelectOption[];
+  readonly placeholder?: string;
+  readonly label?: string;
 }
 
 /**

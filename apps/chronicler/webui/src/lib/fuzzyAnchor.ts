@@ -130,6 +130,65 @@ export interface FuzzyAnchorResult {
   method: "exact" | "fuzzy";
 }
 
+/** Slide a window over words and find the best-scoring center index. */
+function findBestWordCenter(
+  words: WordPos[],
+  phraseWordSet: Set<string>,
+  halfWindow: number
+): { bestScore: number; bestCenter: number } {
+  let bestScore = 0;
+  let bestCenter = -1;
+  for (let i = 0; i < words.length; i++) {
+    let score = 0;
+    const start = Math.max(0, i - halfWindow);
+    const end = Math.min(words.length, i + halfWindow + 1);
+    for (let j = start; j < end; j++) {
+      if (phraseWordSet.has(words[j].normalized)) score++;
+    }
+    if (score > bestScore) { bestScore = score; bestCenter = i; }
+  }
+  return { bestScore, bestCenter };
+}
+
+/** Find the sentence boundaries around a center position. */
+function findSentenceBoundaries(
+  text: string,
+  centerCharStart: number,
+  centerCharEnd: number,
+  charStart: number,
+  charEnd: number
+): { sentenceStart: number; sentenceEnd: number } {
+  let sentenceStart = charStart;
+  for (let c = centerCharStart - 1; c >= Math.max(0, charStart - 200); c--) {
+    if (c === 0) { sentenceStart = 0; break; }
+    const ch = text[c];
+    if ((ch === "." || ch === "!" || ch === "?") && c + 1 < text.length && /\s/.test(text[c + 1])) {
+      sentenceStart = c + 2;
+      break;
+    }
+  }
+  let sentenceEnd = charEnd;
+  for (let c = centerCharEnd; c < Math.min(text.length, charEnd + 200); c++) {
+    const ch = text[c];
+    if (ch === "." || ch === "!" || ch === "?") { sentenceEnd = c + 1; break; }
+  }
+  return { sentenceStart, sentenceEnd };
+}
+
+/** Resolve a candidate to a unique substring, or return the original. */
+function resolveUniqueCandidate(
+  text: string,
+  candidate: string,
+  centerCharStart: number,
+  anchorWordCount: number
+): string {
+  if (!candidate || candidate.length < 3) return candidate;
+  const firstOccurrence = text.indexOf(candidate);
+  const secondOccurrence = text.indexOf(candidate, firstOccurrence + 1);
+  if (secondOccurrence < 0) return candidate;
+  return findUniqueSpan(text, centerCharStart, anchorWordCount) ?? candidate;
+}
+
 /**
  * Resolve an LLM-produced anchor phrase to a verbatim substring in the text.
  *
@@ -139,124 +198,49 @@ export function resolveAnchorPhrase(anchorPhrase: string, text: string): FuzzyAn
   if (!anchorPhrase || !text) return null;
 
   // 1. Exact match (case-insensitive)
-  const lowerText = text.toLowerCase();
   const lowerPhrase = anchorPhrase.toLowerCase();
-  const exactIdx = lowerText.indexOf(lowerPhrase);
+  const exactIdx = text.toLowerCase().indexOf(lowerPhrase);
   if (exactIdx >= 0) {
-    return {
-      phrase: text.slice(exactIdx, exactIdx + anchorPhrase.length),
-      index: exactIdx,
-      method: "exact",
-    };
+    return { phrase: text.slice(exactIdx, exactIdx + anchorPhrase.length), index: exactIdx, method: "exact" };
   }
 
   // 2. Fuzzy locate: find the region with highest content-word overlap
   const phraseContentWords = contentWords(anchorPhrase);
   if (phraseContentWords.length === 0) return null;
 
-  const phraseWordSet = new Set(phraseContentWords);
   const words = wordPositions(text);
   if (words.length === 0) return null;
 
-  // Window size: match the anchor phrase word count, with some slack
   const anchorWordCount = anchorPhrase.split(/\s+/).length;
-  const windowSize = Math.max(anchorWordCount, 4);
-  const halfWindow = Math.floor(windowSize / 2);
+  const halfWindow = Math.floor(Math.max(anchorWordCount, 4) / 2);
 
-  let bestScore = 0;
-  let bestCenter = -1;
-
-  // Score each word position by counting how many content words from the
-  // phrase appear within a window around it
-  for (let i = 0; i < words.length; i++) {
-    let score = 0;
-    const start = Math.max(0, i - halfWindow);
-    const end = Math.min(words.length, i + halfWindow + 1);
-    for (let j = start; j < end; j++) {
-      if (phraseWordSet.has(words[j].normalized)) {
-        score++;
-      }
-    }
-    if (score > bestScore) {
-      bestScore = score;
-      bestCenter = i;
-    }
-  }
+  const { bestScore, bestCenter } = findBestWordCenter(words, new Set(phraseContentWords), halfWindow);
 
   // Require at least 40% of content words to match
-  if (bestScore < Math.max(1, Math.ceil(phraseContentWords.length * 0.4))) {
-    return null;
-  }
+  if (bestScore < Math.max(1, Math.ceil(phraseContentWords.length * 0.4))) return null;
 
   // 3. Extract a verbatim span from the best region
-  // Take a window of similar word count centered on bestCenter
   const spanStart = Math.max(0, bestCenter - halfWindow);
   const spanEnd = Math.min(words.length - 1, bestCenter + halfWindow);
   const charStart = words[spanStart].start;
   const charEnd = words[spanEnd].end;
-
-  let candidate = text.slice(charStart, charEnd);
-
-  // Trim to sentence boundaries if the span crosses them — find the
-  // innermost sentence that contains the center word
   const centerCharStart = words[bestCenter].start;
   const centerCharEnd = words[bestCenter].end;
 
-  // Find sentence start (look backwards for . ! ? followed by space, or start of text)
-  let sentenceStart = charStart;
-  for (let c = centerCharStart - 1; c >= Math.max(0, charStart - 200); c--) {
-    if (c === 0) {
-      sentenceStart = 0;
-      break;
-    }
-    const ch = text[c];
-    if ((ch === "." || ch === "!" || ch === "?") && c + 1 < text.length && /\s/.test(text[c + 1])) {
-      sentenceStart = c + 2; // skip punctuation + space
-      break;
-    }
-  }
-
-  // Find sentence end (look forwards for . ! ?)
-  let sentenceEnd = charEnd;
-  for (let c = centerCharEnd; c < Math.min(text.length, charEnd + 200); c++) {
-    const ch = text[c];
-    if (ch === "." || ch === "!" || ch === "?") {
-      sentenceEnd = c + 1;
-      break;
-    }
-  }
+  const { sentenceStart, sentenceEnd } = findSentenceBoundaries(
+    text, centerCharStart, centerCharEnd, charStart, charEnd
+  );
 
   // Use the sentence if it's a reasonable length; otherwise use the raw span
   const sentence = text.slice(sentenceStart, sentenceEnd).trim();
-  if (sentence.length > 0 && sentence.length <= 300) {
-    candidate = sentence;
-  }
+  let candidate = sentence.length > 0 && sentence.length <= 300 ? sentence : text.slice(charStart, charEnd);
 
-  // Pick a unique sub-span if the candidate appears multiple times
-  // Try progressively shorter unique substrings from the center
-  if (candidate.length > 0) {
-    const firstOccurrence = text.indexOf(candidate);
-    const secondOccurrence = text.indexOf(candidate, firstOccurrence + 1);
-    if (secondOccurrence >= 0) {
-      // Not unique — try to shorten from the center of the best region
-      // Fall back to using the center word's sentence with more context
-      const uniqueCandidate = findUniqueSpan(text, centerCharStart, anchorWordCount);
-      if (uniqueCandidate) {
-        candidate = uniqueCandidate;
-      }
-    }
-  }
-
-  if (!candidate || candidate.length < 3) return null;
+  candidate = resolveUniqueCandidate(text, candidate, centerCharStart, anchorWordCount);
 
   const finalIdx = text.indexOf(candidate);
   if (finalIdx < 0) return null;
 
-  return {
-    phrase: candidate,
-    index: finalIdx,
-    method: "fuzzy",
-  };
+  return { phrase: candidate, index: finalIdx, method: "fuzzy" };
 }
 
 /**

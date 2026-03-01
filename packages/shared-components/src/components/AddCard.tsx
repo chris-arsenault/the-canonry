@@ -5,9 +5,9 @@
 import React from 'react';
 
 interface AddCardProps {
-  onClick: (e: React.MouseEvent | React.KeyboardEvent) => void;
-  label?: string;
-  className?: string;
+  readonly onClick: (e: React.MouseEvent | React.KeyboardEvent) => void;
+  readonly label?: string;
+  readonly className?: string;
 }
 
 /**

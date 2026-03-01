@@ -5,11 +5,11 @@
 import React from 'react';
 
 interface EmptyStateProps {
-  icon?: string;
-  title: string;
-  description?: string;
-  children?: React.ReactNode;
-  className?: string;
+  readonly icon?: string;
+  readonly title: string;
+  readonly description?: string;
+  readonly children?: React.ReactNode;
+  readonly className?: string;
 }
 
 /**

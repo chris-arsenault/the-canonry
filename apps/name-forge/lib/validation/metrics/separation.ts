@@ -12,6 +12,28 @@ import {
 } from "../analysis/classifier.js";
 import { euclideanDistance } from "../analysis/distance.js";
 
+function groupFeaturesByDomain(featureVectors: FeatureVector[]): Map<string, FeatureVector[]> {
+  const byDomain = new Map<string, FeatureVector[]>();
+  for (const fv of featureVectors) {
+    if (!byDomain.has(fv.domainId)) byDomain.set(fv.domainId, []);
+    byDomain.get(fv.domainId)!.push(fv);
+  }
+  return byDomain;
+}
+
+function buildConfusionMatrixRecord(
+  cvConfusion: Map<string, Map<string, number>>
+): Record<string, Record<string, number>> {
+  const result: Record<string, Record<string, number>> = {};
+  for (const [actual, predictions] of cvConfusion) {
+    result[actual] = {};
+    for (const [predicted, count] of predictions) {
+      result[actual][predicted] = count;
+    }
+  }
+  return result;
+}
+
 /** Find domain pairs with high confusion rates (> 30%). */
 function findHighConfusionPairs(confusionMatrix: Map<string, Map<string, number>>): string[] {
   const issues: string[] = [];
@@ -62,14 +84,7 @@ export function validateSeparation(
   // Build vocabulary and calculate centroids
   const vocabulary = buildVocabulary(allFeatureVectors);
   const centroids: Centroid[] = [];
-
-  const byDomain = new Map<string, FeatureVector[]>();
-  for (const fv of allFeatureVectors) {
-    if (!byDomain.has(fv.domainId)) {
-      byDomain.set(fv.domainId, []);
-    }
-    byDomain.get(fv.domainId)!.push(fv);
-  }
+  const byDomain = groupFeaturesByDomain(allFeatureVectors);
 
   for (const [domainId, vectors] of byDomain) {
     const centroidFeatures = calculateCentroid(
@@ -102,13 +117,7 @@ export function validateSeparation(
   const cvResult = crossValidate(allFeatureVectors, 5);
 
   // Build confusion matrix in the expected format
-  const confusionMatrix: Record<string, Record<string, number>> = {};
-  for (const [actual, predictions] of cvResult.confusionMatrix) {
-    confusionMatrix[actual] = {};
-    for (const [predicted, count] of predictions) {
-      confusionMatrix[actual][predicted] = count;
-    }
-  }
+  const confusionMatrix = buildConfusionMatrixRecord(cvResult.confusionMatrix);
 
   // Determine pass/fail
   const issues: string[] = [];

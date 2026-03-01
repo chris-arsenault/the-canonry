@@ -169,6 +169,15 @@ Rewrite every entity. Preserve visual thesis. Output complete rewritten text for
 // Task Execution
 // ============================================================================
 
+function parseSummaryRevisionResponse(resultText: string): SummaryRevisionLLMResponse {
+  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
+  const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("No JSON object found");
+  const parsed = JSON.parse(jsonMatch[0]) as SummaryRevisionLLMResponse;
+  if (!Array.isArray(parsed.patches)) throw new Error("Missing patches array");
+  return parsed;
+}
+
 async function executeSummaryRevisionTask(
   task: WorkerTask,
   context: TaskContext
@@ -250,11 +259,7 @@ async function executeSummaryRevisionTask(
     // Parse LLM response
     let parsed: SummaryRevisionLLMResponse;
     try {
-      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No JSON object found");
-      parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.patches)) throw new Error("Missing patches array");
+      parsed = parseSummaryRevisionResponse(resultText);
     } catch (err) {
       const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
       updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };

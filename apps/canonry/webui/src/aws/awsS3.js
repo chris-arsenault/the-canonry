@@ -270,6 +270,44 @@ function collectUploadReasons(entry, updatedAt, effectiveSize) {
   return reasons;
 }
 
+async function processUploadPlanImage(image, existing, candidates, repairSizes, canRepairManifest, manifestRepairs, repairs, db) {
+  if (!image?.imageId) return false;
+  const updatedAt = image.savedAt || image.generatedAt || 0;
+  const entry = existing[image.imageId];
+  const rawSize = image.size;
+  const normalizedSize = normalizeImageSize(rawSize);
+  let { effectiveSize, sizeSource, needsBlob } = resolveEffectiveSize(image, entry, updatedAt, normalizedSize, repairSizes);
+  let blob = null;
+  if (needsBlob) {
+    blob = await getImageBlob(image.imageId);
+    ({ effectiveSize, sizeSource } = applyBlobSize(blob, effectiveSize, sizeSource));
+  }
+  let manifestUpdated = false;
+  if (canRepairManifest && entry && entry.updatedAt >= updatedAt) {
+    if (repairManifestEntry(entry, updatedAt, effectiveSize, manifestRepairs)) {
+      manifestUpdated = true;
+    }
+  }
+  if (repairSizes && blob && effectiveSize != null && effectiveSize !== normalizedSize) {
+    await repairImageSize(db, image.imageId, effectiveSize, repairs);
+  }
+  const reasons = collectUploadReasons(entry, updatedAt, effectiveSize);
+  if (!reasons.length) return manifestUpdated;
+  candidates.push({
+    imageId: image.imageId,
+    entityId: image.entityId || null,
+    entityName: image.entityName || null,
+    imageType: image.imageType || "entity",
+    updatedAt,
+    size: rawSize ?? null,
+    effectiveSize,
+    sizeSource,
+    manifestUpdatedAt: entry?.updatedAt ?? null,
+    manifestSize: entry?.size ?? null,
+    reason: reasons.join("+"),
+  });
+  return manifestUpdated;
+}
 export async function getS3ImageUploadPlan({ projectId, s3, config, repairSizes = false }) {
   if (!projectId) throw new Error("Missing projectId for image sync");
   if (!s3) throw new Error("Missing S3 client");
@@ -304,48 +342,10 @@ export async function getS3ImageUploadPlan({ projectId, s3, config, repairSizes 
     }
 
     for (const image of images) {
-      if (!image?.imageId) continue;
-      const updatedAt = image.savedAt || image.generatedAt || 0;
-      const entry = existing[image.imageId];
-      const rawSize = image.size;
-      const normalizedSize = normalizeImageSize(rawSize);
-
-      let { effectiveSize, sizeSource, needsBlob } = resolveEffectiveSize(
-        image, entry, updatedAt, normalizedSize, repairSizes
+      const changed = await processUploadPlanImage(
+        image, existing, candidates, repairSizes, canRepairManifest, manifestRepairs, repairs, db
       );
-      let blob = null;
-
-      if (needsBlob) {
-        blob = await getImageBlob(image.imageId);
-        ({ effectiveSize, sizeSource } = applyBlobSize(blob, effectiveSize, sizeSource));
-      }
-
-      if (canRepairManifest && entry && entry.updatedAt >= updatedAt) {
-        if (repairManifestEntry(entry, updatedAt, effectiveSize, manifestRepairs)) {
-          manifestChanged = true;
-        }
-      }
-
-      if (repairSizes && blob && effectiveSize != null && effectiveSize !== normalizedSize) {
-        await repairImageSize(db, image.imageId, effectiveSize, repairs);
-      }
-
-      const reasons = collectUploadReasons(entry, updatedAt, effectiveSize);
-      if (!reasons.length) continue;
-
-      candidates.push({
-        imageId: image.imageId,
-        entityId: image.entityId || null,
-        entityName: image.entityName || null,
-        imageType: image.imageType || "entity",
-        updatedAt,
-        size: rawSize ?? null,
-        effectiveSize,
-        sizeSource,
-        manifestUpdatedAt: entry?.updatedAt ?? null,
-        manifestSize: entry?.size ?? null,
-        reason: reasons.join("+"),
-      });
+      if (changed) manifestChanged = true;
     }
   } finally {
     if (db) {
@@ -395,6 +395,18 @@ function buildManifestEntry(image, projectId, rawKey, blob, normalizedSize, cont
   };
 }
 
+async function fetchBlobForSync(image, entry, updatedAt, normalizedSize) {
+  let blob = null;
+  if (entry && entry.updatedAt >= updatedAt && normalizedSize == null) {
+    blob = await getImageBlob(image.imageId);
+  }
+  if (shouldSkipSyncImage(entry, updatedAt, normalizedSize, blob)) return { skip: true, blob: null };
+  if (!blob) {
+    blob = await getImageBlob(image.imageId);
+    if (!blob) return { skip: true, blob: null };
+  }
+  return { skip: false, blob };
+}
 export async function syncProjectImagesToS3({ projectId, s3, config, onProgress }) {
   if (!projectId) throw new Error("Missing projectId for image sync");
   if (!s3) throw new Error("Missing S3 client");
@@ -431,17 +443,8 @@ export async function syncProjectImagesToS3({ projectId, s3, config, onProgress 
     const entry = existing[image.imageId];
     const normalizedSize = normalizeImageSize(image.size);
 
-    let blob = null;
-    if (entry && entry.updatedAt >= updatedAt && normalizedSize == null) {
-      blob = await getImageBlob(image.imageId);
-    }
-
-    if (shouldSkipSyncImage(entry, updatedAt, normalizedSize, blob)) continue;
-
-    if (!blob) {
-      blob = await getImageBlob(image.imageId);
-      if (!blob) continue;
-    }
+    const { skip, blob } = await fetchBlobForSync(image, entry, updatedAt, normalizedSize);
+    if (skip) continue;
 
     const buffer = await blob.arrayBuffer();
     const body = new Uint8Array(buffer);

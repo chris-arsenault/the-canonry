@@ -401,8 +401,8 @@ export default function TraitPaletteSection({
 
       {/* Show recent errors */}
       {recentErrors.length > 0 && (
-        <div className="tps-error-section">
-          <div className="tps-error-content">
+        <div className="tps-issues-section">
+          <div className="tps-issues-content">
             <strong>Recent errors:</strong>
             {recentErrors.map((err) => (
               <ErrorMessage

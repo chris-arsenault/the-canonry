@@ -70,33 +70,33 @@ interface FilterOption {
 }
 
 interface MatrixRowProps {
-  row: MatrixRowData;
-  idx: number;
-  groupId: string;
-  groupLabel: string;
-  columns: MatrixColumn[];
-  getCellValue: (rowId: string, columnId: string, row: MatrixRowData) => string;
-  displayFn: (value: string, rowId: string, columnId: string) => CellDisplay;
-  onRowClick?: (rowId: string, row: MatrixRowData) => void;
-  onCellClick?: (rowId: string, columnId: string, value: string) => void;
+  readonly row: MatrixRowData;
+  readonly idx: number;
+  readonly groupId: string;
+  readonly groupLabel: string;
+  readonly columns: MatrixColumn[];
+  readonly getCellValue: (rowId: string, columnId: string, row: MatrixRowData) => string;
+  readonly displayFn: (value: string, rowId: string, columnId: string) => CellDisplay;
+  readonly onRowClick?: (rowId: string, row: MatrixRowData) => void;
+  readonly onCellClick?: (rowId: string, columnId: string, value: string) => void;
 }
 
 interface CoverageMatrixProps {
-  rows?: MatrixRowData[];
-  columns?: (string | MatrixColumn)[];
-  getCellValue: (rowId: string, columnId: string, row: MatrixRowData) => string;
-  getCellDisplay?: (value: string, rowId: string, columnId: string) => CellDisplay;
-  onRowClick?: (rowId: string, row: MatrixRowData) => void;
-  onCellClick?: (rowId: string, columnId: string, value: string) => void;
-  title?: string;
-  subtitle?: string;
-  stats?: StatItem[];
-  legend?: LegendItem[];
-  searchPlaceholder?: string;
-  groupByField?: string;
-  columnHeaderClass?: (columnId: string) => string;
-  emptyMessage?: string;
-  filterOptions?: FilterOption[];
+  readonly rows?: MatrixRowData[];
+  readonly columns?: (string | MatrixColumn)[];
+  readonly getCellValue: (rowId: string, columnId: string, row: MatrixRowData) => string;
+  readonly getCellDisplay?: (value: string, rowId: string, columnId: string) => CellDisplay;
+  readonly onRowClick?: (rowId: string, row: MatrixRowData) => void;
+  readonly onCellClick?: (rowId: string, columnId: string, value: string) => void;
+  readonly title?: string;
+  readonly subtitle?: string;
+  readonly stats?: StatItem[];
+  readonly legend?: LegendItem[];
+  readonly searchPlaceholder?: string;
+  readonly groupByField?: string;
+  readonly columnHeaderClass?: (columnId: string) => string;
+  readonly emptyMessage?: string;
+  readonly filterOptions?: FilterOption[];
 }
 
 function MatrixRow({ row, idx, groupId, groupLabel, columns, getCellValue, displayFn, onRowClick, onCellClick }: MatrixRowProps) {

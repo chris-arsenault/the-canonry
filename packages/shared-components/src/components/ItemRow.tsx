@@ -10,12 +10,12 @@
 import React from 'react';
 
 interface ItemRowProps {
-  name: string;
-  muted?: boolean;
-  onRemove?: () => void;
-  removeTitle?: string;
-  children?: React.ReactNode;
-  className?: string;
+  readonly name: string;
+  readonly muted?: boolean;
+  readonly onRemove?: () => void;
+  readonly removeTitle?: string;
+  readonly children?: React.ReactNode;
+  readonly className?: string;
 }
 
 /**

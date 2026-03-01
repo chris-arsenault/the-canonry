@@ -1022,26 +1022,7 @@ async function executeCompareStep(
   const narrativeStyleName = narrativeStyle?.name || chronicleRecord.narrativeStyleId || "unknown";
 
   // Build narrative style context block for the comparison agent
-  let narrativeStyleBlock = "";
-  if (narrativeStyle) {
-    const parts: string[] = [`**${narrativeStyle.name}** (${narrativeStyle.format})`];
-    if (narrativeStyle.description) parts.push(narrativeStyle.description);
-    if (narrativeStyle.format === "story") {
-      if (narrativeStyle.narrativeInstructions) {
-        parts.push(`Structure: ${narrativeStyle.narrativeInstructions.slice(0, 500)}`);
-      }
-      if (narrativeStyle.proseInstructions) {
-        parts.push(`Prose: ${narrativeStyle.proseInstructions.slice(0, 500)}`);
-      }
-    }
-    if (narrativeStyle.format === "document" && narrativeStyle.documentInstructions) {
-      parts.push(`Document: ${narrativeStyle.documentInstructions.slice(0, 500)}`);
-    }
-    if (narrativeStyle.craftPosture) {
-      parts.push(`Craft Posture: ${narrativeStyle.craftPosture.slice(0, 300)}`);
-    }
-    narrativeStyleBlock = parts.join("\n");
-  }
+  const narrativeStyleBlock = narrativeStyle ? extractNarrativeStyleBlock(narrativeStyle) : "";
 
   const versionsBlock = versions
     .map((v) => `## ${v.label}\nWord count: ${v.wordCount}\n\n${v.content}`)
@@ -1769,10 +1750,10 @@ function buildQuickCheckUserPrompt(chronicleRecord: ChronicleRecord, content: st
   }
 
   // Name bank
-  const nameBank = chronicleRecord.generationContext?.nameBank;
+  const nameBank = (chronicleRecord.generationContext as { nameBank?: Record<string, string[]> } | undefined)?.nameBank;
   if (nameBank && Object.keys(nameBank).length > 0) {
     const nbLines = Object.entries(nameBank).map(
-      ([culture, names]) => `${culture}: ${(names).join(", ")}`
+      ([culture, names]) => `${culture}: ${names.join(", ")}`
     );
     sections.push(`== NAME BANK (expected invented names) ==\n${nbLines.join("\n")}`);
   }
@@ -1984,7 +1965,7 @@ async function lookupTitleGuidance(styleId: string | undefined): Promise<string 
   if (!styleId) return undefined;
   const library = await getStyleLibrary();
   const style = library.narrativeStyles.find((s) => s.id === styleId);
-  return style?.titleGuidance;
+  return style?.titleGuidance as string | undefined;
 }
 
 function buildTitleStyleContext(ctx: TitlePromptContext): string {
@@ -2136,6 +2117,15 @@ function formatImageRefEntities(
  * Splits at whitespace boundaries to avoid cutting words.
  * Returns 3-7 chunks, weighted by content length (longer = more chunks).
  */
+function findWordBoundary(content: string, targetEnd: number): number {
+  if (targetEnd >= content.length) return targetEnd;
+  const searchEnd = Math.min(targetEnd + 50, content.length);
+  for (let j = targetEnd; j < searchEnd; j++) {
+    if (/\s/.test(content[j])) return j;
+  }
+  return targetEnd;
+}
+
 function splitIntoChunks(
   content: string
 ): Array<{ index: number; text: string; startOffset: number }> {
@@ -2169,21 +2159,7 @@ function splitIntoChunks(
     const targetEnd = Math.min(currentStart + targetChunkSize, content.length);
 
     // Find next whitespace after target end (don't cut words)
-    let actualEnd = targetEnd;
-    if (targetEnd < content.length) {
-      // Look for whitespace within 50 chars after target
-      const searchEnd = Math.min(targetEnd + 50, content.length);
-      for (let j = targetEnd; j < searchEnd; j++) {
-        if (/\s/.test(content[j])) {
-          actualEnd = j;
-          break;
-        }
-      }
-      // If no whitespace found, use target (rare edge case)
-      if (actualEnd === targetEnd && targetEnd < content.length) {
-        actualEnd = targetEnd;
-      }
-    }
+    const actualEnd = findWordBoundary(content, targetEnd);
 
     chunks.push({
       index: i,
@@ -2282,6 +2258,46 @@ ${chunksDisplay}`;
 /**
  * Parse the LLM response for image refs into structured ChronicleImageRef array
  */
+function parseOneImageRef(
+  ref: Record<string, unknown>,
+  index: number,
+  validSizes: ChronicleImageSize[]
+): ChronicleImageRef {
+  const refId = `imgref_${Date.now()}_${index}`;
+  const anchorText = typeof ref.anchorText === "string" ? ref.anchorText : "";
+  const rawSize = typeof ref.size === "string" ? ref.size : "medium";
+  const size: ChronicleImageSize = validSizes.includes(rawSize as ChronicleImageSize)
+    ? (rawSize as ChronicleImageSize)
+    : "medium";
+  const caption = typeof ref.caption === "string" ? ref.caption : undefined;
+
+  if (ref.type === "entity_ref") {
+    const entityId = typeof ref.entityId === "string" ? ref.entityId : "";
+    if (!entityId) {
+      throw new Error(`entity_ref at index ${index} missing entityId`);
+    }
+    return { refId, type: "entity_ref", entityId, anchorText, size, caption } as EntityImageRef;
+  } else if (ref.type === "prompt_request") {
+    const sceneDescription = typeof ref.sceneDescription === "string" ? ref.sceneDescription : "";
+    if (!sceneDescription) {
+      throw new Error(`prompt_request at index ${index} missing sceneDescription`);
+    }
+    let involvedEntityIds: string[] | undefined;
+    if (Array.isArray(ref.involvedEntityIds)) {
+      involvedEntityIds = (ref.involvedEntityIds as unknown[]).filter(
+        (id): id is string => typeof id === "string" && id.length > 0
+      );
+      if (involvedEntityIds.length === 0) involvedEntityIds = undefined;
+    }
+    return {
+      refId, type: "prompt_request", sceneDescription, involvedEntityIds,
+      anchorText, size, caption, status: "pending",
+    } as PromptRequestRef;
+  }
+  const typeStr = typeof ref.type === "string" ? ref.type : "unknown";
+  throw new Error(`Unknown image ref type at index ${index}: ${typeStr}`);
+}
+
 function parseImageRefsResponse(text: string): ChronicleImageRef[] {
   const parsed = parseJsonObject<Record<string, unknown>>(text, "image refs response");
   const rawRefs = parsed.imageRefs;
@@ -2292,57 +2308,9 @@ function parseImageRefsResponse(text: string): ChronicleImageRef[] {
 
   const validSizes: ChronicleImageSize[] = ["small", "medium", "large", "full-width"];
 
-  return rawRefs.map((ref: Record<string, unknown>, index: number) => {
-    const refId = `imgref_${Date.now()}_${index}`;
-    const anchorText = typeof ref.anchorText === "string" ? ref.anchorText : "";
-    const rawSize = typeof ref.size === "string" ? ref.size : "medium";
-    const size: ChronicleImageSize = validSizes.includes(rawSize as ChronicleImageSize)
-      ? (rawSize as ChronicleImageSize)
-      : "medium";
-    const caption = typeof ref.caption === "string" ? ref.caption : undefined;
-
-    if (ref.type === "entity_ref") {
-      const entityId = typeof ref.entityId === "string" ? ref.entityId : "";
-      if (!entityId) {
-        throw new Error(`entity_ref at index ${index} missing entityId`);
-      }
-      return {
-        refId,
-        type: "entity_ref",
-        entityId,
-        anchorText,
-        size,
-        caption,
-      } as EntityImageRef;
-    } else if (ref.type === "prompt_request") {
-      const sceneDescription = typeof ref.sceneDescription === "string" ? ref.sceneDescription : "";
-      if (!sceneDescription) {
-        throw new Error(`prompt_request at index ${index} missing sceneDescription`);
-      }
-      // Parse involvedEntityIds - can be array of strings or empty
-      let involvedEntityIds: string[] | undefined;
-      if (Array.isArray(ref.involvedEntityIds)) {
-        involvedEntityIds = ref.involvedEntityIds.filter(
-          (id): id is string => typeof id === "string" && id.length > 0
-        );
-        if (involvedEntityIds.length === 0) {
-          involvedEntityIds = undefined;
-        }
-      }
-      return {
-        refId,
-        type: "prompt_request",
-        sceneDescription,
-        involvedEntityIds,
-        anchorText,
-        size,
-        caption,
-        status: "pending",
-      } as PromptRequestRef;
-    } else {
-      throw new Error(`Unknown image ref type at index ${index}: ${String(ref.type)}`);
-    }
-  });
+  return rawRefs.map((ref: Record<string, unknown>, index: number) =>
+    parseOneImageRef(ref, index, validSizes)
+  );
 }
 
 async function executeSummaryStep(
@@ -2450,6 +2418,42 @@ async function executeSummaryStep(
   };
 }
 
+function parseTitleJsonList(text: string | undefined, key: string): string[] {
+  if (!text) return [];
+  try {
+    const parsed = parseJsonObject<Record<string, unknown>>(text, `title ${key} response`);
+    if (Array.isArray(parsed[key])) {
+      return (parsed[key] as unknown[])
+        .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+        .map((v) => v.trim());
+    }
+  } catch {
+    // parse failed — return empty
+  }
+  return [];
+}
+
+async function buildTitleContext(
+  chronicleRecord: ChronicleRecord
+): Promise<TitlePromptContext> {
+  const format = chronicleRecord.format || "story";
+  const ns = chronicleRecord.narrativeStyle as NarrativeStyle | undefined;
+  const ps = chronicleRecord.perspectiveSynthesis;
+  return {
+    format,
+    narrativeStyleName: ns?.name,
+    narrativeStyleDescription: ns?.description,
+    narrativeInstructions: ns?.format === "story" ? ns.narrativeInstructions : undefined,
+    proseInstructions: ns?.format === "story" ? ns.proseInstructions : undefined,
+    documentInstructions: ns?.format === "document" ? ns.documentInstructions : undefined,
+    titleGuidance:
+      ns?.titleGuidance ||
+      (await lookupTitleGuidance(chronicleRecord.narrativeStyleId || ns?.id)),
+    perspectiveBrief: ps?.brief,
+    motifs: ps?.suggestedMotifs,
+  };
+}
+
 async function executeTitleStep(
   task: WorkerTask,
   chronicleRecord: Awaited<ReturnType<typeof getChronicle>>,
@@ -2469,30 +2473,7 @@ async function executeTitleStep(
 
   const callConfig = getCallConfig(config, "chronicle.title");
   const chronicleId = chronicleRecord.chronicleId;
-  const narrativeStyle = chronicleRecord.narrativeStyle;
-  const format = chronicleRecord.format || "story";
-
-  const ps = chronicleRecord.perspectiveSynthesis;
-  const titleCtx: TitlePromptContext = {
-    format,
-    narrativeStyleName: narrativeStyle?.name,
-    narrativeStyleDescription: narrativeStyle?.description,
-    narrativeInstructions:
-      narrativeStyle?.format === "story"
-        ? narrativeStyle.narrativeInstructions
-        : undefined,
-    proseInstructions:
-      narrativeStyle?.format === "story" ? narrativeStyle.proseInstructions : undefined,
-    documentInstructions:
-      narrativeStyle?.format === "document"
-        ? narrativeStyle.documentInstructions
-        : undefined,
-    titleGuidance:
-      narrativeStyle?.titleGuidance ||
-      (await lookupTitleGuidance(chronicleRecord.narrativeStyleId || narrativeStyle?.id)),
-    perspectiveBrief: ps?.brief,
-    motifs: ps?.suggestedMotifs,
-  };
+  const titleCtx = await buildTitleContext(chronicleRecord);
 
   const debugParts: string[] = [];
 
@@ -2519,22 +2500,7 @@ async function executeTitleStep(
   }
 
   // Parse fragments — graceful fallback to empty if extraction fails
-  let fragments: string[] = [];
-  if (!fragmentCall.result.error && fragmentCall.result.text) {
-    try {
-      const parsed = parseJsonObject<Record<string, unknown>>(
-        fragmentCall.result.text,
-        "fragment extraction response"
-      );
-      if (Array.isArray(parsed.fragments)) {
-        fragments = parsed.fragments
-          .filter((f): f is string => typeof f === "string" && f.trim().length > 0)
-          .map((f) => f.trim());
-      }
-    } catch {
-      // Fragment parse failed — Phase 2 will work with motifs/brief alone
-    }
-  }
+  const fragments = parseTitleJsonList(fragmentCall.result.text, "fragments");
 
   // --- Phase 2: Title Shaping (convergent, lower temperature) ---
   const shapingSystemPrompt = buildTitleShapingSystemPrompt(titleCtx);
@@ -2559,22 +2525,7 @@ async function executeTitleStep(
     };
   }
 
-  let candidates: string[] = [];
-  if (!shapingCall.result.error && shapingCall.result.text) {
-    try {
-      const parsed = parseJsonObject<Record<string, unknown>>(
-        shapingCall.result.text,
-        "title shaping response"
-      );
-      if (Array.isArray(parsed.titles)) {
-        candidates = parsed.titles
-          .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
-          .map((t) => t.trim());
-      }
-    } catch {
-      // Title parse failed
-    }
-  }
+  let candidates = parseTitleJsonList(shapingCall.result.text, "titles");
 
   if (candidates.length > 0) {
     const seen = new Set<string>();

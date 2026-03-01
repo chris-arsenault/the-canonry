@@ -314,21 +314,26 @@ export class SemanticEnricher {
     return coalescenceEvents;
   }
 
+  private addPartOfEffectsFromParticipant(
+    partOfByTarget: Map<string, Array<{ srcId: string; srcName: string }>>,
+    participant: NonNullable<NarrativeEvent['participantEffects']>[number]
+  ): void {
+    for (const effect of participant.effects) {
+      if (effect.type !== 'relationship_formed' || effect.relationshipKind !== 'part_of' || !effect.relatedEntity) continue;
+      const targetId = effect.relatedEntity.id;
+      if (!partOfByTarget.has(targetId)) partOfByTarget.set(targetId, []);
+      partOfByTarget.get(targetId)!.push({ srcId: participant.entity.id, srcName: participant.entity.name });
+    }
+  }
+
   private collectPartOfFormations(events: NarrativeEvent[]): Map<string, Array<{ srcId: string; srcName: string }>> {
     const partOfByTarget = new Map<string, Array<{ srcId: string; srcName: string }>>();
-
     for (const event of events) {
       if (!event.participantEffects) continue;
       for (const participant of event.participantEffects) {
-        for (const effect of participant.effects) {
-          if (effect.type !== 'relationship_formed' || effect.relationshipKind !== 'part_of' || !effect.relatedEntity) continue;
-          const targetId = effect.relatedEntity.id;
-          if (!partOfByTarget.has(targetId)) partOfByTarget.set(targetId, []);
-          partOfByTarget.get(targetId)!.push({ srcId: participant.entity.id, srcName: participant.entity.name });
-        }
+        this.addPartOfEffectsFromParticipant(partOfByTarget, participant);
       }
     }
-
     return partOfByTarget;
   }
 

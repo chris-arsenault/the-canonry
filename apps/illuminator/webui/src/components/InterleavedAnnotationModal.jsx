@@ -9,6 +9,7 @@ import React, { useEffect } from "react";
 import PropTypes from "prop-types";
 import { TONE_META } from "./HistorianToneSelector";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import "./InterleavedAnnotationModal.css";
 const PILL_ID = "interleaved-annotation";
 export default function InterleavedAnnotationModal({
@@ -184,14 +185,17 @@ export default function InterleavedAnnotationModal({
                   {progress.processedChronicles} chronicles, {progress.processedEntities} entities).
                 </div>}
 
-              {progress.status === "failed" && <div className="iam-terminal-failed">
-                  {progress.error || "An unexpected error occurred."}
-                </div>}
+              {progress.status === "failed" && (
+                <ErrorMessage
+                  message={progress.error || "An unexpected error occurred."}
+                  className="iam-terminal-aborted"
+                />
+              )}
 
               {/* Failed items list */}
-              {isTerminal && progress.failedItems.length > 0 && <div className="iam-failed-section">
-                  <div className="iam-failed-label">Failed ({progress.failedItems.length})</div>
-                  {progress.failedItems.map((f, i) => <div key={i} className="iam-failed-item">
+              {isTerminal && progress.failedItems.length > 0 && <div className="iam-issues-section">
+                  <div className="iam-issues-label">Failed ({progress.failedItems.length})</div>
+                  {progress.failedItems.map((f, i) => <div key={i} className="iam-issues-item">
                       {f.item.type === "chronicle" ? f.item.title : f.item.entityName}: {f.error}
                     </div>)}
                 </div>}

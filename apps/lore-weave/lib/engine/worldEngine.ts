@@ -517,7 +517,7 @@ export class WorldEngine {
       return;
     }
 
-    if (isDeclarativeSystem(sys) && (sys as DeclarativeGrowthSystem).systemType === 'growth') {
+    if (isDeclarativeSystem(sys) && sys.systemType === 'growth') {
       if (this.growthSystem) {
         throw new Error('Multiple growth systems configured. Only one growth system is supported.');
       }

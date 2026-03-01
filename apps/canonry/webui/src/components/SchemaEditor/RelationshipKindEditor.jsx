@@ -2,7 +2,7 @@
  * RelationshipKindEditor - Edit relationship kinds
  */
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import PropTypes from "prop-types";
 import {
   ExpandableCard,

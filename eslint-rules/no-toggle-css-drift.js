@@ -18,20 +18,23 @@ const CANONICAL_TOGGLE_CLASSES = new Set([
   "toggle-label",
 ]);
 
-// Matches class-name-like tokens that contain "toggle" (hyphenated identifiers)
-const TOGGLE_CLASS_PATTERN = /\b[\w]*(toggle[\w-]*)\b/gi;
+// Matches the toggle-starting portion of a class name token
+const TOGGLE_SUFFIX_RE = /toggle[-\w]*/i;
 
 function checkStringForNonCanonicalToggle(value, node, context) {
-  let match;
-  TOGGLE_CLASS_PATTERN.lastIndex = 0;
-  while ((match = TOGGLE_CLASS_PATTERN.exec(value)) !== null) {
-    const className = match[1].toLowerCase();
+  // Split on whitespace to isolate each class name token
+  const tokens = value.trim().split(/\s+/);
+  for (const token of tokens) {
+    if (!token.toLowerCase().includes("toggle")) continue;
+    const m = TOGGLE_SUFFIX_RE.exec(token);
+    if (!m) continue;
+    const className = m[0].toLowerCase();
     // Only flag if this looks like a toggle class but isn't canonical
-    if (className.includes("toggle") && !CANONICAL_TOGGLE_CLASSES.has(className)) {
+    if (!CANONICAL_TOGGLE_CLASSES.has(className)) {
       context.report({
         node,
         messageId: "nonCanonicalToggle",
-        data: { className: match[1] },
+        data: { className: m[0] },
       });
     }
   }

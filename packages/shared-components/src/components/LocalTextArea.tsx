@@ -26,11 +26,11 @@
 import React, { useState, useCallback } from 'react';
 
 interface LocalTextAreaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange'> {
-  value?: string;
-  onChange: (value: string) => void;
-  className?: string;
-  placeholder?: string;
-  rows?: number;
+  readonly value?: string;
+  readonly onChange: (value: string) => void;
+  readonly className?: string;
+  readonly placeholder?: string;
+  readonly rows?: number;
 }
 
 export function LocalTextArea({

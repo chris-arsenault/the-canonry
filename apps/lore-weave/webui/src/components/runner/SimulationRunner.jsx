@@ -564,7 +564,7 @@ export default function SimulationRunner({
       )}
 
       {simState.error && (
-        <div className="lw-error-box">
+        <div className="lw-issue-box">
           <strong>Error:</strong> {simState.error.message}
           {simState.error.phase && <span> (during {simState.error.phase})</span>}
         </div>

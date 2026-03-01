@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import ChronicleImagePanel from "../ChronicleImagePanel";
 import ChronicleImagePicker from "../ChronicleImagePicker";
 import { useImageUrl } from "@the-canonry/image-store";
+import { ErrorMessage } from "@the-canonry/shared-components";
 import { analyzeImageRefCompatibility, createDefaultSelections } from "../../lib/imageRefCompatibility";
 import "./ImagesTab.css";
 
@@ -155,12 +156,15 @@ function CoverImagePreview({
     return <div className="itab-cover-loading">Loading image...</div>;
   }
   if (error || !url) {
-    return <div className="itab-cover-error">Failed to load image{error ? `: ${error}` : ""}</div>;
+    const errorSuffix = error ? `: ${error}` : "";
+    return <ErrorMessage message={`Failed to load image${errorSuffix}`} className="itab-cover-unavailable" />;
   }
   return <div className="itab-cover-preview">
-      <img src={url} alt="Cover" onClick={onImageClick ? () => onImageClick(imageId, "Cover Image") : undefined} className={`itab-cover-img ${onImageClick ? "itab-cover-img-clickable" : ""}`} role="button" tabIndex={0} onKeyDown={e => {
+      <button type="button" className={`itab-cover-img-btn${onImageClick ? " itab-cover-img-btn-clickable" : ""}`} onClick={onImageClick ? () => onImageClick(imageId, "Cover Image") : undefined} tabIndex={0} onKeyDown={e => {
       if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
-    }} />
+    }}>
+        <img src={url} alt="Cover" className="itab-cover-img" />
+      </button>
     </div>;
 }
 
@@ -277,9 +281,12 @@ export default function ImagesTab({
                   Generating image...
                 </div>}
               {item.coverImage && item.coverImage.status === "complete" && <div className="itab-cover-status itab-cover-status-complete">Complete</div>}
-              {item.coverImage && item.coverImage.status === "failed" && <div className="itab-cover-status itab-cover-status-failed">
-                  Failed{item.coverImage.error ? `: ${item.coverImage.error}` : ""}
-                </div>}
+              {item.coverImage && item.coverImage.status === "failed" && (
+                <ErrorMessage
+                  message={`Failed${item.coverImage.error ? `: ${item.coverImage.error}` : ""}`}
+                  className="itab-cover-status itab-cover-status-aborted"
+                />
+              )}
               {item.coverImage?.sceneDescription && <div className="itab-scene-desc">{item.coverImage.sceneDescription}</div>}
               <CoverImagePreview imageId={item.coverImage?.generatedImageId} onImageClick={onImageClick} />
             </div>

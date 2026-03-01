@@ -5,11 +5,11 @@
 import React from 'react';
 
 interface EnableToggleProps {
-  enabled: boolean;
-  onChange?: (value: boolean) => void;
-  onClick?: (e: React.MouseEvent | React.KeyboardEvent) => void;
-  label?: string;
-  className?: string;
+  readonly enabled: boolean;
+  readonly onChange?: (value: boolean) => void;
+  readonly onClick?: (e: React.MouseEvent | React.KeyboardEvent) => void;
+  readonly label?: string;
+  readonly className?: string;
 }
 
 /**

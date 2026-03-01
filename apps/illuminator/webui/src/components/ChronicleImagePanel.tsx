@@ -244,9 +244,9 @@ function AnchorContextTooltip({
           <div
             className="cip-tooltip"
             style={{
-              left: Math.min(tooltipPos.x, window.innerWidth - 420),
-              top: tooltipPos.y,
-            }}
+              '--cip-tooltip-left': `${Math.min(tooltipPos.x, window.innerWidth - 420)}px`,
+              '--cip-tooltip-top': `${tooltipPos.y}px`,
+            } as React.CSSProperties}
           >
             {snippet.hasPrefix && "..."}
             {snippet.before}
@@ -410,23 +410,24 @@ function EntityImageRefCard({
           <span className="cip-thumbnail-loading">...</span>
         )}
         {!loading && url && (
-          <img
-            src={url}
-            alt={entity?.name || "Entity image"}
-            loading="lazy"
+          <button
+            type="button"
+            className="cip-thumbnail-btn"
             onClick={
               imageId && onImageClick
                 ? () => onImageClick(imageId, entity?.name || "Entity image")
                 : undefined
             }
-            className="cip-thumbnail-img"
-            style={{
-              cursor: imageId && onImageClick ? "pointer" : undefined,
-            }}
-            role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-          />
+          >
+            <img
+              src={url}
+              alt={entity?.name || "Entity image"}
+              loading="lazy"
+              className="cip-thumbnail-img"
+            />
+          </button>
         )}
         {!loading && !url && (
           <span className="cip-thumbnail-placeholder">
@@ -576,24 +577,25 @@ function PromptRequestCard({
           <span className="cip-thumbnail-loading">...</span>
         )}
         {!loading && url && (
-          <img
-            src={url}
-            alt="Generated"
-            loading="lazy"
+          <button
+            type="button"
+            className="cip-thumbnail-btn"
             onClick={
               imageRef.generatedImageId && onImageClick
                 ? () =>
                     onImageClick(imageRef.generatedImageId, imageRef.sceneDescription.slice(0, 60))
                 : undefined
             }
-            className="cip-thumbnail-img"
-            style={{
-              cursor: imageRef.generatedImageId && onImageClick ? "pointer" : undefined,
-            }}
-            role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-          />
+          >
+            <img
+              src={url}
+              alt="Generated"
+              loading="lazy"
+              className="cip-thumbnail-img"
+            />
+          </button>
         )}
         {!loading && !url && (
           <span className="cip-thumbnail-placeholder">
@@ -611,9 +613,9 @@ function PromptRequestCard({
           <span
             className="cip-status-badge"
             style={{
-              background: statusColor.bg,
-              color: statusColor.text,
-            }}
+              '--cip-status-bg': statusColor.bg,
+              '--cip-status-text': statusColor.text,
+            } as React.CSSProperties}
           >
             {imageRef.status}
           </span>

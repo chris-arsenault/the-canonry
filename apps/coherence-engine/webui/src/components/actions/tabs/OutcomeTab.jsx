@@ -154,16 +154,12 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
           </button>
 
           {showTypeMenu && (
-            {/* eslint-disable-next-line local/no-inline-styles -- dynamic position from JS measurement */}
             <div
               className="dropdown-menu ot-dropdown-fixed"
               style={{
                 '--ot-dd-top': `${dropdownPos.top}px`,
                 '--ot-dd-left': `${dropdownPos.left}px`,
                 '--ot-dd-width': `${dropdownPos.width}px`,
-                top: 'var(--ot-dd-top)',
-                left: 'var(--ot-dd-left)',
-                width: 'var(--ot-dd-width)',
               }}
             >
               {MUTATION_TYPE_OPTIONS.map((opt) => (

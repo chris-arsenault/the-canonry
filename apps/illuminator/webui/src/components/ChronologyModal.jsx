@@ -292,8 +292,8 @@ export default function ChronologyModal({
 
           {/* Failed state */}
           {isFailed && (
-            <div className="chm-failed">
-              <ErrorMessage title="Chronology failed" message={run?.error} className="chm-failed-error" />
+            <div className="chm-aborted">
+              <ErrorMessage title="Chronology failed" message={run?.error} className="chm-aborted-error" />
               <button onClick={handleCancel} className="illuminator-button">
                 Dismiss
               </button>

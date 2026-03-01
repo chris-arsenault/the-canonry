@@ -7,17 +7,17 @@
 import React from 'react';
 
 interface FormGroupProps {
-  label?: string;
-  htmlFor?: string;
-  hint?: string;
-  children?: React.ReactNode;
-  wide?: boolean;
-  className?: string;
+  readonly label?: string;
+  readonly htmlFor?: string;
+  readonly hint?: string;
+  readonly children?: React.ReactNode;
+  readonly wide?: boolean;
+  readonly className?: string;
 }
 
 interface FormRowProps {
-  children?: React.ReactNode;
-  className?: string;
+  readonly children?: React.ReactNode;
+  readonly className?: string;
 }
 
 /**

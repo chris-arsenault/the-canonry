@@ -159,7 +159,7 @@ function Swimlane({
                 cy={centerY}
                 size={size}
                 fill={color}
-                stroke={(() => { if (isSelected) return "#fff"; if (isHovered) return color; return "none"; })()}
+                stroke={isSelected ? "#fff" : (isHovered ? color : "none")}
                 strokeWidth={isSelected ? 2 : 1}
                 opacity={opacity}
               />

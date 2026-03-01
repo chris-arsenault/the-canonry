@@ -16,14 +16,14 @@ interface LevelDefinition {
 }
 
 interface LevelSelectorProps {
-  value: number | string;
-  onChange: (value: number | string) => void;
-  levels: LevelDefinition[];
-  showNumeric?: boolean;
-  min?: number;
-  max?: number;
-  step?: number;
-  className?: string;
+  readonly value: number | string;
+  readonly onChange: (value: number | string) => void;
+  readonly levels: LevelDefinition[];
+  readonly showNumeric?: boolean;
+  readonly min?: number;
+  readonly max?: number;
+  readonly step?: number;
+  readonly className?: string;
 }
 
 /**
@@ -47,7 +47,7 @@ export function LevelSelector({
   step = 0.1,
   className = '',
 }: LevelSelectorProps) {
-  const [hoveredLevel, setHoveredLevel] = useState(null);
+  const [hoveredLevel, setHoveredLevel] = useState<number | null>(null);
 
   // Detect if using numeric or string mode
   const isNumeric = typeof levels[0]?.value === 'number';

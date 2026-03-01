@@ -314,7 +314,7 @@ function openDb(dbName: string, onVersionChange?: () => void): Promise<IDBDataba
 }
 
 function stripSimulationRunId<T extends { simulationRunId?: string }>(record: T): Omit<T, 'simulationRunId'> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line sonarjs/no-unused-vars
   const { simulationRunId: _omit, ...rest } = record;
   return rest;
 }

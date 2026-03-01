@@ -154,7 +154,6 @@ function parseToken(token: string): ParsedToken {
 /**
  * Get a field value from an entity.
  */
-// eslint-disable-next-line sonarjs/function-return-type -- returns string from known fields, undefined from missing
 function getEntityField(entity: HardState, field: string): string | undefined {
   switch (field) {
     case 'name':

@@ -97,7 +97,7 @@ export default function useSlotManagement({ projectId, activeSlotIndex, navEntit
     if (!projectId) return;
     let cancelled = false;
 
-    (async () => {
+    void (async () => {
       const slot = await slotRepo.getSlot(projectId, activeSlotIndex);
       if (cancelled) return;
       setSlotRecord(slot || null);
@@ -127,11 +127,11 @@ export default function useSlotManagement({ projectId, activeSlotIndex, navEntit
   useEffect(() => {
     const resolved = resolveCurrentEra(slotRecord, navEntities);
     if (!resolved.needsFullLoad) return;
-    useEntityStore
+    void useEntityStore
       .getState()
       .loadEntity(resolved.needsFullLoad)
       .then((full: PersistedEntity | null) => {
-        setCurrentEra(buildEraFromLoadedEntity(full, resolved.needsFullLoad!));
+        setCurrentEra(buildEraFromLoadedEntity(full, resolved.needsFullLoad));
       });
   }, [slotRecord, navEntities]);
 

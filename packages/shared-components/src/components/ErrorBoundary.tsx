@@ -32,7 +32,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     this.setState({ error: null });
   };
 
-  render() {
+  render(): React.ReactNode {
     if (this.state.error) {
       return (
         <div className={`empty-state error-boundary ${this.props.className || ""}`.trim()}>
@@ -50,9 +50,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             Retry
           </button>
         </div>
-      );
+      ) as React.ReactNode;
     }
-    return this.props.children;
+    return this.props.children as React.ReactNode;
   }
 }
 

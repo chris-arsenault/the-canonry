@@ -51,7 +51,7 @@ export default {
 
     // Only flag components whose CSS filename suggests a content section, story,
     // narrative, or modal — not generic panels, views, filters, etc.
-    const sectionLikePattern = /\/(.*(?:Section|Story|Narrative|Lore|Modal).*\.css)$/i;
+    const sectionLikePattern = /(?:Section|Story|Narrative|Lore|Modal)/i;
 
     return {
       ImportDeclaration(node) {

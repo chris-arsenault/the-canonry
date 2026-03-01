@@ -9,7 +9,6 @@
 
 import { useCallback } from "react";
 import { useDynamicsGeneration } from "./useDynamicsGeneration";
-import type { UseDynamicsGenerationReturn } from "./useDynamicsGeneration";
 import type { DynamicsRun, ProposedDynamic } from "../lib/dynamicsGenerationTypes";
 import * as entityRepo from "../lib/db/entityRepository";
 import { getPublishedStaticPagesForProject } from "../lib/db/staticPageRepository";
@@ -173,7 +172,7 @@ export function useDynamicsFlow({
     const entityContexts = buildEntityContexts(allEntities);
     const relationshipsPayload = buildRelationshipsPayload(relationships, entityNavMap);
 
-    startDynamicsGeneration({
+    void startDynamicsGeneration({
       projectId,
       simulationRunId,
       staticPagesContext,

@@ -312,7 +312,7 @@ function CohesionHeader({
             </div>
             <div className="crv-edit-version">Edit version: {editVersion}</div>
             {assessment.failedChecks.length > 0 && (
-              <div className="crv-failed-checks">
+              <div className="crv-missed-checks">
                 Failed: {assessment.failedChecks.join(", ")}
               </div>
             )}

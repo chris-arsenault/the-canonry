@@ -214,6 +214,18 @@ export function useDynamicsGeneration(
 // Context Assembly
 // ============================================================================
 
+function formatEntityLine(e: EntityContext, kind: string): string {
+  const parts = [`${e.name}`];
+  if (e.subtype) parts[0] += ` (${e.subtype})`;
+  if (kind === "era") parts.push(`id: ${e.id}`);
+  parts.push(`prominence: ${e.prominence}`);
+  if (e.culture) parts.push(`culture: ${e.culture}`);
+  if (e.status && e.status !== "active") parts.push(`status: ${e.status}`);
+  const text = e.summary || e.description || "";
+  if (text) parts.push(text);
+  return `- ${parts.join(" | ")}`;
+}
+
 function buildInitialContext(config: DynamicsGenerationConfig): string {
   const sections: string[] = [];
 
@@ -247,18 +259,6 @@ function buildInitialContext(config: DynamicsGenerationConfig): string {
     byKind.set(e.kind, list);
   }
 
-  const formatEntity = (e: EntityContext, kind: string): string => {
-    const parts = [`${e.name}`];
-    if (e.subtype) parts[0] += ` (${e.subtype})`;
-    if (kind === "era") parts.push(`id: ${e.id}`);
-    parts.push(`prominence: ${e.prominence}`);
-    if (e.culture) parts.push(`culture: ${e.culture}`);
-    if (e.status && e.status !== "active") parts.push(`status: ${e.status}`);
-    const text = e.summary || e.description || "";
-    if (text) parts.push(text);
-    return `- ${parts.join(" | ")}`;
-  };
-
   // Prominent entities get full summaries; marginal/forgotten get name-only lists
   const entitySections: string[] = [];
   for (const [kind, entities] of byKind.entries()) {
@@ -271,7 +271,7 @@ function buildInitialContext(config: DynamicsGenerationConfig): string {
 
     const lines: string[] = [];
     if (prominent.length > 0) {
-      lines.push(...prominent.map((e) => formatEntity(e, kind)));
+      lines.push(...prominent.map((e) => formatEntityLine(e, kind)));
     }
     if (minor.length > 0) {
       const names = minor.map((e) => e.name).join(", ");

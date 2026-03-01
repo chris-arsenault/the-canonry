@@ -128,6 +128,7 @@ export default function HistorianEditionComparison({
 
   const wordDelta = compare ? selected.wordCount - compare.wordCount : 0;
   const deltaSign = wordDelta >= 0 ? "+" : "";
+  const deltaColor = wordDelta < 0 ? "#22c55e" : wordDelta > 0 ? "#f59e0b" : "var(--text-muted)";
 
   return (
     <div className="hec-wrapper">
@@ -229,8 +230,7 @@ export default function HistorianEditionComparison({
               <span
                 className="hec-word-delta"
                 style={{
-                  "--hec-delta-color":
-                    wordDelta < 0 ? "#22c55e" : wordDelta > 0 ? "#f59e0b" : "var(--text-muted)",
+                  "--hec-delta-color": deltaColor,
                 } as React.CSSProperties}
               >
                 {deltaSign}

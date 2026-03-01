@@ -191,6 +191,26 @@ interface EditionEntityMeta {
   previousNotes?: Array<{ targetName: string; anchorPhrase: string; text: string; type: string }>;
 }
 
+function buildDescriptionArchiveSection(
+  history: NonNullable<EditionEntityMeta["descriptionHistory"]>
+): string | null {
+  if (history.length === 0) return null;
+  const compressed = compressDescriptionHistory(history);
+  const archiveEntries = compressed.map((entry, i) => {
+    const date = new Date(entry.replacedAt).toISOString().split("T")[0];
+    let header = `[${i + 1}] Source: ${entry.source}`;
+    if (entry.consolidatedCount) {
+      const earliest = new Date(entry.earliestDate).toISOString().split("T")[0];
+      header += ` (${entry.consolidatedCount} passes consolidated)`;
+      header += ` | ${earliest} → ${date}`;
+    } else {
+      header += ` | ${date}`;
+    }
+    return `${header}\n${entry.description}`;
+  });
+  return `=== DESCRIPTION ARCHIVE (oldest → newest) ===\nThese are previous versions of the description, in the order they were replaced. Each was the active description at the time.\n\n${archiveEntries.join("\n\n")}`;
+}
+
 function buildUserPrompt(description: string, meta: EditionEntityMeta, wordBudget: number): string {
   const sections: string[] = [];
 
@@ -207,24 +227,8 @@ function buildUserPrompt(description: string, meta: EditionEntityMeta, wordBudge
   sections.push(`=== CURRENT DESCRIPTION (active) ===\n${description}`);
 
   // Description archive (compressed for outliers with many near-duplicate versions)
-  if (meta.descriptionHistory && meta.descriptionHistory.length > 0) {
-    const compressed = compressDescriptionHistory(meta.descriptionHistory);
-    const archiveEntries = compressed.map((entry, i) => {
-      const date = new Date(entry.replacedAt).toISOString().split("T")[0];
-      let header = `[${i + 1}] Source: ${entry.source}`;
-      if (entry.consolidatedCount) {
-        const earliest = new Date(entry.earliestDate).toISOString().split("T")[0];
-        header += ` (${entry.consolidatedCount} passes consolidated)`;
-        header += ` | ${earliest} → ${date}`;
-      } else {
-        header += ` | ${date}`;
-      }
-      return `${header}\n${entry.description}`;
-    });
-    sections.push(
-      `=== DESCRIPTION ARCHIVE (oldest → newest) ===\nThese are previous versions of the description, in the order they were replaced. Each was the active description at the time.\n\n${archiveEntries.join("\n\n")}`
-    );
-  }
+  const archiveSection = buildDescriptionArchiveSection(meta.descriptionHistory ?? []);
+  if (archiveSection) sections.push(archiveSection);
 
   // Summary
   if (meta.summary) {
@@ -296,6 +300,21 @@ ID: ${meta.entityId}`);
 // ============================================================================
 // Task Execution
 // ============================================================================
+
+function parseEditionResponse(resultText: string): SummaryRevisionLLMResponse {
+  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
+  const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("No JSON object found");
+  const parsed = JSON.parse(jsonMatch[0]) as SummaryRevisionLLMResponse;
+  if (!Array.isArray(parsed.patches)) throw new Error("Missing patches array");
+  // Normalize description: LLM may return a string[] that needs joining
+  for (const patch of parsed.patches) {
+    if (Array.isArray(patch.description)) {
+      patch.description = patch.description.join("\n\n");
+    }
+  }
+  return parsed;
+}
 
 async function executeHistorianEditionTask(
   task: WorkerTask,
@@ -384,18 +403,7 @@ async function executeHistorianEditionTask(
     // Parse LLM response
     let parsed: SummaryRevisionLLMResponse;
     try {
-      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No JSON object found");
-      parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.patches)) throw new Error("Missing patches array");
-
-      // Normalize description: LLM returns a single markdown string or string[]
-      for (const patch of parsed.patches) {
-        if (Array.isArray(patch.description)) {
-          patch.description = patch.description.join("\n\n");
-        }
-      }
+      parsed = parseEditionResponse(resultText);
     } catch (err) {
       const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
       updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };

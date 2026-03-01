@@ -13,6 +13,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { ErrorMessage } from "@the-canonry/shared-components";
+import { useAsyncAction } from "../hooks/useAsyncAction";
 import "./CorpusFindReplace.css";
 import {
   getChronicle,
@@ -399,6 +400,360 @@ function ContextSection({
 }
 
 // ============================================================================
+// Scan helpers (module-level — zero cost to caller cognitive complexity)
+// ============================================================================
+
+type ChronicleNavMap = Record<string, { chronicleId: string; status: string; name: string; historianNoteCount: number }>;
+type EntityNavItem = { id: string; hasHistorianNotes: boolean };
+
+async function scanChronicleContent(
+  navItems: ChronicleNavMap,
+  find: string,
+  caseSensitive: boolean,
+  setScanProgress: (s: string) => void
+): Promise<CorpusMatch[]> {
+  const allMatches: CorpusMatch[] = [];
+  const completeIds = Object.values(navItems)
+    .filter((nav) => nav.status === "complete")
+    .map((nav) => nav.chronicleId);
+  for (let i = 0; i < completeIds.length; i++) {
+    setScanProgress(`Chronicle content ${i + 1}/${completeIds.length}`);
+    const record = await getChronicle(completeIds[i]);
+    if (!record) continue;
+    const name = record.title || navItems[completeIds[i]]?.name || "Untitled";
+    if (record.finalContent) {
+      allMatches.push(...scanText(record.finalContent, find, caseSensitive, name, "chronicleContent", completeIds[i], "final", "Published", undefined, undefined));
+    }
+    if (record.assembledContent && record.assembledContent !== record.finalContent) {
+      allMatches.push(...scanText(record.assembledContent, find, caseSensitive, name, "chronicleContent", completeIds[i], "assembled", "Current Draft", undefined, undefined));
+    }
+  }
+  return allMatches;
+}
+
+async function scanChronicleTitles(
+  navItems: ChronicleNavMap,
+  find: string,
+  caseSensitive: boolean,
+  setScanProgress: (s: string) => void
+): Promise<CorpusMatch[]> {
+  const allMatches: CorpusMatch[] = [];
+  const allIds = Object.values(navItems).map((nav) => nav.chronicleId);
+  for (let i = 0; i < allIds.length; i++) {
+    if (i % 50 === 0) setScanProgress(`Chronicle titles ${i + 1}/${allIds.length}`);
+    const record = await getChronicle(allIds[i]);
+    if (!record?.title) continue;
+    allMatches.push(...scanText(record.title, find, caseSensitive, record.title, "chronicleTitles", allIds[i], "title", "Title", undefined, undefined));
+  }
+  return allMatches;
+}
+
+async function scanChronicleAnnotations(
+  navItems: ChronicleNavMap,
+  find: string,
+  caseSensitive: boolean,
+  setScanProgress: (s: string) => void
+): Promise<CorpusMatch[]> {
+  const allMatches: CorpusMatch[] = [];
+  const annotatedIds = Object.values(navItems)
+    .filter((nav) => nav.historianNoteCount > 0)
+    .map((nav) => nav.chronicleId);
+  for (let i = 0; i < annotatedIds.length; i++) {
+    setScanProgress(`Chronicle annotations ${i + 1}/${annotatedIds.length}`);
+    const record = await getChronicle(annotatedIds[i]);
+    if (!record?.historianNotes) continue;
+    const name = record.title || navItems[annotatedIds[i]]?.name || "Untitled";
+    for (const note of record.historianNotes) {
+      if (!isNoteActive(note)) continue;
+      allMatches.push(...scanText(note.text, find, caseSensitive, name, "chronicleAnnotations", annotatedIds[i], undefined, undefined, note.noteId, note.text));
+      if (note.anchorPhrase) {
+        allMatches.push(...scanText(note.anchorPhrase, find, caseSensitive, name + " (anchor)", "chronicleAnnotations", annotatedIds[i], undefined, undefined, note.noteId, note.text));
+      }
+    }
+  }
+  return allMatches;
+}
+
+async function scanEntityAnnotations(
+  navEntities: EntityNavItem[],
+  find: string,
+  caseSensitive: boolean,
+  setScanProgress: (s: string) => void
+): Promise<CorpusMatch[]> {
+  const allMatches: CorpusMatch[] = [];
+  const annotatedNavs = navEntities.filter((n) => n.hasHistorianNotes);
+  setScanProgress(`Entity annotations: loading ${annotatedNavs.length} entities`);
+  const fullEntities = await useEntityStore.getState().loadEntities(annotatedNavs.map((n) => n.id));
+  for (let i = 0; i < fullEntities.length; i++) {
+    if (i % 50 === 0) setScanProgress(`Entity annotations ${i + 1}/${fullEntities.length}`);
+    const entity = fullEntities[i];
+    const notes = entity.enrichment?.historianNotes;
+    if (!notes) continue;
+    for (const note of notes) {
+      if (!isNoteActive(note)) continue;
+      allMatches.push(...scanText(note.text, find, caseSensitive, entity.name, "entityAnnotations", entity.id, undefined, undefined, note.noteId, note.text));
+      if (note.anchorPhrase) {
+        allMatches.push(...scanText(note.anchorPhrase, find, caseSensitive, entity.name + " (anchor)", "entityAnnotations", entity.id, undefined, undefined, note.noteId, note.text));
+      }
+    }
+  }
+  return allMatches;
+}
+
+async function scanEraNarrativeContent(
+  find: string,
+  caseSensitive: boolean,
+  setScanProgress: (s: string) => void
+): Promise<CorpusMatch[]> {
+  const allMatches: CorpusMatch[] = [];
+  const simRunId = useChronicleStore.getState().simulationRunId;
+  if (!simRunId) return allMatches;
+  const allNarratives = await getEraNarrativesForSimulation(simRunId);
+  const completedNarratives = allNarratives.filter(
+    (n) => n.status === "complete" || n.status === "step_complete"
+  );
+  for (let i = 0; i < completedNarratives.length; i++) {
+    setScanProgress(`Era narratives ${i + 1}/${completedNarratives.length}`);
+    const record = completedNarratives[i];
+    const { content } = resolveActiveContent(record);
+    if (!content) continue;
+    allMatches.push(...scanText(content, find, caseSensitive, record.eraName, "eraNarrativeContent", record.narrativeId, "activeContent", "Active Version", undefined, undefined));
+  }
+  return allMatches;
+}
+
+// ============================================================================
+// Apply helpers (module-level — zero cost to caller cognitive complexity)
+// ============================================================================
+
+interface NoteChangeEntry {
+  noteText?: string;
+  positions: number[];
+  variant?: string;
+}
+
+function collectNoteChanges(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  context: SearchContext,
+  variants: Map<string, string>
+): Map<string, Map<string, NoteChangeEntry>> {
+  const changesBySource = new Map<string, Map<string, NoteChangeEntry>>();
+  for (const m of matches) {
+    if (m.context !== context || !decisions[m.id] || !m.noteId) continue;
+    if (!changesBySource.has(m.sourceId)) changesBySource.set(m.sourceId, new Map());
+    const notes = changesBySource.get(m.sourceId)!;
+    if (!notes.has(m.noteId))
+      notes.set(m.noteId, { noteText: m.noteText, positions: [], variant: variants.get(m.id) });
+    if (!notes.get(m.noteId)!.positions.includes(m.position))
+      notes.get(m.noteId)!.positions.push(m.position);
+  }
+  return changesBySource;
+}
+
+function applyNoteChange(
+  note: HistorianNote,
+  change: NoteChangeEntry,
+  find: string,
+  replace: string,
+  llmMode: boolean
+): { updatedNote: HistorianNote; count: number } {
+  if (llmMode && change.variant) {
+    if (note.text === change.noteText) {
+      return { updatedNote: { ...note, text: change.variant }, count: 1 };
+    }
+    return { updatedNote: note, count: 0 };
+  }
+  const newText = applySelectiveReplace(note.text, find, replace, change.positions);
+  if (newText === note.text) return { updatedNote: note, count: 0 };
+  let updatedNote = { ...note, text: newText };
+  if (updatedNote.anchorPhrase) {
+    updatedNote = { ...updatedNote, anchorPhrase: updatedNote.anchorPhrase.split(find).join(replace) };
+  }
+  return { updatedNote, count: change.positions.length };
+}
+
+async function applyChronicleContent(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  find: string,
+  replace: string
+): Promise<number> {
+  let total = 0;
+  const contentByChronicle = new Map<string, Map<string, number[]>>();
+  for (const m of matches) {
+    if (m.context !== "chronicleContent" || !decisions[m.id]) continue;
+    if (!contentByChronicle.has(m.sourceId)) contentByChronicle.set(m.sourceId, new Map());
+    const fields = contentByChronicle.get(m.sourceId)!;
+    if (!fields.has(m.contentField!)) fields.set(m.contentField!, []);
+    fields.get(m.contentField!)!.push(m.position);
+  }
+  for (const [chronicleId, fields] of contentByChronicle) {
+    const record = await getChronicle(chronicleId);
+    if (!record) continue;
+    for (const [field, positions] of fields) {
+      if (field === "final" && record.finalContent) {
+        record.finalContent = applySelectiveReplace(record.finalContent, find, replace, positions);
+        total += positions.length;
+      } else if (field === "assembled" && record.assembledContent) {
+        record.assembledContent = applySelectiveReplace(record.assembledContent, find, replace, positions);
+        total += positions.length;
+      }
+    }
+    record.updatedAt = Date.now();
+    await putChronicle(record);
+  }
+  return total;
+}
+
+async function applyChronicleTitles(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  find: string,
+  replace: string
+): Promise<number> {
+  let total = 0;
+  const titleByChronicle = new Map<string, number[]>();
+  for (const m of matches) {
+    if (m.context !== "chronicleTitles" || !decisions[m.id]) continue;
+    if (!titleByChronicle.has(m.sourceId)) titleByChronicle.set(m.sourceId, []);
+    titleByChronicle.get(m.sourceId)!.push(m.position);
+  }
+  for (const [chronicleId, positions] of titleByChronicle) {
+    const record = await getChronicle(chronicleId);
+    if (!record?.title) continue;
+    record.title = applySelectiveReplace(record.title, find, replace, positions);
+    record.updatedAt = Date.now();
+    await putChronicle(record);
+    total += positions.length;
+  }
+  return total;
+}
+
+async function applyChronicleAnnotations(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  find: string,
+  replace: string,
+  llmMode: boolean,
+  variants: Map<string, string>
+): Promise<number> {
+  let total = 0;
+  const changesBySource = collectNoteChanges(matches, decisions, "chronicleAnnotations", variants);
+  for (const [chronicleId, noteChanges] of changesBySource) {
+    const record = await getChronicle(chronicleId);
+    if (!record?.historianNotes) continue;
+    const updatedNotes: HistorianNote[] = record.historianNotes.map((n) => ({ ...n }));
+    for (const [noteId, change] of noteChanges) {
+      const noteIdx = updatedNotes.findIndex((n) => n.noteId === noteId);
+      if (noteIdx === -1) continue;
+      const { updatedNote, count } = applyNoteChange(updatedNotes[noteIdx], change, find, replace, llmMode);
+      updatedNotes[noteIdx] = updatedNote;
+      total += count;
+    }
+    await updateChronicleHistorianNotes(chronicleId, updatedNotes);
+  }
+  return total;
+}
+
+async function applyEntityAnnotations(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  find: string,
+  replace: string,
+  llmMode: boolean,
+  variants: Map<string, string>
+): Promise<{ total: number; updatedEntityIds: string[] }> {
+  let total = 0;
+  const updatedEntityIds: string[] = [];
+  const changesBySource = collectNoteChanges(matches, decisions, "entityAnnotations", variants);
+  for (const [entityId, noteChanges] of changesBySource) {
+    const entity = await useEntityStore.getState().loadEntity(entityId);
+    if (!entity?.enrichment?.historianNotes) continue;
+    const updatedNotes: HistorianNote[] = entity.enrichment.historianNotes.map((n) => ({ ...n }));
+    for (const [noteId, change] of noteChanges) {
+      const noteIdx = updatedNotes.findIndex((n) => n.noteId === noteId);
+      if (noteIdx === -1) continue;
+      const { updatedNote, count } = applyNoteChange(updatedNotes[noteIdx], change, find, replace, llmMode);
+      updatedNotes[noteIdx] = updatedNote;
+      total += count;
+    }
+    await setHistorianNotes(entityId, updatedNotes);
+    updatedEntityIds.push(entityId);
+  }
+  return { total, updatedEntityIds };
+}
+
+async function applyEraNarrativeContent(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  find: string,
+  replace: string
+): Promise<number> {
+  let total = 0;
+  const changes = new Map<string, number[]>();
+  for (const m of matches) {
+    if (m.context !== "eraNarrativeContent" || !decisions[m.id]) continue;
+    if (!changes.has(m.sourceId)) changes.set(m.sourceId, []);
+    changes.get(m.sourceId)!.push(m.position);
+  }
+  for (const [narrativeId, positions] of changes) {
+    const record = await getEraNarrative(narrativeId);
+    if (!record) continue;
+    const { activeVersionId } = resolveActiveContent(record);
+    const versions = [...(record.contentVersions || [])];
+    const vIdx = versions.findIndex((v) => v.versionId === activeVersionId);
+    if (vIdx === -1) continue;
+    const updated = { ...versions[vIdx] };
+    updated.content = applySelectiveReplace(updated.content, find, replace, positions);
+    updated.wordCount = updated.content.split(/\s+/).filter(Boolean).length;
+    versions[vIdx] = updated;
+    await updateEraNarrative(narrativeId, { contentVersions: versions });
+    total += positions.length;
+  }
+  return total;
+}
+
+function processQueueCompletions(
+  completed: Array<{ result?: { description?: string } | null }>,
+  currentMatches: CorpusMatch[]
+): Map<string, string> {
+  const variantMap = new Map<string, string>();
+  for (const item of completed) {
+    if (!item.result?.description) continue;
+    try {
+      const results = JSON.parse(item.result.description) as MotifVariationResult[];
+      for (const r of results) {
+        const match = currentMatches.find((m) => m.batchIndex === r.index);
+        if (match) {
+          for (const m of currentMatches) {
+            if (m.sourceId === match.sourceId && m.noteId === match.noteId) {
+              variantMap.set(m.id, r.variant);
+            }
+          }
+        }
+      }
+    } catch {
+      // Skip unparseable results
+    }
+  }
+  return variantMap;
+}
+
+function computeAutoRejectIds(
+  currentMatches: CorpusMatch[],
+  variantMap: Map<string, string>
+): string[] {
+  return currentMatches
+    .filter(
+      (m) =>
+        (m.context === "chronicleAnnotations" || m.context === "entityAnnotations") &&
+        !variantMap.has(m.id)
+    )
+    .map((m) => m.id);
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -425,7 +780,7 @@ export default function CorpusFindReplace() {
   const [decisions, setDecisions] = useState<Record<string, boolean>>({});
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [resultCount, setResultCount] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError } = useAsyncAction();
   const [scanProgress, setScanProgress] = useState("");
 
   // LLM mode state
@@ -463,209 +818,16 @@ export default function CorpusFindReplace() {
     setError(null);
     const allMatches: CorpusMatch[] = [];
 
-    // 1. Chronicle content
-    if (contexts.has("chronicleContent")) {
-      const completeIds = Object.values(chronicleNavItems)
-        .filter((nav) => nav.status === "complete")
-        .map((nav) => nav.chronicleId);
-
-      for (let i = 0; i < completeIds.length; i++) {
-        setScanProgress(`Chronicle content ${i + 1}/${completeIds.length}`);
-        const record = await getChronicle(completeIds[i]);
-        if (!record) continue;
-        const name = record.title || chronicleNavItems[completeIds[i]]?.name || "Untitled";
-
-        if (record.finalContent) {
-          allMatches.push(
-            ...scanText(
-              record.finalContent,
-              find,
-              caseSensitive,
-              name,
-              "chronicleContent",
-              completeIds[i],
-              "final",
-              "Published",
-              undefined,
-              undefined
-            )
-          );
-        }
-        if (record.assembledContent && record.assembledContent !== record.finalContent) {
-          allMatches.push(
-            ...scanText(
-              record.assembledContent,
-              find,
-              caseSensitive,
-              name,
-              "chronicleContent",
-              completeIds[i],
-              "assembled",
-              "Current Draft",
-              undefined,
-              undefined
-            )
-          );
-        }
-      }
-    }
-
-    // 2. Chronicle titles
-    if (contexts.has("chronicleTitles")) {
-      const allIds = Object.values(chronicleNavItems).map((nav) => nav.chronicleId);
-
-      for (let i = 0; i < allIds.length; i++) {
-        if (i % 50 === 0) setScanProgress(`Chronicle titles ${i + 1}/${allIds.length}`);
-        const record = await getChronicle(allIds[i]);
-        if (!record?.title) continue;
-        allMatches.push(
-          ...scanText(
-            record.title,
-            find,
-            caseSensitive,
-            record.title,
-            "chronicleTitles",
-            allIds[i],
-            "title",
-            "Title",
-            undefined,
-            undefined
-          )
-        );
-      }
-    }
-
-    // 3. Chronicle annotations
-    if (contexts.has("chronicleAnnotations")) {
-      const annotatedIds = Object.values(chronicleNavItems)
-        .filter((nav) => nav.historianNoteCount > 0)
-        .map((nav) => nav.chronicleId);
-
-      for (let i = 0; i < annotatedIds.length; i++) {
-        setScanProgress(`Chronicle annotations ${i + 1}/${annotatedIds.length}`);
-        const record = await getChronicle(annotatedIds[i]);
-        if (!record?.historianNotes) continue;
-        const name = record.title || chronicleNavItems[annotatedIds[i]]?.name || "Untitled";
-
-        for (const note of record.historianNotes) {
-          if (!isNoteActive(note)) continue;
-          allMatches.push(
-            ...scanText(
-              note.text,
-              find,
-              caseSensitive,
-              name,
-              "chronicleAnnotations",
-              annotatedIds[i],
-              undefined,
-              undefined,
-              note.noteId,
-              note.text
-            )
-          );
-          // Also scan anchor phrases
-          if (note.anchorPhrase) {
-            allMatches.push(
-              ...scanText(
-                note.anchorPhrase,
-                find,
-                caseSensitive,
-                name + " (anchor)",
-                "chronicleAnnotations",
-                annotatedIds[i],
-                undefined,
-                undefined,
-                note.noteId,
-                note.text
-              )
-            );
-          }
-        }
-      }
-    }
-
-    // 4. Entity annotations
-    if (contexts.has("entityAnnotations")) {
-      const annotatedNavs = navEntities.filter((n) => n.hasHistorianNotes);
-      setScanProgress(`Entity annotations: loading ${annotatedNavs.length} entities`);
-
-      const fullEntities = await useEntityStore
-        .getState()
-        .loadEntities(annotatedNavs.map((n) => n.id));
-
-      for (let i = 0; i < fullEntities.length; i++) {
-        if (i % 50 === 0) setScanProgress(`Entity annotations ${i + 1}/${fullEntities.length}`);
-        const entity = fullEntities[i];
-        const notes = entity.enrichment?.historianNotes;
-        if (!notes) continue;
-
-        for (const note of notes) {
-          if (!isNoteActive(note)) continue;
-          allMatches.push(
-            ...scanText(
-              note.text,
-              find,
-              caseSensitive,
-              entity.name,
-              "entityAnnotations",
-              entity.id,
-              undefined,
-              undefined,
-              note.noteId,
-              note.text
-            )
-          );
-          if (note.anchorPhrase) {
-            allMatches.push(
-              ...scanText(
-                note.anchorPhrase,
-                find,
-                caseSensitive,
-                entity.name + " (anchor)",
-                "entityAnnotations",
-                entity.id,
-                undefined,
-                undefined,
-                note.noteId,
-                note.text
-              )
-            );
-          }
-        }
-      }
-    }
-
-    // 5. Era narrative content
-    if (contexts.has("eraNarrativeContent")) {
-      const simRunId = useChronicleStore.getState().simulationRunId;
-      if (simRunId) {
-        const allNarratives = await getEraNarrativesForSimulation(simRunId);
-        const completedNarratives = allNarratives.filter(
-          (n) => n.status === "complete" || n.status === "step_complete"
-        );
-
-        for (let i = 0; i < completedNarratives.length; i++) {
-          setScanProgress(`Era narratives ${i + 1}/${completedNarratives.length}`);
-          const record = completedNarratives[i];
-          const { content } = resolveActiveContent(record);
-          if (!content) continue;
-          allMatches.push(
-            ...scanText(
-              content,
-              find,
-              caseSensitive,
-              record.eraName,
-              "eraNarrativeContent",
-              record.narrativeId,
-              "activeContent",
-              "Active Version",
-              undefined,
-              undefined
-            )
-          );
-        }
-      }
-    }
+    if (contexts.has("chronicleContent"))
+      allMatches.push(...(await scanChronicleContent(chronicleNavItems, find, caseSensitive, setScanProgress)));
+    if (contexts.has("chronicleTitles"))
+      allMatches.push(...(await scanChronicleTitles(chronicleNavItems, find, caseSensitive, setScanProgress)));
+    if (contexts.has("chronicleAnnotations"))
+      allMatches.push(...(await scanChronicleAnnotations(chronicleNavItems, find, caseSensitive, setScanProgress)));
+    if (contexts.has("entityAnnotations"))
+      allMatches.push(...(await scanEntityAnnotations(navEntities, find, caseSensitive, setScanProgress)));
+    if (contexts.has("eraNarrativeContent"))
+      allMatches.push(...(await scanEraNarrativeContent(find, caseSensitive, setScanProgress)));
 
     setScanProgress("");
     setMatches(allMatches);
@@ -782,46 +944,13 @@ export default function CorpusFindReplace() {
       if (errored.length > 0) {
         setError(`${errored.length} batch(es) failed: ${errored[0].error || "Unknown error"}`);
       }
-
-      const variantMap = new Map<string, string>();
-      const currentMatches = matchesRef.current;
-
-      for (const item of completed) {
-        if (!item.result?.description) continue;
-        try {
-          const results = JSON.parse(item.result.description) as MotifVariationResult[];
-          for (const r of results) {
-            const match = currentMatches.find((m) => m.batchIndex === r.index);
-            if (match) {
-              // Apply variant to all matches with same sourceId + noteId
-              for (const m of currentMatches) {
-                if (m.sourceId === match.sourceId && m.noteId === match.noteId) {
-                  variantMap.set(m.id, r.variant);
-                }
-              }
-            }
-          }
-        } catch {
-          // Skip unparseable results
-        }
-      }
-
+      const variantMap = processQueueCompletions(completed, matchesRef.current);
       setVariants(variantMap);
-
-      // Auto-reject matches without variants
-      setDecisions((prev) => {
-        const next = { ...prev };
-        for (const m of currentMatches) {
-          if (
-            (m.context === "chronicleAnnotations" || m.context === "entityAnnotations") &&
-            !variantMap.has(m.id)
-          ) {
-            next[m.id] = false;
-          }
-        }
-        return next;
-      });
-
+      const autoRejectIds = computeAutoRejectIds(matchesRef.current, variantMap);
+      setDecisions((prev) => ({
+        ...prev,
+        ...Object.fromEntries(autoRejectIds.map((id) => [id, false])),
+      }));
       setPhase(variantMap.size > 0 ? "review" : "empty");
     }
   }, [phase, queue]);
@@ -831,198 +960,24 @@ export default function CorpusFindReplace() {
     setPhase("applying");
     let total = 0;
 
-    // 1. Chronicle content — group by (chronicleId, contentField)
-    const contentByChronicle = new Map<string, Map<string, number[]>>();
-    for (const m of matches) {
-      if (m.context !== "chronicleContent" || !decisions[m.id]) continue;
-      if (!contentByChronicle.has(m.sourceId)) contentByChronicle.set(m.sourceId, new Map());
-      const fields = contentByChronicle.get(m.sourceId);
-      if (!fields.has(m.contentField)) fields.set(m.contentField, []);
-      fields.get(m.contentField).push(m.position);
-    }
-
-    for (const [chronicleId, fields] of contentByChronicle) {
-      const record = await getChronicle(chronicleId);
-      if (!record) continue;
-
-      for (const [field, positions] of fields) {
-        if (field === "final" && record.finalContent) {
-          record.finalContent = applySelectiveReplace(
-            record.finalContent,
-            find,
-            replace,
-            positions
-          );
-          total += positions.length;
-        } else if (field === "assembled" && record.assembledContent) {
-          record.assembledContent = applySelectiveReplace(
-            record.assembledContent,
-            find,
-            replace,
-            positions
-          );
-          total += positions.length;
-        }
-      }
-
-      record.updatedAt = Date.now();
-      await putChronicle(record);
-    }
-
-    // 2. Chronicle titles — group by chronicleId
-    const titleByChronicle = new Map<string, number[]>();
-    for (const m of matches) {
-      if (m.context !== "chronicleTitles" || !decisions[m.id]) continue;
-      if (!titleByChronicle.has(m.sourceId)) titleByChronicle.set(m.sourceId, []);
-      titleByChronicle.get(m.sourceId).push(m.position);
-    }
-
-    for (const [chronicleId, positions] of titleByChronicle) {
-      const record = await getChronicle(chronicleId);
-      if (!record?.title) continue;
-
-      record.title = applySelectiveReplace(record.title, find, replace, positions);
-      record.updatedAt = Date.now();
-      await putChronicle(record);
-      total += positions.length;
-    }
-
-    // 3. Chronicle annotations — group by chronicleId
-    const chronAnnotChanges = new Map<
-      string,
-      Map<string, { noteText: string; positions: number[]; variant?: string }>
-    >();
-    for (const m of matches) {
-      if (m.context !== "chronicleAnnotations" || !decisions[m.id] || !m.noteId) continue;
-      if (!chronAnnotChanges.has(m.sourceId)) chronAnnotChanges.set(m.sourceId, new Map());
-      const notes = chronAnnotChanges.get(m.sourceId);
-      if (!notes.has(m.noteId))
-        notes.set(m.noteId, { noteText: m.noteText, positions: [], variant: variants.get(m.id) });
-      else notes.get(m.noteId).positions.push(m.position);
-      if (!notes.get(m.noteId).positions.includes(m.position))
-        notes.get(m.noteId).positions.push(m.position);
-    }
-
-    for (const [chronicleId, noteChanges] of chronAnnotChanges) {
-      const record = await getChronicle(chronicleId);
-      if (!record?.historianNotes) continue;
-
-      const updatedNotes: HistorianNote[] = record.historianNotes.map((n) => ({ ...n }));
-      for (const [noteId, change] of noteChanges) {
-        const noteIdx = updatedNotes.findIndex((n) => n.noteId === noteId);
-        if (noteIdx === -1) continue;
-
-        if (llmMode && change.variant) {
-          if (updatedNotes[noteIdx].text === change.noteText) {
-            updatedNotes[noteIdx] = { ...updatedNotes[noteIdx], text: change.variant };
-            total++;
-          }
-        } else {
-          const newText = applySelectiveReplace(
-            updatedNotes[noteIdx].text,
-            find,
-            replace,
-            change.positions
-          );
-          if (newText !== updatedNotes[noteIdx].text) {
-            updatedNotes[noteIdx] = { ...updatedNotes[noteIdx], text: newText };
-            // Also replace in anchor phrase if it matches
-            if (updatedNotes[noteIdx].anchorPhrase) {
-              updatedNotes[noteIdx] = {
-                ...updatedNotes[noteIdx],
-                anchorPhrase: updatedNotes[noteIdx].anchorPhrase.split(find).join(replace),
-              };
-            }
-            total += change.positions.length;
-          }
-        }
-      }
-
-      await updateChronicleHistorianNotes(chronicleId, updatedNotes);
-    }
-
-    // 4. Entity annotations — group by entityId
-    const entityAnnotChanges = new Map<
-      string,
-      Map<string, { noteText: string; positions: number[]; variant?: string }>
-    >();
-    for (const m of matches) {
-      if (m.context !== "entityAnnotations" || !decisions[m.id] || !m.noteId) continue;
-      if (!entityAnnotChanges.has(m.sourceId)) entityAnnotChanges.set(m.sourceId, new Map());
-      const notes = entityAnnotChanges.get(m.sourceId);
-      if (!notes.has(m.noteId))
-        notes.set(m.noteId, { noteText: m.noteText, positions: [], variant: variants.get(m.id) });
-      if (!notes.get(m.noteId).positions.includes(m.position))
-        notes.get(m.noteId).positions.push(m.position);
-    }
-
-    const updatedEntityIds: string[] = [];
-    for (const [entityId, noteChanges] of entityAnnotChanges) {
-      const entity = await useEntityStore.getState().loadEntity(entityId);
-      if (!entity?.enrichment?.historianNotes) continue;
-
-      const updatedNotes: HistorianNote[] = entity.enrichment.historianNotes.map((n) => ({ ...n }));
-      for (const [noteId, change] of noteChanges) {
-        const noteIdx = updatedNotes.findIndex((n) => n.noteId === noteId);
-        if (noteIdx === -1) continue;
-
-        if (llmMode && change.variant) {
-          if (updatedNotes[noteIdx].text === change.noteText) {
-            updatedNotes[noteIdx] = { ...updatedNotes[noteIdx], text: change.variant };
-            total++;
-          }
-        } else {
-          const newText = applySelectiveReplace(
-            updatedNotes[noteIdx].text,
-            find,
-            replace,
-            change.positions
-          );
-          if (newText !== updatedNotes[noteIdx].text) {
-            updatedNotes[noteIdx] = { ...updatedNotes[noteIdx], text: newText };
-            if (updatedNotes[noteIdx].anchorPhrase) {
-              updatedNotes[noteIdx] = {
-                ...updatedNotes[noteIdx],
-                anchorPhrase: updatedNotes[noteIdx].anchorPhrase.split(find).join(replace),
-              };
-            }
-            total += change.positions.length;
-          }
-        }
-      }
-
-      await setHistorianNotes(entityId, updatedNotes);
-      updatedEntityIds.push(entityId);
-    }
-
-    // 5. Era narrative content — group by narrativeId
-    const eraNarrativeChanges = new Map<string, number[]>();
-    for (const m of matches) {
-      if (m.context !== "eraNarrativeContent" || !decisions[m.id]) continue;
-      if (!eraNarrativeChanges.has(m.sourceId)) eraNarrativeChanges.set(m.sourceId, []);
-      eraNarrativeChanges.get(m.sourceId).push(m.position);
-    }
-
-    for (const [narrativeId, positions] of eraNarrativeChanges) {
-      const record = await getEraNarrative(narrativeId);
-      if (!record) continue;
-
-      const { activeVersionId } = resolveActiveContent(record);
-      const versions = [...(record.contentVersions || [])];
-      const vIdx = versions.findIndex((v) => v.versionId === activeVersionId);
-      if (vIdx === -1) continue;
-
-      const updated = { ...versions[vIdx] };
-      updated.content = applySelectiveReplace(updated.content, find, replace, positions);
-      updated.wordCount = updated.content.split(/\s+/).filter(Boolean).length;
-      versions[vIdx] = updated;
-
-      await updateEraNarrative(narrativeId, { contentVersions: versions });
-      total += positions.length;
-    }
+    total += await applyChronicleContent(matches, decisions, find, replace);
+    total += await applyChronicleTitles(matches, decisions, find, replace);
+    total += await applyChronicleAnnotations(matches, decisions, find, replace, llmMode, variants);
+    const { total: entityTotal, updatedEntityIds } = await applyEntityAnnotations(
+      matches, decisions, find, replace, llmMode, variants
+    );
+    total += entityTotal;
+    total += await applyEraNarrativeContent(matches, decisions, find, replace);
 
     // Refresh stores
-    if (contentByChronicle.size > 0 || titleByChronicle.size > 0 || chronAnnotChanges.size > 0) {
+    const hasChronicleChanges = matches.some(
+      (m) =>
+        (m.context === "chronicleContent" ||
+          m.context === "chronicleTitles" ||
+          m.context === "chronicleAnnotations") &&
+        decisions[m.id]
+    );
+    if (hasChronicleChanges) {
       await useChronicleStore.getState().refreshAll();
     }
     if (updatedEntityIds.length > 0) {

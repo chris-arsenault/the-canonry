@@ -32,6 +32,95 @@ function formatChronicleSubtype(typeId: string): string {
     .join(" ");
 }
 
+type ChronicleFilter = ChronicleIndexProps['filter'];
+
+function buildChronicleHeading(filter: ChronicleFilter, eraName: string | null): string {
+  if (filter.kind === "format") {
+    return filter.format === "story" ? "Stories" : "Documents";
+  }
+  if (filter.kind === "type") {
+    return `${formatChronicleSubtype(filter.typeId)} Chronicles`;
+  }
+  if (filter.kind === "era") {
+    if (filter.format === "story") return `Stories: ${eraName}`;
+    if (filter.format === "document") return `Documents: ${eraName}`;
+    return `Chronicles: ${eraName}`;
+  }
+  return "Chronicles";
+}
+
+function buildChronicleDescription(filter: ChronicleFilter, eraName: string | null): string {
+  if (filter.kind === "all") return "Accepted chronicles from Illuminator.";
+  if (filter.kind === "format") {
+    const formatLabel = filter.format === "story" ? "stories" : "documents";
+    return `Accepted ${formatLabel} from Illuminator.`;
+  }
+  if (filter.kind === "era") {
+    if (filter.format) {
+      const label = filter.format === "story" ? "Stories" : "Documents";
+      return `${label} set during the ${eraName}.`;
+    }
+    return `Chronicles set during the ${eraName}.`;
+  }
+  return `Accepted chronicles of type ${formatChronicleSubtype(filter.typeId)}.`;
+}
+
+type EraInfo = { order: number; label: string; hasEra: boolean };
+
+function getChronicleEraInfo(page: WikiPage): EraInfo {
+  const focalEra = page.chronicle?.temporalContext?.focalEra;
+  if (!focalEra) return { order: Number.POSITIVE_INFINITY, label: "Unknown Era", hasEra: false };
+  const label = focalEra.name || "Unknown Era";
+  if (typeof focalEra.order === "number") return { order: focalEra.order, label, hasEra: true };
+  if (typeof focalEra.startTick === "number") return { order: focalEra.startTick, label, hasEra: true };
+  return { order: Number.POSITIVE_INFINITY, label, hasEra: true };
+}
+
+function filterChroniclesWithFilter(chronicles: WikiPage[], filter: ChronicleFilter): WikiPage[] {
+  return chronicles.filter((page) => page.chronicle).filter((page) => {
+    if (filter.kind === "all") return true;
+    if (filter.kind === "format") return page.chronicle?.format === filter.format;
+    if (filter.kind === "type") return page.chronicle?.narrativeStyleId === filter.typeId;
+    if (filter.kind === "era") {
+      if (page.chronicle?.temporalContext?.focalEra?.id !== filter.eraId) return false;
+      if (filter.format && page.chronicle?.format !== filter.format) return false;
+      return true;
+    }
+    return true;
+  });
+}
+
+function compareChroniclesBySortMode(a: WikiPage, b: WikiPage, sortMode: string): number {
+  if (sortMode === "updated_desc") return (b.lastUpdated || 0) - (a.lastUpdated || 0);
+  const eraA = getChronicleEraInfo(a);
+  const eraB = getChronicleEraInfo(b);
+  if (eraA.hasEra !== eraB.hasEra) return eraA.hasEra ? -1 : 1;
+  if (eraA.order !== eraB.order) return sortMode === "era_asc" ? eraA.order - eraB.order : eraB.order - eraA.order;
+  return sortMode === "era_asc" ? eraA.label.localeCompare(eraB.label) : eraB.label.localeCompare(eraA.label);
+}
+
+type EraGroup = { label: string; order: number; hasEra: boolean; items: WikiPage[] };
+
+function buildSortedEraGroups(sorted: WikiPage[], sortMode: string): EraGroup[] {
+  const groups = new Map<string, EraGroup>();
+  for (const page of sorted) {
+    const info = getChronicleEraInfo(page);
+    if (!groups.has(info.label)) {
+      groups.set(info.label, { label: info.label, order: info.order, hasEra: info.hasEra, items: [] });
+    }
+    groups.get(info.label)!.items.push(page);
+  }
+  const entries = Array.from(groups.values());
+  if (sortMode === "era_asc" || sortMode === "era_desc") {
+    entries.sort((a, b) => {
+      if (a.hasEra !== b.hasEra) return a.hasEra ? -1 : 1;
+      if (a.order !== b.order) return sortMode === "era_asc" ? a.order - b.order : b.order - a.order;
+      return a.label.localeCompare(b.label);
+    });
+  }
+  return entries;
+}
+
 export default function ChronicleIndex({
   chronicles,
   eraNarrativePages = [],
@@ -40,121 +129,29 @@ export default function ChronicleIndex({
 }: Readonly<ChronicleIndexProps>) {
   const [sortMode, setSortMode] = useState("era_asc");
 
-  const filtered = useMemo(() => {
-    return chronicles
-      .filter((page) => page.chronicle)
-      .filter((page) => {
-        if (filter.kind === "all") return true;
-        if (filter.kind === "format") return page.chronicle?.format === filter.format;
-        if (filter.kind === "type") return page.chronicle?.narrativeStyleId === filter.typeId;
-        if (filter.kind === "era") {
-          const focalEraId = page.chronicle?.temporalContext?.focalEra?.id;
-          if (focalEraId !== filter.eraId) return false;
-          if (filter.format && page.chronicle?.format !== filter.format) return false;
-          return true;
-        }
-        return true;
-      });
-  }, [chronicles, filter]);
+  const filtered = useMemo(
+    () => filterChroniclesWithFilter(chronicles, filter),
+    [chronicles, filter]
+  );
 
-  const sorted = useMemo(() => {
-    const getEraInfo = (page: WikiPage) => {
-      const focalEra = page.chronicle?.temporalContext?.focalEra;
-      if (!focalEra) {
-        return { order: Number.POSITIVE_INFINITY, name: "", hasEra: false };
-      }
-      if (typeof focalEra.order === "number") {
-        return { order: focalEra.order, name: focalEra.name || "", hasEra: true };
-      }
-      if (typeof focalEra.startTick === "number") {
-        return { order: focalEra.startTick, name: focalEra.name || "", hasEra: true };
-      }
-      return { order: Number.POSITIVE_INFINITY, name: focalEra.name || "", hasEra: true };
-    };
-
-    return [...filtered].sort((a, b) => {
-      switch (sortMode) {
-        case "era_asc": {
-          const eraA = getEraInfo(a);
-          const eraB = getEraInfo(b);
-          if (eraA.hasEra !== eraB.hasEra) return eraA.hasEra ? -1 : 1;
-          if (eraA.order !== eraB.order) return eraA.order - eraB.order;
-          return eraA.name.localeCompare(eraB.name);
-        }
-        case "era_desc": {
-          const eraA = getEraInfo(a);
-          const eraB = getEraInfo(b);
-          if (eraA.hasEra !== eraB.hasEra) return eraA.hasEra ? -1 : 1;
-          if (eraA.order !== eraB.order) return eraB.order - eraA.order;
-          return eraB.name.localeCompare(eraA.name);
-        }
-        case "updated_desc":
-        default:
-          return (b.lastUpdated || 0) - (a.lastUpdated || 0);
-      }
-    });
-  }, [filtered, sortMode]);
+  const sorted = useMemo(
+    () => [...filtered].sort((a, b) => compareChroniclesBySortMode(a, b, sortMode)),
+    [filtered, sortMode]
+  );
 
   // Build era narrative lookup by era name (label used in groups)
   const eraNarrativeByEraName = useMemo(() => {
     const map = new Map<string, WikiPage>();
     for (const page of eraNarrativePages) {
-      if (page.eraNarrative) {
-        map.set(page.title, page); // era narrative title = era name
-      }
+      if (page.eraNarrative) map.set(page.title, page);
     }
     return map;
   }, [eraNarrativePages]);
 
-  const groupedByEra = useMemo(() => {
-    const groups = new Map<
-      string,
-      { label: string; order: number; hasEra: boolean; items: WikiPage[] }
-    >();
-
-    const getEraInfo = (page: WikiPage) => {
-      const focalEra = page.chronicle?.temporalContext?.focalEra;
-      if (!focalEra) {
-        return { order: Number.POSITIVE_INFINITY, label: "Unknown Era", hasEra: false };
-      }
-      if (typeof focalEra.order === "number") {
-        return { order: focalEra.order, label: focalEra.name || "Unknown Era", hasEra: true };
-      }
-      if (typeof focalEra.startTick === "number") {
-        return { order: focalEra.startTick, label: focalEra.name || "Unknown Era", hasEra: true };
-      }
-      return {
-        order: Number.POSITIVE_INFINITY,
-        label: focalEra.name || "Unknown Era",
-        hasEra: true,
-      };
-    };
-
-    for (const page of sorted) {
-      const info = getEraInfo(page);
-      if (!groups.has(info.label)) {
-        groups.set(info.label, {
-          label: info.label,
-          order: info.order,
-          hasEra: info.hasEra,
-          items: [],
-        });
-      }
-      groups.get(info.label)?.items.push(page);
-    }
-
-    const entries = Array.from(groups.values());
-    if (sortMode === "era_asc" || sortMode === "era_desc") {
-      entries.sort((a, b) => {
-        if (a.hasEra !== b.hasEra) return a.hasEra ? -1 : 1;
-        if (a.order !== b.order) {
-          return sortMode === "era_asc" ? a.order - b.order : b.order - a.order;
-        }
-        return a.label.localeCompare(b.label);
-      });
-    }
-    return entries;
-  }, [sorted, sortMode]);
+  const groupedByEra = useMemo(
+    () => buildSortedEraGroups(sorted, sortMode),
+    [sorted, sortMode]
+  );
 
   // Get era name for era-based filters
   const eraName = useMemo(() => {
@@ -165,39 +162,8 @@ export default function ChronicleIndex({
     return chronicle?.chronicle?.temporalContext?.focalEra?.name || "Unknown Era";
   }, [chronicles, filter]);
 
-  let heading: string;
-  if (filter.kind === "format") {
-    heading = filter.format === "story" ? "Stories" : "Documents";
-  } else if (filter.kind === "type") {
-    heading = `${formatChronicleSubtype(filter.typeId)} Chronicles`;
-  } else if (filter.kind === "era") {
-    if (filter.format === "story") {
-      heading = `Stories: ${eraName}`;
-    } else if (filter.format === "document") {
-      heading = `Documents: ${eraName}`;
-    } else {
-      heading = `Chronicles: ${eraName}`;
-    }
-  } else {
-    heading = "Chronicles";
-  }
-
-  let description: string;
-  if (filter.kind === "all") {
-    description = "Accepted chronicles from Illuminator.";
-  } else if (filter.kind === "format") {
-    const formatLabel = filter.format === "story" ? "stories" : "documents";
-    description = `Accepted ${formatLabel} from Illuminator.`;
-  } else if (filter.kind === "era") {
-    if (filter.format) {
-      const eraFormatLabel = filter.format === "story" ? "Stories" : "Documents";
-      description = `${eraFormatLabel} set during the ${eraName}.`;
-    } else {
-      description = `Chronicles set during the ${eraName}.`;
-    }
-  } else {
-    description = `Accepted chronicles of type ${formatChronicleSubtype(filter.typeId)}.`;
-  }
+  const heading = buildChronicleHeading(filter, eraName);
+  const description = buildChronicleDescription(filter, eraName);
 
   if (sorted.length === 0) {
     return (

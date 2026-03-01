@@ -98,9 +98,9 @@ async function extractLoreDataWithCurrentImageRefs(worldData) {
 function stripSimulationRunId(record) {
   if (!record || typeof record !== "object") return record;
   const {
-    simulationRunId: _omit,
+    simulationRunId: _omit, // eslint-disable-line sonarjs/no-unused-vars
     ...rest
-  } = record; // eslint-disable-line sonarjs/no-unused-vars
+  } = record;
   return rest;
 }
 function mergeEntitiesWithDexie(baseEntities, dexieEntities) {
@@ -204,6 +204,15 @@ function collectEntityImageIds(worldData, ids, entityById) {
     if (imageId) ids.add(imageId);
   }
 }
+function collectRefImageId(ref, ids, entityById) {
+  const imageId = ref?.generatedImageId;
+  if (imageId) ids.add(imageId);
+  if (ref?.type === "entity_ref" && ref?.entityId) {
+    const entity = entityById.get(ref.entityId);
+    const entityImageId = entity?.enrichment?.image?.imageId;
+    if (entityImageId) ids.add(entityImageId);
+  }
+}
 function collectChronicleImageIds(chronicles, ids, entityById) {
   if (!Array.isArray(chronicles)) return;
   for (const chronicle of chronicles) {
@@ -211,13 +220,7 @@ function collectChronicleImageIds(chronicles, ids, entityById) {
     if (coverImageId) ids.add(coverImageId);
     const refs = chronicle?.imageRefs?.refs || [];
     for (const ref of refs) {
-      const imageId = ref?.generatedImageId;
-      if (imageId) ids.add(imageId);
-      if (ref?.type === "entity_ref" && ref?.entityId) {
-        const entity = entityById.get(ref.entityId);
-        const entityImageId = entity?.enrichment?.image?.imageId;
-        if (entityImageId) ids.add(entityImageId);
-      }
+      collectRefImageId(ref, ids, entityById);
     }
   }
 }
@@ -295,6 +298,26 @@ function processLocalImage(imageId, record, blob, entityByImageId, entityById, i
   });
   imageResults.push(buildImageEntry(imageId, record, path, entityByImageId, entityById));
 }
+async function processOneImage({
+  imageId, record, mode, storage, entityByImageId, entityById,
+  images, imageFiles, imageResults, usedNames, shouldCancel,
+  processed, totalImages, onProgress,
+}) {
+  if (mode === "s3" && storage) {
+    processed += 1;
+    processS3Image(imageId, record, storage, entityByImageId, entityById, images, imageResults);
+    if (onProgress) onProgress({ phase: "images", processed, total: totalImages });
+    return processed;
+  }
+  const blob = await getImageBlob(imageId);
+  throwIfExportCanceled(shouldCancel);
+  processed += 1;
+  if (blob) {
+    processLocalImage(imageId, record, blob, entityByImageId, entityById, images, imageFiles, imageResults, usedNames);
+  }
+  if (onProgress) onProgress({ phase: "images", processed, total: totalImages });
+  return processed;
+}
 async function buildBundleImageAssets({
   projectId,
   worldData,
@@ -339,26 +362,10 @@ async function buildBundleImageAssets({
     throwIfExportCanceled(shouldCancel);
     let record = imageById.get(imageId);
     if (!record) record = await getImageMetadata(imageId);
-    if (mode === "s3" && storage) {
-      processed += 1;
-      processS3Image(imageId, record, storage, entityByImageId, entityById, images, imageResults);
-      if (onProgress) onProgress({
-        phase: "images",
-        processed,
-        total: totalImages
-      });
-      continue;
-    }
-    const blob = await getImageBlob(imageId);
-    throwIfExportCanceled(shouldCancel);
-    processed += 1;
-    if (blob) {
-      processLocalImage(imageId, record, blob, entityByImageId, entityById, images, imageFiles, imageResults, usedNames);
-    }
-    if (onProgress) onProgress({
-      phase: "images",
-      processed,
-      total: totalImages
+    processed = await processOneImage({
+      imageId, record, mode, storage, entityByImageId, entityById,
+      images, imageFiles, imageResults, usedNames, shouldCancel,
+      processed, totalImages, onProgress,
     });
   }
   if (imageResults.length === 0) {
@@ -464,9 +471,102 @@ function normalizeWorldContextForExport(worldContext) {
 
 // normalizeUiState moved to stores/useCanonryUiStore.js
 
+function toArrayOrEmpty(val) {
+  return Array.isArray(val) ? val : [];
+}
+function resolveExportWorldData(liveWorldData, slotWorldData, slotRunId, liveRunId) {
+  const useLive = isWorldOutput(liveWorldData) && (!slotWorldData || !slotRunId || slotRunId === liveRunId);
+  return useLive ? liveWorldData : slotWorldData;
+}
+async function downloadBundleFile(bundleJson, imageFiles, safeBase, slotIndex, exportedAt, shouldCancel) {
+  if (imageFiles.length === 0) {
+    const timestamp = exportedAt.replace(/[:.]/g, "-").replace("T", "_").replace("Z", "");
+    const blob = new Blob([bundleJson], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const bundleBase = safeBase || `slot-${slotIndex}`;
+    link.download = `${bundleBase}.bundle.${timestamp}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } else {
+    const { default: JSZip } = await import("jszip");
+    const zip = new JSZip();
+    zip.file("bundle.json", bundleJson);
+    for (const file of imageFiles) {
+      zip.file(file.path, file.blob);
+    }
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    throwIfExportCanceled(shouldCancel);
+    const url = URL.createObjectURL(zipBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    const zipBase = safeBase || `slot-${slotIndex}`;
+    link.download = `${zipBase}.canonry-bundle.zip`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+}
+function deleteItemProperty(item, pathSegments, propName) {
+  if (pathSegments.length === 0) {
+    delete item[propName];
+    return;
+  }
+  let obj = item;
+  for (let i = 0; i < pathSegments.length; i++) {
+    const seg = pathSegments[i];
+    if (obj[seg] === undefined) return;
+    if (i === pathSegments.length - 1) {
+      delete obj[seg][propName];
+    } else {
+      obj = obj[seg];
+    }
+  }
+}
+function computeDefaultSlotTitle(slotIndex, now) {
+  return slotIndex === 0 ? "Scratch" : generateSlotTitle(slotIndex, now);
+}
+function parseViewerBundlePayload(payload) {
+  const worldData = payload.worldData;
+  if (!isWorldOutput(worldData)) {
+    throw new Error("Viewer bundle is missing a valid world output.");
+  }
+  if (!worldData?.metadata?.simulationRunId && payload?.metadata?.simulationRunId) {
+    worldData.metadata = { ...worldData.metadata, simulationRunId: payload.metadata.simulationRunId };
+  }
+  return {
+    worldData,
+    simulationResults: worldData,
+    simulationState: null,
+    slotTitle: payload.slot?.title || payload.metadata?.title,
+    slotCreatedAt: payload.slot?.createdAt,
+    chronicles: toArrayOrEmpty(payload.chronicles),
+    staticPages: toArrayOrEmpty(payload.staticPages),
+    imageData: payload.imageData ?? null,
+    images: payload.images ?? null,
+  };
+}
+function logSlotImportStats(simulationRunId, worldData, existingSlot) {
+  if (!simulationRunId && worldData?.hardState?.length) {
+    console.warn("[Canonry] Import skipped Dexie entity merge: missing simulationRunId");
+  }
+  if (!worldData?.hardState) return;
+  const incomingEntities = Array.isArray(worldData.hardState) ? worldData.hardState : [];
+  const existingEntities = Array.isArray(existingSlot.worldData?.hardState) ? existingSlot.worldData.hardState : [];
+  const existingIds = new Set(existingEntities.map(entity => entity?.id).filter(Boolean));
+  let overwritten = 0;
+  for (const entity of incomingEntities) {
+    if (entity?.id && existingIds.has(entity.id)) overwritten += 1;
+  }
+  console.log("[Canonry] Import entities", {
+    processed: incomingEntities.length,
+    overwritten,
+    new: Math.max(0, incomingEntities.length - overwritten),
+  });
+}
+
 export default function App() {
   const activeTab = useCanonryUiStore(s => s.activeTab);
-  const activeSectionByTab = useCanonryUiStore(s => s.activeSectionByTab);
   const showHome = useCanonryUiStore(s => s.showHome);
   const helpModalOpen = useCanonryUiStore(s => s.helpModalOpen);
   const chroniclerRequestedPage = useCanonryUiStore(s => s.chroniclerRequestedPage);
@@ -1561,27 +1661,7 @@ export default function App() {
       };
     }
     if (payload?.format === VIEWER_BUNDLE_FORMAT && payload?.version === VIEWER_BUNDLE_VERSION) {
-      const worldData = payload.worldData;
-      if (!isWorldOutput(worldData)) {
-        throw new Error("Viewer bundle is missing a valid world output.");
-      }
-      if (!worldData?.metadata?.simulationRunId && payload?.metadata?.simulationRunId) {
-        worldData.metadata = {
-          ...worldData.metadata,
-          simulationRunId: payload.metadata.simulationRunId
-        };
-      }
-      return {
-        worldData,
-        simulationResults: worldData,
-        simulationState: null,
-        slotTitle: payload.slot?.title || payload.metadata?.title,
-        slotCreatedAt: payload.slot?.createdAt,
-        chronicles: Array.isArray(payload.chronicles) ? payload.chronicles : [],
-        staticPages: Array.isArray(payload.staticPages) ? payload.staticPages : [],
-        imageData: payload.imageData ?? null,
-        images: payload.images ?? null
-      };
+      return parseViewerBundlePayload(payload);
     }
     if (isWorldOutput(payload)) {
       return {
@@ -1597,25 +1677,13 @@ export default function App() {
     const parsed = parseSlotImportPayload(payload);
     const now = Date.now();
     const existingSlot = (await getSlot(currentProject.id, slotIndex)) || {};
-    const title = parsed.slotTitle || existingSlot.title || options.defaultTitle || (slotIndex === 0 ? "Scratch" : generateSlotTitle(slotIndex, now));
+    const title = parsed.slotTitle || existingSlot.title || options.defaultTitle || computeDefaultSlotTitle(slotIndex, now);
     const createdAt = parsed.slotCreatedAt ?? existingSlot.createdAt ?? now;
     const worldData = mergeDefined(parsed.worldData, existingSlot.worldData ?? null);
     const simulationResults = mergeDefined(parsed.simulationResults ?? parsed.worldData, existingSlot.simulationResults ?? null);
     const simulationState = mergeDefined(parsed.simulationState, existingSlot.simulationState ?? null);
-    if (worldData?.hardState) {
-      const incomingEntities = Array.isArray(worldData.hardState) ? worldData.hardState : [];
-      const existingEntities = Array.isArray(existingSlot.worldData?.hardState) ? existingSlot.worldData.hardState : [];
-      const existingIds = new Set(existingEntities.map(entity => entity?.id).filter(Boolean));
-      let overwritten = 0;
-      for (const entity of incomingEntities) {
-        if (entity?.id && existingIds.has(entity.id)) overwritten += 1;
-      }
-      console.log("[Canonry] Import entities", {
-        processed: incomingEntities.length,
-        overwritten,
-        new: Math.max(0, incomingEntities.length - overwritten)
-      });
-    }
+    const simulationRunId = worldData?.metadata?.simulationRunId;
+    logSlotImportStats(simulationRunId, worldData, existingSlot);
     const slotData = {
       ...existingSlot,
       title,
@@ -1626,10 +1694,6 @@ export default function App() {
       worldData
     };
     await saveSlot(currentProject.id, slotIndex, slotData);
-    const simulationRunId = worldData?.metadata?.simulationRunId;
-    if (!simulationRunId && worldData?.hardState?.length) {
-      console.warn("[Canonry] Import skipped Dexie entity merge: missing simulationRunId");
-    }
     if (simulationRunId && Array.isArray(worldData?.hardState) && worldData.hardState.length > 0) {
       const entityResult = await importEntities(simulationRunId, worldData.hardState);
       console.log("[Canonry] Import entities (Dexie)", entityResult);
@@ -1734,7 +1798,7 @@ export default function App() {
     const liveWorldData = slotIndex === activeSlotIndex ? archivistData?.worldData : null;
     const liveRunId = liveWorldData?.metadata?.simulationRunId;
     const slotRunId = slotWorldData?.metadata?.simulationRunId;
-    const worldData = isWorldOutput(liveWorldData) && (!slotWorldData || !slotRunId || slotRunId === liveRunId) ? liveWorldData : slotWorldData;
+    const worldData = resolveExportWorldData(liveWorldData, slotWorldData, slotRunId, liveRunId);
     if (!isWorldOutput(worldData)) {
       alert("Slot does not contain a valid world output.");
       return;
@@ -1844,41 +1908,7 @@ export default function App() {
       };
       const bundleJson = JSON.stringify(bundle, null, 2);
       throwIfExportCanceled(shouldCancel);
-      if (imageFiles.length === 0) {
-        // S3 mode (or no local images) — export a timestamped JSON file directly
-        const timestamp = exportedAt.replace(/[:.]/g, "-").replace("T", "_").replace("Z", "");
-        const blob = new Blob([bundleJson], {
-          type: "application/json"
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        const bundleBase = safeBase || `slot-${slotIndex}`;
-        link.download = `${bundleBase}.bundle.${timestamp}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-      } else {
-        // Local mode — zip bundle.json with embedded image blobs
-        const {
-          default: JSZip
-        } = await import("jszip");
-        const zip = new JSZip();
-        zip.file("bundle.json", bundleJson);
-        for (const file of imageFiles) {
-          zip.file(file.path, file.blob);
-        }
-        const zipBlob = await zip.generateAsync({
-          type: "blob"
-        });
-        throwIfExportCanceled(shouldCancel);
-        const url = URL.createObjectURL(zipBlob);
-        const link = document.createElement("a");
-        link.href = url;
-        const zipBase = safeBase || `slot-${slotIndex}`;
-        link.download = `${zipBase}.canonry-bundle.zip`;
-        link.click();
-        URL.revokeObjectURL(url);
-      }
+      await downloadBundleFile(bundleJson, imageFiles, safeBase, slotIndex, exportedAt, shouldCancel);
       closeExportModal();
     } catch (err) {
       if (err?.name === EXPORT_CANCEL_ERROR_NAME) {
@@ -2108,23 +2138,7 @@ export default function App() {
       // Deep clone the item
       const newData = [...data];
       const item = JSON.parse(JSON.stringify(data[itemIndex]));
-      if (pathSegments.length === 0) {
-        // Top-level property - delete directly from item
-        delete item[propName];
-      } else {
-        // Navigate to parent of the property to delete
-        let obj = item;
-        for (let i = 0; i < pathSegments.length; i++) {
-          const seg = pathSegments[i];
-          if (obj[seg] === undefined) return; // Path doesn't exist
-          if (i === pathSegments.length - 1) {
-            // At the target object, delete the property
-            delete obj[seg][propName];
-          } else {
-            obj = obj[seg];
-          }
-        }
-      }
+      deleteItemProperty(item, pathSegments, propName);
       newData[itemIndex] = item;
       update(newData);
       return;

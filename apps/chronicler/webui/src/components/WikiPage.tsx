@@ -231,16 +231,20 @@ function ChronicleImage({
 
   return (
     <figure className={imageClassName}>
-      <img
-        src={imageUrl}
-        alt={image.caption || "Chronicle illustration"}
-        className={styles.figureImage}
-        onError={() => setError(true)}
+      <button
+        type="button"
+        className={styles.figureImageBtn}
         onClick={() => onOpen?.(imageUrl, image)}
-        role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-      />
+      >
+        <img
+          src={imageUrl}
+          alt={image.caption || "Chronicle illustration"}
+          className={styles.figureImage}
+          onError={() => setError(true)}
+        />
+      </button>
       {image.caption && <figcaption className={styles.imageCaption}>{image.caption}</figcaption>}
     </figure>
   );
@@ -266,16 +270,20 @@ function CoverHeroImage({
 
   return (
     <div className={styles.coverHero}>
-      <img
-        src={imageUrl}
-        alt={title}
-        className={[styles.coverHeroImage, onOpen ? styles.coverHeroImageClickable : ""].filter(Boolean).join(" ")}
-        onError={() => setError(true)}
+      <button
+        type="button"
+        className={styles.coverHeroImageBtn}
         onClick={() => onOpen?.(imageUrl)}
-        role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-      />
+      >
+        <img
+          src={imageUrl}
+          alt={title}
+          className={[styles.coverHeroImage, onOpen ? styles.coverHeroImageClickable : ""].filter(Boolean).join(" ")}
+          onError={() => setError(true)}
+        />
+      </button>
       <div className={styles.coverHeroOverlay}>
         <h1 className={styles.chronicleTitleHero}>{title}</h1>
       </div>
@@ -527,6 +535,113 @@ function HistorianFootnoteTooltip({
   );
 }
 
+// ============================================================================
+// SectionWithImages helpers (module-level to avoid cognitive complexity)
+// ============================================================================
+
+type MarginItem =
+  | { kind: "image"; image: WikiSectionImage }
+  | { kind: "callout"; note: WikiHistorianNote; noteIndex: number };
+
+type FlowFragment =
+  | { type: "text"; content: string }
+  | { type: "image"; image: WikiSectionImage };
+
+/** Measure DOM sidenote positions and resolve overlapping callouts. */
+function computeSidenotePositions(
+  container: HTMLElement,
+  fullNoteInserts: Array<{ note: WikiHistorianNote; idx: number }>
+): Map<number, number> {
+  const containerRect = container.getBoundingClientRect();
+  const supPositions = new Map<number, number>();
+  container.querySelectorAll("sup.historian-fn[data-note-idx]").forEach((sup) => {
+    const idx = parseInt(sup.getAttribute("data-note-idx") || "", 10);
+    if (!isNaN(idx) && fullNoteInserts.some((f) => f.idx === idx)) {
+      supPositions.set(idx, (sup as HTMLElement).getBoundingClientRect().top - containerRect.top);
+    }
+  });
+  const calloutHeights = new Map<number, number>();
+  container.querySelectorAll<HTMLElement>("[data-sidenote-callout-idx]").forEach((el) => {
+    const rawIdx = el.getAttribute("data-sidenote-callout-idx");
+    const idx = rawIdx ? parseInt(rawIdx, 10) : NaN;
+    if (!isNaN(idx)) calloutHeights.set(idx, el.offsetHeight);
+  });
+  const sorted = [...fullNoteInserts].sort((a, b) => {
+    return (supPositions.get(a.idx) ?? 0) - (supPositions.get(b.idx) ?? 0);
+  });
+  const resolved = new Map<number, number>();
+  const GAP = 8;
+  let lastBottom = -Infinity;
+  for (const { idx } of sorted) {
+    let top = supPositions.get(idx) ?? 0;
+    if (top < lastBottom + GAP) top = lastBottom + GAP;
+    resolved.set(idx, top);
+    lastBottom = top + (calloutHeights.get(idx) ?? 80);
+  }
+  return resolved;
+}
+
+/** Distribute images and callouts into left/right margin columns. */
+function distributeToMarginColumns(
+  images: WikiSectionImage[],
+  noteInserts: Array<{ note: WikiHistorianNote; idx: number }>
+): { leftItems: MarginItem[]; rightItems: MarginItem[] } {
+  const leftItems: MarginItem[] = [];
+  const rightItems: MarginItem[] = [];
+  const allItems: MarginItem[] = [
+    ...images.map((img) => ({ kind: "image" as const, image: img })),
+    ...noteInserts.map(({ note, idx }) => ({ kind: "callout" as const, note, noteIndex: idx })),
+  ];
+  for (const item of allItems) {
+    if (item.kind === "image" && item.image.justification === "left") {
+      leftItems.push(item);
+    } else if (item.kind === "image" && item.image.justification === "right") {
+      rightItems.push(item);
+    } else if (leftItems.length <= rightItems.length) {
+      leftItems.push(item);
+    } else {
+      rightItems.push(item);
+    }
+  }
+  return { leftItems, rightItems };
+}
+
+/** Build interleaved text/image fragments for flow layout. */
+function buildFlowFragments(
+  content: string,
+  images: WikiSectionImage[],
+  allNotes: WikiHistorianNote[],
+  orderedNotes: WikiHistorianNote[]
+): FlowFragment[] {
+  const insertItems: Array<{ image: WikiSectionImage; position: number }> = [];
+  for (const img of images) {
+    const resolved = img.anchorText ? resolveAnchorPhrase(img.anchorText, content) : null;
+    let position = resolved ? resolved.index : -1;
+    if (position < 0 && img.anchorIndex !== undefined && img.anchorIndex < content.length) {
+      position = img.anchorIndex;
+    }
+    if (position < 0) position = content.length;
+    insertItems.push({ image: img, position });
+  }
+  insertItems.sort((a, b) => a.position - b.position);
+  const fragments: FlowFragment[] = [];
+  let lastIndex = 0;
+  for (const item of insertItems) {
+    const anchorEnd = item.position + (item.image.anchorText?.length || 0);
+    const paragraphEnd = content.indexOf("\n\n", anchorEnd);
+    const insertPoint = paragraphEnd >= 0 ? paragraphEnd : content.length;
+    if (insertPoint > lastIndex) {
+      fragments.push({ type: "text", content: injectFootnotesWithGlobalIndex(content.slice(lastIndex, insertPoint), allNotes, orderedNotes) });
+    }
+    fragments.push({ type: "image", image: item.image });
+    lastIndex = paragraphEnd >= 0 ? paragraphEnd + 2 : insertPoint;
+  }
+  if (lastIndex < content.length) {
+    fragments.push({ type: "text", content: injectFootnotesWithGlobalIndex(content.slice(lastIndex), allNotes, orderedNotes) });
+  }
+  return fragments;
+}
+
 /**
  * SectionWithImages - Renders a section with content-aware layout
  *
@@ -650,49 +765,8 @@ function SectionWithImages({
       setResolvedPositions(new Map());
       return;
     }
-
-    const containerRect = container.getBoundingClientRect();
-    const supPositions = new Map<number, number>();
-
-    container.querySelectorAll("sup.historian-fn[data-note-idx]").forEach((sup) => {
-      const idx = parseInt(sup.getAttribute("data-note-idx") || "", 10);
-      if (!isNaN(idx) && fullNoteInserts.some((f) => f.idx === idx)) {
-        supPositions.set(idx, (sup as HTMLElement).getBoundingClientRect().top - containerRect.top);
-      }
-    });
-
-    const calloutHeights = new Map<number, number>();
-    container.querySelectorAll<HTMLElement>("[data-sidenote-callout-idx]").forEach((el) => {
-      const rawIdx = el.getAttribute("data-sidenote-callout-idx");
-      const idx = rawIdx ? parseInt(rawIdx, 10) : NaN;
-      if (!isNaN(idx)) {
-        calloutHeights.set(idx, el.offsetHeight);
-      }
-    });
-
-    // Resolve overlapping callouts by pushing them down
-    const sorted = [...fullNoteInserts].sort((a, b) => {
-      const posA = supPositions.get(a.idx) ?? 0;
-      const posB = supPositions.get(b.idx) ?? 0;
-      return posA - posB;
-    });
-
-    const resolved = new Map<number, number>();
-    const GAP = 8;
-    let lastBottom = -Infinity;
-
-    for (const { idx } of sorted) {
-      let top = supPositions.get(idx) ?? 0;
-      if (top < lastBottom + GAP) {
-        top = lastBottom + GAP;
-      }
-      resolved.set(idx, top);
-      const height = calloutHeights.get(idx) ?? 80;
-      lastBottom = top + height;
-    }
-
     // eslint-disable-next-line react-hooks/set-state-in-effect -- layout effect publishes measured sidenote positions
-    setResolvedPositions(resolved);
+    setResolvedPositions(computeSidenotePositions(container, fullNoteInserts));
   }, [annotatedContent, fullNoteInserts]);
 
   // In footnote mode, full notes don't need inline/sidenote rendering — they collect at bottom
@@ -758,38 +832,7 @@ function SectionWithImages({
 
   // ── Margin mode: 3-column grid with images/callouts in side margins ──
   if (layoutMode === "margin") {
-    // Distribute images and callouts to left/right margin columns
-    type MarginItem =
-      | { kind: "image"; image: WikiSectionImage }
-      | { kind: "callout"; note: WikiHistorianNote; noteIndex: number };
-
-    const leftItems: MarginItem[] = [];
-    const rightItems: MarginItem[] = [];
-
-    // Collect all margin items (images + callouts) then distribute balanced
-    const allMarginItems: MarginItem[] = [];
-    for (const img of images) {
-      allMarginItems.push({ kind: "image", image: img });
-    }
-    for (const { note, idx } of effectiveFullNoteInserts) {
-      allMarginItems.push({ kind: "callout", note, noteIndex: idx });
-    }
-
-    // Distribute: respect explicit image justification, balance everything else
-    for (const item of allMarginItems) {
-      if (item.kind === "image" && item.image.justification === "left") {
-        leftItems.push(item);
-      } else if (item.kind === "image" && item.image.justification === "right") {
-        rightItems.push(item);
-      } else {
-        // Balance: put in the column with fewer items
-        if (leftItems.length <= rightItems.length) {
-          leftItems.push(item);
-        } else {
-          rightItems.push(item);
-        }
-      }
-    }
+    const { leftItems, rightItems } = distributeToMarginColumns(images, effectiveFullNoteInserts);
 
     return (
       <div
@@ -863,52 +906,7 @@ function SectionWithImages({
 
   // ── Flow mode: fragment-based rendering with interleaved images ──
   // Callouts are NOT interleaved — they render in an absolutely positioned sidenote column
-
-  // Build insert list: only images (callouts handled separately as sidenotes)
-  type InsertItem = { kind: "image"; image: WikiSectionImage; position: number };
-
-  const insertItems: InsertItem[] = [];
-
-  for (const img of images) {
-    const resolved = img.anchorText ? resolveAnchorPhrase(img.anchorText, content) : null;
-    let position = resolved ? resolved.index : -1;
-    if (position < 0 && img.anchorIndex !== undefined && img.anchorIndex < content.length) {
-      position = img.anchorIndex;
-    }
-    if (position < 0) {
-      position = content.length;
-    }
-    insertItems.push({ kind: "image", image: img, position });
-  }
-
-  insertItems.sort((a, b) => a.position - b.position);
-
-  // Build fragments: split content at paragraph boundaries near each image
-  const fragments: Array<
-    { type: "text"; content: string } | { type: "image"; image: WikiSectionImage }
-  > = [];
-  let lastIndex = 0;
-
-  for (const item of insertItems) {
-    const anchorEnd = item.position + (item.image.anchorText?.length || 0);
-    const paragraphEnd = content.indexOf("\n\n", anchorEnd);
-    const insertPoint = paragraphEnd >= 0 ? paragraphEnd : content.length;
-
-    if (insertPoint > lastIndex) {
-      const slice = content.slice(lastIndex, insertPoint);
-      const annotated = injectFootnotesWithGlobalIndex(slice, allNotes, orderedNotes);
-      fragments.push({ type: "text", content: annotated });
-    }
-    fragments.push({ type: "image", image: item.image });
-    lastIndex = paragraphEnd >= 0 ? paragraphEnd + 2 : insertPoint;
-  }
-
-  if (lastIndex < content.length) {
-    const slice = content.slice(lastIndex);
-    const annotated = injectFootnotesWithGlobalIndex(slice, allNotes, orderedNotes);
-    fragments.push({ type: "text", content: annotated });
-  }
-
+  const fragments = buildFlowFragments(content, images, allNotes, orderedNotes);
   let firstTextSeen = false;
 
   return (
@@ -1328,6 +1326,33 @@ function MarkdownSection({
   );
 }
 
+/** Build the array of linkable names for auto-linking in WikiPageView. */
+function buildLinkableNames(
+  entityIndex: Map<string, HardState>,
+  pages: WikiPage[]
+): Array<{ name: string; id: string }> {
+  const names: Array<{ name: string; id: string }> = [];
+  for (const [id, entity] of entityIndex) {
+    names.push({ name: entity.name, id });
+  }
+  for (const candidate of pages) {
+    if (candidate.type !== "entity" || !candidate.aliases?.length) continue;
+    for (const alias of candidate.aliases) {
+      if (alias.length >= 3) names.push({ name: alias, id: candidate.id });
+    }
+  }
+  for (const p of pages) {
+    if (p.type !== "static") continue;
+    names.push({ name: p.title, id: p.id });
+    const colonIdx = p.title.indexOf(":");
+    if (colonIdx > 0 && colonIdx < p.title.length - 1) {
+      const baseName = p.title.slice(colonIdx + 1).trim();
+      if (baseName && baseName !== p.title) names.push({ name: baseName, id: p.id });
+    }
+  }
+  return names;
+}
+
 interface WikiPageViewProps {
   page: WikiPage;
   pages: WikiPage[];
@@ -1632,35 +1657,10 @@ export default function WikiPageView({
   }, [pages, entityNameMap]);
 
   // Build linkable names for auto-linking (used by applyWikiLinks)
-  const linkableNames = useMemo(() => {
-    const names: Array<{ name: string; id: string }> = [];
-    // Add entity names
-    for (const [id, entity] of entityIndex) {
-      names.push({ name: entity.name, id });
-    }
-    // Add entity aliases
-    for (const candidate of pages) {
-      if (candidate.type !== "entity" || !candidate.aliases?.length) continue;
-      for (const alias of candidate.aliases) {
-        if (alias.length >= 3) {
-          names.push({ name: alias, id: candidate.id });
-        }
-      }
-    }
-    // Add static page names (full title and base name)
-    for (const p of pages) {
-      if (p.type !== "static") continue;
-      names.push({ name: p.title, id: p.id });
-      const colonIdx = p.title.indexOf(":");
-      if (colonIdx > 0 && colonIdx < p.title.length - 1) {
-        const baseName = p.title.slice(colonIdx + 1).trim();
-        if (baseName && baseName !== p.title) {
-          names.push({ name: baseName, id: p.id });
-        }
-      }
-    }
-    return names;
-  }, [entityIndex, pages]);
+  const linkableNames = useMemo(
+    () => buildLinkableNames(entityIndex, pages),
+    [entityIndex, pages]
+  );
 
   const infoboxEntity = entityIndex.get(page.id);
   const infoboxImageId = infoboxEntity?.enrichment?.image?.imageId;
@@ -1857,19 +1857,23 @@ export default function WikiPageView({
             <FrostEdge className={styles.frostEdge} />
             <div className={styles.infoboxHeader}>{page.title}</div>
             {infoboxImageUrl && (
-              <img
-                src={infoboxImageUrl}
-                alt={page.title}
-                className={getInfoboxImageClass(effectiveAspect, isMobile)}
-                onLoad={handleInfoboxImageLoad}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
+              <button
+                type="button"
+                className={styles.infoboxImageBtn}
                 onClick={() => void handleInfoboxImageClick()}
-                role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") void handleInfoboxImageClick(); }}
-              />
+              >
+                <img
+                  src={infoboxImageUrl}
+                  alt={page.title}
+                  className={getInfoboxImageClass(effectiveAspect, isMobile)}
+                  onLoad={handleInfoboxImageLoad}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              </button>
             )}
             <div className={styles.infoboxBody}>
               {page.content.infobox.fields.map((field, i) => (
@@ -1905,19 +1909,23 @@ export default function WikiPageView({
             <FrostEdge className={styles.frostEdge} />
             <div className={styles.infoboxHeader}>{page.title}</div>
             {infoboxImageUrl && (
-              <img
-                src={infoboxImageUrl}
-                alt={page.title}
-                className={getInfoboxImageClass(effectiveAspect, false)}
-                onLoad={handleInfoboxImageLoad}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
+              <button
+                type="button"
+                className={styles.infoboxImageBtn}
                 onClick={() => void handleInfoboxImageClick()}
-                role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") void handleInfoboxImageClick(); }}
-              />
+              >
+                <img
+                  src={infoboxImageUrl}
+                  alt={page.title}
+                  className={getInfoboxImageClass(effectiveAspect, false)}
+                  onLoad={handleInfoboxImageLoad}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              </button>
             )}
             <div className={styles.infoboxBody}>
               {page.content.infobox.fields.map((field, i) => (

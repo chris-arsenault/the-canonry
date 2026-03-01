@@ -167,9 +167,9 @@ export function BulkFailedList({
   errorKey = "error"
 }) {
   if (!items || items.length === 0) return null;
-  return <div className="bulk-failed-section">
-      <div className="bulk-failed-label">Failed ({items.length})</div>
-      <div className="bulk-failed-list">
+  return <div className="bulk-issue-section">
+      <div className="bulk-issue-label">Failed ({items.length})</div>
+      <div className="bulk-issue-list">
         {items.map((item, i) => <ErrorMessage
             key={item.id || item.chronicleId || item.entityId || i}
             title={item[labelKey]}

@@ -90,7 +90,7 @@ export default function HistorianToneSelector({
     setIsOpen(false);
     onSelect(tone);
   };
-  return <div ref={containerRef} className={`htsel-container${className ? ` ${className}` : ""}`}>
+  return <div ref={containerRef} className={`htsel-container${className ? " " + className : ""}`}>
       <button onClick={() => setIsOpen(!isOpen)} disabled={disabled} title="Select historian tone and generate annotations" className={`htsel-trigger ${disabled ? "htsel-trigger-disabled" : ""}`}>
         {label || (hasNotes ? "Re-annotate" : "Historian")} ▾
       </button>

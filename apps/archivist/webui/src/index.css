@@ -297,7 +297,7 @@ body {
 
 /* App-level state styles */
 .archivist-empty-state,
-.archivist-error-state {
+.archivist-unavailable-state {
   height: 100%;
   display: flex;
   align-items: center;
@@ -306,7 +306,7 @@ body {
   color: var(--color-gray-500);
 }
 
-.archivist-error-state {
+.archivist-unavailable-state {
   padding: var(--spacing-3xl);
 }
 
@@ -314,7 +314,7 @@ body {
   text-align: center;
 }
 
-.archivist-error-state .archivist-state-content {
+.archivist-unavailable-state .archivist-state-content {
   text-align: left;
   max-width: 640px;
 }

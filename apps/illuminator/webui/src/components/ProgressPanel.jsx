@@ -105,7 +105,7 @@ export default function ProgressPanel({
           <div className="illuminator-card-header">
             <h2 className="illuminator-card-title pp-error-title">Errors ({errorTasks.length})</h2>
           </div>
-          <div className="pp-error-list">
+          <div className="pp-issue-list">
             {errorTasks.map(task => <ErrorMessage
                 key={task.id}
                 title={`${task.entityName} - ${task.type}`}

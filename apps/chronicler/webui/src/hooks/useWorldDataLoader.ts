@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { WorldState } from "../types/world.ts";
 import { buildWorldStateForSlot } from "@the-canonry/world-store";
 import { IndexedDBBackend, useNarrativeStore } from "@the-canonry/narrative-store";
+import { useAsyncAction } from "./useAsyncAction";
 
 interface WorldDataLoaderOptions {
   projectId?: string;
@@ -40,8 +41,8 @@ export default function useWorldDataLoader({
   preloadedWorldData,
 }: WorldDataLoaderOptions): WorldDataLoaderResult {
   const [worldDataState, setWorldDataState] = useState<WorldState | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { busy, error: loadError, run } = useAsyncAction();
+  const loading = !!busy;
 
   const narrativeBackend = useMemo(() => new IndexedDBBackend(), []);
   const hasPreloadedWorld = preloadedWorldData !== undefined;
@@ -61,32 +62,23 @@ export default function useWorldDataLoader({
     if (!projectId) return;
 
     let cancelled = false;
-    queueMicrotask(() => {
+    void run("load", async () => {
+      await new Promise<void>((resolve) => queueMicrotask(resolve));
       if (cancelled) return;
-      setLoading(true);
-      setLoadError(null);
-    });
-
-    buildWorldStateForSlot(projectId, activeSlotIndex)
-      .then((loaded) => {
+      try {
+        const loaded = await buildWorldStateForSlot(projectId, activeSlotIndex);
         if (cancelled) return;
         setWorldDataState(loaded);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
+      } catch (err: unknown) {
         console.error("[ChroniclerRemote] Failed to load world data:", err);
-        setWorldDataState(null);
-        setLoadError(err instanceof Error ? err.message : "Failed to load world data from Dexie.");
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
+        throw err;
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [activeSlotIndex, dexieSeededAt, hasPreloadedWorld, projectId]);
+  }, [activeSlotIndex, dexieSeededAt, hasPreloadedWorld, projectId, run]);
 
   useEffect(() => {
     const store = useNarrativeStore.getState();

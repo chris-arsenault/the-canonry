@@ -191,6 +191,70 @@ Output 2-4 traits, one per line. Each 3-8 words, adding something NEW.`;
   return prompt;
 }
 
+// ============================================================================
+// Execution Helpers
+// ============================================================================
+
+type NarrativePayload = { summary: string; description: string; aliases: string[] };
+
+function parseNarrativeResponse(text: string, lockedSummary: string | undefined): NarrativePayload {
+  const parsed = parseJsonObject<Record<string, unknown>>(text, "description");
+  const description = typeof parsed.description === "string" ? parsed.description.trim() : "";
+  const aliases = Array.isArray(parsed.aliases)
+    ? parsed.aliases
+        .filter((a): a is string => typeof a === "string")
+        .map((a) => a.trim())
+        .filter(Boolean)
+    : [];
+  if (lockedSummary) {
+    if (!description) throw new Error("Missing description");
+    return { summary: lockedSummary, description, aliases };
+  }
+  const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
+  if (!summary || !description) throw new Error("Missing summary or description");
+  return { summary, description, aliases };
+}
+
+function parseVisualTraits(text: string): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.replace(/^[-*\u2022]\s*/, "").trim())
+    .filter((line) => line.length > 0);
+}
+
+async function fetchTraitGuidanceSafe(
+  projectId: string | undefined,
+  simulationRunId: string | undefined,
+  entityKind: string | undefined,
+  entitySubtype: string | undefined,
+  entityEraId: string | undefined
+): Promise<TraitGuidance | undefined> {
+  if (!projectId || !simulationRunId || !entityKind) return undefined;
+  try {
+    return await getTraitGuidance(projectId, simulationRunId, entityKind, entitySubtype, entityEraId);
+  } catch (err) {
+    console.warn("[Worker] Failed to fetch trait guidance:", err);
+    return undefined;
+  }
+}
+
+async function registerTraitsSafe(
+  projectId: string | undefined,
+  simulationRunId: string | undefined,
+  entityKind: string | undefined,
+  entityId: string | undefined,
+  entityName: string | undefined,
+  visualTraits: string[]
+): Promise<void> {
+  if (!projectId || !simulationRunId || !entityKind || visualTraits.length === 0) return;
+  try {
+    await registerUsedTraits(projectId, simulationRunId, entityKind, entityId ?? "", entityName ?? "", visualTraits);
+    await incrementPaletteUsage(projectId, entityKind, visualTraits);
+  } catch (err) {
+    console.warn("[Worker] Failed to register traits:", err);
+  }
+}
+
 export const descriptionTask = {
   type: "description",
   async execute(task, context) {
@@ -260,39 +324,9 @@ export const descriptionTask = {
     }
 
     // Parse narrative response
-    let narrativePayload: { summary: string; description: string; aliases: string[] };
+    let narrativePayload: NarrativePayload;
     try {
-      const parsed = parseJsonObject<Record<string, unknown>>(narrativeResult.text, "description");
-      const description = typeof parsed.description === "string" ? parsed.description.trim() : "";
-      const aliases = Array.isArray(parsed.aliases)
-        ? parsed.aliases
-            .filter((a): a is string => typeof a === "string")
-            .map((a) => a.trim())
-            .filter(Boolean)
-        : [];
-
-      if (lockedSummary) {
-        // Locked summary mode: use canonical summary, only description from LLM
-        if (!description) {
-          throw new Error("Missing description");
-        }
-        narrativePayload = {
-          summary: lockedSummary,
-          description,
-          aliases,
-        };
-      } else {
-        // Standard mode: parse both summary and description from LLM
-        const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
-        if (!summary || !description) {
-          throw new Error("Missing summary or description");
-        }
-        narrativePayload = {
-          summary,
-          description,
-          aliases,
-        };
-      }
+      narrativePayload = parseNarrativeResponse(narrativeResult.text, lockedSummary);
     } catch (err) {
       return {
         success: false,
@@ -393,21 +427,9 @@ Generate the visual thesis.`;
 
     // Fetch trait guidance for diversity (run-scoped avoidance, project-scoped palette)
     // Pass subtype and era to filter categories relevant to this entity
-    let traitGuidance: TraitGuidance | undefined;
-    try {
-      if (task.projectId && task.simulationRunId && task.entityKind) {
-        traitGuidance = await getTraitGuidance(
-          task.projectId,
-          task.simulationRunId,
-          task.entityKind,
-          task.entitySubtype,
-          task.entityEraId
-        );
-      }
-    } catch (err) {
-      // Non-fatal - continue without guidance
-      console.warn("[Worker] Failed to fetch trait guidance:", err);
-    }
+    const traitGuidance = await fetchTraitGuidanceSafe(
+      task.projectId, task.simulationRunId, task.entityKind, task.entitySubtype, task.entityEraId
+    );
 
     // Validate instructions are provided (from defaults or per-kind override)
     if (!task.visualTraitsInstructions) {
@@ -460,10 +482,7 @@ Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
     }
 
     // Parse traits response - one trait per line
-    const visualTraits = traitsResult.text
-      .split("\n")
-      .map((line) => line.replace(/^[-*\u2022]\s*/, "").trim()) // Strip bullet markers
-      .filter((line) => line.length > 0); // Filter empty lines
+    const visualTraits = parseVisualTraits(traitsResult.text);
 
     totalInputTokens += traitsCall.usage.inputTokens;
     totalOutputTokens += traitsCall.usage.outputTokens;
@@ -474,23 +493,9 @@ Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
     // ============================================================================
 
     // Register generated traits for future diversity guidance
-    try {
-      if (task.projectId && task.simulationRunId && task.entityKind && visualTraits.length > 0) {
-        await registerUsedTraits(
-          task.projectId,
-          task.simulationRunId,
-          task.entityKind,
-          task.entityId,
-          task.entityName,
-          visualTraits
-        );
-        // Increment palette category usage counters (for weighted selection)
-        await incrementPaletteUsage(task.projectId, task.entityKind, visualTraits);
-      }
-    } catch (err) {
-      // Non-fatal - continue without registration
-      console.warn("[Worker] Failed to register traits:", err);
-    }
+    await registerTraitsSafe(
+      task.projectId, task.simulationRunId, task.entityKind, task.entityId, task.entityName, visualTraits
+    );
 
     const estimatedTotals = {
       estimatedCost:

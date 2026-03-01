@@ -224,6 +224,15 @@ Order these ${chronicles.length} chronicles chronologically within ${era.eraName
 // Task Execution
 // ============================================================================
 
+function parseChronologyResponse(resultText: string): ChronologyLLMResponse {
+  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
+  const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("No JSON object found");
+  const parsed = JSON.parse(jsonMatch[0]) as ChronologyLLMResponse;
+  if (!Array.isArray(parsed.chronology)) throw new Error("Missing chronology array");
+  return parsed;
+}
+
 async function executeHistorianChronologyTask(
   task: WorkerTask,
   context: TaskContext
@@ -307,11 +316,7 @@ async function executeHistorianChronologyTask(
     // Parse LLM response
     let parsed: ChronologyLLMResponse;
     try {
-      // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No JSON object found");
-      parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.chronology)) throw new Error("Missing chronology array");
+      parsed = parseChronologyResponse(resultText);
     } catch (err) {
       const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
       await updateHistorianRun(runId, { status: "failed", error: errorMsg });

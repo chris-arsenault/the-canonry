@@ -540,8 +540,8 @@ export default function EraNarrativeModal({
             </div>}
 
           {/* Failed */}
-          {isFailed && <div className="era-narr-failed">
-              <ErrorMessage title="Generation failed" message={narrative?.error} className="era-narr-failed-error" />
+          {isFailed && <div className="era-narr-aborted">
+              <ErrorMessage title="Generation failed" message={narrative?.error} className="era-narr-aborted-error" />
               <button onClick={cancel} className="illuminator-button">
                 Dismiss
               </button>

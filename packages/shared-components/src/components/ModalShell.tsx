@@ -15,19 +15,19 @@ interface ModalShellTab {
 }
 
 interface ModalShellProps {
-  onClose: () => void;
-  icon?: string;
-  title: string;
-  disabled?: boolean;
-  tabs?: ModalShellTab[];
-  activeTab?: string;
-  onTabChange?: (tabId: string) => void;
-  renderTabBadge?: (tabId: string) => React.ReactNode;
-  sidebarFooter?: React.ReactNode;
-  children?: React.ReactNode;
-  className?: string;
-  preventOverlayClose?: boolean;
-  footer?: React.ReactNode;
+  readonly onClose: () => void;
+  readonly icon?: string;
+  readonly title: string;
+  readonly disabled?: boolean;
+  readonly tabs?: ModalShellTab[];
+  readonly activeTab?: string;
+  readonly onTabChange?: (tabId: string) => void;
+  readonly renderTabBadge?: (tabId: string) => React.ReactNode;
+  readonly sidebarFooter?: React.ReactNode;
+  readonly children?: React.ReactNode;
+  readonly className?: string;
+  readonly preventOverlayClose?: boolean;
+  readonly footer?: React.ReactNode;
 }
 
 /**

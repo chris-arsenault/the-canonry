@@ -4,14 +4,14 @@ import { NumberInput, ErrorMessage } from "@the-canonry/shared-components";
 import { LEXEME_CATEGORIES, WORD_STYLE_PRESETS } from "../../constants";
 import { generateLexemesWithAnthropic } from "../../../lib/anthropicClient";
 import { CopyLexemeModal } from "./CopyLexemeModal";
+import { useAsyncAction } from "../../../hooks/useAsyncAction";
 
 function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCultures }) {
   const [mode, setMode] = useState("view"); // 'view', 'create-spec', 'edit-spec', 'create-manual', 'edit-list'
   const [selectedList, setSelectedList] = useState(null);
   const [, setEditingListId] = useState(null);
   const [, setEditingSpecId] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { busy: loading, error, run, setError, clearError } = useAsyncAction();
   const [showCopyModal, setShowCopyModal] = useState(false);
 
   // Form state for spec creation
@@ -133,7 +133,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
     setMode("view");
     setEditingListId(null);
     setListForm({ id: "", description: "", entries: "", source: "manual" });
-    setError(null);
+    clearError();
   };
 
   const handleEditList = (listId) => {
@@ -169,10 +169,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
-    try {
+    await run("generate", async () => {
       const entries = await generateLexemesWithAnthropic(spec, apiKey);
 
       const newList = {
@@ -189,11 +186,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
 
       onLexemesChange(updatedLists, undefined);
       setSelectedList(spec.id);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const handleDeleteList = (listId) => {
@@ -279,7 +272,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
                         onClick={() => handleGenerate(spec)}
                         disabled={loading}
                       >
-                        {(() => { if (loading) return "..."; if (hasGenerated) return "Regenerate"; return "Generate"; })()}
+                        {loading ? "..." : (hasGenerated ? "Regenerate" : "Generate")}
                       </button>
                       <button className="danger sm" onClick={() => handleDeleteSpec(spec.id)}>
                         Delete

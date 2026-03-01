@@ -19,8 +19,8 @@ interface BadgeConfig {
 }
 
 interface DetailUsageBadgesProps {
-  usage?: Record<string, string[]>;
-  showOrphan?: boolean;
+  readonly usage?: Record<string, string[]>;
+  readonly showOrphan?: boolean;
 }
 
 // Badge configurations for detail types

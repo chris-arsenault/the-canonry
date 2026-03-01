@@ -35,15 +35,19 @@ function EntityResultCard({
       {/* Image thumbnail */}
       <div className="illuminator-entity-image">
         {imageTask?.result?.imageUrl ? (
-          <img
-            src={imageTask.result.imageUrl}
-            alt={entity.name}
+          <button
+            type="button"
+            className="rp-clickable-btn"
             onClick={() => onPreviewImage(imageTask.result.imageUrl)}
-            className="rp-clickable-image"
-            role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-          />
+          >
+            <img
+              src={imageTask.result.imageUrl}
+              alt={entity.name}
+              className="rp-clickable-image"
+            />
+          </button>
         ) : (
           <div className="rp-placeholder-icon">
             {entity.kind === "npc" && "&#x1F9D1;"}

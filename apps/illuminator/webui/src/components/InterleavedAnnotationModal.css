@@ -281,7 +281,7 @@
   font-size: 12px;
 }
 
-.iam-terminal-failed {
+.iam-terminal-aborted {
   padding: 12px;
   border-radius: 8px;
   background: rgb(239 68 68 / 10%);
@@ -295,18 +295,18 @@
 }
 
 /* Failed items list */
-.iam-failed-section {
+.iam-issues-section {
   margin-bottom: 16px;
 }
 
-.iam-failed-label {
+.iam-issues-label {
   font-size: 11px;
   color: #ef4444;
   font-weight: 600;
   margin-bottom: 4px;
 }
 
-.iam-failed-item {
+.iam-issues-item {
   font-size: 11px;
   color: var(--text-muted);
   margin-bottom: 2px;

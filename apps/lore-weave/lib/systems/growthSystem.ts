@@ -1,4 +1,4 @@
-import { GrowthTemplate, SimulationSystem, Era, EngineConfig, GrowthPhaseCompletion } from '../engine/types';
+import { GrowthTemplate, SimulationSystem, Era, EngineConfig, GrowthPhaseCompletion, TemplateResult } from '../engine/types';
 import { DeclarativeTemplate } from '../engine/declarativeTypes';
 import { TemplateInterpreter } from '../engine/templateInterpreter';
 import { PopulationTracker, PopulationMetrics } from '../statistics/populationTracker';
@@ -121,26 +121,179 @@ export function createGrowthSystem(
     });
   }
 
+  function logCanApplyDiagnostic(template: GrowthTemplate, graphView: WorldRuntime): void {
+    const declTemplate = deps.declarativeTemplates.get(template.id);
+    if (declTemplate) {
+      const diag = deps.templateInterpreter.diagnoseCanApply(declTemplate, graphView);
+      if (!diag.applicabilityPassed) {
+        graphView.debug('templates', `${template.id} rejected: ${diag.failedRules.join('; ')}`);
+      } else if (diag.selectionCount === 0) {
+        graphView.debug('templates', `${template.id} selection(${diag.selectionStrategy}) returned 0 targets`);
+      }
+    }
+  }
+
+  function checkContractChecks(allTagsToAdd: string[], template: GrowthTemplate, graphView: WorldRuntime): void {
+    const tagSaturationCheck = deps.contractEnforcer.checkTagSaturation(graphView, allTagsToAdd);
+    if (tagSaturationCheck.saturated) {
+      deps.emitter.log('warn', `Template ${template.id} would oversaturate tags: ${tagSaturationCheck.oversaturatedTags.join(', ')}`);
+    }
+    const orphanCheck = deps.contractEnforcer.checkTagOrphans(allTagsToAdd);
+    if (orphanCheck.hasOrphans && orphanCheck.orphanTags.length >= 3) {
+      deps.emitter.log('debug', `Template ${template.id} creates unregistered tags: ${orphanCheck.orphanTags.slice(0, 5).join(', ')}`);
+    }
+  }
+
+  async function expandTemplate(template: GrowthTemplate, graphView: WorldRuntime, target: HardState): Promise<TemplateResult> {
+    try {
+      return await template.expand(graphView, target);
+    } catch (error) {
+      // LINEAGE: Exit context on expand error
+      deps.mutationTracker?.exitContext();
+      throw error;
+    }
+  }
+
+  async function addEntitiesFromResult(
+    result: TemplateResult,
+    graphView: WorldRuntime,
+    template: GrowthTemplate,
+    newIds: string[],
+    createdEntities: HardState[]
+  ): Promise<void> {
+    for (let i = 0; i < result.entities.length; i++) {
+      const entity = result.entities[i];
+      const placementStrategy = result.placementStrategies?.[i] || 'unknown';
+      const id = await graphView.addEntity(entity, `template:${template.id}`, placementStrategy);
+      newIds.push(id);
+      const ref = graphView.getEntity(id);
+      if (ref) createdEntities.push(ref);
+    }
+    for (const entity of createdEntities) {
+      initializeCatalystSmart(entity);
+    }
+  }
+
+  function validateCreatedEntities(createdEntities: HardState[], graphView: WorldRuntime): void {
+    for (const entity of createdEntities) {
+      const coverageCheck = deps.contractEnforcer.enforceTagCoverage(entity, graphView);
+      if (coverageCheck.needsAdjustment) {
+        deps.emitter.log('debug', coverageCheck.suggestion || '', { entity: entity.id });
+      }
+      const taxonomyCheck = deps.contractEnforcer.validateTagTaxonomy(entity);
+      if (!taxonomyCheck.valid) {
+        deps.emitter.log('warn', `Entity ${entity.name} has conflicting tags`, { conflicts: taxonomyCheck.conflicts });
+      }
+    }
+  }
+
+  function buildEntityCreationInfo(createdEntities: HardState[], result: TemplateResult) {
+    return createdEntities.map((e, i) => {
+      const placementDebug = result.placementDebugList?.[i];
+      const strategy = result.placementStrategies?.[i] || 'unknown';
+      return {
+        id: e.id,
+        name: e.name,
+        kind: e.kind,
+        subtype: e.subtype,
+        culture: e.culture,
+        prominence: prominenceLabel(e.prominence),
+        tags: e.tags,
+        placementStrategy: strategy,
+        coordinates: e.coordinates,
+        regionId: placementDebug?.regionId ?? e.regionId,
+        allRegionIds: placementDebug?.allRegionIds ?? e.allRegionIds,
+        derivedTags: result.derivedTagsList?.[i],
+        placement: placementDebug ? {
+          anchorType: placementDebug.anchorType,
+          anchorEntity: placementDebug.anchorEntity,
+          anchorCulture: placementDebug.anchorCulture,
+          resolvedVia: placementDebug.resolvedVia,
+          seedRegionsAvailable: placementDebug.seedRegionsAvailable,
+          emergentRegionCreated: placementDebug.emergentRegionCreated
+        } : undefined
+      };
+    });
+  }
+
+  function buildNarrationText(
+    declTemplate: DeclarativeTemplate,
+    target: HardState,
+    result: TemplateResult,
+    createdEntities: HardState[],
+    templateId: string
+  ): string | undefined {
+    if (!declTemplate.narrationTemplate) return undefined;
+    // Start with the resolved variables from template expansion (like $target, $enemy)
+    const variables: Record<string, HardState | HardState[] | undefined> = {
+      ...(result.resolvedVariables || {}),
+    };
+    // Add created entities by their entityRef (like $war, $ideology)
+    // Use entityRefToIndex mapping since createChance can skip entities
+    if (result.entityRefToIndex) {
+      for (const [entityRef, idx] of Object.entries(result.entityRefToIndex)) {
+        if (createdEntities[idx]) {
+          const key = entityRef.startsWith('$') ? entityRef : `$${entityRef}`;
+          variables[key] = createdEntities[idx];
+        }
+      }
+    }
+    const narrationCtx = createGeneratorContext({ target, variables });
+    const narrationResult = interpolate(declTemplate.narrationTemplate, narrationCtx);
+    if (!narrationResult.complete) {
+      console.debug(`[GrowthSystem] Template ${templateId} narration partial:`, {
+        unresolvedTokens: narrationResult.unresolvedTokens,
+        variableKeys: Object.keys(variables),
+      });
+    }
+    return narrationResult.text;
+  }
+
+  function recordCreationBatchEvents(
+    template: GrowthTemplate,
+    result: TemplateResult,
+    newIds: string[],
+    createdEntities: HardState[],
+    target: HardState
+  ): void {
+    if (newIds.length === 0) return;
+    const relationshipCounts = new Map<string, number>();
+    for (const rel of result.relationships) {
+      relationshipCounts.set(rel.kind, (relationshipCounts.get(rel.kind) || 0) + 1);
+    }
+    const relationshipSummary: RelationshipSummary[] = [];
+    for (const [kind, count] of relationshipCounts) {
+      relationshipSummary.push({ kind, count });
+    }
+    // Use description from first creation item if available
+    const declTemplate = deps.declarativeTemplates.get(template.id);
+    const rawDescription = declTemplate?.creation?.[0]?.description;
+    // DescriptionSpec can be string or { template, replacements } - extract string if possible
+    const primaryDescription = typeof rawDescription === 'string' ? rawDescription : undefined;
+    // Generate narration ONCE here, now that entities have names
+    const narration = declTemplate
+      ? buildNarrationText(declTemplate, target, result, createdEntities, template.id)
+      : undefined;
+    deps.stateChangeTracker.recordCreationBatch(
+      template.id,
+      template.name || template.id,
+      newIds,
+      relationshipSummary,
+      primaryDescription || result.description,
+      narration
+    );
+  }
+
   async function applyTemplateOnce(
     template: GrowthTemplate,
     graphView: WorldRuntime,
     _era: Era
   ): Promise<number> {
     try {
-      // Check applicability
       if (!template.canApply(graphView)) {
-        const declTemplate = deps.declarativeTemplates.get(template.id);
-        if (declTemplate) {
-          const diag = deps.templateInterpreter.diagnoseCanApply(declTemplate, graphView);
-          if (!diag.applicabilityPassed) {
-            graphView.debug('templates', `${template.id} rejected: ${diag.failedRules.join('; ')}`);
-          } else if (diag.selectionCount === 0) {
-            graphView.debug('templates', `${template.id} selection(${diag.selectionStrategy}) returned 0 targets`);
-          }
-        }
+        logCanApplyDiagnostic(template, graphView);
         return 0;
       }
-
       const templateTargets = template.findTargets(graphView);
       if (templateTargets.length === 0) {
         graphView.debug('selection', `${template.id} found no targets via findTargets()`);
@@ -148,13 +301,11 @@ export function createGrowthSystem(
       }
 
       const target = pickRandom(templateTargets);
-
       const pressureModsBefore = deps.getPendingPressureModifications().length;
       graphView.setPressureModificationCallback((pressureId, delta, source) => {
         deps.trackPressureModification(pressureId, delta, source);
       });
       graphView.setCurrentSource({ type: 'template', templateId: template.id });
-
       // LINEAGE: Enter template context for entity/relationship stamping.
       // All entities and relationships created will have
       // createdBy = { tick, source: 'template', sourceId: template.id }.
@@ -162,144 +313,29 @@ export function createGrowthSystem(
       // NOTE: Context must stay open until AFTER addEntity/createRelationship calls below.
       deps.mutationTracker?.enterContext('template', template.id);
 
-      let result: import('../engine/types').TemplateResult;
-      try {
-        result = await template.expand(graphView, target);
-      } catch (error) {
-        // LINEAGE: Exit context on expand error
-        deps.mutationTracker?.exitContext();
-        throw error;
-      }
+      const result = await expandTemplate(template, graphView, target);
       graphView.clearCurrentSource();
 
-      // Contract enforcement warnings
-      const allTagsSet = new Set<string>();
-      for (const entity of result.entities) {
-        Object.keys(entity.tags || {}).forEach(tag => allTagsSet.add(tag));
-      }
-      const allTagsToAdd = Array.from(allTagsSet);
-      const tagSaturationCheck = deps.contractEnforcer.checkTagSaturation(graphView, allTagsToAdd);
-      if (tagSaturationCheck.saturated) {
-        deps.emitter.log('warn', `Template ${template.id} would oversaturate tags: ${tagSaturationCheck.oversaturatedTags.join(', ')}`);
-      }
-      const orphanCheck = deps.contractEnforcer.checkTagOrphans(allTagsToAdd);
-      if (orphanCheck.hasOrphans && orphanCheck.orphanTags.length >= 3) {
-        deps.emitter.log('debug', `Template ${template.id} creates unregistered tags: ${orphanCheck.orphanTags.slice(0, 5).join(', ')}`);
-      }
-
+      const allTagsToAdd = Array.from(new Set(result.entities.flatMap(e => Object.keys(e.tags || {}))));
+      checkContractChecks(allTagsToAdd, template, graphView);
       deps.statisticsCollector.recordTemplateApplication(template.id);
 
       const createdEntities: HardState[] = [];
       const newIds: string[] = [];
-
-      for (let i = 0; i < result.entities.length; i++) {
-        const entity = result.entities[i];
-        const placementStrategy = result.placementStrategies?.[i] || 'unknown';
-        const id = await graphView.addEntity(entity, `template:${template.id}`, placementStrategy);
-        newIds.push(id);
-        const ref = graphView.getEntity(id);
-        if (ref) {
-          createdEntities.push(ref);
-        }
-      }
-
-      for (const entity of createdEntities) {
-        initializeCatalystSmart(entity);
-      }
+      await addEntitiesFromResult(result, graphView, template, newIds, createdEntities);
 
       result.relationships.forEach(rel => {
-        const srcId = rel.src.startsWith('will-be-assigned-')
-          ? newIds[parseInt(rel.src.split('-')[3])]
-          : rel.src;
-        const dstId = rel.dst.startsWith('will-be-assigned-')
-          ? newIds[parseInt(rel.dst.split('-')[3])]
-          : rel.dst;
-
-        if (srcId && dstId) {
-          graphView.createRelationship(rel.kind, srcId, dstId, rel.strength);
-        }
+        const srcId = rel.src.startsWith('will-be-assigned-') ? newIds[parseInt(rel.src.split('-')[3])] : rel.src;
+        const dstId = rel.dst.startsWith('will-be-assigned-') ? newIds[parseInt(rel.dst.split('-')[3])] : rel.dst;
+        if (srcId && dstId) graphView.createRelationship(rel.kind, srcId, dstId, rel.strength);
       });
 
       // LINEAGE: Exit template context now that entities/relationships are created.
       // They are now stamped with createdBy = { source: 'template', sourceId: template.id }.
       deps.mutationTracker?.exitContext();
 
-      for (const entity of createdEntities) {
-        const coverageCheck = deps.contractEnforcer.enforceTagCoverage(entity, graphView);
-        if (coverageCheck.needsAdjustment) {
-          deps.emitter.log('debug', coverageCheck.suggestion || '', { entity: entity.id });
-        }
-        const taxonomyCheck = deps.contractEnforcer.validateTagTaxonomy(entity);
-        if (!taxonomyCheck.valid) {
-          deps.emitter.log('warn', `Entity ${entity.name} has conflicting tags`, { conflicts: taxonomyCheck.conflicts });
-        }
-      }
-
-      // Record creation batch for narrative event generation
-      if (newIds.length > 0) {
-        // Summarize relationships by kind
-        const relationshipCounts = new Map<string, number>();
-        for (const rel of result.relationships) {
-          relationshipCounts.set(rel.kind, (relationshipCounts.get(rel.kind) || 0) + 1);
-        }
-        const relationshipSummary: RelationshipSummary[] = [];
-        for (const [kind, count] of relationshipCounts) {
-          relationshipSummary.push({ kind, count });
-        }
-
-        // Use description from first creation item if available
-        const declTemplate = deps.declarativeTemplates.get(template.id);
-        const rawDescription = declTemplate?.creation?.[0]?.description;
-        // DescriptionSpec can be string or { template, replacements } - extract string if possible
-        const primaryDescription = typeof rawDescription === 'string' ? rawDescription : undefined;
-
-        // Generate narration ONCE here, now that entities have names
-        // result.resolvedVariables contains $target, $enemy, etc. from template expansion
-        let narration: string | undefined;
-        if (declTemplate?.narrationTemplate) {
-          // Start with the resolved variables from template expansion (like $target, $enemy)
-          const variables: Record<string, HardState | HardState[] | undefined> = {
-            ...(result.resolvedVariables || {}),
-          };
-
-          // Add created entities by their entityRef (like $war, $ideology)
-          // Use entityRefToIndex mapping since createChance can skip entities
-          if (result.entityRefToIndex) {
-            for (const [entityRef, idx] of Object.entries(result.entityRefToIndex)) {
-              const index = idx;
-              if (createdEntities[index]) {
-                // Ensure $ prefix for the key
-                const key = entityRef.startsWith('$') ? entityRef : `$${entityRef}`;
-                variables[key] = createdEntities[index];
-              }
-            }
-          }
-
-          const narrationCtx = createGeneratorContext({
-            target,
-            variables,
-          });
-          const narrationResult = interpolate(declTemplate.narrationTemplate, narrationCtx);
-          // Use narration even if not complete - partial narration better than mechanical
-          narration = narrationResult.text;
-          if (!narrationResult.complete) {
-            // Debug: log unresolved tokens (use debug level since partial is expected sometimes)
-            console.debug(`[GrowthSystem] Template ${template.id} narration partial:`, {
-              unresolvedTokens: narrationResult.unresolvedTokens,
-              variableKeys: Object.keys(variables),
-            });
-          }
-        }
-
-        deps.stateChangeTracker.recordCreationBatch(
-          template.id,
-          template.name || template.id,
-          newIds,
-          relationshipSummary,
-          primaryDescription || result.description,
-          narration
-        );
-      }
+      validateCreatedEntities(createdEntities, graphView);
+      recordCreationBatchEvents(template, result, newIds, createdEntities, target);
 
       const templatePressureMods = deps.getPendingPressureModifications().slice(pressureModsBefore);
       const pressureChanges: Record<string, number> = {};
@@ -309,12 +345,8 @@ export function createGrowthSystem(
 
       const resolvedRelationships = result.relationships.map(rel => ({
         kind: rel.kind,
-        srcId: rel.src.startsWith('will-be-assigned-')
-          ? newIds[parseInt(rel.src.split('-')[3])]
-          : rel.src,
-        dstId: rel.dst.startsWith('will-be-assigned-')
-          ? newIds[parseInt(rel.dst.split('-')[3])]
-          : rel.dst,
+        srcId: rel.src.startsWith('will-be-assigned-') ? newIds[parseInt(rel.src.split('-')[3])] : rel.src,
+        dstId: rel.dst.startsWith('will-be-assigned-') ? newIds[parseInt(rel.dst.split('-')[3])] : rel.dst,
         strength: rel.strength
       }));
 
@@ -326,32 +358,7 @@ export function createGrowthSystem(
         targetEntityName: target.name,
         targetEntityKind: target.kind,
         description: result.description,
-        entitiesCreated: createdEntities.map((e, i) => {
-          const placementDebug = result.placementDebugList?.[i];
-          const strategy = result.placementStrategies?.[i] || 'unknown';
-          return {
-            id: e.id,
-            name: e.name,
-            kind: e.kind,
-            subtype: e.subtype,
-            culture: e.culture,
-            prominence: prominenceLabel(e.prominence),
-            tags: e.tags,
-            placementStrategy: strategy,
-            coordinates: e.coordinates,
-            regionId: placementDebug?.regionId ?? e.regionId,
-            allRegionIds: placementDebug?.allRegionIds ?? e.allRegionIds,
-            derivedTags: result.derivedTagsList?.[i],
-            placement: placementDebug ? {
-              anchorType: placementDebug.anchorType,
-              anchorEntity: placementDebug.anchorEntity,
-              anchorCulture: placementDebug.anchorCulture,
-              resolvedVia: placementDebug.resolvedVia,
-              seedRegionsAvailable: placementDebug.seedRegionsAvailable,
-              emergentRegionCreated: placementDebug.emergentRegionCreated
-            } : undefined
-          };
-        }),
+        entitiesCreated: buildEntityCreationInfo(createdEntities, result),
         relationshipsCreated: resolvedRelationships,
         pressureChanges
       });
@@ -393,6 +400,52 @@ export function createGrowthSystem(
 
       return true;
     });
+  }
+
+  function logRejectionReasons(graphView: WorldRuntime, rejectionReasons: Map<string, string>): void {
+    for (const [templateId, reason] of rejectionReasons) {
+      graphView.debug('templates', `  ${templateId}: ${reason}`);
+    }
+  }
+
+  function updateStateOnYield(template: GrowthTemplate, entitiesCreated: number): void {
+    state.entitiesCreated += entitiesCreated;
+    state.templatesApplied += 1;
+    state.templatesUsed.add(template.id);
+    const currentCount = deps.templateRunCounts.get(template.id) || 0;
+    deps.templateRunCounts.set(template.id, currentCount + 1);
+    state.yieldSamples.push(entitiesCreated);
+    if (state.yieldSamples.length > yieldWindow) state.yieldSamples.shift();
+  }
+
+  async function runOneGrowthAttempt(
+    graphView: WorldRuntime,
+    era: Era,
+    metrics: PopulationMetrics,
+    attempts: number
+  ): Promise<{ appliedDelta: number; createdDelta: number; exhausted: boolean }> {
+    const rejectionReasons = new Map<string, string>();
+    const applicableTemplates = buildApplicableTemplates(graphView, rejectionReasons);
+    if (applicableTemplates.length === 0) {
+      deps.emitter.log('warn', `No applicable templates remaining (${state.entitiesCreated}/${state.epochTarget} entities created)`);
+      graphView.debug('templates', `[Filter] All ${deps.runtimeTemplates.length} templates rejected:`);
+      logRejectionReasons(graphView, rejectionReasons);
+      recordPhaseCompletion(graphView, 'exhausted');
+      return { appliedDelta: 0, createdDelta: 0, exhausted: true };
+    }
+    const template = deps.sampleTemplate(era, applicableTemplates, metrics);
+    if (!template) {
+      if (attempts < 5 || attempts % 20 === 0) {
+        graphView.debug('templates', `[Attempt ${attempts}] Failed to sample template from ${applicableTemplates.length} options`);
+      }
+      return { appliedDelta: 0, createdDelta: 0, exhausted: false };
+    }
+    const entitiesCreated = await applyTemplateOnce(template, graphView, era);
+    if (entitiesCreated > 0) {
+      updateStateOnYield(template, entitiesCreated);
+      return { appliedDelta: 1, createdDelta: entitiesCreated, exhausted: state.entitiesCreated >= state.epochTarget };
+    }
+    return { appliedDelta: 0, createdDelta: 0, exhausted: false };
   }
 
   const system: GrowthSystem = {
@@ -483,51 +536,14 @@ export function createGrowthSystem(
 
       while (appliedThisTick < templateBudget && attempts < maxAttemptsPerTick) {
         attempts++;
-        const rejectionReasons: Map<string, string> = new Map();
-        const applicableTemplates = buildApplicableTemplates(graphView, rejectionReasons);
-
-        if (applicableTemplates.length === 0) {
-          deps.emitter.log('warn', `No applicable templates remaining (${state.entitiesCreated}/${state.epochTarget} entities created)`);
-          graphView.debug('templates', `[Filter] All ${deps.runtimeTemplates.length} templates rejected:`);
-          for (const [templateId, reason] of rejectionReasons) {
-            graphView.debug('templates', `  ${templateId}: ${reason}`);
-          }
-          recordPhaseCompletion(graphView, 'exhausted');
-          break;
-        }
-
-        const template = deps.sampleTemplate(era, applicableTemplates, metrics);
-        if (!template) {
-          if (attempts < 5 || attempts % 20 === 0) {
-            graphView.debug('templates', `[Attempt ${attempts}] Failed to sample template from ${applicableTemplates.length} options`);
-          }
-          continue;
-        }
-
-        const entitiesCreated = await applyTemplateOnce(template, graphView, era);
-        if (entitiesCreated > 0) {
-          appliedThisTick++;
-          createdThisTick += entitiesCreated;
-          state.entitiesCreated += entitiesCreated;
-          state.templatesApplied += 1;
-          state.templatesUsed.add(template.id);
-          const currentCount = deps.templateRunCounts.get(template.id) || 0;
-          deps.templateRunCounts.set(template.id, currentCount + 1);
-
-          state.yieldSamples.push(entitiesCreated);
-          if (state.yieldSamples.length > yieldWindow) {
-            state.yieldSamples.shift();
-          }
-        }
-
-        if (state.entitiesCreated >= state.epochTarget) {
-          break;
-        }
+        const { appliedDelta, createdDelta, exhausted } = await runOneGrowthAttempt(graphView, era, metrics, attempts);
+        if (exhausted) break;
+        appliedThisTick += appliedDelta;
+        createdThisTick += createdDelta;
+        if (state.entitiesCreated >= state.epochTarget) break;
       }
 
-      if (state.entitiesCreated >= state.epochTarget) {
-        recordPhaseCompletion(graphView, 'target_met');
-      }
+      if (state.entitiesCreated >= state.epochTarget) recordPhaseCompletion(graphView, 'target_met');
 
       return {
         relationshipsAdded: [],

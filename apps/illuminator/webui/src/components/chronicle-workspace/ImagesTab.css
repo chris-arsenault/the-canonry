@@ -152,7 +152,7 @@
   color: var(--text-muted);
 }
 
-.itab-cover-error {
+.itab-cover-unavailable {
   margin-top: 8px;
   font-size: 11px;
   color: #ef4444;
@@ -168,6 +168,17 @@
   border-radius: 8px;
   border: 1px solid var(--border-color);
   object-fit: contain;
+}
+
+.itab-cover-img-btn {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.itab-cover-img-btn-clickable {
+  cursor: pointer;
 }
 
 .itab-cover-img-clickable {
@@ -223,7 +234,7 @@
   color: #10b981;
 }
 
-.itab-cover-status-failed {
+.itab-cover-status-aborted {
   color: #ef4444;
 }
 

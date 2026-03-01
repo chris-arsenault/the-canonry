@@ -12,16 +12,16 @@
 import React, { useState, useCallback } from 'react';
 
 interface NumberInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'step'> {
-  value?: number | null;
-  onChange: (value: number | undefined) => void;
-  className?: string;
-  min?: number;
-  max?: number;
-  step?: number | string;
-  placeholder?: string;
-  allowEmpty?: boolean;
-  integer?: boolean;
-  disabled?: boolean;
+  readonly value?: number | null;
+  readonly onChange: (value: number | undefined) => void;
+  readonly className?: string;
+  readonly min?: number;
+  readonly max?: number;
+  readonly step?: number | string;
+  readonly placeholder?: string;
+  readonly allowEmpty?: boolean;
+  readonly integer?: boolean;
+  readonly disabled?: boolean;
 }
 
 function formatValue(val: number | null | undefined | string): string {

@@ -17,18 +17,11 @@ import { resolve, dirname, basename } from "path";
 const DUPLICATED_PATTERNS = [
   {
     name: "ilu-active-badge",
-    // Active version pill: green background + pill radius
-    pattern:
-      /border-radius:\s*999px[\s\S]*?(?:rgb\(16[\s, ]+185[\s, ]+129|rgba\(16,\s*185,\s*129|#10b981)/,
-    message:
-      "Use the shared .ilu-active-badge class from panel-utilities.css instead of " +
-      "redeclaring the active version pill badge.",
-  },
-  {
-    name: "ilu-active-badge (reversed)",
-    // Same pattern but color before radius
-    pattern:
-      /(?:rgb\(16[\s, ]+185[\s, ]+129|rgba\(16,\s*185,\s*129|#10b981)[\s\S]*?border-radius:\s*999px/,
+    // Active version pill: green background + pill radius (checked independently)
+    patterns: [
+      /border-radius\s*:\s*999px/,
+      /(?:rgb\(16[ ,]+185[ ,]+129|rgba\(16,\s*185,\s*129|#10b981)/,
+    ],
     message:
       "Use the shared .ilu-active-badge class from panel-utilities.css instead of " +
       "redeclaring the active version pill badge.",
@@ -36,8 +29,11 @@ const DUPLICATED_PATTERNS = [
   {
     name: "ilu-compact-select",
     // Compact select: width: auto + font-size: 12px + padding: 4px 6px
-    pattern:
-      /width:\s*auto;\s*[\s\S]*?font-size:\s*12px;\s*[\s\S]*?padding:\s*4px 6px/,
+    patterns: [
+      /width\s*:\s*auto/,
+      /font-size\s*:\s*12px/,
+      /padding\s*:\s*4px 6px/,
+    ],
     message:
       "Use the shared .ilu-compact-select class from panel-utilities.css instead of " +
       "redeclaring compact select styles. Set only min-width in the component class.",
@@ -93,8 +89,8 @@ export default {
           return;
 
         // Check each pattern
-        for (const { name, pattern, message } of DUPLICATED_PATTERNS) {
-          if (pattern.test(cssContent)) {
+        for (const { name, patterns, message } of DUPLICATED_PATTERNS) {
+          if (patterns.every((p) => p.test(cssContent))) {
             context.report({
               node,
               messageId: "versionToolbarDrift",

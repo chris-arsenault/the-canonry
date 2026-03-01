@@ -1,5 +1,13 @@
 /* ResultsPanel — rp- prefix */
 
+.rp-clickable-btn {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
 .rp-clickable-image {
   cursor: pointer;
 }

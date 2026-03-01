@@ -196,12 +196,12 @@ interface FailedStateProps {
 
 function FailedState({ reason, onRegenerate, buttonLabel }: FailedStateProps) {
   return (
-    <div className="chron-detail-failed">
-      <h3 className="chron-detail-failed-title">Generation Failed</h3>
-      <p className="chron-detail-failed-msg">{reason}</p>
+    <div className="chron-detail-aborted">
+      <h3 className="chron-detail-aborted-title">Generation Failed</h3>
+      <p className="chron-detail-aborted-msg">{reason}</p>
       <button
         onClick={onRegenerate}
-        className="illuminator-button illuminator-button-primary chron-detail-failed-btn"
+        className="illuminator-button illuminator-button-primary chron-detail-aborted-btn"
       >
         {buttonLabel}
       </button>

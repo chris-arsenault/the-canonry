@@ -11,6 +11,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { searchChronicleImages, loadImage } from "../lib/db/imageRepository";
+import { useAsyncAction } from "../hooks/useAsyncAction";
 import "./ChronicleImagePicker.css";
 
 const PAGE_SIZE = 12;
@@ -88,7 +89,7 @@ export default function ChronicleImagePicker({
   currentImageId,
 }) {
   const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { busy: loading, run } = useAsyncAction();
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
   const [selectedImageId, setSelectedImageId] = useState(null);
@@ -115,47 +116,37 @@ export default function ChronicleImagePicker({
   useEffect(() => {
     if (!isOpen || !projectId) return;
 
-    async function loadData() {
-      setLoading(true);
-      try {
-        const filters = {
-          projectId,
-          limit: PAGE_SIZE,
-          offset: 0,
-        };
+    void run("load", async () => {
+      const filters = {
+        projectId,
+        limit: PAGE_SIZE,
+        offset: 0,
+      };
 
-        // Apply filters based on checkbox state
-        // If filterByRef is ON, filter by imageRefId (most specific)
-        // If filterByRef is OFF but filterByChronicle is ON, filter by chronicleId
-        // If both OFF, show all chronicle images for project
-        if (filterByRef && imageRefId) {
-          filters.imageRefId = imageRefId;
-          // When filtering by ref, also filter by chronicle for efficiency
-          if (chronicleId) filters.chronicleId = chronicleId;
-        } else if (filterByChronicle && chronicleId) {
-          filters.chronicleId = chronicleId;
-        }
-
-        const result = await searchChronicleImages(filters);
-        setImages(result.items);
-        setHasMore(result.hasMore);
-        setTotal(result.total);
-      } catch (err) {
-        console.error("Failed to load chronicle images:", err);
-      } finally {
-        setLoading(false);
+      // Apply filters based on checkbox state
+      // If filterByRef is ON, filter by imageRefId (most specific)
+      // If filterByRef is OFF but filterByChronicle is ON, filter by chronicleId
+      // If both OFF, show all chronicle images for project
+      if (filterByRef && imageRefId) {
+        filters.imageRefId = imageRefId;
+        // When filtering by ref, also filter by chronicle for efficiency
+        if (chronicleId) filters.chronicleId = chronicleId;
+      } else if (filterByChronicle && chronicleId) {
+        filters.chronicleId = chronicleId;
       }
-    }
 
-    loadData();
-  }, [isOpen, projectId, chronicleId, imageRefId, filterByRef, filterByChronicle]);
+      const result = await searchChronicleImages(filters);
+      setImages(result.items);
+      setHasMore(result.hasMore);
+      setTotal(result.total);
+    });
+  }, [isOpen, projectId, chronicleId, imageRefId, filterByRef, filterByChronicle, run]);
 
   // Load more handler
   const handleLoadMore = useCallback(async () => {
     if (loading || !hasMore) return;
 
-    setLoading(true);
-    try {
+    await run("load-more", async () => {
       const filters = {
         projectId,
         limit: PAGE_SIZE,
@@ -172,11 +163,7 @@ export default function ChronicleImagePicker({
       const result = await searchChronicleImages(filters);
       setImages((prev) => [...prev, ...result.items]);
       setHasMore(result.hasMore);
-    } catch (err) {
-      console.error("Failed to load more images:", err);
-    } finally {
-      setLoading(false);
-    }
+    });
   }, [
     loading,
     hasMore,
@@ -186,6 +173,7 @@ export default function ChronicleImagePicker({
     filterByRef,
     filterByChronicle,
     images.length,
+    run,
   ]);
 
   // Handle selection

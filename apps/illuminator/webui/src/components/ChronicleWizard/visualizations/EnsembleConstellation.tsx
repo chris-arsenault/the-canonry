@@ -162,6 +162,11 @@ function computeEdges(
   return edges;
 }
 
+function addBridgeLink(map: Map<string, Set<string>>, key: string, value: string): void {
+  if (!map.has(key)) map.set(key, new Set());
+  map.get(key)!.add(value);
+}
+
 export default function EnsembleConstellation({
   entryPointId,
   candidates,
@@ -212,12 +217,10 @@ export default function EnsembleConstellation({
       const dstAssigned = assignedEntityIds.has(rel.dst);
 
       if (srcAssigned && !dstAssigned) {
-        if (!connectedToAssigned.has(rel.dst)) connectedToAssigned.set(rel.dst, new Set());
-        connectedToAssigned.get(rel.dst).add(rel.src);
+        addBridgeLink(connectedToAssigned, rel.dst, rel.src);
       }
       if (dstAssigned && !srcAssigned) {
-        if (!connectedToAssigned.has(rel.src)) connectedToAssigned.set(rel.src, new Set());
-        connectedToAssigned.get(rel.src).add(rel.dst);
+        addBridgeLink(connectedToAssigned, rel.src, rel.dst);
       }
     }
 

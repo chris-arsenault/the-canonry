@@ -14,15 +14,15 @@ interface TagDefinition {
 }
 
 interface TagSelectorProps {
-  value?: string[];
-  onChange: (value: string[]) => void;
-  tagRegistry?: TagDefinition[];
-  onAddToRegistry?: (tagDef: TagDefinition) => void;
-  placeholder?: string;
-  matchAllEnabled?: boolean;
-  matchAll?: boolean;
-  onMatchAllChange?: (value: boolean) => void;
-  singleSelect?: boolean;
+  readonly value?: string[];
+  readonly onChange: (value: string[]) => void;
+  readonly tagRegistry?: TagDefinition[];
+  readonly onAddToRegistry?: (tagDef: TagDefinition) => void;
+  readonly placeholder?: string;
+  readonly matchAllEnabled?: boolean;
+  readonly matchAll?: boolean;
+  readonly onMatchAllChange?: (value: boolean) => void;
+  readonly singleSelect?: boolean;
 }
 
 const CATEGORY_CLASS: Record<string, string> = {
@@ -97,7 +97,7 @@ export default function TagSelector({
     return groups;
   }, [searchQuery, tagRegistry, value]);
 
-  const canCreateTag = useMemo(() => {
+  const canCreateTag = useMemo<string | false>((): string | false => {
     if (!searchQuery.trim()) return false;
     const normalized = searchQuery.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
     if (!normalized) return false;

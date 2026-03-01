@@ -17,10 +17,22 @@
 import { readFileSync, existsSync } from "fs";
 import { resolve, dirname, basename } from "path";
 
-// Matches CSS rule blocks that declare both font-size: 11px/12px AND color: var(--text-muted)
+// Checks if a CSS file has a rule block with both font-size: 11px/12px AND color: var(--text-muted)
 // within the same rule block. These should use .ilu-hint or .ilu-hint-sm instead.
-const HINT_TEXT_PATTERN =
-  /\{[^}]*font-size:\s*1[12]px[^}]*color:\s*var\(--text-muted\)[^}]*\}|{[^}]*color:\s*var\(--text-muted\)[^}]*font-size:\s*1[12]px[^}]*\}/;
+const HINT_FONT_SIZE_RE = /font-size:\s*1[12]px/;
+
+function hasHintPattern(cssContent) {
+  // Split on closing braces to get individual rule block segments without backtracking regex
+  const segments = cssContent.split("}");
+  for (const segment of segments) {
+    const openIdx = segment.lastIndexOf("{");
+    const blockContent = openIdx >= 0 ? segment.slice(openIdx) : segment;
+    if (HINT_FONT_SIZE_RE.test(blockContent) && blockContent.includes("--text-muted")) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export default {
   meta: {
@@ -77,7 +89,7 @@ export default {
         }
 
         // Check if the CSS file has the duplicated hint text pattern
-        if (HINT_TEXT_PATTERN.test(cssContent)) {
+        if (hasHintPattern(cssContent)) {
           context.report({
             node,
             messageId: "hintCssDuplication",

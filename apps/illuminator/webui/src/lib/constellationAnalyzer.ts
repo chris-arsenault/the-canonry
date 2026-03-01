@@ -225,7 +225,7 @@ function analyzeKinds(
   }
   const kindEntries = Object.entries(kinds).sort((a, b) => b[1] - a[1]);
   const [topKind] = kindEntries[0] || [null];
-  return { kinds, topKind: topKind as string | null, kindFocus: computeKindFocus(kinds) };
+  return { kinds, topKind, kindFocus: computeKindFocus(kinds) };
 }
 
 function aggregateTags(

@@ -9,13 +9,14 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { ModalShell } from "@the-canonry/shared-components";
 import { searchImages, getImageDataUrl } from "../lib/db/imageRepository";
+import { useAsyncAction } from "../hooks/useAsyncAction";
 
 const PAGE_SIZE = 12;
 
 export default function ImageRefPicker({ projectId, onSelect, onClose }) {
   const [images, setImages] = useState([]);
   const [imageUrls, setImageUrls] = useState({}); // imageId -> dataUrl cache
-  const [loading, setLoading] = useState(false);
+  const { busy: loading, run } = useAsyncAction();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [caption, setCaption] = useState("");
@@ -44,43 +45,33 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadImages() {
-      setLoading(true);
-      try {
-        const result = await searchImages({
-          projectId,
-          search: debouncedSearch || undefined,
-          limit: PAGE_SIZE,
-          offset: 0,
-        });
+    void run("search", async () => {
+      const result = await searchImages({
+        projectId,
+        search: debouncedSearch || undefined,
+        limit: PAGE_SIZE,
+        offset: 0,
+      });
 
-        if (cancelled) return;
+      if (cancelled) return;
 
-        setImages(result.items);
-        setHasMore(result.hasMore);
-        setTotal(result.total);
-        setSelectedImage(null);
-        setCaption("");
-      } catch (err) {
-        console.error("Failed to search images:", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    loadImages();
+      setImages(result.items);
+      setHasMore(result.hasMore);
+      setTotal(result.total);
+      setSelectedImage(null);
+      setCaption("");
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [projectId, debouncedSearch]);
+  }, [projectId, debouncedSearch, run]);
 
   // Load more images (pagination)
   const handleLoadMore = useCallback(async () => {
     if (loading || !hasMore) return;
 
-    setLoading(true);
-    try {
+    await run("load-more", async () => {
       const result = await searchImages({
         projectId,
         search: debouncedSearch || undefined,
@@ -90,12 +81,8 @@ export default function ImageRefPicker({ projectId, onSelect, onClose }) {
 
       setImages((prev) => [...prev, ...result.items]);
       setHasMore(result.hasMore);
-    } catch (err) {
-      console.error("Failed to load more images:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId, debouncedSearch, images.length, loading, hasMore]);
+    });
+  }, [projectId, debouncedSearch, images.length, loading, hasMore, run]);
 
   // Lazy load image thumbnail when it comes into view
   const loadImageUrl = useCallback(

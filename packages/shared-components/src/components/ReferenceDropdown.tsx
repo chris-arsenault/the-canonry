@@ -15,13 +15,13 @@ interface ReferenceDropdownOption {
 }
 
 interface ReferenceDropdownProps {
-  value?: string;
-  onChange: (value: string | undefined) => void;
-  options: ReferenceDropdownOption[];
-  placeholder?: string;
-  label?: string;
-  searchable?: boolean;
-  className?: string;
+  readonly value?: string;
+  readonly onChange: (value: string | undefined) => void;
+  readonly options: ReferenceDropdownOption[];
+  readonly placeholder?: string;
+  readonly label?: string;
+  readonly searchable?: boolean;
+  readonly className?: string;
 }
 
 /**

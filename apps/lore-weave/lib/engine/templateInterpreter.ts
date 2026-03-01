@@ -181,9 +181,9 @@ class ExecutionContext implements IExecutionContext, EntityResolver {
     let fallbackMatch;
     while ((fallbackMatch = fallbackPattern.exec(originalRef)) !== null) {
       const fullMatch = fallbackMatch[0];
-      const varPart = fallbackMatch[1] as string;
-      const propPart = fallbackMatch[2] as string;
-      const fallback = fallbackMatch[3] as string;
+      const varPart = fallbackMatch[1];
+      const propPart = fallbackMatch[2];
+      const fallback = fallbackMatch[3];
       const entity = varPart === 'target' ? this.target : this.resolveEntity('$' + varPart);
       const propValue = this.getEntityProp(entity, propPart);
       result = result.replace(fullMatch, propValue ?? fallback);
@@ -796,22 +796,7 @@ export class TemplateInterpreter {
     }
 
     if ('fromPressure' in spec) {
-      const { graphView } = context;
-      let maxPressure = -1;
-      const entries = Object.entries(spec.fromPressure);
-      if (entries.length === 0) {
-        throw new Error(`Subtype fromPressure map is empty for kind "${entityKind}".`);
-      }
-      let selectedSubtype = entries[0][1];
-
-      for (const [pressureId, subtype] of entries) {
-        const value = graphView.getPressure(pressureId) || 0;
-        if (value > maxPressure) {
-          maxPressure = value;
-          selectedSubtype = subtype;
-        }
-      }
-      return selectedSubtype;
+      return this.resolveFromPressureSubtype(spec.fromPressure, context, entityKind);
     }
 
     if ('random' in spec) {
@@ -822,16 +807,45 @@ export class TemplateInterpreter {
     }
 
     if ('conditional' in spec) {
-      const { when, otherwise } = spec.conditional;
-      for (const { condition, then: thenSubtype } of when) {
-        if (this.evaluateSubtypeCondition(condition, context)) {
-          return thenSubtype;
-        }
-      }
-      return otherwise;
+      return this.resolveConditionalSubtype(spec.conditional, context);
     }
 
     throw new Error(`Invalid subtype spec for kind "${entityKind}": ${JSON.stringify(spec)}.`);
+  }
+
+  private resolveFromPressureSubtype(
+    fromPressure: Record<string, string>,
+    context: ExecutionContext,
+    entityKind: string
+  ): string {
+    const { graphView } = context;
+    let maxPressure = -1;
+    const entries = Object.entries(fromPressure);
+    if (entries.length === 0) {
+      throw new Error(`Subtype fromPressure map is empty for kind "${entityKind}".`);
+    }
+    let selectedSubtype = entries[0][1];
+    for (const [pressureId, subtype] of entries) {
+      const value = graphView.getPressure(pressureId) || 0;
+      if (value > maxPressure) {
+        maxPressure = value;
+        selectedSubtype = subtype;
+      }
+    }
+    return selectedSubtype;
+  }
+
+  private resolveConditionalSubtype(
+    conditional: { when: Array<{ condition: SubtypeCondition; then: string }>; otherwise: string },
+    context: ExecutionContext
+  ): string {
+    const { when, otherwise } = conditional;
+    for (const { condition, then: thenSubtype } of when) {
+      if (this.evaluateSubtypeCondition(condition, context)) {
+        return thenSubtype;
+      }
+    }
+    return otherwise;
   }
 
   private evaluateSubtypeCondition(condition: SubtypeCondition, context: ExecutionContext): boolean {
@@ -1076,39 +1090,36 @@ export class TemplateInterpreter {
 
     for (const srcId of srcIds) {
       for (const dstId of dstIds) {
-        if (srcId === dstId) continue;
-
-        // Note: distance is computed from coordinates when relationship is added to graph
-        const rel: Relationship = {
-          kind: rule.kind,
-          src: srcId,
-          dst: dstId,
-          strength: rule.strength
-          // distance computed from coordinates, not set here
-        };
-
-        if (rule.catalyzedBy) {
-          const catalyst = context.resolveEntity(rule.catalyzedBy);
-          if (catalyst) {
-            rel.catalyzedBy = catalyst.id;
-          }
-        }
-
-        relationships.push(rel);
-
-        if (rule.bidirectional) {
-          relationships.push({
-            kind: rule.kind,
-            src: dstId,
-            dst: srcId,
-            strength: rule.strength,
-            catalyzedBy: rel.catalyzedBy
-          });
-        }
+        relationships.push(...this.buildRelationshipPair(srcId, dstId, rule, context));
       }
     }
 
     return relationships;
+  }
+
+  private buildRelationshipPair(
+    srcId: string,
+    dstId: string,
+    rule: RelationshipRule,
+    context: ExecutionContext
+  ): Relationship[] {
+    if (srcId === dstId) return [];
+    // Note: distance is computed from coordinates when relationship is added to graph
+    const rel: Relationship = {
+      kind: rule.kind,
+      src: srcId,
+      dst: dstId,
+      strength: rule.strength
+    };
+    if (rule.catalyzedBy) {
+      const catalyst = context.resolveEntity(rule.catalyzedBy);
+      if (catalyst) rel.catalyzedBy = catalyst.id;
+    }
+    const result: Relationship[] = [rel];
+    if (rule.bidirectional) {
+      result.push({ kind: rule.kind, src: dstId, dst: srcId, strength: rule.strength, catalyzedBy: rel.catalyzedBy });
+    }
+    return result;
   }
 
   private resolveRelationshipEntity(

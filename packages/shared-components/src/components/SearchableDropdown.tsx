@@ -13,13 +13,13 @@ interface SearchableDropdownItem {
 }
 
 interface SearchableDropdownProps {
-  items: SearchableDropdownItem[];
-  onSelect: (id: string) => void;
-  placeholder?: string;
-  emptyMessage?: string;
-  noMatchMessage?: string;
-  searchable?: boolean;
-  className?: string;
+  readonly items: SearchableDropdownItem[];
+  readonly onSelect: (id: string) => void;
+  readonly placeholder?: string;
+  readonly emptyMessage?: string;
+  readonly noMatchMessage?: string;
+  readonly searchable?: boolean;
+  readonly className?: string;
 }
 
 /**

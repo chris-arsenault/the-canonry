@@ -12,11 +12,11 @@ interface PressureDefinition {
 }
 
 interface PressureChangesEditorProps {
-  value?: Record<string, number>;
-  onChange: (value: Record<string, number>) => void;
-  pressures?: PressureDefinition[];
-  label?: string;
-  className?: string;
+  readonly value?: Record<string, number>;
+  readonly onChange: (value: Record<string, number>) => void;
+  readonly pressures?: PressureDefinition[];
+  readonly label?: string;
+  readonly className?: string;
 }
 
 /**

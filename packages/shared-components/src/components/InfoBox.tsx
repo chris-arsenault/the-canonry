@@ -5,9 +5,9 @@
 import React from 'react';
 
 interface InfoBoxProps {
-  title?: string;
-  children: React.ReactNode;
-  className?: string;
+  readonly title?: string;
+  readonly children: React.ReactNode;
+  readonly className?: string;
 }
 
 /**

@@ -40,7 +40,9 @@ export default function RoleSlot({
   const canAccept = hasSelection && !isAtMax;
   const count = assignments.length;
 
-  const wrapClass = `rs-wrap ${canAccept ? "rs-wrap-accept" : isUnderMin ? "rs-wrap-undermin" : "rs-wrap-default"}`;
+  const altStateClass = isUnderMin ? "rs-wrap-undermin" : "rs-wrap-default";
+  const wrapStateClass = canAccept ? "rs-wrap-accept" : altStateClass;
+  const wrapClass = `rs-wrap ${wrapStateClass}`;
 
   return (
     <div

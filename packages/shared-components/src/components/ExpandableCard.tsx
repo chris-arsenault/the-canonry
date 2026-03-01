@@ -7,14 +7,14 @@
 import React, { useCallback } from 'react';
 
 interface ExpandableCardProps {
-  expanded: boolean;
-  onToggle: (id?: string) => void;
-  toggleId?: string;
-  title: React.ReactNode;
-  subtitle?: React.ReactNode;
-  actions?: React.ReactNode;
-  children?: React.ReactNode;
-  className?: string;
+  readonly expanded: boolean;
+  readonly onToggle: (id?: string) => void;
+  readonly toggleId?: string;
+  readonly title: React.ReactNode;
+  readonly subtitle?: React.ReactNode;
+  readonly actions?: React.ReactNode;
+  readonly children?: React.ReactNode;
+  readonly className?: string;
 }
 
 /**

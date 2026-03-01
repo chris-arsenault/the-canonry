@@ -1524,70 +1524,39 @@ function buildEntityPage(
 /**
  * Format relationships for display with expand/collapse by type
  */
-function formatRelationships(
+interface RelRow {
+  entity: string;
+  entityName: string;
+  direction: "→" | "←" | "↔";
+  status: string;
+  since: string;
+}
+
+type RelMapEntry = { otherId: string; kind: string; outgoing: WorldState["relationships"][0] | null; incoming: WorldState["relationships"][0] | null };
+
+function buildBidirectionalRelMap(
   entityId: string,
-  relationships: WorldState["relationships"],
-  worldData: WorldState
-): string {
-  const entityMap = new Map(worldData.hardState.map((e) => [e.id, e]));
-
-  // Build a map to detect bidirectional relationships
-  // Key: "kind:otherId", Value: { outgoing: rel | null, incoming: rel | null }
-  const relMap = new Map<
-    string,
-    {
-      otherId: string;
-      kind: string;
-      outgoing: WorldState["relationships"][0] | null;
-      incoming: WorldState["relationships"][0] | null;
-    }
-  >();
-
+  relationships: WorldState["relationships"]
+): Map<string, RelMapEntry> {
+  const relMap = new Map<string, RelMapEntry>();
   for (const rel of relationships) {
     const isOutgoing = rel.src === entityId;
     const otherId = isOutgoing ? rel.dst : rel.src;
     const key = `${rel.kind}:${otherId}`;
-
-    if (!relMap.has(key)) {
-      relMap.set(key, { otherId, kind: rel.kind, outgoing: null, incoming: null });
-    }
+    if (!relMap.has(key)) relMap.set(key, { otherId, kind: rel.kind, outgoing: null, incoming: null });
     const entry = relMap.get(key)!;
-    if (isOutgoing) {
-      entry.outgoing = rel;
-    } else {
-      entry.incoming = rel;
-    }
+    if (isOutgoing) { entry.outgoing = rel; } else { entry.incoming = rel; }
   }
+  return relMap;
+}
 
-  // Build rows with direction info
-  interface RelRow {
-    entity: string;
-    entityName: string;
-    direction: "→" | "←" | "↔";
-    status: string;
-    since: string;
-  }
-
+function buildRelRowsByKind(relMap: Map<string, RelMapEntry>, entityMap: Map<string, HardState>): Map<string, RelRow[]> {
   const rowsByKind = new Map<string, RelRow[]>();
-
   for (const [, entry] of relMap) {
     const other = entityMap.get(entry.otherId);
     if (!other) continue;
-
-    // Determine direction
-    let direction: "→" | "←" | "↔";
-    let primaryRel: WorldState["relationships"][0];
-    if (entry.outgoing && entry.incoming) {
-      direction = "↔";
-      primaryRel = entry.outgoing; // Use outgoing for metadata
-    } else if (entry.outgoing) {
-      direction = "→";
-      primaryRel = entry.outgoing;
-    } else {
-      direction = "←";
-      primaryRel = entry.incoming!;
-    }
-
+    const direction: RelRow["direction"] = (entry.outgoing && entry.incoming) ? "↔" : entry.outgoing ? "→" : "←";
+    const primaryRel = entry.outgoing ?? entry.incoming!;
     const row: RelRow = {
       entity: `[[${other.name}]]`,
       entityName: other.name,
@@ -1595,45 +1564,45 @@ function formatRelationships(
       status: primaryRel.status || "active",
       since: primaryRel.createdAt != null ? `Tick ${primaryRel.createdAt}` : "—",
     };
-
-    if (!rowsByKind.has(entry.kind)) {
-      rowsByKind.set(entry.kind, []);
-    }
+    if (!rowsByKind.has(entry.kind)) rowsByKind.set(entry.kind, []);
     rowsByKind.get(entry.kind)!.push(row);
   }
+  return rowsByKind;
+}
 
-  // Group by (kind, direction) pair
+function buildSortedPairRows(rowsByKind: Map<string, RelRow[]>): Array<{ kind: string; direction: string; entities: string[] }> {
   const byPair = new Map<string, RelRow[]>();
   for (const [kind, rows] of rowsByKind) {
     for (const row of rows) {
       const pairKey = `${kind}:${row.direction}`;
-      if (!byPair.has(pairKey)) {
-        byPair.set(pairKey, []);
-      }
+      if (!byPair.has(pairKey)) byPair.set(pairKey, []);
       byPair.get(pairKey)!.push(row);
     }
   }
-
-  // Build rows for each pair, sorted by kind then direction
-  const pairRows: { kind: string; direction: string; entities: string[] }[] = [];
+  const pairRows: Array<{ kind: string; direction: string; entities: string[] }> = [];
   for (const [pairKey, rows] of byPair) {
     const [kind, direction] = pairKey.split(":");
-    // Sort entities alphabetically
-    const entities = [...rows]
-      .sort((a, b) => a.entityName.localeCompare(b.entityName))
-      .map((r) => r.entity);
+    const entities = [...rows].sort((a, b) => a.entityName.localeCompare(b.entityName)).map((r) => r.entity);
     pairRows.push({ kind, direction, entities });
   }
-
-  // Sort by kind, then by direction (↔ first, then →, then ←)
   const dirOrder = { "↔": 0, "→": 1, "←": 2 };
   pairRows.sort((a, b) => {
     if (a.kind !== b.kind) return a.kind.localeCompare(b.kind);
-    return (
-      (dirOrder[a.direction as keyof typeof dirOrder] || 0) -
-      (dirOrder[b.direction as keyof typeof dirOrder] || 0)
-    );
+    return (dirOrder[a.direction as keyof typeof dirOrder] || 0) - (dirOrder[b.direction as keyof typeof dirOrder] || 0);
   });
+  return pairRows;
+}
+
+function formatRelationships(
+  entityId: string,
+  relationships: WorldState["relationships"],
+  worldData: WorldState
+): string {
+  const entityMap = new Map(worldData.hardState.map((e) => [e.id, e]));
+
+  const relMap = buildBidirectionalRelMap(entityId, relationships);
+  const rowsByKind = buildRelRowsByKind(relMap, entityMap);
+  const pairRows = buildSortedPairRows(rowsByKind);
 
   // Build table
   const lines: string[] = [];
@@ -1933,25 +1902,8 @@ function extractLinkedEntities(
     const matches = section.content.matchAll(/\[\[([^\]]+)\]\]/g);
     for (const match of matches) {
       const name = match[1].toLowerCase().trim();
-      // Check entity names first
-      const directId = entityByName.get(name);
-      if (directId) {
-        linked.add(directId);
-        continue;
-      }
-      // Check entity aliases
-      const aliasId = aliasIndex.get(name);
-      if (aliasId) {
-        linked.add(aliasId);
-        continue;
-      }
-      // Check static page titles (via pageNameIndex which includes both)
-      if (pageNameIndex) {
-        const pageId = pageNameIndex.get(name);
-        if (pageId) {
-          linked.add(pageId);
-        }
-      }
+      const id = entityByName.get(name) ?? aliasIndex.get(name) ?? pageNameIndex?.get(name);
+      if (id) linked.add(id);
     }
   }
 

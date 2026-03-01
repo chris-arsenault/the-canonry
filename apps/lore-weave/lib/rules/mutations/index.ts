@@ -425,86 +425,94 @@ function prepareCreateRelationship(
   return result;
 }
 
+type RelGraphItem = { kind: string; status?: string; src: string; dst: string };
+
+function archivePairRelationships(
+  rels: RelGraphItem[],
+  entity: HardState,
+  withEntity: HardState,
+  relationshipKind: string,
+  direction: string,
+  result: MutationResult
+): void {
+  for (const rel of rels) {
+    if (rel.kind !== relationshipKind || rel.status === 'historical') continue;
+    const isPair =
+      (rel.src === entity.id && rel.dst === withEntity.id) ||
+      (rel.dst === entity.id && rel.src === withEntity.id);
+    if (!isPair) continue;
+    const matchesDirection =
+      direction === 'both' ||
+      (direction === 'src' && rel.src === entity.id) ||
+      (direction === 'dst' && rel.dst === entity.id);
+    if (!matchesDirection) continue;
+    result.relationshipsToArchive.push({ kind: rel.kind, src: rel.src, dst: rel.dst });
+  }
+}
+
+function archiveEntityRelationships(
+  rels: RelGraphItem[],
+  entity: HardState,
+  relationshipKind: string,
+  direction: string,
+  result: MutationResult
+): void {
+  for (const rel of rels) {
+    if (rel.kind !== relationshipKind || rel.status === 'historical') continue;
+    const matchesDirection =
+      direction === 'both' ||
+      (direction === 'src' && rel.src === entity.id) ||
+      (direction === 'dst' && rel.dst === entity.id);
+    if (!matchesDirection) continue;
+    if (rel.src !== entity.id && rel.dst !== entity.id) continue;
+    result.relationshipsToArchive.push({ kind: rel.kind, src: rel.src, dst: rel.dst });
+  }
+}
+
+function checkEntityRef(
+  entity: HardState | null | undefined,
+  ref: string,
+  actionName: string,
+  role: string,
+  result: MutationResult
+): boolean {
+  if (entity) return false;
+  if (ref.startsWith('$')) {
+    result.diagnostic = `skipped ${actionName}: ${ref} not resolved`;
+  } else {
+    result.applied = false;
+    result.diagnostic = `${role} ${ref} not found`;
+  }
+  return true;
+}
+
 function prepareArchiveRelationship(
   mutation: ArchiveRelationshipMutation,
   ctx: RuleContext,
   result: MutationResult
 ): MutationResult {
   const entity = resolveEntityRef(mutation.entity, ctx);
-  if (!entity) {
-    // If it's a variable reference that didn't resolve, treat as no-op
-    if (mutation.entity.startsWith('$')) {
-      result.diagnostic = `skipped archive_relationship: ${mutation.entity} not resolved`;
-      return result;
-    }
-    result.applied = false;
-    result.diagnostic = `entity ${mutation.entity} not found`;
-    return result;
-  }
+  if (checkEntityRef(entity, mutation.entity, 'archive_relationship', 'entity', result)) return result;
 
   const withRef = mutation.with;
   const withEntity = withRef && withRef !== 'any' ? resolveEntityRef(withRef, ctx) : null;
   const direction = normalizeDirection(mutation.direction);
 
   if (withRef && withRef !== 'any' && !withEntity) {
-    // If it's a variable reference that didn't resolve, treat as no-op
     if (withRef.startsWith('$')) {
       result.diagnostic = `skipped archive_relationship: ${withRef} not resolved`;
-      return result;
+    } else {
+      result.applied = false;
+      result.diagnostic = `entity ${withRef} not found for archive_relationship`;
     }
-    result.applied = false;
-    result.diagnostic = `entity ${withRef} not found for archive_relationship`;
     return result;
   }
 
-  // Collect relationships to archive (deferred execution)
-  const rels = ctx.graph.getAllRelationships();
-
+  const rels = ctx.graph.getAllRelationships() as RelGraphItem[];
   if (withEntity) {
-    // Archive only relationships between entity and withEntity
-    for (const rel of rels) {
-      if (rel.kind !== mutation.relationshipKind || rel.status === 'historical') continue;
-
-      const isPair =
-        (rel.src === entity.id && rel.dst === withEntity.id) ||
-        (rel.dst === entity.id && rel.src === withEntity.id);
-
-      if (!isPair) continue;
-
-      const matchesDirection =
-        direction === 'both' ||
-        (direction === 'src' && rel.src === entity.id) ||
-        (direction === 'dst' && rel.dst === entity.id);
-
-      if (!matchesDirection) continue;
-
-      result.relationshipsToArchive.push({
-        kind: rel.kind,
-        src: rel.src,
-        dst: rel.dst,
-      });
-    }
+    archivePairRelationships(rels, entity!, withEntity, mutation.relationshipKind, direction, result);
   } else {
-    // Archive all relationships of this kind involving entity
-    for (const rel of rels) {
-      if (rel.kind !== mutation.relationshipKind || rel.status === 'historical') continue;
-
-      const matchesDirection =
-        direction === 'both' ||
-        (direction === 'src' && rel.src === entity.id) ||
-        (direction === 'dst' && rel.dst === entity.id);
-
-      if (!matchesDirection) continue;
-
-      // Check if entity is involved
-      if (rel.src !== entity.id && rel.dst !== entity.id) continue;
-
-      result.relationshipsToArchive.push({
-        kind: rel.kind,
-        src: rel.src,
-        dst: rel.dst,
-      });
-    }
+    archiveEntityRelationships(rels, entity!, mutation.relationshipKind, direction, result);
   }
 
   result.diagnostic = `archived ${result.relationshipsToArchive.length} ${mutation.relationshipKind} relationships`;
@@ -638,6 +646,27 @@ function prepareModifyPressure(
 // TRANSFER RELATIONSHIP PREPARER
 // =============================================================================
 
+function findAndArchiveOldRelationship(
+  rels: RelGraphItem[],
+  entity: HardState,
+  from: HardState,
+  relationshipKind: string,
+  result: MutationResult
+): boolean {
+  for (const rel of rels) {
+    if (
+      rel.kind === relationshipKind &&
+      rel.status !== 'historical' &&
+      ((rel.src === entity.id && rel.dst === from.id) ||
+        (rel.src === from.id && rel.dst === entity.id))
+    ) {
+      result.relationshipsToArchive.push({ kind: rel.kind, src: rel.src, dst: rel.dst });
+      return true;
+    }
+  }
+  return false;
+}
+
 function prepareTransferRelationship(
   mutation: TransferRelationshipMutation,
   ctx: RuleContext,
@@ -647,40 +676,10 @@ function prepareTransferRelationship(
   const from = resolveEntityRef(mutation.from, ctx);
   const to = resolveEntityRef(mutation.to, ctx);
 
-  if (!entity) {
-    // If it's a variable reference that didn't resolve, treat as no-op
-    if (mutation.entity.startsWith('$')) {
-      result.diagnostic = `skipped transfer_relationship: ${mutation.entity} not resolved`;
-      return result;
-    }
-    result.applied = false;
-    result.diagnostic = `entity ${mutation.entity} not found`;
-    return result;
-  }
+  if (checkEntityRef(entity, mutation.entity, 'transfer_relationship', 'entity', result)) return result;
+  if (checkEntityRef(from, mutation.from, 'transfer_relationship', 'from entity', result)) return result;
+  if (checkEntityRef(to, mutation.to, 'transfer_relationship', 'to entity', result)) return result;
 
-  if (!from) {
-    // If it's a variable reference that didn't resolve, treat as no-op
-    if (mutation.from.startsWith('$')) {
-      result.diagnostic = `skipped transfer_relationship: ${mutation.from} not resolved`;
-      return result;
-    }
-    result.applied = false;
-    result.diagnostic = `from entity ${mutation.from} not found`;
-    return result;
-  }
-
-  if (!to) {
-    // If it's a variable reference that didn't resolve, treat as no-op
-    if (mutation.to.startsWith('$')) {
-      result.diagnostic = `skipped transfer_relationship: ${mutation.to} not resolved`;
-      return result;
-    }
-    result.applied = false;
-    result.diagnostic = `to entity ${mutation.to} not found`;
-    return result;
-  }
-
-  // Check condition if present
   if (mutation.condition) {
     const conditionMet = evaluateCondition(mutation.condition, ctx);
     if (!conditionMet) {
@@ -689,43 +688,54 @@ function prepareTransferRelationship(
     }
   }
 
-  // Archive the old relationship (deferred)
-  const rels = ctx.graph.getAllRelationships();
-  let foundOld = false;
-  for (const rel of rels) {
-    if (
-      rel.kind === mutation.relationshipKind &&
-      rel.status !== 'historical' &&
-      ((rel.src === entity.id && rel.dst === from.id) ||
-        (rel.src === from.id && rel.dst === entity.id))
-    ) {
-      result.relationshipsToArchive.push({
-        kind: rel.kind,
-        src: rel.src,
-        dst: rel.dst,
-      });
-      foundOld = true;
-      break;
-    }
-  }
+  const rels = ctx.graph.getAllRelationships() as RelGraphItem[];
+  const foundOld = findAndArchiveOldRelationship(rels, entity!, from!, mutation.relationshipKind, result);
 
-  // Create the new relationship
   result.relationshipsCreated.push({
     kind: mutation.relationshipKind,
-    src: entity.id,
-    dst: to.id,
-    strength: 0.8, // Default strength for transferred relationships
+    src: entity!.id,
+    dst: to!.id,
+    strength: 0.8,
   });
 
   result.diagnostic = foundOld
-    ? `transferred ${mutation.relationshipKind} from ${from.name} to ${to.name}`
-    : `created ${mutation.relationshipKind} to ${to.name} (no previous relationship found)`;
+    ? `transferred ${mutation.relationshipKind} from ${from!.name} to ${to!.name}`
+    : `created ${mutation.relationshipKind} to ${to!.name} (no previous relationship found)`;
   return result;
 }
 
 // =============================================================================
 // COMPOUND ACTION PREPARERS
 // =============================================================================
+
+function mergeActionResultInto(result: MutationResult, actionResult: MutationResult): void {
+  result.entityModifications.push(...actionResult.entityModifications);
+  result.relationshipsCreated.push(...actionResult.relationshipsCreated);
+  result.relationshipsAdjusted.push(...actionResult.relationshipsAdjusted);
+  result.relationshipsToArchive.push(...actionResult.relationshipsToArchive);
+  for (const [k, v] of Object.entries(actionResult.pressureChanges)) {
+    result.pressureChanges[k] = (result.pressureChanges[k] || 0) + v;
+  }
+  if (actionResult.rateLimitUpdated) result.rateLimitUpdated = true;
+}
+
+function executeActionsForRelated(
+  related: HardState,
+  mutation: ForEachRelatedAction,
+  ctx: RuleContext,
+  result: MutationResult,
+  diagnostics: string[]
+): void {
+  const nestedCtx: RuleContext = {
+    ...ctx,
+    entities: { ...ctx.entities, related },
+  };
+  for (const action of mutation.actions) {
+    const actionResult = prepareMutation(action, nestedCtx);
+    if (actionResult.applied) mergeActionResultInto(result, actionResult);
+    diagnostics.push(actionResult.diagnostic);
+  }
+}
 
 function prepareForEachRelated(
   mutation: ForEachRelatedAction,
@@ -772,31 +782,7 @@ function prepareForEachRelated(
   // Execute actions for each related entity
   const diagnostics: string[] = [];
   for (const related of relatedEntities) {
-    // Create a new context with $related bound
-    const nestedCtx: RuleContext = {
-      ...ctx,
-      entities: {
-        ...ctx.entities,
-        related: related,
-      },
-    };
-
-    // Execute each action
-    for (const action of mutation.actions) {
-      const actionResult = prepareMutation(action, nestedCtx);
-      if (actionResult.applied) {
-        // Merge results
-        result.entityModifications.push(...actionResult.entityModifications);
-        result.relationshipsCreated.push(...actionResult.relationshipsCreated);
-        result.relationshipsAdjusted.push(...actionResult.relationshipsAdjusted);
-        result.relationshipsToArchive.push(...actionResult.relationshipsToArchive);
-        for (const [k, v] of Object.entries(actionResult.pressureChanges)) {
-          result.pressureChanges[k] = (result.pressureChanges[k] || 0) + v;
-        }
-        if (actionResult.rateLimitUpdated) result.rateLimitUpdated = true;
-      }
-      diagnostics.push(actionResult.diagnostic);
-    }
+    executeActionsForRelated(related, mutation, ctx, result, diagnostics);
   }
 
   result.diagnostic = `for_each_related: processed ${relatedEntities.length} entities. ${diagnostics.join('; ')}`;
@@ -814,17 +800,7 @@ function prepareConditional(
   const diagnostics: string[] = [];
   for (const action of actionsToExecute) {
     const actionResult = prepareMutation(action, ctx);
-    if (actionResult.applied) {
-      // Merge results
-      result.entityModifications.push(...actionResult.entityModifications);
-      result.relationshipsCreated.push(...actionResult.relationshipsCreated);
-      result.relationshipsAdjusted.push(...actionResult.relationshipsAdjusted);
-      result.relationshipsToArchive.push(...actionResult.relationshipsToArchive);
-      for (const [k, v] of Object.entries(actionResult.pressureChanges)) {
-        result.pressureChanges[k] = (result.pressureChanges[k] || 0) + v;
-      }
-      if (actionResult.rateLimitUpdated) result.rateLimitUpdated = true;
-    }
+    if (actionResult.applied) mergeActionResultInto(result, actionResult);
     diagnostics.push(actionResult.diagnostic);
   }
 

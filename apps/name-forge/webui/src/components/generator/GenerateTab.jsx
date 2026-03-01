@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import { TagSelector, NumberInput, ErrorMessage } from "@the-canonry/shared-components";
 import { generateTestNames } from "../../lib/browser-generator.js";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 /**
  * Generate Tab - Full control over name generation
@@ -49,7 +50,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
   const [debugInfo, setDebugInfo] = useState([]);
   const [strategyUsage, setStrategyUsage] = useState(null);
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState(null);
+  const { error, setError } = useAsyncAction();
 
   // Get available options from schema
   const cultureIds = Object.keys(cultures || {});

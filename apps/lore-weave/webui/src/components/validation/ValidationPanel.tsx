@@ -46,18 +46,18 @@ interface ValidationPanelProps {
 
 function ErrorCard({ error }: { error: SchemaError }) {
   return (
-    <div className="validation-panel-error-card">
+    <div className="validation-panel-issue-card">
       <ErrorMessage
         title={error.path}
         message={error.message}
         className="validation-panel-error-header"
       />
-      <div className="validation-panel-error-body">
-        <div className="validation-panel-error-row">
+      <div className="validation-panel-issue-body">
+        <div className="validation-panel-issue-row">
           <span className="validation-panel-error-label">Expected:</span>
           <code className="validation-panel-error-value">{error.expected}</code>
         </div>
-        <div className="validation-panel-error-row">
+        <div className="validation-panel-issue-row">
           <span className="validation-panel-error-label">Got:</span>
           <code className="validation-panel-error-value">{JSON.stringify(error.value)}</code>
         </div>
@@ -77,10 +77,10 @@ function WarningCard({ warning }: { warning: SchemaError }) {
     <div className="validation-panel-warning-card">
       <div className="validation-panel-warning-header">
         <div className="validation-panel-warning-path">{warning.path}</div>
-        <div className="validation-panel-error-message">{warning.message}</div>
+        <div className="validation-panel-issue-message">{warning.message}</div>
       </div>
       {warning.suggestion && (
-        <div className="validation-panel-error-body">
+        <div className="validation-panel-issue-body">
           <div className="validation-panel-suggestion">
             <div className="validation-panel-suggestion-label">Suggestion</div>
             <div className="validation-panel-suggestion-text">{warning.suggestion}</div>

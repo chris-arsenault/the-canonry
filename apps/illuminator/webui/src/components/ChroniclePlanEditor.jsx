@@ -102,58 +102,52 @@ function FocusSummary({ plan, entityMap }) {
   );
 }
 
-function OutlineSummary({ plan }) {
-  if (plan.format === "document") {
-    const outline = plan.documentOutline;
-    if (!outline) return null;
-
-    const optionalMeta = [
-      outline.veracity ? `Veracity: ${outline.veracity}` : "",
-      outline.legitimacy ? `Legitimacy: ${outline.legitimacy}` : "",
-      outline.audience ? `Audience: ${outline.audience}` : "",
-      outline.authorProvenance ? `Provenance: ${outline.authorProvenance}` : "",
-      outline.biasAgenda ? `Bias/Agenda: ${outline.biasAgenda}` : "",
-      outline.intendedOutcome ? `Intended Outcome: ${outline.intendedOutcome}` : "",
-    ].filter(Boolean);
-
-    return (
-      <div className="cpe-card">
-        <div className="cpe-section-title">Document Outline</div>
-        <div className="cpe-info-line">
-          <strong>Purpose:</strong> {outline.purpose}
-        </div>
-        <div className="cpe-info-line">
-          <strong>Era:</strong> {outline.era}
-        </div>
-        <div className="cpe-info-line">
-          <strong>Tone:</strong> {outline.tone}
-        </div>
-        <div className="cpe-info-line">
-          <strong>Key Points:</strong>
-          <ul className="cpe-list">
-            {outline.keyPoints.map((point, idx) => (
-              <li key={`${point}-${idx}`}>{point}</li>
-            ))}
-          </ul>
-        </div>
-        {optionalMeta.length > 0 && (
-          <div className="cpe-info-line cpe-info-line-last">
-            <strong>Optional:</strong> {optionalMeta.join(" • ")}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const outline = plan.storyOutline;
+function DocumentOutlineSummary({ outline }) {
   if (!outline) return null;
+  const optionalMeta = [
+    outline.veracity ? `Veracity: ${outline.veracity}` : "",
+    outline.legitimacy ? `Legitimacy: ${outline.legitimacy}` : "",
+    outline.audience ? `Audience: ${outline.audience}` : "",
+    outline.authorProvenance ? `Provenance: ${outline.authorProvenance}` : "",
+    outline.biasAgenda ? `Bias/Agenda: ${outline.biasAgenda}` : "",
+    outline.intendedOutcome ? `Intended Outcome: ${outline.intendedOutcome}` : "",
+  ].filter(Boolean);
+  return (
+    <div className="cpe-card">
+      <div className="cpe-section-title">Document Outline</div>
+      <div className="cpe-info-line">
+        <strong>Purpose:</strong> {outline.purpose}
+      </div>
+      <div className="cpe-info-line">
+        <strong>Era:</strong> {outline.era}
+      </div>
+      <div className="cpe-info-line">
+        <strong>Tone:</strong> {outline.tone}
+      </div>
+      <div className="cpe-info-line">
+        <strong>Key Points:</strong>
+        <ul className="cpe-list">
+          {outline.keyPoints.map((point, idx) => (
+            <li key={`${point}-${idx}`}>{point}</li>
+          ))}
+        </ul>
+      </div>
+      {optionalMeta.length > 0 && (
+        <div className="cpe-info-line cpe-info-line-last">
+          <strong>Optional:</strong> {optionalMeta.join(" • ")}
+        </div>
+      )}
+    </div>
+  );
+}
 
+function StoryOutlineSummary({ outline }) {
+  if (!outline) return null;
   const optionalMeta = [
     outline.stakes ? `Stakes: ${outline.stakes}` : "",
     outline.transformation ? `Transformation: ${outline.transformation}` : "",
     outline.intendedImpact ? `Intended Impact: ${outline.intendedImpact}` : "",
   ].filter(Boolean);
-
   return (
     <div className="cpe-card">
       <div className="cpe-section-title">Story Outline</div>
@@ -192,6 +186,13 @@ function OutlineSummary({ plan }) {
       )}
     </div>
   );
+}
+
+function OutlineSummary({ plan }) {
+  if (plan.format === "document") {
+    return <DocumentOutlineSummary outline={plan.documentOutline} />;
+  }
+  return <StoryOutlineSummary outline={plan.storyOutline} />;
 }
 
 function PlotSummary({ plan }) {

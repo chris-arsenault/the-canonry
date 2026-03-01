@@ -253,99 +253,107 @@ export class TargetSelector {
     entity: HardState,
     bias: SelectionBias
   ): number {
-    let score = 1.0; // Base score
-
-    // === POSITIVE PREFERENCES ===
+    let score = 1.0;
     if (bias.prefer) {
-      const boost = bias.prefer.preferenceBoost ?? 2.0;
-
-      // Subtype preference
-      if (bias.prefer.subtypes?.includes(entity.subtype)) {
-        score *= boost;
-      }
-
-      // Tag preference
-      if (bias.prefer.tags?.some(tag => hasTag(entity.tags, tag))) {
-        score *= boost;
-      }
-
-      // Prominence preference
-      if (bias.prefer.prominence?.includes(prominenceLabel(entity.prominence))) {
-        score *= boost;
-      }
-
-      // Location preference (same location as reference)
-      if (bias.prefer.sameLocationAs) {
-        const refEntity = graph.getEntity(bias.prefer.sameLocationAs);
-        const refLocations = refEntity
-          ? new Set(
-              graph.getEntityRelationships(refEntity.id, 'src')
-                .filter(r => r.kind === 'resident_of')
-                .map(r => r.dst)
-            )
-          : new Set<string>();
-        const sameLocation = refLocations.size > 0 &&
-          graph.getEntityRelationships(entity.id, 'src').some(
-            r => r.kind === 'resident_of' && refLocations.has(r.dst)
-          );
-        if (sameLocation) {
-          score *= boost;
-        }
-      }
-
-      // Culture preference (same culture as reference)
-      if (bias.prefer.sameCultureAs) {
-        if (entity.culture === bias.prefer.sameCultureAs) {
-          score *= boost;
-        } else {
-          // Apply cross-culture penalty if configured
-          const crossCulturePenalty = bias.avoid?.differentCulturePenalty ?? 1.0;
-          score *= crossCulturePenalty;
-        }
-      }
+      score = this.applyPreferenceBias(graph, entity, bias, score);
     }
-
-    // === NEGATIVE PENALTIES ===
     if (bias.avoid) {
-      // Count penalized relationships
-      let penalizedCount = 0;
-      if (bias.avoid.relationshipKinds) {
-        penalizedCount = graph.getEntityRelationships(entity.id, 'both').filter(r =>
-          bias.avoid!.relationshipKinds!.includes(r.kind)
-        ).length;
-      }
-
-      // Hub penalty - exponential penalty for high-degree nodes
-      // Formula: score *= (1 / (1 + count^strength))
-      // Same formula as template diversity!
-      const strength = bias.avoid.hubPenaltyStrength ?? 1.0;
-      if (penalizedCount > 0) {
-        const penalty = 1 / (1 + Math.pow(penalizedCount, strength));
-        score *= penalty;
-      }
-
-      // Total relationship penalty (general hub avoidance)
-      const totalLinks = graph.getEntityRelationships(entity.id, 'both').length;
-      if (totalLinks > 5) { // Only penalize if significantly connected
-        const generalPenalty = 1 / (1 + Math.pow(totalLinks - 5, 0.5));
-        score *= generalPenalty;
-      }
+      score = this.applyAvoidancePenalties(graph, entity, bias.avoid, score);
     }
-
-    // === DIVERSITY PRESSURE ===
     if (bias.diversityTracking) {
-      const selectionCount = this.tracker.getCount(
-        bias.diversityTracking.trackingId,
-        entity.id
+      score = this.applyDiversityPenalty(entity, bias.diversityTracking, score);
+    }
+    return Math.max(0, score);
+  }
+
+  private applyLocationPreference(
+    graph: Graph,
+    entity: HardState,
+    sameLocationAs: string,
+    boost: number
+  ): number {
+    const refEntity = graph.getEntity(sameLocationAs);
+    const refLocations = refEntity
+      ? new Set(
+          graph.getEntityRelationships(refEntity.id, 'src')
+            .filter(r => r.kind === 'resident_of')
+            .map(r => r.dst)
+        )
+      : new Set<string>();
+    const sameLocation = refLocations.size > 0 &&
+      graph.getEntityRelationships(entity.id, 'src').some(
+        r => r.kind === 'resident_of' && refLocations.has(r.dst)
       );
-      if (selectionCount > 0) {
-        const strength = bias.diversityTracking.strength ?? 1.0;
-        const diversityPenalty = 1 / (1 + Math.pow(selectionCount, strength));
-        score *= diversityPenalty;
+    if (sameLocation) {
+      return boost;
+    }
+    return 1.0;
+  }
+
+  private applyPreferenceBias(
+    graph: Graph,
+    entity: HardState,
+    bias: SelectionBias,
+    score: number
+  ): number {
+    const prefer = bias.prefer!;
+    const boost = prefer.preferenceBoost ?? 2.0;
+    if (prefer.subtypes?.includes(entity.subtype)) {
+      score *= boost;
+    }
+    if (prefer.tags?.some(tag => hasTag(entity.tags, tag))) {
+      score *= boost;
+    }
+    if (prefer.prominence?.includes(prominenceLabel(entity.prominence))) {
+      score *= boost;
+    }
+    if (prefer.sameLocationAs) {
+      score *= this.applyLocationPreference(graph, entity, prefer.sameLocationAs, boost);
+    }
+    if (prefer.sameCultureAs) {
+      if (entity.culture === prefer.sameCultureAs) {
+        score *= boost;
+      } else {
+        score *= bias.avoid?.differentCulturePenalty ?? 1.0;
       }
     }
+    return score;
+  }
 
-    return Math.max(0, score);
+  private applyAvoidancePenalties(
+    graph: Graph,
+    entity: HardState,
+    avoid: NonNullable<SelectionBias['avoid']>,
+    score: number
+  ): number {
+    let penalizedCount = 0;
+    if (avoid.relationshipKinds) {
+      penalizedCount = graph.getEntityRelationships(entity.id, 'both').filter(r =>
+        avoid.relationshipKinds!.includes(r.kind)
+      ).length;
+    }
+    const strength = avoid.hubPenaltyStrength ?? 1.0;
+    if (penalizedCount > 0) {
+      score *= 1 / (1 + Math.pow(penalizedCount, strength));
+    }
+    const totalLinks = graph.getEntityRelationships(entity.id, 'both').length;
+    if (totalLinks > 5) {
+      score *= 1 / (1 + Math.pow(totalLinks - 5, 0.5));
+    }
+    return score;
+  }
+
+  private applyDiversityPenalty(
+    entity: HardState,
+    tracking: NonNullable<SelectionBias['diversityTracking']>,
+    score: number
+  ): number {
+    const selectionCount = this.tracker.getCount(tracking.trackingId, entity.id);
+    if (selectionCount > 0) {
+      const strength = tracking.strength ?? 1.0;
+      score *= 1 / (1 + Math.pow(selectionCount, strength));
+    }
+    return score;
   }
 
   /**

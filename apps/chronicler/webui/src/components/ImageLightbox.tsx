@@ -52,7 +52,6 @@ export default function ImageLightbox({
   if (!isOpen || !imageUrl) return null;
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- dialog overlay needs interaction handlers
     <div
       className={styles.overlay}
       onMouseDown={handleOverlayMouseDown}
@@ -60,8 +59,6 @@ export default function ImageLightbox({
       role="dialog"
       aria-modal="true"
       aria-label={title || "Image viewer"}
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
       <button onClick={onClose} className={styles.closeButton}>
         Close

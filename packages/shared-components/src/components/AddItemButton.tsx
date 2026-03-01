@@ -5,9 +5,9 @@
 import React from 'react';
 
 interface AddItemButtonProps {
-  onClick: (e: React.MouseEvent) => void;
-  label?: string;
-  className?: string;
+  readonly onClick: (e: React.MouseEvent) => void;
+  readonly label?: string;
+  readonly className?: string;
 }
 
 /**

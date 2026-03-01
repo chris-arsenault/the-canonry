@@ -1099,6 +1099,7 @@ function applyNamingResources(
     label: string,
     span: BlockNode['span']
   ) => {
+    const cultureId = typeof culture.id === 'string' ? culture.id : '';
     const naming = ensureNaming(culture);
     const existing = naming[key];
     let list: Record<string, unknown>[];
@@ -1110,7 +1111,7 @@ function applyNamingResources(
     } else {
       diagnostics.push({
         severity: 'error',
-        message: `culture "${String(culture.id)}" naming.${key} must be an array`,
+        message: `culture "${cultureId}" naming.${key} must be an array`,
         span
       });
       return;
@@ -1119,7 +1120,7 @@ function applyNamingResources(
     if (typeof id === 'string' && list.some((item) => isRecord(item) && item.id === id)) {
       diagnostics.push({
         severity: 'error',
-        message: `Duplicate ${label} "${id}" for culture "${String(culture.id)}"`,
+        message: `Duplicate ${label} "${id}" for culture "${cultureId}"`,
         span
       });
       return;
@@ -1132,6 +1133,7 @@ function applyNamingResources(
     entry: Record<string, unknown>,
     span: BlockNode['span']
   ) => {
+    const cultureId = typeof culture.id === 'string' ? culture.id : '';
     const naming = ensureNaming(culture);
     const existing = naming.lexemeLists;
     let lists: Record<string, unknown>;
@@ -1143,7 +1145,7 @@ function applyNamingResources(
     } else {
       diagnostics.push({
         severity: 'error',
-        message: `culture "${String(culture.id)}" naming.lexemeLists must be an object`,
+        message: `culture "${cultureId}" naming.lexemeLists must be an object`,
         span
       });
       return;
@@ -1160,7 +1162,7 @@ function applyNamingResources(
     if (lists[id]) {
       diagnostics.push({
         severity: 'error',
-        message: `Duplicate lexeme_list "${id}" for culture "${String(culture.id)}"`,
+        message: `Duplicate lexeme_list "${id}" for culture "${cultureId}"`,
         span
       });
       return;

@@ -39,25 +39,25 @@ interface ChronicleSeedData {
 }
 
 interface ChronicleSeedViewerProps {
-  seed: ChronicleSeedData;
-  eventNames?: Map<string, string>;
-  relationshipLabels?: Map<string, string>;
+  readonly seed: ChronicleSeedData;
+  readonly eventNames?: Map<string, string>;
+  readonly relationshipLabels?: Map<string, string>;
 }
 
 interface ExpandableSeedSectionProps {
-  seed: ChronicleSeedData;
-  eventNames?: Map<string, string>;
-  relationshipLabels?: Map<string, string>;
-  defaultExpanded?: boolean;
+  readonly seed: ChronicleSeedData;
+  readonly eventNames?: Map<string, string>;
+  readonly relationshipLabels?: Map<string, string>;
+  readonly defaultExpanded?: boolean;
 }
 
 interface SeedModalProps {
-  isOpen: boolean;
-  onClose: (e?: React.MouseEvent | React.KeyboardEvent) => void;
-  seed: ChronicleSeedData;
-  eventNames?: Map<string, string>;
-  relationshipLabels?: Map<string, string>;
-  title?: string;
+  readonly isOpen: boolean;
+  readonly onClose: (e?: React.MouseEvent | React.KeyboardEvent) => void;
+  readonly seed: ChronicleSeedData;
+  readonly eventNames?: Map<string, string>;
+  readonly relationshipLabels?: Map<string, string>;
+  readonly title?: string;
 }
 export default function ChronicleSeedViewer({
   seed,

@@ -5,11 +5,11 @@
 import React from 'react';
 
 interface IconButtonProps {
-  icon: string;
-  onClick: () => void;
-  danger?: boolean;
-  title?: string;
-  className?: string;
+  readonly icon: string;
+  readonly onClick: () => void;
+  readonly danger?: boolean;
+  readonly title?: string;
+  readonly className?: string;
 }
 
 /**

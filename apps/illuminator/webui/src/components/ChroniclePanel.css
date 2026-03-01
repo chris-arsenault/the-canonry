@@ -511,24 +511,24 @@
  * Detail: Failed state
  * ============================================================================ */
 
-.chron-detail-failed {
+.chron-detail-aborted {
   padding: 24px;
   background: rgb(239 68 68 / 8%);
   border: 1px solid rgb(239 68 68 / 30%);
   border-radius: 8px;
 }
 
-.chron-detail-failed-title {
+.chron-detail-aborted-title {
   margin: 0 0 8px;
   color: #ef4444;
 }
 
-.chron-detail-failed-msg {
+.chron-detail-aborted-msg {
   margin: 0 0 16px;
   color: var(--text-secondary);
 }
 
-.chron-detail-failed-btn {
+.chron-detail-aborted-btn {
   padding: 10px 18px;
   font-size: 13px;
 }

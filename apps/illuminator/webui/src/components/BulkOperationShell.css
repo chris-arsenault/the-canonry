@@ -140,11 +140,11 @@
 }
 
 /* Failed items */
-.bulk-failed-section {
+.bulk-issue-section {
   margin-top: 12px;
 }
 
-.bulk-failed-label {
+.bulk-issue-label {
   font-size: 11px;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -152,7 +152,7 @@
   margin-bottom: 6px;
 }
 
-.bulk-failed-list {
+.bulk-issue-list {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;

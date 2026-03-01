@@ -368,16 +368,14 @@ export default function EntryPointStep({ entities, relationships, events }: Read
                           eraNameMap.has(entity.eraId) &&
                           (() => {
                             const eraColor = eraColorMap.get(entity.eraId);
+                            const eraBgValue = isSelected ? "rgba(255,255,255,0.2)" : (eraColor ? `${eraColor}26` : undefined);
+                            const eraColorValue = isSelected ? "rgba(255,255,255,0.9)" : eraColor;
                             return (
                               <span
                                 className="eps-era-badge"
                                 style={{
-                                  '--eps-era-bg': isSelected
-                                    ? "rgba(255,255,255,0.2)"
-                                    : (eraColor ? `${eraColor}26` : undefined),
-                                  '--eps-era-color': isSelected
-                                    ? "rgba(255,255,255,0.9)"
-                                    : (eraColor ?? undefined),
+                                  '--eps-era-bg': eraBgValue,
+                                  '--eps-era-color': eraColorValue,
                                 } as React.CSSProperties}
                               >
                                 {eraNameMap.get(entity.eraId)}

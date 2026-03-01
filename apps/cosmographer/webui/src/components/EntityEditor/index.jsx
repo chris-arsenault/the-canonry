@@ -5,10 +5,12 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { generateEntityName } from "../../lib/name-generator.js";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import {
   TagSelector,
   ToolUsageBadges as UsageBadges,
   getEntityKindUsageSummary,
+  ErrorMessage,
 } from "@the-canonry/shared-components";
 import "./EntityEditor.css";
 
@@ -16,7 +18,7 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
   const [selectedEntityId, setSelectedEntityId] = useState(null);
   const [filterKind, setFilterKind] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [generateError, setGenerateError] = useState(null);
+  const { error: generateError, setError: setGenerateError } = useAsyncAction();
 
   const entities = project?.seedEntities || [];
   // Schema v2: entityKinds at project root
@@ -240,9 +242,7 @@ export default function EntityEditor({ project, onSave, onAddTag, schemaUsage = 
                 </button>
               </div>
               {generateError && (
-                <div className="ee-generate-error">
-                  {generateError}
-                </div>
+                <ErrorMessage message={generateError} className="ee-generate-error" />
               )}
             </div>
 

@@ -465,7 +465,6 @@ export default function CreateEntityModal({
             onClick={handleSubmit}
             disabled={!canSubmit}
             className="illuminator-button"
-            style={{ opacity: canSubmit ? 1 : 0.5 }}
           >
             {submitLabel}
           </button>

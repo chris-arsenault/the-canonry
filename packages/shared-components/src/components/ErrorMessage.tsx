@@ -5,9 +5,9 @@
 import React from 'react';
 
 interface ErrorMessageProps {
-  message: string;
-  title?: string;
-  className?: string;
+  readonly message: string;
+  readonly title?: string;
+  readonly className?: string;
 }
 
 /**

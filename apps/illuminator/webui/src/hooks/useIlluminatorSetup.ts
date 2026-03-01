@@ -287,7 +287,7 @@ export function useIlluminatorSetup({
   // Era entities (wrapped in async IIFE to satisfy set-state-in-effect rule)
   const [eraEntities, setEraEntities] = useState<EraEntitySummary[]>([]);
   useEffect(() => {
-    (async () => {
+    void (async () => {
       const eraNavs = navEntities.filter((e) => e.kind === "era");
       if (eraNavs.length === 0) {
         setEraEntities([]);
@@ -309,7 +309,7 @@ export function useIlluminatorSetup({
     cancelAll,
     retry,
     clearCompleted,
-  } = useEnrichmentQueue(handleEntityUpdate, projectId, simulationRunId);
+  } = useEnrichmentQueue((entityId, output) => { void handleEntityUpdate(entityId, output); }, projectId, simulationRunId);
   registerQueue(enqueue, cancel);
   useEffect(() => {
     useEnrichmentQueueStore.getState().setQueue(queue, stats);

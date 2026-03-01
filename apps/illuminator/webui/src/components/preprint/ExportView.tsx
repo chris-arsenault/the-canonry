@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
 import type { PersistedEntity } from "../../lib/db/illuminatorDb";
 import type { ChronicleRecord } from "../../lib/chronicleTypes";
 import type { ImageMetadataRecord } from "../../lib/preprint/prePrintStats";
@@ -243,7 +244,7 @@ export default function ExportView({
   simulationRunId,
 }: Readonly<ExportViewProps>) {
   const [exporting, setExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
+  const { error: exportError, setError: setExportError } = useAsyncAction();
   const [exportFormat, setExportFormat] = useState<ExportFormat>("markdown");
   const [idmlLayout, setIdmlLayout] = useState<IdmlLayoutOptions>({ ...DEFAULT_IDML_LAYOUT });
   const [customFont, setCustomFont] = useState("");

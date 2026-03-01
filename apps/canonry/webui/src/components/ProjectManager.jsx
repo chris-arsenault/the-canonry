@@ -47,6 +47,13 @@ export default function ProjectManager({
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
   const mouseDownOnOverlay = useRef(false);
+  const newProjectNameRef = useRef(null);
+
+  useEffect(() => {
+    if (showNewModal && newProjectNameRef.current) {
+      newProjectNameRef.current.focus();
+    }
+  }, [showNewModal]);
 
   const handleOverlayMouseDown = useCallback((e) => {
     mouseDownOnOverlay.current = e.target === e.currentTarget;
@@ -278,15 +285,14 @@ export default function ProjectManager({
               </button>
             </div>
             <div className="modal-body">
-              {/* eslint-disable-next-line jsx-a11y/no-autofocus -- intentional UX: modal input should auto-focus */}
               <input
+                ref={newProjectNameRef}
                 className="input"
                 type="text"
                 placeholder="Project name..."
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-                autoFocus
               />
               <div className="modal-actions">
                 <button className="btn btn-secondary" onClick={() => setShowNewModal(false)}>

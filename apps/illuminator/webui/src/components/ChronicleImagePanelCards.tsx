@@ -108,9 +108,9 @@ function AnchorContextTooltip({
           <div
             className="cip-tooltip"
             style={{
-              left: Math.min(tooltipPos.x, window.innerWidth - 420),
-              top: tooltipPos.y,
-            }}
+              '--cip-tooltip-left': `${Math.min(tooltipPos.x, window.innerWidth - 420)}px`,
+              '--cip-tooltip-top': `${tooltipPos.y}px`,
+            } as React.CSSProperties}
           >
             {snippet.hasPrefix && "..."}
             {snippet.before}
@@ -488,7 +488,7 @@ export function PromptRequestCard({
           <span className="cip-scene-badge">Scene Image</span>
           <span
             className="cip-status-badge"
-            style={{ background: statusColor.bg, color: statusColor.text }}
+            style={{ '--cip-status-bg': statusColor.bg, '--cip-status-text': statusColor.text } as React.CSSProperties}
           >
             {imageRef.status}
           </span>

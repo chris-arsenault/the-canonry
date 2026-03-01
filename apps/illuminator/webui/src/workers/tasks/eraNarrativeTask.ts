@@ -16,6 +16,7 @@ import type { HistorianConfig } from "../../lib/historianTypes";
 import type { EraNarrativeTone } from "../../lib/eraNarrativeTypes";
 import type {
   EraNarrativeRecord,
+  EraNarrativePrepBrief,
   EraNarrativeThreadSynthesis,
   EraNarrativeContent,
   EraNarrativeContentVersion,
@@ -84,12 +85,12 @@ function formatCulturalIdentities(identities: Record<string, unknown>): string {
           const inner = Object.entries(val as Record<string, unknown>)
             .map(([k, v]) => {
               if (v && typeof v === "object") return `  ${k}: ${JSON.stringify(v)}`;
-              return `  ${k}: ${v}`;
+              return `  ${k}: ${v as string | number | boolean | null | undefined}`;
             })
             .join("\n");
           return `## ${key}\n${inner}`;
         }
-        return `## ${key}\n  ${val}`;
+        return `## ${key}\n  ${val as string | number | boolean | null | undefined}`;
       })
       .join("\n\n");
   }
@@ -97,7 +98,7 @@ function formatCulturalIdentities(identities: Record<string, unknown>): string {
   // Use descriptive traits: culture → { VALUES, GOVERNANCE, SELF_VIEW, OUTSIDER_VIEW, FEARS, TABOOS, SPEECH }
   return Object.entries(descriptive as Record<string, unknown>)
     .map(([cultureName, traits]) => {
-      if (!traits || typeof traits !== "object") return `## ${cultureName}\n  ${traits}`;
+      if (!traits || typeof traits !== "object") return `## ${cultureName}\n  ${traits as string | number | boolean | null | undefined}`;
       const traitLines = Object.entries(traits as Record<string, string>)
         .map(([key, value]) => `  ${key}: ${value}`)
         .join("\n");
@@ -229,6 +230,25 @@ ${arcDirection}`
   }`;
 }
 
+function sortByEraYear(a: EraNarrativePrepBrief, b: EraNarrativePrepBrief): number {
+  return (a.eraYear || 0) - (b.eraYear || 0);
+}
+
+function formatPrepBrief(brief: EraNarrativePrepBrief): string {
+  const yearLabel = brief.eraYear ? ` [Year ${brief.eraYear}]` : "";
+  return `--- ${brief.chronicleTitle}${yearLabel} (${brief.chronicleId}) ---\n${brief.prep}`;
+}
+
+function formatThreadLine(t: EraNarrativeThreadSynthesis["threads"][0]): string {
+  const actors = t.culturalActors?.length ? ` [${t.culturalActors.join(", ")}]` : "";
+  const reg = t.register ? ` | Register: ${t.register}` : "";
+  let block = `**${t.name}**${actors}: ${t.arc}${reg}`;
+  if (t.material) {
+    block += `\n\nMaterial: ${t.material}`;
+  }
+  return block;
+}
+
 function buildThreadsUserPrompt(record: EraNarrativeRecord): string {
   const sections: string[] = [];
   const wc = record.worldContext;
@@ -281,35 +301,28 @@ function buildThreadsUserPrompt(record: EraNarrativeRecord): string {
   // Group briefs by weight tier, sorted by eraYear within each tier
   // Flavor sources excluded — too low-level for era narrative synthesis.
   // Structural and contextual sources provide the arc and cultural identity.
-  const byYear = (a: (typeof record.prepBriefs)[0], b: (typeof record.prepBriefs)[0]) =>
-    (a.eraYear || 0) - (b.eraYear || 0);
-  const structural = record.prepBriefs.filter((b) => b.weight === "structural").sort(byYear);
-  const contextual = record.prepBriefs.filter((b) => b.weight === "contextual").sort(byYear);
-  const unclassified = record.prepBriefs.filter((b) => !b.weight).sort(byYear);
-
-  const formatBrief = (brief: (typeof record.prepBriefs)[0]) => {
-    const yearLabel = brief.eraYear ? ` [Year ${brief.eraYear}]` : "";
-    return `--- ${brief.chronicleTitle}${yearLabel} (${brief.chronicleId}) ---\n${brief.prep}`;
-  };
+  const structural = record.prepBriefs.filter((b) => b.weight === "structural").sort(sortByEraYear);
+  const contextual = record.prepBriefs.filter((b) => b.weight === "contextual").sort(sortByEraYear);
+  const unclassified = record.prepBriefs.filter((b) => !b.weight).sort(sortByEraYear);
 
   // Structural sources first — these define the era's trajectory
   if (structural.length > 0) {
     sections.push(
-      `=== STRUCTURAL SOURCES (${structural.length} — define this era's arc) ===\n${structural.map(formatBrief).join("\n\n")}`
+      `=== STRUCTURAL SOURCES (${structural.length} — define this era's arc) ===\n${structural.map(formatPrepBrief).join("\n\n")}`
     );
   }
 
   // Contextual sources — cultural identity and framing
   if (contextual.length > 0) {
     sections.push(
-      `=== CONTEXTUAL SOURCES (${contextual.length} — cultural identity and framing, not events) ===\n${contextual.map(formatBrief).join("\n\n")}`
+      `=== CONTEXTUAL SOURCES (${contextual.length} — cultural identity and framing, not events) ===\n${contextual.map(formatPrepBrief).join("\n\n")}`
     );
   }
 
   // Unclassified (legacy data without weight)
   if (unclassified.length > 0) {
     sections.push(
-      `=== UNCLASSIFIED SOURCES (${unclassified.length} — treat as structural unless content suggests otherwise) ===\n${unclassified.map(formatBrief).join("\n\n")}`
+      `=== UNCLASSIFIED SOURCES (${unclassified.length} — treat as structural unless content suggests otherwise) ===\n${unclassified.map(formatPrepBrief).join("\n\n")}`
     );
   }
 
@@ -474,7 +487,7 @@ function buildGenerateUserPrompt(record: EraNarrativeRecord): string {
   const sections: string[] = [];
 
   // Era identity
-  const sortedBriefs = [...record.prepBriefs].sort((a, b) => (a.eraYear || 0) - (b.eraYear || 0));
+  const sortedBriefs = [...record.prepBriefs].sort(sortByEraYear);
   const eraStart = sortedBriefs.length > 0 ? sortedBriefs[0].eraYear || 0 : 0;
   const eraEnd = sortedBriefs.length > 0 ? sortedBriefs[sortedBriefs.length - 1].eraYear || 0 : 0;
 
@@ -523,15 +536,7 @@ Year range: ${eraStart}–${eraEnd}`);
   }
 
   // Cultural arcs with register labels and material
-  const threadLines = synthesis.threads.map((t) => {
-    const actors = t.culturalActors?.length ? ` [${t.culturalActors.join(", ")}]` : "";
-    const reg = t.register ? ` | Register: ${t.register}` : "";
-    let block = `**${t.name}**${actors}: ${t.arc}${reg}`;
-    if (t.material) {
-      block += `\n\nMaterial: ${t.material}`;
-    }
-    return block;
-  });
+  const threadLines = synthesis.threads.map(formatThreadLine);
   sections.push(`=== CONTEXT: CULTURAL ARCS ===\n${threadLines.join("\n\n")}`);
 
   // Strategic dynamics — inter-cultural interactions
@@ -1216,6 +1221,68 @@ Return a JSON object:
 ${chunksDisplay}`;
 }
 
+const ERA_IMAGE_VALID_SIZES: EraNarrativeImageSize[] = ["small", "medium", "large", "full-width"];
+
+function parseOneEraNarrativeImageRef(
+  ref: Record<string, unknown>,
+  index: number,
+  availableMap: Map<string, AvailableChronicleImage>
+): EraNarrativeImageRef {
+  const refId = `enimgref_${Date.now()}_${index}`;
+  const anchorText = typeof ref.anchorText === "string" ? ref.anchorText : "";
+  const rawSize = typeof ref.size === "string" ? ref.size : "medium";
+  const size: EraNarrativeImageSize = ERA_IMAGE_VALID_SIZES.includes(rawSize as EraNarrativeImageSize)
+    ? (rawSize as EraNarrativeImageSize)
+    : "medium";
+  const caption = typeof ref.caption === "string" ? ref.caption : undefined;
+
+  if (ref.type === "chronicle_ref") {
+    const chronicleId = typeof ref.chronicleId === "string" ? ref.chronicleId : "";
+    const chronicleTitle = typeof ref.chronicleTitle === "string" ? ref.chronicleTitle : "";
+    const imageSource =
+      ref.imageSource === "image_ref" ? ("image_ref" as const) : ("cover" as const);
+    const imageRefId = typeof ref.imageRefId === "string" ? ref.imageRefId : undefined;
+    const imageId = typeof ref.imageId === "string" ? ref.imageId : "";
+
+    const key = `${chronicleId}:${imageSource}:${imageRefId || ""}`;
+    const available = availableMap.get(key);
+    const resolvedImageId = available?.imageId || imageId || "";
+
+    if (!resolvedImageId) {
+      throw new Error(`chronicle_ref at index ${index} has no valid imageId`);
+    }
+
+    return {
+      refId,
+      type: "chronicle_ref",
+      chronicleId,
+      chronicleTitle: chronicleTitle || available?.chronicleTitle || "",
+      imageSource,
+      imageRefId,
+      imageId: resolvedImageId,
+      anchorText,
+      size,
+      caption,
+    } as EraNarrativeChronicleImageRef;
+  } else if (ref.type === "prompt_request") {
+    const sceneDescription = typeof ref.sceneDescription === "string" ? ref.sceneDescription : "";
+    if (!sceneDescription) {
+      throw new Error(`prompt_request at index ${index} missing sceneDescription`);
+    }
+    return {
+      refId,
+      type: "prompt_request",
+      sceneDescription,
+      anchorText,
+      size,
+      caption,
+      status: "pending",
+    } as EraNarrativePromptRequestRef;
+  } else {
+    throw new Error(`Unknown image ref type at index ${index}: ${ref.type}`);
+  }
+}
+
 function parseEraNarrativeImageRefsResponse(
   text: string,
   availableImages: AvailableChronicleImage[]
@@ -1237,65 +1304,9 @@ function parseEraNarrativeImageRefsResponse(
     ])
   );
 
-  const validSizes: EraNarrativeImageSize[] = ["small", "medium", "large", "full-width"];
-
-  return rawRefs.map((ref: Record<string, unknown>, index: number) => {
-    const refId = `enimgref_${Date.now()}_${index}`;
-    const anchorText = typeof ref.anchorText === "string" ? ref.anchorText : "";
-    const rawSize = typeof ref.size === "string" ? ref.size : "medium";
-    const size: EraNarrativeImageSize = validSizes.includes(rawSize as EraNarrativeImageSize)
-      ? (rawSize as EraNarrativeImageSize)
-      : "medium";
-    const caption = typeof ref.caption === "string" ? ref.caption : undefined;
-
-    if (ref.type === "chronicle_ref") {
-      const chronicleId = typeof ref.chronicleId === "string" ? ref.chronicleId : "";
-      const chronicleTitle = typeof ref.chronicleTitle === "string" ? ref.chronicleTitle : "";
-      const imageSource =
-        ref.imageSource === "image_ref" ? ("image_ref" as const) : ("cover" as const);
-      const imageRefId = typeof ref.imageRefId === "string" ? ref.imageRefId : undefined;
-      const imageId = typeof ref.imageId === "string" ? ref.imageId : "";
-
-      const key = `${chronicleId}:${imageSource}:${imageRefId || ""}`;
-      const available = availableMap.get(key);
-      // Prefer the lookup — the LLM often returns the composite key (chronicleId:imageRefId)
-      // from the prompt listing instead of the actual S3 image ID
-      const resolvedImageId = available?.imageId || imageId || "";
-
-      if (!resolvedImageId) {
-        throw new Error(`chronicle_ref at index ${index} has no valid imageId`);
-      }
-
-      return {
-        refId,
-        type: "chronicle_ref",
-        chronicleId,
-        chronicleTitle: chronicleTitle || available?.chronicleTitle || "",
-        imageSource,
-        imageRefId,
-        imageId: resolvedImageId,
-        anchorText,
-        size,
-        caption,
-      } as EraNarrativeChronicleImageRef;
-    } else if (ref.type === "prompt_request") {
-      const sceneDescription = typeof ref.sceneDescription === "string" ? ref.sceneDescription : "";
-      if (!sceneDescription) {
-        throw new Error(`prompt_request at index ${index} missing sceneDescription`);
-      }
-      return {
-        refId,
-        type: "prompt_request",
-        sceneDescription,
-        anchorText,
-        size,
-        caption,
-        status: "pending",
-      } as EraNarrativePromptRequestRef;
-    } else {
-      throw new Error(`Unknown image ref type at index ${index}: ${ref.type}`);
-    }
-  });
+  return rawRefs.map((ref: Record<string, unknown>, index: number) =>
+    parseOneEraNarrativeImageRef(ref, index, availableMap)
+  );
 }
 
 function resolveAnchorPhrase(

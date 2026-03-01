@@ -5,6 +5,9 @@
 
 .ot-dropdown-fixed {
   position: fixed;
+  top: var(--ot-dd-top);
+  left: var(--ot-dd-left);
+  width: var(--ot-dd-width);
   max-height: 300px;
   overflow-y: auto;
   z-index: 10000;

@@ -213,7 +213,7 @@ function MatchRow({
           <button
             key={action}
             onClick={() => onChangeAction(action)}
-            className={`erm-action-btn ${decision.action === action ? `erm-action-btn-${action}` : "erm-action-btn-inactive"}`}
+            className={`erm-action-btn ${decision.action === action ? "erm-action-btn-" + action : "erm-action-btn-inactive"}`}
           >
             {action}
           </button>

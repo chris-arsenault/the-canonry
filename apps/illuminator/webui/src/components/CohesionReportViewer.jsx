@@ -48,6 +48,11 @@ function ScoreGauge({
     if (score >= 60) return "#f59e0b";
     return "#ef4444";
   };
+  let scoreClass = "crv-gauge-score";
+  if (score >= 90) scoreClass += " crv-gauge-score-excellent";
+  else if (score >= 75) scoreClass += " crv-gauge-score-good";
+  else if (score >= 60) scoreClass += " crv-gauge-score-acceptable";
+  else scoreClass += " crv-gauge-score-needs-revision";
   return <div className="crv-gauge">
       <svg width="120" height="120" viewBox="0 0 120 120">
         {/* Background circle */}
@@ -57,7 +62,7 @@ function ScoreGauge({
       </svg>
       <div className="crv-gauge-label">
         {}
-        <div className={score >= 90 ? "crv-gauge-score crv-gauge-score-excellent" : score >= 75 ? "crv-gauge-score crv-gauge-score-good" : score >= 60 ? "crv-gauge-score crv-gauge-score-acceptable" : "crv-gauge-score crv-gauge-score-needs-revision"}>
+        <div className={scoreClass}>
           {score}
         </div>
         <div className="crv-gauge-max">/ 100</div>
@@ -187,7 +192,7 @@ export default function CohesionReportViewer({
               {assessment?.minorIssueCount || 0} minor issues
             </div>
             <div className="crv-edit-version">Edit version: {editVersion}</div>
-            {assessment?.failedChecks.length > 0 && <div className="crv-failed-checks">Failed: {assessment.failedChecks.join(", ")}</div>}
+            {assessment?.failedChecks.length > 0 && <div className="crv-missed-checks">Failed: {assessment.failedChecks.join(", ")}</div>}
           </div>
         </div>
 

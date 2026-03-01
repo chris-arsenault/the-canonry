@@ -181,8 +181,8 @@
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
-/* Errors */
-.tps-error-section {
+/* Issues */
+.tps-issues-section {
   margin-top: 16px;
   padding: 12px;
   border-radius: 6px;
@@ -190,7 +190,7 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.tps-error-content {
+.tps-issues-content {
   font-size: 12px;
   color: #ef4444;
 }

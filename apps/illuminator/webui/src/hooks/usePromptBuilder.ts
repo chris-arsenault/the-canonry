@@ -19,8 +19,6 @@ import type {
   EntityGuidance,
   CultureIdentities,
   WorldContext,
-  EntityContext,
-  StyleInfo,
 } from "../lib/promptBuilders";
 import { resolveStyleSelection } from "../components/StyleSelector";
 import { prominenceLabelFromScale, getEntityEvents, getEntityEffects } from "@canonry/world-schema";
@@ -34,7 +32,6 @@ import type {
 import type { PersistedEntity } from "../lib/db/illuminatorDb";
 import type { EntityNavItem } from "../lib/db/entityNav";
 import type { EraTemporalEntry } from "../lib/db/indexTypes";
-import type { ImageGenSettings } from "./useImageGenSettings";
 
 // --- Types ---
 

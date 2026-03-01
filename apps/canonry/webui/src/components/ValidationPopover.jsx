@@ -22,18 +22,18 @@ function ErrorCard({ error, isWarning, onRemoveProperty }) {
     : null;
 
   return (
-    <div className="vp-error-card">
+    <div className="vp-issue-card">
       <div className={headerClassName}>
-        <div className="vp-error-path">{error.path}</div>
+        <div className="vp-issue-path">{error.path}</div>
         <div className="vp-error-message">{error.message}</div>
       </div>
-      <div className="vp-error-body">
-        <div className="vp-error-row">
+      <div className="vp-issue-body">
+        <div className="vp-issue-row">
           <span className="vp-error-label">Expected:</span>
           <code className="vp-error-value">{error.expected}</code>
         </div>
         {error.suggestion && (
-          <div className="vp-error-row">
+          <div className="vp-issue-row">
             <span className="vp-error-label">Fix:</span>
             <span>{error.suggestion}</span>
           </div>
@@ -126,7 +126,7 @@ export default function ValidationPopover({
                 <span>All configuration files are valid</span>
               </div>
             ) : (
-              <div className="vp-error-list">
+              <div className="vp-issue-list">
                 {displayItems.map((item, i) => (
                   <ErrorCard
                     key={i}

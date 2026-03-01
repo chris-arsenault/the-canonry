@@ -6,7 +6,7 @@
 import type { MutableRefObject } from "react";
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useHistorianEdition } from "./useHistorianEdition";
-import type { HistorianEditionConfig, UseHistorianEditionReturn } from "./useHistorianEdition";
+import type { UseHistorianEditionReturn } from "./useHistorianEdition";
 import { useHistorianReview } from "./useHistorianReview";
 import type { HistorianReviewConfig, UseHistorianReviewReturn } from "./useHistorianReview";
 import { useBulkHistorian } from "./useBulkHistorian";
@@ -259,16 +259,16 @@ function buildChronicleReviewPayload(
   historianConfig: HistorianConfig
 ): HistorianReviewConfig {
   return {
-    projectId: projectId as string,
-    simulationRunId: simulationRunId as string,
+    projectId: projectId,
+    simulationRunId: simulationRunId,
     targetType: "chronicle" as const,
     targetId: chronicleId,
     targetName: chronicle.title || "Untitled Chronicle",
-    sourceText: chronicle.finalContent!,
+    sourceText: chronicle.finalContent,
     contextJson,
     previousNotesJson,
     historianConfig,
-    tone: (tone || chronicle.assignedTone || "weary") as HistorianTone,
+    tone: tone || chronicle.assignedTone || "weary",
   };
 }
 
@@ -314,7 +314,7 @@ async function runChronicleHistorianReview({
   );
   const previousNotes = await collectPreviousNotes({ relatedEntityIds: castEntityIds });
 
-  startHistorianReview(
+  void startHistorianReview(
     buildChronicleReviewPayload(
       chronicle,
       chronicleId,
@@ -359,7 +359,7 @@ function runEditHistorianNoteText(historianRun: HistorianRun | null, noteId: str
   const updatedNotes = historianRun.notes.map((n) =>
     n.noteId === noteId ? { ...n, text: newText } : n
   );
-  updateHistorianRunRecord(historianRun.runId, { notes: updatedNotes });
+  void updateHistorianRunRecord(historianRun.runId, { notes: updatedNotes });
 }
 
 async function applyReviewNotesForEntity(entityId: string, notes: HistorianNote[]): Promise<void> {
@@ -524,7 +524,10 @@ export function useHistorianCallbacks({
     cancelReview: cancelHistorianReview,
   } = useHistorianReview();
 
-  registerHistorianStarters({ startHistorianEdition, startHistorianReview });
+  registerHistorianStarters({
+    startHistorianEdition: (config) => { void startHistorianEdition(config); },
+    startHistorianReview: (config) => { void startHistorianReview(config); },
+  });
   useEffect(() => {
     useIlluminatorConfigStore.getState().setConfig({ isHistorianEditionActive, isHistorianActive });
   }, [isHistorianEditionActive, isHistorianActive]);
