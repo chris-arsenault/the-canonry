@@ -59,9 +59,8 @@ interface SlotRecord {
   projectId: string;
   slotIndex: number;
   simulationRunId: string;
-  finalTick: number | null;
-  finalEraId: string | null;
-  label: null;
+  finalTick?: number;
+  finalEraId?: string;
   isTemporary: boolean;
   updatedAt: number;
 }
@@ -100,11 +99,14 @@ function buildPersistedNarrativeEvents(worldData: WorldOutput, simulationRunId: 
 function buildSlotRecord(
   projectId: string, slotIndex: number, simulationRunId: string, worldData: WorldOutput,
 ): SlotRecord {
+  const tick = worldData.metadata?.tick;
+  const era = worldData.metadata?.era;
   return {
-    projectId, slotIndex, simulationRunId,
-    finalTick: Number.isFinite(worldData.metadata?.tick) ? worldData.metadata.tick : null,
-    finalEraId: worldData.metadata?.era ?? null,
-    label: null,
+    projectId,
+    slotIndex,
+    simulationRunId,
+    ...(Number.isFinite(tick) ? { finalTick: tick as number } : {}),
+    ...(era ? { finalEraId: era } : {}),
     isTemporary: slotIndex === 0,
     updatedAt: Date.now(),
   };

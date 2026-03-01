@@ -20,10 +20,10 @@ const STATIC_PAGES_STORE = 'staticPages';
 export interface SimulationSlotRecord {
   projectId: string;
   slotIndex: number;
-  simulationRunId: string | null;    // always present, null = no run assigned yet
+  simulationRunId: string;           // always present — a saved slot always has a run
   finalTick?: number;                // absent until simulation completes
   finalEraId?: string;               // absent until simulation completes
-  label: string | null;              // always present, null = no label set
+  label?: string;                    // absent = no label set
   isTemporary?: boolean;             // absent = not temporary
   updatedAt: number;
 }

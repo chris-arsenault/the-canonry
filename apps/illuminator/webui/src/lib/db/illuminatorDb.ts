@@ -57,11 +57,11 @@ export interface PersistedNarrativeEvent extends NarrativeEvent {
 export interface SimulationSlotRecord {
   projectId: string;
   slotIndex: number;
-  simulationRunId?: string | null;
-  finalTick?: number | null;
-  finalEraId?: string | null;
-  label?: string | null;
-  isTemporary?: boolean | null;
+  simulationRunId: string;      // required — a saved slot always has a run
+  finalTick?: number;           // absent until simulation completes
+  finalEraId?: string;          // absent until simulation completes
+  label?: string;               // absent = no label
+  isTemporary?: boolean;        // absent = not temporary
   updatedAt: number;
 }
 
