@@ -44,7 +44,7 @@ interface NumberFieldProps {
   onParamChange: (field: keyof SimulationParams, value: number) => void;
 }
 
-function NumberField({ label, field, min, max, step, integer, title, value, fallback, onParamChange }: NumberFieldProps) {
+function NumberField({ label, field, min, max, step, integer, title, value, fallback, onParamChange }: Readonly<NumberFieldProps>) {
   const handleChange = useCallback(
     (v: number | null) => onParamChange(field, v ?? fallback),
     [field, fallback, onParamChange],
@@ -68,7 +68,7 @@ function NumberField({ label, field, min, max, step, integer, title, value, fall
   );
 }
 
-function NarrativeSection({ params, onParamChange }: ParameterFormProps) {
+function NarrativeSection({ params, onParamChange }: Readonly<ParameterFormProps>) {
   const handleToggle = useCallback(
     (checked: boolean) => onParamChange("narrativeEnabled", checked),
     [onParamChange],
@@ -122,7 +122,7 @@ function NarrativeSection({ params, onParamChange }: ParameterFormProps) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function ParameterForm({ params, onParamChange }: ParameterFormProps) {
+export default function ParameterForm({ params, onParamChange }: Readonly<ParameterFormProps>) {
   const handleNumberParamChange = useCallback(
     (field: keyof SimulationParams, value: number) => onParamChange(field, value),
     [onParamChange],
@@ -150,7 +150,7 @@ export default function ParameterForm({ params, onParamChange }: ParameterFormPr
           step={f.step}
           integer={f.integer}
           title={f.title}
-          value={params[f.field] as number}
+          value={params[f.field]}
           fallback={f.fallback}
           onParamChange={handleNumberParamChange}
         />

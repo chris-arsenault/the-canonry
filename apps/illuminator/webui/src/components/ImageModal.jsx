@@ -214,6 +214,8 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
       <div
         className={`imod-image-container ${hasSidebar ? "imod-image-container-sidebar-open" : "imod-image-container-sidebar-closed"}`}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        role="presentation"
       >
         {loading && (
           <div className="imod-loading">Loading image...</div>

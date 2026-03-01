@@ -25,7 +25,7 @@ interface EraTransitionSectionProps {
   eraTransition: NonNullable<NonNullable<SystemActionRecord["details"]>["eraTransition"]>;
 }
 
-function EraTransitionSection({ eraTransition }: EraTransitionSectionProps) {
+function EraTransitionSection({ eraTransition }: Readonly<EraTransitionSectionProps>) {
   return (
     <div className="lw-trace-view-template-era-transition">
       <div className="lw-trace-view-detail-sub-header">Era Transition</div>
@@ -72,12 +72,12 @@ function EraTransitionSection({ eraTransition }: EraTransitionSectionProps) {
           <div className="lw-trace-view-entity-exit-conditions">
             <div className="lw-trace-view-entity-section-label">Exit Conditions Met</div>
             <div className="lw-trace-view-entity-tags">
-              {eraTransition.exitConditionsMet!.map((cond, i) => (
+              {eraTransition.exitConditionsMet.map((cond, i) => (
                 <span key={i} className="lw-trace-view-tag">
                   {cond.type}
                   {cond.pressureId && `: ${cond.pressureId} ${cond.operator} ${cond.threshold}`}
                   {cond.entityKind && `: ${cond.entityKind} ${cond.operator} ${cond.threshold}`}
-                  {cond.minTicks && `: ${cond.currentAge}/${cond.minTicks} ticks`}
+                  {Boolean(cond.minTicks) && `: ${cond.currentAge}/${cond.minTicks} ticks`}
                 </span>
               ))}
             </div>
@@ -92,7 +92,7 @@ interface ActivitySummarySectionProps {
   action: SystemActionRecord;
 }
 
-function ActivitySummarySection({ action }: ActivitySummarySectionProps) {
+function ActivitySummarySection({ action }: Readonly<ActivitySummarySectionProps>) {
   return (
     <div className="lw-trace-view-template-activity-summary">
       <div className="lw-trace-view-detail-sub-header">Activity Summary</div>
@@ -123,7 +123,7 @@ export default function SystemActionDetailPanel({
   isEraTransition,
   isLocked,
   onClear,
-}: SystemActionDetailPanelProps) {
+}: Readonly<SystemActionDetailPanelProps>) {
   if (!systemAction) {
     return (
       <div className="lw-trace-view-detail">
@@ -177,7 +177,7 @@ export default function SystemActionDetailPanel({
           {Object.keys(action.pressureChanges ?? {}).length > 0 && (
             <div className="lw-trace-view-template-pressures">
               <div className="lw-trace-view-detail-sub-header">Pressure Changes</div>
-              {Object.entries(action.pressureChanges!).map(([pressureId, delta]) => (
+              {Object.entries(action.pressureChanges).map(([pressureId, delta]) => (
                 <div key={pressureId} className="lw-trace-view-detail-row">
                   <span className="lw-trace-view-detail-label">{pressureId}</span>
                   <span className={delta >= 0 ? "positive" : "negative"}>

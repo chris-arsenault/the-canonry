@@ -231,7 +231,7 @@ function groupMatchesAll(
 function isDefaultGroup(group: StrategyGroup): boolean {
   if (!group.conditions) return true;
   return Object.keys(group.conditions).every((k) => {
-    const val = group.conditions![k as keyof StrategyGroupConditions];
+    const val = group.conditions[k as keyof StrategyGroupConditions];
     return !val || (Array.isArray(val) && val.length === 0);
   });
 }
@@ -616,7 +616,6 @@ const AnchorDetails = React.memo(function AnchorDetails({
   setAnchor,
 }: Readonly<AnchorDetailsProps>) {
   const anchor = placement.anchor;
-  if (!anchor) return null;
 
   const entityRefOptions = useMemo(
     () =>
@@ -639,12 +638,14 @@ const AnchorDetails = React.memo(function AnchorDetails({
     [sameKindRefs],
   );
 
-  const handleEntityRef = useCallback((v: string) => { if (v) setAnchor({ ...anchor, ref: v }); }, [anchor, setAnchor]);
-  const handleStick = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAnchor({ ...anchor, stickToRegion: e.target.checked }), [anchor, setAnchor]);
-  const handleCultureSrc = useCallback((v: string) => { if (v) setAnchor({ ...anchor, id: v }); }, [anchor, setAnchor]);
-  const handleCentroidRefs = useCallback((v: string[]) => { if (v.length > 0) setAnchor({ ...anchor, refs: v }); }, [anchor, setAnchor]);
-  const handleJitter = useCallback((v: number | string) => setAnchor({ ...anchor, jitter: v === "" ? undefined : Number(v) }), [anchor, setAnchor]);
-  const handlePeriphery = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAnchor({ ...anchor, preferPeriphery: e.target.checked }), [anchor, setAnchor]);
+  const handleEntityRef = useCallback((v: string) => { if (anchor && v) setAnchor({ ...anchor, ref: v }); }, [anchor, setAnchor]);
+  const handleStick = useCallback((e: React.ChangeEvent<HTMLInputElement>) => { if (anchor) setAnchor({ ...anchor, stickToRegion: e.target.checked }); }, [anchor, setAnchor]);
+  const handleCultureSrc = useCallback((v: string) => { if (anchor && v) setAnchor({ ...anchor, id: v }); }, [anchor, setAnchor]);
+  const handleCentroidRefs = useCallback((v: string[]) => { if (anchor && v.length > 0) setAnchor({ ...anchor, refs: v }); }, [anchor, setAnchor]);
+  const handleJitter = useCallback((v: number | string) => { if (anchor) setAnchor({ ...anchor, jitter: v === "" ? undefined : Number(v) }); }, [anchor, setAnchor]);
+  const handlePeriphery = useCallback((e: React.ChangeEvent<HTMLInputElement>) => { if (anchor) setAnchor({ ...anchor, preferPeriphery: e.target.checked }); }, [anchor, setAnchor]);
+
+  if (!anchor) return null;
 
   if (anchor.type === "entity") {
     return (
@@ -1227,7 +1228,7 @@ function VariantConditionEditor({
   );
 
   const handleChance = useCallback(
-    (v: number | string) => onChange({ ...condition!, chance: Number(v) || 0.5 }),
+    (v: number | string) => onChange({ ...condition, chance: Number(v) || 0.5 }),
     [condition, onChange],
   );
 
@@ -1353,7 +1354,7 @@ function VariantEffectsEditor({
   const updateEffects = useCallback(
     (key: string, value: unknown) => {
       const next = { ...currentEffects } as Record<string, unknown>;
-      if (value === undefined || (typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value as object).length === 0) || (Array.isArray(value) && value.length === 0)) {
+      if (value === undefined || (typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).length === 0) || (Array.isArray(value) && value.length === 0)) {
         delete next[key];
       } else {
         next[key] = value;
@@ -1457,7 +1458,7 @@ function VariantEffectsEditor({
         <div className="nested-title">Pressure Modifications</div>
         <div className="form-help-text mb-md">Modify pressure values when this variant applies.</div>
         {(currentEffects.stateUpdates ?? []).map((update, idx) => (
-          <PressureModRow key={idx} update={update} index={idx} stateUpdates={currentEffects.stateUpdates!} pressureOptions={pressureOptions} updateEffects={updateEffects} />
+          <PressureModRow key={idx} update={update} index={idx} stateUpdates={currentEffects.stateUpdates} pressureOptions={pressureOptions} updateEffects={updateEffects} />
         ))}
         <button className="btn-add" onClick={handleAddPressure}>+ Add Pressure Modification</button>
       </div>

@@ -521,7 +521,7 @@ export class WorldEngine {
       if (this.growthSystem) {
         throw new Error('Multiple growth systems configured. Only one growth system is supported.');
       }
-      this.growthSystem = createGrowthSystem((sys as DeclarativeGrowthSystem).config, growthDependencies);
+      this.growthSystem = createGrowthSystem((sys).config, growthDependencies);
       return;
     }
 
@@ -1507,12 +1507,10 @@ export class WorldEngine {
 
   private emitSystemHealthReport(avgEntityDeviation: number): void {
     const populationHealth = 1 - avgEntityDeviation;
-    this.emitter.systemHealth({
-      populationHealth,
-      status: populationHealth > 0.8 ? 'stable'
-        : populationHealth > 0.6 ? 'functional'
-        : 'needs_attention'
-    });
+    let status: string = 'needs_attention';
+    if (populationHealth > 0.8) status = 'stable';
+    else if (populationHealth > 0.6) status = 'functional';
+    this.emitter.systemHealth({ populationHealth, status });
   }
 
   /**
@@ -2076,7 +2074,7 @@ export class WorldEngine {
 
     if (hasAction) {
       const narration = narrationsByGroup?.[mod.narrativeGroupId || ''];
-      this.mutationTracker.enterContext(actionAttribution!.source, actionAttribution!.sourceId, actionAttribution!.success, narration);
+      this.mutationTracker.enterContext(actionAttribution.source, actionAttribution.sourceId, actionAttribution.success, narration);
     }
 
     const hasNarrativeGroup = !!(mod.narrativeGroupId && !hasAction);

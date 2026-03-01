@@ -80,7 +80,7 @@ export async function updateRevisionRun(
   if (updates.batches !== undefined) run.batches = updates.batches;
   if (updates.currentBatchIndex !== undefined) run.currentBatchIndex = updates.currentBatchIndex;
   if (updates.patchDecisions !== undefined) run.patchDecisions = updates.patchDecisions;
-  if (updates.error !== undefined) (run as any).error = updates.error;
+  if (updates.error !== undefined) (run as Record<string, unknown>).error = updates.error;
   if (updates.totalInputTokens !== undefined) run.totalInputTokens = updates.totalInputTokens;
   if (updates.totalOutputTokens !== undefined) run.totalOutputTokens = updates.totalOutputTokens;
   if (updates.totalActualCost !== undefined) run.totalActualCost = updates.totalActualCost;

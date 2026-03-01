@@ -100,7 +100,7 @@ function sortHistoryRows(rows: HistoryRow[], col: string, desc: boolean): Histor
 export function HistorySection({
   entities,
   expanded,
-}: HistorySectionProps): React.ReactElement | number {
+}: Readonly<HistorySectionProps>): React.ReactElement {
   const [sort, onSort] = useColumnSort("divergence", true);
   const [kindFilter, setKindFilter] = useState("all");
   const [cultureFilter, setCultureFilter] = useState("all");
@@ -123,7 +123,7 @@ export function HistorySection({
     [rows],
   );
 
-  if (!expanded) return underutilCount;
+  if (!expanded) return <>{underutilCount}</>;
 
   return (
     <div>

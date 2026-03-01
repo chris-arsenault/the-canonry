@@ -171,6 +171,25 @@ const defaultLinkStyle: React.CSSProperties = {
   textDecoration: "none",
 };
 
+/** Build a clickable link element for an entity match. */
+function buildEntityLinkElement(
+  entityId: string,
+  matchText: string,
+  matchIndex: number,
+  linkStyle: React.CSSProperties,
+  onNavigate: (entityId: string) => void,
+  onHoverEnter: ((id: string, e: React.MouseEvent) => void) | undefined,
+  onHoverLeave: (() => void) | undefined
+): React.ReactElement {
+  return React.createElement("span", {
+    key: `${entityId}-${matchIndex}`,
+    style: linkStyle,
+    onClick: (e: React.MouseEvent) => { e.stopPropagation(); onNavigate(entityId); },
+    onMouseEnter: onHoverEnter ? (e: React.MouseEvent) => onHoverEnter(entityId, e) : undefined,
+    onMouseLeave: onHoverLeave,
+  }, matchText);
+}
+
 /** Process one React node (string or non-string) for a single entity match. */
 function replaceEntityInPart(
   part: React.ReactNode,
@@ -194,15 +213,7 @@ function replaceEntityInPart(
 
   while ((match = regex.exec(part)) !== null) {
     if (match.index > lastIndex) segments.push(part.slice(lastIndex, match.index));
-    segments.push(
-      React.createElement("span", {
-        key: `${entityId}-${match.index}`,
-        style: linkStyle,
-        onClick: (e: React.MouseEvent) => { e.stopPropagation(); onNavigate(entityId); },
-        onMouseEnter: onHoverEnter ? (e: React.MouseEvent) => onHoverEnter(entityId, e) : undefined,
-        onMouseLeave: onHoverLeave,
-      }, match[0])
-    );
+    segments.push(buildEntityLinkElement(entityId, match[0], match.index, linkStyle, onNavigate, onHoverEnter, onHoverLeave));
     lastIndex = regex.lastIndex;
     found = true;
     if (firstOccurrenceOnly) break;

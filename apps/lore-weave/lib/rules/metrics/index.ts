@@ -26,7 +26,6 @@ import {
   evaluateTotalEntities,
   evaluateConstant,
   evaluateConnectionCount,
-  evaluateSimpleCount,
 } from './countEvaluators';
 import {
   evaluateRatio,
@@ -37,12 +36,11 @@ import { evaluateSharedRelationship } from './evolutionEvaluators';
 import {
   evaluateProminenceMultiplier,
   evaluateNeighborProminence,
-  getProminenceMultiplierValue,
 } from './prominenceEvaluators';
 import { evaluateNeighborKindCount } from './neighborEvaluators';
 import { evaluateComponentSize } from './topologyEvaluators';
 import { evaluateDecayRate, evaluateFalloff } from './decayEvaluators';
-import { describeMetric } from './describe';
+
 
 // Re-export types
 export interface MetricGraph {

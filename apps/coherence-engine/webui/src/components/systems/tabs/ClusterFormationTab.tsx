@@ -58,7 +58,7 @@ interface ClusteringSizeSectionProps {
   onUpdateClustering: (field: string, value: unknown) => void;
 }
 
-function ClusteringSizeSection({ clustering, onUpdateClustering }: ClusteringSizeSectionProps) {
+function ClusteringSizeSection({ clustering, onUpdateClustering }: Readonly<ClusteringSizeSectionProps>) {
   const handleMinSize = useCallback(
     (v: number | undefined) => onUpdateClustering("minSize", v),
     [onUpdateClustering],
@@ -118,7 +118,7 @@ interface CriterionRowProps {
   onRemove: (index: number) => void;
 }
 
-function CriterionRow({ crit, index, relationshipKindOptions, onUpdate, onRemove }: CriterionRowProps) {
+function CriterionRow({ crit, index, relationshipKindOptions, onUpdate, onRemove }: Readonly<CriterionRowProps>) {
   const handleTypeChange = useCallback(
     (v: string) => onUpdate(index, { ...crit, type: v }),
     [onUpdate, index, crit],
@@ -177,7 +177,7 @@ interface MetaEntitySectionProps {
   onUpdateMetaEntity: (field: string, value: unknown) => void;
 }
 
-function MetaEntitySection({ metaEntity, entityKindOptions, onUpdateMetaEntity }: MetaEntitySectionProps) {
+function MetaEntitySection({ metaEntity, entityKindOptions, onUpdateMetaEntity }: Readonly<MetaEntitySectionProps>) {
   const handleKindChange = useCallback(
     (v: string) => onUpdateMetaEntity("kind", v),
     [onUpdateMetaEntity],
@@ -227,7 +227,7 @@ function MetaEntitySection({ metaEntity, entityKindOptions, onUpdateMetaEntity }
   );
 }
 
-export function ClusterFormationTab({ system, onChange, schema }: ClusterFormationTabProps) {
+export function ClusterFormationTab({ system, onChange, schema }: Readonly<ClusterFormationTabProps>) {
   const config = system.config;
 
   const entityKindOptions = useMemo(

@@ -36,11 +36,11 @@ export function ChipSelect({
 }: ChipSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const containerRef = useRef(null);
-  const inputRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsOpen(false);
       }
@@ -62,17 +62,17 @@ export function ChipSelect({
     );
   }, [availableOptions, search]);
 
-  const handleSelect = (optValue) => {
+  const handleSelect = (optValue: string) => {
     onChange([...value, optValue]);
     setSearch('');
     inputRef.current?.focus();
   };
 
-  const handleRemove = (optValue) => {
+  const handleRemove = (optValue: string) => {
     onChange(value.filter(v => v !== optValue));
   };
 
-  const getLabel = (val) => {
+  const getLabel = (val: string) => {
     const opt = options.find(o => o.value === val);
     return opt?.label || val;
   };

@@ -75,7 +75,7 @@ export default function NarrativeTimeline({
   // Use provided extent or compute from events as fallback
   const extent = useMemo(() => {
     if (extentProp) return extentProp;
-    return computeTimelineExtent(events.map((e) => ({ tick: e.tick }) as any));
+    return computeTimelineExtent(events as unknown as Parameters<typeof computeTimelineExtent>[0]);
   }, [extentProp, events]);
 
   // Scale functions
@@ -260,7 +260,7 @@ export default function NarrativeTimeline({
           return (
             <g
               key={event.id}
-              className="nt-cursor-pointer"
+              className="viz-cursor-pointer"
               onClick={(e) => handleEventClick(e, event.id)}
               onMouseEnter={(e) => handleEventHover(event, e)}
               onMouseLeave={() => handleEventHover(null)}
@@ -286,7 +286,7 @@ export default function NarrativeTimeline({
                   fontSize="12"
                   fill="white"
                   fontWeight="bold"
-                  className="nt-no-pointer"
+                  className="viz-no-pointer"
                 >
                   ✓
                 </text>
@@ -330,7 +330,7 @@ export default function NarrativeTimeline({
               return (
                 <g
                   key={marker.entityId}
-                  className="nt-cursor-pointer"
+                  className="viz-cursor-pointer"
                   onMouseEnter={(e) => {
                     if (svgRef.current) {
                       const rect = svgRef.current.getBoundingClientRect();

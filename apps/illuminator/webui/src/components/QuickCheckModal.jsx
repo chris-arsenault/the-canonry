@@ -66,69 +66,43 @@ function HighlightMatch({
 // EntitySearchPanel — inline search within a suspect card
 // ---------------------------------------------------------------------------
 
+function matchTextField(text, query, fieldLabel) {
+  if (!text) return null;
+  const idx = text.toLowerCase().indexOf(query);
+  return idx !== -1 ? { field: fieldLabel, value: text, matchIndex: idx } : null;
+}
+
+function matchStringList(items, query, fieldLabel) {
+  const matches = [];
+  for (const item of items) {
+    if (typeof item !== "string") continue;
+    const m = matchTextField(item, query, fieldLabel);
+    if (m) matches.push(m);
+  }
+  return matches;
+}
+
+function matchEntity(entity, q) {
+  const matches = [];
+  const nameMatch = matchTextField(entity.name, q, "name");
+  if (nameMatch) matches.push(nameMatch);
+  matches.push(...matchStringList(entity.enrichment?.text?.aliases || [], q, "alias"));
+  matches.push(...matchStringList(entity.enrichment?.slugAliases || [], q, "slug alias"));
+  const sumMatch = matchTextField(entity.summary, q, "summary");
+  if (sumMatch) matches.push(sumMatch);
+  const descMatch = matchTextField(entity.description, q, "description");
+  if (descMatch) matches.push(descMatch);
+  return matches;
+}
+
 function searchEntities(entities, query) {
   const q = query.trim().toLowerCase();
   if (!q || q.length < 2 || !entities) return [];
   const results = [];
   for (const entity of entities) {
-    const matches = [];
-    const nameIdx = entity.name.toLowerCase().indexOf(q);
-    if (nameIdx !== -1) {
-      matches.push({
-        field: "name",
-        value: entity.name,
-        matchIndex: nameIdx
-      });
-    }
-    const aliases = entity.enrichment?.text?.aliases || [];
-    for (const alias of aliases) {
-      if (typeof alias !== "string") continue;
-      const aliasIdx = alias.toLowerCase().indexOf(q);
-      if (aliasIdx !== -1) {
-        matches.push({
-          field: "alias",
-          value: alias,
-          matchIndex: aliasIdx
-        });
-      }
-    }
-    const slugAliases = entity.enrichment?.slugAliases || [];
-    for (const slug of slugAliases) {
-      if (typeof slug !== "string") continue;
-      const slugIdx = slug.toLowerCase().indexOf(q);
-      if (slugIdx !== -1) {
-        matches.push({
-          field: "slug alias",
-          value: slug,
-          matchIndex: slugIdx
-        });
-      }
-    }
-    if (entity.summary) {
-      const sumIdx = entity.summary.toLowerCase().indexOf(q);
-      if (sumIdx !== -1) {
-        matches.push({
-          field: "summary",
-          value: entity.summary,
-          matchIndex: sumIdx
-        });
-      }
-    }
-    if (entity.description) {
-      const descIdx = entity.description.toLowerCase().indexOf(q);
-      if (descIdx !== -1) {
-        matches.push({
-          field: "description",
-          value: entity.description,
-          matchIndex: descIdx
-        });
-      }
-    }
+    const matches = matchEntity(entity, q);
     if (matches.length > 0) {
-      results.push({
-        entity,
-        matches
-      });
+      results.push({ entity, matches });
     }
   }
   results.sort((a, b) => {

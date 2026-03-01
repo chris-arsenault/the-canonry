@@ -56,7 +56,7 @@ interface ConnectionSectionProps {
   onUpdateConfig: (field: string, value: unknown) => void;
 }
 
-function ConnectionSection({ config, relationshipKindOptions, onUpdateConfig }: ConnectionSectionProps) {
+function ConnectionSection({ config, relationshipKindOptions, onUpdateConfig }: Readonly<ConnectionSectionProps>) {
   const handleConnectionKindChange = useCallback(
     (v: string) => onUpdateConfig("connectionKind", v),
     [onUpdateConfig],
@@ -125,7 +125,7 @@ function DiffusionBehaviorSection({
   connectionFieldKey,
   tagRegistry,
   onUpdate,
-}: DiffusionBehaviorSectionProps) {
+}: Readonly<DiffusionBehaviorSectionProps>) {
   const tagsValue = useMemo(() => behavior?.tags || [], [behavior?.tags]);
 
   const handleTagsChange = useCallback(
@@ -183,7 +183,7 @@ function DiffusionBehaviorSection({
   );
 }
 
-export function TagDiffusionTab({ system, onChange, schema }: TagDiffusionTabProps) {
+export function TagDiffusionTab({ system, onChange, schema }: Readonly<TagDiffusionTabProps>) {
   const config = system.config;
   const tagRegistry = useMemo(() => schema?.tagRegistry || [], [schema?.tagRegistry]);
 

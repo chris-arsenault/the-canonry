@@ -132,7 +132,7 @@ async function processBatchResponse(
 
   let parsed: Array<{ id: number; ranking: string[]; rationales?: Record<string, string> }>;
   try {
-    parsed = JSON.parse(jsonText);
+    parsed = JSON.parse(jsonText) as typeof parsed;
     if (!Array.isArray(parsed)) throw new Error("Expected array");
   } catch {
     console.error("[BulkToneRanking] Failed to parse batch response:", responseText.slice(0, 500));
@@ -190,7 +190,7 @@ export const bulkToneRankingTask = {
 
     let entries: BulkChronicleEntry[];
     try {
-      entries = JSON.parse(task.prompt);
+      entries = JSON.parse(task.prompt) as BulkChronicleEntry[];
       if (!Array.isArray(entries) || entries.length === 0) {
         throw new Error("Expected non-empty array");
       }

@@ -75,6 +75,25 @@ export async function deleteEntity(entityId: string): Promise<void> {
 }
 
 /**
+ * Compute fields from worldEntity that are missing (undefined/null) in current.
+ */
+function computeMissingFieldUpdates(
+  worldEntity: WorldEntity,
+  current: PersistedEntity
+): Partial<PersistedEntity> {
+  const updates: Partial<PersistedEntity> = {};
+  for (const [key, value] of Object.entries(worldEntity)) {
+    if (key === "enrichment") continue;
+    if (value === undefined || value === null) continue;
+    const currentValue = (current as Record<string, unknown>)[key];
+    if (currentValue === undefined || currentValue === null) {
+      (updates as Record<string, unknown>)[key] = value;
+    }
+  }
+  return updates;
+}
+
+/**
  * Patch entities from hard state without overwriting existing values.
  * - Inserts missing entities
  * - For existing entities, fills only undefined/null fields (keeps enrichment intact)
@@ -99,16 +118,7 @@ export async function patchEntitiesFromHardState(
         continue;
       }
 
-      const updates: Partial<PersistedEntity> = {};
-      for (const [key, value] of Object.entries(worldEntity)) {
-        if (key === "enrichment") continue;
-        if (value === undefined || value === null) continue;
-        const currentValue = (current as any)[key];
-        if (currentValue === undefined || currentValue === null) {
-          (updates as any)[key] = value;
-        }
-      }
-
+      const updates = computeMissingFieldUpdates(worldEntity, current);
       if (Object.keys(updates).length > 0) {
         await db.entities.update(current.id, updates);
         patched += 1;
@@ -254,6 +264,23 @@ function applyDescriptionHistoryReplacement(
   return true;
 }
 
+function applyPatchReplacements(
+  patch: EntityPatch,
+  entity: PersistedEntity,
+): Partial<PersistedEntity> | null {
+  let changed = false;
+  const updates: Partial<PersistedEntity> = {};
+  for (const [key, value] of Object.entries(patch.changes)) {
+    if (!key.startsWith("__replacements_")) continue;
+    const field = key.replace("__replacements_", "");
+    const replacements = JSON.parse(value) as FieldReplacement[];
+    if (applyFieldReplacement(field, replacements, entity, updates)) {
+      changed = true;
+    }
+  }
+  return changed ? updates : null;
+}
+
 export async function applyRename(
   targetEntityId: string | null,
   newName: string,
@@ -272,19 +299,8 @@ export async function applyRename(
       const entity = await db.entities.get(patch.entityId);
       if (!entity) continue;
 
-      let changed = false;
-      const updates: Partial<PersistedEntity> = {};
-
-      for (const [key, value] of Object.entries(patch.changes)) {
-        if (!key.startsWith("__replacements_")) continue;
-        const field = key.replace("__replacements_", "");
-        const replacements: FieldReplacement[] = JSON.parse(value);
-        if (applyFieldReplacement(field, replacements, entity, updates)) {
-          changed = true;
-        }
-      }
-
-      if (changed) {
+      const updates = applyPatchReplacements(patch, entity);
+      if (updates) {
         await db.entities.update(patch.entityId, updates);
         if (!updatedIds.includes(patch.entityId)) updatedIds.push(patch.entityId);
       }

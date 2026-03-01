@@ -364,15 +364,13 @@ function applySinkValues(
     const strength = getStrength(sink, config.sinks!.strengthTag, config.sinks!.defaultStrength);
     for (let dy = -sourceRadius; dy <= sourceRadius; dy++) {
       for (let dx = -sourceRadius; dx <= sourceRadius; dx++) {
+        const nx = gx + dx;
+        const ny = gy + dy;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist <= sourceRadius) {
+        if (dist <= sourceRadius && nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
           const falloff = computeFalloff(dist, strength, falloffType, sourceRadius, metricCtx);
-          const nx = gx + dx;
-          const ny = gy + dy;
-          if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
-            const idx = ny * GRID_SIZE + nx;
-            state.grid[idx] -= strength * falloff;
-          }
+          const idx = ny * GRID_SIZE + nx;
+          state.grid[idx] -= strength * falloff;
         }
       }
     }

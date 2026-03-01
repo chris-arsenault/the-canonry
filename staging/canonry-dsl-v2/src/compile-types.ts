@@ -2,14 +2,7 @@ import type {
   BlockNode,
   Diagnostic,
   Value,
-  ObjectValue,
-  ArrayValue,
-  IdentifierValue,
-  CallValue,
-  StatementNode,
-  AttributeNode,
-  AstFile,
-} from './types.js';
+} from './types';
 
 export interface SourceFile {
   path: string;

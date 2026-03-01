@@ -125,7 +125,7 @@ export async function applyEventPatches(
       console.log("[EventRepo] Sample event BEFORE patch", {
         id: sampleBefore.id,
         description: sampleBefore.description?.substring(0, 200),
-        action: (sampleBefore as any).action?.substring(0, 200),
+        action: sampleBefore.action?.substring(0, 200),
       });
     } else {
       console.warn("[EventRepo] First patch target NOT FOUND in Dexie events", {
@@ -143,7 +143,7 @@ export async function applyEventPatches(
       console.log("[EventRepo] Sample event AFTER patch", {
         id: sampleAfter.id,
         description: sampleAfter.description?.substring(0, 200),
-        action: (sampleAfter as any).action?.substring(0, 200),
+        action: sampleAfter.action?.substring(0, 200),
       });
     }
 
@@ -169,7 +169,7 @@ export async function applyEventPatches(
     console.log("[EventRepo] VERIFY after transaction", {
       id: verify?.id,
       description: verify?.description?.substring(0, 200),
-      action: (verify as any)?.action?.substring(0, 200),
+      action: verify?.action?.substring(0, 200),
     });
   }
 

@@ -12,12 +12,9 @@ import type {
   PressureCompareRule,
   RelationshipCountRule,
   RelationshipExistsRule,
-  StatusRule,
   GrowthPhasesCompleteRule,
   EraMatchRule,
   RandomChanceRule,
-  GraphPathRule,
-  LogicalRule,
 } from './applicabilityRuleTypes';
 
 // ---------------------------------------------------------------------------
@@ -100,7 +97,7 @@ function summarizeSimpleRule(rule: ApplicabilityRule): string {
     case 'tag_absent':
       return `missing tag "${rule.tag || '?'}"`;
     case 'status':
-      return (rule as StatusRule).not
+      return (rule).not
         ? `status != ${rule.status || '?'}`
         : `status = ${rule.status || '?'}`;
     case 'prominence':
@@ -112,14 +109,14 @@ function summarizeSimpleRule(rule: ApplicabilityRule): string {
     case 'creations_per_epoch':
       return `max ${rule.maxPerEpoch ?? '?'} per epoch`;
     case 'graph_path':
-      return `graph path (${(rule as GraphPathRule).assert?.check || 'exists'})`;
+      return `graph path (${(rule).assert?.check || 'exists'})`;
     case 'entity_exists':
       return `entity ${rule.entity || '?'} exists`;
     case 'entity_has_relationship':
       return `${rule.entity || '?'} has ${rule.relationshipKind || '?'} relationship`;
     case 'or':
     case 'and':
-      return `${(rule as LogicalRule).conditions?.length || 0} sub-rules`;
+      return `${(rule).conditions?.length || 0} sub-rules`;
     case 'always':
       return 'always';
     default:
@@ -130,7 +127,7 @@ function summarizeSimpleRule(rule: ApplicabilityRule): string {
 export function getRuleSummary(rule: ApplicabilityRule): string {
   const mapFn = SUMMARY_MAP[rule.type];
   if (mapFn) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- SummaryFn uses `never` for generic dispatch
+     
     return mapFn(rule as never);
   }
   return summarizeSimpleRule(rule);

@@ -12,7 +12,7 @@
 import { create } from "zustand";
 import type { ChronicleNavItem } from "./chronicleNav";
 import type { EraTemporalEntry } from "./indexTypes";
-import type { EraNarrativeStep, EraNarrativeRecord, EraNarrativeTone } from "../eraNarrativeTypes";
+import type { EraNarrativeStep, EraNarrativeRecord, EraNarrativeTone, EraNarrativePrepBrief } from "../eraNarrativeTypes";
 import type { EnrichmentType } from "../enrichmentTypes";
 import {
   createEraNarrative,
@@ -172,7 +172,7 @@ async function buildEraConfig(
   const store = useChronicleStore.getState();
   const eraChronicles = chronicleItems.filter((c) => c.focalEraName === eraName);
 
-  const prepBriefs = [];
+  const prepBriefs: EraNarrativePrepBrief[] = [];
   for (const item of eraChronicles) {
     const record = await store.loadChronicle(item.chronicleId);
     if (!record?.historianPrep) continue;

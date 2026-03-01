@@ -44,7 +44,7 @@ interface ValidationPanelProps {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function ErrorCard({ error }: { error: SchemaError }) {
+function ErrorCard({ error }: Readonly<{ error: SchemaError }>) {
   return (
     <div className="validation-panel-issue-card">
       <ErrorMessage
@@ -72,7 +72,7 @@ function ErrorCard({ error }: { error: SchemaError }) {
   );
 }
 
-function WarningCard({ warning }: { warning: SchemaError }) {
+function WarningCard({ warning }: Readonly<{ warning: SchemaError }>) {
   return (
     <div className="validation-panel-warning-card">
       <div className="validation-panel-warning-header">
@@ -96,7 +96,7 @@ interface StatCardProps {
   label: string;
 }
 
-function StatCard({ value, label }: StatCardProps) {
+function StatCard({ value, label }: Readonly<StatCardProps>) {
   return (
     <div className="validation-panel-stat-card">
       <div className="validation-panel-stat-value">{value}</div>
@@ -105,7 +105,7 @@ function StatCard({ value, label }: StatCardProps) {
   );
 }
 
-function StatusBanner({ valid, errorCount, warningCount }: { valid: boolean; errorCount: number; warningCount: number }) {
+function StatusBanner({ valid, errorCount, warningCount }: Readonly<{ valid: boolean; errorCount: number; warningCount: number }>) {
   return (
     <div
       className={`validation-panel-status-banner ${
@@ -126,13 +126,13 @@ function StatusBanner({ valid, errorCount, warningCount }: { valid: boolean; err
   );
 }
 
-function IssueSection({ title, count, variant, items, renderItem }: {
+function IssueSection({ title, count, variant, items, renderItem }: Readonly<{
   title: string;
   count: number;
   variant: "error" | "warning";
   items: SchemaError[];
   renderItem: (item: SchemaError, index: number) => React.ReactNode;
-}) {
+}>) {
   if (count === 0) return null;
   return (
     <div className="validation-panel-section">
@@ -161,7 +161,7 @@ export default function ValidationPanel({
   systems,
   actions,
   seedEntities,
-}: ValidationPanelProps) {
+}: Readonly<ValidationPanelProps>) {
   const validationResult: SchemaValidationResult = useMemo(() => {
     const cultures = schema?.cultures?.map((c) => c.id) || [];
     const entityKinds = schema?.entityKinds?.map((k) => k.kind) || [];

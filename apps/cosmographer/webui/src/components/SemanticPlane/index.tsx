@@ -173,7 +173,7 @@ function NewRegionModal({
   onNewRegionChange,
   onAdd,
   onClose,
-}: NewRegionModalProps) {
+}: Readonly<NewRegionModalProps>) {
   const handleLabelChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) =>
       onNewRegionChange({ ...newRegion, label: e.target.value }),
@@ -333,7 +333,7 @@ function EditAxisModal({
   onAxisSelect,
   onSave,
   onClose,
-}: EditAxisModalProps) {
+}: Readonly<EditAxisModalProps>) {
   const handleAxisChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => onAxisSelect(e.target.value),
     [onAxisSelect],
@@ -427,7 +427,7 @@ function EditRegionModal({
   onEditingRegionChange,
   onSave,
   onClose,
-}: EditRegionModalProps) {
+}: Readonly<EditRegionModalProps>) {
   const handleLabelChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) =>
       onEditingRegionChange({ ...editingRegion, label: e.target.value }),
@@ -521,7 +521,7 @@ interface AxisSidebarProps {
   onEditAxis: (axisKey: string) => void;
 }
 
-function AxisSidebar({ semanticPlane, axisDefinitions, isFrameworkKind, onEditAxis }: AxisSidebarProps) {
+function AxisSidebar({ semanticPlane, axisDefinitions, isFrameworkKind, onEditAxis }: Readonly<AxisSidebarProps>) {
   return (
     <div>
       <div className="sp-sidebar-title">Axes (click to edit)</div>
@@ -577,7 +577,7 @@ function RegionSidebar({
   onSelectRegion,
   onEditRegion,
   onDeleteRegion,
-}: RegionSidebarProps) {
+}: Readonly<RegionSidebarProps>) {
   return (
     <div>
       <div className="sp-sidebar-title">Regions ({regions.length})</div>
@@ -658,7 +658,7 @@ function EntitySidebar({
   selectedKind,
   selectedEntityId,
   onSelectEntity,
-}: EntitySidebarProps) {
+}: Readonly<EntitySidebarProps>) {
   const getCultureColor = useCallback(
     (cultureId: string) => cultures.find((c) => c.id === cultureId)?.color || "#888",
     [cultures],
@@ -712,7 +712,7 @@ export default function SemanticPlaneEditor({
   project,
   onSave,
   axisDefinitions,
-}: SemanticPlaneEditorProps) {
+}: Readonly<SemanticPlaneEditorProps>) {
   const [selectedKindId, setSelectedKindId] = useState<string | null>(null);
   const [showNewRegionModal, setShowNewRegionModal] = useState(false);
   const [showAxisModal, setShowAxisModal] = useState(false);

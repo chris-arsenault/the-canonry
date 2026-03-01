@@ -101,7 +101,7 @@ function ConditionsSection({
   onConditionChange,
   onAddTag,
   onToggleConditions,
-}: ConditionsSectionProps) {
+}: Readonly<ConditionsSectionProps>) {
   const entityKindsSelected = useMemo(
     () => group.conditions?.entityKinds || EMPTY_ENTITY_KINDS,
     [group.conditions?.entityKinds],
@@ -256,7 +256,7 @@ function StrategyItem({
   onWeightChange,
   onConfigChange,
   onDelete,
-}: StrategyItemProps) {
+}: Readonly<StrategyItemProps>) {
   const handleWeightChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onWeightChange(stratIdx, e.target.value),
     [stratIdx, onWeightChange],
@@ -352,7 +352,7 @@ export default function SingleGroupTab({
   worldSchema,
   tagRegistry,
   onAddTag,
-}: SingleGroupTabProps) {
+}: Readonly<SingleGroupTabProps>) {
   const hasConditions = !!group.conditions;
   const groupTotalWeight = group.strategies.reduce((sum, s) => sum + s.weight, 0);
 
@@ -372,7 +372,7 @@ export default function SingleGroupTab({
       });
     });
 
-    return Array.from(subtypes).sort();
+    return Array.from(subtypes).sort((a, b) => a.localeCompare(b));
   }, [group.conditions?.entityKinds, worldSchema]);
 
   const updateGroup = useCallback(
@@ -402,7 +402,7 @@ export default function SingleGroupTab({
   const handleConditionChange = useCallback(
     (field: string, value: string[] | boolean) => {
       updateGroup({
-        conditions: { ...group.conditions!, [field]: value },
+        conditions: { ...group.conditions, [field]: value },
       });
     },
     [group.conditions, updateGroup],

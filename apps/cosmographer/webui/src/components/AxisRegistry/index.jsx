@@ -271,7 +271,7 @@ export default function AxisRegistryEditor({
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="cosmo-modal" onClick={closeModal} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") closeModal(); }} >
-          <div className="cosmo-modal-content axr-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+          <div className="cosmo-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
             <div className="cosmo-modal-title">
               {editingAxis ? `Edit Axis: ${editingAxis.name}` : "New Axis Definition"}
             </div>
@@ -312,8 +312,8 @@ export default function AxisRegistryEditor({
               />
             </div>
 
-            <div className="axr-input-row">
-              <div className="axr-input-half">
+            <div className="cosmo-input-row">
+              <div className="cosmo-input-half">
                 <div className="cosmo-form-group">
                   <label className="cosmo-label">Low Tag (0)
                   <TagSelector
@@ -327,7 +327,7 @@ export default function AxisRegistryEditor({
                   </label>
                 </div>
               </div>
-              <div className="axr-input-half">
+              <div className="cosmo-input-half">
                 <div className="cosmo-form-group">
                   <label className="cosmo-label">High Tag (100)
                   <TagSelector

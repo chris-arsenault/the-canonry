@@ -9,7 +9,6 @@ import { adjustReplacementForGrammar } from "./entityRenameGrammar";
 import type {
   ChronicleMetadataUpdates,
   ChroniclePatchFields,
-  EntityPatch,
   FieldReplacement,
   MatchDecision,
   RenameMatch,

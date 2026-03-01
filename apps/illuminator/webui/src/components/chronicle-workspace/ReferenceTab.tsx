@@ -39,7 +39,7 @@ interface PerspectiveSynthesisViewerProps {
 }
 
 /** Renders the LLM Output tab content */
-function SynthesisOutputTab({ synthesis }: { synthesis: PerspectiveSynthesisRecord }) {
+function SynthesisOutputTab({ synthesis }: Readonly<{ synthesis: PerspectiveSynthesisRecord }>) {
   return (
     <>
       {/* Constellation Summary */}
@@ -127,7 +127,7 @@ function SynthesisOutputTab({ synthesis }: { synthesis: PerspectiveSynthesisReco
 }
 
 /** Renders the LLM Input tab content */
-function SynthesisInputTab({ synthesis }: { synthesis: PerspectiveSynthesisRecord }) {
+function SynthesisInputTab({ synthesis }: Readonly<{ synthesis: PerspectiveSynthesisRecord }>) {
   const factSelectionLabel = useMemo(() => {
     if (!synthesis.factSelectionRange) return null;
     const { min, max } = synthesis.factSelectionRange;
@@ -299,7 +299,7 @@ interface ConstellationData {
   relationshipKinds: Record<string, number>;
 }
 
-function ConstellationSection({ constellation }: { constellation: ConstellationData }) {
+function ConstellationSection({ constellation }: Readonly<{ constellation: ConstellationData }>) {
   return (
     <div className="ref-tab-group">
       <div className="ref-tab-section-heading ref-tab-section-heading-mb8">
@@ -341,8 +341,8 @@ function ConstellationSection({ constellation }: { constellation: ConstellationD
   );
 }
 
-function PerspectiveSynthesisViewer({ synthesis }: PerspectiveSynthesisViewerProps) {
-  const { expanded, toggle, headerProps } = useExpandBoolean();
+function PerspectiveSynthesisViewer({ synthesis }: Readonly<PerspectiveSynthesisViewerProps>) {
+  const { expanded, headerProps } = useExpandBoolean();
   const [activeTab, setActiveTab] = useState<"output" | "input">("output");
 
   const formatCost = useCallback((cost: number) => `$${cost.toFixed(4)}`, []);
@@ -431,14 +431,14 @@ function computeEntryBackground(entry: FactCoverageEntry): string | undefined {
   return undefined;
 }
 
-function FactCoverageGrid({ report }: FactCoverageGridProps) {
-  if (!report?.entries?.length) return null;
-
-  const entries = report.entries;
+function FactCoverageGrid({ report }: Readonly<FactCoverageGridProps>) {
+  const entries = report?.entries ?? [];
   const cols = useMemo(
     () => [entries.slice(0, 6), entries.slice(6, 12), entries.slice(12, 18)],
     [entries]
   );
+
+  if (!entries.length) return null;
 
   return (
     <div className="ref-tab-fcg">
@@ -508,22 +508,21 @@ interface FactCoverageViewerProps {
   generatedAt?: number;
 }
 
-function FactCoverageViewer({ report, generatedAt }: FactCoverageViewerProps) {
+function FactCoverageViewer({ report, generatedAt }: Readonly<FactCoverageViewerProps>) {
   const { expanded, headerProps } = useExpandBoolean();
-
-  if (!report?.entries?.length) return null;
+  const entries = report?.entries ?? [];
 
   const counts: Record<FactCoverageRating, number> = { integral: 0, prevalent: 0, mentioned: 0, missing: 0 };
-  for (const e of report.entries) {
+  for (const e of entries) {
     if (counts[e.rating as FactCoverageRating] !== undefined) counts[e.rating as FactCoverageRating]++;
   }
 
   const sorted = useMemo(
     () =>
-      [...report.entries].sort(
+      [...entries].sort(
         (a, b) => RATING_ORDER.indexOf(a.rating as FactCoverageRating) - RATING_ORDER.indexOf(b.rating as FactCoverageRating)
       ),
-    [report.entries]
+    [entries]
   );
 
   const summaryText = useMemo(
@@ -533,10 +532,12 @@ function FactCoverageViewer({ report, generatedAt }: FactCoverageViewerProps) {
       )
         .filter(Boolean)
         .join("  "),
-    // counts is derived from report.entries, so report.entries is the correct dep
+    // counts is derived from entries, so entries is the correct dep
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [report.entries]
+    [entries]
   );
+
+  if (!entries.length) return null;
 
   return (
     <div className="ilu-container ref-tab-fcv">
@@ -579,7 +580,7 @@ function FactCoverageViewer({ report, generatedAt }: FactCoverageViewerProps) {
               </div>
             );
           })}
-          {generatedAt && (
+          {Boolean(generatedAt) && (
             <div className="ref-tab-fcv-meta">
               {report.model} &bull; ${report.actualCost.toFixed(4)} &bull;{" "}
               {new Date(generatedAt).toLocaleString()}
@@ -622,7 +623,7 @@ function TemporalTimeline({
   castMarkers,
   focalEraId,
   timelineExtent,
-}: {
+}: Readonly<{
   hasTimelineData: boolean;
   timelineEvents: ReturnType<typeof prepareTimelineEvents>;
   eraRanges: ReturnType<typeof getEraRanges>;
@@ -630,7 +631,7 @@ function TemporalTimeline({
   castMarkers: ReturnType<typeof prepareCastMarkers>;
   focalEraId: string;
   timelineExtent: [number, number];
-}) {
+}>) {
   const noopToggle = useCallback(() => {}, []);
 
   if (!hasTimelineData) {
@@ -660,7 +661,7 @@ function TemporalTimeline({
   );
 }
 
-function TemporalCheckReport({ item }: { item: ChronicleRecord }) {
+function TemporalCheckReport({ item }: Readonly<{ item: ChronicleRecord }>) {
   const handleExport = useCallback(() => {
     if (!item.temporalCheckReport) return;
     const blob = new Blob([item.temporalCheckReport], { type: "text/markdown" });
@@ -679,7 +680,7 @@ function TemporalCheckReport({ item }: { item: ChronicleRecord }) {
       <div className="ref-tab-temporal-report-header">
         <span className="ref-tab-temporal-report-title">Alignment Check Report</span>
         <div className="ref-tab-temporal-report-actions">
-          {item.temporalCheckReportGeneratedAt && (
+          {Boolean(item.temporalCheckReportGeneratedAt) && (
             <span className="ref-tab-temporal-report-date">
               {new Date(item.temporalCheckReportGeneratedAt).toLocaleString()}
             </span>
@@ -703,7 +704,7 @@ function TemporalContextEditor({
   onTemporalCheck,
   temporalCheckRunning,
   isGenerating,
-}: TemporalContextEditorProps) {
+}: Readonly<TemporalContextEditorProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(600);
 
@@ -940,7 +941,7 @@ export default function ReferenceTab({
   onTemporalCheck,
   temporalCheckRunning,
   seedData,
-}: ReferenceTabProps) {
+}: Readonly<ReferenceTabProps>) {
   return (
     <div>
       {item.perspectiveSynthesis && (

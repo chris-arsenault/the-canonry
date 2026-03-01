@@ -190,6 +190,41 @@ function patchQueueItem(
     );
 }
 
+function notifyEntityUpdate(
+  result: { id: string; type: string; entityId: string; result?: unknown },
+  queue: QueueItem[],
+  onEntityUpdate: (entityId: string, output: ApplyEnrichmentOutput) => void
+): void {
+  if (!result.result) return;
+  const queueItem = queue.find((item) => item.id === result.id);
+  if (queueItem?.imageType === "chronicle") return;
+  const output = applyEnrichmentResult({}, result.type, result.result, queueItem?.entityLockedSummary);
+  onEntityUpdate(result.entityId, output);
+}
+
+function maybeAutoReconnect(
+  message: { taskId: string; error?: string },
+  workerState: { isReady: boolean } | undefined,
+  attemptsMap: Map<string, number>,
+  pendingRetries: Set<string>,
+  config: unknown,
+  reconnectInProgressRef: React.MutableRefObject<boolean>,
+  resetWorkerPool: () => void,
+  initializeRef: React.MutableRefObject<((config: unknown) => void) | null>
+): void {
+  if (!message.error?.includes("Worker not initialized")) return;
+  const attempts = attemptsMap.get(message.taskId) || 0;
+  if (attempts >= MAX_AUTO_RECONNECT_ATTEMPTS) return;
+  attemptsMap.set(message.taskId, attempts + 1);
+  pendingRetries.add(message.taskId);
+  if (workerState) workerState.isReady = false;
+  if (config && !reconnectInProgressRef.current) {
+    reconnectInProgressRef.current = true;
+    resetWorkerPool();
+    initializeRef.current?.(config);
+  }
+}
+
 export function useEnrichmentQueue(
   onEntityUpdate: (entityId: string, output: ApplyEnrichmentOutput) => void,
   projectId?: string,
@@ -280,7 +315,7 @@ export function useEnrichmentQueue(
       );
 
       // Build task payload — strip runtime-only fields via rest destructuring
-      /* eslint-disable @typescript-eslint/no-unused-vars, sonarjs/no-unused-vars, sonarjs/no-dead-store */
+      /* eslint-disable sonarjs/no-unused-vars */
       const {
         status: _status,
         queuedAt: _queuedAt,
@@ -292,7 +327,7 @@ export function useEnrichmentQueue(
         estimatedCost: _estimatedCost,
         ...taskPayload
       } = nextItem;
-      /* eslint-enable @typescript-eslint/no-unused-vars, sonarjs/no-unused-vars, sonarjs/no-dead-store */
+      /* eslint-enable sonarjs/no-unused-vars */
       const latestLlmSettings = getResolvedLLMCallSettings();
       if (configRef.current) {
         configRef.current = { ...configRef.current, llmCallSettings: latestLlmSettings };
@@ -424,19 +459,7 @@ export function useEnrichmentQueue(
           }));
 
           // Notify parent to update entity (skip for chronicle images - they have their own storage)
-          if (result.result) {
-            const queueItem = queueRef.current.find((item) => item.id === result.id);
-            const isChronicleImage = queueItem?.imageType === "chronicle";
-            if (!isChronicleImage) {
-              const output = applyEnrichmentResult(
-                {},
-                result.type,
-                result.result,
-                queueItem?.entityLockedSummary
-              );
-              onEntityUpdateRef.current(result.entityId, output);
-            }
-          }
+          notifyEntityUpdate(result, queueRef.current, onEntityUpdateRef.current);
 
           useThinkingStore.getState().finishTask(result.id);
 
@@ -462,22 +485,11 @@ export function useEnrichmentQueue(
 
           useThinkingStore.getState().finishTask(message.taskId);
 
-          if (message.error?.includes("Worker not initialized")) {
-            const attempts = autoReconnectAttemptsRef.current.get(message.taskId) || 0;
-            if (attempts < MAX_AUTO_RECONNECT_ATTEMPTS) {
-              autoReconnectAttemptsRef.current.set(message.taskId, attempts + 1);
-              pendingAutoRetryRef.current.add(message.taskId);
-              if (workerState) {
-                workerState.isReady = false;
-              }
-              const config = configRef.current;
-              if (config && !reconnectInProgressRef.current) {
-                reconnectInProgressRef.current = true;
-                resetWorkerPool();
-                initializeRef.current?.(config);
-              }
-            }
-          }
+          maybeAutoReconnect(
+            message, workerState,
+            autoReconnectAttemptsRef.current, pendingAutoRetryRef.current,
+            configRef.current, reconnectInProgressRef, resetWorkerPool, initializeRef
+          );
 
           // Process next task for this worker
           setTimeout(() => processNextForWorker(workerId), 0);

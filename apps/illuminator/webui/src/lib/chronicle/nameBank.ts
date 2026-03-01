@@ -6,6 +6,7 @@
  */
 
 import { generate } from "name-forge";
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- Culture resolves to error type without build artifacts
 import type { Culture } from "name-forge";
 import type { CultureDefinition } from "@canonry/world-schema";
 

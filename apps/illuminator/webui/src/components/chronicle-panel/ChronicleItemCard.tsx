@@ -71,18 +71,18 @@ function getStatusLabel(item: ChronicleNavItem): StatusLabel {
   }
 }
 
-function buildInlineSymbols(item: ChronicleNavItem): InlineSymbol[] {
-  const syms: InlineSymbol[] = [];
-
-  // Focus type
+function buildFocusSymbol(item: ChronicleNavItem): InlineSymbol {
   if (item.focusType === "ensemble") {
-    syms.push({ symbol: "\u25C7\u25C7", title: "Ensemble", color: "#a855f7" });
-  } else if (item.primaryCount > 0) {
-    syms.push({ symbol: "\u25C6", title: "Single focus", color: "#3b82f6" });
-  } else {
-    syms.push({ symbol: "\u25CB", title: "No primary entity", color: "var(--text-muted)" });
+    return { symbol: "\u25C7\u25C7", title: "Ensemble", color: "#a855f7" };
   }
+  if (item.primaryCount > 0) {
+    return { symbol: "\u25C6", title: "Single focus", color: "#3b82f6" };
+  }
+  return { symbol: "\u25CB", title: "No primary entity", color: "var(--text-muted)" };
+}
 
+function buildFeatureSymbols(item: ChronicleNavItem): InlineSymbol[] {
+  const syms: InlineSymbol[] = [];
   if (item.perspectiveSynthesis) {
     syms.push({ symbol: "\u2726", title: "Perspective synthesis", color: "#06b6d4" });
   }
@@ -125,8 +125,11 @@ function buildInlineSymbols(item: ChronicleNavItem): InlineSymbol[] {
       color: "#b8860b",
     });
   }
-
   return syms;
+}
+
+function buildInlineSymbols(item: ChronicleNavItem): InlineSymbol[] {
+  return [buildFocusSymbol(item), ...buildFeatureSymbols(item)];
 }
 
 function buildImageCountTitle(hasCover: boolean, sceneCount: number): string {
@@ -135,7 +138,7 @@ function buildImageCountTitle(hasCover: boolean, sceneCount: number): string {
   return `${coverPrefix}${sceneCount} scene image${plural}`;
 }
 
-export function ChronicleItemCard({ item, isSelected, onClick }: ChronicleItemCardProps) {
+export function ChronicleItemCard({ item, isSelected, onClick }: Readonly<ChronicleItemCardProps>) {
   const inlineSymbols = useMemo(
     () => buildInlineSymbols(item),
     [

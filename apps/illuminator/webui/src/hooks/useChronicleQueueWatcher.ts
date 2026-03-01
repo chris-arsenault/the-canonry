@@ -46,11 +46,10 @@ function queueChronicleImageUpdate(
   updates: Promise<unknown>[]
 ): void {
   const isSuccess = isComplete && !!imageId;
-  const error = !isSuccess
-    ? isComplete
-      ? "Image generation returned no image id"
-      : (taskError ?? "Image generation failed")
-    : undefined;
+  let error: string | undefined;
+  if (!isSuccess) {
+    error = isComplete ? "Image generation returned no image id" : (taskError ?? "Image generation failed");
+  }
   if (isCover) {
     updates.push(
       isSuccess
@@ -96,11 +95,10 @@ function queueEraNarrativeImageUpdate(
   updates: Promise<unknown>[]
 ): void {
   const isSuccess = isComplete && !!imageId;
-  const error = !isSuccess
-    ? isComplete
-      ? "Image generation returned no image id"
-      : (taskError ?? "Image generation failed")
-    : undefined;
+  let error: string | undefined;
+  if (!isSuccess) {
+    error = isComplete ? "Image generation returned no image id" : (taskError ?? "Image generation failed");
+  }
   if (isCover) {
     updates.push(
       isSuccess

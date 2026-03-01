@@ -1,6 +1,6 @@
 import peggy from 'peggy';
-import { cannonGrammar } from './grammar.js';
-import type { StatementNode } from './types.js';
+import { cannonGrammar } from './grammar';
+import type { StatementNode } from './types';
 
 const parser = peggy.generate(cannonGrammar, { output: 'parser' });
 

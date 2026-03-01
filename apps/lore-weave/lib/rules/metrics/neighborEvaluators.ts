@@ -14,6 +14,14 @@ import type {
 } from './types';
 import type { MetricContext } from './index';
 
+/** Resolve the target IDs from a link given a source entity and direction. */
+function resolveLinkedIds(link: Relationship, entityId: string, direction: 'src' | 'dst' | 'both'): string[] {
+  const ids: string[] = [];
+  if ((direction === 'both' || direction === 'src') && link.src === entityId) ids.push(link.dst);
+  if ((direction === 'both' || direction === 'dst') && link.dst === entityId) ids.push(link.src);
+  return ids;
+}
+
 /** Collect entity IDs reachable from a source entity via specified relationship kinds. */
 function collectViaEntityIds(
   entityId: string,
@@ -26,15 +34,7 @@ function collectViaEntityIds(
   for (const link of rels) {
     if (!viaKinds.includes(link.kind)) continue;
     if ((link.strength ?? 0) < minStrength) continue;
-
-    if (direction === 'both') {
-      if (link.src === entityId) viaEntityIds.add(link.dst);
-      if (link.dst === entityId) viaEntityIds.add(link.src);
-    } else if (direction === 'src' && link.src === entityId) {
-      viaEntityIds.add(link.dst);
-    } else if (direction === 'dst' && link.dst === entityId) {
-      viaEntityIds.add(link.src);
-    }
+    for (const id of resolveLinkedIds(link, entityId, direction)) viaEntityIds.add(id);
   }
   return viaEntityIds;
 }
@@ -50,14 +50,7 @@ function traverseSecondHop(
   for (const viaId of fromIds) {
     for (const link of rels) {
       if (link.kind !== thenKind) continue;
-      if (direction === 'both') {
-        if (link.src === viaId) targetEntityIds.add(link.dst);
-        if (link.dst === viaId) targetEntityIds.add(link.src);
-      } else if (direction === 'src' && link.src === viaId) {
-        targetEntityIds.add(link.dst);
-      } else if (direction === 'dst' && link.dst === viaId) {
-        targetEntityIds.add(link.src);
-      }
+      for (const id of resolveLinkedIds(link, viaId, direction)) targetEntityIds.add(id);
     }
   }
   return targetEntityIds;

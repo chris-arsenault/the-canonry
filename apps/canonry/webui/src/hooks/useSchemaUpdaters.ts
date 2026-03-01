@@ -17,10 +17,40 @@ import {
 
 interface UseSchemaUpdatersParams {
   currentProject: unknown;
-  save: (data: Record<string, unknown>) => void;
+  save: (data: Record<string, unknown>) => void | Promise<void>;
 }
 
 type ItemWithKey = Record<string, unknown>;
+
+function parsePropertyPath(path: string): { itemId: string; pathSegments: string[] } | null {
+  const nestedMatch = path.match(/^"([^"]+)"\/(.+)$/);
+  if (nestedMatch) {
+    return { itemId: nestedMatch[1], pathSegments: nestedMatch[2].split("/") };
+  }
+  const topLevelMatch = path.match(/^"([^"]+)"(?:\/)?$/);
+  if (topLevelMatch) {
+    return { itemId: topLevelMatch[1], pathSegments: [] };
+  }
+  return null;
+}
+
+function deleteNestedProperty(item: Record<string, unknown>, pathSegments: string[], propName: string): boolean {
+  if (pathSegments.length === 0) {
+    delete item[propName];
+    return true;
+  }
+  let obj = item as Record<string, unknown>;
+  for (let i = 0; i < pathSegments.length; i++) {
+    const seg = pathSegments[i];
+    if (obj[seg] === undefined) return false;
+    if (i === pathSegments.length - 1) {
+      delete (obj[seg] as Record<string, unknown>)[propName];
+    } else {
+      obj = obj[seg] as Record<string, unknown>;
+    }
+  }
+  return true;
+}
 
 function mergeFrameworkOverrides(
   items: ItemWithKey[] | undefined,
@@ -164,18 +194,9 @@ export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersPar
   const handleRemoveProperty = useCallback(
     (path: string, propName: string) => {
       if (!p || !path || !propName) return;
-      const topLevelMatch = path.match(/^"([^"]+)"(?:\/)?$/);
-      const nestedMatch = path.match(/^"([^"]+)"\/(.+)$/);
-      let itemId: string;
-      let pathSegments: string[] = [];
-      if (nestedMatch) {
-        itemId = nestedMatch[1];
-        pathSegments = nestedMatch[2].split("/");
-      } else if (topLevelMatch) {
-        itemId = topLevelMatch[1];
-      } else {
-        return;
-      }
+      const parsed = parsePropertyPath(path);
+      if (!parsed) return;
+      const { itemId, pathSegments } = parsed;
       const configArrays = [
         { data: p.generators as ItemWithKey[], update: updateGenerators },
         { data: p.systems as ItemWithKey[], update: updateSystems },
@@ -187,22 +208,9 @@ export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersPar
         if (!data) continue;
         const itemIndex = data.findIndex((item) => (item as { id: string }).id === itemId);
         if (itemIndex === -1) continue;
-        const newData = [...data];
         const item = JSON.parse(JSON.stringify(data[itemIndex]));
-        if (pathSegments.length === 0) {
-          delete item[propName];
-        } else {
-          let obj = item as Record<string, unknown>;
-          for (let i = 0; i < pathSegments.length; i++) {
-            const seg = pathSegments[i];
-            if (obj[seg] === undefined) return;
-            if (i === pathSegments.length - 1) {
-              delete (obj[seg] as Record<string, unknown>)[propName];
-            } else {
-              obj = obj[seg] as Record<string, unknown>;
-            }
-          }
-        }
+        if (!deleteNestedProperty(item, pathSegments, propName)) return;
+        const newData = [...data];
         newData[itemIndex] = item;
         update(newData);
         return;

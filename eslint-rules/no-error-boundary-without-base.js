@@ -11,6 +11,7 @@
 export default {
   meta: {
     type: "suggestion",
+    fixable: "code",
     docs: {
       description:
         "Require error-boundary containers to include the empty-state base class.",
@@ -53,6 +54,9 @@ export default {
           context.report({
             node,
             messageId: "missingBase",
+            fix(fixer) {
+              return createInsertClassFix(fixer, classAttr.value, "empty-state");
+            },
           });
         }
       },
@@ -74,6 +78,36 @@ function extractClassString(valueNode) {
     }
     if (expr.type === "TemplateLiteral") {
       return expr.quasis.map((q) => q.value.raw).join("");
+    }
+  }
+  return null;
+}
+
+/**
+ * Insert a class name before "error-boundary" in the className value node.
+ */
+function createInsertClassFix(fixer, valueNode, className) {
+  // className="error-boundary" → className="empty-state error-boundary"
+  if (valueNode.type === "Literal" && typeof valueNode.value === "string") {
+    const newValue = valueNode.value.replace("error-boundary", `${className} error-boundary`);
+    return fixer.replaceText(valueNode, `"${newValue}"`);
+  }
+  // className={"error-boundary"} → className={"empty-state error-boundary"}
+  if (valueNode.type === "JSXExpressionContainer") {
+    const expr = valueNode.expression;
+    if (expr.type === "Literal" && typeof expr.value === "string") {
+      const newValue = expr.value.replace("error-boundary", `${className} error-boundary`);
+      return fixer.replaceText(expr, `"${newValue}"`);
+    }
+    // className={`error-boundary ${x}`} — insert into first quasi
+    if (expr.type === "TemplateLiteral" && expr.quasis.length > 0) {
+      const quasi = expr.quasis[0];
+      const raw = quasi.value.raw;
+      const idx = raw.indexOf("error-boundary");
+      if (idx >= 0) {
+        const insertPos = quasi.range[0] + 1 + idx; // +1 for backtick
+        return fixer.insertTextBeforeRange([insertPos, insertPos], `${className} `);
+      }
     }
   }
   return null;

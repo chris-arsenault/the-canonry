@@ -41,7 +41,7 @@ interface ParticipantsSectionProps {
   app: ActionApplication;
 }
 
-function ParticipantsSection({ app }: ParticipantsSectionProps) {
+function ParticipantsSection({ app }: Readonly<ParticipantsSectionProps>) {
   return (
     <div className="lw-trace-view-template-participants">
       <div className="lw-trace-view-detail-sub-header">Participants</div>
@@ -101,7 +101,7 @@ interface SelectionContextSectionProps {
   app: ActionApplication;
 }
 
-function SelectionContextSection({ app }: SelectionContextSectionProps) {
+function SelectionContextSection({ app }: Readonly<SelectionContextSectionProps>) {
   const ctx = app.selectionContext;
   const selectionPct = ((ctx.selectedWeight / ctx.totalWeight) * 100).toFixed(0);
 
@@ -142,7 +142,7 @@ function SelectionContextSection({ app }: SelectionContextSectionProps) {
           <div className="lw-trace-view-detail-sub-header">
             Pressure Influences (on selection weight)
           </div>
-          {ctx.pressureInfluences!.map((influence, i) => (
+          {ctx.pressureInfluences.map((influence, i) => (
             <div key={i} className="lw-trace-view-detail-row">
               <span className="lw-trace-view-detail-label">
                 {influence.pressureId}
@@ -166,7 +166,7 @@ interface OutcomeSectionProps {
   app: ActionApplication;
 }
 
-function RelationshipsList({ relationships }: { relationships: CreatedRelationship[] }) {
+function RelationshipsList({ relationships }: Readonly<{ relationships: CreatedRelationship[] }>) {
   return (
     <div className="lw-trace-view-detail-discrete st-section-spaced">
       <div className="lw-trace-view-detail-sub-header">
@@ -194,7 +194,7 @@ function RelationshipsList({ relationships }: { relationships: CreatedRelationsh
   );
 }
 
-function OutcomeSection({ app }: OutcomeSectionProps) {
+function OutcomeSection({ app }: Readonly<OutcomeSectionProps>) {
   const { outcome } = app;
 
   return (
@@ -213,13 +213,13 @@ function OutcomeSection({ app }: OutcomeSectionProps) {
       </div>
 
       {(outcome.relationshipsCreated?.length ?? 0) > 0 && (
-        <RelationshipsList relationships={outcome.relationshipsCreated!} />
+        <RelationshipsList relationships={outcome.relationshipsCreated} />
       )}
 
       {(outcome.prominenceChanges?.length ?? 0) > 0 && (
         <div className="lw-trace-view-detail-discrete st-section-spaced">
           <div className="lw-trace-view-detail-sub-header">Prominence Changes</div>
-          {outcome.prominenceChanges!.map((change, i) => (
+          {outcome.prominenceChanges.map((change, i) => (
             <div key={i} className="lw-trace-view-detail-row">
               <span className="lw-trace-view-detail-label">{change.entityName}</span>
               <span className={change.direction === "up" ? "positive" : "negative"}>
@@ -241,7 +241,7 @@ export default function ActionDetailPanel({
   actionApplication,
   isLocked,
   onClear,
-}: ActionDetailPanelProps) {
+}: Readonly<ActionDetailPanelProps>) {
   if (!actionApplication) {
     return (
       <div className="lw-trace-view-detail">

@@ -45,7 +45,7 @@ export function PotentialSection({
   relationships,
   entityUsage,
   expanded,
-}: PotentialSectionProps): React.ReactElement | number {
+}: Readonly<PotentialSectionProps>): React.ReactElement {
   const [sort, onSort] = useColumnSort("gap", true);
   const [kindFilter, setKindFilter] = useState("all");
   const [cultureFilter, setCultureFilter] = useState("all");
@@ -172,7 +172,7 @@ export function PotentialSection({
     [rows],
   );
 
-  if (!expanded) return underutilCount;
+  if (!expanded) return <>{underutilCount}</>;
 
   return (
     <div>

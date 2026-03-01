@@ -36,10 +36,10 @@ export interface ReviewResult {
  */
 export function extractReinforcedFactIds(contextJson: string): string[] | undefined {
   try {
-    const ctx = JSON.parse(contextJson);
+    const ctx = JSON.parse(contextJson) as { factCoverageGuidance?: Array<{ factId: string }> };
     if (!Array.isArray(ctx.factCoverageGuidance) || ctx.factCoverageGuidance.length === 0)
       return undefined;
-    return ctx.factCoverageGuidance.map((t: { factId: string }) => t.factId).filter(Boolean);
+    return ctx.factCoverageGuidance.map((t) => t.factId).filter(Boolean);
   } catch {
     return undefined;
   }

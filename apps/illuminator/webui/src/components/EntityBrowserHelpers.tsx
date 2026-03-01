@@ -17,7 +17,6 @@ import type {
   EnrichmentStatus,
   EnrichmentType,
   EntityRowProps,
-  SearchMatch,
 } from "./EntityBrowserTypes";
 
 // ─── HighlightMatch ────────────────────────────────────────────────────────

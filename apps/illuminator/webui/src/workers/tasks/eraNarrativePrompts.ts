@@ -52,19 +52,19 @@ function formatCulturalIdentities(identities: Record<string, unknown>): string {
           const inner = Object.entries(val as Record<string, unknown>)
             .map(([k, v]) => {
               if (v && typeof v === "object") return `  ${k}: ${JSON.stringify(v)}`;
-              return `  ${k}: ${String(v)}`;
+              return `  ${k}: ${typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? `${v}` : JSON.stringify(v)}`;
             })
             .join("\n");
           return `## ${key}\n${inner}`;
         }
-        return `## ${key}\n  ${String(val)}`;
+        return `## ${key}\n  ${typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean' ? `${val}` : JSON.stringify(val)}`;
       })
       .join("\n\n");
   }
 
   return Object.entries(descriptive as Record<string, unknown>)
     .map(([cultureName, traits]) => {
-      if (!traits || typeof traits !== "object") return `## ${cultureName}\n  ${String(traits)}`;
+      if (!traits || typeof traits !== "object") return `## ${cultureName}\n  ${traits == null ? "" : String(traits as string | number | boolean)}`;
       const traitLines = Object.entries(traits as Record<string, string>)
         .map(([key, value]) => `  ${key}: ${value}`)
         .join("\n");

@@ -7,7 +7,7 @@ import PropTypes from "prop-types";
 import { RELATIONSHIP_REFS, MUTATION_TYPE_OPTIONS } from "../constants";
 import MutationCard, { DEFAULT_MUTATION_TYPES } from "../../shared/MutationCard";
 import { NumberInput, LocalTextArea } from "../../shared";
-import "./OutcomeTab.css";
+
 
 const ACTION_MUTATION_TYPES = DEFAULT_MUTATION_TYPES;
 
@@ -174,7 +174,7 @@ export function OutcomeTab({ action, onChange, schema, pressures }) {
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
-                  {/* eslint-disable-next-line local/no-inline-styles -- dynamic type color */}
+                  { }
                   <span
                     className="dropdown-menu-icon"
                     style={{ '--ot-menu-icon-bg': `${opt.color}20`, backgroundColor: 'var(--ot-menu-icon-bg)' }}

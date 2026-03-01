@@ -530,7 +530,7 @@ function productionNeedsMissingContext(
       const match = token.match(/context:([a-zA-Z_]+)/);
       if (match) {
         const key = match[1];
-        // eslint-disable-next-line sonarjs/different-types-comparison -- both sides are string
+         
         if (!(key in userContext) || userContext[key] === "") {
           return true;
         }
@@ -886,7 +886,7 @@ function resolvePatternRef(
   }
   if (pattern.startsWith("context:")) {
     const key = pattern.substring(8);
-    // eslint-disable-next-line sonarjs/different-types-comparison -- both sides are string
+     
     return key in expansionCtx.userContext && expansionCtx.userContext[key] !== "" ? String(expansionCtx.userContext[key]) : null;
   }
   return token; // literal

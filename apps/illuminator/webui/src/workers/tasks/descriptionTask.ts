@@ -255,6 +255,25 @@ async function registerTraitsSafe(
   }
 }
 
+interface StepFailure {
+  success: false;
+  error: string;
+  debug: unknown;
+}
+
+function checkStepResult(
+  isAborted: () => boolean,
+  result: { error?: string; text?: string },
+  stepName: string,
+  debug: unknown
+): StepFailure | null {
+  if (isAborted()) return { success: false, error: "Task aborted", debug };
+  if (result.error || !result.text) {
+    return { success: false, error: `${stepName} failed: ${result.error || "Empty response"}`, debug };
+  }
+  return null;
+}
+
 export const descriptionTask = {
   type: "description",
   async execute(task, context) {
@@ -311,17 +330,8 @@ export const descriptionTask = {
     const narrativeResult = narrativeCall.result;
     chainDebug.narrative = narrativeResult.debug;
 
-    if (isAborted()) {
-      return { success: false, error: "Task aborted", debug: narrativeResult.debug };
-    }
-
-    if (narrativeResult.error || !narrativeResult.text) {
-      return {
-        success: false,
-        error: `Narrative step failed: ${narrativeResult.error || "Empty response"}`,
-        debug: narrativeResult.debug,
-      };
-    }
+    const narrativeFailure = checkStepResult(isAborted, narrativeResult, "Narrative step", narrativeResult.debug);
+    if (narrativeFailure) return narrativeFailure;
 
     // Parse narrative response
     let narrativePayload: NarrativePayload;
@@ -392,17 +402,8 @@ Generate the visual thesis.`;
     const thesisResult = thesisCall.result;
     chainDebug.thesis = thesisResult.debug;
 
-    if (isAborted()) {
-      return { success: false, error: "Task aborted", debug: thesisResult.debug };
-    }
-
-    if (thesisResult.error || !thesisResult.text) {
-      return {
-        success: false,
-        error: `Visual thesis step failed: ${thesisResult.error || "Empty response"}`,
-        debug: thesisResult.debug,
-      };
-    }
+    const thesisFailure = checkStepResult(isAborted, thesisResult, "Visual thesis step", thesisResult.debug);
+    if (thesisFailure) return thesisFailure;
 
     // Parse thesis response - plain text, just trim
     const visualThesis = thesisResult.text.trim();
@@ -469,17 +470,8 @@ Generate 2-4 visual traits that ADD to the thesis - features it didn't cover.`;
     const traitsResult = traitsCall.result;
     chainDebug.traits = traitsResult.debug;
 
-    if (isAborted()) {
-      return { success: false, error: "Task aborted", debug: traitsResult.debug };
-    }
-
-    if (traitsResult.error || !traitsResult.text) {
-      return {
-        success: false,
-        error: `Visual traits step failed: ${traitsResult.error || "Empty response"}`,
-        debug: traitsResult.debug,
-      };
-    }
+    const traitsFailure = checkStepResult(isAborted, traitsResult, "Visual traits step", traitsResult.debug);
+    if (traitsFailure) return traitsFailure;
 
     // Parse traits response - one trait per line
     const visualTraits = parseVisualTraits(traitsResult.text);

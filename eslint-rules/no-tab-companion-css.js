@@ -8,6 +8,7 @@ export default {
         "Tab form styles (required-badge, checkbox-label, required-hint) belong in " +
         "styles/components/tab-form.css, not in per-component companion CSS files.",
     },
+    fixable: "code",
     messages: {
       noTabCss:
         "Tab component imports a local CSS file '{{source}}'. " +
@@ -32,6 +33,9 @@ export default {
             node,
             messageId: "noTabCss",
             data: { source },
+            fix(fixer) {
+              return fixer.remove(node);
+            },
           });
         }
       },

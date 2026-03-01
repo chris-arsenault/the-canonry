@@ -22,7 +22,7 @@ export function useAsyncAction(): AsyncActionState {
     try {
       await fn();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Unknown error');
       setError(`${label}: ${msg}`);
     } finally {
       setBusy(null);

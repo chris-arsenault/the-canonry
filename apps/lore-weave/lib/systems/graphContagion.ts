@@ -743,7 +743,7 @@ function processMultiSourceTransmissionForEntity(
   const action = config.infectionAction;
   let actionApplied = false;
   if (action.type === 'set_tag') {
-    actionApplied = applySetTagInfection(entity, source, action as SetTagMutation, infectionCtx, modifiedTags);
+    actionApplied = applySetTagInfection(entity, source, action, infectionCtx, modifiedTags);
   } else {
     const result = prepareMutation(action, infectionCtx);
     mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, pressureChanges);

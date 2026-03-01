@@ -18,40 +18,12 @@ import {
   importStaticPages,
   loadAndImportSeedPages,
 } from "./staticPageStorage.js";
-import {
-  compileCanonProject,
-  compileCanonStaticPages,
-  serializeCanonProject,
-  serializeCanonStaticPages,
-} from "@canonry/dsl";
 
 /**
  * Default project ID - used to identify the default project for reload functionality
  */
 export const DEFAULT_PROJECT_ID = "project_1765083188592";
 
-const USE_CANON_DSL = false;
-
-/**
- * Canon project file names (default layout)
- */
-const CANON_PROJECT_FILES = [
-  "project",
-  "entity_kinds",
-  "relationship_kinds",
-  "cultures",
-  "tag_registry",
-  "axis_definitions",
-  "ui_config",
-  "eras",
-  "pressures",
-  "generators",
-  "systems",
-  "actions",
-  "seed_entities",
-  "seed_relationships",
-  "distribution_targets",
-];
 
 const PROJECT_JSON_FILES = [
   "entityKinds",
@@ -114,88 +86,11 @@ function normalizeProjectConfig(raw) {
   return project;
 }
 
-function formatCanonDiagnostics(diagnostics = []) {
-  return diagnostics
-    .map((diag) => {
-      if (!diag) return null;
-      const location = diag.span?.start
-        ? ` (${diag.span.file}:${diag.span.start.line}:${diag.span.start.column})`
-        : "";
-      return `${diag.message}${location}`;
-    })
-    .filter(Boolean)
-    .join("\n");
-}
-
 /**
  * Fetch and load the default seed project from individual files
  */
 async function fetchDefaultProject() {
-  if (USE_CANON_DSL) {
-    return fetchDefaultProjectCanon();
-  }
-
   return fetchDefaultProjectJson();
-}
-
-async function fetchDefaultProjectCanon() {
-  try {
-    const baseUrl = `${import.meta.env.BASE_URL}default-project/`;
-
-    const responses = await Promise.all(
-      CANON_PROJECT_FILES.map(async (file) => {
-        const response = await fetch(`${baseUrl}${file}.canon`);
-        if (!response.ok) {
-          console.warn(`Default project file ${file}.canon not found`);
-          return { file, content: null };
-        }
-        const content = await response.text();
-        return { file, content };
-      })
-    );
-
-    const sources = responses
-      .filter((entry) => entry.content !== null)
-      .map((entry) => ({
-        path: `${entry.file}.canon`,
-        content: entry.content,
-      }));
-
-    if (sources.length === 0) {
-      console.warn("Default project .canon files not found");
-      return null;
-    }
-
-    const { config, diagnostics } = compileCanonProject(sources);
-    if (!config || diagnostics.some((diag) => diag.severity === "error")) {
-      console.warn("Failed to compile default project:", formatCanonDiagnostics(diagnostics));
-      return null;
-    }
-
-    let project = normalizeProjectConfig(config);
-
-    let illuminatorConfig = null;
-    const illuminatorResponse = await fetch(`${baseUrl}illuminatorConfig.json`);
-    if (illuminatorResponse.ok) {
-      illuminatorConfig = await illuminatorResponse.json();
-    } else {
-      console.warn("Default project illuminatorConfig.json not found");
-    }
-    const historianResponse = await fetch(`${baseUrl}historianConfig.json`);
-    if (historianResponse.ok) {
-      const historianConfig = await historianResponse.json();
-      illuminatorConfig = { ...(illuminatorConfig || {}), historianConfig };
-    }
-
-    // Update timestamps to now
-    const now = new Date().toISOString();
-    project.createdAt = now;
-    project.updatedAt = now;
-    return { project, illuminatorConfig };
-  } catch (error) {
-    console.warn("Failed to load default project:", error);
-    return null;
-  }
 }
 
 async function fetchDefaultProjectJson() {
@@ -263,19 +158,6 @@ async function fetchDefaultProjectJson() {
  * @param {Object} options.illuminatorConfig - Illuminator settings to include
  * @param {Array} options.staticPages - Static pages to include
  */
-function addCanonFilesToZip(zip, project, staticPages) {
-  const canonFiles = serializeCanonProject(project);
-  for (const file of canonFiles) {
-    zip.file(file.path, file.content);
-  }
-  if (staticPages && staticPages.length > 0) {
-    const staticFiles = serializeCanonStaticPages(staticPages, { includeEmpty: false });
-    for (const file of staticFiles) {
-      zip.file(file.path, file.content);
-    }
-  }
-}
-
 function addJsonFilesToZip(zip, project) {
   const manifest = { ...project };
   for (const key of PROJECT_JSON_FILES) {
@@ -294,18 +176,14 @@ async function createProjectZip(project, options = {}) {
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
 
-  if (USE_CANON_DSL) {
-    addCanonFilesToZip(zip, project, options.staticPages);
-  } else {
-    addJsonFilesToZip(zip, project);
-  }
+  addJsonFilesToZip(zip, project);
 
   const { illuminatorConfig, staticPages } = options;
   if (illuminatorConfig) {
     zip.file("illuminatorConfig.json", JSON.stringify(illuminatorConfig, null, 2));
   }
 
-  if (!USE_CANON_DSL && staticPages && staticPages.length > 0) {
+  if (staticPages && staticPages.length > 0) {
     zip.file("staticPages.json", JSON.stringify(staticPages, null, 2));
   }
 
@@ -390,12 +268,6 @@ async function extractJsonProjectFromZip(zip) {
 async function extractProjectZip(zipBlob) {
   const { default: JSZip } = await import("jszip");
   const zip = await JSZip.loadAsync(zipBlob);
-
-  const canonFiles = zip.file(/\.canon$/);
-  if (USE_CANON_DSL && canonFiles && canonFiles.length > 0) {
-    return extractCanonProjectFromZip(zip, canonFiles);
-  }
-
   return extractJsonProjectFromZip(zip);
 }
 

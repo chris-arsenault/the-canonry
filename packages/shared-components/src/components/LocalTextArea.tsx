@@ -40,7 +40,7 @@ export function LocalTextArea({
   placeholder,
   rows,
   ...rest
-}: LocalTextAreaProps) {
+}: Readonly<LocalTextAreaProps>) {
   const externalValue = value || '';
   const [localValue, setLocalValue] = useState(externalValue);
   // Track focus in state so render can safely choose between local draft vs external value

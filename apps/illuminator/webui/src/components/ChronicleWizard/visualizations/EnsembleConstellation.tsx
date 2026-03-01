@@ -164,7 +164,7 @@ function computeEdges(
 
 function addBridgeLink(map: Map<string, Set<string>>, key: string, value: string): void {
   if (!map.has(key)) map.set(key, new Set());
-  map.get(key)!.add(value);
+  map.get(key).add(value);
 }
 
 export default function EnsembleConstellation({

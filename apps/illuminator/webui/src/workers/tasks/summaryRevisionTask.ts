@@ -214,7 +214,7 @@ async function executeSummaryRevisionTask(
   // Entity data is passed via the task prompt field as JSON
   let entities: RevisionEntityContext[];
   try {
-    entities = JSON.parse(task.prompt);
+    entities = JSON.parse(task.prompt) as RevisionEntityContext[];
   } catch {
     const errorMsg = "Failed to parse entity context from task prompt";
     updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };

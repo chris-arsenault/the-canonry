@@ -3,15 +3,15 @@ import type {
   Diagnostic,
   Value,
   StatementNode,
-} from './types.js';
+} from './types';
 
-import type { GeneratorContext, SystemParseResult } from './compile-types.js';
-import { SYSTEM_BINDINGS } from './compile-types.js';
-import { isRecord, flattenTokenList, setObjectValue } from './compile-utils.js';
-import { valueToJson } from './compile-variables.js';
-import { normalizeRefsInObject, normalizeDeclaredBinding } from './compile-objects.js';
-import { parseSystemConditionStatement, buildSystemConditionStatements, buildSystemConditionGroup, parseGraphPathBlock, parseStringListValue, valueToTokenList } from './compile-conditions.js';
-import { buildSelectionFromStatements, buildVariableFromStatements, addVariableEntryDsl } from './compile-generators.js';
+import type { GeneratorContext, SystemParseResult } from './compile-types';
+import { SYSTEM_BINDINGS } from './compile-types';
+import { isRecord, flattenTokenList, setObjectValue } from './compile-utils';
+import { valueToJson } from './compile-variables';
+import { normalizeRefsInObject, normalizeDeclaredBinding } from './compile-objects';
+import { parseSystemConditionStatement, buildSystemConditionStatements, buildSystemConditionGroup, parseGraphPathBlock, parseStringListValue, valueToTokenList } from './compile-conditions';
+import { buildSelectionFromStatements, buildVariableFromStatements, addVariableEntryDsl } from './compile-generators';
 
 export function buildSystemItem(block: BlockNode, diagnostics: Diagnostic[]): Record<string, unknown> | null {
   if (block.labels.length < 2) {
@@ -192,6 +192,11 @@ export function buildSystemConfigFromStatements(
 
 export function applySystemCommonAttribute(
   stmt: Extract<StatementNode, { type: 'attribute' }>,
+  obj: Record<string, unknown>,
+  ctx: GeneratorContext
+): boolean {
+  throw new Error('applySystemCommonAttribute: not yet extracted from compile.ts');
+}
 
 export function parseSystemSelectionBlock(stmt: BlockNode, ctx: GeneratorContext): Record<string, unknown> | null {
   const { selection } = buildSelectionFromStatements(stmt, ctx, { requirePickStrategy: false });

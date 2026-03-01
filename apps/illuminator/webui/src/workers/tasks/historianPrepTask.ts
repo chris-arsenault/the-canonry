@@ -201,7 +201,7 @@ async function executeHistorianPrepTask(
   let historianConfig: HistorianConfig;
   let tone: HistorianTone;
   try {
-    const prepConfig = JSON.parse(task.prompt);
+    const prepConfig = JSON.parse(task.prompt) as { historianConfig: HistorianConfig; tone?: HistorianTone };
     historianConfig = prepConfig.historianConfig;
     tone = prepConfig.tone || "weary";
   } catch {

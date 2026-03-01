@@ -56,7 +56,7 @@ export default function MiniConstellation({
 
     // Take one from each kind first, then fill remaining
     const result: ConnectedEntity[] = [];
-    const kindIterators = [...byKind.values()].map((list) => list[Symbol.iterator]());
+    const kindIterators: Iterator<ConnectedEntity>[] = [...byKind.values()].map((list) => list[Symbol.iterator]());
 
     while (result.length < maxConnections && kindIterators.length > 0) {
       for (let i = kindIterators.length - 1; i >= 0; i--) {

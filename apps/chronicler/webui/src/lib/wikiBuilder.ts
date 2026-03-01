@@ -701,38 +701,41 @@ function buildPageByType(indexEntry: PageIndexEntry, ctx: PageBuildContext): Wik
   const { pageId, worldData, pageIndex } = ctx;
   const aliasIndex = pageIndex.byAlias;
 
-  if (indexEntry.type === "entity" || indexEntry.type === "era") {
-    const entity = worldData.hardState.find((e) => e.id === pageId);
-    if (!entity) return null;
-    const loreIndex = buildLoreIndex(ctx.loreData);
-    const imageIndex = buildImageIndex(worldData, ctx.imageData);
-    return buildEntityPage(entity, worldData, loreIndex, imageIndex, aliasIndex, ctx.prominenceScale, ctx.chronicles);
+  switch (indexEntry.type) {
+    case "entity":
+    case "era": {
+      const entity = worldData.hardState.find((e) => e.id === pageId);
+      if (!entity) return null;
+      const loreIndex = buildLoreIndex(ctx.loreData);
+      const imageIndex = buildImageIndex(worldData, ctx.imageData);
+      return buildEntityPage(entity, worldData, loreIndex, imageIndex, aliasIndex, ctx.prominenceScale, ctx.chronicles);
+    }
+    case "era_narrative": {
+      const narrative = ctx.eraNarratives.find((n) => n.narrativeId === pageId);
+      if (!narrative) return null;
+      return buildEraNarrativePage(narrative, worldData, aliasIndex, pageIndex.byName);
+    }
+    case "chronicle": {
+      const chronicle = ctx.chronicles.find((c) => c.chronicleId === pageId);
+      if (!chronicle) return null;
+      return buildChroniclePageFromChronicle(chronicle, worldData, aliasIndex, pageIndex.byName);
+    }
+    case "category":
+      return buildCategoryPageById(pageId, pageIndex);
+    case "static": {
+      const staticPage = ctx.staticPages.find((p) => p.pageId === pageId);
+      if (!staticPage) return null;
+      return buildStaticPageFromStaticPage(staticPage, worldData, ctx.loreData, aliasIndex, pageIndex.byName);
+    }
+    case "region": {
+      const regionId = pageId.replace("region:", "");
+      const regionInfo = findRegionById(worldData, regionId);
+      if (!regionInfo) return null;
+      return buildRegionPage(regionInfo.region, regionInfo.entityKind, worldData, aliasIndex);
+    }
+    default:
+      return null;
   }
-  if (indexEntry.type === "era_narrative") {
-    const narrative = ctx.eraNarratives.find((n) => n.narrativeId === pageId);
-    if (!narrative) return null;
-    return buildEraNarrativePage(narrative, worldData, aliasIndex, pageIndex.byName);
-  }
-  if (indexEntry.type === "chronicle") {
-    const chronicle = ctx.chronicles.find((c) => c.chronicleId === pageId);
-    if (!chronicle) return null;
-    return buildChroniclePageFromChronicle(chronicle, worldData, aliasIndex, pageIndex.byName);
-  }
-  if (indexEntry.type === "category") {
-    return buildCategoryPageById(pageId, pageIndex);
-  }
-  if (indexEntry.type === "static") {
-    const staticPage = ctx.staticPages.find((p) => p.pageId === pageId);
-    if (!staticPage) return null;
-    return buildStaticPageFromStaticPage(staticPage, worldData, ctx.loreData, aliasIndex, pageIndex.byName);
-  }
-  if (indexEntry.type === "region") {
-    const regionId = pageId.replace("region:", "");
-    const regionInfo = findRegionById(worldData, regionId);
-    if (!regionInfo) return null;
-    return buildRegionPage(regionInfo.region, regionInfo.entityKind, worldData, aliasIndex);
-  }
-  return null;
 }
 
 export function buildPageById(
@@ -1011,51 +1014,52 @@ interface TemplateContext {
 }
 
 function resolveTemplateVariable(trimmed: string, worldData: WorldState): string | null {
-  if (trimmed === "world.context") {
-    const era = worldData.metadata?.era;
-    const tick = worldData.metadata?.tick;
-    if (!era) return "";
-    const tickSuffix = tick ? ` (Tick ${tick})` : "";
-    return `Era: ${era}${tickSuffix}`;
-  }
-  if (trimmed === "cultures") {
-    const cultures = worldData.schema?.cultures || [];
-    if (cultures.length === 0) return "_No cultures defined_";
-    return cultures
-      .map((c: { id: string; name?: string }) => `- **${c.name || c.id}**`)
-      .join("\n");
-  }
-  if (trimmed === "eras") {
-    const eras = worldData.hardState.filter((e) => e.kind === "era");
-    if (eras.length === 0) return "_No eras_";
-    return eras.map((e) => `- [[${e.name}]]`).join("\n");
-  }
-  if (trimmed === "stats") {
-    const entityCount = worldData.hardState.length;
-    const relCount = worldData.relationships.length;
-    const eraCount = worldData.hardState.filter((e) => e.kind === "era").length;
-    return `- **Entities:** ${entityCount}\n- **Relationships:** ${relCount}\n- **Eras:** ${eraCount}`;
-  }
-  if (trimmed === "kinds") {
-    const kindCounts = new Map<string, number>();
-    for (const e of worldData.hardState) {
-      kindCounts.set(e.kind, (kindCounts.get(e.kind) || 0) + 1);
+  switch (trimmed) {
+    case "world.context": {
+      const era = worldData.metadata?.era;
+      if (!era) return "";
+      const tickSuffix = worldData.metadata?.tick ? ` (Tick ${worldData.metadata.tick})` : "";
+      return `Era: ${era}${tickSuffix}`;
     }
-    return Array.from(kindCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([kind, count]) => `- **${kind}:** ${count}`)
-      .join("\n");
+    case "cultures": {
+      const cultures = worldData.schema?.cultures || [];
+      if (cultures.length === 0) return "_No cultures defined_";
+      return cultures.map((c: { id: string; name?: string }) => `- **${c.name || c.id}**`).join("\n");
+    }
+    case "eras": {
+      const eras = worldData.hardState.filter((e) => e.kind === "era");
+      if (eras.length === 0) return "_No eras_";
+      return eras.map((e) => `- [[${e.name}]]`).join("\n");
+    }
+    case "stats": {
+      const entityCount = worldData.hardState.length;
+      const relCount = worldData.relationships.length;
+      const eraCount = worldData.hardState.filter((e) => e.kind === "era").length;
+      return `- **Entities:** ${entityCount}\n- **Relationships:** ${relCount}\n- **Eras:** ${eraCount}`;
+    }
+    case "kinds": {
+      const kindCounts = new Map<string, number>();
+      for (const e of worldData.hardState) {
+        kindCounts.set(e.kind, (kindCounts.get(e.kind) || 0) + 1);
+      }
+      return Array.from(kindCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([kind, count]) => `- **${kind}:** ${count}`)
+        .join("\n");
+    }
+    default: {
+      if (trimmed.startsWith("entity:")) {
+        const entityName = trimmed.slice(7).trim();
+        const entity = worldData.hardState.find(
+          (e) => e.name.toLowerCase() === entityName.toLowerCase()
+        );
+        if (!entity) return `_Entity "${entityName}" not found_`;
+        const kindLabel = entity.subtype ? `${entity.kind} - ${entity.subtype}` : entity.kind;
+        return `**[[${entity.name}]]** (${kindLabel})`;
+      }
+      return null;
+    }
   }
-  if (trimmed.startsWith("entity:")) {
-    const entityName = trimmed.slice(7).trim();
-    const entity = worldData.hardState.find(
-      (e) => e.name.toLowerCase() === entityName.toLowerCase()
-    );
-    if (!entity) return `_Entity "${entityName}" not found_`;
-    const kindLabel = entity.subtype ? `${entity.kind} - ${entity.subtype}` : entity.kind;
-    return `**[[${entity.name}]]** (${kindLabel})`;
-  }
-  return null; // unknown variable
 }
 
 /**
@@ -1460,14 +1464,14 @@ function resolveHistorianNotes(
 ): Array<{ noteId: string; anchorPhrase: string; text: string; type: string; display: "popout" | "full" }> {
   if (!notes) return [];
   return notes
-    // eslint-disable-next-line sonarjs/deprecation -- legacy fallback: `enabled` migrates to `display`
+     
     .filter((n) => (n.display || (n.enabled === false ? "disabled" : "full")) !== "disabled")
     .map((n) => ({
       noteId: n.noteId,
       anchorPhrase: n.anchorPhrase,
       text: n.text,
       type: n.type,
-      // eslint-disable-next-line sonarjs/deprecation -- legacy fallback: `enabled` migrates to `display`
+       
       display: (n.display || (n.enabled === false ? "disabled" : "full")) as "popout" | "full",
     }));
 }
@@ -1555,7 +1559,9 @@ function buildRelRowsByKind(relMap: Map<string, RelMapEntry>, entityMap: Map<str
   for (const [, entry] of relMap) {
     const other = entityMap.get(entry.otherId);
     if (!other) continue;
-    const direction: RelRow["direction"] = (entry.outgoing && entry.incoming) ? "↔" : entry.outgoing ? "→" : "←";
+    let direction: RelRow["direction"] = "←";
+    if (entry.outgoing && entry.incoming) direction = "↔";
+    else if (entry.outgoing) direction = "→";
     const primaryRel = entry.outgoing ?? entry.incoming!;
     const row: RelRow = {
       entity: `[[${other.name}]]`,

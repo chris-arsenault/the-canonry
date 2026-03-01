@@ -388,19 +388,8 @@ export function buildChronicleExport(chronicle: ChronicleRecord): ChronicleExpor
   return exportData;
 }
 
-function attachOptionalExportFields(exportData: ChronicleExport, chronicle: ChronicleRecord): void {
-  if (chronicle.generationContext) {
-    exportData.generationContext = chronicle.generationContext;
-  }
-  if (chronicle.imageRefs) {
-    exportData.imageRefs = exportImageRefs(chronicle.imageRefs);
-  }
-  if (chronicle.summary) {
-    exportData.summary = chronicle.summary;
-  }
-  if (chronicle.perspectiveSynthesis) {
-    exportData.perspectiveSynthesis = exportPerspectiveSynthesis(chronicle.perspectiveSynthesis);
-  }
+function attachMediaFields(exportData: ChronicleExport, chronicle: ChronicleRecord): void {
+  if (chronicle.imageRefs) exportData.imageRefs = exportImageRefs(chronicle.imageRefs);
   if (chronicle.coverImage) {
     exportData.coverImage = {
       sceneDescription: chronicle.coverImage.sceneDescription,
@@ -409,6 +398,28 @@ function attachOptionalExportFields(exportData: ChronicleExport, chronicle: Chro
       generatedImageId: chronicle.coverImage.generatedImageId,
     };
   }
+}
+
+function attachHistorianFields(exportData: ChronicleExport, chronicle: ChronicleRecord): void {
+  if (chronicle.historianPrep) exportData.historianPrep = chronicle.historianPrep;
+  if (chronicle.historianNotes && chronicle.historianNotes.length > 0) {
+    const enabledNotes = chronicle.historianNotes.filter(isNoteActive);
+    if (enabledNotes.length > 0) exportData.historianNotes = enabledNotes;
+  }
+  if (chronicle.historianReviewSystemPrompt && chronicle.historianReviewUserPrompt) {
+    exportData.historianReviewLLMCall = {
+      systemPrompt: chronicle.historianReviewSystemPrompt,
+      userPrompt: chronicle.historianReviewUserPrompt,
+      model: "stored",
+    };
+  }
+}
+
+function attachOptionalExportFields(exportData: ChronicleExport, chronicle: ChronicleRecord): void {
+  if (chronicle.generationContext) exportData.generationContext = chronicle.generationContext;
+  attachMediaFields(exportData, chronicle);
+  if (chronicle.summary) exportData.summary = chronicle.summary;
+  if (chronicle.perspectiveSynthesis) exportData.perspectiveSynthesis = exportPerspectiveSynthesis(chronicle.perspectiveSynthesis);
   if (chronicle.comparisonReport) exportData.comparisonReport = chronicle.comparisonReport;
   if (chronicle.combineInstructions) exportData.combineInstructions = chronicle.combineInstructions;
   if (chronicle.temporalCheckReport) exportData.temporalCheckReport = chronicle.temporalCheckReport;
@@ -418,21 +429,7 @@ function attachOptionalExportFields(exportData: ChronicleExport, chronicle: Chro
     if (chronicle.eraYearReasoning) exportData.eraYearReasoning = chronicle.eraYearReasoning;
   }
 
-  if (chronicle.historianPrep) exportData.historianPrep = chronicle.historianPrep;
-
-  if (chronicle.historianNotes && chronicle.historianNotes.length > 0) {
-    const enabledNotes = chronicle.historianNotes.filter(isNoteActive);
-    if (enabledNotes.length > 0) exportData.historianNotes = enabledNotes;
-  }
-
-  if (chronicle.historianReviewSystemPrompt && chronicle.historianReviewUserPrompt) {
-    exportData.historianReviewLLMCall = {
-      systemPrompt: chronicle.historianReviewSystemPrompt,
-      userPrompt: chronicle.historianReviewUserPrompt,
-      model: "stored",
-    };
-  }
-
+  attachHistorianFields(exportData, chronicle);
   if (chronicle.factCoverageReport) exportData.factCoverageReport = chronicle.factCoverageReport;
 }
 

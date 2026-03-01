@@ -126,7 +126,7 @@ function Header({
   systemPanel, onSystemPanelChange,
   diffusionCount, diffusionNames, contagionCount, contagionNames,
   onClose,
-}: HeaderProps) {
+}: Readonly<HeaderProps>) {
   return (
     <div className="lw-trace-view-header">
       <div className="lw-trace-view-title">
@@ -173,7 +173,7 @@ interface PressureTogglesProps {
   onToggle: (id: string) => void;
 }
 
-function PressureToggles({ pressureIds, pressureData, hiddenPressures, onToggle }: PressureTogglesProps) {
+function PressureToggles({ pressureIds, pressureData, hiddenPressures, onToggle }: Readonly<PressureTogglesProps>) {
   return (
     <div className="lw-trace-view-pressure-toggles">
       {pressureIds.map((id, i) => {
@@ -210,7 +210,7 @@ export default function SimulationTraceVisx({
   actionApplications = [],
   systemActions = [],
   onClose,
-}: SimulationTraceVisxProps) {
+}: Readonly<SimulationTraceVisxProps>) {
   // State
   const [selectedTick, setSelectedTick] = useState<number | null>(null);
   const [lockedTick, setLockedTick] = useState<number | null>(null);

@@ -85,12 +85,12 @@ function formatCulturalIdentities(identities: Record<string, unknown>): string {
           const inner = Object.entries(val as Record<string, unknown>)
             .map(([k, v]) => {
               if (v && typeof v === "object") return `  ${k}: ${JSON.stringify(v)}`;
-              return `  ${k}: ${v as string | number | boolean | null | undefined}`;
+              return `  ${k}: ${typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? `${v}` : JSON.stringify(v)}`;
             })
             .join("\n");
           return `## ${key}\n${inner}`;
         }
-        return `## ${key}\n  ${val as string | number | boolean | null | undefined}`;
+        return `## ${key}\n  ${typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean' ? `${val}` : JSON.stringify(val)}`;
       })
       .join("\n\n");
   }
@@ -249,38 +249,43 @@ function formatThreadLine(t: EraNarrativeThreadSynthesis["threads"][0]): string 
   return block;
 }
 
+function buildWorldContextSections(wc: NonNullable<EraNarrativeRecord["worldContext"]>, eraName: string): string[] {
+  const sections: string[] = [];
+
+  sections.push(
+    `=== ERA IDENTITY (the defining movement of this era) ===\n${wc.focalEra.name}:\n${wc.focalEra.summary || "(no summary)"}`
+  );
+
+  const adjacentParts: string[] = [];
+  if (wc.previousEra?.summary) {
+    adjacentParts.push(`PRECEDING ERA — ${wc.previousEra.name}:\n${wc.previousEra.summary}`);
+  }
+  if (wc.nextEra?.summary) {
+    adjacentParts.push(`FOLLOWING ERA — ${wc.nextEra.name}:\n${wc.nextEra.summary}`);
+  }
+  if (adjacentParts.length > 0) {
+    sections.push(
+      `=== ERA CONTEXT (the world before and after) ===\n${adjacentParts.join("\n\n")}`
+    );
+  }
+
+  if (wc.previousEraThesis) {
+    sections.push(
+      `=== PRECEDING ERA THESIS (the argument of your previous volume) ===\nIn your narrative of ${wc.previousEra?.name || "the preceding era"}, you argued:\n${wc.previousEraThesis}\n\nThis is where the reader's understanding of the world stands when they open this volume. Your thesis for ${eraName} should acknowledge, extend, complicate, or transform this understanding — not repeat it and not ignore it. The reader has already read the previous volume.`
+    );
+  }
+
+  return sections;
+}
+
 function buildThreadsUserPrompt(record: EraNarrativeRecord): string {
   const sections: string[] = [];
   const wc = record.worldContext;
 
   sections.push(`=== ERA: ${record.eraName} ===`);
 
-  // Focal era summary — the defining movement of this era (separated for authority)
   if (wc) {
-    sections.push(
-      `=== ERA IDENTITY (the defining movement of this era) ===\n${wc.focalEra.name}:\n${wc.focalEra.summary || "(no summary)"}`
-    );
-
-    // Adjacent eras — world-state context
-    const adjacentParts: string[] = [];
-    if (wc.previousEra?.summary) {
-      adjacentParts.push(`PRECEDING ERA — ${wc.previousEra.name}:\n${wc.previousEra.summary}`);
-    }
-    if (wc.nextEra?.summary) {
-      adjacentParts.push(`FOLLOWING ERA — ${wc.nextEra.name}:\n${wc.nextEra.summary}`);
-    }
-    if (adjacentParts.length > 0) {
-      sections.push(
-        `=== ERA CONTEXT (the world before and after) ===\n${adjacentParts.join("\n\n")}`
-      );
-    }
-
-    // Previous era thesis — what the preceding narrative argued about the world
-    if (wc.previousEraThesis) {
-      sections.push(
-        `=== PRECEDING ERA THESIS (the argument of your previous volume) ===\nIn your narrative of ${wc.previousEra?.name || "the preceding era"}, you argued:\n${wc.previousEraThesis}\n\nThis is where the reader's understanding of the world stands when they open this volume. Your thesis for ${record.eraName} should acknowledge, extend, complicate, or transform this understanding — not repeat it and not ignore it. The reader has already read the previous volume.`
-      );
-    }
+    sections.push(...buildWorldContextSections(wc, record.eraName));
   }
 
   // World dynamics — active forces and inter-cultural tensions
@@ -481,12 +486,44 @@ Write the era narrative as continuous prose. Invocation → movements separated 
 The narrative is as long as it needs to be. 5,000-7,000 words is typical for an era with 10-15 chronicles, but the number is a guideline, not a target. Do not pad to reach a count. Do not cut to fit one. Every paragraph earns its place or it doesn't belong.`;
 }
 
+function appendWorldContextSections(sections: string[], wc: EraNarrativeRecord["worldContext"]): void {
+  if (!wc) return;
+
+  sections.push(
+    `=== ERA IDENTITY (the defining movement of this era) ===\n${wc.focalEra.name}:\n${wc.focalEra.summary || "(no summary)"}`
+  );
+
+  const adjacentParts: string[] = [];
+  if (wc.previousEra?.summary) {
+    adjacentParts.push(`THE WORLD BEFORE (${wc.previousEra.name}):\n${wc.previousEra.summary}`);
+  }
+  if (wc.nextEra?.summary) {
+    adjacentParts.push(`WHAT FOLLOWS (${wc.nextEra.name}):\n${wc.nextEra.summary}`);
+  }
+  if (adjacentParts.length > 0) {
+    sections.push(`=== WORLD ARC ===\n${adjacentParts.join("\n\n")}`);
+  }
+
+  if (wc.previousEraThesis) {
+    sections.push(
+      `=== PRECEDING VOLUME THESIS ===\nYour argument in ${wc.previousEra?.name || "the preceding era"}:\n${wc.previousEraThesis}`
+    );
+  }
+
+  if (wc.resolvedDynamics?.length) {
+    const dynamicsForcesBody = wc.resolvedDynamics.map((d, i) => `${i + 1}. ${d}`).join("\n");
+    sections.push(`=== WORLD DYNAMICS (active forces) ===\n${dynamicsForcesBody}`);
+  }
+
+  if (wc.culturalIdentities && Object.keys(wc.culturalIdentities).length > 0) {
+    sections.push(`=== CULTURAL IDENTITIES ===\n${formatCulturalIdentities(wc.culturalIdentities)}`);
+  }
+}
+
 function buildGenerateUserPrompt(record: EraNarrativeRecord): string {
   const synthesis = record.threadSynthesis;
-  const wc = record.worldContext;
   const sections: string[] = [];
 
-  // Era identity
   const sortedBriefs = [...record.prepBriefs].sort(sortByEraYear);
   const eraStart = sortedBriefs.length > 0 ? sortedBriefs[0].eraYear || 0 : 0;
   const eraEnd = sortedBriefs.length > 0 ? sortedBriefs[sortedBriefs.length - 1].eraYear || 0 : 0;
@@ -494,46 +531,7 @@ function buildGenerateUserPrompt(record: EraNarrativeRecord): string {
   sections.push(`=== ERA: ${record.eraName} ===
 Year range: ${eraStart}–${eraEnd}`);
 
-  // Era identity — the defining movement (separated for authority)
-  if (wc) {
-    sections.push(
-      `=== ERA IDENTITY (the defining movement of this era) ===\n${wc.focalEra.name}:\n${wc.focalEra.summary || "(no summary)"}`
-    );
-
-    // Adjacent eras — world-state context
-    const adjacentParts: string[] = [];
-    if (wc.previousEra?.summary) {
-      adjacentParts.push(`THE WORLD BEFORE (${wc.previousEra.name}):\n${wc.previousEra.summary}`);
-    }
-    if (wc.nextEra?.summary) {
-      adjacentParts.push(`WHAT FOLLOWS (${wc.nextEra.name}):\n${wc.nextEra.summary}`);
-    }
-    if (adjacentParts.length > 0) {
-      sections.push(`=== WORLD ARC ===\n${adjacentParts.join("\n\n")}`);
-    }
-
-    // Previous era thesis — continuity with the preceding volume
-    if (wc.previousEraThesis) {
-      sections.push(
-        `=== PRECEDING VOLUME THESIS ===\nYour argument in ${wc.previousEra?.name || "the preceding era"}:\n${wc.previousEraThesis}`
-      );
-    }
-  }
-
-  // World dynamics
-  if (wc?.resolvedDynamics?.length) {
-    const dynamicsForcesBody = wc.resolvedDynamics.map((d, i) => `${i + 1}. ${d}`).join("\n");
-    sections.push(
-      `=== WORLD DYNAMICS (active forces) ===\n${dynamicsForcesBody}`
-    );
-  }
-
-  // Cultural identities
-  if (wc?.culturalIdentities && Object.keys(wc.culturalIdentities).length > 0) {
-    sections.push(
-      `=== CULTURAL IDENTITIES ===\n${formatCulturalIdentities(wc.culturalIdentities)}`
-    );
-  }
+  appendWorldContextSections(sections, record.worldContext);
 
   // Cultural arcs with register labels and material
   const threadLines = synthesis.threads.map(formatThreadLine);
@@ -664,7 +662,7 @@ async function executeThreadsStep(
 ): Promise<TaskResult> {
   const { config, llmClient, isAborted } = context;
 
-  const historianConfig: HistorianConfig = JSON.parse(record.historianConfigJson);
+  const historianConfig = JSON.parse(record.historianConfigJson) as HistorianConfig;
   const tone = record.tone || "witty";
   const callType = "historian.eraNarrative.threads" as const;
   const callConfig = getCallConfig(config, callType);
@@ -713,7 +711,7 @@ async function executeThreadsStep(
     // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
     const jsonMatch = resultText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No JSON object found");
-    parsed = JSON.parse(jsonMatch[0]);
+    parsed = JSON.parse(jsonMatch[0]) as typeof parsed;
     if (!Array.isArray(parsed.threads)) throw new Error("Missing threads array");
   } catch (err) {
     const errorMsg = `Failed to parse thread synthesis: ${err instanceof Error ? err.message : String(err)}`;
@@ -769,7 +767,7 @@ async function executeGenerateStep(
     return { success: false, error: "Thread synthesis required" };
   }
 
-  const historianConfig: HistorianConfig = JSON.parse(record.historianConfigJson);
+  const historianConfig = JSON.parse(record.historianConfigJson) as HistorianConfig;
   const callType = "historian.eraNarrative.generate" as const;
   const callConfig = getCallConfig(config, callType);
 
@@ -1063,7 +1061,7 @@ async function executeCoverImageSceneStep(
     // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
     const jsonMatch = resultText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No JSON found");
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonMatch[0]) as { coverImageScene?: string };
     sceneDescription =
       typeof parsed.coverImageScene === "string" ? parsed.coverImageScene.trim() : "";
     if (!sceneDescription) throw new Error("Empty coverImageScene");
@@ -1223,6 +1221,37 @@ ${chunksDisplay}`;
 
 const ERA_IMAGE_VALID_SIZES: EraNarrativeImageSize[] = ["small", "medium", "large", "full-width"];
 
+function parseChronicleImageRef(
+  ref: Record<string, unknown>,
+  index: number,
+  base: { refId: string; anchorText: string; size: EraNarrativeImageSize; caption?: string },
+  availableMap: Map<string, AvailableChronicleImage>
+): EraNarrativeChronicleImageRef {
+  const chronicleId = typeof ref.chronicleId === "string" ? ref.chronicleId : "";
+  const chronicleTitle = typeof ref.chronicleTitle === "string" ? ref.chronicleTitle : "";
+  const imageSource = ref.imageSource === "image_ref" ? ("image_ref" as const) : ("cover" as const);
+  const imageRefId = typeof ref.imageRefId === "string" ? ref.imageRefId : undefined;
+  const imageId = typeof ref.imageId === "string" ? ref.imageId : "";
+
+  const key = `${chronicleId}:${imageSource}:${imageRefId || ""}`;
+  const available = availableMap.get(key);
+  const resolvedImageId = available?.imageId || imageId || "";
+
+  if (!resolvedImageId) {
+    throw new Error(`chronicle_ref at index ${index} has no valid imageId`);
+  }
+
+  return {
+    ...base,
+    type: "chronicle_ref",
+    chronicleId,
+    chronicleTitle: chronicleTitle || available?.chronicleTitle || "",
+    imageSource,
+    imageRefId,
+    imageId: resolvedImageId,
+  } as EraNarrativeChronicleImageRef;
+}
+
 function parseOneEraNarrativeImageRef(
   ref: Record<string, unknown>,
   index: number,
@@ -1235,51 +1264,20 @@ function parseOneEraNarrativeImageRef(
     ? (rawSize as EraNarrativeImageSize)
     : "medium";
   const caption = typeof ref.caption === "string" ? ref.caption : undefined;
+  const base = { refId, anchorText, size, caption };
 
-  if (ref.type === "chronicle_ref") {
-    const chronicleId = typeof ref.chronicleId === "string" ? ref.chronicleId : "";
-    const chronicleTitle = typeof ref.chronicleTitle === "string" ? ref.chronicleTitle : "";
-    const imageSource =
-      ref.imageSource === "image_ref" ? ("image_ref" as const) : ("cover" as const);
-    const imageRefId = typeof ref.imageRefId === "string" ? ref.imageRefId : undefined;
-    const imageId = typeof ref.imageId === "string" ? ref.imageId : "";
-
-    const key = `${chronicleId}:${imageSource}:${imageRefId || ""}`;
-    const available = availableMap.get(key);
-    const resolvedImageId = available?.imageId || imageId || "";
-
-    if (!resolvedImageId) {
-      throw new Error(`chronicle_ref at index ${index} has no valid imageId`);
+  switch (ref.type) {
+    case "chronicle_ref":
+      return parseChronicleImageRef(ref, index, base, availableMap);
+    case "prompt_request": {
+      const sceneDescription = typeof ref.sceneDescription === "string" ? ref.sceneDescription : "";
+      if (!sceneDescription) {
+        throw new Error(`prompt_request at index ${index} missing sceneDescription`);
+      }
+      return { ...base, type: "prompt_request", sceneDescription, status: "pending" } as EraNarrativePromptRequestRef;
     }
-
-    return {
-      refId,
-      type: "chronicle_ref",
-      chronicleId,
-      chronicleTitle: chronicleTitle || available?.chronicleTitle || "",
-      imageSource,
-      imageRefId,
-      imageId: resolvedImageId,
-      anchorText,
-      size,
-      caption,
-    } as EraNarrativeChronicleImageRef;
-  } else if (ref.type === "prompt_request") {
-    const sceneDescription = typeof ref.sceneDescription === "string" ? ref.sceneDescription : "";
-    if (!sceneDescription) {
-      throw new Error(`prompt_request at index ${index} missing sceneDescription`);
-    }
-    return {
-      refId,
-      type: "prompt_request",
-      sceneDescription,
-      anchorText,
-      size,
-      caption,
-      status: "pending",
-    } as EraNarrativePromptRequestRef;
-  } else {
-    throw new Error(`Unknown image ref type at index ${index}: ${ref.type}`);
+    default:
+      throw new Error(`Unknown image ref type at index ${index}: ${typeof ref.type === 'string' ? ref.type : JSON.stringify(ref.type)}`);
   }
 }
 
@@ -1291,7 +1289,7 @@ function parseEraNarrativeImageRefsResponse(
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("No JSON object found");
 
-  const parsed = JSON.parse(jsonMatch[0]);
+  const parsed = JSON.parse(jsonMatch[0]) as { imageRefs?: unknown[] };
   const rawRefs = parsed.imageRefs;
   if (!rawRefs || !Array.isArray(rawRefs)) {
     throw new Error("imageRefs array not found");
@@ -1468,9 +1466,9 @@ async function executeEraNarrativeTask(
       default:
         await updateEraNarrative(record.narrativeId, {
           status: "failed",
-          error: `Unknown step: ${record.currentStep}`,
+          error: `Unknown step: ${String(record.currentStep)}`,
         });
-        return { success: false, error: `Unknown step: ${record.currentStep}` };
+        return { success: false, error: `Unknown step: ${String(record.currentStep)}` };
     }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);

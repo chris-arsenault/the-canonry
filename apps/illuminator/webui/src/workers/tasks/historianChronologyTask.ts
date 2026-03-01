@@ -260,7 +260,7 @@ async function executeHistorianChronologyTask(
   // Parse historian config
   let historianConfig: HistorianConfig;
   try {
-    historianConfig = JSON.parse(run.historianConfigJson);
+    historianConfig = JSON.parse(run.historianConfigJson) as HistorianConfig;
   } catch {
     await updateHistorianRun(runId, {
       status: "failed",
@@ -272,7 +272,7 @@ async function executeHistorianChronologyTask(
   // Parse context
   let ctx: ChronologyContext;
   try {
-    ctx = JSON.parse(run.contextJson);
+    ctx = JSON.parse(run.contextJson) as ChronologyContext;
   } catch {
     await updateHistorianRun(runId, { status: "failed", error: "Failed to parse context JSON" });
     return { success: false, error: "Failed to parse context JSON" };

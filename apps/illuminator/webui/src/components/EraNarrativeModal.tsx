@@ -131,10 +131,10 @@ interface SetupSectionProps {
 function ChronicleListRow({
   c,
   narrativeWeightMap,
-}: {
+}: Readonly<{
   c: ChronicleListItem;
   narrativeWeightMap: Record<string, string>;
-}) {
+}>) {
   const weight = c.eraNarrativeWeight || narrativeWeightMap[c.narrativeStyleId || ""] || null;
   let weightSymbol: string;
   if (weight === "structural") weightSymbol = "\u25A0";
@@ -184,11 +184,11 @@ function ExistingNarrativeRow({
   rec,
   onResume,
   onDelete,
-}: {
+}: Readonly<{
   rec: EraNarrativeRecord;
   onResume: (narrativeId: string) => Promise<void>;
   onDelete: (narrativeId: string) => Promise<void>;
-}) {
+}>) {
   const STEP_LABEL: Record<string, string> = { threads: "Threads", generate: "Draft", edit: "Edit" };
 
   let statusIcon: string;
@@ -232,12 +232,12 @@ function ExistingNarrativeRow({
         </span>
       )}
       {canResume && (
-        <button onClick={handleResume} className="illuminator-button era-narr-existing-item-resume-btn">
+        <button onClick={() => void handleResume()} className="illuminator-button era-narr-existing-item-resume-btn">
           Resume
         </button>
       )}
       {!canResume && (
-        <button onClick={handleResume} className="illuminator-button era-narr-existing-item-view-btn">
+        <button onClick={() => void handleResume()} className="illuminator-button era-narr-existing-item-view-btn">
           View
         </button>
       )}
@@ -265,7 +265,7 @@ function SetupSection({
   onSetArcDirection,
   onStart,
   onStartHeadless,
-}: SetupSectionProps) {
+}: Readonly<SetupSectionProps>) {
   const handleEraChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => onSelectEra(e.target.value), [onSelectEra]);
   const handleArcChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => onSetArcDirection(e.target.value), [onSetArcDirection]);
 
@@ -387,10 +387,10 @@ function SetupSection({
 function ThreadReviewSection({
   synthesis,
   threadNameMap,
-}: {
+}: Readonly<{
   synthesis: EraNarrativeThreadSynthesis;
   threadNameMap: Record<string, string>;
-}) {
+}>) {
   return (
     <>
       <div className="era-narr-review-group">
@@ -528,7 +528,7 @@ function CompleteSection({
   viewedWordCount,
   deleteVersion,
   setActiveVersion,
-}: CompleteSectionProps) {
+}: Readonly<CompleteSectionProps>) {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
 
   const handleVersionChange = useCallback(
@@ -541,7 +541,7 @@ function CompleteSection({
 
   const handleMakeActive = useCallback(() => {
     if (viewedVersion) {
-      setActiveVersion(viewedVersion.versionId);
+      void setActiveVersion(viewedVersion.versionId);
       setConfirmingDeleteId(null);
     }
   }, [viewedVersion, setActiveVersion]);
@@ -549,7 +549,7 @@ function CompleteSection({
   const handleDeleteVersion = useCallback(() => {
     if (!viewedVersion) return;
     if (confirmingDeleteId === viewedVersion.versionId) {
-      deleteVersion(viewedVersion.versionId);
+      void deleteVersion(viewedVersion.versionId);
       setConfirmingDeleteId(null);
       onSelectVersion(resolved.activeVersionId || "");
     } else {
@@ -639,7 +639,7 @@ export default function EraNarrativeModal({
   onEnqueue,
   resumeNarrativeId,
   styleLibrary,
-}: EraNarrativeModalProps) {
+}: Readonly<EraNarrativeModalProps>) {
   const [selectedEraId, setSelectedEraId] = useState("");
   const [tone, setTone] = useState<EraNarrativeTone>("witty");
   const [arcDirection, setArcDirection] = useState("");
@@ -674,7 +674,7 @@ export default function EraNarrativeModal({
       return;
     }
     let cancelled = false;
-    getEraNarrativesForEra(simulationRunId, selectedEraId).then((records) => {
+    void getEraNarrativesForEra(simulationRunId, selectedEraId).then((records) => {
       if (cancelled) return;
       const resumable = records
         .filter((r) => r.status !== "cancelled")
@@ -686,14 +686,14 @@ export default function EraNarrativeModal({
     const focalOrder = focalInfo?.order ?? -1;
     const prevInfo = focalOrder > 0 ? eraTemporalInfo.find((e) => e.order === focalOrder - 1) : undefined;
     if (prevInfo) {
-      getEraNarrativesForEra(simulationRunId, prevInfo.id).then((prevRecords) => {
+      void getEraNarrativesForEra(simulationRunId, prevInfo.id).then((prevRecords) => {
         if (cancelled) return;
         const completed = prevRecords
           .filter((r) => r.status === "complete" && r.threadSynthesis?.thesis)
           .sort((a, b) => b.updatedAt - a.updatedAt);
         setPreviousEraThesis(
           completed.length > 0
-            ? { eraName: prevInfo.name, thesis: completed[0].threadSynthesis!.thesis }
+            ? { eraName: prevInfo.name, thesis: completed[0].threadSynthesis.thesis }
             : null
         );
       });
@@ -753,8 +753,8 @@ export default function EraNarrativeModal({
         chronicleTitle: record.title || item.name,
         eraYear: record.eraYear,
         weight: (record.narrativeStyle as Record<string, unknown> | undefined)?.eraNarrativeWeight as string | undefined ||
-          narrativeWeightMap[record.narrativeStyleId] as string | undefined || undefined,
-        prep: record.historianPrep as string,
+          narrativeWeightMap[record.narrativeStyleId] || undefined,
+        prep: record.historianPrep,
       });
     }
 
@@ -784,13 +784,13 @@ export default function EraNarrativeModal({
         .filter((r) => r.status === "complete" && r.threadSynthesis?.thesis)
         .sort((a, b) => b.updatedAt - a.updatedAt);
       if (completedPrev.length > 0) {
-        prevThesis = completedPrev[0].threadSynthesis!.thesis;
+        prevThesis = completedPrev[0].threadSynthesis.thesis;
       }
     }
 
     const worldContext = focalEraInfo
       ? {
-          focalEra: toSummary(focalEraInfo)!,
+          focalEra: toSummary(focalEraInfo),
           previousEra: toSummary(previousEraInfo),
           nextEra: toSummary(nextEraInfo),
           previousEraThesis: prevThesis,
@@ -815,13 +815,13 @@ export default function EraNarrativeModal({
   const handleStart = useCallback(async () => {
     if (!selectedEra) return;
     const config = await buildConfig();
-    if (config) startNarrative(config);
+    if (config) void startNarrative(config);
   }, [selectedEra, buildConfig, startNarrative]);
 
   const handleStartHeadless = useCallback(async () => {
     if (!selectedEra) return;
     const config = await buildConfig();
-    if (config) startHeadless(config);
+    if (config) void startHeadless(config);
   }, [selectedEra, buildConfig, startHeadless]);
 
   const handleResume = useCallback(
@@ -893,7 +893,7 @@ export default function EraNarrativeModal({
   // Auto-resume from store when modal re-mounts with a stored narrativeId
   useEffect(() => {
     if (isOpen && resumeNarrativeId && !isActive && !narrative) {
-      resumeNarrative(resumeNarrativeId);
+      void resumeNarrative(resumeNarrativeId);
     }
   }, [isOpen, resumeNarrativeId, isActive, narrative, resumeNarrative]);
 
@@ -962,7 +962,7 @@ export default function EraNarrativeModal({
 
   const handleRerunCopyEdit = () => {
     setSelectedVersionId("");
-    rerunCopyEdit();
+    void rerunCopyEdit();
   };
 
   return (
@@ -1066,7 +1066,7 @@ export default function EraNarrativeModal({
           {/* Complete */}
           {isComplete && (
             <CompleteSection
-              narrative={narrative!}
+              narrative={narrative}
               resolved={resolved}
               selectedVersionId={selectedVersionId}
               onSelectVersion={setSelectedVersionId}
@@ -1093,24 +1093,24 @@ export default function EraNarrativeModal({
               )}
 
               {showThreadReview && (
-                <button onClick={advanceStep} className="illuminator-button era-narr-footer-primary-btn">
+                <button onClick={() => void advanceStep()} className="illuminator-button era-narr-footer-primary-btn">
                   Generate Narrative
                 </button>
               )}
 
               {showNarrativeReview && (
                 <>
-                  <button onClick={skipEdit} className="illuminator-button">
+                  <button onClick={() => void skipEdit()} className="illuminator-button">
                     Skip Edit
                   </button>
-                  <button onClick={advanceStep} className="illuminator-button era-narr-footer-primary-btn">
+                  <button onClick={() => void advanceStep()} className="illuminator-button era-narr-footer-primary-btn">
                     Copy Edit
                   </button>
                 </>
               )}
 
               {showEditReview && (
-                <button onClick={advanceStep} className="illuminator-button era-narr-footer-primary-btn">
+                <button onClick={() => void advanceStep()} className="illuminator-button era-narr-footer-primary-btn">
                   Finish
                 </button>
               )}

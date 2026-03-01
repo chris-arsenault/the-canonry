@@ -128,7 +128,9 @@ export default function HistorianEditionComparison({
 
   const wordDelta = compare ? selected.wordCount - compare.wordCount : 0;
   const deltaSign = wordDelta >= 0 ? "+" : "";
-  const deltaColor = wordDelta < 0 ? "#22c55e" : wordDelta > 0 ? "#f59e0b" : "var(--text-muted)";
+  let deltaColor = "var(--text-muted)";
+  if (wordDelta < 0) deltaColor = "#22c55e";
+  else if (wordDelta > 0) deltaColor = "#f59e0b";
 
   return (
     <div className="hec-wrapper">

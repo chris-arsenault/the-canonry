@@ -25,7 +25,7 @@ export function generateSlug(title: string): string {
 export function extractEntityLinks(content: string): string[] {
   const regex = /\[\[([^\]]+)\]\]/g; // eslint-disable-line sonarjs/slow-regex -- character-class bounded, no backtracking
   const matches: string[] = [];
-  let match;
+  let match: RegExpExecArray | null;
 
   while ((match = regex.exec(content)) !== null) {
     const entityName = match[1].trim();

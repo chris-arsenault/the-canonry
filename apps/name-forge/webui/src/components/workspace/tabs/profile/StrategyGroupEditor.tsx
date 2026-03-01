@@ -87,7 +87,7 @@ function ConditionsPanel({
   tagRegistry,
   onConditionChange,
   onAddTag,
-}: ConditionsPanelProps) {
+}: Readonly<ConditionsPanelProps>) {
   const entityKindsSelected = useMemo(
     () => group.conditions?.entityKinds || EMPTY_ENTITY_KINDS,
     [group.conditions?.entityKinds],
@@ -229,7 +229,7 @@ function StrategyCard({
   setEditedProfile,
   onDeleteStrategy,
   onWeightChange,
-}: StrategyCardProps) {
+}: Readonly<StrategyCardProps>) {
   const handleDelete = useCallback(
     () => onDeleteStrategy(groupIdx, stratIdx),
     [groupIdx, stratIdx, onDeleteStrategy],
@@ -340,7 +340,7 @@ export default function StrategyGroupEditor({
   onWeightChange,
   onConditionChange,
   onAddTag,
-}: StrategyGroupEditorProps) {
+}: Readonly<StrategyGroupEditorProps>) {
   const groupTotalWeight = group.strategies.reduce((sum, s) => sum + s.weight, 0);
   const hasConditions = !!group.conditions;
 

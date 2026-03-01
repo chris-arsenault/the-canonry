@@ -9,7 +9,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { getSizeOptions, getQualityOptions } from "../lib/imageSettings";
-import { DEFAULT_RANDOM_EXCLUSIONS, filterStylesForComposition, filterCompositionsForStyle } from "@canonry/world-schema";
+import { DEFAULT_RANDOM_EXCLUSIONS, filterStylesForComposition, filterCompositionsForStyle, type ArtisticStyle, type CompositionStyle } from "@canonry/world-schema";
 import type { ImageGenSettings } from "../hooks/useImageGenSettings";
 import "./ImageSettingsDrawer.css";
 
@@ -313,13 +313,13 @@ export default function ImageSettingsDrawer({
   const artisticPoolInfo = useMemo(() => {
     if (!styleLibrary || isSpecialComposition) return undefined;
     const total = styleLibrary.artisticStyles.length;
-    const filtered = filterStylesForComposition(styleLibrary.artisticStyles as any, settings.compositionStyleId, DEFAULT_RANDOM_EXCLUSIONS, styleLibrary.compositionStyles as any);
+    const filtered = filterStylesForComposition(styleLibrary.artisticStyles, settings.compositionStyleId, DEFAULT_RANDOM_EXCLUSIONS, styleLibrary.compositionStyles);
     return filtered.length < total ? `(${filtered.length}/${total})` : undefined;
   }, [styleLibrary, settings.compositionStyleId, isSpecialComposition]);
   const compositionPoolInfo = useMemo(() => {
     if (!styleLibrary || isSpecialArtistic) return undefined;
     const total = styleLibrary.compositionStyles.length;
-    const filtered = filterCompositionsForStyle(styleLibrary.compositionStyles as any, settings.artisticStyleId, DEFAULT_RANDOM_EXCLUSIONS, styleLibrary.artisticStyles as any);
+    const filtered = filterCompositionsForStyle(styleLibrary.compositionStyles, settings.artisticStyleId, DEFAULT_RANDOM_EXCLUSIONS, styleLibrary.artisticStyles);
     return filtered.length < total ? `(${filtered.length}/${total})` : undefined;
   }, [styleLibrary, settings.artisticStyleId, isSpecialArtistic]);
   if (!isOpen) return null;

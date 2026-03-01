@@ -23,7 +23,7 @@ interface MigrationState {
 function getState(): MigrationState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    return raw ? JSON.parse(raw) as MigrationState : {};
   } catch {
     return {};
   }
@@ -135,13 +135,13 @@ async function migrateImages(): Promise<void> {
   }
 
   try {
-    const records = await readAllFromStore<any>(idb, "images");
+    const records = await readAllFromStore<Record<string, unknown>>(idb, "images");
     if (records.length > 0) {
       // Split into metadata (no blob) and blob records for v3 schema
-      const metadataRecords = records.map(({ blob, ...rest }: any) => rest);
+      const metadataRecords = records.map(({ blob: _blob, ...rest }) => rest);
       const blobRecords = records
-        .filter((r: any) => r.blob)
-        .map((r: any) => ({ imageId: r.imageId, blob: r.blob }));
+        .filter((r) => r.blob)
+        .map((r) => ({ imageId: r.imageId as string, blob: r.blob as Blob }));
 
       await db.transaction("rw", [db.images, db.imageBlobs], async () => {
         await db.images.bulkPut(metadataRecords);

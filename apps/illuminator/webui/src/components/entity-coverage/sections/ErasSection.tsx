@@ -34,7 +34,7 @@ export function ErasSection({
   eraEntityCounts,
   eraEventCounts,
   expanded,
-}: ErasSectionProps): React.ReactElement | number {
+}: Readonly<ErasSectionProps>): React.ReactElement {
   const [sort, onSort] = useColumnSort("chronicles");
   const [uncoveredOnly, setUncoveredOnly] = useState(false);
 
@@ -83,7 +83,7 @@ export function ErasSection({
     [rows],
   );
 
-  if (!expanded) return underutilCount;
+  if (!expanded) return <>{underutilCount}</>;
 
   return (
     <div>

@@ -57,7 +57,7 @@ const ANNOTATION_TONES: HistorianTone[] = [
 // BackportLoreButton
 // ---------------------------------------------------------------------------
 
-function BackportLoreButton({ item, onBackportLore, isGenerating }: BackportLoreButtonProps) {
+function BackportLoreButton({ item, onBackportLore, isGenerating }: Readonly<BackportLoreButtonProps>) {
   const { done, total } = useMemo(() => computeBackportProgress(item), [item]);
 
   const allDone = done > 0 && done === total;
@@ -106,14 +106,16 @@ interface ToneRankingDisplayProps {
   rationale?: string;
 }
 
-function ToneRankingDisplay({ ranking, rationales, rationale }: ToneRankingDisplayProps) {
+function ToneRankingDisplay({ ranking, rationales, rationale }: Readonly<ToneRankingDisplayProps>) {
   return (
     <div className="htab-tone-ranking">
       Ranked:{" "}
       {ranking.map((tone, i) => {
         const meta = TONE_META[tone] as ToneMeta | undefined;
         const perTone = rationales?.[tone];
-        const opacityValue = i === 0 ? 1 : i === 1 ? 0.6 : 0.4;
+        let opacityValue = 0.4;
+        if (i === 0) opacityValue = 1;
+        else if (i === 1) opacityValue = 0.6;
         return (
           <span
             key={tone}
@@ -148,7 +150,7 @@ function ToneAssignmentSection({
   isGenerating,
   onSetAssignedTone,
   onDetectTone,
-}: ToneAssignmentSectionProps) {
+}: Readonly<ToneAssignmentSectionProps>) {
   return (
     <div className="ilu-section viewer-section htab-section-spacing">
       <div className="htab-tone-header">
@@ -208,7 +210,7 @@ function AnnotateSection({
   isGenerating,
   isHistorianActive,
   onHistorianReview,
-}: AnnotateSectionProps) {
+}: Readonly<AnnotateSectionProps>) {
   const handleSelectTone = useCallback(
     (tone: HistorianTone) => onHistorianReview(tone),
     [onHistorianReview],
@@ -270,7 +272,7 @@ interface HistorianPrepSectionProps {
   onGeneratePrep: () => void;
 }
 
-function HistorianPrepSection({ item, isGenerating, onGeneratePrep }: HistorianPrepSectionProps) {
+function HistorianPrepSection({ item, isGenerating, onGeneratePrep }: Readonly<HistorianPrepSectionProps>) {
   return (
     <div className="ilu-section viewer-section htab-section-spacing">
       <div className="viewer-section-title htab-section-title-local htab-section-title-mb8">
@@ -293,7 +295,7 @@ function HistorianPrepSection({ item, isGenerating, onGeneratePrep }: HistorianP
         >
           {item.historianPrep ? "Regenerate Prep Brief" : "Generate Prep Brief"}
         </button>
-        {item.historianPrepGeneratedAt && (
+        {Boolean(item.historianPrepGeneratedAt) && (
           <span
             className="htab-prep-date"
             title={`Generated ${new Date(item.historianPrepGeneratedAt).toLocaleString()}`}
@@ -321,7 +323,7 @@ export default function HistorianTab({
   onUpdateHistorianNote,
   onBackportLore,
   onGeneratePrep,
-}: HistorianTabProps) {
+}: Readonly<HistorianTabProps>) {
   const handleUpdateNote = useCallback(
     (noteId: string, updates: Record<string, unknown>) => {
       onUpdateHistorianNote?.("chronicle", item.chronicleId, noteId, updates);

@@ -129,7 +129,7 @@ export const motifVariationTask = {
 
     let payload: MotifVariationPayload | MotifWeavePayload;
     try {
-      payload = JSON.parse(task.prompt);
+      payload = JSON.parse(task.prompt) as typeof payload;
     } catch {
       return { success: false, error: "Invalid motif variation payload" };
     }
@@ -167,7 +167,7 @@ export const motifVariationTask = {
 
     let variants: MotifVariationResult[];
     try {
-      variants = JSON.parse(jsonText);
+      variants = JSON.parse(jsonText) as MotifVariationResult[];
     } catch {
       return {
         success: false,

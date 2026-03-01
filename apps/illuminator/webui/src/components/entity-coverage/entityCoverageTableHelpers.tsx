@@ -29,14 +29,15 @@ export function useColumnSort(
 // SortableTh
 // ---------------------------------------------------------------------------
 
-export function SortableTh({ children, sortKey, sort, onSort, right }: SortableThProps) {
+export function SortableTh({ children, sortKey, sort, onSort, right }: Readonly<SortableThProps>) {
   const isActive = sort.col === sortKey;
   const cls =
     [isActive && "ec-active", right && "ec-right"].filter(Boolean).join(" ") || undefined;
 
   const handleClick = useCallback(() => onSort(sortKey), [onSort, sortKey]);
 
-  const arrow = isActive ? (sort.desc ? " \u25BE" : " \u25B4") : "";
+  let arrow = "";
+  if (isActive) arrow = sort.desc ? " \u25BE" : " \u25B4";
 
   return (
     <th className={cls} onClick={handleClick}>
@@ -50,7 +51,7 @@ export function SortableTh({ children, sortKey, sort, onSort, right }: SortableT
 // StaticTh
 // ---------------------------------------------------------------------------
 
-export function StaticTh({ children, right }: StaticThProps) {
+export function StaticTh({ children, right }: Readonly<StaticThProps>) {
   const cls = ["ec-no-sort", right && "ec-right"].filter(Boolean).join(" ");
   return <th className={cls}>{children}</th>;
 }
@@ -59,7 +60,7 @@ export function StaticTh({ children, right }: StaticThProps) {
 // EmptyRow
 // ---------------------------------------------------------------------------
 
-export function EmptyRow({ colSpan, text }: EmptyRowProps) {
+export function EmptyRow({ colSpan, text }: Readonly<EmptyRowProps>) {
   return (
     <tr className="ec-empty">
       <td colSpan={colSpan}>{text}</td>

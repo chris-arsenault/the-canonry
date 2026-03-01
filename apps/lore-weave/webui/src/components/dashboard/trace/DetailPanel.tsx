@@ -33,7 +33,7 @@ interface DiscreteRowProps {
   index: number;
 }
 
-function DiscreteRow({ mod, index }: DiscreteRowProps) {
+function DiscreteRow({ mod, index }: Readonly<DiscreteRowProps>) {
   const sourceType = mod.source?.type ?? "unknown";
   const sourceId =
     mod.source?.templateId ??
@@ -64,7 +64,7 @@ interface FeedbackSectionProps {
   breakdown: PressureBreakdown;
 }
 
-function FeedbackSection({ breakdown }: FeedbackSectionProps) {
+function FeedbackSection({ breakdown }: Readonly<FeedbackSectionProps>) {
   return (
     <div className="lw-trace-view-detail-breakdown">
       <div className="lw-trace-view-detail-sub-header">Feedback</div>
@@ -134,7 +134,7 @@ interface PressureCardProps {
   info: TickBreakdownInfo;
 }
 
-function PressureCard({ id, colorIndex, info }: PressureCardProps) {
+function PressureCard({ id, colorIndex, info }: Readonly<PressureCardProps>) {
   const { name, value, previousValue, breakdown, discreteModifications } = info;
   const delta = value - previousValue;
   const hasDiscrete = discreteModifications.length > 0;
@@ -188,7 +188,7 @@ export default function DetailPanel({
   breakdownsByTick,
   pressureIds,
   onUnlock,
-}: DetailPanelProps) {
+}: Readonly<DetailPanelProps>) {
   const displayTick = lockedTick ?? selectedTick;
   const isLocked = lockedTick !== null;
 

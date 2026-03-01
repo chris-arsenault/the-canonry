@@ -112,7 +112,7 @@ export default function RelationshipEditor({ project, onSave }) {
       </div>
 
       {filteredRels.length === 0 ? (
-        <div className="cosmo-empty-state re-empty-state">
+        <div className="cosmo-empty-state">
           {relationships.length === 0
             ? "No relationships yet. Create one to connect entities."
             : "No relationships match the filter."}
@@ -159,7 +159,7 @@ export default function RelationshipEditor({ project, onSave }) {
       {/* Add Relationship Modal */}
       {showModal && (
         <div className="cosmo-modal" onClick={() => setShowModal(false)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
-          <div className="cosmo-modal-content re-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+          <div className="cosmo-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
             <div className="cosmo-modal-title">Add Relationship</div>
 
             <div className="cosmo-form-group">

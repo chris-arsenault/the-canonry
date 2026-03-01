@@ -306,7 +306,7 @@ export default function ProminenceTimeline({
         {hoveredPoint && (
           <div
             className={styles.tooltip}
-            // eslint-disable-next-line local/no-inline-styles -- dynamic position from mouse event
+             
             style={
               {
                 "--tooltip-left": `${hoveredPoint.x + 10}px`,

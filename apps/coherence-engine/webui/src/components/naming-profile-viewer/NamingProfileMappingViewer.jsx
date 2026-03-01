@@ -169,7 +169,7 @@ export default function NamingProfileMappingViewer({ generators = [], schema = {
                     </td>
                     <td className="naming-profile-table-cell">
                       <div className="naming-profile-culture-cell">
-                        {/* eslint-disable-next-line local/no-inline-styles -- dynamic culture color */}
+                        { }
                         <span
                           className="naming-profile-culture-dot"
                           style={{ '--npm-culture-color': m.cultureColor, backgroundColor: 'var(--npm-culture-color)' }}

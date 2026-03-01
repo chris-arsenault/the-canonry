@@ -106,7 +106,7 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
         const nextCache = new Map(state.cache);
         nextCache.set(chronicleId, record);
         if (nextCache.size > CACHE_LIMIT) {
-          const firstKey = nextCache.keys().next().value;
+          const firstKey = nextCache.keys().next().value as string | undefined;
           if (firstKey) nextCache.delete(firstKey);
         }
         return { cache: nextCache };
@@ -140,7 +140,7 @@ export const useChronicleStore = create<ChronicleStoreState>((set, get) => ({
         const nextCache = new Map(state.cache);
         nextCache.set(chronicleId, record);
         if (nextCache.size > CACHE_LIMIT) {
-          const firstKey = nextCache.keys().next().value;
+          const firstKey = nextCache.keys().next().value as string | undefined;
           if (firstKey && firstKey !== chronicleId) nextCache.delete(firstKey);
         }
         // If this is a new chronicle, add it to navOrder and re-sort

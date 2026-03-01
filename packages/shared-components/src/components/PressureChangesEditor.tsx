@@ -36,17 +36,17 @@ export function PressureChangesEditor({
 }: PressureChangesEditorProps) {
   const entries = Object.entries(value);
 
-  const addPressure = (pressureId) => {
+  const addPressure = (pressureId: string) => {
     if (pressureId && !(pressureId in value)) {
       onChange({ ...value, [pressureId]: 0 });
     }
   };
 
-  const updateDelta = (pressureId, delta) => {
+  const updateDelta = (pressureId: string, delta: string) => {
     onChange({ ...value, [pressureId]: parseInt(delta) || 0 });
   };
 
-  const removePressure = (pressureId) => {
+  const removePressure = (pressureId: string) => {
     const newValue = { ...value };
     delete newValue[pressureId];
     onChange(newValue);

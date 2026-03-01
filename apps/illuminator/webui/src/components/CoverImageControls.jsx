@@ -60,7 +60,7 @@ export function CoverImageControls({
         {item.coverImage && item.coverImage.status === "complete" && <div className="cic-status cic-status-complete">Complete</div>}
         {item.coverImage && item.coverImage.status === "failed" && (
           <ErrorMessage
-            message={`Failed${item.coverImage.error ? `: ${item.coverImage.error}` : ""}`}
+            message={"Failed" + (item.coverImage.error ? ": " + item.coverImage.error : "")}
             className="cic-status"
           />
         )}

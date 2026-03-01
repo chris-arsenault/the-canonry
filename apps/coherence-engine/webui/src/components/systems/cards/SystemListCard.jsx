@@ -68,7 +68,7 @@ export function SystemListCard({ system, onClick, onToggle, usageMap }) {
       </div>
 
       <div className="card-badges">
-        {/* eslint-disable-next-line local/no-inline-styles -- dynamic type color from config */}
+        { }
         <span
           className="type-badge"
           style={{ '--slc-type-bg': `${typeConfig.color}30`, '--slc-type-color': typeConfig.color, backgroundColor: 'var(--slc-type-bg)', color: 'var(--slc-type-color)' }}

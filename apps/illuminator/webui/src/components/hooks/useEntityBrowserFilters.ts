@@ -53,8 +53,8 @@ export function useEntityBrowserFilters(
     }
 
     return {
-      kinds: Array.from(kinds).sort(),
-      cultures: Array.from(cultures).sort(),
+      kinds: Array.from(kinds).sort((a, b) => a.localeCompare(b)),
+      cultures: Array.from(cultures).sort((a, b) => a.localeCompare(b)),
     };
   }, [navEntities]);
 

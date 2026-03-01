@@ -542,11 +542,11 @@ function collectNoteChanges(
   for (const m of matches) {
     if (m.context !== context || !decisions[m.id] || !m.noteId) continue;
     if (!changesBySource.has(m.sourceId)) changesBySource.set(m.sourceId, new Map());
-    const notes = changesBySource.get(m.sourceId)!;
+    const notes = changesBySource.get(m.sourceId);
     if (!notes.has(m.noteId))
       notes.set(m.noteId, { noteText: m.noteText, positions: [], variant: variants.get(m.id) });
-    if (!notes.get(m.noteId)!.positions.includes(m.position))
-      notes.get(m.noteId)!.positions.push(m.position);
+    if (!notes.get(m.noteId).positions.includes(m.position))
+      notes.get(m.noteId).positions.push(m.position);
   }
   return changesBySource;
 }
@@ -573,6 +573,25 @@ function applyNoteChange(
   return { updatedNote, count: change.positions.length };
 }
 
+function applyFieldReplacements(
+  record: { finalContent?: string; assembledContent?: string },
+  fields: Map<string, number[]>,
+  find: string,
+  replace: string
+): number {
+  let count = 0;
+  for (const [field, positions] of fields) {
+    if (field === "final" && record.finalContent) {
+      record.finalContent = applySelectiveReplace(record.finalContent, find, replace, positions);
+      count += positions.length;
+    } else if (field === "assembled" && record.assembledContent) {
+      record.assembledContent = applySelectiveReplace(record.assembledContent, find, replace, positions);
+      count += positions.length;
+    }
+  }
+  return count;
+}
+
 async function applyChronicleContent(
   matches: CorpusMatch[],
   decisions: Record<string, boolean>,
@@ -584,22 +603,14 @@ async function applyChronicleContent(
   for (const m of matches) {
     if (m.context !== "chronicleContent" || !decisions[m.id]) continue;
     if (!contentByChronicle.has(m.sourceId)) contentByChronicle.set(m.sourceId, new Map());
-    const fields = contentByChronicle.get(m.sourceId)!;
-    if (!fields.has(m.contentField!)) fields.set(m.contentField!, []);
-    fields.get(m.contentField!)!.push(m.position);
+    const fields = contentByChronicle.get(m.sourceId);
+    if (!fields.has(m.contentField)) fields.set(m.contentField, []);
+    fields.get(m.contentField).push(m.position);
   }
   for (const [chronicleId, fields] of contentByChronicle) {
     const record = await getChronicle(chronicleId);
     if (!record) continue;
-    for (const [field, positions] of fields) {
-      if (field === "final" && record.finalContent) {
-        record.finalContent = applySelectiveReplace(record.finalContent, find, replace, positions);
-        total += positions.length;
-      } else if (field === "assembled" && record.assembledContent) {
-        record.assembledContent = applySelectiveReplace(record.assembledContent, find, replace, positions);
-        total += positions.length;
-      }
-    }
+    total += applyFieldReplacements(record, fields, find, replace);
     record.updatedAt = Date.now();
     await putChronicle(record);
   }
@@ -617,7 +628,7 @@ async function applyChronicleTitles(
   for (const m of matches) {
     if (m.context !== "chronicleTitles" || !decisions[m.id]) continue;
     if (!titleByChronicle.has(m.sourceId)) titleByChronicle.set(m.sourceId, []);
-    titleByChronicle.get(m.sourceId)!.push(m.position);
+    titleByChronicle.get(m.sourceId).push(m.position);
   }
   for (const [chronicleId, positions] of titleByChronicle) {
     const record = await getChronicle(chronicleId);
@@ -695,7 +706,7 @@ async function applyEraNarrativeContent(
   for (const m of matches) {
     if (m.context !== "eraNarrativeContent" || !decisions[m.id]) continue;
     if (!changes.has(m.sourceId)) changes.set(m.sourceId, []);
-    changes.get(m.sourceId)!.push(m.position);
+    changes.get(m.sourceId).push(m.position);
   }
   for (const [narrativeId, positions] of changes) {
     const record = await getEraNarrative(narrativeId);

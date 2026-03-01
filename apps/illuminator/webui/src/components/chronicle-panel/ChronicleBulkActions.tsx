@@ -71,6 +71,25 @@ export interface ChronicleBulkActionsProps {
   onAmendBriefs: () => void;
 }
 
+function formatToneProgress(progress: ToneRankingProgress): string | null {
+  switch (progress.status) {
+    case "complete":
+      return `Ranked ${progress.processedChronicles}/${progress.totalChronicles}`;
+    case "failed":
+      return progress.error || "Failed";
+    case "cancelled":
+      return `Cancelled (${progress.processedChronicles}/${progress.totalChronicles})`;
+    default:
+      return null;
+  }
+}
+
+function formatError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return "Unknown error";
+}
+
 export function ChronicleBulkActions({
   showBulkActions,
   onToggleBulkActions,
@@ -106,7 +125,7 @@ export function ChronicleBulkActions({
   isInterleavedActive,
   onDownloadAnnotationReview,
   onAmendBriefs,
-}: ChronicleBulkActionsProps) {
+}: Readonly<ChronicleBulkActionsProps>) {
   const handleRefreshEraSummaries = useCallback(() => {
     if (!onRefreshEraSummaries) return;
     void (async () => {
@@ -114,8 +133,7 @@ export function ChronicleBulkActions({
         const count = await onRefreshEraSummaries();
         onEraSummaryRefreshResult({ success: true, count });
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        onEraSummaryRefreshResult({ success: false, error: message });
+        onEraSummaryRefreshResult({ success: false, error: formatError(err) });
       }
     })();
   }, [onRefreshEraSummaries, onEraSummaryRefreshResult]);
@@ -189,18 +207,11 @@ export function ChronicleBulkActions({
             >
               {isToneRankingActive ? "Ranking..." : "Rank Tones"}
             </button>
-            {(toneRankingProgress.status === "complete" ||
-              toneRankingProgress.status === "failed" ||
-              toneRankingProgress.status === "cancelled") && (
+            {formatToneProgress(toneRankingProgress) && (
               <div
                 className={`chron-bulk-status-text chron-bulk-status-text-${toneRankingProgress.status}`}
               >
-                {toneRankingProgress.status === "complete" &&
-                  `Ranked ${toneRankingProgress.processedChronicles}/${toneRankingProgress.totalChronicles}`}
-                {toneRankingProgress.status === "failed" &&
-                  (toneRankingProgress.error || "Failed")}
-                {toneRankingProgress.status === "cancelled" &&
-                  `Cancelled (${toneRankingProgress.processedChronicles}/${toneRankingProgress.totalChronicles})`}
+                {formatToneProgress(toneRankingProgress)}
               </div>
             )}
             <button

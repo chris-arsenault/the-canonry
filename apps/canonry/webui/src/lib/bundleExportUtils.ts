@@ -176,9 +176,9 @@ export function extractLoreDataFromEntities(worldData: WorldData | null): LoreDa
  * Async wrapper kept for caller compatibility.
  * Delegates to the synchronous extractLoreDataFromEntities.
  */
-export async function extractLoreDataWithCurrentImageRefs(
+export function extractLoreDataWithCurrentImageRefs(
   worldData: WorldData | null,
-): Promise<LoreData | null> {
+): LoreData | null {
   return extractLoreDataFromEntities(worldData);
 }
 
@@ -190,8 +190,9 @@ function stripSimulationRunId<T extends Record<string, unknown>>(
   record: T,
 ): Omit<T, "simulationRunId"> {
   if (!record || typeof record !== "object") return record;
-  const { simulationRunId: _omit, ...rest } = record;
-  return rest as Omit<T, "simulationRunId">;
+  const result = { ...record };
+  delete (result as Record<string, unknown>).simulationRunId;
+  return result as Omit<T, "simulationRunId">;
 }
 
 function mergeEntitiesWithDexie(
@@ -259,7 +260,7 @@ export async function hydrateWorldDataFromDexie({
     ]);
 
   const mergedEntities = mergeEntitiesWithDexie(
-    (worldData.hardState as WorldEntity[]) || [],
+    (worldData.hardState) || [],
     dexieEntities as WorldEntity[],
   );
   const relationships =
@@ -284,7 +285,7 @@ export async function hydrateWorldDataFromDexie({
     metadata: {
       ...(worldData.metadata || {}),
       entityCount: mergedEntities.length,
-      relationshipCount: (relationships as unknown[]).length,
+      relationshipCount: (relationships).length,
     },
   };
 }
@@ -442,7 +443,7 @@ function buildImageEntry(
   const entry: ImageEntry = {
     entityId: entity?.id || record?.entityId || "chronicle",
     entityName: entity?.name || record?.entityName || "Unknown",
-    entityKind: (entity?.kind as string) || record?.entityKind || "unknown",
+    entityKind: (entity?.kind) || record?.entityKind || "unknown",
     prompt,
     localPath,
     imageId,
@@ -576,10 +577,10 @@ export async function buildBundleImageAssets({
     : [];
   const imageById = new Map(imageRecords.map((record) => [record.imageId, record]));
   const entityById = new Map(
-    ((worldData?.hardState as WorldEntity[]) || []).map((entity) => [entity.id, entity]),
+    ((worldData?.hardState) || []).map((entity) => [entity.id, entity]),
   );
   const entityByImageId = new Map<string, WorldEntity>();
-  for (const entity of (worldData?.hardState as WorldEntity[]) || []) {
+  for (const entity of (worldData?.hardState) || []) {
     const imageId = entity?.enrichment?.image?.imageId;
     if (imageId) entityByImageId.set(imageId, entity);
   }

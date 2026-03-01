@@ -16,7 +16,7 @@ interface ToastProps {
   children: React.ReactNode;
 }
 
-function Toast({ variant, onDismiss, children }: ToastProps) {
+function Toast({ variant, onDismiss, children }: Readonly<ToastProps>) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") onDismiss();
@@ -47,7 +47,7 @@ interface EraSummaryRefreshToastProps {
   onDismiss: () => void;
 }
 
-export function EraSummaryRefreshToast({ result, onDismiss }: EraSummaryRefreshToastProps) {
+export function EraSummaryRefreshToast({ result, onDismiss }: Readonly<EraSummaryRefreshToastProps>) {
   const variant = result.success ? "success" : "error";
   let message: React.ReactNode;
 
@@ -76,7 +76,7 @@ interface TemporalCheckToastProps {
   onDismiss: () => void;
 }
 
-export function TemporalCheckToast({ result, onDismiss }: TemporalCheckToastProps) {
+export function TemporalCheckToast({ result, onDismiss }: Readonly<TemporalCheckToastProps>) {
   let message: string;
   if (result.count && result.count > 0) {
     const plural = result.count !== 1 ? "s" : "";
@@ -101,7 +101,7 @@ interface BulkSummaryToastProps {
   onDismiss: () => void;
 }
 
-export function BulkSummaryToast({ result, onDismiss }: BulkSummaryToastProps) {
+export function BulkSummaryToast({ result, onDismiss }: Readonly<BulkSummaryToastProps>) {
   let message: string;
   if (result.count && result.count > 0) {
     const plural = result.count !== 1 ? "s" : "";
@@ -126,7 +126,7 @@ interface ResetBackportToastProps {
   onDismiss: () => void;
 }
 
-export function ResetBackportToast({ result, onDismiss }: ResetBackportToastProps) {
+export function ResetBackportToast({ result, onDismiss }: Readonly<ResetBackportToastProps>) {
   const variant = result.success ? "success" : "error";
   let message: React.ReactNode;
 
@@ -154,7 +154,7 @@ interface ReconcileBackportToastProps {
   onDismiss: () => void;
 }
 
-export function ReconcileBackportToast({ result, onDismiss }: ReconcileBackportToastProps) {
+export function ReconcileBackportToast({ result, onDismiss }: Readonly<ReconcileBackportToastProps>) {
   const variant = result.success ? "success" : "error";
   let message: React.ReactNode;
 
@@ -181,7 +181,7 @@ interface TertiaryDetectToastProps {
   onDismiss: () => void;
 }
 
-export function TertiaryDetectToast({ result, onDismiss }: TertiaryDetectToastProps) {
+export function TertiaryDetectToast({ result, onDismiss }: Readonly<TertiaryDetectToastProps>) {
   if (result.running) return null;
 
   const variant = result.success ? "success" : "error";

@@ -32,6 +32,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     this.setState({ error: null });
   };
 
+  // eslint-disable-next-line sonarjs/function-return-type -- render returns error UI or children
   render(): React.ReactNode {
     if (this.state.error) {
       return (
@@ -52,7 +53,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         </div>
       ) as React.ReactNode;
     }
-    return this.props.children as React.ReactNode;
+    return this.props.children;
   }
 }
 

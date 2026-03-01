@@ -88,7 +88,7 @@ export async function saveImage(
   });
 
   await db.transaction("rw", [db.images, db.imageBlobs], async () => {
-    await db.images.put(metadataRecord as any);
+    await db.images.put(metadataRecord as Record<string, unknown>);
     await db.imageBlobs.put({ imageId, blob });
   });
 
@@ -336,8 +336,8 @@ export async function getImageFilterOptions(
   const records = await db.images.toArray();
   const values = new Set<string>();
   for (const record of records) {
-    const val = (record as any)[field];
-    if (val) values.add(val);
+    const val = record[field as keyof typeof record] as string | undefined;
+    if (typeof val === "string" && val) values.add(val);
   }
   return [...values].sort((a, b) => a.localeCompare(b));
 }

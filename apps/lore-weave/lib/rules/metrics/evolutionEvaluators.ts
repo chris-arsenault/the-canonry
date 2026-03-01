@@ -61,6 +61,12 @@ function countSharedEntities(
   return sharedCount;
 }
 
+/** Add an entry to a multi-map (Map of Sets). */
+function addToMultiMap(map: Map<string, Set<string>>, key: string, value: string): void {
+  if (!map.has(key)) map.set(key, new Set());
+  map.get(key)!.add(value);
+}
+
 /** Build an index mapping source IDs to sets of target IDs from relationship list. */
 function buildRelIndex(
   rels: readonly Relationship[],
@@ -84,11 +90,8 @@ function buildRelIndex(
       if (!target || target.kind !== kindFilter.intermediateKind) continue;
     }
 
-    if (!forward.has(sourceId)) forward.set(sourceId, new Set());
-    forward.get(sourceId)!.add(targetId);
-
-    if (!reverse.has(targetId)) reverse.set(targetId, new Set());
-    reverse.get(targetId)!.add(sourceId);
+    addToMultiMap(forward, sourceId, targetId);
+    addToMultiMap(reverse, targetId, sourceId);
   }
 
   return { forward, reverse };

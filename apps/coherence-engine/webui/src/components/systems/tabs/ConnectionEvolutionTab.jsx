@@ -7,7 +7,7 @@ import PropTypes from "prop-types";
 import { METRIC_TYPES, DIRECTIONS } from "../constants";
 import { ReferenceDropdown, NumberInput, LocalTextArea } from "../../shared";
 import TagSelector from "@the-canonry/shared-components/TagSelector";
-import "./ConnectionEvolutionTab.css";
+
 
 /**
  * RuleCard - Expandable card for rule configuration

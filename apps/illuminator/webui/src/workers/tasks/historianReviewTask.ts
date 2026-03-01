@@ -132,7 +132,7 @@ function buildSystemPrompt(
 ): string {
   const sections: string[] = [];
 
-  let mode;
+  let mode: ModeContent;
   if (targetType === "entity") {
     mode = getEntityModeContent(historianConfig.name);
   } else if (chronicleFormat === "document") {
@@ -473,6 +473,34 @@ function buildTemporalContextSection(chronicle: ChronicleContext): string | null
   return `=== TEMPORAL CONTEXT ===\n${temporalParts.join("\n\n")}`;
 }
 
+function appendChronicleCastSections(sections: string[], chronicle: ChronicleContext): void {
+  if (chronicle.cast && chronicle.cast.length > 0) {
+    const castLines = chronicle.cast.map(
+      (c) => `  - ${c.entityName} (${c.kind}) — role: ${c.role}`
+    );
+    sections.push(`=== CAST ===\n${castLines.join("\n")}`);
+  }
+  if (chronicle.castSummaries && chronicle.castSummaries.length > 0) {
+    const summaryLines = chronicle.castSummaries.map(
+      (s) => `  [${s.kind}] ${s.name}: ${s.summary}`
+    );
+    sections.push(`=== CAST DETAILS (for cross-references) ===\n${summaryLines.join("\n")}`);
+  }
+}
+
+function appendWorldFactSections(sections: string[], world: WorldContext, noteRange: { min: number; max: number }): void {
+  if (world.canonFacts && world.canonFacts.length > 0) {
+    sections.push(`=== CANON FACTS ===\n${world.canonFacts.map((f) => `- ${f}`).join("\n")}`);
+  }
+  if (world.worldDynamics && world.worldDynamics.length > 0) {
+    sections.push(`=== WORLD DYNAMICS ===\n${world.worldDynamics.map((d) => `- ${d}`).join("\n")}`);
+  }
+  if (world.factCoverageGuidance && world.factCoverageGuidance.length > 0) {
+    const factGuidanceSection = buildFactCoverageGuidanceSection(world.factCoverageGuidance, noteRange);
+    if (factGuidanceSection) sections.push(factGuidanceSection);
+  }
+}
+
 function buildChronicleUserPrompt(
   narrative: string,
   chronicle: ChronicleContext,
@@ -482,66 +510,19 @@ function buildChronicleUserPrompt(
 ): string {
   const sections: string[] = [];
 
-  // Chronicle identity
-  const identParts: string[] = [];
-  identParts.push(`Title: ${chronicle.title}`);
-  identParts.push(`Format: ${chronicle.format}`);
+  const identParts: string[] = [`Title: ${chronicle.title}`, `Format: ${chronicle.format}`];
   if (chronicle.narrativeStyleId) identParts.push(`Style: ${chronicle.narrativeStyleId}`);
   sections.push(`=== CHRONICLE ===\n${identParts.join("\n")}`);
 
-  // Cast
-  if (chronicle.cast && chronicle.cast.length > 0) {
-    const castLines = chronicle.cast.map(
-      (c) => `  - ${c.entityName} (${c.kind}) — role: ${c.role}`
-    );
-    sections.push(`=== CAST ===\n${castLines.join("\n")}`);
-  }
+  appendChronicleCastSections(sections, chronicle);
+  appendWorldFactSections(sections, world, noteRange);
 
-  // Cast summaries
-  if (chronicle.castSummaries && chronicle.castSummaries.length > 0) {
-    const summaryLines = chronicle.castSummaries.map(
-      (s) => `  [${s.kind}] ${s.name}: ${s.summary}`
-    );
-    sections.push(`=== CAST DETAILS (for cross-references) ===\n${summaryLines.join("\n")}`);
-  }
-
-  // World context
-  if (world.canonFacts && world.canonFacts.length > 0) {
-    const chronCanonFactLines = world.canonFacts.map((f) => `- ${f}`).join("\n");
-    sections.push(`=== CANON FACTS ===\n${chronCanonFactLines}`);
-  }
-  if (world.worldDynamics && world.worldDynamics.length > 0) {
-    const chronDynamicsLines = world.worldDynamics.map((d) => `- ${d}`).join("\n");
-    sections.push(`=== WORLD DYNAMICS ===\n${chronDynamicsLines}`);
-  }
-
-  // Fact coverage guidance
-  if (world.factCoverageGuidance && world.factCoverageGuidance.length > 0) {
-    const factGuidanceSection = buildFactCoverageGuidanceSection(world.factCoverageGuidance, noteRange);
-    if (factGuidanceSection) sections.push(factGuidanceSection);
-  }
-
-  // Temporal context (for chronicle reviews)
   const temporalSection = buildTemporalContextSection(chronicle);
   if (temporalSection) sections.push(temporalSection);
-    if (chronicle.temporalNarrative) {
-      temporalParts.push(
-        `Temporal Narrative (the synthesized stakes for this chronicle):\n${chronicle.temporalNarrative}`
-      );
-    }
-    if (chronicle.temporalCheckReport) {
-      temporalParts.push(
-        `Editorial Note — Temporal Alignment Analysis:\n${chronicle.temporalCheckReport}`
-      );
-    }
-    sections.push(`=== TEMPORAL CONTEXT ===\n${temporalParts.join("\n\n")}`);
-  }
 
-  // Corpus voice digest (annotation quality tracking)
   const digestSection = buildVoiceDigestSection(world.voiceDigest);
   if (digestSection) sections.push(digestSection);
 
-  // Previous notes
   if (previousNotes.length > 0) {
     const noteLines = previousNotes.map((n) => `  [${n.type}] on "${n.targetName}": "${n.text}"`);
     sections.push(
@@ -549,7 +530,6 @@ function buildChronicleUserPrompt(
     );
   }
 
-  // The text to annotate
   const isDoc = chronicle.format === "document";
   sections.push(`=== ${isDoc ? "DOCUMENT" : "NARRATIVE"} TO ANNOTATE ===\n${narrative}`);
 
@@ -579,7 +559,7 @@ function parseHistorianLLMResponse(resultText: string): { notes: HistorianNote[]
     // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
     const jsonMatch = resultText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No JSON object found");
-    parsed = JSON.parse(jsonMatch[0]);
+    parsed = JSON.parse(jsonMatch[0]) as HistorianLLMResponse;
     if (!Array.isArray(parsed.notes)) throw new Error("Missing notes array");
   } catch (err) {
     return { error: `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}` };
@@ -596,6 +576,50 @@ function parseHistorianLLMResponse(resultText: string): { notes: HistorianNote[]
   return { notes };
 }
 
+interface HistorianRunParsed {
+  historianConfig: HistorianConfig;
+  parsedContext: Record<string, unknown>;
+  previousNotes: PreviousNote[];
+  sourceText: string;
+}
+
+async function parseHistorianRunInputs(
+  runId: string,
+  run: { historianConfigJson: string; contextJson: string; previousNotesJson?: string; sourceText?: string }
+): Promise<HistorianRunParsed | { error: string }> {
+  let historianConfig: HistorianConfig;
+  try {
+    historianConfig = JSON.parse(run.historianConfigJson) as HistorianConfig;
+  } catch {
+    await updateHistorianRun(runId, { status: "failed", error: "Failed to parse historian config" });
+    return { error: "Failed to parse historian config" };
+  }
+
+  let parsedContext: Record<string, unknown>;
+  try {
+    parsedContext = JSON.parse(run.contextJson) as Record<string, unknown>;
+  } catch {
+    await updateHistorianRun(runId, { status: "failed", error: "Failed to parse context JSON" });
+    return { error: "Failed to parse context JSON" };
+  }
+
+  let previousNotes: PreviousNote[] = [];
+  try {
+    if (run.previousNotesJson) {
+      previousNotes = JSON.parse(run.previousNotesJson) as PreviousNote[];
+    }
+  } catch {
+    // Non-fatal: proceed without previous notes
+  }
+
+  if (!run.sourceText) {
+    await updateHistorianRun(runId, { status: "failed", error: "No source text to annotate" });
+    return { error: "No source text to annotate" };
+  }
+
+  return { historianConfig, parsedContext, previousNotes, sourceText: run.sourceText };
+}
+
 async function executeHistorianReviewTask(
   task: WorkerTask,
   context: TaskContext
@@ -606,56 +630,24 @@ async function executeHistorianReviewTask(
     return { success: false, error: "Text generation not configured - missing Anthropic API key" };
   }
 
-  const runId = task.chronicleId; // Repurposing chronicleId field for runId
+  const runId = task.chronicleId;
   if (!runId) {
     return { success: false, error: "runId (chronicleId) required for historian review task" };
   }
 
-  // Read current run state
   const run = await getHistorianRun(runId);
   if (!run) {
     return { success: false, error: `Historian run ${runId} not found` };
   }
 
-  // Mark as generating
   await updateHistorianRun(runId, { status: "generating" });
 
-  // Parse historian config
-  let historianConfig: HistorianConfig;
-  try {
-    historianConfig = JSON.parse(run.historianConfigJson);
-  } catch {
-    await updateHistorianRun(runId, {
-      status: "failed",
-      error: "Failed to parse historian config",
-    });
-    return { success: false, error: "Failed to parse historian config" };
+  const parsed = await parseHistorianRunInputs(runId, run);
+  if ("error" in parsed) {
+    return { success: false, error: parsed.error };
   }
 
-  // Parse context
-  let parsedContext: Record<string, unknown>;
-  try {
-    parsedContext = JSON.parse(run.contextJson);
-  } catch {
-    await updateHistorianRun(runId, { status: "failed", error: "Failed to parse context JSON" });
-    return { success: false, error: "Failed to parse context JSON" };
-  }
-
-  // Parse previous notes
-  let previousNotes: PreviousNote[] = [];
-  try {
-    if (run.previousNotesJson) {
-      previousNotes = JSON.parse(run.previousNotesJson);
-    }
-  } catch {
-    // Non-fatal: proceed without previous notes
-  }
-
-  const sourceText = run.sourceText;
-  if (!sourceText) {
-    await updateHistorianRun(runId, { status: "failed", error: "No source text to annotate" });
-    return { success: false, error: "No source text to annotate" };
-  }
+  const { historianConfig, parsedContext, previousNotes, sourceText } = parsed;
 
   const targetType = run.targetType;
   const callType = targetType === "entity" ? "historian.entityReview" : "historian.chronicleReview";

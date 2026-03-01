@@ -223,7 +223,7 @@ class IlluminatorDatabase extends Dexie {
         const imagesTable = tx.table("images");
         const blobsTable = tx.table("imageBlobs");
 
-        const allImages = await imagesTable.toArray();
+        const allImages = await imagesTable.toArray() as Array<{ imageId: string; blob?: Blob }>;
         let migrated = 0;
 
         for (const record of allImages) {
@@ -234,7 +234,7 @@ class IlluminatorDatabase extends Dexie {
         }
 
         // Clear blobs from images table
-        await imagesTable.toCollection().modify((record: any) => {
+        await imagesTable.toCollection().modify((record: Record<string, unknown>) => {
           delete record.blob;
         });
 

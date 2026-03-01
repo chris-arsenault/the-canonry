@@ -53,7 +53,7 @@ import {
 import { runTextCall } from "../../lib/llmTextCall";
 import { getCallConfig } from "./llmCallConfig";
 import { stripLeadingWrapper, parseJsonObject } from "./textParsing";
-import type { StoryNarrativeStyle, DocumentNarrativeStyle, NarrativeStyle } from "@canonry/world-schema";
+import type { NarrativeStyle } from "@canonry/world-schema";
 import type { TaskHandler, TaskContext } from "./taskTypes";
 import type { TaskResult } from "../types";
 import type { LLMTextCallResult } from "../../lib/llmTextCall";
@@ -1514,6 +1514,31 @@ function buildEraContextBlock(
     .join("\n");
 }
 
+function findAdjacentBoundaryEras(
+  sortedEras: EraTemporalInfo[],
+  focalIdx: number,
+  focalEra: EraTemporalInfo,
+  tickRange: [number, number],
+  touchedEraIds: string[]
+): Array<{ era: EraTemporalInfo; boundary: number; direction: string }> {
+  const adjacent: Array<{ era: EraTemporalInfo; boundary: number; direction: string }> = [];
+  if (focalIdx > 0) {
+    const prev = sortedEras[focalIdx - 1];
+    const boundary = focalEra.startTick;
+    if (tickRange[0] - boundary < focalEra.duration * 0.25 || touchedEraIds.includes(prev.id)) {
+      adjacent.push({ era: prev, boundary, direction: "preceding" });
+    }
+  }
+  if (focalIdx < sortedEras.length - 1) {
+    const next = sortedEras[focalIdx + 1];
+    const boundary = focalEra.endTick;
+    if (boundary - tickRange[1] < focalEra.duration * 0.25 || touchedEraIds.includes(next.id)) {
+      adjacent.push({ era: next, boundary, direction: "following" });
+    }
+  }
+  return adjacent;
+}
+
 function buildEraBoundaryBlock(temporal: ChronicleTemporalContext | undefined): string {
   if (!temporal) return "";
   const { focalEra, allEras, chronicleTickRange: tickRange, touchedEraIds, isMultiEra } = temporal;
@@ -1521,23 +1546,7 @@ function buildEraBoundaryBlock(temporal: ChronicleTemporalContext | undefined): 
 
   const sortedEras = [...allEras].sort((a, b) => a.startTick - b.startTick);
   const focalIdx = sortedEras.findIndex((e) => e.id === focalEra.id);
-  const adjacentEras: Array<{ era: EraTemporalInfo; boundary: number; direction: string }> = [];
-
-  if (focalIdx > 0) {
-    const prev = sortedEras[focalIdx - 1];
-    const boundary = focalEra.startTick;
-    if (tickRange[0] - boundary < focalEra.duration * 0.25 || touchedEraIds.includes(prev.id)) {
-      adjacentEras.push({ era: prev, boundary, direction: "preceding" });
-    }
-  }
-
-  if (focalIdx < sortedEras.length - 1) {
-    const next = sortedEras[focalIdx + 1];
-    const boundary = focalEra.endTick;
-    if (boundary - tickRange[1] < focalEra.duration * 0.25 || touchedEraIds.includes(next.id)) {
-      adjacentEras.push({ era: next, boundary, direction: "following" });
-    }
-  }
+  const adjacentEras = findAdjacentBoundaryEras(sortedEras, focalIdx, focalEra, tickRange, touchedEraIds);
 
   if (adjacentEras.length === 0 && !isMultiEra) return "";
 
@@ -1965,7 +1974,7 @@ async function lookupTitleGuidance(styleId: string | undefined): Promise<string 
   if (!styleId) return undefined;
   const library = await getStyleLibrary();
   const style = library.narrativeStyles.find((s) => s.id === styleId);
-  return style?.titleGuidance as string | undefined;
+  return style?.titleGuidance;
 }
 
 function buildTitleStyleContext(ctx: TitlePromptContext): string {
@@ -2437,7 +2446,7 @@ async function buildTitleContext(
   chronicleRecord: ChronicleRecord
 ): Promise<TitlePromptContext> {
   const format = chronicleRecord.format || "story";
-  const ns = chronicleRecord.narrativeStyle as NarrativeStyle | undefined;
+  const ns = chronicleRecord.narrativeStyle;
   const ps = chronicleRecord.perspectiveSynthesis;
   return {
     format,

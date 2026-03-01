@@ -19,6 +19,7 @@ export default {
         "Archivist content-section components must import archivist-section.css " +
         "and use shared structural classes instead of re-declaring header/icon/title/narrative styles.",
     },
+    fixable: "code",
     messages: {
       missingBaseImport:
         "This archivist component imports a component CSS file but not archivist-section.css. " +
@@ -70,6 +71,12 @@ export default {
           context.report({
             node: componentCssImportNode,
             messageId: "missingBaseImport",
+            fix(fixer) {
+              return fixer.insertTextAfter(
+                componentCssImportNode,
+                '\nimport "./archivist-section.css";',
+              );
+            },
           });
         }
       },

@@ -226,6 +226,29 @@ function formatEntityLine(e: EntityContext, kind: string): string {
   return `- ${parts.join(" | ")}`;
 }
 
+function formatEntitySectionsByKind(byKind: Map<string, EntityContext[]>): string[] {
+  const entitySections: string[] = [];
+  for (const [kind, entities] of byKind.entries()) {
+    const prominent = entities.filter(
+      (e) => e.prominence !== "marginal" && e.prominence !== "forgotten"
+    );
+    const minor = entities.filter(
+      (e) => e.prominence === "marginal" || e.prominence === "forgotten"
+    );
+
+    const lines: string[] = [];
+    if (prominent.length > 0) {
+      lines.push(...prominent.map((e) => formatEntityLine(e, kind)));
+    }
+    if (minor.length > 0) {
+      const names = minor.map((e) => e.name).join(", ");
+      lines.push(`- [${minor.length} minor]: ${names}`);
+    }
+    entitySections.push(`### ${kind} (${entities.length})\n${lines.join("\n")}`);
+  }
+  return entitySections;
+}
+
 function buildInitialContext(config: DynamicsGenerationConfig): string {
   const sections: string[] = [];
 
@@ -259,26 +282,7 @@ function buildInitialContext(config: DynamicsGenerationConfig): string {
     byKind.set(e.kind, list);
   }
 
-  // Prominent entities get full summaries; marginal/forgotten get name-only lists
-  const entitySections: string[] = [];
-  for (const [kind, entities] of byKind.entries()) {
-    const prominent = entities.filter(
-      (e) => e.prominence !== "marginal" && e.prominence !== "forgotten"
-    );
-    const minor = entities.filter(
-      (e) => e.prominence === "marginal" || e.prominence === "forgotten"
-    );
-
-    const lines: string[] = [];
-    if (prominent.length > 0) {
-      lines.push(...prominent.map((e) => formatEntityLine(e, kind)));
-    }
-    if (minor.length > 0) {
-      const names = minor.map((e) => e.name).join(", ");
-      lines.push(`- [${minor.length} minor]: ${names}`);
-    }
-    entitySections.push(`### ${kind} (${entities.length})\n${lines.join("\n")}`);
-  }
+  const entitySections = formatEntitySectionsByKind(byKind);
 
   if (entitySections.length > 0) {
     sections.push(`=== WORLD STATE: ALL ENTITIES ===\n${entitySections.join("\n\n")}`);

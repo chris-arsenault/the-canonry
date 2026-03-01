@@ -29,7 +29,6 @@ import type {
   WorldData,
   CultureIdentities,
   StyleSelection,
-  RefinementState,
   WizardEra,
   WizardEvent,
 } from "./chroniclePanelTypes";
@@ -55,7 +54,7 @@ interface Params {
   temporalCheck: (id: string) => void;
   quickCheck: (id: string) => void;
   acceptChronicle: (id: string) => Promise<unknown>;
-  cancelChronicle: (id: string) => void;
+  cancelChronicle: (id: string) => void | Promise<void>;
   restartChronicle: (id: string) => Promise<void>;
   refreshChronicle: (id: string) => Promise<void>;
   onEnqueue: (items: Array<Record<string, unknown>>) => void;
@@ -134,14 +133,6 @@ export function useChronicleGenerationCallbacks(params: Params) {
     }
     return null;
   }, [selectedItem, chronicleWorldData, worldContext, nameBank, entityGuidance, cultureIdentities, selectedNarrativeStyle]);
-
-  const refinementState = useMemo((): RefinementState | null => {
-    if (!selectedItem) return null;
-    const isRunning = (step: string) =>
-      params.nav.selectedItemId === selectedItem.chronicleId; // placeholder — real queue check is done in parent
-    // We actually need the queue, but this is simplified
-    return null; // Will be built in the parent
-  }, [selectedItem]);
 
   const handleAcceptChronicle = useCallback(async () => {
     if (!selectedItem) return;
@@ -261,7 +252,7 @@ export function useChronicleGenerationCallbacks(params: Params) {
 
   const handleSetAssignedTone = useCallback(async (chronicleId: string, tone: string) => {
     await updateChronicleAssignedTone(chronicleId, tone);
-    refreshChronicle(chronicleId);
+    void refreshChronicle(chronicleId);
   }, [refreshChronicle]);
 
   const handleDetectTone = useCallback(async (chronicleId: string, title: string) => {
@@ -290,32 +281,32 @@ export function useChronicleGenerationCallbacks(params: Params) {
       nextContext = { focalEra, allEras: availableEras, chronicleTickRange: [0, 0] as [number, number], temporalScope: "moment", isMultiEra: false, touchedEraIds: [], temporalDescription: buildTemporalDescription(focalEra, [0, 0], "moment", false, 1) };
     }
     nextContext = { ...nextContext, focalEra, allEras: availableEras, temporalDescription: buildTemporalDescription(focalEra, nextContext.chronicleTickRange, nextContext.temporalScope, nextContext.isMultiEra, nextContext.touchedEraIds?.length || 0) };
-    updateChronicleTemporalContext(selectedItem.chronicleId, nextContext).then(() => refreshChronicle(selectedItem.chronicleId));
+    void updateChronicleTemporalContext(selectedItem.chronicleId, nextContext).then(() => refreshChronicle(selectedItem.chronicleId));
   }, [selectedItem, nav.wizardEras, nav.wizardEvents, refreshChronicle, fullEntityMapRef]);
 
   const handleUpdateActiveVersion = useCallback((versionId: string) => {
     if (!selectedItem?.chronicleId || !versionId) return;
-    updateChronicleActiveVersion(selectedItem.chronicleId, versionId).then(() => refreshChronicle(selectedItem.chronicleId));
+    void updateChronicleActiveVersion(selectedItem.chronicleId, versionId).then(() => refreshChronicle(selectedItem.chronicleId));
   }, [selectedItem, refreshChronicle]);
 
   const handleDeleteVersion = useCallback((versionId: string) => {
     if (!selectedItem?.chronicleId || !versionId) return;
-    deleteChronicleVersion(selectedItem.chronicleId, versionId).then(() => refreshChronicle(selectedItem.chronicleId));
+    void deleteChronicleVersion(selectedItem.chronicleId, versionId).then(() => refreshChronicle(selectedItem.chronicleId));
   }, [selectedItem, refreshChronicle]);
 
   const handleUpdateCombineInstructions = useCallback((instructions: string) => {
     if (!selectedItem?.chronicleId) return;
-    updateChronicleCombineInstructions(selectedItem.chronicleId, instructions || undefined).then(() => refreshChronicle(selectedItem.chronicleId));
+    void updateChronicleCombineInstructions(selectedItem.chronicleId, instructions || undefined).then(() => refreshChronicle(selectedItem.chronicleId));
   }, [selectedItem, refreshChronicle]);
 
   const handleUnpublish = useCallback(() => {
     if (!selectedItem?.chronicleId) return;
-    unpublishChronicle(selectedItem.chronicleId).then(() => refreshChronicle(selectedItem.chronicleId));
+    void unpublishChronicle(selectedItem.chronicleId).then(() => refreshChronicle(selectedItem.chronicleId));
   }, [selectedItem, refreshChronicle]);
 
   const handleExport = useCallback(() => {
     if (!selectedItem) return;
-    useChronicleStore.getState().loadChronicle(selectedItem.chronicleId).then((chronicle) => {
+    void useChronicleStore.getState().loadChronicle(selectedItem.chronicleId).then((chronicle) => {
       if (chronicle) downloadChronicleExport(chronicle);
     });
   }, [selectedItem]);
@@ -350,7 +341,7 @@ export function useChronicleGenerationCallbacks(params: Params) {
     const context = buildChronicleContext(selections, chronicleWorldData, wc, narrativeStyle, wizardNameBank, proseHints, cultureIdentities?.descriptive, wizardConfig.temporalContext, wizardConfig.narrativeDirection);
     const title = deriveTitleFromRoles(wizardConfig.roleAssignments as Array<Record<string, unknown>>);
     const selectedEntityIds = (wizardConfig.roleAssignments as Array<{ entityId: string }>).map((r) => r.entityId);
-    if (wizardConfig.lens && !(selectedEntityIds as string[]).includes((wizardConfig.lens as { entityId: string }).entityId)) {
+    if (wizardConfig.lens && !(selectedEntityIds).includes((wizardConfig.lens as { entityId: string }).entityId)) {
       selectedEntityIds.push((wizardConfig.lens as { entityId: string }).entityId);
     }
     const chronicleMetadata = {
@@ -442,7 +433,7 @@ export function useChronicleGenerationCallbacks(params: Params) {
       onUpdateCombineInstructions: handleUpdateCombineInstructions,
       onUnpublish: handleUnpublish,
       onExport: handleExport,
-      onBackportLore: onBackport ? () => void onBackport(item.chronicleId) : undefined,
+      onBackportLore: onBackport ? () => { onBackport(item.chronicleId); } : undefined,
       onHistorianReview: onHistReview && histConfigured && item.status === "complete" ? (tone: string) => onHistReview(item.chronicleId, tone) : undefined,
       onSetAssignedTone: (tone: string) => handleSetAssignedTone(item.chronicleId, tone),
       onDetectTone: item.summary ? () => handleDetectTone(item.chronicleId, item.name) : undefined,

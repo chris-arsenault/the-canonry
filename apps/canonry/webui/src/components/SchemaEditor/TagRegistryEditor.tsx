@@ -14,7 +14,7 @@ import {
   useExpandSet,
 } from "@the-canonry/shared-components";
 import { ToolUsageBadges as UsageBadges } from "@the-canonry/shared-components";
-import type { SchemaUsage } from "@the-canonry/shared-components";
+
 import "./schema-editor-shared.css";
 import "./TagRegistryEditor.css";
 
@@ -98,7 +98,7 @@ const RARITIES: TagRarity[] = ["common", "uncommon", "rare", "legendary"];
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function TagIdInput({ value, onChange, allTagIds, disabled }: TagIdInputProps) {
+function TagIdInput({ value, onChange, allTagIds, disabled }: Readonly<TagIdInputProps>) {
   const [localValue, setLocalValue] = useState(value);
 
   useEffect(() => {
@@ -134,7 +134,7 @@ function TagIdInput({ value, onChange, allTagIds, disabled }: TagIdInputProps) {
 // Tag card header helpers (pure render functions)
 // ---------------------------------------------------------------------------
 
-function TagTitle({ tag }: { tag: TagEntry }) {
+function TagTitle({ tag }: Readonly<{ tag: TagEntry }>) {
   return <span className="tre-monospace">{tag.tag}</span>;
 }
 
@@ -146,7 +146,7 @@ interface TagActionsProps {
   tagUsage: TagUsageMap;
 }
 
-function TagActions({ tag, catColor, rarColor, isFramework, tagUsage }: TagActionsProps) {
+function TagActions({ tag, catColor, rarColor, isFramework, tagUsage }: Readonly<TagActionsProps>) {
   return (
     <>
       <span className="badge tre-badge-dynamic" style={{ '--tre-badge-bg': catColor.bg, '--tre-badge-color': catColor.color } as React.CSSProperties}>
@@ -200,7 +200,7 @@ function TagDetailPanel({
   onEntityKindToggle,
   onRemoveRelatedTag,
   onRemoveConflictingTag,
-}: TagDetailPanelProps) {
+}: Readonly<TagDetailPanelProps>) {
   const handleCategoryChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => onUpdateTag(tag.tag, { category: e.target.value as TagCategory }),
     [onUpdateTag, tag.tag],
@@ -465,7 +465,7 @@ interface EntityKindChipsProps {
   onToggle: (tag: TagEntry, ek: EntityKindRef, isFramework: boolean) => void;
 }
 
-function EntityKindChips({ tag, entityKinds, isFramework, onToggle }: EntityKindChipsProps) {
+function EntityKindChips({ tag, entityKinds, isFramework, onToggle }: Readonly<EntityKindChipsProps>) {
   return (
     <div>
       <div className="label tre-section-label">Applies to</div>
@@ -502,7 +502,7 @@ export default function TagRegistryEditor({
   entityKinds = [],
   onChange,
   tagUsage = {},
-}: TagRegistryEditorProps) {
+}: Readonly<TagRegistryEditorProps>) {
   const { expanded: expandedTags, toggle: toggleTag, set: setExpandedTags } = useExpandSet();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<"all" | TagCategory>("all");

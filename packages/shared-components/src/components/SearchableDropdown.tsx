@@ -43,10 +43,10 @@ export function SearchableDropdown({
 }: SearchableDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const containerRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsOpen(false);
       }
@@ -64,7 +64,7 @@ export function SearchableDropdown({
     );
   }, [items, search]);
 
-  const handleSelect = (item) => {
+  const handleSelect = (item: SearchableDropdownItem) => {
     onSelect(item.id);
     setIsOpen(false);
     setSearch('');

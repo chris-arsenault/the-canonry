@@ -13,17 +13,13 @@ interface RestartModalProps {
   onCancel: () => void;
 }
 
-export function RestartModal({ onConfirm, onCancel }: RestartModalProps) {
+export function RestartModal({ onConfirm, onCancel }: Readonly<RestartModalProps>) {
   const handleOverlayKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") onCancel();
     },
     [onCancel],
   );
-
-  const handleModalKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
-  }, []);
 
   return (
     <div
@@ -35,10 +31,9 @@ export function RestartModal({ onConfirm, onCancel }: RestartModalProps) {
     >
       <div
         className="chron-modal"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
         role="dialog"
-        tabIndex={0}
-        onKeyDown={handleModalKeyDown}
       >
         <h3 className="chron-modal-title">Restart Chronicle?</h3>
         <p className="chron-modal-body">
@@ -50,7 +45,7 @@ export function RestartModal({ onConfirm, onCancel }: RestartModalProps) {
             Cancel
           </button>
           <button
-            onClick={() => void onConfirm()}
+            onClick={() => { onConfirm(); }}
             className="chron-modal-danger-btn chron-modal-danger-btn-red"
           >
             Delete &amp; Restart
@@ -70,17 +65,13 @@ interface ResetBackportModalProps {
   onCancel: () => void;
 }
 
-export function ResetBackportModal({ onConfirm, onCancel }: ResetBackportModalProps) {
+export function ResetBackportModal({ onConfirm, onCancel }: Readonly<ResetBackportModalProps>) {
   const handleOverlayKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") onCancel();
     },
     [onCancel],
   );
-
-  const handleModalKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
-  }, []);
 
   return (
     <div
@@ -92,10 +83,9 @@ export function ResetBackportModal({ onConfirm, onCancel }: ResetBackportModalPr
     >
       <div
         className="chron-modal chron-modal-wide"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
         role="dialog"
-        tabIndex={0}
-        onKeyDown={handleModalKeyDown}
       >
         <h3 className="chron-modal-title">Reset All Backports?</h3>
         <p className="chron-modal-body-mb16">This will:</p>
@@ -113,7 +103,7 @@ export function ResetBackportModal({ onConfirm, onCancel }: ResetBackportModalPr
             Cancel
           </button>
           <button
-            onClick={() => void onConfirm()}
+            onClick={() => { onConfirm(); }}
             className="chron-modal-danger-btn chron-modal-danger-btn-amber"
           >
             Reset All

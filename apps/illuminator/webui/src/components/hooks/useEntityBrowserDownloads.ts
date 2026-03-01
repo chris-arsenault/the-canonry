@@ -21,6 +21,40 @@ function downloadJson(data: unknown, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+function extractEntityDebugEntry(
+  entity: { id: string; name: string; kind: string; summary?: string; description?: string; enrichment?: Record<string, unknown> },
+  queue: QueueItem[]
+): Record<string, unknown> | null {
+  const textEnrichment = entity.enrichment?.text as Record<string, unknown> | undefined;
+  const chainDebug = textEnrichment?.chainDebug;
+  let legacyDebug = textEnrichment?.debug;
+
+  if (!chainDebug && !legacyDebug) {
+    const qItem = queue.find(
+      (item) => item.entityId === entity.id && item.type === "description" && item.debug
+    );
+    if (qItem?.debug) legacyDebug = qItem.debug;
+  }
+
+  if (!chainDebug && !legacyDebug) return null;
+
+  const entry: Record<string, unknown> = {
+    entityId: entity.id,
+    entityName: entity.name,
+    entityKind: entity.kind,
+    timestamp: textEnrichment?.generatedAt,
+    model: textEnrichment?.model,
+    summary: entity.summary,
+    description: entity.description,
+    visualThesis: textEnrichment?.visualThesis,
+    visualTraits: textEnrichment?.visualTraits,
+    aliases: textEnrichment?.aliases,
+  };
+  if (chainDebug) entry.chainDebug = chainDebug;
+  if (legacyDebug && !chainDebug) entry.legacyDebug = legacyDebug;
+  return entry;
+}
+
 export function useEntityBrowserDownloads(
   selectedIds: Set<string>,
   queue: QueueItem[],
@@ -29,38 +63,9 @@ export function useEntityBrowserDownloads(
   const downloadSelectedDebug = useCallback(async () => {
     const ids = Array.from(selectedIds);
     const fullEntities = await useEntityStore.getState().loadEntities(ids);
-    const debugData: Record<string, unknown>[] = [];
-
-    for (const entity of fullEntities) {
-      const textEnrichment = entity.enrichment?.text;
-      const chainDebug = textEnrichment?.chainDebug;
-      let legacyDebug = textEnrichment?.debug;
-
-      if (!chainDebug && !legacyDebug) {
-        const qItem = queue.find(
-          (item) => item.entityId === entity.id && item.type === "description" && item.debug
-        );
-        if (qItem?.debug) legacyDebug = qItem.debug;
-      }
-
-      if (chainDebug || legacyDebug) {
-        const entry: Record<string, unknown> = {
-          entityId: entity.id,
-          entityName: entity.name,
-          entityKind: entity.kind,
-          timestamp: textEnrichment?.generatedAt,
-          model: textEnrichment?.model,
-          summary: entity.summary,
-          description: entity.description,
-          visualThesis: textEnrichment?.visualThesis,
-          visualTraits: textEnrichment?.visualTraits,
-          aliases: textEnrichment?.aliases,
-        };
-        if (chainDebug) entry.chainDebug = chainDebug;
-        if (legacyDebug && !chainDebug) entry.legacyDebug = legacyDebug;
-        debugData.push(entry);
-      }
-    }
+    const debugData = fullEntities
+      .map((entity) => extractEntityDebugEntry(entity, queue))
+      .filter((entry): entry is Record<string, unknown> => entry !== null);
 
     if (debugData.length === 0) {
       alert("No debug data available for selected entities.");

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import type { WorldState, LoreData, EraNarrativeLore, DiscoveryEventLore } from "../types/world.ts";
 import EraNarrative from "./EraNarrative.tsx";
 import DiscoveryStory from "./DiscoveryStory.tsx";
+import "./archivist-section.css";
 import "./TimelineControl.css";
 
 // Type for narrative history events (from world output)

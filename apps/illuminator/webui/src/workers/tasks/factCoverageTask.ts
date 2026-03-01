@@ -75,7 +75,7 @@ export const factCoverageTask = {
 
     let payload: FactCoveragePayload;
     try {
-      payload = JSON.parse(task.prompt);
+      payload = JSON.parse(task.prompt) as FactCoveragePayload;
     } catch {
       return { success: false, error: "Invalid fact coverage payload" };
     }
@@ -101,7 +101,7 @@ export const factCoverageTask = {
 
     let rawEntries: Array<{ factId: string; rating: string; evidence: string }>;
     try {
-      rawEntries = JSON.parse(jsonText);
+      rawEntries = JSON.parse(jsonText) as typeof rawEntries;
       if (!Array.isArray(rawEntries)) throw new Error("Expected array");
     } catch {
       return {

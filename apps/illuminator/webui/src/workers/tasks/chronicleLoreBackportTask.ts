@@ -88,7 +88,7 @@ function formatPerspectiveSynthesis(perspectiveSynthesisJson: string): {
   let chronicleFormat = "";
 
   try {
-    const synthesis: PerspectiveSynthesis = JSON.parse(perspectiveSynthesisJson);
+    const synthesis = JSON.parse(perspectiveSynthesisJson) as PerspectiveSynthesis;
     chronicleFormat = synthesis.chronicleFormat ?? "";
     const synthParts: string[] = [];
 

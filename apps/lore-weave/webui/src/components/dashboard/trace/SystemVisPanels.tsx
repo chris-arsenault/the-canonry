@@ -11,7 +11,7 @@ import type { SystemActionRecord, SystemIdName } from "./traceTypes";
 // Shared empty state
 // ---------------------------------------------------------------------------
 
-function VisEmpty({ icon, label, hint }: { icon: string; label: string; hint: string }) {
+function VisEmpty({ icon, label, hint }: Readonly<{ icon: string; label: string; hint: string }>) {
   return (
     <div className="vis-empty">
       <div className="vis-empty-icon">{icon}</div>
@@ -32,7 +32,7 @@ interface TickSliderProps {
   onTickChange: (tick: number) => void;
 }
 
-function TickSlider({ lockedTick, maxTick, availableVisTicks, onTickChange }: TickSliderProps) {
+function TickSlider({ lockedTick, maxTick, availableVisTicks, onTickChange }: Readonly<TickSliderProps>) {
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onTickChange(parseInt(e.target.value, 10)),
     [onTickChange]
@@ -69,7 +69,7 @@ interface SystemSelectorProps {
   onSelect: (id: string) => void;
 }
 
-function SystemSelector({ systems, activeId, onSelect }: SystemSelectorProps) {
+function SystemSelector({ systems, activeId, onSelect }: Readonly<SystemSelectorProps>) {
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => onSelect(e.target.value),
     [onSelect]
@@ -100,7 +100,7 @@ interface ActivityPanelWrapperProps {
   systemActions: SystemActionRecord[];
 }
 
-export function ActivityPanelWrapper({ systemActions }: ActivityPanelWrapperProps) {
+export function ActivityPanelWrapper({ systemActions }: Readonly<ActivityPanelWrapperProps>) {
   return (
     <div className="lw-trace-view-system-activity">
       <SystemActivityPanel systemActions={systemActions} />
@@ -140,7 +140,7 @@ export function DiffusionPanel({
   onTickChange,
   autoScaleColors,
   onAutoScaleChange,
-}: DiffusionPanelProps) {
+}: Readonly<DiffusionPanelProps>) {
   const handleCheckbox = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onAutoScaleChange(e.target.checked),
     [onAutoScaleChange]
@@ -217,7 +217,7 @@ export function ContagionPanel({
   maxTick,
   availableVisTicks,
   onTickChange,
-}: ContagionPanelProps) {
+}: Readonly<ContagionPanelProps>) {
   return (
     <div className="lw-trace-view-system-vis">
       {contagionSystems.length === 0 ? (

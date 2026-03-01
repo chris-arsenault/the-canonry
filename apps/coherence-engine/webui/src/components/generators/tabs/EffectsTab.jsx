@@ -14,7 +14,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 import PropTypes from "prop-types";
 import MutationCard, { DEFAULT_MUTATION_TYPES } from "../../shared/MutationCard";
 import { MUTATION_TYPE_OPTIONS } from "../../actions/constants";
-import "./EffectsTab.css";
+
 
 /**
  * @param {Object} props

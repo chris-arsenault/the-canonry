@@ -903,6 +903,32 @@ function renderSingleParagraph(para: IcmlParagraph): string {
 /**
  * Render a paragraph with footnotes spliced at specific character offsets.
  */
+function renderRunWithFootnotes(
+  lines: string[],
+  runText: string,
+  csAttr: string,
+  fnInRun: { localOffset: number; fnIdx: number }[],
+  allFootnotes: FootnoteInsert[]
+): void {
+  let lastPos = 0;
+  for (const { localOffset, fnIdx } of fnInRun) {
+    const fn = allFootnotes[fnIdx];
+    const beforeText = runText.slice(lastPos, localOffset);
+    const contentText = beforeText || " ";
+    lines.push(`      <CharacterStyleRange AppliedCharacterStyle="${csAttr}">`);
+    lines.push(`        <Content>${escapeXml(contentText)}</Content>`);
+    lines.push(`        ${buildFootnoteXml(fn.noteType, fn.noteText)}`);
+    lines.push(`      </CharacterStyleRange>`);
+    lastPos = localOffset;
+  }
+  const afterText = runText.slice(lastPos);
+  if (afterText) {
+    lines.push(
+      `      <CharacterStyleRange AppliedCharacterStyle="${csAttr}"><Content>${escapeXml(afterText)}</Content></CharacterStyleRange>`
+    );
+  }
+}
+
 function renderParagraphWithFootnotes(
   para: IcmlParagraph,
   fnPlacements: { charOffset: number; fnIdx: number }[],
@@ -911,21 +937,15 @@ function renderParagraphWithFootnotes(
   const lines: string[] = [];
   lines.push(`    <ParagraphStyleRange AppliedParagraphStyle="ParagraphStyle/${para.paraStyle}">`);
 
-  // Walk through runs and insert footnotes at the right character offsets
   let globalCharPos = 0;
   let fnPlacementIdx = 0;
 
   for (const run of para.runs) {
     const csAttr = run.charStyle ? `CharacterStyle/${run.charStyle}` : `CharacterStyle/${CS_NONE}`;
-
     const runEnd = globalCharPos + run.text.length;
 
-    // Check if any footnotes fall within this run
     const fnInRun: { localOffset: number; fnIdx: number }[] = [];
-    while (
-      fnPlacementIdx < fnPlacements.length &&
-      fnPlacements[fnPlacementIdx].charOffset <= runEnd
-    ) {
+    while (fnPlacementIdx < fnPlacements.length && fnPlacements[fnPlacementIdx].charOffset <= runEnd) {
       fnInRun.push({
         localOffset: fnPlacements[fnPlacementIdx].charOffset - globalCharPos,
         fnIdx: fnPlacements[fnPlacementIdx].fnIdx,
@@ -934,38 +954,11 @@ function renderParagraphWithFootnotes(
     }
 
     if (fnInRun.length === 0) {
-      // No footnotes in this run — render normally
       lines.push(
         `      <CharacterStyleRange AppliedCharacterStyle="${csAttr}"><Content>${escapeXml(run.text)}</Content></CharacterStyleRange>`
       );
     } else {
-      // Split run text at footnote positions
-      let lastPos = 0;
-      for (const { localOffset, fnIdx } of fnInRun) {
-        const fn = allFootnotes[fnIdx];
-        // Text before footnote
-        const beforeText = run.text.slice(lastPos, localOffset);
-        if (beforeText) {
-          lines.push(`      <CharacterStyleRange AppliedCharacterStyle="${csAttr}">`);
-          lines.push(`        <Content>${escapeXml(beforeText)}</Content>`);
-          lines.push(`        ${buildFootnoteXml(fn.noteType, fn.noteText)}`);
-          lines.push(`      </CharacterStyleRange>`);
-        } else {
-          // Footnote at the very start of a run — attach to previous or emit standalone
-          lines.push(`      <CharacterStyleRange AppliedCharacterStyle="${csAttr}">`);
-          lines.push(`        <Content> </Content>`);
-          lines.push(`        ${buildFootnoteXml(fn.noteType, fn.noteText)}`);
-          lines.push(`      </CharacterStyleRange>`);
-        }
-        lastPos = localOffset;
-      }
-      // Remaining text after last footnote
-      const afterText = run.text.slice(lastPos);
-      if (afterText) {
-        lines.push(
-          `      <CharacterStyleRange AppliedCharacterStyle="${csAttr}"><Content>${escapeXml(afterText)}</Content></CharacterStyleRange>`
-        );
-      }
+      renderRunWithFootnotes(lines, run.text, csAttr, fnInRun, allFootnotes);
     }
 
     globalCharPos = runEnd;
@@ -1390,25 +1383,43 @@ function classifyHistorianNotes(notes: HistorianNote[] | undefined): {
  * Collect image references from a content entry for spread placement.
  * Returns ImagePlacement[] for Rectangle elements.
  */
+function getImageExtension(img?: ImageMetadataRecord): string {
+  if (!img?.mimeType) return ".png";
+  const mime = img.mimeType;
+  if (mime.includes("jpeg") || mime.includes("jpg")) return ".jpg";
+  if (mime.includes("webp")) return ".webp";
+  return ".png";
+}
+
+function addUniqueImagePlacement(
+  placements: ImagePlacement[],
+  imgId: string,
+  imageMap: Map<string, ImageMetadataRecord>
+): void {
+  if (placements.some((p) => p.imageId === imgId)) return;
+  const ext = getImageExtension(imageMap.get(imgId));
+  placements.push({ imageId: imgId, filename: `${imgId}${ext}` });
+}
+
+function resolveInlineImageId(ref: Record<string, unknown>): string | null {
+  if (ref.type === "prompt_request" && ref.status === "complete" && ref.generatedImageId) {
+    return ref.generatedImageId as string;
+  }
+  if (ref.type === "chronicle_ref" && ref.imageId) {
+    return ref.imageId as string;
+  }
+  return null;
+}
+
 function collectEntryImages(
   entry: PersistedEntity | ChronicleRecord | EraNarrativeRecord,
   imageMap: Map<string, ImageMetadataRecord>
 ): ImagePlacement[] {
   const placements: ImagePlacement[] = [];
 
-  function getExt(img?: ImageMetadataRecord): string {
-    if (!img?.mimeType) return ".png";
-    if (img.mimeType.includes("png")) return ".png";
-    if (img.mimeType.includes("jpeg") || img.mimeType.includes("jpg")) return ".jpg";
-    if (img.mimeType.includes("webp")) return ".webp";
-    return ".png";
-  }
-
   // Entity portrait
   if ("enrichment" in entry && entry.enrichment?.image?.imageId) {
-    const imgId = entry.enrichment.image.imageId;
-    const ext = getExt(imageMap.get(imgId));
-    placements.push({ imageId: imgId, filename: `${imgId}${ext}` });
+    addUniqueImagePlacement(placements, entry.enrichment.image.imageId, imageMap);
   }
 
   // Chronicle cover image
@@ -1417,27 +1428,14 @@ function collectEntryImages(
     entry.coverImage?.generatedImageId &&
     entry.coverImage?.status === "complete"
   ) {
-    const imgId = entry.coverImage.generatedImageId;
-    const ext = getExt(imageMap.get(imgId));
-    placements.push({ imageId: imgId, filename: `${imgId}${ext}` });
+    addUniqueImagePlacement(placements, entry.coverImage.generatedImageId, imageMap);
   }
 
   // Chronicle/narrative inline image refs
   if ("imageRefs" in entry && entry.imageRefs?.refs) {
     for (const ref of entry.imageRefs.refs) {
-      if (ref.type === "prompt_request" && ref.status === "complete" && ref.generatedImageId) {
-        const imgId = ref.generatedImageId;
-        if (!placements.some((p) => p.imageId === imgId)) {
-          const ext = getExt(imageMap.get(imgId));
-          placements.push({ imageId: imgId, filename: `${imgId}${ext}` });
-        }
-      } else if (ref.type === "chronicle_ref" && ref.imageId) {
-        const imgId = ref.imageId;
-        if (!placements.some((p) => p.imageId === imgId)) {
-          const ext = getExt(imageMap.get(imgId));
-          placements.push({ imageId: imgId, filename: `${imgId}${ext}` });
-        }
-      }
+      const imgId = resolveInlineImageId(ref as Record<string, unknown>);
+      if (imgId) addUniqueImagePlacement(placements, imgId, imageMap);
     }
   }
 
@@ -1447,6 +1445,54 @@ function collectEntryImages(
 // =============================================================================
 // Master Spread Selection
 // =============================================================================
+
+interface ContentNodeResult {
+  contentParas: IcmlParagraph[];
+  footnotes: FootnoteInsert[];
+  callouts: { anchorPhrase: string; noteText: string; noteType: string }[];
+  images: ImagePlacement[];
+}
+
+function buildContentNodeParagraphs(
+  nodeType: string,
+  contentId: string,
+  contentMaps: ContentMaps,
+  imageMap: Map<string, ImageMetadataRecord>,
+  referencedImages: Map<string, ExportImageEntry>,
+  registerFn: ReturnType<typeof createImageRegistrar>
+): ContentNodeResult {
+  const empty: ContentNodeResult = { contentParas: [], footnotes: [], callouts: [], images: [] };
+
+  switch (nodeType) {
+    case "entity": {
+      const entity = contentMaps.entityMap.get(contentId);
+      if (!entity) return empty;
+      const contentParas = entityToIcmlParagraphs(entity, imageMap, referencedImages, registerFn);
+      const notes = classifyHistorianNotes(entity.enrichment?.historianNotes);
+      return { contentParas, ...notes, images: collectEntryImages(entity, imageMap) };
+    }
+    case "chronicle": {
+      const chronicle = contentMaps.chronicleMap.get(contentId);
+      if (!chronicle) return empty;
+      const contentParas = chronicleToIcmlParagraphs(chronicle, imageMap, referencedImages, registerFn);
+      const notes = classifyHistorianNotes(chronicle.historianNotes);
+      return { contentParas, ...notes, images: collectEntryImages(chronicle, imageMap) };
+    }
+    case "era_narrative": {
+      const narrative = contentMaps.narrativeMap.get(contentId);
+      if (!narrative) return empty;
+      const contentParas = eraNarrativeToIcmlParagraphs(narrative, imageMap, referencedImages, registerFn);
+      return { contentParas, footnotes: [], callouts: [], images: collectEntryImages(narrative, imageMap) };
+    }
+    case "static_page": {
+      const page = contentMaps.pageMap.get(contentId);
+      if (!page) return empty;
+      return { contentParas: staticPageToIcmlParagraphs(page), footnotes: [], callouts: [], images: [] };
+    }
+    default:
+      return empty;
+  }
+}
 
 function selectMaster(nodeType: string, contentMaps: ContentMaps, contentId?: string): MasterKey {
   if (nodeType === "chronicle" && contentId) {
@@ -1521,49 +1567,10 @@ export async function buildIdmlPackage(
     if (!node.contentId) continue;
 
     // Content entry: build paragraphs, classify notes, collect images
-    let contentParas: IcmlParagraph[] = [];
-    let footnotes: FootnoteInsert[] = [];
-    let callouts: { anchorPhrase: string; noteText: string; noteType: string }[] = [];
-    let images: ImagePlacement[] = [];
     const masterKey = selectMaster(node.type, contentMaps, node.contentId);
-
-    if (node.type === "entity") {
-      const entity = contentMaps.entityMap.get(node.contentId);
-      if (entity) {
-        contentParas = entityToIcmlParagraphs(entity, imageMap, referencedImages, registerFn);
-        const notes = classifyHistorianNotes(entity.enrichment?.historianNotes);
-        footnotes = notes.footnotes;
-        callouts = notes.callouts;
-        images = collectEntryImages(entity, imageMap);
-      }
-    } else if (node.type === "chronicle") {
-      const chronicle = contentMaps.chronicleMap.get(node.contentId);
-      if (chronicle) {
-        contentParas = chronicleToIcmlParagraphs(chronicle, imageMap, referencedImages, registerFn);
-        const notes = classifyHistorianNotes(chronicle.historianNotes);
-        footnotes = notes.footnotes;
-        callouts = notes.callouts;
-        images = collectEntryImages(chronicle, imageMap);
-      }
-    } else if (node.type === "era_narrative") {
-      const narrative = contentMaps.narrativeMap.get(node.contentId);
-      if (narrative) {
-        contentParas = eraNarrativeToIcmlParagraphs(
-          narrative,
-          imageMap,
-          referencedImages,
-          registerFn
-        );
-        // Era narratives don't have historian notes
-        images = collectEntryImages(narrative, imageMap);
-      }
-    } else if (node.type === "static_page") {
-      const page = contentMaps.pageMap.get(node.contentId);
-      if (page) {
-        contentParas = staticPageToIcmlParagraphs(page);
-        // Static pages have no images or notes
-      }
-    }
+    let { contentParas, footnotes, callouts, images } = buildContentNodeParagraphs(
+      node.type, node.contentId, contentMaps, imageMap, referencedImages, registerFn
+    );
 
     if (contentParas.length === 0) continue;
 

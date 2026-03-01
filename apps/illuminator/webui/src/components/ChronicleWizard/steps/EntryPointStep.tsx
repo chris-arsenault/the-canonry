@@ -71,7 +71,7 @@ export default function EntryPointStep({ entities, relationships, events }: Read
     if (simulationRunId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
     setUsageStats(new Map());
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
+     
     setUsageLoading(false);
   }, [simulationRunId]);
 
@@ -368,7 +368,9 @@ export default function EntryPointStep({ entities, relationships, events }: Read
                           eraNameMap.has(entity.eraId) &&
                           (() => {
                             const eraColor = eraColorMap.get(entity.eraId);
-                            const eraBgValue = isSelected ? "rgba(255,255,255,0.2)" : (eraColor ? `${eraColor}26` : undefined);
+                            let eraBgValue: string | undefined;
+                            if (isSelected) eraBgValue = "rgba(255,255,255,0.2)";
+                            else if (eraColor) eraBgValue = `${eraColor}26`;
                             const eraColorValue = isSelected ? "rgba(255,255,255,0.9)" : eraColor;
                             return (
                               <span

@@ -290,6 +290,20 @@ function processDivergence(
   return divergentCount;
 }
 
+function resolveNarration(
+  entity: HardState,
+  narrationInfo: { tag: string; type: 'convergence' | 'divergence' },
+  config: TagDiffusionConfig,
+): string | null {
+  const template = narrationInfo.type === 'convergence'
+    ? config.convergence?.narrationTemplate
+    : config.divergence?.narrationTemplate;
+  if (!template) return null;
+  const ctx = createSystemRuleContext({ self: entity });
+  const result = interpolate(template, ctx);
+  return result.complete ? result.text : null;
+}
+
 function buildTagModifications(
   modifiedTags: Map<string, Record<string, boolean | string>>,
   entityNarrations: Map<string, { tag: string; type: 'convergence' | 'divergence' }>,
@@ -302,14 +316,8 @@ function buildTagModifications(
     const entity = graphView.getEntity(entityId);
     const narrationInfo = entityNarrations.get(entityId);
     if (entity && narrationInfo) {
-      const template = narrationInfo.type === 'convergence'
-        ? config.convergence?.narrationTemplate
-        : config.divergence?.narrationTemplate;
-      if (template) {
-        const ctx = createSystemRuleContext({ self: entity });
-        const result = interpolate(template, ctx);
-        if (result.complete) narrationsByGroup[entityId] = result.text;
-      }
+      const text = resolveNarration(entity, narrationInfo, config);
+      if (text) narrationsByGroup[entityId] = text;
     }
     modifications.push({
       id: entityId,

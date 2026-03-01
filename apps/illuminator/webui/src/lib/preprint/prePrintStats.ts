@@ -76,26 +76,12 @@ function collectHistorianNotes(
   return { entity, chronicle };
 }
 
-function computeImageStats(
-  images: ImageMetadataRecord[],
-  publishedChronicles: ChronicleRecord[]
-): ImageStats {
-  const byAspect: Record<ImageAspect, number> = { portrait: 0, landscape: 0, square: 0 };
-  const byType: Record<ImageType | "cover", number> = { entity: 0, chronicle: 0, cover: 0 };
-  const bySize: Record<ChronicleImageSize, number> = {
-    small: 0,
-    medium: 0,
-    large: 0,
-    "full-width": 0,
-  };
+function computeDimensionRange(
+  images: ImageMetadataRecord[]
+): { minWidth: number; maxWidth: number; minHeight: number; maxHeight: number } | null {
   let minW = Infinity, maxW = 0, minH = Infinity, maxH = 0;
   let hasDimensions = false;
   for (const img of images) {
-    const aspect = img.aspect || "square";
-    byAspect[aspect]++;
-    const isCover = img.imageRefId === "__cover_image__";
-    const type = isCover ? "cover" : img.imageType || "entity";
-    byType[type]++;
     if (img.width && img.height) {
       hasDimensions = true;
       if (img.width < minW) minW = img.width;
@@ -104,22 +90,40 @@ function computeImageStats(
       if (img.height > maxH) maxH = img.height;
     }
   }
+  return hasDimensions ? { minWidth: minW, maxWidth: maxW, minHeight: minH, maxHeight: maxH } : null;
+}
+
+function computeImageSizeDistribution(
+  publishedChronicles: ChronicleRecord[]
+): Record<ChronicleImageSize, number> {
+  const bySize: Record<ChronicleImageSize, number> = { small: 0, medium: 0, large: 0, "full-width": 0 };
   for (const c of publishedChronicles) {
     if (!c.imageRefs?.refs) continue;
     for (const ref of c.imageRefs.refs) {
       bySize[ref.size]++;
     }
   }
-  const totalStorageBytes = images.reduce((s, img) => s + (img.size || 0), 0);
+  return bySize;
+}
+
+function computeImageStats(
+  images: ImageMetadataRecord[],
+  publishedChronicles: ChronicleRecord[]
+): ImageStats {
+  const byAspect: Record<ImageAspect, number> = { portrait: 0, landscape: 0, square: 0 };
+  const byType: Record<ImageType | "cover", number> = { entity: 0, chronicle: 0, cover: 0 };
+  for (const img of images) {
+    byAspect[img.aspect || "square"]++;
+    const type = img.imageRefId === "__cover_image__" ? "cover" : img.imageType || "entity";
+    byType[type]++;
+  }
   return {
     total: images.length,
-    totalStorageBytes,
+    totalStorageBytes: images.reduce((s, img) => s + (img.size || 0), 0),
     byAspect,
     byType,
-    bySize,
-    dimensionRange: hasDimensions
-      ? { minWidth: minW, maxWidth: maxW, minHeight: minH, maxHeight: maxH }
-      : null,
+    bySize: computeImageSizeDistribution(publishedChronicles),
+    dimensionRange: computeDimensionRange(images),
   };
 }
 
@@ -228,8 +232,8 @@ export function computePrePrintStats(
     staticPageContent: sumChars(pageTexts),
   };
 
-  const totalWords = Object.values(wordBreakdown).reduce((s, v) => s + v, 0);
-  const totalChars = Object.values(charBreakdown).reduce((s, v) => s + v, 0);
+  const totalWords = (Object.values(wordBreakdown) as number[]).reduce((s, v) => s + v, 0);
+  const totalChars = (Object.values(charBreakdown) as number[]).reduce((s, v) => s + v, 0);
   const totalEras = entities.filter((e) => e.kind === "era").length;
 
   return {

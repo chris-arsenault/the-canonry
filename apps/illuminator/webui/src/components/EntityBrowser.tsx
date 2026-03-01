@@ -14,9 +14,9 @@ import { useEntityCrud, reloadEntities } from "../hooks/useEntityCrud";
 import { useHistorianActions } from "../hooks/useHistorianActions";
 import { convertLongEditionsToLegacy } from "../lib/db/entityRepository";
 import { useIlluminatorModals } from "../lib/db/modalStore";
-import { getEnqueue, getCancel } from "../lib/db/enrichmentQueueBridge";
+
 import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
-import { prominenceLabelFromScale, prominenceThresholdFromScale } from "@canonry/world-schema";
+import { prominenceThresholdFromScale } from "@canonry/world-schema";
 import type { ProminenceScale } from "@canonry/world-schema";
 import DescriptionMotifWeaver from "./DescriptionMotifWeaver";
 import ImageModal from "./ImageModal";
@@ -216,7 +216,7 @@ export default function EntityBrowser({
 
   const handleImageSelected = useCallback(
     (imageId: string, imageMetadata: Record<string, unknown>) => {
-      if (imagePickerEntity) handleAssignImage(imagePickerEntity.id, imageId, imageMetadata);
+      if (imagePickerEntity) void handleAssignImage(imagePickerEntity.id, imageId, imageMetadata);
       setImagePickerEntity(null);
     },
     [imagePickerEntity, handleAssignImage]
@@ -243,7 +243,7 @@ export default function EntityBrowser({
       return;
     }
     if (resolvedEntity) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external store cache into local state for detail view
+       
       setSelectedEntity(resolvedEntity);
     } else {
       void useEntityStore
@@ -493,8 +493,8 @@ export default function EntityBrowser({
                       }
                       onImageClick={openImageModal}
                       onEntityClick={() => openEntityModal(nav)}
-                      onEditEntity={handleEditEntity}
-                      onDeleteEntity={handleDeleteEntity}
+                      onEditEntity={(...args: Parameters<typeof handleEditEntity>) => void handleEditEntity(...args)}
+                      onDeleteEntity={(...args: Parameters<typeof handleDeleteEntity>) => void handleDeleteEntity(...args)}
                       descCost={getNavItemCostDisplay(nav, "description", descStatus)}
                       imgCost={getNavItemCostDisplay(nav, "image", imgStatus)}
                       prominenceScale={prominenceScale}

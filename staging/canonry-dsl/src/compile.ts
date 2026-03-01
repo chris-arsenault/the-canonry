@@ -1,5 +1,5 @@
 /* eslint-disable sonarjs/cognitive-complexity */
-import { parseCanon } from './parser.js';
+import { parseCanon } from './parser';
 import type {
   AstFile,
   BlockNode,
@@ -13,7 +13,7 @@ import type {
   CallValue,
   CompileResult,
   StaticPagesCompileResult
-} from './types.js';
+} from './types';
 
 interface SourceFile {
   path: string;

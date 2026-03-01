@@ -17,7 +17,7 @@ import CohesionReportViewer from "./CohesionReportViewer";
 import ImageModal from "./ImageModal";
 import ChronicleWorkspace from "./chronicle-workspace/ChronicleWorkspace";
 import ChronicleVersionSelector from "./chronicle-workspace/ChronicleVersionSelector";
-import type { ChronicleRecord, ChronicleRoleAssignment } from "../lib/chronicleTypes";
+import type { ChronicleRecord } from "../lib/chronicleTypes";
 import type {
   StyleSelection,
   RefinementState,
@@ -155,7 +155,7 @@ type ChronicleReviewPanelProps = WorkspaceRouteProps & {
 // PerspectiveSynthesisViewer (kept for validation_ready)
 // ============================================================================
 
-function PerspectiveSynthesisViewer({ synthesis }: PerspectiveSynthesisViewerProps) {
+function PerspectiveSynthesisViewer({ synthesis }: Readonly<PerspectiveSynthesisViewerProps>) {
   const { expanded, headerProps } = useExpandBoolean();
   const [activeTab, setActiveTab] = useState<"output" | "input">("output");
 
@@ -251,7 +251,7 @@ function AssembledContentViewer({
   onCopy,
   compareContent,
   compareLabel,
-}: AssembledContentViewerProps) {
+}: Readonly<AssembledContentViewerProps>) {
   const diffParts = useMemo<Change[] | null>(() => {
     if (!compareContent) return null;
     return diffWords(compareContent, content);
@@ -466,7 +466,7 @@ function PreviewSection({
   onSelectCompareVersion,
   onSetActiveVersion,
   onDeleteVersion,
-}: PreviewSectionProps) {
+}: Readonly<PreviewSectionProps>) {
   const wordCountFn = useCallback(
     (text: string) => text?.split(/\s+/).filter(Boolean).length ?? 0,
     [],
@@ -486,7 +486,7 @@ function PreviewSection({
   );
 
   const handleCopy = useCallback(() => {
-    copyToClipboard(selectedVersion?.content ?? item.assembledContent ?? "");
+    void copyToClipboard(selectedVersion?.content ?? item.assembledContent ?? "");
   }, [copyToClipboard, selectedVersion, item.assembledContent]);
 
   if (!item.assembledContent) return null;
@@ -545,7 +545,7 @@ function ValidationReadyView({
   cultures,
   cultureIdentities,
   worldContext,
-}: ValidationReadyViewProps) {
+}: Readonly<ValidationReadyViewProps>) {
   const entityMap = useMemo(() => {
     if (!entities) return new Map<string, EntityNavItem>();
     return new Map(entities.map((e) => [e.id, e]));
@@ -591,7 +591,7 @@ function ValidationReadyView({
       entrypointName: item.entrypointId
         ? entities?.find((e) => e.id === item.entrypointId)?.name
         : undefined,
-      roleAssignments: (item.roleAssignments ?? []) as ChronicleRoleAssignment[],
+      roleAssignments: (item.roleAssignments ?? []),
       selectedEventIds: item.selectedEventIds ?? [],
       selectedRelationshipIds: item.selectedRelationshipIds ?? [],
     }),

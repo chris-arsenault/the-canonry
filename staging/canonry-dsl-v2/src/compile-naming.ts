@@ -1,17 +1,15 @@
 import type {
   BlockNode,
   Diagnostic,
-  Value,
   StatementNode,
   AttributeNode,
-} from './types.js';
+} from './types';
 
-import type { NamingResourceEntry, NamingResourceCollection } from './compile-types.js';
-import { NAMING_RESOURCE_BLOCKS } from './compile-types.js';
-import { isRecord, setObjectValue, applyLabelField, parseListTokens, mergeListFieldValue } from './compile-utils.js';
-import { valueToJson, parseResourceReferenceValue, parseResourceReferenceLabel } from './compile-variables.js';
-import { parseSetTokens, mergeSetFieldValue, applySetFieldAttribute } from './compile-sets.js';
-import { buildObjectFromStatements } from './compile-objects.js';
+import type { NamingResourceEntry, NamingResourceCollection } from './compile-types';
+import { isRecord, setObjectValue, applyLabelField, parseListTokens, mergeListFieldValue } from './compile-utils';
+import { valueToJson, parseResourceReferenceValue, parseResourceReferenceLabel } from './compile-variables';
+import { parseSetTokens, mergeSetFieldValue, applySetFieldAttribute } from './compile-sets';
+import { buildObjectFromStatements } from './compile-objects';
 
 export function normalizeForSignature(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -110,6 +108,8 @@ export function collectNamingResources(
   blocks: BlockNode[],
   diagnostics: Diagnostic[]
 ): { blocks: BlockNode[]; resources: NamingResourceCollection } {
+  throw new Error('collectNamingResources: not yet extracted from compile.ts');
+}
 
 export function applyNamingResources(
   config: Record<string, unknown>,

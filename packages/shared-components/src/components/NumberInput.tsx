@@ -54,7 +54,7 @@ export function NumberInput({
   integer = false,
   disabled = false,
   ...rest
-}: NumberInputProps) {
+}: Readonly<NumberInputProps>) {
   const externalDisplayValue = formatValue(value);
   // Internal string state for editing
   const [localValue, setLocalValue] = useState(() => externalDisplayValue);

@@ -39,7 +39,7 @@ export default function StyleStep({ styles }: Readonly<StyleStepProps>) {
     if (simulationRunId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
     setStyleUsage(new Map());
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
+     
     setUsageLoading(false);
   }, [simulationRunId]);
 

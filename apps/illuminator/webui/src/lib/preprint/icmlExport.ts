@@ -14,7 +14,7 @@ import type { ImageMetadataRecord } from "./prePrintStats";
 import type { ContentTreeState, ExportImageEntry } from "./prePrintTypes";
 import type { ContentMaps } from "./icmlContent";
 import { buildBookParagraphs } from "./icmlContent";
-import type { IcmlParagraph, ParagraphStyleDef } from "./icmlStyles";
+import type { ParagraphStyleDef } from "./icmlStyles";
 import {
   renderParagraphs,
   CHARACTER_STYLE_DEFS,

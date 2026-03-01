@@ -236,6 +236,8 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
               {lexemeSpecs.map((spec) => {
                 const hasGenerated = lexemeLists[spec.id];
                 const category = LEXEME_CATEGORIES[spec.pos];
+                let generateLabel = hasGenerated ? "Regenerate" : "Generate";
+                if (loading) generateLabel = "...";
                 return (
                   <div key={spec.id} className="spec-card">
                     <div>
@@ -272,7 +274,7 @@ function LexemesTab({ cultureId, cultureConfig, onLexemesChange, apiKey, allCult
                         onClick={() => handleGenerate(spec)}
                         disabled={loading}
                       >
-                        {loading ? "..." : (hasGenerated ? "Regenerate" : "Generate")}
+                        {generateLabel}
                       </button>
                       <button className="danger sm" onClick={() => handleDeleteSpec(spec.id)}>
                         Delete

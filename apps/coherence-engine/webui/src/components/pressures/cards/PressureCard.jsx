@@ -229,7 +229,7 @@ export function PressureCard({
         stored.feedbackType === "positive" ? "positiveFeedback" : "negativeFeedback";
       const factor = pressure.growth?.[feedbackKey]?.[stored.factorIndex];
       if (factor) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- restore persisted factor modal state
+         
         setEditingFactor({ factor, feedbackType: stored.feedbackType, index: stored.factorIndex });
       } else {
         clearStoredValue(factorModalKey);
@@ -297,7 +297,7 @@ export function PressureCard({
             </div>
             <div className="stat" title={feedbackStatus.description}>
               <span className="stat-label">Balance</span>
-              {/* eslint-disable-next-line local/no-inline-styles -- dynamic feedback color */}
+              { }
               <span
                 className="stat-value pc-balance-value"
                 style={{ '--pc-balance-color': feedbackStatus.color, color: 'var(--pc-balance-color)' }}

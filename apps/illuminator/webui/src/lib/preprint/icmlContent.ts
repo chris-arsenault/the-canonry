@@ -147,7 +147,7 @@ function buildPromptInsertions(
 
   return promptRefs
     .map((ref) => {
-      const imgId = ref.generatedImageId ?? "";
+      const imgId = typeof ref.generatedImageId === 'string' ? ref.generatedImageId : "";
       registerFn(imgId, "chronicle");
       const ext = getImageExt(imageMap.get(imgId));
       const caption = ref.caption || "";
@@ -169,7 +169,7 @@ function buildEntityRefInsertions(
   return entityRefs
     .map((ref) => {
       const caption = ref.caption || "";
-      const marker = `\n\n<!-- IMAGE: entity-portrait-${ref.entityId} | size: ${ref.size} | float: ${ref.justification || "none"} | caption: "${caption}" -->\n\n`;
+      const marker = `\n\n<!-- IMAGE: entity-portrait-${typeof ref.entityId === 'string' ? ref.entityId : ''} | size: ${ref.size} | float: ${ref.justification || "none"} | caption: "${caption}" -->\n\n`;
       return {
         insertAt: resolveInsertPosition(content, ref.anchorText, ref.anchorIndex),
         marker,
@@ -188,7 +188,7 @@ function buildChronicleRefInsertions(
 
   return chronicleRefs
     .map((ref) => {
-      const imgId = ref.imageId;
+      const imgId = typeof ref.imageId === 'string' ? ref.imageId : "";
       registerFn(imgId, "chronicle");
       const ext = getImageExt(imageMap.get(imgId));
       const caption = ref.caption || "";

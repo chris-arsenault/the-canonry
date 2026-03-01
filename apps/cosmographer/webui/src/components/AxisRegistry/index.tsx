@@ -89,7 +89,7 @@ interface AxisCardProps {
   onDelete: (axisId: string) => void;
 }
 
-function AxisCard({ axis, usage, onEdit, onDelete }: AxisCardProps) {
+function AxisCard({ axis, usage, onEdit, onDelete }: Readonly<AxisCardProps>) {
   const handleEdit = useCallback(() => onEdit(axis), [onEdit, axis]);
   const handleDelete = useCallback(() => onDelete(axis.id), [onDelete, axis.id]);
 
@@ -159,7 +159,7 @@ function AxisModal({
   onSave,
   onClose,
   onTagRegistryChange,
-}: AxisModalProps) {
+}: Readonly<AxisModalProps>) {
   const handleIdChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) =>
       onFormDataChange({ ...formData, id: e.target.value }),
@@ -202,7 +202,7 @@ function AxisModal({
 
   return (
     <div className="cosmo-modal" onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}>
-      <div className="cosmo-modal-content axr-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}>
+      <div className="cosmo-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}>
         <div className="cosmo-modal-title">
           {editingAxis ? `Edit Axis: ${editingAxis.name}` : "New Axis Definition"}
         </div>
@@ -310,7 +310,7 @@ export default function AxisRegistryEditor({
   tagRegistry,
   onAxisDefinitionsChange,
   onTagRegistryChange,
-}: AxisRegistryEditorProps) {
+}: Readonly<AxisRegistryEditorProps>) {
   const [showModal, setShowModal] = useState(false);
   const [editingAxis, setEditingAxis] = useState<AxisDefinition | null>(null);
   const [formData, setFormData] = useState<AxisFormData>(EMPTY_FORM);

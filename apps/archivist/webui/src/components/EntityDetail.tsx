@@ -19,6 +19,7 @@ import LoreSection from "./LoreSection.tsx";
 import RelationshipStoryModal from "./RelationshipStoryModal.tsx";
 import ChainLinkSection from "./ChainLinkSection.tsx";
 import DiscoveryStory from "./DiscoveryStory.tsx";
+import "./archivist-section.css";
 import "./EntityDetail.css";
 import { prominenceLabelFromScale, type ProminenceScale } from "@canonry/world-schema";
 

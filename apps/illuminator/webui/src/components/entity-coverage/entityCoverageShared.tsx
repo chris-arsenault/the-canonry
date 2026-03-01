@@ -15,7 +15,7 @@ interface ProminenceDotsProps {
   value: string | number | undefined | null;
 }
 
-export function ProminenceDots({ value }: ProminenceDotsProps) {
+export function ProminenceDots({ value }: Readonly<ProminenceDotsProps>) {
   const n = Math.min(5, Math.max(0, Math.round(Number(value) || 0)));
   const dots: React.ReactElement[] = [];
   for (let i = 0; i < 5; i++) {
@@ -45,7 +45,7 @@ interface RatioIndicatorProps {
   expected: number;
 }
 
-export function RatioIndicator({ ratio, expected }: RatioIndicatorProps) {
+export function RatioIndicator({ ratio, expected }: Readonly<RatioIndicatorProps>) {
   if (expected === 0) {
     return (
       <span className="ecp-ratio-muted" title="No backrefs expected at this prominence">
@@ -77,7 +77,7 @@ interface SignificanceStarsProps {
   value: number;
 }
 
-export function SignificanceStars({ value }: SignificanceStarsProps) {
+export function SignificanceStars({ value }: Readonly<SignificanceStarsProps>) {
   const stars = Math.max(1, Math.min(5, Math.round(value * 5)));
   return (
     <span title={`Significance: ${(value * 100).toFixed(0)}%`} className="ecp-sig-stars">
@@ -116,7 +116,7 @@ interface StatusDotProps {
   label: string;
 }
 
-export function StatusDot({ active, label }: StatusDotProps) {
+export function StatusDot({ active, label }: Readonly<StatusDotProps>) {
   return (
     <span
       title={label}
@@ -133,7 +133,7 @@ interface SectionToolbarProps {
   children: React.ReactNode;
 }
 
-export function SectionToolbar({ children }: SectionToolbarProps) {
+export function SectionToolbar({ children }: Readonly<SectionToolbarProps>) {
   return <div className="ecp-section-toolbar">{children}</div>;
 }
 
@@ -148,7 +148,7 @@ interface FilterSelectProps {
   label: string;
 }
 
-export function FilterSelect({ value, onChange, options, label }: FilterSelectProps) {
+export function FilterSelect({ value, onChange, options, label }: Readonly<FilterSelectProps>) {
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value),
     [onChange],
@@ -184,7 +184,7 @@ export function SectionHeader({
   label,
   description,
   underutilCount,
-}: SectionHeaderProps) {
+}: Readonly<SectionHeaderProps>) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") onToggle();
@@ -220,7 +220,7 @@ interface TableWrapProps {
   children: React.ReactNode;
 }
 
-export function TableWrap({ children }: TableWrapProps) {
+export function TableWrap({ children }: Readonly<TableWrapProps>) {
   return (
     <div className="entity-coverage-table">
       <table>{children}</table>

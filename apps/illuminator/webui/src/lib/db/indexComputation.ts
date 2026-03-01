@@ -15,8 +15,7 @@ import type { RunIndexRecord, EraTemporalEntry } from "./indexTypes";
 
 function resolveEntityEraId(entity: WorldEntity): string | undefined {
   if (!entity) return undefined;
-  const eraId = (entity as any).eraId;
-  if (typeof eraId === "string" && eraId) return eraId;
+  if (typeof entity.eraId === "string" && entity.eraId) return entity.eraId;
   return undefined;
 }
 
@@ -38,20 +37,21 @@ export function computeRunIndexes(
 
   // --- Era temporal info ---
   const eraEntities = entities.filter(
-    (e) => e.kind === "era" && (e as any).temporal?.startTick != null
+    (e) => e.kind === "era" && e.temporal?.startTick != null
   );
   const sortedEras = [...eraEntities].sort(
-    (a, b) => (a as any).temporal.startTick - (b as any).temporal.startTick
+    (a, b) => (a.temporal?.startTick ?? 0) - (b.temporal?.startTick ?? 0)
   );
 
   const eraTemporalInfo: EraTemporalEntry[] = sortedEras.map((era, index) => {
-    const startTick: number = (era as any).temporal.startTick;
-    const endTick: number = (era as any).temporal.endTick ?? startTick;
+    const temporal = era.temporal!;
+    const startTick: number = temporal.startTick;
+    const endTick: number = temporal.endTick ?? startTick;
     const eraId = resolveEntityEraId(era) || era.id;
     return {
       id: eraId,
       name: era.name,
-      summary: (era as any).summary || "",
+      summary: era.summary || "",
       order: index,
       startTick,
       endTick,

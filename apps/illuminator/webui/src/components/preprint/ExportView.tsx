@@ -282,11 +282,9 @@ export default function ExportView({
     return <div className="ev-empty-msg">Create a content tree first (Content Tree tab) before exporting.</div>;
   }
 
-  const exportButtonLabel = exporting
-    ? "Exporting..."
-    : exportFormat === "indesign"
-      ? "Export IDML"
-      : "Export Markdown ZIP";
+  let exportButtonLabel = "Export Markdown ZIP";
+  if (exporting) exportButtonLabel = "Exporting...";
+  else if (exportFormat === "indesign") exportButtonLabel = "Export IDML";
 
   return (
     <div className="preprint-export">

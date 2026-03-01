@@ -90,7 +90,7 @@ export const toneRankingTask = {
 
     let payload: ToneRankingPayload;
     try {
-      payload = JSON.parse(task.prompt);
+      payload = JSON.parse(task.prompt) as ToneRankingPayload;
     } catch {
       return { success: false, error: "Invalid tone ranking payload" };
     }
@@ -116,7 +116,7 @@ export const toneRankingTask = {
 
     let parsed: { ranking: string[]; rationales?: Record<string, string>; rationale?: string };
     try {
-      parsed = JSON.parse(jsonText);
+      parsed = JSON.parse(jsonText) as typeof parsed;
       if (!Array.isArray(parsed.ranking)) throw new Error("Expected ranking array");
     } catch {
       return {

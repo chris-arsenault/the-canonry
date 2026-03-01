@@ -203,7 +203,7 @@ function computeDependencies(
 /*  Grammar preview sub-component                                      */
 /* ------------------------------------------------------------------ */
 
-function GrammarPreview({ grammar, domains, lexemeLists }: GrammarPreviewProps) {
+function GrammarPreview({ grammar, domains, lexemeLists }: Readonly<GrammarPreviewProps>) {
   const [names, setNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -297,7 +297,7 @@ function SourceSelection({
   selectedCultureGrammars,
   onCultureChange,
   onGrammarChange,
-}: SourceSelectionProps) {
+}: Readonly<SourceSelectionProps>) {
   const handleCultureChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       onCultureChange(e.target.value || null);
@@ -378,7 +378,7 @@ function CopyPreview({
   cultureConfig,
   onNewGrammarIdChange,
   onToggleDep,
-}: CopyPreviewProps) {
+}: Readonly<CopyPreviewProps>) {
   const handleIdChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onNewGrammarIdChange(e.target.value),
     [onNewGrammarIdChange],
@@ -494,7 +494,7 @@ export function CopyGrammarModal({
   existingGrammarIds,
   onCopy,
   onClose,
-}: CopyGrammarModalProps) {
+}: Readonly<CopyGrammarModalProps>) {
   const [selectedCulture, setSelectedCulture] = useState<string | null>(null);
   const [selectedGrammar, setSelectedGrammar] = useState<string | null>(null);
   const [newGrammarId, setNewGrammarId] = useState("");
@@ -509,7 +509,7 @@ export function CopyGrammarModal({
         .map(([id, config]) => ({
           id,
           name: config.name || id,
-          grammars: (config.naming?.grammars || []) as GrammarRule[],
+          grammars: (config.naming?.grammars || []),
         })),
     [allCultures, cultureId],
   );
@@ -526,12 +526,12 @@ export function CopyGrammarModal({
     const sourceCulture = allCultures[selectedCulture];
     const sourceGrammar = sourceCulture?.naming?.grammars?.find(
       (g) => g.id === selectedGrammar,
-    ) as GrammarRule | undefined;
+    );
     if (!sourceGrammar) return;
 
     const targetLexemes = Object.keys(cultureConfig?.naming?.lexemeLists || {});
     const sourceLexemes = sourceCulture?.naming?.lexemeLists || {};
-    const deps = computeDependencies(sourceGrammar, sourceLexemes as Record<string, LexemeList>, targetLexemes);
+    const deps = computeDependencies(sourceGrammar, sourceLexemes, targetLexemes);
 
     setDependencies(deps);
     setSelectedDeps(new Set(deps.missing.map((d) => d.sourceId)));
@@ -619,7 +619,7 @@ export function CopyGrammarModal({
   const selectedCultureGrammars = useMemo(
     () =>
       selectedCulture
-        ? ((allCultures[selectedCulture]?.naming?.grammars || []) as GrammarRule[]).filter(
+        ? ((allCultures[selectedCulture]?.naming?.grammars || [])).filter(
             (g) => Object.keys(g.rules || {}).length > 0,
           )
         : [],

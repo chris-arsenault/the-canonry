@@ -15,6 +15,50 @@ import { getChronicle } from "../lib/db/chronicleRepository";
 import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
 import type { ChronicleNavItem } from "../lib/db/chronicleNav";
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function processOneChronicle(
+  chron: { chronicleId: string; title: string },
+  facts: unknown[],
+  cancelledRef: { current: boolean }
+): Promise<{ cost: number } | null> {
+  const record = await getChronicle(chron.chronicleId);
+  const narrativeText = record?.assembledContent || record?.finalContent;
+  if (!narrativeText) return { cost: 0 };
+
+  const payload = { chronicleId: chron.chronicleId, narrativeText, facts };
+  const primaryRole =
+    record?.roleAssignments?.find((r) => r.isPrimary) || record?.roleAssignments?.[0];
+  const syntheticEntity = {
+    id: primaryRole?.entityId || chron.chronicleId,
+    name: primaryRole?.entityName || chron.title,
+    kind: primaryRole?.entityKind || "chronicle",
+    subtype: "", prominence: "recognized", culture: "", status: "active",
+    description: "", tags: {},
+  };
+
+  const prevTimestamp = record?.factCoverageReportGeneratedAt ?? 0;
+
+  getEnqueue()([{
+    entity: syntheticEntity as never,
+    type: "factCoverage" as const,
+    prompt: JSON.stringify(payload),
+    chronicleId: chron.chronicleId,
+  }]);
+
+  while (!cancelledRef.current) {
+    await sleep(1500);
+    if (cancelledRef.current) break;
+    const updated = await getChronicle(chron.chronicleId);
+    if (updated?.factCoverageReportGeneratedAt && updated.factCoverageReportGeneratedAt > prevTimestamp) {
+      return { cost: updated.factCoverageReport?.actualCost ?? 0 };
+    }
+  }
+  return null;
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -53,10 +97,6 @@ const IDLE_PROGRESS: FactCoverageProgress = {
   totalCost: 0,
   failedChronicles: [],
 };
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
-}
 
 // ============================================================================
 // Hook
@@ -136,76 +176,11 @@ export function useFactCoverage(): UseFactCoverageReturn {
 
         for (let i = 0; i < chronicles.length; i++) {
           if (cancelledRef.current) break;
-
           const chron = chronicles[i];
-
-          setProgress((p) => ({
-            ...p,
-            currentTitle: chron.title,
-          }));
+          setProgress((p) => ({ ...p, currentTitle: chron.title }));
 
           try {
-            // Load full chronicle record
-            const record = await getChronicle(chron.chronicleId);
-            const narrativeText = record?.assembledContent || record?.finalContent;
-
-            if (!narrativeText) {
-              globalProcessed++;
-              setProgress((p) => ({ ...p, processedChronicles: globalProcessed }));
-              continue;
-            }
-
-            // Build payload
-            const payload = {
-              chronicleId: chron.chronicleId,
-              narrativeText,
-              facts,
-            };
-
-            // Create synthetic entity for queue dispatch (same pattern as temporal check)
-            const primaryRole =
-              record?.roleAssignments?.find((r) => r.isPrimary) || record?.roleAssignments?.[0];
-            const syntheticEntity = {
-              id: primaryRole?.entityId || chron.chronicleId,
-              name: primaryRole?.entityName || chron.title,
-              kind: primaryRole?.entityKind || "chronicle",
-              subtype: "",
-              prominence: "recognized",
-              culture: "",
-              status: "active",
-              description: "",
-              tags: {},
-            };
-
-            // Clear any previous report timestamp so we can detect the new one
-            const prevTimestamp = record?.factCoverageReportGeneratedAt ?? 0;
-
-            // Dispatch
-            getEnqueue()([
-              {
-                entity: syntheticEntity as never,
-                type: "factCoverage" as const,
-                prompt: JSON.stringify(payload),
-                chronicleId: chron.chronicleId,
-              },
-            ]);
-
-            // Poll for completion
-            let result: { cost: number } | null = null;
-            while (!cancelledRef.current) {
-              await sleep(1500);
-              if (cancelledRef.current) break;
-
-              const updated = await getChronicle(chron.chronicleId);
-              if (
-                updated?.factCoverageReportGeneratedAt &&
-                updated.factCoverageReportGeneratedAt > prevTimestamp
-              ) {
-                result = { cost: updated.factCoverageReport?.actualCost ?? 0 };
-                break;
-              }
-            }
-
+            const result = await processOneChronicle(chron, facts, cancelledRef);
             if (cancelledRef.current || !result) break;
             globalCost += result.cost;
           } catch (err) {

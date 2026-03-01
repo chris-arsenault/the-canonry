@@ -111,7 +111,7 @@ function ImageRefCompatibilityResults({
                 <div className="itab-compat-ref-reason">{refAnalysis.reason}</div>
               </div>
               <span className="itab-compat-badge"
-          // eslint-disable-next-line local/no-inline-styles -- dynamic color from recommendation map
+           
           style={{
             "--itab-badge-bg": `${recStyle.color}20`,
             "--itab-badge-color": recStyle.color
@@ -283,7 +283,7 @@ export default function ImagesTab({
               {item.coverImage && item.coverImage.status === "complete" && <div className="itab-cover-status itab-cover-status-complete">Complete</div>}
               {item.coverImage && item.coverImage.status === "failed" && (
                 <ErrorMessage
-                  message={`Failed${item.coverImage.error ? `: ${item.coverImage.error}` : ""}`}
+                  message={"Failed" + (item.coverImage.error ? ": " + item.coverImage.error : "")}
                   className="itab-cover-status itab-cover-status-aborted"
                 />
               )}

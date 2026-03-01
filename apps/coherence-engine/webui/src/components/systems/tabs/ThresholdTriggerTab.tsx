@@ -9,7 +9,6 @@ import {
   NumberInput,
   LocalTextArea,
   useExpandBoolean,
-  expandableProps,
 } from "../../shared";
 import VariableSelectionEditor from "../../shared/VariableSelectionEditor";
 import { ApplicabilityRuleCard } from "../../generators/applicability/ApplicabilityRuleCard";

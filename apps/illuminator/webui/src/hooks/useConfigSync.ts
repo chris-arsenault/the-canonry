@@ -89,7 +89,7 @@ function initializeEnrichmentConfig(externalConfig: EnrichmentConfig | null | un
   if (externalConfig) return normalizeEnrichmentConfig(externalConfig) || DEFAULT_CONFIG;
   try {
     const saved = localStorage.getItem("illuminator:config");
-    if (saved) return normalizeEnrichmentConfig(JSON.parse(saved)) || DEFAULT_CONFIG;
+    if (saved) return normalizeEnrichmentConfig(JSON.parse(saved) as Record<string, unknown>) || DEFAULT_CONFIG;
   } catch {
     /* ignored */
   }

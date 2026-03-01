@@ -270,6 +270,19 @@ function collectGeneratorPressureIds(
   return ids;
 }
 
+/** Check if a mutation action modifies pressure matching a predicate */
+function isMutationPressureMatch(
+  mutation: { type?: string; pressureId?: string; delta?: number },
+  deltaPredicate: (d: number) => boolean,
+): boolean {
+  return (
+    mutation?.type === "modify_pressure" &&
+    !!mutation.pressureId &&
+    mutation.delta !== undefined &&
+    deltaPredicate(mutation.delta)
+  );
+}
+
 /** Scan systems for pressure changes matching a delta predicate */
 function collectSystemPressureIds(
   systems: System[],
@@ -284,13 +297,8 @@ function collectSystemPressureIds(
       }
     }
     for (const mutation of collectMutationActions(cfg)) {
-      if (
-        mutation?.type === "modify_pressure" &&
-        mutation.pressureId &&
-        mutation.delta !== undefined &&
-        deltaPredicate(mutation.delta)
-      ) {
-        ids.add(mutation.pressureId);
+      if (isMutationPressureMatch(mutation, deltaPredicate)) {
+        ids.add(mutation.pressureId!);
       }
     }
   }
@@ -382,7 +390,7 @@ function findConflictingTagPairs(
   if (!creation.tags || typeof creation.tags !== "object") return issues;
 
   const assignedTags = Object.keys(creation.tags).filter(
-    (t) => creation.tags![t] === true,
+    (t) => creation.tags[t] === true,
   );
   for (let i = 0; i < assignedTags.length; i++) {
     for (let j = i + 1; j < assignedTags.length; j++) {
@@ -467,8 +475,8 @@ export const validationRules = {
         "These eras reference generators that do not exist. The weights will have no effect.",
       severity: "error",
       affectedItems: invalid.map((i) => ({
-        id: `${i.id}:${i.refId}`,
-        label: String(i.refId),
+        id: `${i.id}:${typeof i.refId === 'string' ? i.refId : JSON.stringify(i.refId)}`,
+        label: typeof i.refId === 'string' ? i.refId : JSON.stringify(i.refId),
         detail: i.location,
       })),
     };
@@ -489,8 +497,8 @@ export const validationRules = {
         "These eras reference systems that do not exist. The modifiers will have no effect.",
       severity: "error",
       affectedItems: invalid.map((i) => ({
-        id: `${i.id}:${i.refId}`,
-        label: String(i.refId),
+        id: `${i.id}:${typeof i.refId === 'string' ? i.refId : JSON.stringify(i.refId)}`,
+        label: typeof i.refId === 'string' ? i.refId : JSON.stringify(i.refId),
         detail: i.location,
       })),
     };
@@ -800,7 +808,7 @@ export const validationRules = {
         "These tags are referenced in generators, systems, or pressures but are not defined in the tag registry. They will still work at runtime but lack metadata like conflictingTags.",
       severity: "warning",
       affectedItems: undefinedTags.map((tag) => {
-        const usage = usageMap.tags![tag];
+        const usage = usageMap.tags[tag];
         const sources: string[] = [];
         if (usage.generators?.length)
           sources.push(`${usage.generators.length} generators`);

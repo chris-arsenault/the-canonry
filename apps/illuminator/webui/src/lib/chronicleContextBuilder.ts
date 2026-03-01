@@ -68,6 +68,7 @@ interface WorldData {
     description?: string;
     subject?: { id: string; name: string };
     object?: { id: string; name: string };
+    participants?: Array<{ id: string; name: string; kind: string; subtype?: string }>;
     stateChanges?: Array<{
       entityId: string;
       entityName: string;

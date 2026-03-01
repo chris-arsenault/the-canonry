@@ -18,12 +18,11 @@ import {
   getCompletedChroniclesForSimulation,
   getCompletedChroniclesForProject,
   importChronicles,
-  getChronicleCountForProject,
 } from "../storage/chronicleStorage";
 import { getCompletedEraNarrativesForSimulation } from "../storage/eraNarrativeStorage";
-import { importBundleImageReferences, getImageCountForProject } from "../storage/imageStorage";
-import { importEntities, getEntityCountForRun } from "../storage/entityStorage";
-import { importNarrativeEvents, getNarrativeEventCountForRun } from "../storage/eventStorage";
+import { importBundleImageReferences } from "../storage/imageStorage";
+import { importEntities } from "../storage/entityStorage";
+import { importNarrativeEvents } from "../storage/eventStorage";
 import { createS3Client, buildImageStorageConfig, syncProjectImagesToS3 } from "../aws/awsS3";
 import { useCanonryAwsStore } from "../stores/useCanonryAwsStore";
 import {
@@ -95,46 +94,54 @@ interface ParsedSlotPayload {
   images?: Record<string, string>;
 }
 
-function parseSlotImportPayload(payload: Record<string, unknown>): ParsedSlotPayload {
-  if (payload?.format === SLOT_EXPORT_FORMAT && payload?.version === SLOT_EXPORT_VERSION) {
-    const worldData = payload.worldData || payload.simulationResults;
-    if (!isWorldOutput(worldData)) {
-      throw new Error("Slot export is missing a valid world output.");
-    }
-    return {
-      worldData,
-      simulationResults: payload.simulationResults ?? worldData,
-      simulationState: payload.simulationState ?? null,
-      worldContext: payload.worldContext as unknown,
-      entityGuidance: payload.entityGuidance as unknown,
-      cultureIdentities: payload.cultureIdentities as unknown,
-      slotTitle: (payload.slot as Record<string, unknown>)?.title as string,
-      slotCreatedAt: (payload.slot as Record<string, unknown>)?.createdAt as number,
+function parseSlotExport(payload: Record<string, unknown>): ParsedSlotPayload {
+  const worldData = payload.worldData || payload.simulationResults;
+  if (!isWorldOutput(worldData)) {
+    throw new Error("Slot export is missing a valid world output.");
+  }
+  return {
+    worldData,
+    simulationResults: payload.simulationResults ?? worldData,
+    simulationState: payload.simulationState ?? null,
+    worldContext: payload.worldContext,
+    entityGuidance: payload.entityGuidance,
+    cultureIdentities: payload.cultureIdentities,
+    slotTitle: (payload.slot as Record<string, unknown>)?.title as string,
+    slotCreatedAt: (payload.slot as Record<string, unknown>)?.createdAt as number,
+  };
+}
+
+function parseViewerBundle(payload: Record<string, unknown>): ParsedSlotPayload {
+  const worldData = payload.worldData as Record<string, unknown>;
+  if (!isWorldOutput(worldData)) {
+    throw new Error("Viewer bundle is missing a valid world output.");
+  }
+  const metadata = payload.metadata as Record<string, unknown> | undefined;
+  if (!worldData?.metadata && metadata?.simulationRunId) {
+    (worldData).metadata = {
+      ...(worldData.metadata as Record<string, unknown>),
+      simulationRunId: metadata.simulationRunId,
     };
   }
+  return {
+    worldData,
+    simulationResults: worldData,
+    simulationState: null,
+    slotTitle: (payload.slot as Record<string, unknown>)?.title as string || metadata?.title as string,
+    slotCreatedAt: (payload.slot as Record<string, unknown>)?.createdAt as number,
+    chronicles: Array.isArray(payload.chronicles) ? payload.chronicles : [],
+    staticPages: Array.isArray(payload.staticPages) ? payload.staticPages : [],
+    imageData: payload.imageData ?? null,
+    images: (payload.images as Record<string, string>) ?? undefined,
+  };
+}
+
+function parseSlotImportPayload(payload: Record<string, unknown>): ParsedSlotPayload {
+  if (payload?.format === SLOT_EXPORT_FORMAT && payload?.version === SLOT_EXPORT_VERSION) {
+    return parseSlotExport(payload);
+  }
   if (payload?.format === VIEWER_BUNDLE_FORMAT && payload?.version === VIEWER_BUNDLE_VERSION) {
-    const worldData = payload.worldData as Record<string, unknown>;
-    if (!isWorldOutput(worldData)) {
-      throw new Error("Viewer bundle is missing a valid world output.");
-    }
-    const metadata = payload.metadata as Record<string, unknown> | undefined;
-    if (!worldData?.metadata && metadata?.simulationRunId) {
-      (worldData as Record<string, unknown>).metadata = {
-        ...(worldData.metadata as Record<string, unknown>),
-        simulationRunId: metadata.simulationRunId,
-      };
-    }
-    return {
-      worldData,
-      simulationResults: worldData,
-      simulationState: null,
-      slotTitle: (payload.slot as Record<string, unknown>)?.title as string || metadata?.title as string,
-      slotCreatedAt: (payload.slot as Record<string, unknown>)?.createdAt as number,
-      chronicles: Array.isArray(payload.chronicles) ? payload.chronicles : [],
-      staticPages: Array.isArray(payload.staticPages) ? payload.staticPages : [],
-      imageData: payload.imageData ?? null,
-      images: (payload.images as Record<string, string>) ?? undefined,
-    };
+    return parseViewerBundle(payload);
   }
   if (isWorldOutput(payload)) {
     return { worldData: payload, simulationResults: payload, simulationState: null };
@@ -203,7 +210,7 @@ export function useExportCallbacks(params: UseExportCallbacksParams) {
       await persistParsedContext(projectId, parsed, params);
       await slotOps.handleLoadSlot(slotIndex);
     },
-    [projectId, slotOps, params],  // eslint-disable-line react-hooks/exhaustive-deps
+    [projectId, slotOps, params],   
   );
 
   // -------------------------------------------------------------------------
@@ -266,12 +273,12 @@ export function useExportCallbacks(params: UseExportCallbacksParams) {
           simulationRunId: simRunId || "",
         });
         const [loreData, staticPagesRaw, chroniclesRaw, eraNarrativesRaw] = await Promise.all([
-          extractLoreDataWithCurrentImageRefs(exportWorldData),
-          getStaticPagesForProject(projectId),
-          simRunId
+          extractLoreDataWithCurrentImageRefs(exportWorldData) as Promise<unknown>,
+          getStaticPagesForProject(projectId) as Promise<unknown>,
+          (simRunId
             ? getCompletedChroniclesForSimulation(simRunId)
-            : getCompletedChroniclesForProject(projectId),
-          simRunId ? getCompletedEraNarrativesForSimulation(simRunId) : Promise.resolve([]),
+            : getCompletedChroniclesForProject(projectId)) as Promise<unknown>,
+          simRunId ? getCompletedEraNarrativesForSimulation(simRunId) as Promise<unknown> : Promise.resolve([]),
         ]);
         throwIfExportCanceled(shouldCancel);
 

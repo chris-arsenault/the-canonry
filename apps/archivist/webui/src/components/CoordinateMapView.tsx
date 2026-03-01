@@ -351,6 +351,28 @@ function drawEntityDot(
   }
 }
 
+function drawEntityLayer(
+  ctx: CanvasRenderingContext2D,
+  mapEntities: HardState[],
+  entityPositions: Map<string, { x: number; y: number }>,
+  entityColorMap: Map<string, string>,
+  effectiveMapKind: string,
+  selectedNodeId: string | null,
+  hoveredEntity: HardState | null,
+  toCanvas: WorldToCanvasFn
+): void {
+  for (const entity of mapEntities) {
+    const pos = entityPositions.get(entity.id);
+    if (!pos) continue;
+    const canvasPos = toCanvas(pos.x, pos.y);
+    const color = entityColorMap.get(entity.kind);
+    if (!color) {
+      throw new Error(`Archivist: entity kind "${entity.kind}" is missing style.color.`);
+    }
+    drawEntityDot(ctx, entity, canvasPos, color, entity.kind === effectiveMapKind, entity.id === selectedNodeId, entity.id === hoveredEntity?.id);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Force layout
 // ---------------------------------------------------------------------------
@@ -705,16 +727,7 @@ export default function CoordinateMapView({
       drawRelationships(ctx, data.relationships, entityPositions, worldToCanvas);
     }
     if (visibleLayers.has("entities")) {
-      for (const entity of mapEntities) {
-        const pos = entityPositions.get(entity.id);
-        if (!pos) continue;
-        const canvasPos = worldToCanvas(pos.x, pos.y);
-        const color = entityColorMap.get(entity.kind);
-        if (!color) {
-          throw new Error(`Archivist: entity kind "${entity.kind}" is missing style.color.`);
-        }
-        drawEntityDot(ctx, entity, canvasPos, color, entity.kind === effectiveMapKind, entity.id === selectedNodeId, entity.id === hoveredEntity?.id);
-      }
+      drawEntityLayer(ctx, mapEntities, entityPositions, entityColorMap, effectiveMapKind, selectedNodeId, hoveredEntity, worldToCanvas);
     }
   }, [data, dimensions, effectiveMapKind, visibleLayers, entityPositions, entityColorMap, regions, bounds, selectedNodeId, hoveredEntity, hoveredRegion, mapEntities, xAxis, yAxis, worldToCanvas, worldToCanvasDistance]);
 

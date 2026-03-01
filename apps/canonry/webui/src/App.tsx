@@ -14,11 +14,6 @@ import { computeTagUsage, computeSchemaUsage, ErrorMessage } from "@the-canonry/
 import { validateAllConfigs } from "../../../lore-weave/lib/engine/configSchemaValidator";
 import {
   mergeFrameworkSchemaSlice,
-  FRAMEWORK_ENTITY_KIND_VALUES,
-  FRAMEWORK_RELATIONSHIP_KIND_VALUES,
-  FRAMEWORK_CULTURES,
-  FRAMEWORK_CULTURE_DEFINITIONS,
-  FRAMEWORK_TAG_VALUES,
 } from "@canonry/world-schema";
 import { isTokenValid } from "./aws/awsConfigStorage";
 import ProjectManager from "./components/ProjectManager";
@@ -118,7 +113,7 @@ export default function App() {
   // Configure shared image store
   useEffect(() => {
     const backend = new IndexedDBBackend();
-    useImageStore.getState().configure(backend);
+    void useImageStore.getState().configure(backend);
     return () => useImageStore.getState().cleanup();
   }, []);
 
@@ -246,7 +241,7 @@ export default function App() {
   }, [handleTabChange, setActiveSectionForTab]);
 
   // Derived modal state
-  const hasDataInScratch = Boolean((slots[0] as Record<string, unknown>)?.simulationResults);
+  const hasDataInScratch = Boolean((slots[0])?.simulationResults);
   const exportModalSlot = exportModalSlotIndex !== null ? slots[exportModalSlotIndex] : null;
   const exportModalFallbackTitle = exportModalSlotIndex === 0 ? "Scratch" : `Slot ${exportModalSlotIndex}`;
   const exportModalTitle = exportModalSlot
@@ -363,7 +358,7 @@ export default function App() {
           bundleStatus={exportBundleStatus}
           onClose={slotOps.closeExportModal}
           onExportSlotDownload={exportCallbacks.handleExportSlotDownload}
-          onExportBundle={exportCallbacks.handleExportBundle}
+          onExportBundle={() => void exportCallbacks.handleExportBundle()}
           onCancelExport={slotOps.handleCancelExportBundle}
           useS3Images={Boolean(awsConfig?.useS3Images)}
         />
@@ -386,15 +381,15 @@ export default function App() {
           onSetUsername={setAwsUsername}
           onSetPassword={setAwsPassword}
           onClose={closeAwsModal}
-          onLogin={awsCallbacks.handleAwsLogin}
+          onLogin={() => void awsCallbacks.handleAwsLogin()}
           onLogout={awsCallbacks.handleAwsLogout}
-          onBrowsePrefixes={awsCallbacks.handleAwsBrowsePrefixes}
-          onTestSetup={awsCallbacks.handleAwsTestSetup}
-          onPreviewUploads={awsCallbacks.handleAwsPreviewUploads}
-          onPullImages={awsCallbacks.handlePullImages}
-          onSyncImages={awsCallbacks.handleAwsSyncImages}
-          onExportSnapshot={awsCallbacks.handleExportSnapshot}
-          onImportSnapshot={awsCallbacks.handleImportSnapshot}
+          onBrowsePrefixes={() => void awsCallbacks.handleAwsBrowsePrefixes()}
+          onTestSetup={() => void awsCallbacks.handleAwsTestSetup()}
+          onPreviewUploads={() => void awsCallbacks.handleAwsPreviewUploads()}
+          onPullImages={() => void awsCallbacks.handlePullImages()}
+          onSyncImages={() => void awsCallbacks.handleAwsSyncImages()}
+          onExportSnapshot={() => void awsCallbacks.handleExportSnapshot()}
+          onImportSnapshot={() => void awsCallbacks.handleImportSnapshot()}
         />
       )}
       <HelpModal isOpen={helpModalOpen} onClose={closeHelpModal} activeTab={activeTab} />

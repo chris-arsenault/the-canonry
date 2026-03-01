@@ -7,6 +7,7 @@ import EntityDetail from "./EntityDetail.tsx";
 import TimelineControl from "./TimelineControl.tsx";
 import StatsPanel from "./StatsPanel.tsx";
 import "./WorldExplorer.css";
+import "./archivist-section.css";
 import {
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,

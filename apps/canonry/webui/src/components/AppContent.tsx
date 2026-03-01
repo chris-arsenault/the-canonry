@@ -119,7 +119,7 @@ interface AppContentProps {
 // Sub-renderers (to keep switch branches small)
 // ---------------------------------------------------------------------------
 
-function EnumeristContent(props: AppContentProps) {
+function EnumeristContent(props: Readonly<AppContentProps>) {
   return (
     <SchemaEditor
       project={props.schema}
@@ -136,7 +136,7 @@ function EnumeristContent(props: AppContentProps) {
   );
 }
 
-function NamesContent(props: AppContentProps) {
+function NamesContent(props: Readonly<AppContentProps>) {
   const p = props.currentProject;
   return (
     <NameForgeHost
@@ -151,7 +151,7 @@ function NamesContent(props: AppContentProps) {
   );
 }
 
-function CosmographyContent(props: AppContentProps) {
+function CosmographyContent(props: Readonly<AppContentProps>) {
   const p = props.currentProject;
   if (!p) return null;
   return (
@@ -174,7 +174,7 @@ function CosmographyContent(props: AppContentProps) {
   );
 }
 
-function CoherenceContent(props: AppContentProps) {
+function CoherenceContent(props: Readonly<AppContentProps>) {
   const p = props.currentProject;
   return (
     <CoherenceEngineHost
@@ -196,7 +196,7 @@ function CoherenceContent(props: AppContentProps) {
   );
 }
 
-function SimulationClusterContent(props: AppContentProps) {
+function SimulationClusterContent(props: Readonly<AppContentProps>) {
   const p = props.currentProject;
   if (!p) return null;
   return (
@@ -264,7 +264,7 @@ function SimulationClusterContent(props: AppContentProps) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function AppContent(props: AppContentProps) {
+export default function AppContent(props: Readonly<AppContentProps>) {
   if (props.showHome || !props.currentProject) {
     return (
       <LandingPage

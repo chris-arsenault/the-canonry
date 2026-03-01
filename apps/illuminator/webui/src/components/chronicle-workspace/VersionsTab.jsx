@@ -147,7 +147,7 @@ export default function VersionsTab({
             onUpdateCombineInstructions(combineInstructionsDraft.trim());
             setEditingCombineInstructions(false);
           }} disabled={!combineInstructionsDraft.trim()} className="vtab-save-btn"
-          // eslint-disable-next-line local/no-inline-styles -- dynamic save button appearance from draft state
+           
           style={{
             "--vtab-save-bg": combineInstructionsDraft.trim() ? "var(--accent-color, #6366f1)" : "var(--bg-tertiary)",
             "--vtab-save-color": combineInstructionsDraft.trim() ? "#fff" : "var(--text-muted)",

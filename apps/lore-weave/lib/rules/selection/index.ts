@@ -435,7 +435,9 @@ export function selectEntities(
 ): HardState[] {
   const graphView = ctx.graph;
   let entities: HardState[];
-  const kinds = rule.kinds && rule.kinds.length > 0 ? rule.kinds : rule.kind ? [rule.kind] : [];
+  let kinds: string[] = [];
+  if (rule.kinds && rule.kinds.length > 0) kinds = rule.kinds;
+  else if (rule.kind) kinds = [rule.kind];
   const kindLabel = kinds.length > 0 ? kinds.join('|') : 'any';
   const needsHistorical = rule.status === 'historical' || rule.statuses?.includes('historical');
   const getCandidates = () => getKindCandidates(graphView, kinds, needsHistorical, rule);
@@ -552,8 +554,8 @@ function resolveFromEntities(
   needsHistorical: boolean,
   trace: SelectionTrace | undefined
 ): HardState[] {
-  if (isPathBasedSpec(select.from!)) {
-    const steps = (select.from as PathBasedSpec).path;
+  if (isPathBasedSpec(select.from)) {
+    const steps = (select.from).path;
     if (steps.length === 0) { pushTrace(trace, 'empty path', 0); return []; }
     const firstStep = steps[0];
     let startEntities: HardState[];

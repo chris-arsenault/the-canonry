@@ -6,7 +6,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { SYSTEM_TYPES } from "../constants";
 import { EnableToggle, useLocalInputState, LocalTextArea } from "../../shared";
-import "./OverviewTab.css";
+
 
 /**
  * @param {Object} props
@@ -72,7 +72,7 @@ export function OverviewTab({ system, onChange, onDelete }) {
         <div className="mt-xl">
           <span className="label">System Type</span>
           <div className="flex items-center gap-lg">
-            {/* eslint-disable-next-line local/no-inline-styles -- dynamic type color from config */}
+            { }
             <span
               className="type-badge"
               style={{ '--ot-type-bg': `${typeConfig.color}30`, '--ot-type-color': typeConfig.color, backgroundColor: 'var(--ot-type-bg)', color: 'var(--ot-type-color)' }}

@@ -130,7 +130,7 @@ export function CopyLexemeModal({ cultureId, allCultures, existingListIds, onCop
           </div>
           <div className="copy-list-grid">
             {selectedCultureLists.map(([listId, list]) => (
-              // eslint-disable-next-line jsx-a11y/label-has-associated-control
+               
               <label key={listId} className="copy-list-item">
                 <input
                   type="checkbox"

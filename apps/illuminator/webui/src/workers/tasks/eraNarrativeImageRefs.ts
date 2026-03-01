@@ -271,7 +271,7 @@ function parseEraNarrativeImageRefsResponse(
     } else if (ref.type === "prompt_request") {
       return parsePromptRequest(ref, index, anchorText, size, caption);
     }
-    throw new Error(`Unknown image ref type at index ${index}: ${String(ref.type)}`);
+    throw new Error(`Unknown image ref type at index ${index}: ${typeof ref.type === 'string' ? ref.type : JSON.stringify(ref.type)}`);
   });
 }
 

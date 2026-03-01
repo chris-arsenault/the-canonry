@@ -194,7 +194,7 @@ export interface TertiaryDetectResult {
 // Combined nav item (chronicle or era narrative)
 // ---------------------------------------------------------------------------
 
-export type CombinedNavItem = (ChronicleNavItem & { itemType?: undefined }) | EraNarrativeNavItem;
+export type CombinedNavItem = (ChronicleNavItem & { itemType: undefined }) | EraNarrativeNavItem;
 
 // ---------------------------------------------------------------------------
 // ChroniclePanel props

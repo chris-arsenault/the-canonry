@@ -102,7 +102,7 @@ export function getLLMModelSettings(): LLMModelSettings {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored);
+      const parsed = JSON.parse(stored) as LLMModelSettings;
       return migrateSettings(parsed);
     }
   } catch (err) {

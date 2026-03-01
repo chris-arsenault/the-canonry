@@ -105,6 +105,70 @@ function PaletteItemRow({
   );
 }
 
+function collectEntityItems(entities: ContentPaletteProps["entities"], usedIds: Set<string>): PaletteItem[] {
+  const items: PaletteItem[] = [];
+  for (const e of entities) {
+    if (!e.description || usedIds.has(e.id) || e.kind === "era") continue;
+    items.push({
+      type: "entity",
+      contentId: e.id,
+      name: e.name,
+      subtitle: `${e.kind}${e.subtype ? " / " + e.subtype : ""}`,
+      wordCount: countWords(e.description || ""),
+    });
+  }
+  return items;
+}
+
+function collectChronicleItems(chronicles: ContentPaletteProps["chronicles"], usedIds: Set<string>): PaletteItem[] {
+  const items: PaletteItem[] = [];
+  for (const c of chronicles) {
+    if (c.status !== "complete" && c.status !== "assembly_ready") continue;
+    if (usedIds.has(c.chronicleId)) continue;
+    const content = c.finalContent || c.assembledContent || "";
+    items.push({
+      type: "chronicle",
+      contentId: c.chronicleId,
+      name: c.title || "Untitled Chronicle",
+      subtitle: `${c.format} \u2022 ${c.focusType}`,
+      wordCount: countWords(content),
+    });
+  }
+  return items;
+}
+
+function collectEraNarrativeItems(eraNarratives: ContentPaletteProps["eraNarratives"], usedIds: Set<string>): PaletteItem[] {
+  const items: PaletteItem[] = [];
+  for (const n of eraNarratives) {
+    if (n.status !== "complete" && n.status !== "step_complete") continue;
+    if (usedIds.has(n.narrativeId)) continue;
+    const { content } = resolveActiveContent(n);
+    items.push({
+      type: "era_narrative",
+      contentId: n.narrativeId,
+      name: n.eraName,
+      subtitle: `${n.tone} \u2022 era narrative`,
+      wordCount: countWords(content || ""),
+    });
+  }
+  return items;
+}
+
+function collectStaticPageItems(staticPages: ContentPaletteProps["staticPages"], usedIds: Set<string>): PaletteItem[] {
+  const items: PaletteItem[] = [];
+  for (const p of staticPages) {
+    if (p.status !== "published" || usedIds.has(p.pageId)) continue;
+    items.push({
+      type: "static_page",
+      contentId: p.pageId,
+      name: p.title,
+      subtitle: `${p.wordCount.toLocaleString()} words`,
+      wordCount: p.wordCount,
+    });
+  }
+  return items;
+}
+
 export default function ContentPalette({
   entities,
   chronicles,
@@ -118,59 +182,15 @@ export default function ContentPalette({
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [sortBy, setSortBy] = useState<SortBy>("type");
 
-  const allItems = useMemo<PaletteItem[]>(() => {
-    const items: PaletteItem[] = [];
-
-    for (const e of entities) {
-      if (!e.description || usedIds.has(e.id) || e.kind === "era") continue;
-      items.push({
-        type: "entity",
-        contentId: e.id,
-        name: e.name,
-        subtitle: `${e.kind}${e.subtype ? " / " + e.subtype : ""}`,
-        wordCount: countWords(e.description || ""),
-      });
-    }
-
-    for (const c of chronicles) {
-      if (c.status !== "complete" && c.status !== "assembly_ready") continue;
-      if (usedIds.has(c.chronicleId)) continue;
-      const content = c.finalContent || c.assembledContent || "";
-      items.push({
-        type: "chronicle",
-        contentId: c.chronicleId,
-        name: c.title || "Untitled Chronicle",
-        subtitle: `${c.format} \u2022 ${c.focusType}`,
-        wordCount: countWords(content),
-      });
-    }
-
-    for (const n of eraNarratives) {
-      if (n.status !== "complete" && n.status !== "step_complete") continue;
-      if (usedIds.has(n.narrativeId)) continue;
-      const { content } = resolveActiveContent(n);
-      items.push({
-        type: "era_narrative",
-        contentId: n.narrativeId,
-        name: n.eraName,
-        subtitle: `${n.tone} \u2022 era narrative`,
-        wordCount: countWords(content || ""),
-      });
-    }
-
-    for (const p of staticPages) {
-      if (p.status !== "published" || usedIds.has(p.pageId)) continue;
-      items.push({
-        type: "static_page",
-        contentId: p.pageId,
-        name: p.title,
-        subtitle: `${p.wordCount.toLocaleString()} words`,
-        wordCount: p.wordCount,
-      });
-    }
-
-    return items;
-  }, [entities, chronicles, eraNarratives, staticPages, usedIds]);
+  const allItems = useMemo<PaletteItem[]>(
+    () => [
+      ...collectEntityItems(entities, usedIds),
+      ...collectChronicleItems(chronicles, usedIds),
+      ...collectEraNarrativeItems(eraNarratives, usedIds),
+      ...collectStaticPageItems(staticPages, usedIds),
+    ],
+    [entities, chronicles, eraNarratives, staticPages, usedIds],
+  );
 
   const filteredItems = useMemo(() => {
     let items = allItems;

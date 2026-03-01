@@ -57,6 +57,14 @@ export function evaluateProminenceMultiplier(
   };
 }
 
+/** Resolve linked entity IDs based on direction. */
+function resolveDirectional(link: Relationship, entityId: string, direction: 'src' | 'dst' | 'both'): string[] {
+  const ids: string[] = [];
+  if ((direction === 'both' || direction === 'src') && link.src === entityId) ids.push(link.dst);
+  if ((direction === 'both' || direction === 'dst') && link.dst === entityId) ids.push(link.src);
+  return ids;
+}
+
 /** Collect neighbor IDs matching relationship and direction filters. */
 function collectNeighborIds(
   entity: HardState,
@@ -71,15 +79,7 @@ function collectNeighborIds(
       continue;
     }
     if ((link.strength ?? 0) < minStrength) continue;
-
-    if (direction === 'both') {
-      if (link.src === entity.id) neighborIds.add(link.dst);
-      if (link.dst === entity.id) neighborIds.add(link.src);
-    } else if (direction === 'src' && link.src === entity.id) {
-      neighborIds.add(link.dst);
-    } else if (direction === 'dst' && link.dst === entity.id) {
-      neighborIds.add(link.src);
-    }
+    for (const id of resolveDirectional(link, entity.id, direction)) neighborIds.add(id);
   }
   return neighborIds;
 }

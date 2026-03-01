@@ -60,7 +60,7 @@ function ResultRowStatus({ success }: { success: boolean }) {
     : <span className="text-danger mr-sm">&#10007;</span>;
 }
 
-function ResultRowDetail({ result, index }: { result: OptimizationResult; index: number }) {
+function ResultRowDetail({ result, index }: Readonly<{ result: OptimizationResult; index: number }>) {
   if (!result.success) return null;
   return (
     <tr key={`${index}-diff`}>
@@ -78,7 +78,7 @@ function ResultRowDetail({ result, index }: { result: OptimizationResult; index:
   );
 }
 
-function ResultRow({ result, index, isExpanded, onToggle }: ResultRowProps) {
+function ResultRow({ result, index, isExpanded, onToggle }: Readonly<ResultRowProps>) {
   const handleClick = useCallback(() => {
     if (result.success) onToggle(result.domainId);
   }, [result.success, result.domainId, onToggle]);
@@ -126,7 +126,7 @@ function ResultRow({ result, index, isExpanded, onToggle }: ResultRowProps) {
 // ModalProgressBar - progress section shown while optimizing
 // ---------------------------------------------------------------------------
 
-function ModalProgressBar({ progress }: { progress: ProgressInfo }) {
+function ModalProgressBar({ progress }: Readonly<{ progress: ProgressInfo }>) {
   const widthPercent = progress.total > 0
     ? `${(progress.current / progress.total) * 100}%`
     : "0%";
@@ -162,7 +162,7 @@ interface ModalLogSectionProps {
   toggleExpand: (id: string) => void;
 }
 
-function ModalLogSection({ logs, results, expandedResults, toggleExpand }: ModalLogSectionProps) {
+function ModalLogSection({ logs, results, expandedResults, toggleExpand }: Readonly<ModalLogSectionProps>) {
   return (
     <div className="optimizer-modal-body">
       <div className="viewer-section">
@@ -224,7 +224,7 @@ export default function ResultsModal({
   logs,
   results,
   onSaveResults,
-}: ResultsModalProps) {
+}: Readonly<ResultsModalProps>) {
   const { expanded: expandedResults, toggle: toggleExpand } = useExpandSet();
 
   const handleOverlayClick = useCallback(

@@ -113,6 +113,109 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+interface BatchResult {
+  entityCount: number;
+  cost: number;
+}
+
+async function processOneBatch(
+  chunk: RevisionEntityContext[],
+  projectId: string,
+  simulationRunId: string,
+  context: BackportContext,
+  dispatchBatch: (runId: string, entities: RevisionEntityContext[]) => void,
+  pollForCompletion: (runId: string) => Promise<{ patches: SummaryRevisionPatch[]; cost: number } | null>,
+  applyPatches: (patches: SummaryRevisionPatch[], chronicleId: string, entityIds: string[]) => Promise<void>,
+  cancelledRef: { current: boolean }
+): Promise<BatchResult | null> {
+  const runId = generateRevisionRunId();
+
+  await createRevisionRun(
+    runId,
+    projectId,
+    simulationRunId,
+    [
+      {
+        culture: "cast",
+        entityIds: chunk.map((e) => e.id),
+        status: "pending" as const,
+        patches: [],
+      },
+    ],
+    {
+      worldDynamicsContext: context.chronicleText,
+      staticPagesContext: context.perspectiveSynthesisJson,
+      schemaContext: "",
+      revisionGuidance: "",
+    }
+  );
+
+  dispatchBatch(runId, chunk);
+
+  const result = await pollForCompletion(runId);
+  if (cancelledRef.current || !result) return null;
+
+  const batchEntityIds = chunk.map((e) => e.id);
+  await applyPatches(result.patches, context.chronicleId, batchEntityIds);
+
+  return { entityCount: chunk.length, cost: result.cost };
+}
+
+interface ChronicleProcessResult {
+  processedEntities: number;
+  cost: number;
+  failed: boolean;
+  error?: string;
+}
+
+async function processOneChronicleBackport(
+  chronicleId: string,
+  projectId: string,
+  simulationRunId: string,
+  assembleContext: (id: string) => Promise<BackportContext | null>,
+  dispatchBatch: (runId: string, entities: RevisionEntityContext[]) => void,
+  pollForCompletion: (runId: string) => Promise<{ patches: SummaryRevisionPatch[]; cost: number } | null>,
+  applyPatches: (patches: SummaryRevisionPatch[], chronicleId: string, entityIds: string[]) => Promise<void>,
+  cancelledRef: { current: boolean }
+): Promise<ChronicleProcessResult> {
+  const context = await assembleContext(chronicleId);
+  if (!context) return { processedEntities: 0, cost: 0, failed: false };
+
+  const pendingEntities = context.entities.filter((e) => !context.perEntityStatus[e.id]);
+  if (pendingEntities.length === 0) return { processedEntities: 0, cost: 0, failed: false };
+
+  const chunks = chunkEntities(pendingEntities, MAX_BATCH_SIZE);
+  let totalProcessed = 0;
+  let totalCost = 0;
+
+  for (let bi = 0; bi < chunks.length; bi++) {
+    if (cancelledRef.current) break;
+
+    try {
+      const batchResult = await processOneBatch(
+        chunks[bi], projectId, simulationRunId, context,
+        dispatchBatch, pollForCompletion, applyPatches, cancelledRef
+      );
+      if (!batchResult) break;
+      totalProcessed += batchResult.entityCount;
+      totalCost += batchResult.cost;
+    } catch (err) {
+      console.error(
+        `[Bulk Backport] Batch ${bi + 1}/${chunks.length} failed for chronicle ${chronicleId}:`,
+        err
+      );
+      return {
+        processedEntities: totalProcessed,
+        cost: totalCost,
+        failed: true,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  return { processedEntities: totalProcessed, cost: totalCost, failed: false };
+}
+
 // ============================================================================
 // Hook
 // ============================================================================
@@ -185,12 +288,7 @@ export function useBulkBackport(deps: {
         if (!run) return null;
 
         if (run.status === "run_reviewing" || run.status === "batch_reviewing") {
-          const patches: SummaryRevisionPatch[] = [];
-          for (const batch of run.batches) {
-            for (const patch of batch.patches) {
-              patches.push(patch);
-            }
-          }
+          const patches = run.batches.flatMap((batch) => batch.patches);
           const cost = run.totalActualCost || 0;
           await deleteRevisionRun(runId);
           return { patches, cost };
@@ -301,19 +399,6 @@ export function useBulkBackport(deps: {
       try {
         const { simulationRunId, projectId, chronicleContexts } = scan;
 
-        // Re-read progress for chronicle list (was set in prepare)
-        const chronicleProgress: BulkBackportChronicleProgress[] = chronicleContexts.map(
-          ({ context, pendingEntities }) => ({
-            chronicleId: context.chronicleId,
-            chronicleTitle: context.chronicleTitle,
-            totalEntities: pendingEntities.length,
-            processedEntities: 0,
-            totalBatches: Math.ceil(pendingEntities.length / MAX_BATCH_SIZE),
-            completedBatches: 0,
-            status: "pending" as const,
-          })
-        );
-
         let globalProcessed = 0;
         let globalCost = 0;
 
@@ -323,141 +408,26 @@ export function useBulkBackport(deps: {
           const { context: originalContext } = chronicleContexts[ci];
           const chronicleId = originalContext.chronicleId;
 
-          // Assemble fresh context (entity descriptions may have been updated by prior batches)
-          const context = await depsRef.current.assembleContextForChronicle(chronicleId);
-          if (!context) {
-            chronicleProgress[ci] = {
-              ...chronicleProgress[ci],
-              status: "complete",
-              totalEntities: 0,
-              totalBatches: 0,
-            };
-            setProgress((p) => ({
-              ...p,
-              chronicles: [...chronicleProgress],
-              currentChronicleIndex: ci,
-            }));
-            continue;
-          }
+          setProgress((p) => ({ ...p, currentChronicleIndex: ci }));
 
-          const pendingEntities = context.entities.filter((e) => !context.perEntityStatus[e.id]);
-          if (pendingEntities.length === 0) {
-            chronicleProgress[ci] = {
-              ...chronicleProgress[ci],
-              status: "complete",
-              totalEntities: 0,
-              totalBatches: 0,
-            };
-            setProgress((p) => ({
-              ...p,
-              chronicles: [...chronicleProgress],
-              currentChronicleIndex: ci,
-            }));
-            continue;
-          }
+          const result = await processOneChronicleBackport(
+            chronicleId, projectId, simulationRunId,
+            depsRef.current.assembleContextForChronicle,
+            dispatchBatch, pollForCompletion,
+            depsRef.current.applyPatches,
+            cancelledRef
+          );
 
-          const chunks = chunkEntities(pendingEntities, MAX_BATCH_SIZE);
+          globalProcessed += result.processedEntities;
+          globalCost += result.cost;
 
-          chronicleProgress[ci] = {
-            ...chronicleProgress[ci],
-            status: "running",
-            totalEntities: pendingEntities.length,
-            totalBatches: chunks.length,
-            completedBatches: 0,
-            processedEntities: 0,
-          };
           setProgress((p) => ({
             ...p,
-            chronicles: [...chronicleProgress],
-            currentChronicleIndex: ci,
+            processedEntities: globalProcessed,
+            totalCost: globalCost,
           }));
 
-          let chronicleFailed = false;
-
-          for (let bi = 0; bi < chunks.length; bi++) {
-            if (cancelledRef.current) break;
-
-            const chunk = chunks[bi];
-            const runId = generateRevisionRunId();
-
-            await createRevisionRun(
-              runId,
-              projectId,
-              simulationRunId,
-              [
-                {
-                  culture: "cast",
-                  entityIds: chunk.map((e) => e.id),
-                  status: "pending" as const,
-                  patches: [],
-                },
-              ],
-              {
-                worldDynamicsContext: context.chronicleText,
-                staticPagesContext: context.perspectiveSynthesisJson,
-                schemaContext: "",
-                revisionGuidance: "",
-              }
-            );
-
-            dispatchBatch(runId, chunk);
-
-            try {
-              const result = await pollForCompletion(runId);
-              if (cancelledRef.current || !result) break;
-
-              const batchEntityIds = chunk.map((e) => e.id);
-              if (result.patches.length > 0) {
-                await depsRef.current.applyPatches(result.patches, chronicleId, batchEntityIds);
-              } else {
-                await depsRef.current.applyPatches([], chronicleId, batchEntityIds);
-              }
-
-              globalCost += result.cost;
-              const batchEntityCount = chunk.length;
-              globalProcessed += batchEntityCount;
-
-              chronicleProgress[ci] = {
-                ...chronicleProgress[ci],
-                completedBatches: bi + 1,
-                processedEntities: chronicleProgress[ci].processedEntities + batchEntityCount,
-              };
-              setProgress((p) => ({
-                ...p,
-                chronicles: [...chronicleProgress],
-                processedEntities: globalProcessed,
-                totalCost: globalCost,
-              }));
-            } catch (err) {
-              console.error(
-                `[Bulk Backport] Batch ${bi + 1}/${chunks.length} failed for chronicle ${chronicleId}:`,
-                err
-              );
-              chronicleProgress[ci] = {
-                ...chronicleProgress[ci],
-                status: "failed",
-                error: err instanceof Error ? err.message : String(err),
-              };
-              setProgress((p) => ({
-                ...p,
-                chronicles: [...chronicleProgress],
-                processedEntities: globalProcessed,
-                totalCost: globalCost,
-              }));
-              chronicleFailed = true;
-              break;
-            }
-          }
-
           if (cancelledRef.current) break;
-
-          if (!chronicleFailed) {
-            chronicleProgress[ci] = { ...chronicleProgress[ci], status: "complete" };
-            setProgress((p) => ({
-              ...p,
-              chronicles: [...chronicleProgress],
-            }));
-          }
         }
 
         if (cancelledRef.current) {

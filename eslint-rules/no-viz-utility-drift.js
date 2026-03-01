@@ -10,6 +10,7 @@
 export default {
   meta: {
     type: "suggestion",
+    fixable: "code",
     docs: {
       description:
         "Enforce shared viz-* utility classes instead of per-component duplicates in visualization CSS",
@@ -43,7 +44,8 @@ export default {
     // e.g. ec-no-pointer, tb-grab, nt-cursor-pointer
     const DRIFT_PATTERN = /\b([a-z]{2,4})-(no-pointer|cursor-pointer|grab|ew-resize)\b/g;
 
-    function checkClassString(node, value) {
+    function checkAndFixLiteral(node, valueNode) {
+      const value = typeof valueNode.value === "string" ? valueNode.value : "";
       let match;
       DRIFT_PATTERN.lastIndex = 0;
       while ((match = DRIFT_PATTERN.exec(value)) !== null) {
@@ -51,13 +53,47 @@ export default {
         const suffix = match[2];
         const shared = UTILITY_SUFFIXES[suffix];
 
-        // Don't flag the shared viz-* classes themselves
         if (fullMatch.startsWith("viz-")) continue;
+
+        const matchOffset = match.index;
+        // +1 for the opening quote character
+        const rangeStart = valueNode.range[0] + 1 + matchOffset;
+        const rangeEnd = rangeStart + fullMatch.length;
 
         context.report({
           node,
           messageId: "useSharedClass",
           data: { shared, found: fullMatch },
+          fix(fixer) {
+            return fixer.replaceTextRange([rangeStart, rangeEnd], shared);
+          },
+        });
+      }
+    }
+
+    function checkAndFixQuasi(node, quasi) {
+      const value = quasi.value.raw;
+      let match;
+      DRIFT_PATTERN.lastIndex = 0;
+      while ((match = DRIFT_PATTERN.exec(value)) !== null) {
+        const fullMatch = match[0];
+        const suffix = match[2];
+        const shared = UTILITY_SUFFIXES[suffix];
+
+        if (fullMatch.startsWith("viz-")) continue;
+
+        const matchOffset = match.index;
+        // quasi range starts at the backtick/brace, raw content starts after ` or }
+        const rangeStart = quasi.range[0] + 1 + matchOffset;
+        const rangeEnd = rangeStart + fullMatch.length;
+
+        context.report({
+          node,
+          messageId: "useSharedClass",
+          data: { shared, found: fullMatch },
+          fix(fixer) {
+            return fixer.replaceTextRange([rangeStart, rangeEnd], shared);
+          },
         });
       }
     }
@@ -68,7 +104,7 @@ export default {
 
         // className="literal string"
         if (node.value && node.value.type === "Literal" && typeof node.value.value === "string") {
-          checkClassString(node, node.value.value);
+          checkAndFixLiteral(node, node.value);
         }
 
         // className={`template ${literal}`}
@@ -78,7 +114,7 @@ export default {
           node.value.expression.type === "TemplateLiteral"
         ) {
           for (const quasi of node.value.expression.quasis) {
-            checkClassString(node, quasi.value.raw);
+            checkAndFixQuasi(node, quasi);
           }
         }
       },

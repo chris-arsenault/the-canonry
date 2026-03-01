@@ -147,6 +147,7 @@ export type TagValue = string | number | boolean | undefined;
  * Returns undefined for empty strings, booleans for "true"/"false",
  * numbers for numeric strings, or the raw string otherwise.
  */
+// eslint-disable-next-line sonarjs/function-return-type -- type coercion parser returns union by design
 export function parseTagValue(raw: string): TagValue {
   let result: TagValue = raw;
   if (raw === "") result = undefined;

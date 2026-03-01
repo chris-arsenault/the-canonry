@@ -103,7 +103,7 @@ async function clearAllAnnotations(
 
 async function annotateChronicle(
   chron: BulkAnnotationChronicleSummary,
-  caches: { corpusStrength: any; voiceDigest: CorpusVoiceDigestCache; reinforcement: ReinforcementCache },
+  caches: { corpusStrength: { runId: string | null; strength: Map<string, number> | null }; voiceDigest: CorpusVoiceDigestCache; reinforcement: ReinforcementCache },
   set: SetFn,
   state: { processed: number; cost: number; failed: Array<{ chronicleId: string; title: string; error: string }> }
 ): Promise<boolean> {

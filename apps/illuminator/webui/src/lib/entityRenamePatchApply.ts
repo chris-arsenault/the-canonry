@@ -252,7 +252,7 @@ function applyEventEntityNameUpdate(
     pe.effects = [...original.participantEffects[pi].effects];
   }
   if (!pe.effects[ei]?.relatedEntity) return;
-  pe.effects[ei] = { ...pe.effects[ei], relatedEntity: { ...pe.effects[ei].relatedEntity!, name: value } };
+  pe.effects[ei] = { ...pe.effects[ei], relatedEntity: { ...pe.effects[ei].relatedEntity, name: value } };
   updated.participantEffects[pi] = pe;
 }
 

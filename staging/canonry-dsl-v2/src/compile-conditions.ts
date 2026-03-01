@@ -3,13 +3,13 @@ import type {
   Diagnostic,
   Value,
   StatementNode,
-} from './types.js';
+} from './types';
 
-import type { GeneratorContext } from './compile-types.js';
-import { SYSTEM_CONDITION_KEYS, SYSTEM_OPERATOR_KEYWORDS } from './compile-types.js';
-import { isRecord, isRelationshipDirection, flattenTokenList, mapSaturationDirection, isArrayValue, isObjectValue } from './compile-utils.js';
-import { valueToJson } from './compile-variables.js';
-import { normalizeRefName, normalizeRefsInObject } from './compile-objects.js';
+import type { GeneratorContext } from './compile-types';
+import { SYSTEM_CONDITION_KEYS, SYSTEM_OPERATOR_KEYWORDS } from './compile-types';
+import { isRecord, isRelationshipDirection, flattenTokenList, mapSaturationDirection, isArrayValue, isObjectValue } from './compile-utils';
+import { valueToJson } from './compile-variables';
+import { normalizeRefName, normalizeRefsInObject } from './compile-objects';
 
 export function parseStringListValue(
   value: Value,
@@ -647,6 +647,105 @@ export function _buildSystemConditions(
 
 export function conditionFromPredicate(
   stmt: Extract<StatementNode, { type: 'predicate' }>,
+  ctx: GeneratorContext
+): Record<string, unknown> | null {
+  if (stmt.keyword === 'pressure') {
+    const condition: Record<string, unknown> = {
+      type: 'pressure',
+      pressureId: stmt.subject
+    };
+    if (stmt.operator === '>=' || stmt.operator === '>') {
+      condition.min = stmt.value;
+    } else if (stmt.operator === '<=' || stmt.operator === '<') {
+      condition.max = stmt.value;
+    } else if (stmt.operator === '==') {
+      condition.min = stmt.value;
+      condition.max = stmt.value;
+    } else {
+      ctx.diagnostics.push({
+        severity: 'error',
+        message: `Unsupported pressure operator "${stmt.operator}"`,
+        span: stmt.span
+      });
+      return null;
+    }
+    return condition;
+  }
+
+  if (stmt.keyword === 'cap') {
+    if (stmt.field !== 'kind') {
+      ctx.diagnostics.push({
+        severity: 'error',
+        message: 'cap requires: cap kind <kind> <operator> <value>',
+        span: stmt.span
+      });
+      return null;
+    }
+    const condition: Record<string, unknown> = {
+      type: 'entity_count',
+      kind: stmt.subject
+    };
+    if (stmt.operator === '>=' || stmt.operator === '>') {
+      condition.min = stmt.value;
+    } else if (stmt.operator === '<=' || stmt.operator === '<') {
+      condition.max = stmt.value;
+    } else if (stmt.operator === '==') {
+      condition.min = stmt.value;
+      condition.max = stmt.value;
+    } else {
+      ctx.diagnostics.push({
+        severity: 'error',
+        message: `Unsupported cap operator "${stmt.operator}"`,
+        span: stmt.span
+      });
+      return null;
+    }
+    return condition;
+  }
+
+  if (stmt.keyword === 'relationship_count') {
+    const relationshipKind = stmt.field ? stmt.field : stmt.subject;
+    const direction = stmt.field ? stmt.subject : undefined;
+    if (!relationshipKind) {
+      ctx.diagnostics.push({
+        severity: 'error',
+        message: 'relationship_count requires a relationship kind',
+        span: stmt.span
+      });
+      return null;
+    }
+    const condition: Record<string, unknown> = {
+      type: 'relationship_count',
+      relationshipKind
+    };
+    if (direction) {
+      condition.direction = direction;
+    }
+    if (stmt.operator === '>=' || stmt.operator === '>') {
+      condition.min = stmt.value;
+    } else if (stmt.operator === '<=' || stmt.operator === '<') {
+      condition.max = stmt.value;
+    } else if (stmt.operator === '==') {
+      condition.min = stmt.value;
+      condition.max = stmt.value;
+    } else {
+      ctx.diagnostics.push({
+        severity: 'error',
+        message: `Unsupported relationship_count operator "${stmt.operator}"`,
+        span: stmt.span
+      });
+      return null;
+    }
+    return condition;
+  }
+
+  ctx.diagnostics.push({
+    severity: 'error',
+    message: `Unsupported predicate "${stmt.keyword}"`,
+    span: stmt.span
+  });
+  return null;
+}
 
 export function valueToTokenList(
   value: Value,

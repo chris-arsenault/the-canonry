@@ -16,7 +16,6 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.760.0",
     "@aws-sdk/credential-provider-cognito-identity": "^3.760.0",
-    "@canonry/dsl": "workspace:*",
     "@canonry/world-schema": "workspace:*",
     "@the-canonry/image-store": "workspace:*",
     "@the-canonry/shared-components": "workspace:*",

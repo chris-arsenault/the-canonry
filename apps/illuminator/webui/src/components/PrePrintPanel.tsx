@@ -81,13 +81,13 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
 
   // Era order map: eraId → sort index (by startTick)
   const eraOrderMap = useMemo(() => {
-    const eraEntities = fullEntities.filter((e) => e.kind === "era" && (e as any).temporal);
+    const eraEntities = fullEntities.filter((e) => e.kind === "era" && e.temporal);
     const sorted = [...eraEntities].sort(
-      (a, b) => ((a as any).temporal.startTick || 0) - ((b as any).temporal.startTick || 0)
+      (a, b) => (a.temporal?.startTick || 0) - (b.temporal?.startTick || 0)
     );
     const map = new Map<string, number>();
     sorted.forEach((era, index) => {
-      const eraId = (era as any).eraId || era.id;
+      const eraId = era.eraId || era.id;
       map.set(eraId, index);
     });
     return map;

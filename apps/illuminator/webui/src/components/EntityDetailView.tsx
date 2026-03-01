@@ -20,7 +20,7 @@ import { useEntityCrud } from "../hooks/useEntityCrud";
 import { useHistorianActions } from "../hooks/useHistorianActions";
 import { useIlluminatorModals } from "../lib/db/modalStore";
 import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
-import { useExpandBoolean } from "@canonry/shared-components";
+
 import HistoryCompressionPreviewModal from "./HistoryCompressionPreviewModal";
 import BackrefImageEditor from "./BackrefImageEditor";
 import ReactMarkdown from "react-markdown";

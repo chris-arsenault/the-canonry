@@ -50,7 +50,7 @@ export function ChronicleFilterBar({
   showEntitySuggestions,
   onSetShowEntitySuggestions,
   entitySuggestions,
-}: ChronicleFilterBarProps) {
+}: Readonly<ChronicleFilterBarProps>) {
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       onSetEntitySearchQuery(e.target.value);

@@ -262,6 +262,10 @@ function ImageCardThumbnail({
     [handleClick]
   );
 
+  let placeholderText = fallbackText;
+  if (deferThumbnail) placeholderText = "...";
+  else if (hasImage) placeholderText = "?";
+
   return (
     <div ref={containerRef} className="cip-thumbnail">
       {loading && <span className="cip-thumbnail-loading">...</span>}
@@ -270,16 +274,13 @@ function ImageCardThumbnail({
           src={url}
           alt={alt}
           loading="lazy"
-          onClick={isClickable ? handleClick : undefined}
           className={`cip-thumbnail-img${isClickable ? " cip-thumbnail-img-clickable" : ""}`}
-          role={isClickable ? "button" : undefined}
-          tabIndex={isClickable ? 0 : undefined}
-          onKeyDown={isClickable ? handleKeyDown : undefined}
+          {...(isClickable ? { onClick: handleClick, role: "button" as const, tabIndex: 0, onKeyDown: handleKeyDown } : {})}
         />
       )}
       {!loading && !url && (
         <span className="cip-thumbnail-placeholder">
-          {deferThumbnail ? "..." : hasImage ? "?" : fallbackText}
+          {placeholderText}
         </span>
       )}
     </div>
@@ -301,11 +302,10 @@ function SizeControls({
   onUpdateJustification?: (justification: "left" | "right") => void;
   isGenerating?: boolean;
 }>) {
-  if (!onUpdateSize) return null;
   const isJustifiable = JUSTIFY_SIZES.has(size);
 
   const handleSizeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => onUpdateSize(e.target.value),
+    (e: React.ChangeEvent<HTMLSelectElement>) => { if (onUpdateSize) onUpdateSize(e.target.value); },
     [onUpdateSize]
   );
 
@@ -315,6 +315,8 @@ function SizeControls({
     },
     [onUpdateJustification]
   );
+
+  if (!onUpdateSize) return null;
 
   return (
     <div className="cip-size-controls">

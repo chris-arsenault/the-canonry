@@ -95,11 +95,11 @@ function SessionSection({
   awsLoginConfigured,
   hasAwsToken,
   userLabel,
-}: {
+}: Readonly<{
   awsLoginConfigured: boolean;
   hasAwsToken: boolean;
   userLabel: string;
-}) {
+}>) {
   let message: string;
   if (awsLoginConfigured) {
     message = hasAwsToken
@@ -116,7 +116,7 @@ function SessionSection({
   );
 }
 
-function StatusSection({ status }: { status: AwsStatus }) {
+function StatusSection({ status }: Readonly<{ status: AwsStatus }>) {
   if (!status.detail) return null;
   return (
     <div className="modal-status inline-extracted-13">
@@ -126,7 +126,7 @@ function StatusSection({ status }: { status: AwsStatus }) {
   );
 }
 
-function SyncProgressSection({ progress }: { progress: SyncProgress }) {
+function SyncProgressSection({ progress }: Readonly<{ progress: SyncProgress }>) {
   if (progress.total <= 0) return null;
   return (
     <div className="inline-extracted-14">
@@ -156,7 +156,7 @@ function CognitoAuthSection({
   onSetPassword,
   onLogin,
   onLogout,
-}: Pick<
+}: Readonly<Pick<
   AwsSyncModalProps,
   | "config"
   | "hasAwsToken"
@@ -168,7 +168,7 @@ function CognitoAuthSection({
   | "onSetPassword"
   | "onLogin"
   | "onLogout"
->) {
+>>) {
   return (
     <div className="inline-extracted-17">
       <div className="modal-title inline-extracted-18">Cognito Auth</div>
@@ -356,10 +356,10 @@ function S3StorageSection({
 function UseS3Toggle({
   checked,
   onUpdateConfig,
-}: {
+}: Readonly<{
   checked: boolean;
   onUpdateConfig: (patch: Partial<AwsConfig>) => void;
-}) {
+}>) {
   return (
     <div className="inline-extracted-57">
       <label className="inline-extracted-58">
@@ -379,12 +379,12 @@ function DataSnapshotSection({
   snapshotStatus,
   onExportSnapshot,
   onImportSnapshot,
-}: {
+}: Readonly<{
   awsReady: boolean;
   snapshotStatus: SnapshotStatus;
   onExportSnapshot: () => void;
   onImportSnapshot: () => void;
-}) {
+}>) {
   const statusClass =
     snapshotStatus.state === "error"
       ? "canonry-snapshot-detail canonry-snapshot-detail-error"
@@ -417,7 +417,7 @@ function DataSnapshotSection({
   );
 }
 
-function UploadPlanSection({ uploadPlan }: { uploadPlan: UploadPlan }) {
+function UploadPlanSection({ uploadPlan }: Readonly<{ uploadPlan: UploadPlan }>) {
   let description: string;
   if (uploadPlan.loading) {
     description = "Calculating upload plan...";
@@ -489,7 +489,7 @@ export default function AwsSyncModal({
   onSyncImages,
   onExportSnapshot,
   onImportSnapshot,
-}: AwsSyncModalProps) {
+}: Readonly<AwsSyncModalProps>) {
   const mouseDownRef = useRef(false);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {

@@ -84,3 +84,6 @@ export type {
 
 // Constants
 export * from './constants';
+
+// Optionality type aliases
+export type { Optional, Nullable, Legacy } from './types/optionality.js';

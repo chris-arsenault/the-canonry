@@ -281,10 +281,10 @@ export async function updateEraNarrativeImageRefField(
   if (!ref) return;
 
   if (updates.anchorText !== undefined) ref.anchorText = updates.anchorText;
-  if (updates.size !== undefined) (ref as any).size = updates.size;
+  if (updates.size !== undefined) (ref as Record<string, unknown>).size = updates.size;
   if (updates.justification !== undefined) {
     if (updates.justification === null) {
-      delete (ref as any).justification;
+      delete (ref as Record<string, unknown>).justification;
     } else {
       ref.justification = updates.justification;
     }

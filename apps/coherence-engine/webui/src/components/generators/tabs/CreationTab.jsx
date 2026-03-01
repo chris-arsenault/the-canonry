@@ -13,7 +13,7 @@ import {
   NumberInput,
   LocalTextArea,
 } from "../../shared";
-import "./CreationTab.css";
+
 
 /**
  * Get subtype options for an entity kind from schema

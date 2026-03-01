@@ -94,6 +94,7 @@ export default tseslint.config(
       "**/.__mf__temp/",
       "**/vitest.config.ts",
       "tools/",
+      "staging/",
     ],
   },
 

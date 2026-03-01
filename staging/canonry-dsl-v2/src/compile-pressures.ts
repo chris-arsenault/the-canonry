@@ -1,12 +1,9 @@
 import type {
   BlockNode,
   Diagnostic,
-  Value,
-  StatementNode,
-} from './types.js';
+} from './types';
 
-import { isRecord, readStringValue, readNumberValue, applyLabelField, parseKeyValuePairs, parseListSegment } from './compile-utils.js';
-import { valueToJson } from './compile-variables.js';
+import { readStringValue, readNumberValue, applyLabelField, parseKeyValuePairs, parseListSegment } from './compile-utils';
 
 export function parseEntityCountFactor(
   tokens: Array<string | number>,
@@ -39,6 +36,18 @@ export function parseEntityCountFactor(
   return factor;
 }
 
+const RELATIONSHIP_LIST_KEYWORDS = new Set(['relationship_kinds', 'relationshipKinds', 'relationships', 'kinds']);
+const RELATIONSHIP_STOP_WORDS = new Set<string>(['direction', 'min_strength', 'minStrength', 'coefficient', 'cap', ...RELATIONSHIP_LIST_KEYWORDS]);
+
+function buildRelationshipAllowedSet(allowDirection: boolean, allowMinStrength: boolean, allowCoefficient: boolean, allowCap: boolean): Set<string> {
+  const allowed = new Set<string>();
+  if (allowDirection) allowed.add('direction');
+  if (allowMinStrength) { allowed.add('min_strength'); allowed.add('minStrength'); }
+  if (allowCoefficient) allowed.add('coefficient');
+  if (allowCap) allowed.add('cap');
+  return allowed;
+}
+
 export function parseRelationshipCountFactor(
   tokens: Array<string | number>,
   diagnostics: Diagnostic[],
@@ -48,25 +57,17 @@ export function parseRelationshipCountFactor(
   allowCoefficient: boolean,
   allowCap: boolean
 ): Record<string, unknown> | null {
-  const stopWords = new Set<string>(['direction', 'min_strength', 'minStrength', 'coefficient', 'cap', 'relationship_kinds', 'relationshipKinds', 'relationships', 'kinds']);
   let index = 0;
   const first = tokens[0];
-  if (typeof first === 'string' && (first === 'relationship_kinds' || first === 'relationshipKinds' || first === 'relationships' || first === 'kinds')) {
+  if (typeof first === 'string' && RELATIONSHIP_LIST_KEYWORDS.has(first)) {
     index = 1;
   }
-  const listResult = parseListSegment(tokens, index, stopWords, diagnostics, span, 'relationship_count');
+  const listResult = parseListSegment(tokens, index, RELATIONSHIP_STOP_WORDS, diagnostics, span, 'relationship_count');
   if (!listResult) return null;
   const relationshipKinds = listResult.list;
   index = listResult.nextIndex;
 
-  const allowed = new Set<string>();
-  if (allowDirection) allowed.add('direction');
-  if (allowMinStrength) {
-    allowed.add('min_strength');
-    allowed.add('minStrength');
-  }
-  if (allowCoefficient) allowed.add('coefficient');
-  if (allowCap) allowed.add('cap');
+  const allowed = buildRelationshipAllowedSet(allowDirection, allowMinStrength, allowCoefficient, allowCap);
   const kv = parseKeyValuePairs(tokens.slice(index), diagnostics, span, allowed);
   if (!kv) return null;
 
@@ -292,36 +293,31 @@ export function parsePressureFactorTokens(
   diagnostics: Diagnostic[],
   span: BlockNode['span']
 ): Record<string, unknown> | null {
-  if (type === 'entity_count') {
-    return parseEntityCountFactor(tokens, diagnostics, span, true, true);
+  switch (type) {
+    case 'entity_count':
+      return parseEntityCountFactor(tokens, diagnostics, span, true, true);
+    case 'relationship_count':
+      return parseRelationshipCountFactor(tokens, diagnostics, span, true, true, true, true);
+    case 'tag_count':
+      return parseTagCountFactor(tokens, diagnostics, span, true, true);
+    case 'total_entities':
+      return parseTotalEntitiesFactor(tokens, diagnostics, span, true, true);
+    case 'constant':
+      return parseConstantFactor(tokens, diagnostics, span, true);
+    case 'ratio':
+      return parseRatioFactor(tokens, diagnostics, span);
+    case 'status_ratio':
+      return parseStatusRatioFactor(tokens, diagnostics, span);
+    case 'cross_culture_ratio':
+      return parseCrossCultureRatioFactor(tokens, diagnostics, span);
+    default:
+      diagnostics.push({
+        severity: 'error',
+        message: `Unsupported pressure factor "${type}"`,
+        span
+      });
+      return null;
   }
-  if (type === 'relationship_count') {
-    return parseRelationshipCountFactor(tokens, diagnostics, span, true, true, true, true);
-  }
-  if (type === 'tag_count') {
-    return parseTagCountFactor(tokens, diagnostics, span, true, true);
-  }
-  if (type === 'total_entities') {
-    return parseTotalEntitiesFactor(tokens, diagnostics, span, true, true);
-  }
-  if (type === 'constant') {
-    return parseConstantFactor(tokens, diagnostics, span, true);
-  }
-  if (type === 'ratio') {
-    return parseRatioFactor(tokens, diagnostics, span);
-  }
-  if (type === 'status_ratio') {
-    return parseStatusRatioFactor(tokens, diagnostics, span);
-  }
-  if (type === 'cross_culture_ratio') {
-    return parseCrossCultureRatioFactor(tokens, diagnostics, span);
-  }
-  diagnostics.push({
-    severity: 'error',
-    message: `Unsupported pressure factor "${type}"`,
-    span
-  });
-  return null;
 }
 
 export function parsePressureFeedbackBlock(

@@ -1139,7 +1139,7 @@ export default function ChronicleWorkspace({
           worldSchema={worldSchema}
           eras={eras}
           defaults={createEntityDefaults}
-          onSubmit={handleCreateEntityFromQuickCheck}
+          onSubmit={(...args: [Omit<WorldEntity, "id" | "createdAt" | "updatedAt">]) => void handleCreateEntityFromQuickCheck(...args)}
           onClose={handleCloseCreateEntity}
         />
       )}

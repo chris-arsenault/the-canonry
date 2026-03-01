@@ -208,9 +208,9 @@ export function useChronicleNavigation({
     for (const item of visibleItems) {
       const label = getChronicleTypeLabel(item);
       if (!groups.has(label)) groups.set(label, []);
-      groups.get(label)!.push(item);
+      groups.get(label).push(item);
     }
-    return Array.from(groups.keys()).sort().map((label) => ({ label, items: groups.get(label)! }));
+    return Array.from(groups.keys()).sort((a, b) => a.localeCompare(b)).map((label) => ({ label, items: groups.get(label) }));
   }, [visibleItems, getChronicleTypeLabel, groupByType]);
 
   // Wizard data

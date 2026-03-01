@@ -433,7 +433,7 @@ function PatchInputPhase({
   );
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && oldNameInput.trim()) void onScan();
+      if (e.key === "Enter" && oldNameInput.trim()) onScan();
     },
     [oldNameInput, onScan],
   );
@@ -488,11 +488,11 @@ function RenameInputPhase({
   );
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && newName.trim()) void onScan();
+      if (e.key === "Enter" && newName.trim()) onScan();
     },
     [newName, onScan],
   );
-  const handleRoll = useCallback(() => void onRollName(), [onRollName]);
+  const handleRoll = useCallback(() => { onRollName(); }, [onRollName]);
   const handleAliasChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onAliasChange(e.target.checked),
     [onAliasChange],
@@ -1020,7 +1020,7 @@ export default function EntityRenameModal({
                   entity={entity}
                   oldNameInput={oldNameInput}
                   onOldNameChange={setOldNameInput}
-                  onScan={handleScan}
+                  onScan={() => void handleScan()}
                   inputRef={inputRef}
                 />
               ) : (
@@ -1028,8 +1028,8 @@ export default function EntityRenameModal({
                   entity={entity}
                   newName={newName}
                   onNewNameChange={setNewName}
-                  onScan={handleScan}
-                  onRollName={handleRollName}
+                  onScan={() => void handleScan()}
+                  onRollName={() => void handleRollName()}
                   isRolling={isRolling}
                   addOldNameAsAlias={addOldNameAsAlias}
                   onAliasChange={setAddOldNameAsAlias}

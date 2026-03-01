@@ -2,7 +2,7 @@
  * RelationshipsTab - Configure relationships between entities
  */
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useMemo, useCallback } from "react";
 import { ReferenceDropdown, NumberInput, useExpandBoolean } from "../../shared";
 
 // ---------------------------------------------------------------------------
@@ -68,11 +68,13 @@ interface ReferenceDropdownOption {
  */
 function safeDisplay(value: unknown, fallback = "?", label = "value"): string {
   if (value === null || value === undefined) return fallback;
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
   if (typeof value === "object") {
     console.warn(`[RelationshipsTab] Expected string for ${label} but got object:`, value);
     return `[object]`;
   }
-  return String(value);
+  return fallback;
 }
 
 // Condition types supported by lore-weave runtime
@@ -111,7 +113,7 @@ function RelationshipConditionEditor({
   onRemove,
   availableRefs,
   schema,
-}: RelationshipConditionEditorProps) {
+}: Readonly<RelationshipConditionEditorProps>) {
   const relationshipKindOptions = useMemo(() => buildRelKindOptions(schema), [schema]);
   const refOptions = useMemo(() => buildRefOptions(availableRefs), [availableRefs]);
 
@@ -220,7 +222,7 @@ interface RelationshipCardBodyProps {
   onUpdateField: (field: keyof Relationship, value: unknown) => void;
 }
 
-function RelationshipCardBody({ rel, schema, availableRefs, onUpdateField }: RelationshipCardBodyProps) {
+function RelationshipCardBody({ rel, schema, availableRefs, onUpdateField }: Readonly<RelationshipCardBodyProps>) {
   const relationshipKindOptions = useMemo(() => buildRelKindOptions(schema), [schema]);
   const refOptions = useMemo(() => buildRefOptions(availableRefs), [availableRefs]);
 
@@ -344,7 +346,7 @@ interface RelationshipCardProps {
   availableRefs: string[];
 }
 
-function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }: RelationshipCardProps) {
+function RelationshipCard({ rel, onChange, onRemove, schema, availableRefs }: Readonly<RelationshipCardProps>) {
   const { expanded, hovering, headerProps } = useExpandBoolean();
 
   const handleUpdateField = useCallback(
@@ -406,7 +408,7 @@ interface ImpliedRelationshipCardProps {
   createdEntityRef: string;
 }
 
-function ImpliedRelationshipCard({ saturationLimit, schema, createdEntityRef }: ImpliedRelationshipCardProps) {
+function ImpliedRelationshipCard({ saturationLimit, schema, createdEntityRef }: Readonly<ImpliedRelationshipCardProps>) {
   const relationshipKindOptions = useMemo(() => buildRelKindOptions(schema), [schema]);
 
   const getRelLabel = useCallback(
@@ -455,7 +457,7 @@ function RelationshipList({
   firstCreatedRef,
   generator,
   onChange,
-}: RelationshipListProps) {
+}: Readonly<RelationshipListProps>) {
   const handleRelChange = useCallback(
     (index: number, updated: Relationship) => {
       const newRels = [...relationships];
@@ -525,7 +527,7 @@ interface RelationshipsTabProps {
   schema: Schema | undefined;
 }
 
-export function RelationshipsTab({ generator, onChange, schema }: RelationshipsTabProps) {
+export function RelationshipsTab({ generator, onChange, schema }: Readonly<RelationshipsTabProps>) {
   const relationships = generator.relationships || [];
   const saturationLimits = generator.selection?.saturationLimits || [];
 

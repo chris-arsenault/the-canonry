@@ -45,6 +45,7 @@ interface RuleEditorBodyProps {
 // Sub-dispatchers (grouped by category to reduce per-function complexity)
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line sonarjs/function-return-type -- dispatch returns JSX or null by design
 function renderPressureEditor(props: Readonly<RuleEditorBodyProps>): React.ReactNode {
   const { rule, updateField, pressureOptions } = props;
   switch (rule.type) {
@@ -59,6 +60,7 @@ function renderPressureEditor(props: Readonly<RuleEditorBodyProps>): React.React
   }
 }
 
+// eslint-disable-next-line sonarjs/function-return-type -- dispatch returns JSX or null by design
 function renderRelationshipEditor(props: Readonly<RuleEditorBodyProps>): React.ReactNode {
   const { rule, updateField, relationshipKindOptions, entityKindOptions } = props;
   switch (rule.type) {
@@ -71,6 +73,7 @@ function renderRelationshipEditor(props: Readonly<RuleEditorBodyProps>): React.R
   }
 }
 
+// eslint-disable-next-line sonarjs/function-return-type -- dispatch returns JSX or null by design
 function renderAttributeEditor(props: Readonly<RuleEditorBodyProps>): React.ReactNode {
   const { rule, updateField, tagRegistry } = props;
   switch (rule.type) {
@@ -87,6 +90,7 @@ function renderAttributeEditor(props: Readonly<RuleEditorBodyProps>): React.Reac
   }
 }
 
+// eslint-disable-next-line sonarjs/function-return-type -- dispatch returns JSX or null by design
 function renderTemporalEditor(props: Readonly<RuleEditorBodyProps>): React.ReactNode {
   const { rule, updateField, eraOptions } = props;
   switch (rule.type) {
@@ -107,6 +111,7 @@ function renderTemporalEditor(props: Readonly<RuleEditorBodyProps>): React.React
   }
 }
 
+// eslint-disable-next-line sonarjs/function-return-type -- dispatch returns JSX or null by design
 function renderGraphEntityEditor(props: Readonly<RuleEditorBodyProps>): React.ReactNode {
   const { rule, updateField, schema, relationshipKindOptions } = props;
   switch (rule.type) {

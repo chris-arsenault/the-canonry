@@ -5,7 +5,7 @@
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import { ReferenceDropdown, NumberInput } from "../../shared";
-import "./RelationshipsTab.css";
+
 
 /**
  * Safely display a value that should be a string.

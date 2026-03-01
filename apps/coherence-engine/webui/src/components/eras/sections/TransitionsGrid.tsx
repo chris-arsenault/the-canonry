@@ -53,7 +53,7 @@ interface MiniSectionProps {
   emptyMessage?: string;
 }
 
-function MiniSection({ title, icon, count, children, isEmpty, emptyMessage }: MiniSectionProps) {
+function MiniSection({ title, icon, count, children, isEmpty, emptyMessage }: Readonly<MiniSectionProps>) {
   return (
     <div className="transitions-mini-section viewer-section">
       <div className="transitions-mini-header">
@@ -91,7 +91,7 @@ function ConditionsSection({
   eras,
   label,
   emptyMessage,
-}: ConditionsColumnProps) {
+}: Readonly<ConditionsColumnProps>) {
   const handleUpdate = useCallback(
     (index: number, updated: Condition) => onUpdate(index, updated),
     [onUpdate],
@@ -146,7 +146,7 @@ function EffectsSection({
   onAdd,
   availablePressures,
   pressures,
-}: EffectsColumnProps) {
+}: Readonly<EffectsColumnProps>) {
   return (
     <MiniSection
       title="Effects"
@@ -223,7 +223,7 @@ export function TransitionsGrid({
   pressures = [],
   schema,
   eras = [],
-}: TransitionsGridProps) {
+}: Readonly<TransitionsGridProps>) {
   const stableEntryPressures = useMemo(() => availablePressuresForEntry, [availablePressuresForEntry]);
   const stableExitPressures = useMemo(() => availablePressuresForExit, [availablePressuresForExit]);
 

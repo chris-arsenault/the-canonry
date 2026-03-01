@@ -256,7 +256,7 @@ function recordEntityFailure(
   counters.failedEntities.push({
     entityId: entity.entityId,
     entityName: entity.entityName,
-    error: err instanceof Error ? err.message : String(err),
+    error: err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Unknown error'),
   });
 }
 
@@ -356,7 +356,7 @@ export function useBulkHistorian(deps: BulkHistorianDeps): UseBulkHistorianRetur
         console.error("[Bulk Historian] Fatal error:", err);
         setProgress((p) => ({
           ...p, status: "failed", currentEntityName: "",
-          error: err instanceof Error ? err.message : String(err),
+          error: err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Unknown error'),
         }));
       } finally {
         activeRef.current = false;

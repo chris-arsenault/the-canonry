@@ -131,7 +131,7 @@ interface InsertChipProps {
   onInsert: (text: string) => void;
 }
 
-function InsertChip({ code, title, className, onInsert }: InsertChipProps) {
+function InsertChip({ code, title, className, onInsert }: Readonly<InsertChipProps>) {
   const handleClick = useCallback(() => onInsert(code), [onInsert, code]);
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -160,7 +160,7 @@ function InsertChip({ code, title, className, onInsert }: InsertChipProps) {
 // GrammarsTab (main component)
 // ---------------------------------------------------------------------------
 
-function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChange, allCultures }: GrammarsTabProps) {
+function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChange, allCultures }: Readonly<GrammarsTabProps>) {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [editingGrammar, setEditingGrammar] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -277,7 +277,7 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
   return (
     <GrammarEditForm
       cultureId={cultureId}
-      editingGrammar={editingGrammar!}
+      editingGrammar={editingGrammar}
       initialGrammar={editingGrammar === "new" ? null : grammars.find((g) => g.id === editingGrammar) || null}
       grammars={grammars}
       lexemeLists={lexemeLists}
@@ -303,7 +303,7 @@ interface GrammarCardProps {
   onDelete: (id: string) => void;
 }
 
-function GrammarCard({ grammar, domains, lexemeLists, onEdit, onDelete }: GrammarCardProps) {
+function GrammarCard({ grammar, domains, lexemeLists, onEdit, onDelete }: Readonly<GrammarCardProps>) {
   const handleEdit = useCallback(() => onEdit(grammar), [onEdit, grammar]);
   const handleDelete = useCallback(() => onDelete(grammar.id), [onDelete, grammar.id]);
 
@@ -361,7 +361,7 @@ function GrammarEditForm({
   domains,
   onGrammarsChange,
   onCancel,
-}: GrammarEditFormProps) {
+}: Readonly<GrammarEditFormProps>) {
   const [formData, setFormData] = useState<Grammar>(
     initialGrammar || {
       id: `${cultureId}_grammar`,
@@ -698,7 +698,7 @@ interface CollapsiblePanelProps {
   children: React.ReactNode;
 }
 
-function CollapsiblePanel({ title, defaultExpanded = true, children }: CollapsiblePanelProps) {
+function CollapsiblePanel({ title, defaultExpanded = true, children }: Readonly<CollapsiblePanelProps>) {
   const { expanded, toggle } = useExpandBoolean();
   const [initialized, setInitialized] = useState(false);
 
@@ -731,7 +731,7 @@ function CollapsiblePanel({ title, defaultExpanded = true, children }: Collapsib
 // ClickToInsertSection
 // ---------------------------------------------------------------------------
 
-function ClickToInsertSection({ title, subtitle, items, onInsert, variant = "blue" }: ClickToInsertSectionProps) {
+function ClickToInsertSection({ title, subtitle, items, onInsert, variant = "blue" }: Readonly<ClickToInsertSectionProps>) {
   return (
     <div className={`insert-panel ${variant}`}>
       <div className="insert-panel-title">
@@ -756,7 +756,7 @@ function ClickToInsertSection({ title, subtitle, items, onInsert, variant = "blu
 // DomainInsertSection
 // ---------------------------------------------------------------------------
 
-function DomainInsertSection({ domain, onInsert }: DomainInsertSectionProps) {
+function DomainInsertSection({ domain, onInsert }: Readonly<DomainInsertSectionProps>) {
   return (
     <div className="insert-panel domain">
       <div className="insert-panel-title text-purple">
@@ -810,7 +810,7 @@ function DomainInsertSection({ domain, onInsert }: DomainInsertSectionProps) {
 // EntityLinkageSection
 // ---------------------------------------------------------------------------
 
-function EntityLinkageSection({ onInsert }: InsertCallbackProps) {
+function EntityLinkageSection({ onInsert }: Readonly<InsertCallbackProps>) {
   return (
     <div className="insert-panel green">
       <div className="insert-panel-title text-green">
@@ -851,7 +851,7 @@ interface ModifierEntry {
   desc: string;
 }
 
-function ModifiersSection({ onInsert }: InsertCallbackProps) {
+function ModifiersSection({ onInsert }: Readonly<InsertCallbackProps>) {
   return (
     <div className="insert-panel cyan">
       <div className="insert-panel-title">
@@ -1022,7 +1022,7 @@ function GrammarHelpCapitalizationSection() {
   );
 }
 
-function GrammarHelpModal({ onClose }: GrammarHelpModalProps) {
+function GrammarHelpModal({ onClose }: Readonly<GrammarHelpModalProps>) {
   const mouseDownOnOverlay = useRef(false);
 
   const handleOverlayMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -1043,6 +1043,7 @@ function GrammarHelpModal({ onClose }: GrammarHelpModalProps) {
       className="modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Escape") onClose(); }}
       role="dialog"
       aria-modal="true"
       aria-label="Context-Free Grammar Help"
@@ -1105,7 +1106,7 @@ function previewReducer(state: PreviewState, action: PreviewAction): PreviewStat
 
 const PREVIEW_INITIAL_STATE: PreviewState = { names: [], pending: false, previewError: null };
 
-function GrammarPreview({ grammar, domains, lexemeLists }: GrammarPreviewProps) {
+function GrammarPreview({ grammar, domains, lexemeLists }: Readonly<GrammarPreviewProps>) {
   const [state, dispatch] = useReducer(previewReducer, PREVIEW_INITIAL_STATE);
 
   const hasRules = grammar.rules && Object.keys(grammar.rules).length > 0;

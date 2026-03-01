@@ -109,6 +109,37 @@ function WordCountHistogram({
 WordCountHistogram.propTypes = {
   chronicles: PropTypes.array
 };
+const RATING_KEYS = ["integral", "prevalent", "mentioned", "missing"];
+
+function computeCoverageStats(chronicles, facts) {
+  const chroniclesWithReport = chronicles.filter(c => c.factCoverageReport?.entries?.length);
+  if (!chroniclesWithReport.length || !facts.length) return null;
+
+  const perFact = new Map();
+  for (const fact of facts) {
+    perFact.set(fact.id, { integral: 0, prevalent: 0, mentioned: 0, missing: 0, total: 0 });
+  }
+  for (const chronicle of chroniclesWithReport) {
+    for (const entry of chronicle.factCoverageReport.entries) {
+      const agg = perFact.get(entry.factId);
+      if (agg && entry.rating && agg[entry.rating] !== undefined) {
+        agg[entry.rating]++;
+        agg.total++;
+      }
+    }
+  }
+
+  let totalEntries = 0;
+  const globalCounts = { integral: 0, prevalent: 0, mentioned: 0, missing: 0 };
+  for (const [, agg] of perFact) {
+    for (const r of RATING_KEYS) {
+      globalCounts[r] += agg[r];
+    }
+    totalEntries += agg.total;
+  }
+  return { chroniclesAnalyzed: chroniclesWithReport.length, totalEntries, globalCounts, perFact };
+}
+
 export default function CoveragePanel({
   worldContext,
   simulationRunId,
@@ -247,52 +278,10 @@ export default function CoveragePanel({
   } = analysis;
 
   // Fact coverage analysis stats (from LLM ratings)
-  const coverageStats = useMemo(() => {
-    const chroniclesWithReport = chronicles.filter(c => c.factCoverageReport?.entries?.length);
-    if (!chroniclesWithReport.length || !facts.length) return null;
-
-    // Per-fact aggregation: count how many chronicles rated each fact at each level
-    const perFact = new Map();
-    for (const fact of facts) {
-      perFact.set(fact.id, {
-        integral: 0,
-        prevalent: 0,
-        mentioned: 0,
-        missing: 0,
-        total: 0
-      });
-    }
-    for (const chronicle of chroniclesWithReport) {
-      for (const entry of chronicle.factCoverageReport.entries) {
-        const agg = perFact.get(entry.factId);
-        if (agg && entry.rating) {
-          if (agg[entry.rating] !== undefined) agg[entry.rating]++;
-          agg.total++;
-        }
-      }
-    }
-
-    // Global totals
-    let totalEntries = 0;
-    const globalCounts = {
-      integral: 0,
-      prevalent: 0,
-      mentioned: 0,
-      missing: 0
-    };
-    for (const [, agg] of perFact) {
-      for (const r of ["integral", "prevalent", "mentioned", "missing"]) {
-        globalCounts[r] += agg[r];
-      }
-      totalEntries += agg.total;
-    }
-    return {
-      chroniclesAnalyzed: chroniclesWithReport.length,
-      totalEntries,
-      globalCounts,
-      perFact
-    };
-  }, [chronicles, facts]);
+  const coverageStats = useMemo(
+    () => computeCoverageStats(chronicles, facts),
+    [chronicles, facts],
+  );
   const disableAll = useCallback(() => {
     const next = {};
     for (const row of rows) {

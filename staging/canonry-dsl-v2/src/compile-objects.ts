@@ -7,13 +7,13 @@ import type {
   StatementNode,
   AttributeNode,
   AstFile,
-} from './types.js';
+} from './types';
 
-import type { GeneratorContext, BlockMapping } from './compile-types.js';
-import { CONTAINER_ALIASES, INLINE_ITEM_KEYS, SET_FIELD_KEYS, DSL_BLOCK_NAMES, ACTION_DSL_BLOCKS, ACTION_DSL_ATTRIBUTES, VARIABLE_REFERENCE_PREFIXES } from './compile-types.js';
-import { isArrayValue, isObjectValue, isRecord, coerceStringValue, applyLabelField, setObjectValue, parseInlineKeyValuePairs, pushArrayValue, isIdentifierValue } from './compile-utils.js';
-import { valueToJson, activeEvalContext, parseResourceReferenceValue } from './compile-variables.js';
-import { applySetFieldAttribute, applySetFieldBlock, parseSetBlockItems } from './compile-sets.js';
+import type { GeneratorContext, BlockMapping } from './compile-types';
+import { CONTAINER_ALIASES, INLINE_ITEM_KEYS, SET_FIELD_KEYS, DSL_BLOCK_NAMES, ACTION_DSL_BLOCKS, ACTION_DSL_ATTRIBUTES, VARIABLE_REFERENCE_PREFIXES } from './compile-types';
+import { isArrayValue, isObjectValue, isRecord, coerceStringValue, applyLabelField, setObjectValue, parseInlineKeyValuePairs, pushArrayValue, isIdentifierValue } from './compile-utils';
+import { valueToJson, activeEvalContext, parseResourceReferenceValue } from './compile-variables';
+import { applySetFieldAttribute, applySetFieldBlock, parseSetBlockItems } from './compile-sets';
 
 export function expandContainers(block: BlockNode, diagnostics: Diagnostic[]): BlockNode[] {
   const alias = CONTAINER_ALIASES[block.name];
@@ -621,6 +621,12 @@ export function buildObjectFromStatements(
 
 export function applyLabeledAttribute(
   stmt: Extract<StatementNode, { type: 'attribute' }>,
+  obj: Record<string, unknown>,
+  diagnostics: Diagnostic[],
+  parent: BlockNode
+): boolean {
+  throw new Error('applyLabeledAttribute: not yet extracted from compile.ts');
+}
 
 export function applySpecialBlock(
   stmt: BlockNode,

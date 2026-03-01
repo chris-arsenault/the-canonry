@@ -52,7 +52,7 @@ export function CultureSection({
   cultureEntities,
   entityUsage,
   expanded,
-}: CultureSectionProps): React.ReactElement | number {
+}: Readonly<CultureSectionProps>): React.ReactElement {
   const [sort, onSort] = useColumnSort("primaryRatio");
   const [kindFilter, setKindFilter] = useState("all");
   const kindOptions = useMemo(() => getKindOptions(entities), [entities]);
@@ -125,7 +125,7 @@ export function CultureSection({
     [rows],
   );
 
-  if (!expanded) return underutilCount;
+  if (!expanded) return <>{underutilCount}</>;
 
   return (
     <div>

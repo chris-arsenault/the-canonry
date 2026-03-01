@@ -1,5 +1,5 @@
 /* eslint-disable sonarjs/cognitive-complexity */
-import { parseCanon } from './parser.js';
+import { parseCanon } from './parser';
 import type {
   AstFile,
   BlockNode,
@@ -13,7 +13,7 @@ import type {
   CallValue,
   CompileResult,
   StaticPagesCompileResult
-} from './types.js';
+} from './types';
 
 interface SourceFile {
   path: string;
@@ -8973,7 +8973,7 @@ function buildStaticPageFromBlock(
   if (page.title !== undefined && page.title !== titleLabel) {
     diagnostics.push({
       severity: 'error',
-      message: `static_page title mismatch: label "${titleLabel}" vs title "${String(page.title)}"`,
+      message: `static_page title mismatch: label "${titleLabel}" vs title "${typeof page.title === 'string' ? page.title : JSON.stringify(page.title)}"`,
       span: block.span
     });
     return null;
@@ -14208,7 +14208,7 @@ function evaluateCallExpression(
         });
         return null;
       }
-      const key = `${typeof item}:${String(item)}`;
+      const key = `${typeof item}:${typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean' ? `${item}` : JSON.stringify(item)}`;
       if (seen.has(key)) continue;
       seen.add(key);
       output.push(item);

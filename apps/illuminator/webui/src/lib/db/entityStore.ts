@@ -78,7 +78,7 @@ function addToCache(
 ): void {
   cache.set(id, entity);
   if (cache.size > CACHE_LIMIT) {
-    const firstKey = cache.keys().next().value;
+    const firstKey = cache.keys().next().value as string | undefined;
     if (firstKey && firstKey !== id) cache.delete(firstKey);
   }
 }

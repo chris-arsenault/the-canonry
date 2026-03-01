@@ -163,7 +163,7 @@ function generateStyleId(prefix: string): string {
 // StyleCard
 // ---------------------------------------------------------------------------
 
-function StyleCard({ style, onEdit, onDelete }: StyleCardProps) {
+function StyleCard({ style, onEdit, onDelete }: Readonly<StyleCardProps>) {
   const handleEdit = useCallback(() => onEdit(style), [onEdit, style]);
   const handleDelete = useCallback(() => onDelete(style.id), [onDelete, style.id]);
 
@@ -215,7 +215,7 @@ interface StyleEditFormData {
   keywords: string;
 }
 
-function StyleEditModal({ style, type, onSave, onCancel }: StyleEditModalProps) {
+function StyleEditModal({ style, type, onSave, onCancel }: Readonly<StyleEditModalProps>) {
   const [formData, setFormData] = useState<StyleEditFormData>({
     id: style?.id || "",
     name: style?.name || "",
@@ -274,6 +274,7 @@ function StyleEditModal({ style, type, onSave, onCancel }: StyleEditModalProps) 
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Escape") onCancel(); }}
       role="dialog"
       aria-modal="true"
       aria-label={`${isNew ? "Add" : "Edit"} ${type} style`}
@@ -376,7 +377,7 @@ function StyleEditModal({ style, type, onSave, onCancel }: StyleEditModalProps) 
 // NarrativeStyleCard
 // ---------------------------------------------------------------------------
 
-function NarrativeStyleBadges({ style }: { style: NarrativeStyle }) {
+function NarrativeStyleBadges({ style }: Readonly<{ style: NarrativeStyle }>) {
   const isDocument = style.format === "document";
   const wordCountMin = isDocument
     ? style.pacing?.wordCount?.min || 300
@@ -415,7 +416,7 @@ function NarrativeStyleBadges({ style }: { style: NarrativeStyle }) {
   );
 }
 
-function NarrativeStyleCard({ style, onEdit, onDelete }: NarrativeStyleCardProps) {
+function NarrativeStyleCard({ style, onEdit, onDelete }: Readonly<NarrativeStyleCardProps>) {
   const isDocument = style.format === "document";
   const rawInstructions = isDocument ? style.documentInstructions : style.narrativeInstructions;
 
@@ -469,7 +470,7 @@ function NarrativeStyleCard({ style, onEdit, onDelete }: NarrativeStyleCardProps
 // CoverImageConfigSection
 // ---------------------------------------------------------------------------
 
-function CoverImageConfigSection({ styleId, compositionStyles }: CoverImageConfigSectionProps) {
+function CoverImageConfigSection({ styleId, compositionStyles }: Readonly<CoverImageConfigSectionProps>) {
   const coverConfig = getCoverImageConfig(styleId);
   const sceneTemplate = SCENE_PROMPT_TEMPLATES.find((t) => t.id === coverConfig.scenePromptId);
   const coverComposition = compositionStyles?.find(
@@ -501,7 +502,7 @@ function CoverImageConfigSection({ styleId, compositionStyles }: CoverImageConfi
 // DocumentStyleViewModal
 // ---------------------------------------------------------------------------
 
-function DocumentStyleRolesList({ roles }: { roles: NarrativeRole[] }) {
+function DocumentStyleRolesList({ roles }: Readonly<{ roles: NarrativeRole[] }>) {
   return (
     <div className="style-editor-detail-block">
       <div className="style-editor-detail-label style-editor-detail-label-mb8">
@@ -530,7 +531,7 @@ function DocumentStyleViewModal({
   style,
   compositionStyles,
   onCancel,
-}: DocumentStyleViewModalProps) {
+}: Readonly<DocumentStyleViewModalProps>) {
   const { handleOverlayMouseDown, handleOverlayClick } = useOverlayDismiss(onCancel);
 
   return (
@@ -538,6 +539,7 @@ function DocumentStyleViewModal({
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Escape") onCancel(); }}
       role="dialog"
       aria-modal="true"
       aria-label={`Document style: ${style.name}`}
@@ -651,12 +653,12 @@ function NarrativeBasicTab({
   compositionStyles,
   isNew,
   onFieldChange,
-}: {
+}: Readonly<{
   formData: NarrativeFormData;
   compositionStyles?: StyleBase[];
   isNew: boolean;
   onFieldChange: (field: keyof NarrativeFormData, value: NarrativeFormData[keyof NarrativeFormData]) => void;
-}) {
+}>) {
   const handleNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onFieldChange("name", e.target.value),
     [onFieldChange],
@@ -787,10 +789,10 @@ function NarrativeBasicTab({
 function NarrativeInstructionsTab({
   formData,
   onFieldChange,
-}: {
+}: Readonly<{
   formData: NarrativeFormData;
   onFieldChange: (field: keyof NarrativeFormData, value: NarrativeFormData[keyof NarrativeFormData]) => void;
-}) {
+}>) {
   const handleNarrativeChange = useCallback(
     (value: string) => onFieldChange("narrativeInstructions", value),
     [onFieldChange],
@@ -855,10 +857,10 @@ Scene Types:
 function NarrativeProseTab({
   formData,
   onFieldChange,
-}: {
+}: Readonly<{
   formData: NarrativeFormData;
   onFieldChange: (field: keyof NarrativeFormData, value: NarrativeFormData[keyof NarrativeFormData]) => void;
-}) {
+}>) {
   const handleProseChange = useCallback(
     (value: string) => onFieldChange("proseInstructions", value),
     [onFieldChange],
@@ -903,12 +905,12 @@ function NarrativeRolesTab({
   onAddRole,
   onUpdateRole,
   onRemoveRole,
-}: {
+}: Readonly<{
   roles: NarrativeRole[];
   onAddRole: () => void;
   onUpdateRole: (index: number, field: string, value: string) => void;
   onRemoveRole: (index: number) => void;
-}) {
+}>) {
   return (
     <>
       <div className="style-editor-roles-info">
@@ -941,12 +943,12 @@ function NarrativeRoleEditCard({
   index,
   onUpdate,
   onRemove,
-}: {
+}: Readonly<{
   role: NarrativeRole;
   index: number;
   onUpdate: (index: number, field: string, value: string) => void;
   onRemove: (index: number) => void;
-}) {
+}>) {
   const handleRoleNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onUpdate(index, "role", e.target.value),
     [onUpdate, index],
@@ -1020,7 +1022,7 @@ function NarrativeStyleEditModal({
   compositionStyles,
   onSave,
   onCancel,
-}: NarrativeStyleEditModalProps) {
+}: Readonly<NarrativeStyleEditModalProps>) {
   const isNew = !style?.id;
 
   const [formData, setFormData] = useState<NarrativeFormData>({
@@ -1129,6 +1131,7 @@ function NarrativeStyleEditModal({
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Escape") onCancel(); }}
       role="dialog"
       aria-modal="true"
       aria-label={`${isNew ? "Add" : "Edit"} narrative style`}
@@ -1202,7 +1205,7 @@ function NarrativeStyleEditModal({
 // ScenePromptTemplateCard
 // ---------------------------------------------------------------------------
 
-function ScenePromptTemplateCard({ template }: { template: ScenePromptTemplate }) {
+function ScenePromptTemplateCard({ template }: Readonly<{ template: ScenePromptTemplate }>) {
   return (
     <div className="illuminator-style-card">
       <div className="illuminator-style-card-header">
@@ -1231,7 +1234,7 @@ interface StyleSectionProps {
   children: React.ReactNode;
 }
 
-function StyleSection({ title, count, description, onAdd, emptyText, children }: StyleSectionProps) {
+function StyleSection({ title, count, description, onAdd, emptyText, children }: Readonly<StyleSectionProps>) {
   return (
     <div className="illuminator-card">
       <div className="illuminator-card-header">
@@ -1271,7 +1274,7 @@ export default function StyleLibraryEditor({
   onUpdateNarrativeStyle,
   onDeleteNarrativeStyle,
   onReset,
-}: StyleLibraryEditorProps) {
+}: Readonly<StyleLibraryEditorProps>) {
   const [editingStyle, setEditingStyle] = useState<StyleBase | NarrativeStyle | null>(null);
   const [editingType, setEditingType] = useState<StyleType | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -1415,7 +1418,7 @@ export default function StyleLibraryEditor({
                     : "Reload default styles?"}
                 </span>
                 <button
-                  onClick={handleReset}
+                  onClick={() => void handleReset()}
                   className="illuminator-btn illuminator-btn-danger style-editor-btn-sm"
                 >
                   Yes, Reload
@@ -1438,7 +1441,7 @@ export default function StyleLibraryEditor({
         emptyText="No artistic styles defined. Add one to get started."
       >
         {styleLibrary.artisticStyles.map((s) => (
-          <StyleCard key={s.id} style={s} onEdit={handleEditArtistic} onDelete={handleDeleteArtistic} />
+          <StyleCard key={s.id} style={s} onEdit={handleEditArtistic} onDelete={(id: string) => void handleDeleteArtistic(id)} />
         ))}
       </StyleSection>
 
@@ -1451,7 +1454,7 @@ export default function StyleLibraryEditor({
         emptyText="No composition styles defined. Add one to get started."
       >
         {styleLibrary.compositionStyles.map((s) => (
-          <StyleCard key={s.id} style={s} onEdit={handleEditComposition} onDelete={handleDeleteComposition} />
+          <StyleCard key={s.id} style={s} onEdit={handleEditComposition} onDelete={(id: string) => void handleDeleteComposition(id)} />
         ))}
       </StyleSection>
 
@@ -1468,7 +1471,7 @@ export default function StyleLibraryEditor({
             key={s.id}
             style={s}
             onEdit={handleEditNarrative}
-            onDelete={handleDeleteNarrative}
+            onDelete={(id: string) => void handleDeleteNarrative(id)}
           />
         ))}
       </StyleSection>
@@ -1497,7 +1500,7 @@ export default function StyleLibraryEditor({
       {editingStyle && (editingType === "artistic" || editingType === "composition") && (
         <StyleEditModal
           type={editingType}
-          onSave={handleSaveStyle}
+          onSave={(...args: [StyleBase | NarrativeStyle, boolean]) => void handleSaveStyle(...args)}
           onCancel={handleCloseModal}
           style={editingStyle as StyleBase}
         />
@@ -1507,7 +1510,7 @@ export default function StyleLibraryEditor({
       {editingStyle && editingType === "narrative" && (
         <NarrativeStyleEditModal
           compositionStyles={styleLibrary.compositionStyles}
-          onSave={handleSaveStyle}
+          onSave={(...args: [StyleBase | NarrativeStyle, boolean]) => void handleSaveStyle(...args)}
           onCancel={handleCloseModal}
           style={editingStyle as NarrativeStyle}
         />

@@ -237,7 +237,7 @@ export function ParchmentTexture({
   // Mirror tile is 2x WORK_SIZE
   const tileSize = WORK_SIZE * 2;
   return <div aria-hidden className={`${className ?? ""} ${ornStyles.parchmentTexture}`}
-  // eslint-disable-next-line local/no-inline-styles -- dynamic texture URL and opacity from canvas pipeline
+   
   style={{
     "--parchment-url": `url(${textureUrl})`,
     "--parchment-size": `${tileSize}px ${tileSize}px`,

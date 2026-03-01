@@ -16,6 +16,60 @@ import {
   updateChronicleTertiaryCast,
 } from "../../lib/db/chronicleRepository";
 import { findEntityMentions } from "../../lib/wikiLinkService";
+import type { PersistedEntity } from "../../lib/db/illuminatorDb";
+
+type WikiEntity = { id: string; name: string };
+
+function buildWikiEntityList(entities: PersistedEntity[]): WikiEntity[] {
+  const wikiEntities: WikiEntity[] = [];
+  for (const entity of entities) {
+    if (entity.kind === "era") continue;
+    wikiEntities.push({ id: entity.id, name: entity.name });
+    const aliases = entity.enrichment?.text?.aliases;
+    if (Array.isArray(aliases)) {
+      for (const alias of aliases) {
+        if (typeof alias === "string" && alias.length >= 3) {
+          wikiEntities.push({ id: entity.id, name: alias });
+        }
+      }
+    }
+  }
+  return wikiEntities;
+}
+
+async function detectTertiaryForChronicle(
+  navItem: ChronicleNavItem,
+  wikiEntities: WikiEntity[],
+  freshEntities: PersistedEntity[]
+): Promise<boolean> {
+  const record = await getChronicle(navItem.chronicleId);
+  if (!record) return false;
+  const content = record.finalContent || record.assembledContent;
+  if (!content) return false;
+
+  const mentions = findEntityMentions(content, wikiEntities);
+  const declaredIds = new Set(record.selectedEntityIds || []);
+  const prevDecisions = new Map(
+    (record.tertiaryCast || []).map((e: { entityId: string; accepted: boolean }) => [e.entityId, e.accepted]),
+  );
+  const seen = new Set<string>();
+  const entries: Array<Record<string, unknown>> = [];
+  for (const m of mentions) {
+    if (declaredIds.has(m.entityId) || seen.has(m.entityId)) continue;
+    seen.add(m.entityId);
+    const entity = freshEntities.find((e: { id: string }) => e.id === m.entityId);
+    if (entity) {
+      entries.push({
+        entityId: entity.id, name: entity.name, kind: entity.kind,
+        matchedAs: content.slice(m.start, m.end),
+        matchStart: m.start, matchEnd: m.end,
+        accepted: prevDecisions.get(entity.id) ?? true,
+      });
+    }
+  }
+  await updateChronicleTertiaryCast(navItem.chronicleId, entries);
+  return true;
+}
 
 interface UseChronicleBulkOperationsParams {
   simulationRunId: string;
@@ -111,53 +165,14 @@ export function useChronicleBulkOperations({
     setTertiaryDetectResult({ running: true, count: 0 });
     try {
       const freshEntities = await getEntitiesForRun(simulationRunId);
-      const wikiEntities: Array<{ id: string; name: string }> = [];
-      for (const entity of freshEntities) {
-        if (entity.kind === "era") continue;
-        wikiEntities.push({ id: entity.id, name: entity.name });
-        const aliases = entity.enrichment?.text?.aliases;
-        if (Array.isArray(aliases)) {
-          for (const alias of aliases) {
-            if (typeof alias === "string" && alias.length >= 3) {
-              wikiEntities.push({ id: entity.id, name: alias });
-            }
-          }
-        }
-      }
+      const wikiEntities = buildWikiEntityList(freshEntities);
       const eligible = chronicleItems.filter(
         (c) => c.status === "complete" || c.status === "assembly_ready",
       );
       let updated = 0;
       for (const navItem of eligible) {
-        const record = await getChronicle(navItem.chronicleId);
-        if (!record) continue;
-        const content = record.finalContent || record.assembledContent;
-        if (!content) continue;
-        const mentions = findEntityMentions(content, wikiEntities);
-        const declaredIds = new Set(record.selectedEntityIds || []);
-        const prevDecisions = new Map(
-          (record.tertiaryCast || []).map((e: { entityId: string; accepted: boolean }) => [e.entityId, e.accepted]),
-        );
-        const seen = new Set<string>();
-        const entries: Array<Record<string, unknown>> = [];
-        for (const m of mentions) {
-          if (declaredIds.has(m.entityId) || seen.has(m.entityId)) continue;
-          seen.add(m.entityId);
-          const entity = freshEntities.find((e: { id: string }) => e.id === m.entityId);
-          if (entity) {
-            entries.push({
-              entityId: entity.id,
-              name: entity.name,
-              kind: entity.kind,
-              matchedAs: content.slice(m.start, m.end),
-              matchStart: m.start,
-              matchEnd: m.end,
-              accepted: prevDecisions.get(entity.id) ?? true,
-            });
-          }
-        }
-        await updateChronicleTertiaryCast(navItem.chronicleId, entries);
-        updated++;
+        const didUpdate = await detectTertiaryForChronicle(navItem, wikiEntities, freshEntities);
+        if (didUpdate) updated++;
       }
       await refresh();
       setTertiaryDetectResult({ success: true, count: updated });

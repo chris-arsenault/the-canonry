@@ -97,6 +97,7 @@ export default function TagSelector({
     return groups;
   }, [searchQuery, tagRegistry, value]);
 
+  // eslint-disable-next-line sonarjs/function-return-type -- returns string or false discriminant by design
   const canCreateTag = useMemo<string | false>((): string | false => {
     if (!searchQuery.trim()) return false;
     const normalized = searchQuery.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');

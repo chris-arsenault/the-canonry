@@ -10,7 +10,7 @@ interface AssembledContentViewerProps {
   onCopy: () => void;
 }
 
-export function AssembledContentViewer({ content, wordCount, onCopy }: AssembledContentViewerProps) {
+export function AssembledContentViewer({ content, wordCount, onCopy }: Readonly<AssembledContentViewerProps>) {
   return (
     <div>
       <div className="chron-assembled-header">

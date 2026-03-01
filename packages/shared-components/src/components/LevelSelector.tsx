@@ -53,7 +53,7 @@ export function LevelSelector({
   const isNumeric = typeof levels[0]?.value === 'number';
 
   // Get level index based on value
-  const getLevelIndex = (val) => {
+  const getLevelIndex = (val: number | string) => {
     if (isNumeric) {
       for (let i = levels.length - 1; i >= 0; i--) {
         if (val >= levels[i].value) return i;
@@ -70,7 +70,7 @@ export function LevelSelector({
   const hoverLevel = hoveredLevel !== null ? levels[hoveredLevel] : null;
 
   // Calculate partial fill for each dot (only meaningful for numeric mode)
-  const getPartialFill = (idx) => {
+  const getPartialFill = (idx: number) => {
     if (!isNumeric) {
       // String mode: full fill up to and including current level
       return idx <= levelIndex ? 1 : 0;

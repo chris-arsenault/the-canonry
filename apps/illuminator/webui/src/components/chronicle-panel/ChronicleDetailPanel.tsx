@@ -131,7 +131,7 @@ export function ChronicleDetailPanel({
   onRegenerate,
   onCancel,
   reviewPanelProps,
-}: ChronicleDetailPanelProps) {
+}: Readonly<ChronicleDetailPanelProps>) {
   return (
     <div className="chron-detail">
       {/* Era narrative viewer */}
@@ -194,7 +194,7 @@ interface FailedStateProps {
   buttonLabel: string;
 }
 
-function FailedState({ reason, onRegenerate, buttonLabel }: FailedStateProps) {
+function FailedState({ reason, onRegenerate, buttonLabel }: Readonly<FailedStateProps>) {
   return (
     <div className="chron-detail-aborted">
       <h3 className="chron-detail-aborted-title">Generation Failed</h3>
@@ -214,7 +214,7 @@ interface ProgressStateProps {
   onCancel: () => void;
 }
 
-function ProgressState({ status, onCancel }: ProgressStateProps) {
+function ProgressState({ status, onCancel }: Readonly<ProgressStateProps>) {
   const titles: Record<string, string> = {
     validating: "Validating Cohesion...",
     editing: "Applying Suggestions...",

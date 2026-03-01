@@ -10,15 +10,10 @@ import {
   loadWorldStore,
   getSlots,
   getSlot,
-  saveSlot,
   loadSlot,
   clearSlot,
   updateSlotTitle,
   saveToSlot,
-  generateSlotTitle,
-  saveWorldContext,
-  saveEntityGuidance,
-  saveCultureIdentities,
 } from "../storage/worldStore";
 import { extractLoreDataWithCurrentImageRefs } from "../lib/bundleExportUtils";
 
@@ -53,7 +48,7 @@ interface UseSlotOperationsParams {
 
 export function useSlotOperations(params: UseSlotOperationsParams) {
   const {
-    currentProject, slots, setSlots, activeSlotIndex, setActiveSlotIndex,
+    currentProject, setSlots, activeSlotIndex, setActiveSlotIndex,
     setSimulationResults, setSimulationState, setArchivistData,
     setWorldContext, setEntityGuidance, setCultureIdentities,
     isLoadingSlotRef, lastSavedResultsRef, exportCancelRef,
@@ -78,7 +73,7 @@ export function useSlotOperations(params: UseSlotOperationsParams) {
         setSimulationResults(storedSlot.simulationResults || null);
         setSimulationState(storedSlot.simulationState || null);
         if (storedSlot.worldData) {
-          const loreData = await extractLoreDataWithCurrentImageRefs(storedSlot.worldData);
+          const loreData = extractLoreDataWithCurrentImageRefs(storedSlot.worldData);
           setArchivistData({ worldData: storedSlot.worldData, loreData });
         } else {
           setArchivistData(null);
@@ -137,7 +132,7 @@ export function useSlotOperations(params: UseSlotOperationsParams) {
         if (slotIndex !== 0) {
           const availableSlot = loadedSlots[0]
             ? 0
-            : Object.keys(loadedSlots).map(Number).sort()[0];
+            : Object.keys(loadedSlots).map(Number).sort((a, b) => a - b)[0];
           setActiveSlotIndex(availableSlot ?? 0);
         }
       }
@@ -146,8 +141,8 @@ export function useSlotOperations(params: UseSlotOperationsParams) {
     }
   }, [projectId, activeSlotIndex, setSlots, isLoadingSlotRef, lastSavedResultsRef, setSimulationResults, setSimulationState, setArchivistData, setActiveSlotIndex]);
 
-  const handleSearchRunScored = useCallback(async (payload: Record<string, unknown> = {}) => {
-    const { runScore, runScoreMax, simulationResults: scoredResults, simulationState: scoredState, runScoreDetails } = payload;
+  const handleSearchRunScored = useCallback((payload: Record<string, unknown> = {}) => {
+    const { runScore, simulationResults: scoredResults } = payload;
     if (!projectId) return;
     if (!scoredResults || !Number.isFinite(runScore as number)) return;
     // Access ref values through closure - bestRunScoreRef is not in params but used via closure from the parent
@@ -172,9 +167,7 @@ export function useSlotOperations(params: UseSlotOperationsParams) {
   }, [exportCancelRef, setExportBundleStatus, closeExportModal]);
 
   const handleReloadFromDefaults = useCallback(async () => {
-    const reloadProjectFromDefaults = (params.currentProject as Record<string, unknown>)?.reloadFromDefaults;
-    // This is called from the parent. The parent passes in its own reloadProjectFromDefaults.
-    // We need to re-read worldStore since the useEffect won't re-run (same project ID)
+    // Re-read worldStore since the useEffect won't re-run (same project ID)
     if (projectId) {
       const store = await loadWorldStore(projectId);
       if (store?.worldContext) setWorldContext(store.worldContext);

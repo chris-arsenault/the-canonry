@@ -211,17 +211,20 @@ function buildDescriptionArchiveSection(
   return `=== DESCRIPTION ARCHIVE (oldest → newest) ===\nThese are previous versions of the description, in the order they were replaced. Each was the active description at the time.\n\n${archiveEntries.join("\n\n")}`;
 }
 
-function buildUserPrompt(description: string, meta: EditionEntityMeta, wordBudget: number): string {
-  const sections: string[] = [];
-
-  // Entity identity
+function buildEntityIdentitySection(meta: EditionEntityMeta): string {
   const identParts: string[] = [];
   identParts.push(`Name: ${meta.entityName}`);
   const editionKindLabel = meta.entitySubtype ? `${meta.entityKind} / ${meta.entitySubtype}` : meta.entityKind;
   identParts.push(`Kind: ${editionKindLabel}`);
   if (meta.entityCulture) identParts.push(`Culture: ${meta.entityCulture}`);
   if (meta.entityProminence) identParts.push(`Prominence: ${meta.entityProminence}`);
-  sections.push(`=== ENTITY ===\n${identParts.join("\n")}`);
+  return `=== ENTITY ===\n${identParts.join("\n")}`;
+}
+
+function buildUserPrompt(description: string, meta: EditionEntityMeta, wordBudget: number): string {
+  const sections: string[] = [];
+
+  sections.push(buildEntityIdentitySection(meta));
 
   // Current description
   sections.push(`=== CURRENT DESCRIPTION (active) ===\n${description}`);
@@ -352,7 +355,7 @@ async function executeHistorianEditionTask(
   // Parse context from staticPagesContext (all metadata packed as JSON)
   let meta: EditionEntityMeta & { historianConfig: HistorianConfig; tone: HistorianTone };
   try {
-    meta = JSON.parse(run.staticPagesContext);
+    meta = JSON.parse(run.staticPagesContext) as typeof meta;
   } catch {
     const errorMsg = "Failed to parse context from staticPagesContext";
     updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };

@@ -13,6 +13,8 @@
 import React, { useState, useMemo, useCallback } from "react";
 import ChronicleImagePanel from "./ChronicleImagePanel";
 import { ExpandableSeedSection, useExpandSingle } from "@the-canonry/shared-components";
+
+type CohesionTab = "summary" | "checks" | "issues";
 import type { CohesionReport, CohesionCheck, SectionGoalCheck, CohesionIssue } from "../lib/chronicleTypes";
 import type { ChronicleImageRefs } from "../lib/chronicleTypes";
 import "./CohesionReportViewer.css";
@@ -120,7 +122,7 @@ function getScoreClassName(score: number): string {
   return "crv-gauge-score crv-gauge-score-needs-revision";
 }
 
-function ScoreGauge({ score }: { score: number }) {
+function ScoreGauge({ score }: Readonly<{ score: number }>) {
   const circumference = 2 * Math.PI * 45;
   const strokeDashoffset =
     circumference - (score / 100) * circumference;
@@ -158,7 +160,7 @@ interface CheckItemProps {
   isSection?: boolean;
 }
 
-function CheckItem({ label, check, isSection = false }: CheckItemProps) {
+function CheckItem({ label, check, isSection = false }: Readonly<CheckItemProps>) {
   const { expandedId, toggle } = useExpandSingle();
   const itemId = label;
   const expanded = expandedId === itemId;
@@ -201,7 +203,7 @@ interface IssueCardProps {
   sectionTitle?: string;
 }
 
-function IssueCard({ issue, sectionTitle }: IssueCardProps) {
+function IssueCard({ issue, sectionTitle }: Readonly<IssueCardProps>) {
   const isCritical = issue.severity === "critical";
   return (
     <div className={`crv-issue ${isCritical ? "crv-issue-critical" : ""}`}>
@@ -237,8 +239,8 @@ interface RefinementRowProps {
   onGenerate?: () => void;
 }
 
-function RefinementRow({ name, desc, state, indicator, isGenerating, onGenerate }: RefinementRowProps) {
-  const formatTimestamp = (ts: number) => new Date(ts).toLocaleString();
+function RefinementRow({ name, desc, state, indicator, isGenerating, onGenerate }: Readonly<RefinementRowProps>) {
+  const formatTimestamp = (ts: Readonly<number>) => new Date(ts).toLocaleString();
   const disabledClass = isGenerating || state.running ? "crv-btn-disabled" : "";
 
   return (
@@ -246,13 +248,13 @@ function RefinementRow({ name, desc, state, indicator, isGenerating, onGenerate 
       <div className="crv-refinement-content">
         <div className="crv-refinement-name">{name}</div>
         <div className="crv-refinement-desc">{desc}</div>
-        {state.generatedAt && (
+        {Boolean(state.generatedAt) && (
           <div className="crv-refinement-status">
             Done - {formatTimestamp(state.generatedAt)}
             {state.model ? ` - ${state.model}` : ""}
           </div>
         )}
-        {indicator && state.generatedAt && (
+        {Boolean(indicator && state.generatedAt) && (
           <div className="crv-refinement-status-tight">{indicator}</div>
         )}
         {!state.generatedAt && !state.running && (
@@ -293,7 +295,7 @@ interface HeaderProps {
 function CohesionHeader({
   report, assessment, isGenerating, editVersion, isValidationStale,
   hasIssues, onAccept, onRegenerate, onCorrectSuggestions, onRevalidate,
-}: HeaderProps) {
+}: Readonly<HeaderProps>) {
   const statusStyle = STATUS_STYLES[assessment.status];
   const disabledClass = (condition: boolean) => condition ? "crv-btn-disabled" : "";
 
@@ -368,7 +370,7 @@ function CohesionHeader({
 // Tab: Summary
 // ============================================================================
 
-function SummaryTabContent({ report }: { report: CohesionReport }) {
+function SummaryTabContent({ report }: Readonly<{ report: CohesionReport }>) {
   return (
     <div className="crv-panel">
       <h3 className="crv-panel-title">Validation Summary</h3>
@@ -408,7 +410,7 @@ function SummaryTabContent({ report }: { report: CohesionReport }) {
 // Tab: Checks
 // ============================================================================
 
-function ChecksTabContent({ report }: { report: CohesionReport }) {
+function ChecksTabContent({ report }: Readonly<{ report: CohesionReport }>) {
   return (
     <div className="ilu-container crv-checks-panel">
       <CheckItem label="Structure" check={report.checks.plotStructure} />
@@ -436,7 +438,7 @@ function ChecksTabContent({ report }: { report: CohesionReport }) {
 // Tab: Issues
 // ============================================================================
 
-function IssuesTabContent({ report, assessment }: { report: CohesionReport; assessment: Assessment }) {
+function IssuesTabContent({ report, assessment }: Readonly<{ report: CohesionReport; assessment: Assessment }>) {
   const criticalIssues = useMemo(
     () => report.issues.filter(i => i.severity === "critical"),
     [report.issues],
@@ -502,10 +504,10 @@ export default function CohesionReportViewer({
   summaryIndicator,
   imageRefsIndicator,
   imageConfig,
-}: CohesionReportViewerProps) {
-  const [activeTab, setActiveTab] = useState<"summary" | "checks" | "issues">("summary");
+}: Readonly<CohesionReportViewerProps>) {
+  const [activeTab, setActiveTab] = useState<CohesionTab>("summary");
 
-  const handleTabClick = useCallback((tab: "summary" | "checks" | "issues") => {
+  const handleTabClick = useCallback((tab: CohesionTab) => {
     setActiveTab(tab);
   }, []);
 
@@ -541,7 +543,7 @@ export default function CohesionReportViewer({
   const imageRefsState = refinements?.imageRefs || {};
   const hasIssues = report.issues.length > 0;
 
-  const tabs: Array<"summary" | "checks" | "issues"> = ["summary", "checks", "issues"];
+  const tabs: Array<CohesionTab> = ["summary", "checks", "issues"];
 
   return (
     <div className="crv">

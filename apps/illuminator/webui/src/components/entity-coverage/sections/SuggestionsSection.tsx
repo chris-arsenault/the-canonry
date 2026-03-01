@@ -74,7 +74,7 @@ function SuggestionActionDetail({
   entityMap,
   eraNameMap,
   entityUsage,
-}: SuggestionActionDetailProps) {
+}: Readonly<SuggestionActionDetailProps>) {
   const uncoveredEvents = useMemo(
     () =>
       [...group.uncoveredEvents].sort(
@@ -205,7 +205,7 @@ export function SuggestionsSection({
   eventCoverage,
   entityUsage,
   expanded,
-}: SuggestionsSectionProps): React.ReactElement | number {
+}: Readonly<SuggestionsSectionProps>): React.ReactElement {
   const [minSignificance, setMinSignificance] = useState("0");
   const [coverageFilter, setCoverageFilter] = useState("uncovered");
   const { expandedId: expandedAction, toggle: toggleAction } = useExpandSingle();
@@ -295,7 +295,7 @@ export function SuggestionsSection({
     [actionGroups],
   );
 
-  if (!expanded) return totalUncoveredActions;
+  if (!expanded) return <>{totalUncoveredActions}</>;
 
   return (
     <div>

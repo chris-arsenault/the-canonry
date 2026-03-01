@@ -3,12 +3,12 @@ import type {
   Diagnostic,
   Value,
   StatementNode,
-} from './types.js';
+} from './types';
 
-import type { SetDefinition } from './compile-types.js';
-import { SET_FIELD_KEYS } from './compile-types.js';
-import { isObjectValue, isArrayValue, isRecord, coerceStringValue } from './compile-utils.js';
-import { activeEvalContext, valueToJson } from './compile-variables.js';
+import type { SetDefinition } from './compile-types';
+import { SET_FIELD_KEYS } from './compile-types';
+import { isObjectValue, isArrayValue, isRecord, coerceStringValue } from './compile-utils';
+import { activeEvalContext, valueToJson } from './compile-variables';
 
 export function parseSetIncludeValue(
   value: Value,
@@ -119,10 +119,18 @@ export function normalizeExistingSetValue(
 export function mergeSetFieldValue(
   obj: Record<string, unknown>,
   key: string,
-  parsed: { items: string[]; includes: string[]; none: boolean },
+  parsed: { items: string[]; includes: string[]; none: boolean }
+): void {
+  throw new Error('mergeSetFieldValue: not yet extracted from compile.ts');
+}
 
 export function applySetFieldAttribute(
   stmt: Extract<StatementNode, { type: 'attribute' }>,
+  obj: Record<string, unknown>,
+  diagnostics: Diagnostic[]
+): void {
+  throw new Error('applySetFieldAttribute: not yet extracted from compile.ts');
+}
 
 export function applySetFieldBlock(
   stmt: BlockNode,

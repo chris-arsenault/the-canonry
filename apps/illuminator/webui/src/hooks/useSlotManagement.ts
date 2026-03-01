@@ -44,7 +44,7 @@ export interface UseSlotManagementReturn {
 
 // --- Module-level helpers ---
 
-function resolveCurrentEra(slotRecord: SimulationSlotRecord | null, navEntities: EntityNavItem[]) {
+function resolveCurrentEra(slotRecord: SimulationSlotRecord | null, navEntities: EntityNavItem[]): { era: EraInfo | null; needsFullLoad: string | null } {
   const eraId = slotRecord?.finalEraId;
   if (!eraId) return { era: null, needsFullLoad: null };
   const eraNav = navEntities.find(
@@ -56,7 +56,7 @@ function resolveCurrentEra(slotRecord: SimulationSlotRecord | null, navEntities:
   return { era: null, needsFullLoad: eraNav.id };
 }
 
-function resolveEraRenderAdjustment(slotRecord: SimulationSlotRecord | null, navEntities: EntityNavItem[]) {
+function resolveEraRenderAdjustment(slotRecord: SimulationSlotRecord | null, navEntities: EntityNavItem[]): { changed: boolean; era?: EraInfo | null } {
   const resolved = resolveCurrentEra(slotRecord, navEntities);
   if (resolved.era !== undefined && resolved.needsFullLoad === null) {
     return { changed: true, era: resolved.era };
@@ -120,18 +120,19 @@ export default function useSlotManagement({ projectId, activeSlotIndex, navEntit
   if (currentEraId !== prevEraKey) {
     setPrevEraKey(currentEraId);
     const result = resolveEraRenderAdjustment(slotRecord, navEntities);
-    if (result.changed) setCurrentEra(result.era);
+    if (result.changed) setCurrentEra(result.era ?? null);
   }
 
   // Async full-entity load for era (when we have a nav match but need description)
   useEffect(() => {
     const resolved = resolveCurrentEra(slotRecord, navEntities);
     if (!resolved.needsFullLoad) return;
+    const entityId = resolved.needsFullLoad;
     void useEntityStore
       .getState()
-      .loadEntity(resolved.needsFullLoad)
+      .loadEntity(entityId)
       .then((full: PersistedEntity | null) => {
-        setCurrentEra(buildEraFromLoadedEntity(full, resolved.needsFullLoad));
+        setCurrentEra(buildEraFromLoadedEntity(full, entityId));
       });
   }, [slotRecord, navEntities]);
 

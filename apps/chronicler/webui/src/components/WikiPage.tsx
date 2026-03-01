@@ -480,7 +480,7 @@ function HistorianCallout({
 
   // Flow mode: floated right callout
   return (
-    // eslint-disable-next-line local/no-inline-styles -- dynamic color per historian note type
+     
     <aside className={styles.flowCallout} style={{ "--note-color": color } as React.CSSProperties}>
       <div className={styles.noteTypeLabel}>
         {indexLabel && <span className={styles.noteIndexLabel}>{indexLabel}</span>}
@@ -606,6 +606,14 @@ function distributeToMarginColumns(
   return { leftItems, rightItems };
 }
 
+/** Resolve the insertion position for an image within content. */
+function resolveImagePosition(img: WikiSectionImage, content: string): number {
+  const resolved = img.anchorText ? resolveAnchorPhrase(img.anchorText, content) : null;
+  if (resolved) return resolved.index;
+  if (img.anchorIndex !== undefined && img.anchorIndex < content.length) return img.anchorIndex;
+  return content.length;
+}
+
 /** Build interleaved text/image fragments for flow layout. */
 function buildFlowFragments(
   content: string,
@@ -613,17 +621,9 @@ function buildFlowFragments(
   allNotes: WikiHistorianNote[],
   orderedNotes: WikiHistorianNote[]
 ): FlowFragment[] {
-  const insertItems: Array<{ image: WikiSectionImage; position: number }> = [];
-  for (const img of images) {
-    const resolved = img.anchorText ? resolveAnchorPhrase(img.anchorText, content) : null;
-    let position = resolved ? resolved.index : -1;
-    if (position < 0 && img.anchorIndex !== undefined && img.anchorIndex < content.length) {
-      position = img.anchorIndex;
-    }
-    if (position < 0) position = content.length;
-    insertItems.push({ image: img, position });
-  }
-  insertItems.sort((a, b) => a.position - b.position);
+  const insertItems = images
+    .map((image) => ({ image, position: resolveImagePosition(image, content) }))
+    .sort((a, b) => a.position - b.position);
   const fragments: FlowFragment[] = [];
   let lastIndex = 0;
   for (const item of insertItems) {
@@ -761,11 +761,11 @@ function SectionWithImages({
   useLayoutEffect(() => {
     const container = sectionRef.current;
     if (!container || fullNoteInserts.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- layout effect publishes measured sidenote positions
+       
       setResolvedPositions(new Map());
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- layout effect publishes measured sidenote positions
+     
     setResolvedPositions(computeSidenotePositions(container, fullNoteInserts));
   }, [annotatedContent, fullNoteInserts]);
 
@@ -785,7 +785,7 @@ function SectionWithImages({
             <li
               key={note.noteId}
               className={styles.footnoteItem}
-              // eslint-disable-next-line local/no-inline-styles -- dynamic color per note type
+               
               style={{ "--note-color": color } as React.CSSProperties}
             >
               <span className={styles.footnoteLabel}>
@@ -978,7 +978,7 @@ function SectionWithImages({
               key={`sn-${note.noteId}`}
               data-sidenote-callout-idx={idx}
               className={styles.sidenoteCallout}
-              // eslint-disable-next-line local/no-inline-styles -- dynamic vertical position computed by layout engine
+               
               style={
                 { "--sidenote-top": `${resolvedPositions.get(idx) ?? 0}px` } as React.CSSProperties
               }
@@ -1893,7 +1893,7 @@ export default function WikiPageView({
                           {displayValue}
                         </span>
                       ) : (
-                        displayValue
+                        <>{displayValue}</>
                       );
                     })()}
                   </div>
@@ -1945,7 +1945,7 @@ export default function WikiPageView({
                           {displayValue}
                         </span>
                       ) : (
-                        displayValue
+                        <>{displayValue}</>
                       );
                     })()}
                   </div>
@@ -1965,7 +1965,7 @@ export default function WikiPageView({
                 <button
                   key={section.id}
                   className={styles.tocItem}
-                  // eslint-disable-next-line local/no-inline-styles -- dynamic indent depth per section level
+                   
                   style={{ "--toc-indent": `${(section.level - 1) * 16}px` } as React.CSSProperties}
                   onClick={() => {
                     const el = document.getElementById(section.id);
@@ -2121,7 +2121,7 @@ export default function WikiPageView({
                       <div
                         key={note.noteId}
                         className={styles.unmatchedNoteCard}
-                        // eslint-disable-next-line local/no-inline-styles -- dynamic color per note type
+                         
                         style={{ "--note-color": color } as React.CSSProperties}
                       >
                         <div className={styles.noteTypeLabel}>

@@ -6,11 +6,11 @@ import type {
   AttributeNode,
   AstFile,
   CallValue,
-} from './types.js';
+} from './types';
 
-import type { EvalContext, VariableEntry, ResourceEntry } from './compile-types.js';
-import { VARIABLE_BLOCK_NAMES, VARIABLE_ATTRIBUTE_KEYS, VARIABLE_REFERENCE_PREFIXES, RESOURCE_BLOCKS, NAMING_RESOURCE_BLOCKS } from './compile-types.js';
-import { isObjectValue, isRecord, isIdentifierValue, isCallValue, isArrayValue } from './compile-utils.js';
+import type { EvalContext, VariableEntry, ResourceEntry } from './compile-types';
+import { VARIABLE_BLOCK_NAMES, VARIABLE_ATTRIBUTE_KEYS, VARIABLE_REFERENCE_PREFIXES, RESOURCE_BLOCKS, NAMING_RESOURCE_BLOCKS } from './compile-types';
+import { isObjectValue, isRecord, isIdentifierValue, isCallValue, isArrayValue } from './compile-utils';
 
 export let activeEvalContext: EvalContext | null = null;
 
@@ -255,6 +255,9 @@ export function parseResourceReferenceValue(
   parent: BlockNode,
   label: string,
   options?: { allowArray?: boolean; allowedTypes?: string[]; allowAmbiguous?: boolean }
+): string | string[] | null {
+  throw new Error('parseResourceReferenceValue: not yet extracted from compile.ts');
+}
 
 export function parseResourceReferenceLabel(
   label: string | undefined,

@@ -142,6 +142,10 @@ function Swimlane({
           else if (isHovered) opacity = 0.9;
           else opacity = 0.7;
 
+          let stroke = "none";
+          if (isSelected) stroke = "#fff";
+          else if (isHovered) stroke = color;
+
           return (
             <g
               key={event.uniqueId}
@@ -159,7 +163,7 @@ function Swimlane({
                 cy={centerY}
                 size={size}
                 fill={color}
-                stroke={isSelected ? "#fff" : (isHovered ? color : "none")}
+                stroke={stroke}
                 strokeWidth={isSelected ? 2 : 1}
                 opacity={opacity}
               />

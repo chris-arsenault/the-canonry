@@ -4,7 +4,7 @@
  * Extracted to reduce EntityDetailView complexity and file length.
  */
 
-import React, { useState } from "react";
+import React from "react";
 import type { NetworkDebugInfo, DescriptionChainDebug } from "../lib/enrichmentTypes";
 import { useExpandBoolean } from "@canonry/shared-components";
 
@@ -66,7 +66,7 @@ function ExpandableSection({
   content: string | undefined;
   charCount?: number;
 }>) {
-  const { expanded, toggle, headerProps } = useExpandBoolean();
+  const { expanded, headerProps } = useExpandBoolean();
   if (!content) return null;
 
   return (

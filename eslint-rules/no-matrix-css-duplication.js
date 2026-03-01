@@ -27,9 +27,9 @@ const DUPLICATED_PATTERNS = [
   // mat-table th pattern: sticky uppercase header
   [/position:\s*sticky/, /text-transform:\s*uppercase/, /letter-spacing:\s*0\.5px/],
   // mat-search pattern: dark search input with focus accent
-  [/background:\s*rgb\(15 23 42[ ]*\/[ ]*60%\)/, /border:\s*1px solid rgb\(59 130 246[ ]*\/[ ]*20%\)/, /color:\s*#fff/],
+  [/background:\s*rgb\(15 23 42 *\/ *60%\)/, /border:\s*1px solid rgb\(59 130 246 *\/ *20%\)/, /color:\s*#fff/],
   // mat-legend pattern: legend bar with bg/border
-  [/background:\s*rgb\(15 23 42[ ]*\/[ ]*40%\)/, /border:\s*1px solid rgb\(59 130 246[ ]*\/[ ]*15%\)/, /border-radius:\s*8px/],
+  [/background:\s*rgb\(15 23 42 *\/ *40%\)/, /border:\s*1px solid rgb\(59 130 246 *\/ *15%\)/, /border-radius:\s*8px/],
 ];
 
 // Minimum number of duplicated patterns to trigger a warning

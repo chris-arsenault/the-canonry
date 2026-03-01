@@ -50,7 +50,7 @@ export function ChronicleNavList({
   navListRef,
   navLoadMoreRef,
   hasMore,
-}: ChronicleNavListProps) {
+}: Readonly<ChronicleNavListProps>) {
   const renderItem = useCallback(
     (item: CombinedNavItem) => {
       if (isEraNarrative(item)) {

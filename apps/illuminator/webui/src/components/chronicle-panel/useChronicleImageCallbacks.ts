@@ -116,7 +116,7 @@ export function useChronicleImageCallbacks({
   const handleGenerateCoverImage = useCallback(() => {
     if (!selectedItem?.coverImage?.sceneDescription) return;
     const coverImage = selectedItem.coverImage;
-    updateChronicleCoverImageStatus(selectedItem.chronicleId, {
+    void updateChronicleCoverImageStatus(selectedItem.chronicleId, {
       status: "generating",
     }).then(() => refreshChronicle(selectedItem.chronicleId));
 
@@ -180,7 +180,7 @@ export function useChronicleImageCallbacks({
   const handleGenerateChronicleImage = useCallback(
     (ref: { refId: string; sceneDescription: string }, prompt: string, _styleInfo: Record<string, unknown>) => {
       if (!selectedItem?.chronicleId) return;
-      updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
+      void updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
         status: "generating",
       }).then(() => refreshChronicle(selectedItem.chronicleId));
       const chronicleEntity = {
@@ -206,7 +206,7 @@ export function useChronicleImageCallbacks({
   const handleResetChronicleImage = useCallback(
     (ref: { refId: string }) => {
       if (!selectedItem?.chronicleId) return;
-      updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
+      void updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
         status: "pending",
         error: "",
         generatedImageId: "",
@@ -218,7 +218,7 @@ export function useChronicleImageCallbacks({
   const handleUpdateChronicleAnchorText = useCallback(
     (ref: { refId: string }, anchorText: string) => {
       if (!selectedItem?.chronicleId) return;
-      updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
+      void updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
         anchorText,
       }).then(() => refreshChronicle(selectedItem.chronicleId));
     },
@@ -232,7 +232,7 @@ export function useChronicleImageCallbacks({
       if (size === "full-width") {
         updates.justification = null;
       }
-      updateChronicleImageRef(selectedItem.chronicleId, ref.refId, updates).then(() =>
+      void updateChronicleImageRef(selectedItem.chronicleId, ref.refId, updates).then(() =>
         refreshChronicle(selectedItem.chronicleId),
       );
     },
@@ -242,7 +242,7 @@ export function useChronicleImageCallbacks({
   const handleUpdateChronicleImageJustification = useCallback(
     (ref: { refId: string }, justification: string) => {
       if (!selectedItem?.chronicleId) return;
-      updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
+      void updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
         justification,
       }).then(() => refreshChronicle(selectedItem.chronicleId));
     },

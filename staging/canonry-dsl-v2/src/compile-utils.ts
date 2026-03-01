@@ -7,10 +7,10 @@ import type {
   IdentifierValue,
   CallValue,
   StatementNode,
-} from './types.js';
+} from './types';
 
-import type { EvalContext, GeneratorContext } from './compile-types.js';
-import { VARIABLE_REFERENCE_PREFIXES } from './compile-types.js';
+import type { EvalContext, GeneratorContext } from './compile-types';
+import { VARIABLE_REFERENCE_PREFIXES } from './compile-types';
 
 export function isIdentifierValue(value: Value): value is IdentifierValue {
   return typeof value === 'object' && value !== null && (value as IdentifierValue).type === 'identifier';
@@ -401,7 +401,10 @@ export function parseListTokens(
 export function mergeListFieldValue(
   obj: Record<string, unknown>,
   key: string,
-  parsed: { items: string[]; none: boolean },
+  parsed: { items: string[]; none: boolean }
+): void {
+  throw new Error('mergeListFieldValue: not yet extracted from compile.ts');
+}
 
 export function parseInlineKeyValuePairs(
   rawValue: Value | Record<string, unknown>,

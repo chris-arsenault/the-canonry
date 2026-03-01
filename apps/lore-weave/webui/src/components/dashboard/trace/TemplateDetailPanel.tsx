@@ -24,7 +24,7 @@ interface PlacementGridProps {
   entity: CreatedEntity;
 }
 
-function PlacementGrid({ entity }: PlacementGridProps) {
+function PlacementGrid({ entity }: Readonly<PlacementGridProps>) {
   const placement = entity.placement;
 
   return (
@@ -81,7 +81,7 @@ function PlacementGrid({ entity }: PlacementGridProps) {
           <div className="lw-trace-view-entity-placement-row">
             <span className="lw-trace-view-entity-placement-label">Seed Regions</span>
             <span className="lw-trace-view-entity-placement-value">
-              {placement!.seedRegionsAvailable!.length} available
+              {placement.seedRegionsAvailable.length} available
             </span>
           </div>
         )}
@@ -127,7 +127,7 @@ interface TagSectionProps {
   tagModifier?: string;
 }
 
-function TagSection({ tags, label, cssClass, tagModifier }: TagSectionProps) {
+function TagSection({ tags, label, cssClass, tagModifier }: Readonly<TagSectionProps>) {
   const entries = Object.entries(tags);
   if (entries.length === 0) return null;
 
@@ -150,7 +150,7 @@ interface EntityCardProps {
   entity: CreatedEntity;
 }
 
-function EntityCard({ entity }: EntityCardProps) {
+function EntityCard({ entity }: Readonly<EntityCardProps>) {
   return (
     <div className="lw-trace-view-entity-card">
       <div className="lw-trace-view-entity-identity">
@@ -196,7 +196,7 @@ export default function TemplateDetailPanel({
   template,
   isLocked,
   onClear,
-}: TemplateDetailPanelProps) {
+}: Readonly<TemplateDetailPanelProps>) {
   if (!template) {
     return (
       <div className="lw-trace-view-detail">
@@ -248,9 +248,9 @@ export default function TemplateDetailPanel({
           {(app.entitiesCreated?.length ?? 0) > 0 && (
             <div className="lw-trace-view-template-entities">
               <div className="lw-trace-view-detail-sub-header">
-                Entities Created ({app.entitiesCreated!.length})
+                Entities Created ({app.entitiesCreated.length})
               </div>
-              {app.entitiesCreated!.map((entity, j) => (
+              {app.entitiesCreated.map((entity, j) => (
                 <EntityCard key={j} entity={entity} />
               ))}
             </div>
@@ -259,9 +259,9 @@ export default function TemplateDetailPanel({
           {(app.relationshipsCreated?.length ?? 0) > 0 && (
             <div className="lw-trace-view-template-rels">
               <div className="lw-trace-view-detail-sub-header">
-                Relationships ({app.relationshipsCreated!.length})
+                Relationships ({app.relationshipsCreated.length})
               </div>
-              {app.relationshipsCreated!.slice(0, 5).map((rel, j) => (
+              {app.relationshipsCreated.slice(0, 5).map((rel, j) => (
                 <div key={j} className="lw-trace-view-detail-row">
                   <span className="lw-trace-view-rel-kind">{rel.kind}</span>
                   <span className="lw-trace-view-rel-ids">
@@ -269,9 +269,9 @@ export default function TemplateDetailPanel({
                   </span>
                 </div>
               ))}
-              {app.relationshipsCreated!.length > 5 && (
+              {app.relationshipsCreated.length > 5 && (
                 <div className="lw-trace-view-detail-row lw-trace-view-detail-row-muted">
-                  +{app.relationshipsCreated!.length - 5} more
+                  +{app.relationshipsCreated.length - 5} more
                 </div>
               )}
             </div>
@@ -280,7 +280,7 @@ export default function TemplateDetailPanel({
           {Object.keys(app.pressureChanges ?? {}).length > 0 && (
             <div className="lw-trace-view-template-pressures">
               <div className="lw-trace-view-detail-sub-header">Pressure Changes</div>
-              {Object.entries(app.pressureChanges!).map(([pressureId, delta]) => (
+              {Object.entries(app.pressureChanges).map(([pressureId, delta]) => (
                 <div key={pressureId} className="lw-trace-view-detail-row">
                   <span className="lw-trace-view-detail-label">{pressureId}</span>
                   <span className={delta >= 0 ? "positive" : "negative"}>

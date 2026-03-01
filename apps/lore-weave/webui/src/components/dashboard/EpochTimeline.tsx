@@ -8,6 +8,21 @@ import type { EpochEraSummary } from "../../../../lib/engine/types";
 import "./EpochTimeline.css";
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function modSourceLabel(source: Record<string, unknown>): string {
+  switch (source.type) {
+    case "template": return source.templateId as string;
+    case "system": return source.systemId as string;
+    case "era_entry":
+    case "era_exit": return source.eraId as string;
+    case "action": return source.actionId as string;
+    default: return "unknown";
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -60,7 +75,7 @@ function formatSigned(n: number): string {
 // PressureTooltip sub-components
 // ---------------------------------------------------------------------------
 
-function FeedbackSection({ breakdown }: { breakdown: PressureChangeDetail["breakdown"] }) {
+function FeedbackSection({ breakdown }: Readonly<{ breakdown: PressureChangeDetail["breakdown"] }>) {
   return (
     <div className="viewer-section">
       <div className="lw-tooltip-subtitle">Feedback (cumulative)</div>
@@ -101,7 +116,7 @@ function FeedbackSection({ breakdown }: { breakdown: PressureChangeDetail["break
   );
 }
 
-function ModifiersSection({ breakdown }: { breakdown: PressureChangeDetail["breakdown"] }) {
+function ModifiersSection({ breakdown }: Readonly<{ breakdown: PressureChangeDetail["breakdown"] }>) {
   return (
     <div className="viewer-section">
       <div className="lw-tooltip-subtitle">Modifiers (cumulative)</div>
@@ -123,7 +138,7 @@ interface GroupedMods {
   [type: string]: DiscretePressureModification[];
 }
 
-function DiscreteChangesSection({ groupedMods }: { groupedMods: GroupedMods }) {
+function DiscreteChangesSection({ groupedMods }: Readonly<{ groupedMods: GroupedMods }>) {
   const modTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     for (const [type, mods] of Object.entries(groupedMods)) {
@@ -150,10 +165,7 @@ function DiscreteChangesSection({ groupedMods }: { groupedMods: GroupedMods }) {
           {mods.slice(0, 3).map((mod, i) => (
             <div key={i} className="lw-tooltip-row lw-tooltip-mod-detail">
               <span>
-                {mod.source.type === "template" ? mod.source.templateId :
-                 mod.source.type === "system" ? mod.source.systemId :
-                 mod.source.type === "era_entry" || mod.source.type === "era_exit" ? mod.source.eraId :
-                 mod.source.type === "action" ? mod.source.actionId : "unknown"}
+                {modSourceLabel(mod.source)}
               </span>
               <span className={mod.delta >= 0 ? "positive" : "negative"}>{formatSigned(mod.delta)}</span>
             </div>
@@ -169,11 +181,11 @@ function DiscreteChangesSection({ groupedMods }: { groupedMods: GroupedMods }) {
   );
 }
 
-function FinalSection({ detail, breakdown, tickCount }: {
+function FinalSection({ detail, breakdown, tickCount }: Readonly<{
   detail: PressureChangeDetail;
   breakdown: PressureChangeDetail["breakdown"];
   tickCount: number | undefined;
-}) {
+}>) {
   return (
     <div className="viewer-section lw-tooltip-final">
       <div className="lw-tooltip-row">
@@ -200,11 +212,8 @@ function FinalSection({ detail, breakdown, tickCount }: {
 // PressureTooltip
 // ---------------------------------------------------------------------------
 
-function PressureTooltip({ detail, discreteModifications, tickCount }: PressureTooltipProps) {
-  if (!detail) return null;
-
-  const { breakdown } = detail;
-  const relevantMods = discreteModifications?.filter((m) => m.pressureId === detail.id) || [];
+function PressureTooltip({ detail, discreteModifications, tickCount }: Readonly<PressureTooltipProps>) {
+  const relevantMods = detail ? (discreteModifications?.filter((m) => m.pressureId === detail.id) || []) : [];
 
   const groupedMods = useMemo(() => {
     const groups: GroupedMods = {};
@@ -218,6 +227,10 @@ function PressureTooltip({ detail, discreteModifications, tickCount }: PressureT
     return groups;
   }, [relevantMods]);
 
+  if (!detail) return null;
+
+  const { breakdown } = detail;
+
   return (
     <div className="lw-pressure-tooltip">
       <div className="lw-tooltip-header">
@@ -226,7 +239,7 @@ function PressureTooltip({ detail, discreteModifications, tickCount }: PressureT
           {detail.previousValue.toFixed(1)} {"\u2192"} {detail.newValue.toFixed(1)}
         </span>
       </div>
-      {tickCount && <div className="lw-tooltip-epoch-info">Cumulative over {tickCount} ticks</div>}
+      {Boolean(tickCount) && <div className="lw-tooltip-epoch-info">Cumulative over {tickCount} ticks</div>}
 
       <FeedbackSection breakdown={breakdown} />
       <ModifiersSection breakdown={breakdown} />
@@ -240,13 +253,15 @@ function PressureTooltip({ detail, discreteModifications, tickCount }: PressureT
 // PressureGauge
 // ---------------------------------------------------------------------------
 
-function PressureGauge({ name, value, detail, discreteModifications, tickCount }: PressureGaugeProps) {
+function PressureGauge({ name, value, detail, discreteModifications, tickCount }: Readonly<PressureGaugeProps>) {
   const [showTooltip, setShowTooltip] = useState(false);
 
   const handleMouseEnter = useCallback(() => setShowTooltip(true), []);
   const handleMouseLeave = useCallback(() => setShowTooltip(false), []);
 
-  const fillColor = value > 70 ? "var(--lw-danger)" : value > 40 ? "var(--lw-warning)" : "var(--lw-success)";
+  let fillColor = "var(--lw-success)";
+  if (value > 70) fillColor = "var(--lw-danger)";
+  else if (value > 40) fillColor = "var(--lw-warning)";
 
   return (
     <div
@@ -287,7 +302,7 @@ function PressureGauge({ name, value, detail, discreteModifications, tickCount }
 // Connectivity section
 // ---------------------------------------------------------------------------
 
-function ConnectivitySection({ reachability }: { reachability: ReachabilityInfo | null }) {
+function ConnectivitySection({ reachability }: Readonly<{ reachability: ReachabilityInfo | null }>) {
   const connectedComponents = reachability?.connectedComponents;
   const fullyConnectedTick = reachability?.fullyConnectedTick ?? null;
 
@@ -333,7 +348,7 @@ export default function EpochTimeline({
   pressures,
   pressureDetails,
   reachability,
-}: EpochTimelineProps) {
+}: Readonly<EpochTimelineProps>) {
   const recentEpochs = useMemo(() => epochStats.slice(-5).reverse(), [epochStats]);
 
   const detailsMap = useMemo(() => {

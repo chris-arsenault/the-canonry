@@ -5,7 +5,7 @@
  * debounced saves, and search-run scoring.
  */
 
-import { useEffect, useCallback, type MutableRefObject, type Dispatch, type SetStateAction } from "react";
+import { useEffect, type MutableRefObject, type Dispatch, type SetStateAction } from "react";
 import {
   loadWorldStore,
   saveWorldData,
@@ -57,12 +57,12 @@ interface UseProjectPersistenceParams {
   bestRunScoreRef: MutableRefObject<number>;
   bestRunSaveQueueRef: MutableRefObject<Promise<void>>;
   reloadProjectFromDefaults: () => Promise<void>;
-  save: (data: Record<string, unknown>) => void;
+  save: (data: Record<string, unknown>) => void | Promise<void>;
 }
 
 export function useProjectPersistence(params: UseProjectPersistenceParams): void {
   const {
-    currentProject, slots, setSlots, activeSlotIndex, setActiveSlotIndex,
+    currentProject, slots, setSlots, setActiveSlotIndex,
     simulationResults, setSimulationResults, simulationState, setSimulationState,
     archivistData, setArchivistData,
     worldContext, setWorldContext, entityGuidance, setEntityGuidance,
@@ -70,14 +70,14 @@ export function useProjectPersistence(params: UseProjectPersistenceParams): void
     enrichmentConfig, setEnrichmentConfig, styleSelection, setStyleSelection,
     historianConfig, setHistorianConfig,
     simulationOwnerRef, isLoadingSlotRef, lastSavedResultsRef,
-    bestRunScoreRef, bestRunSaveQueueRef,
+    bestRunScoreRef,
   } = params;
 
   const projectId = (currentProject as Record<string, unknown>)?.id as string | undefined;
 
   // Track best run score from slots
   useEffect(() => {
-    const score = (slots[1] as Record<string, unknown>)?.runScore;
+    const score = (slots[1])?.runScore;
     bestRunScoreRef.current = typeof score === "number" ? score : -Infinity;
   }, [slots, bestRunScoreRef]);
 
@@ -108,7 +108,7 @@ export function useProjectPersistence(params: UseProjectPersistenceParams): void
     setSlots({});
     setActiveSlotIndex(0);
 
-    Promise.all([loadWorldStore(projectId), getSlots(projectId)]).then(
+    void Promise.all([loadWorldStore(projectId), getSlots(projectId)]).then(
       ([store, loadedSlots]) => {
         if (cancelled) return;
         simulationOwnerRef.current = projectId;
@@ -125,10 +125,10 @@ export function useProjectPersistence(params: UseProjectPersistenceParams): void
           setSimulationResults(activeSlot.simulationResults || null);
           setSimulationState(activeSlot.simulationState || null);
           if (activeSlot.worldData) {
-            extractLoreDataWithCurrentImageRefs(activeSlot.worldData).then((loreData) => {
-              if (cancelled) return;
+            const loreData = extractLoreDataWithCurrentImageRefs(activeSlot.worldData);
+            if (!cancelled) {
               setArchivistData({ worldData: activeSlot.worldData, loreData });
-            });
+            }
           }
         }
         if (store?.worldContext) setWorldContext(store.worldContext);
@@ -180,10 +180,10 @@ export function useProjectPersistence(params: UseProjectPersistenceParams): void
       setSlots((prev) => ({ ...prev, 0: slotData }));
       lastSavedResultsRef.current = simulationResults || null;
       if (worldData) {
-        extractLoreDataWithCurrentImageRefs(worldData).then((loreData) => {
-          if (cancelled) return;
+        const loreData = extractLoreDataWithCurrentImageRefs(worldData);
+        if (!cancelled) {
           setArchivistData({ worldData, loreData });
-        });
+        }
       }
       setActiveSlotIndex(0);
     };
@@ -194,48 +194,48 @@ export function useProjectPersistence(params: UseProjectPersistenceParams): void
   // Persist archivistData world data
   useEffect(() => {
     if (!projectId || !archivistData?.worldData) return;
-    saveWorldData(projectId, archivistData.worldData);
+    void saveWorldData(projectId, archivistData.worldData);
   }, [projectId, archivistData]);
 
   // Debounced persistence for world context
   useEffect(() => {
     if (!projectId || !worldContext) return;
-    const timeoutId = setTimeout(() => saveWorldContext(projectId, worldContext), 300);
+    const timeoutId = setTimeout(() => { saveWorldContext(projectId, worldContext).catch(console.error); }, 300);
     return () => clearTimeout(timeoutId);
   }, [projectId, worldContext]);
 
   // Debounced persistence for entity guidance
   useEffect(() => {
     if (!projectId || !entityGuidance) return;
-    const timeoutId = setTimeout(() => saveEntityGuidance(projectId, entityGuidance), 300);
+    const timeoutId = setTimeout(() => { saveEntityGuidance(projectId, entityGuidance).catch(console.error); }, 300);
     return () => clearTimeout(timeoutId);
   }, [projectId, entityGuidance]);
 
   // Debounced persistence for culture identities
   useEffect(() => {
     if (!projectId || !cultureIdentities) return;
-    const timeoutId = setTimeout(() => saveCultureIdentities(projectId, cultureIdentities), 300);
+    const timeoutId = setTimeout(() => { saveCultureIdentities(projectId, cultureIdentities).catch(console.error); }, 300);
     return () => clearTimeout(timeoutId);
   }, [projectId, cultureIdentities]);
 
   // Debounced persistence for enrichment config
   useEffect(() => {
     if (!projectId || !enrichmentConfig) return;
-    const timeoutId = setTimeout(() => saveEnrichmentConfig(projectId, enrichmentConfig), 300);
+    const timeoutId = setTimeout(() => { saveEnrichmentConfig(projectId, enrichmentConfig).catch(console.error); }, 300);
     return () => clearTimeout(timeoutId);
   }, [projectId, enrichmentConfig]);
 
   // Debounced persistence for style selection
   useEffect(() => {
     if (!projectId || !styleSelection) return;
-    const timeoutId = setTimeout(() => saveStyleSelection(projectId, styleSelection), 300);
+    const timeoutId = setTimeout(() => { saveStyleSelection(projectId, styleSelection).catch(console.error); }, 300);
     return () => clearTimeout(timeoutId);
   }, [projectId, styleSelection]);
 
   // Debounced persistence for historian config
   useEffect(() => {
     if (!projectId || !historianConfig) return;
-    const timeoutId = setTimeout(() => saveHistorianConfig(projectId, historianConfig), 300);
+    const timeoutId = setTimeout(() => { saveHistorianConfig(projectId, historianConfig).catch(console.error); }, 300);
     return () => clearTimeout(timeoutId);
   }, [projectId, historianConfig]);
 }

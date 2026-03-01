@@ -119,7 +119,7 @@ export function IntegrationSection({
   entities,
   entityBackportedCount,
   expanded,
-}: IntegrationSectionProps): React.ReactElement | number {
+}: Readonly<IntegrationSectionProps>): React.ReactElement {
   const [sort, onSort] = useColumnSort("gaps", true);
   const [kindFilter, setKindFilter] = useState("all");
   const [cultureFilter, setCultureFilter] = useState("all");
@@ -155,7 +155,7 @@ export function IntegrationSection({
     [rows],
   );
 
-  if (!expanded) return underutilCount;
+  if (!expanded) return <>{underutilCount}</>;
 
   return (
     <div>

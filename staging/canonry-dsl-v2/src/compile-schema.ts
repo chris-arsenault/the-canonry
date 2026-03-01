@@ -3,12 +3,12 @@ import type {
   Diagnostic,
   Value,
   StatementNode,
-} from './types.js';
+} from './types';
 
-import { isRecord, normalizeKindList, normalizeStringList, setObjectValue, readStringValue, readNumberValue, applyLabelField, tokensFromValueStrict, tokensFromBlockAttributes, isArrayValue, isObjectValue, isCallValue, pushArrayValue } from './compile-utils.js';
-import { valueToJson, parseResourceReferenceValue } from './compile-variables.js';
-import { applySetFieldAttribute } from './compile-sets.js';
-import { buildObjectFromStatements } from './compile-objects.js';
+import { isRecord, normalizeKindList, normalizeStringList, setObjectValue, applyLabelField, isArrayValue, isObjectValue, isCallValue } from './compile-utils';
+import { valueToJson, parseResourceReferenceValue } from './compile-variables';
+import { applySetFieldAttribute } from './compile-sets';
+import { buildObjectFromStatements } from './compile-objects';
 
 export function buildTagItem(block: BlockNode, diagnostics: Diagnostic[]): Record<string, unknown> | null {
   const body = buildObjectFromStatements(block.body, diagnostics, block);
@@ -1844,7 +1844,7 @@ export function buildStaticPageFromBlock(
   if (page.title !== undefined && page.title !== titleLabel) {
     diagnostics.push({
       severity: 'error',
-      message: `static_page title mismatch: label "${titleLabel}" vs title "${String(page.title)}"`,
+      message: `static_page title mismatch: label "${titleLabel}" vs title "${typeof page.title === 'string' ? page.title : JSON.stringify(page.title)}"`,
       span: block.span
     });
     return null;
@@ -2183,6 +2183,26 @@ export function normalizePoint(
   diagnostics: Diagnostic[],
   parent: BlockNode
 ): { x: number; y: number } | null {
+  if (Array.isArray(value) && value.length >= 2) {
+    const px = value[0] as unknown;
+    const py = value[1] as unknown;
+    if (typeof px === 'number' && typeof py === 'number') {
+      return { x: px, y: py };
+    }
+  }
+  if (isRecord(value)) {
+    const { x, y } = value;
+    if (typeof x === 'number' && typeof y === 'number') {
+      return { x, y };
+    }
+  }
+  diagnostics.push({
+    severity: 'error',
+    message: 'point must be [x y] or {x y}',
+    span: parent.span,
+  });
+  return null;
+}
 
 export function normalizeStatusFields(status: Record<string, unknown>): void {
   if (status.terminal !== undefined && status.isTerminal === undefined) {

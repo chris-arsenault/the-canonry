@@ -15,28 +15,17 @@ import { getEntitiesForRun } from "../../lib/db/entityRepository";
 import { useRelationships } from "../../lib/db/relationshipSelectors";
 import { useNarrativeEvents } from "../../lib/db/narrativeEventSelectors";
 import { ChronicleWizard } from "../ChronicleWizard";
-import { buildChronicleContext, buildEventHeadline } from "../../lib/chronicleContextBuilder";
+
 import { generateNameBank, extractCultureIds } from "../../lib/chronicle/nameBank";
 import { deriveStatus } from "../../hooks/useChronicleGeneration";
 import { useChronicleStore } from "../../lib/db/chronicleStore";
 import { useChronicleNavItems, useSelectedChronicle } from "../../lib/db/chronicleSelectors";
 import { useChronicleActions } from "../../hooks/useChronicleActions";
 import {
-  updateChronicleTemporalContext,
-  updateChronicleActiveVersion,
-  updateChronicleCombineInstructions,
-  unpublishChronicle,
-  generateChronicleId,
-  deriveTitleFromRoles,
-  createChronicleShell,
-  deleteChronicleVersion,
-  getChronicle,
-  updateChronicleAssignedTone,
   getChroniclesForSimulation,
   updateChronicleHistorianPrep,
 } from "../../lib/db/chronicleRepository";
-import { downloadChronicleExport, downloadBulkToneReviewExport, downloadBulkAnnotationReviewExport } from "../../lib/chronicleExport";
-import { getCallConfig } from "../../lib/llmModelSettings";
+import { downloadBulkToneReviewExport, downloadBulkAnnotationReviewExport } from "../../lib/chronicleExport";
 import { useFactCoverage } from "../../hooks/useFactCoverage";
 import BulkFactCoverageModal from "../BulkFactCoverageModal";
 import { useToneRanking } from "../../hooks/useToneRanking";
@@ -51,8 +40,7 @@ import ChronologyModal from "../ChronologyModal";
 import EraNarrativeModal from "../EraNarrativeModal";
 import BulkEraNarrativeModal from "../BulkEraNarrativeModal";
 import { useBulkEraNarrativeStore } from "../../lib/db/bulkEraNarrativeStore";
-import { computeTemporalContext } from "../../lib/chronicle/selectionWizard";
-import { buildTemporalDescription, REFINEMENT_STEPS, NAV_PAGE_SIZE } from "./chroniclePanelConstants";
+
 import { ChronicleFilterBar } from "./ChronicleFilterBar";
 import { ChronicleNavList } from "./ChronicleNavList";
 import { ChronicleDetailPanel } from "./ChronicleDetailPanel";
@@ -95,7 +83,7 @@ export function ChroniclePanel({
   onUpdateHistorianNote,
   onRefreshEraSummaries,
   onNavigateToTab,
-}: ChroniclePanelProps) {
+}: Readonly<ChroniclePanelProps>) {
   const navEntities = useEntityNavList();
   const entityNavMap = useEntityNavItems();
   const [fullEntities, setFullEntities] = useState<Array<Record<string, unknown>>>([]);
@@ -138,13 +126,11 @@ export function ChroniclePanel({
     colorPaletteId: imageGenSettings.colorPaletteId,
   }), [imageGenSettings.artisticStyleId, imageGenSettings.compositionStyleId, imageGenSettings.colorPaletteId]);
 
-  const stylesLoading = !styleLibrary;
-
   // Load full entities
   useEffect(() => {
     if (!simulationRunId) return;
     let cancelled = false;
-    getEntitiesForRun(simulationRunId).then((ents) => {
+    void getEntitiesForRun(simulationRunId).then((ents) => {
       if (cancelled) return;
       setFullEntities(ents);
       fullEntityMapRef.current = new Map(ents.map((e: Record<string, unknown>) => [e.id as string, e]));
@@ -160,7 +146,7 @@ export function ChroniclePanel({
 
   // Initialize store
   useEffect(() => {
-    if (simulationRunId) useChronicleStore.getState().initialize(simulationRunId);
+    if (simulationRunId) void useChronicleStore.getState().initialize(simulationRunId);
   }, [simulationRunId]);
 
   const { generateV2, generateSummary, generateTitle, regenerateWithSampling, regenerateFull, regenerateCreative, compareVersions, combineVersions, copyEdit, temporalCheck, quickCheck } = useChronicleActions();
@@ -171,7 +157,7 @@ export function ChroniclePanel({
   const refresh = useCallback(() => useChronicleStore.getState().refreshAll(), []);
   const refreshChronicle = useCallback((id: string) => useChronicleStore.getState().refreshChronicle(id), []);
 
-  useEffect(() => { if (refreshTrigger > 0) refresh(); }, [refreshTrigger, refresh]);
+  useEffect(() => { if (refreshTrigger > 0) void refresh(); }, [refreshTrigger, refresh]);
 
   // Navigation hook
   const nav = useChronicleNavigation({
@@ -186,7 +172,7 @@ export function ChroniclePanel({
 
   // Selected chronicle
   const isEraNarrativeSelected = nav.selectedItemId?.startsWith("eranarr:") ?? false;
-  const selectedEraNarrativeId = isEraNarrativeSelected ? nav.selectedItemId!.slice("eranarr:".length) : null;
+  const selectedEraNarrativeId = isEraNarrativeSelected ? nav.selectedItemId.slice("eranarr:".length) : null;
   const selectedChronicle = useSelectedChronicle(isEraNarrativeSelected ? null : nav.selectedItemId);
 
   const selectedItem = useMemo(() => {
@@ -236,7 +222,7 @@ export function ChroniclePanel({
   // Era narratives
   const refreshEraNarratives = useCallback(() => {
     if (!simulationRunId) return;
-    getEraNarrativesForSimulation(simulationRunId).then((records) => {
+    void getEraNarrativesForSimulation(simulationRunId).then((records) => {
       const eraOrderMap = new Map(nav.wizardEras.map((e) => [e.id, e.order]));
       const navItems = records.map((r: Record<string, unknown>) => buildEraNarrativeNavItem(r, eraOrderMap.get(r.eraId as string)));
       setEraNarrativeNavItems(navItems);
@@ -337,8 +323,8 @@ export function ChroniclePanel({
         onPrepareToneRanking={() => prepareToneRanking(chronicleItems)}
         isToneRankingActive={isToneRankingActive}
         toneRankingProgress={toneRankingProgress}
-        onPrepareAssignment={prepareAssignment}
-        onDownloadToneReview={() => downloadBulkToneReviewExport(simulationRunId)}
+        onPrepareAssignment={() => void prepareAssignment()}
+        onDownloadToneReview={() => void downloadBulkToneReviewExport(simulationRunId)}
         onStartBulkBackport={onStartBulkBackport}
         isBulkBackportActive={isBulkBackportActive}
         onReconcileBackports={() => void bulk.handleReconcileBackports()}
@@ -357,7 +343,7 @@ export function ChroniclePanel({
         bulkAnnotationProgress={bulkAnnotationProgress}
         onPrepareInterleaved={() => prepareInterleaved(chronicleItems, entityNavItems)}
         isInterleavedActive={isInterleavedActive}
-        onDownloadAnnotationReview={() => downloadBulkAnnotationReviewExport(simulationRunId)}
+        onDownloadAnnotationReview={() => void downloadBulkAnnotationReviewExport(simulationRunId)}
         onAmendBriefs={handleAmendBriefs}
       />
 
@@ -386,7 +372,7 @@ export function ChroniclePanel({
           } : null}
           selectedItem={selectedItem}
           onRegenerate={gen.handleRegenerate}
-          onCancel={(chronicleId) => cancelChronicle(chronicleId)}
+          onCancel={(chronicleId) => void cancelChronicle(chronicleId)}
           reviewPanelProps={reviewPanelProps}
         />
       </div>
@@ -403,10 +389,10 @@ export function ChroniclePanel({
       {bulk.reconcileBackportResult && <ReconcileBackportToast result={bulk.reconcileBackportResult} onDismiss={() => bulk.setReconcileBackportResult(null)} />}
 
       <BulkFactCoverageModal progress={factCoverageProgress} onConfirm={confirmFactCoverage} onCancel={cancelFactCoverage} onClose={closeFactCoverage} />
-      <ChronologyModal isOpen={showChronologyModal} onClose={() => setShowChronologyModal(false)} chronicleItems={chronicleItems} wizardEras={nav.wizardEras} wizardEvents={nav.wizardEvents} projectId={projectId} simulationRunId={simulationRunId} historianConfig={historianConfig} onEnqueue={onEnqueue} onApplied={() => { useChronicleStore.getState().refreshAll(); setShowChronologyModal(false); }} />
+      <ChronologyModal isOpen={showChronologyModal} onClose={() => setShowChronologyModal(false)} chronicleItems={chronicleItems} wizardEras={nav.wizardEras} wizardEvents={nav.wizardEvents} projectId={projectId} simulationRunId={simulationRunId} historianConfig={historianConfig} onEnqueue={onEnqueue} onApplied={() => { void useChronicleStore.getState().refreshAll(); setShowChronologyModal(false); }} />
       <EraNarrativeModal isOpen={eraNarrativeModal !== null} resumeNarrativeId={eraNarrativeModal?.narrativeId} onClose={() => { useIlluminatorModals.getState().closeEraNarrative(); refreshEraNarratives(); }} chronicleItems={chronicleItems} wizardEras={nav.wizardEras} projectId={projectId} simulationRunId={simulationRunId} historianConfig={historianConfig} onEnqueue={onEnqueue} styleLibrary={styleLibrary} />
       <BulkEraNarrativeModal isOpen={showBulkEraNarrative || bulkEraNarrativeProgress.status === "running"} onClose={() => { setShowBulkEraNarrative(false); refreshEraNarratives(); }} chronicleItems={chronicleItems} wizardEras={nav.wizardEras} eraTemporalInfo={nav.wizardEras} projectId={projectId} simulationRunId={simulationRunId} styleLibrary={styleLibrary} />
-      <ChronicleWizard isOpen={showWizard} onClose={() => { setShowWizard(false); setWizardSeed(null); }} onGenerate={gen.handleWizardGenerate} narrativeStyles={styleLibrary?.narrativeStyles || []} entities={nav.wizardEntities} relationships={nav.wizardRelationships} events={nav.wizardEvents} entityKinds={worldData?.schema?.entityKinds || []} eras={nav.wizardEras} initialSeed={wizardSeed} simulationRunId={simulationRunId} />
+      <ChronicleWizard isOpen={showWizard} onClose={() => { setShowWizard(false); setWizardSeed(null); }} onGenerate={(cfg: Record<string, unknown>) => void gen.handleWizardGenerate(cfg)} narrativeStyles={styleLibrary?.narrativeStyles || []} entities={nav.wizardEntities} relationships={nav.wizardRelationships} events={nav.wizardEvents} entityKinds={worldData?.schema?.entityKinds || []} eras={nav.wizardEras} initialSeed={wizardSeed} simulationRunId={simulationRunId} />
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

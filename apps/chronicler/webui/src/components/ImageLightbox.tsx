@@ -56,6 +56,7 @@ export default function ImageLightbox({
       className={styles.overlay}
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      onKeyDown={handleKeyDown}
       role="dialog"
       aria-modal="true"
       aria-label={title || "Image viewer"}

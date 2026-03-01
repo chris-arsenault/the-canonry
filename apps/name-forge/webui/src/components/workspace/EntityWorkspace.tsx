@@ -61,7 +61,7 @@ interface WorkspaceHeaderProps {
   onDismissError: () => void;
 }
 
-function WorkspaceHeader({ cultureConfig, cultureId, error, onDismissError }: WorkspaceHeaderProps) {
+function WorkspaceHeader({ cultureConfig, cultureId, error, onDismissError }: Readonly<WorkspaceHeaderProps>) {
   return (
     <div className="workspace-header">
       <div className="workspace-header-row">
@@ -117,7 +117,7 @@ function getCompletionBadge(key: TabKey, naming: NamingConfig): string {
   }
 }
 
-function WorkspaceTabBar({ activeTab, onTabChange, naming }: WorkspaceTabBarProps) {
+function WorkspaceTabBar({ activeTab, onTabChange, naming }: Readonly<WorkspaceTabBarProps>) {
   return (
     <div className="workspace-tabs">
       {TAB_KEYS.map((tab) => (
@@ -148,7 +148,7 @@ function EntityWorkspace({
   onAddTag,
   apiKey,
   generators = [],
-}: EntityWorkspaceProps) {
+}: Readonly<EntityWorkspaceProps>) {
   const [error, setError] = useState<string | null>(null);
 
   const setActiveTab = useMemo(

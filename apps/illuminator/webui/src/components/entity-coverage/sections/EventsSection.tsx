@@ -135,6 +135,16 @@ function buildEventRows(
 // Frequency row builder
 // ---------------------------------------------------------------------------
 
+function accumulateEntity(
+  entities: Map<string, FreqEntityInfo>,
+  ref: { id?: string; name?: string; kind?: string } | undefined
+): void {
+  if (!ref?.id) return;
+  const ent = entities.get(ref.id) ?? { name: ref.name ?? ref.id, kind: ref.kind ?? "", count: 0 };
+  ent.count += 1;
+  entities.set(ref.id, ent);
+}
+
 function buildFreqRows(
   filteredEvents: PersistedNarrativeEvent[],
   eventCoverage: Map<string, number>,
@@ -179,25 +189,9 @@ function buildFreqRows(
     if (ev.era) existing.eras.add(ev.era as string);
 
     const subject = ev.subject as { id?: string; name?: string; kind?: string } | undefined;
-    if (subject?.id) {
-      const ent = existing.entities.get(subject.id) ?? {
-        name: subject.name ?? subject.id,
-        kind: subject.kind ?? "",
-        count: 0,
-      };
-      ent.count += 1;
-      existing.entities.set(subject.id, ent);
-    }
+    accumulateEntity(existing.entities, subject);
     for (const p of participantEffects) {
-      if (p.entity?.id && p.entity.id !== subject?.id) {
-        const ent = existing.entities.get(p.entity.id) ?? {
-          name: p.entity.name ?? p.entity.id,
-          kind: p.entity.kind ?? "",
-          count: 0,
-        };
-        ent.count += 1;
-        existing.entities.set(p.entity.id, ent);
-      }
+      if (p.entity?.id !== subject?.id) accumulateEntity(existing.entities, p.entity);
     }
     groups.set(key, existing);
   }
@@ -245,7 +239,7 @@ interface EventTableProps {
   onSort: (col: string) => void;
 }
 
-function EventTable({ rows, sort, onSort }: EventTableProps) {
+function EventTable({ rows, sort, onSort }: Readonly<EventTableProps>) {
   return (
     <TableWrap>
       <thead>
@@ -303,7 +297,7 @@ interface FreqTableProps {
   groupBy: string;
 }
 
-function FreqTable({ freqRows, freqSort, onFreqSort, groupBy }: FreqTableProps) {
+function FreqTable({ freqRows, freqSort, onFreqSort, groupBy }: Readonly<FreqTableProps>) {
   return (
     <TableWrap>
       <thead>
@@ -365,7 +359,7 @@ export function EventsSection({
   events,
   eventCoverage,
   expanded,
-}: EventsSectionProps): React.ReactElement | number {
+}: Readonly<EventsSectionProps>): React.ReactElement {
   const [sort, onSort] = useColumnSort("importance");
   const [freqSort, onFreqSort] = useColumnSort("count");
   const [coverageFilter, setCoverageFilter] = useState("all");
@@ -409,7 +403,7 @@ export function EventsSection({
     }).length;
   }, [filteredEvents, eventCoverage]);
 
-  if (!expanded) return underutilCount;
+  if (!expanded) return <>{underutilCount}</>;
 
   return (
     <div>

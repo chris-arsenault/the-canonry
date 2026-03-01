@@ -3,15 +3,15 @@ import type {
   Diagnostic,
   Value,
   StatementNode,
-} from './types.js';
+} from './types';
 
-import type { GeneratorContext, ActionContext } from './compile-types.js';
-import { SET_FIELD_KEYS } from './compile-types.js';
-import { isRecord, setObjectValue, pushArrayValue, applyLabelField, isArrayValue, isObjectValue } from './compile-utils.js';
-import { valueToJson } from './compile-variables.js';
-import { normalizeRefName, normalizeRefsInObject, normalizeConditionObject, buildObjectFromStatements, normalizeDeclaredBinding, hasDslStatements, hasActionDslStatements } from './compile-objects.js';
-import { applySetFieldAttribute } from './compile-sets.js';
-import { valueToTokenList, parseFilterTokens, conditionFromPredicate, parseWhereBlock } from './compile-conditions.js';
+import type { GeneratorContext, ActionContext } from './compile-types';
+import { SET_FIELD_KEYS } from './compile-types';
+import { isRecord, setObjectValue, pushArrayValue, applyLabelField, isArrayValue, isObjectValue } from './compile-utils';
+import { valueToJson } from './compile-variables';
+import { normalizeRefName, normalizeRefsInObject, normalizeConditionObject, buildObjectFromStatements, normalizeDeclaredBinding, hasDslStatements, hasActionDslStatements } from './compile-objects';
+import { applySetFieldAttribute } from './compile-sets';
+import { valueToTokenList, parseFilterTokens, conditionFromPredicate, parseWhereBlock } from './compile-conditions';
 
 export function buildGeneratorItem(block: BlockNode, diagnostics: Diagnostic[]): Record<string, unknown> | null {
   const body = hasDslStatements(block.body)
@@ -659,9 +659,19 @@ export function buildConditionsFromStatements(statements: StatementNode[], ctx: 
 
 export function buildSelectionFromStatements(
   stmt: Extract<StatementNode, { type: 'block' }>,
+  ctx: GeneratorContext,
+  options: { requirePickStrategy?: boolean } = {}
+): { selection: Record<string, unknown> | null; targetAlias?: string } {
+  throw new Error('buildSelectionFromStatements: not yet extracted from compile.ts');
+}
 
 export function buildVariableFromStatements(
   stmt: Extract<StatementNode, { type: 'block' }>,
+  ctx: GeneratorContext,
+  options: { requirePickStrategy?: boolean } = {}
+): Record<string, unknown> {
+  throw new Error('buildVariableFromStatements: not yet extracted from compile.ts');
+}
 
 export function buildRelationshipBodyFromStatements(
   statements: StatementNode[],
@@ -982,6 +992,9 @@ export function buildMutationListFromStatements(
   statements: StatementNode[],
   ctx: GeneratorContext,
   options: { requireMutateBlock?: boolean } = {}
+): Record<string, unknown>[] {
+  throw new Error('buildMutationListFromStatements: not yet extracted from compile.ts');
+}
 
 export function parseMutationStatement(
   stmt: StatementNode,
@@ -1234,6 +1247,10 @@ export function parseRelationshipMutationTokens(
 
 export function buildActionMutationFromAttribute(
   stmt: Extract<StatementNode, { type: 'attribute' }>,
+  ctx: ActionContext
+): Record<string, unknown> | null {
+  throw new Error('buildActionMutationFromAttribute: not yet extracted from compile.ts');
+}
 
 export function parseArchiveRelationship(
   tokens: unknown[],
@@ -1333,6 +1350,11 @@ export function applyActionProminence(
 
 export function applyLabeledAttributeDsl(
   stmt: Extract<StatementNode, { type: 'attribute' }>,
+  obj: Record<string, unknown>,
+  ctx: GeneratorContext
+): boolean {
+  throw new Error('applyLabeledAttributeDsl: not yet extracted from compile.ts');
+}
 
 export function addCreationEntryDsl(
   labels: string[],
@@ -1463,10 +1485,17 @@ export function addVariableEntryDsl(
   obj: Record<string, unknown>,
   ctx: GeneratorContext,
   options: { useBareKey?: boolean } = {}
-
+): void {
+  throw new Error('addVariableEntryDsl: not yet extracted from compile.ts');
+}
 
 export function applyActionLabeledAttribute(
   stmt: Extract<StatementNode, { type: 'attribute' }>,
+  obj: Record<string, unknown>,
+  ctx: ActionContext
+): boolean {
+  throw new Error('applyActionLabeledAttribute: not yet extracted from compile.ts');
+}
 
 export function applyActionOutcomeBlock(stmt: BlockNode, obj: Record<string, unknown>, ctx: ActionContext): void {
   const mode = stmt.labels[0];
@@ -1550,9 +1579,17 @@ export function buildActionMutationsFromStatements(
 
 export function buildActionPressureMutation(
   stmt: Extract<StatementNode, { type: 'mutate' }>,
+  ctx: ActionContext
+): Record<string, unknown> | null {
+  throw new Error('buildActionPressureMutation: not yet extracted from compile.ts');
+}
 
 export function buildActionRelationshipMutation(
   stmt: Extract<StatementNode, { type: 'rel' }>,
+  ctx: ActionContext
+): Record<string, unknown> | null {
+  throw new Error('buildActionRelationshipMutation: not yet extracted from compile.ts');
+}
 
 export function buildActionSelectionFromBlock(
   stmt: BlockNode,

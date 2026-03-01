@@ -31,7 +31,7 @@ export default function ExportModal({
   onExportBundle,
   onCancelExport,
   useS3Images,
-}: ExportModalProps) {
+}: Readonly<ExportModalProps>) {
   const mouseDownRef = React.useRef(false);
   const isWorking = bundleStatus.state === "working";
 

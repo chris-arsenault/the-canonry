@@ -41,7 +41,7 @@ interface BackrefRow {
 export function BackrefsSection({
   entities,
   expanded,
-}: BackrefsSectionProps): React.ReactElement | number {
+}: Readonly<BackrefsSectionProps>): React.ReactElement {
   const [sort, onSort] = useColumnSort("ratio");
   const [kindFilter, setKindFilter] = useState("all");
   const [cultureFilter, setCultureFilter] = useState("all");
@@ -93,7 +93,7 @@ export function BackrefsSection({
     [rows],
   );
 
-  if (!expanded) return underutilCount;
+  if (!expanded) return <>{underutilCount}</>;
 
   return (
     <div>

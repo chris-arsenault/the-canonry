@@ -111,7 +111,7 @@ interface TemplateMarkerProps {
 
 function TemplateMarker({
   event, xScale, chartBottom, hoveredEventId, selectedEventId, onEventHover, onEventClick,
-}: TemplateMarkerProps) {
+}: Readonly<TemplateMarkerProps>) {
   const cx = xScale(event.tick + 0.5);
   const cy = chartBottom - 10 - event.stackIndex * MARKER_STACK_OFFSET;
   const isHovered = event.uniqueId === hoveredEventId;
@@ -151,7 +151,7 @@ interface CountBadgeProps {
   color: string;
 }
 
-function CountBadge({ cx, cy, count, color }: CountBadgeProps) {
+function CountBadge({ cx, cy, count, color }: Readonly<CountBadgeProps>) {
   return (
     <g>
       <circle cx={cx + 8} cy={cy - 6} r={7} fill="rgba(0,0,0,0.8)" stroke={color} strokeWidth={1} />
@@ -176,13 +176,13 @@ interface SystemMarkerProps {
 function StarMarker({
   cx, cy, size, opacity, event, chartBottom, isSelected, isHovered,
   onEventHover, onEventClick,
-}: {
+}: Readonly<{
   cx: number; cy: number; size: number; opacity: number;
   event: SystemEventMarker; chartBottom: number;
   isSelected: boolean; isHovered: boolean;
   onEventHover: (id: string | null) => void;
   onEventClick: (id: string) => void;
-}) {
+}>) {
   const outerRadius = size * 0.8;
   const innerRadius = size * 0.4;
   const pts: string[] = [];
@@ -218,12 +218,12 @@ function StarMarker({
 function DiamondMarker({
   cx, cy, size, opacity, event, isSelected, isHovered,
   onEventHover, onEventClick,
-}: {
+}: Readonly<{
   cx: number; cy: number; size: number; opacity: number;
   event: SystemEventMarker; isSelected: boolean; isHovered: boolean;
   onEventHover: (id: string | null) => void;
   onEventClick: (id: string) => void;
-}) {
+}>) {
   const halfSize = size * 0.6;
   const pts = `${cx},${cy - halfSize} ${cx + halfSize},${cy} ${cx},${cy + halfSize} ${cx - halfSize},${cy}`;
 
@@ -249,7 +249,7 @@ function DiamondMarker({
 function SystemMarker({
   event, xScale, margin, chartBottom, hoveredEventId, selectedEventId,
   onEventHover, onEventClick,
-}: SystemMarkerProps) {
+}: Readonly<SystemMarkerProps>) {
   const cx = xScale(event.tick + 0.5);
   const cy = margin.top - 10 - event.stackIndex * MARKER_STACK_OFFSET;
   const isHovered = event.uniqueId === hoveredEventId;
@@ -288,20 +288,18 @@ interface ActionMarkerProps {
 
 function ActionMarker({
   event, xScale, yScale, hoveredEventId, selectedEventId, onEventHover, onEventClick,
-}: ActionMarkerProps) {
+}: Readonly<ActionMarkerProps>) {
   const cx = xScale(event.tick + 0.5);
   const baseY = yScale(-60);
   const cy = baseY - event.stackIndex * MARKER_STACK_OFFSET;
   const isHovered = event.uniqueId === hoveredEventId;
   const isSelected = event.uniqueId === selectedEventId;
-  const { size: rawSize, opacity } = markerAppearance(isSelected, isHovered, MARKER_SIZE);
+  const { opacity } = markerAppearance(isSelected, isHovered, MARKER_SIZE);
 
   let radius: number;
   if (isSelected) radius = 6;
   else if (isHovered) radius = 5;
   else radius = 4;
-  // rawSize is used only for consistency; actual radii are specific for circles
-  void rawSize;
 
   const showBadge = event.stackIndex === event.totalAtTick - 1 && event.totalAtTick > 3;
 
@@ -340,7 +338,7 @@ interface ScrollSliderProps {
 
 function ScrollSlider({
   maxScrollOffset, currentOffset, visibleData, totalCount, onScrollChange,
-}: ScrollSliderProps) {
+}: Readonly<ScrollSliderProps>) {
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onScrollChange(parseInt(e.target.value, 10)),
     [onScrollChange]
@@ -374,7 +372,7 @@ interface HoverTooltipProps {
   tooltip: TooltipData | null;
 }
 
-function HoverTooltip({ tooltip }: HoverTooltipProps) {
+function HoverTooltip({ tooltip }: Readonly<HoverTooltipProps>) {
   if (!tooltip) return null;
 
   return (
@@ -417,7 +415,7 @@ export default function TraceVisualization({
   hiddenPressures,
   interaction,
   callbacks,
-}: TraceVisualizationProps) {
+}: Readonly<TraceVisualizationProps>) {
   const { selectedTick, lockedTick, hoveredEventId, selectedEventId, scrollOffset } = interaction;
   const { onTickHover, onTickClick, onEventHover, onEventClick, onScrollChange } = callbacks;
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
@@ -521,7 +519,7 @@ export default function TraceVisualization({
         x: event.clientX,
         y: event.clientY,
         tick: closestPoint.tick,
-        epoch: closestPoint.epoch as number | undefined,
+        epoch: closestPoint.epoch,
         pressures: pressureValues,
       });
     },

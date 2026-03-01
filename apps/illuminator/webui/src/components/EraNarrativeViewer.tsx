@@ -596,6 +596,36 @@ function VersionSelectorRow({
 // Polling hook (extracted to reduce main component complexity)
 // ---------------------------------------------------------------------------
 
+async function checkPollCompletion(
+  reason: string | null,
+  updated: EraNarrativeRecord,
+  narrativeId: string,
+  setRecord: React.Dispatch<React.SetStateAction<EraNarrativeRecord | null>>,
+  snapshotCoverImage: EraNarrativeRecord["coverImage"] | undefined,
+  snapshotImageRefs: EraNarrativeRecord["imageRefs"] | undefined
+): Promise<boolean> {
+  if (reason === "edit") {
+    if (updated.status === "complete" || updated.status === "failed" || updated.status === "step_complete") {
+      if (updated.status === "step_complete" && updated.currentStep === "edit") {
+        await updateEraNarrative(updated.narrativeId, { status: "complete" });
+        const final = await getEraNarrative(narrativeId);
+        if (final) setRecord(final);
+      }
+      return true;
+    }
+    return false;
+  }
+  if (reason === "cover_image") {
+    const hasCover = updated.coverImage?.sceneDescription;
+    return !!(hasCover && hasCover !== snapshotCoverImage?.sceneDescription);
+  }
+  if (reason === "image_refs") {
+    const hasRefs = updated.imageRefs?.generatedAt;
+    return !!(hasRefs && hasRefs !== snapshotImageRefs?.generatedAt);
+  }
+  return false;
+}
+
 function usePolling(
   narrativeId: string,
   record: EraNarrativeRecord | null,
@@ -626,40 +656,11 @@ function usePolling(
           if (!updated) return;
           setRecord(updated);
 
-          const r = pollReasonRef.current;
-
-          if (r === "edit") {
-            if (
-              updated.status === "complete" ||
-              updated.status === "failed" ||
-              updated.status === "step_complete"
-            ) {
-              if (updated.status === "step_complete" && updated.currentStep === "edit") {
-                await updateEraNarrative(updated.narrativeId, { status: "complete" });
-                const final = await getEraNarrative(narrativeId);
-                if (final) setRecord(final);
-              }
-              stopPolling();
-            }
-            return;
-          }
-
-          if (r === "cover_image") {
-            const hasCover = updated.coverImage?.sceneDescription;
-            const hadCover = snapshotCoverImage?.sceneDescription;
-            if (hasCover && hasCover !== hadCover) {
-              stopPolling();
-            }
-            return;
-          }
-
-          if (r === "image_refs") {
-            const hasRefs = updated.imageRefs?.generatedAt;
-            const hadRefs = snapshotImageRefs?.generatedAt;
-            if (hasRefs && hasRefs !== hadRefs) {
-              stopPolling();
-            }
-          }
+          const shouldStop = await checkPollCompletion(
+            pollReasonRef.current, updated, narrativeId, setRecord,
+            snapshotCoverImage, snapshotImageRefs
+          );
+          if (shouldStop) stopPolling();
         })();
       }, POLL_INTERVAL_MS);
     },

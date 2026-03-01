@@ -75,7 +75,7 @@ export function useAppEffects({
 
   // Illuminator world data mutation events
   useEffect(() => {
-    const handler = async (e: Event) => {
+    const asyncHandler = async (e: Event) => {
       const detail = (e as CustomEvent).detail || {};
       const { simulationRunId } = detail;
       if (!simulationRunId) return;
@@ -92,6 +92,7 @@ export function useAppEffects({
         console.warn("[Canonry] Failed to load Illuminator world data from Dexie:", err);
       }
     };
+    const handler = (e: Event) => { asyncHandler(e).catch(console.error); };
     window.addEventListener("illuminator:worlddata-changed", handler);
     return () => window.removeEventListener("illuminator:worlddata-changed", handler);
   }, []);

@@ -869,7 +869,7 @@ export class TemplateInterpreter {
 
   private resolveCulture(spec: CultureSpec, context: ExecutionContext): string {
     if (typeof spec === 'string') {
-      throw new Error(`Invalid culture spec: "${spec}". Use { fixed: "${spec}" } or { inherit: "entity_ref" }`);
+      throw new Error(`Invalid culture spec: "${String(spec)}". Use { fixed: "..." } or { inherit: "entity_ref" }`);
     }
 
     if ('inherit' in spec) {

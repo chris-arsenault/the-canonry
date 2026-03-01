@@ -100,6 +100,63 @@ export function applySelectionFilters(
   return result;
 }
 
+function filterByRelationship(
+  entities: HardState[],
+  filter: SelectionFilter,
+  resolver: EntityResolver,
+  negate: boolean
+): HardState[] {
+  const graphView = resolver.getGraphView();
+  const withEntity = filter.with ? resolver.resolveEntity(filter.with) : undefined;
+  const direction = negate ? undefined : filter.direction;
+  return entities.filter(entity => {
+    const relationships = graphView.getRelationships(entity.id, filter.kind);
+    const hasMatch = relationships.some(link =>
+      linkMatchesConstraints(link, entity.id, direction, withEntity?.id)
+    );
+    return negate ? !hasMatch : hasMatch;
+  });
+}
+
+function filterBySharesRelated(
+  entities: HardState[],
+  filter: SelectionFilter,
+  resolver: EntityResolver
+): HardState[] {
+  const graphView = resolver.getGraphView();
+  const refEntity = resolver.resolveEntity(filter.with);
+  if (!refEntity) return entities;
+  const refRelated = graphView
+    .getConnectedEntities(refEntity.id, filter.relationshipKind, 'both')
+    .map(entity => entity.id);
+  if (refRelated.length === 0) return [];
+  const refRelatedSet = new Set(refRelated);
+  return entities.filter(entity => {
+    const entityRelated = graphView
+      .getConnectedEntities(entity.id, filter.relationshipKind, 'both')
+      .map(related => related.id);
+    return entityRelated.some(id => refRelatedSet.has(id));
+  });
+}
+
+function filterByComponentSize(
+  entities: HardState[],
+  filter: SelectionFilter,
+  resolver: EntityResolver
+): HardState[] {
+  const graphView = resolver.getGraphView();
+  const adjacency = buildRelationshipAdjacency(
+    graphView.getAllRelationships(),
+    filter.relationshipKinds,
+    filter.minStrength ?? 0
+  );
+  return entities.filter(entity => {
+    const size = computeComponentSize(adjacency, entity.id);
+    return (filter.min === undefined || size >= filter.min)
+      && (filter.max === undefined || size <= filter.max);
+  });
+}
+
 /**
  * Apply a single selection filter to a list of entities.
  */
@@ -119,35 +176,17 @@ export function applySelectionFilter(
       return entities.filter(e => !excludeIds.has(e.id));
     }
 
-    case 'has_relationship': {
-      const graphView = resolver.getGraphView();
-      const withEntity = filter.with ? resolver.resolveEntity(filter.with) : undefined;
-      return entities.filter(entity => {
-        const relationships = graphView.getRelationships(entity.id, filter.kind);
-        return relationships.some(link =>
-          linkMatchesConstraints(link, entity.id, filter.direction, withEntity?.id)
-        );
-      });
-    }
+    case 'has_relationship':
+      return filterByRelationship(entities, filter, resolver, false);
 
-    case 'lacks_relationship': {
-      const graphView = resolver.getGraphView();
-      const withEntity = filter.with ? resolver.resolveEntity(filter.with) : undefined;
-      return entities.filter(entity => {
-        const relationships = graphView.getRelationships(entity.id, filter.kind);
-        return !relationships.some(link =>
-          linkMatchesConstraints(link, entity.id, undefined, withEntity?.id)
-        );
-      });
-    }
+    case 'lacks_relationship':
+      return filterByRelationship(entities, filter, resolver, true);
 
-    case 'has_tag': {
+    case 'has_tag':
       return entities.filter(entity => {
         if (!hasTag(entity.tags, filter.tag)) return false;
-        if (filter.value === undefined) return true;
-        return getTagValue(entity.tags, filter.tag) === filter.value;
+        return filter.value === undefined || getTagValue(entity.tags, filter.tag) === filter.value;
       });
-    }
 
     case 'has_tags': {
       const tagList = filter.tags || [];
@@ -161,14 +200,11 @@ export function applySelectionFilter(
       return entities.filter(entity => tagList.some(tag => hasTag(entity.tags, tag)));
     }
 
-    case 'lacks_tag': {
+    case 'lacks_tag':
       return entities.filter(entity => {
-        if (!hasTag(entity.tags, filter.tag)) return true; // Doesn't have tag, include
-        if (filter.value === undefined) return false; // Has tag, exclude
-        // Has tag, only exclude if value matches
-        return getTagValue(entity.tags, filter.tag) !== filter.value;
+        if (!hasTag(entity.tags, filter.tag)) return true;
+        return filter.value !== undefined && getTagValue(entity.tags, filter.tag) !== filter.value;
       });
-    }
 
     case 'lacks_any_tag': {
       const tagList = filter.tags || [];
@@ -176,13 +212,11 @@ export function applySelectionFilter(
       return entities.filter(entity => !tagList.some(tag => hasTag(entity.tags, tag)));
     }
 
-    case 'has_culture': {
+    case 'has_culture':
       return entities.filter(e => e.culture === filter.culture);
-    }
 
-    case 'not_has_culture': {
+    case 'not_has_culture':
       return entities.filter(e => e.culture !== filter.culture);
-    }
 
     case 'matches_culture': {
       const refEntity = resolver.resolveEntity(filter.with);
@@ -196,36 +230,16 @@ export function applySelectionFilter(
       return entities.filter(e => e.culture !== refEntity.culture);
     }
 
-    case 'has_status': {
+    case 'has_status':
       return entities.filter(e => e.status === filter.status);
-    }
 
     case 'has_prominence': {
       const minValue = prominenceThreshold(filter.minProminence);
       return entities.filter(e => e.prominence >= minValue);
     }
 
-    case 'shares_related': {
-      // Find entities that share a common related entity with the reference
-      const graphView = resolver.getGraphView();
-      const refEntity = resolver.resolveEntity(filter.with);
-      if (!refEntity) return entities;
-
-      const refRelated = graphView
-        .getConnectedEntities(refEntity.id, filter.relationshipKind, 'both')
-        .map(entity => entity.id);
-
-      if (refRelated.length === 0) return [];
-
-      const refRelatedSet = new Set(refRelated);
-
-      return entities.filter(entity => {
-        const entityRelated = graphView
-          .getConnectedEntities(entity.id, filter.relationshipKind, 'both')
-          .map(related => related.id);
-        return entityRelated.some(id => refRelatedSet.has(id));
-      });
-    }
+    case 'shares_related':
+      return filterBySharesRelated(entities, filter, resolver);
 
     case 'graph_path': {
       const options = resolveGraphPathOptions(graphPathOptions);
@@ -234,20 +248,8 @@ export function applySelectionFilter(
       );
     }
 
-    case 'component_size': {
-      const graphView = resolver.getGraphView();
-      const adjacency = buildRelationshipAdjacency(
-        graphView.getAllRelationships(),
-        filter.relationshipKinds,
-        filter.minStrength ?? 0
-      );
-      return entities.filter(entity => {
-        const componentSize = computeComponentSize(adjacency, entity.id);
-        const minOk = filter.min === undefined || componentSize >= filter.min;
-        const maxOk = filter.max === undefined || componentSize <= filter.max;
-        return minOk && maxOk;
-      });
-    }
+    case 'component_size':
+      return filterByComponentSize(entities, filter, resolver);
 
     default:
       return entities;
