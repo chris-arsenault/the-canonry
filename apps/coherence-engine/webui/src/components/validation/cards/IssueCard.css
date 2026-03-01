@@ -1,0 +1,8 @@
+/* IssueCard companion styles */
+.ic-expand-rotated {
+  transform: rotate(180deg);
+}
+
+.ic-affected-item-row {
+  gap: 2px;
+}

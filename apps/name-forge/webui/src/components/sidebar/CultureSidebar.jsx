@@ -1,5 +1,8 @@
-import { useState } from 'react';
-
+import React, { useState } from "react";
+import { useAsyncAction } from "../../../hooks/useAsyncAction";
+import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
+import "./CultureSidebar.css";
 function CultureSidebar({
   cultures,
   selectedCulture,
@@ -8,26 +11,22 @@ function CultureSidebar({
   readOnly = false
 }) {
   const [creatingCulture, setCreatingCulture] = useState(false);
-  const [newCultureId, setNewCultureId] = useState('');
-  const [newCultureName, setNewCultureName] = useState('');
-  const [error, setError] = useState(null);
-
+  const [newCultureId, setNewCultureId] = useState("");
+  const [newCultureName, setNewCultureName] = useState("");
+  const { error, setError } = useAsyncAction();
   const handleCreateCulture = () => {
     if (!newCultureId.trim()) {
-      setError('Culture ID is required');
+      setError("Culture ID is required");
       return;
     }
-
     if (!/^[a-z0-9_]+$/.test(newCultureId)) {
-      setError('Culture ID must be lowercase letters, numbers, and underscores only (no hyphens)');
+      setError("Culture ID must be lowercase letters, numbers, and underscores only (no hyphens)");
       return;
     }
-
     if (cultures[newCultureId]) {
-      setError('Culture ID already exists');
+      setError("Culture ID already exists");
       return;
     }
-
     const cultureName = newCultureName || newCultureId;
 
     // Create new culture with culture-level resources
@@ -39,25 +38,27 @@ function CultureSidebar({
         lexemeLists: {},
         lexemeSpecs: [],
         grammars: [],
-        profiles: [],
-      },
+        profiles: []
+      }
     };
-
-    const updatedCultures = { ...cultures, [newCultureId]: newCulture };
+    const updatedCultures = {
+      ...cultures,
+      [newCultureId]: newCulture
+    };
     onCulturesChange(updatedCultures);
 
     // Select the new culture
     onSelectCulture(newCultureId);
 
     // Reset form
-    setNewCultureId('');
-    setNewCultureName('');
+    setNewCultureId("");
+    setNewCultureName("");
     setCreatingCulture(false);
     setError(null);
   };
 
   // Get resource counts for a culture
-  const getResourceCounts = (culture) => {
+  const getResourceCounts = culture => {
     const naming = culture?.naming || {};
     return {
       domains: naming.domains?.length || 0,
@@ -68,126 +69,96 @@ function CultureSidebar({
   };
 
   // Calculate completion based on having at least one of each resource
-  const calculateCompletion = (culture) => {
+  const calculateCompletion = culture => {
     const counts = getResourceCounts(culture);
     let completed = 0;
     if (counts.domains > 0) completed++;
     if (counts.lexemes > 0) completed++;
     if (counts.grammars > 0) completed++;
     if (counts.profiles > 0) completed++;
-    return Math.round((completed / 4) * 100);
+    return Math.round(completed / 4 * 100);
   };
-
-  return (
-    <div className="culture-sidebar">
+  return <div className="culture-sidebar">
       <div className="culture-sidebar-header">
         <div className="culture-sidebar-header-row">
           <h4>Cultures</h4>
-          {!readOnly && !creatingCulture && (
-            <button className="primary sm" onClick={() => setCreatingCulture(true)}>
+          {!readOnly && !creatingCulture && <button className="primary sm" onClick={() => setCreatingCulture(true)}>
               + New
-            </button>
-          )}
+            </button>}
         </div>
 
-        {creatingCulture && (
-          <div className="culture-form">
+        {creatingCulture && <div className="culture-form">
             <div className="form-group">
-              <label>Culture ID</label>
-              <input
-                type="text"
-                value={newCultureId}
-                onChange={(e) => setNewCultureId(e.target.value)}
-                placeholder="elven"
-              />
+              <label htmlFor="culture-id">Culture ID</label>
+              <input id="culture-id" type="text" value={newCultureId} onChange={e => setNewCultureId(e.target.value)} placeholder="elven" />
             </div>
             <div className="form-group">
-              <label>Display Name</label>
-              <input
-                type="text"
-                value={newCultureName}
-                onChange={(e) => setNewCultureName(e.target.value)}
-                placeholder="Elven"
-              />
+              <label htmlFor="display-name">Display Name</label>
+              <input id="display-name" type="text" value={newCultureName} onChange={e => setNewCultureName(e.target.value)} placeholder="Elven" />
             </div>
 
-            {error && (
-              <div className="error">{error}</div>
-            )}
+            {error && <ErrorMessage message={error} />}
 
             <div className="culture-form-buttons">
               <button className="primary" onClick={handleCreateCulture}>
                 Create
               </button>
-              <button
-                className="secondary"
-                onClick={() => {
-                  setCreatingCulture(false);
-                  setError(null);
-                  setNewCultureId('');
-                  setNewCultureName('');
-                }}
-              >
+              <button className="secondary" onClick={() => {
+            setCreatingCulture(false);
+            setError(null);
+            setNewCultureId("");
+            setNewCultureName("");
+          }}>
                 Cancel
               </button>
             </div>
-          </div>
-        )}
+          </div>}
       </div>
 
       <div className="culture-list">
-        {Object.keys(cultures).length === 0 ? (
-          <div className="culture-list-empty">
-            No cultures yet. Create one to get started.
-          </div>
-        ) : (
-          Object.values(cultures).map((culture) => {
-            const completion = calculateCompletion(culture);
-            const counts = getResourceCounts(culture);
-            const isSelected = selectedCulture === culture.id;
-
-            return (
-              <div
-                key={culture.id}
-                onClick={() => onSelectCulture(culture.id)}
-                className={`culture-card ${isSelected ? 'selected' : ''}`}
-              >
+        {Object.keys(cultures).length === 0 ? <div className="culture-list-empty">No cultures yet. Create one to get started.</div> : Object.values(cultures).map(culture => {
+        const completion = calculateCompletion(culture);
+        const counts = getResourceCounts(culture);
+        const isSelected = selectedCulture === culture.id;
+        return <div key={culture.id} onClick={() => onSelectCulture(culture.id)} className={`culture-card ${isSelected ? "selected" : ""}`} role="button" tabIndex={0} onKeyDown={e => {
+          if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
+        }}>
                 <div className="culture-card-content">
-                  <div className="culture-card-name">
-                    {culture.name || culture.id}
-                  </div>
+                  <div className="culture-card-name">{culture.name || culture.id}</div>
 
                   {/* Resource counts */}
                   <div className="culture-resource-grid">
-                    <span className={`culture-resource-item ${counts.domains > 0 ? 'has-domains' : ''}`}>
+                    <span className={`culture-resource-item ${counts.domains > 0 ? "has-domains" : ""}`}>
                       {counts.domains} dom
                     </span>
-                    <span className={`culture-resource-item ${counts.lexemes > 0 ? 'has-lexemes' : ''}`}>
+                    <span className={`culture-resource-item ${counts.lexemes > 0 ? "has-lexemes" : ""}`}>
                       {counts.lexemes} lex
                     </span>
-                    <span className={`culture-resource-item ${counts.grammars > 0 ? 'has-grammars' : ''}`}>
+                    <span className={`culture-resource-item ${counts.grammars > 0 ? "has-grammars" : ""}`}>
                       {counts.grammars} gram
                     </span>
-                    <span className={`culture-resource-item ${counts.profiles > 0 ? 'has-profiles' : ''}`}>
+                    <span className={`culture-resource-item ${counts.profiles > 0 ? "has-profiles" : ""}`}>
                       {counts.profiles} prof
                     </span>
                   </div>
 
                   {/* Progress bar */}
                   <div className="culture-progress-bar">
-                    <div
-                      className={`culture-progress-fill ${completion === 100 ? 'complete' : ''}`}
-                      style={{ width: `${completion}%` }}
-                    />
+                    <div className={`culture-progress-fill csb-progress-fill ${completion === 100 ? "complete" : ""}`} style={{
+                '--csb-progress-width': `${completion}%`
+              }} />
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
+              </div>;
+      })}
       </div>
-    </div>
-  );
+    </div>;
 }
-
+CultureSidebar.propTypes = {
+  cultures: PropTypes.object,
+  selectedCulture: PropTypes.string,
+  onSelectCulture: PropTypes.func,
+  onCulturesChange: PropTypes.func,
+  readOnly: PropTypes.bool
+};
 export default CultureSidebar;

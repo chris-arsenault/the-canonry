@@ -110,7 +110,7 @@ export function prominenceLabelFromScale(
   scale: ProminenceScale
 ): ProminenceLabel {
   if (typeof value === 'string' && scale.labels.includes(value)) {
-    return value as ProminenceLabel;
+    return value;
   }
 
   if (typeof value !== 'number' || !Number.isFinite(value)) {

@@ -1,0 +1,264 @@
+/* BulkEraNarrativeModal — content-specific styles (prefix: benm-)
+ * Overlay, header, footer, terminal, and cost styles are in BulkOperationShell.css */
+
+/* Era list section */
+.benm-era-section {
+  margin-bottom: 12px;
+}
+
+.benm-era-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.benm-era-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.benm-era-row-bordered {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.benm-era-row-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.benm-era-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.benm-era-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.benm-era-prepped {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.benm-era-existing {
+  font-size: 10px;
+  color: #3b82f6;
+}
+
+/* Per-era tone selector */
+.benm-tone-selector {
+  display: flex;
+  gap: 2px;
+}
+
+.benm-tone-btn {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.benm-tone-btn-default {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.benm-tone-btn-selected {
+  border: 1px solid #8b7355;
+  background: rgb(139 115 85 / 15%);
+  color: #8b7355;
+}
+
+/* Progress section */
+.benm-progress-section {
+  margin-bottom: 16px;
+}
+
+.benm-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.benm-progress-era-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.benm-progress-percent {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Progress bar */
+.benm-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.benm-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  width: var(--benm-progress-width);
+}
+
+.benm-progress-fill-complete {
+  background: #10b981;
+}
+
+.benm-progress-fill-failed {
+  background: #ef4444;
+}
+
+.benm-progress-fill-cancelled {
+  background: #f59e0b;
+}
+
+.benm-progress-counts {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Current era detail */
+.benm-current-era {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  margin-bottom: 12px;
+}
+
+.benm-current-era-name {
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.benm-current-era-tone {
+  color: #8b7355;
+  font-size: 13px;
+}
+
+/* Step rows */
+.benm-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.benm-step-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.benm-step-icon {
+  width: 12px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--benm-step-color);
+}
+
+.benm-step-label {
+  width: 52px;
+}
+
+.benm-step-label-active {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.benm-step-label-pending {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.benm-step-active-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Mini progress bar in step */
+.benm-step-bar-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.benm-step-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: #f59e0b;
+  transition: width 0.2s ease;
+  width: var(--benm-bar-width);
+}
+
+/* Live counters */
+.benm-step-counters {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.benm-counter-thinking-label {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.benm-counter-separator {
+  margin: 0 6px;
+  opacity: 0.3;
+}
+
+.benm-counter-output-label {
+  color: #f59e0b;
+  opacity: 0.8;
+}
+
+.benm-step-done {
+  flex: 1;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Cost + words */
+.benm-stats {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

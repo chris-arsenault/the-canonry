@@ -1,0 +1,218 @@
+[
+  {
+    "unitId": "packages/image-store/src/hooks.ts::useImageUrl",
+    "purpose": "Loads a single image URL from the image store for a given image ID and size, returning the resolved URL along with loading and error state"
+  },
+  {
+    "unitId": "packages/image-store/src/hooks.ts::useImageUrls",
+    "purpose": "Batch-loads multiple image URLs from the image store for a list of image IDs and returns a Map of resolved URLs with a combined loading flag"
+  },
+  {
+    "unitId": "packages/image-store/src/hooks.ts::useImageMetadata",
+    "purpose": "Fetches and caches lightweight metadata (dimensions, entity info) for a set of image IDs from the image store, returning a Map of metadata by ID"
+  },
+  {
+    "unitId": "packages/image-store/src/index.ts::useImageUrl",
+    "purpose": "Re-exports the image store hook that loads a single image URL for a given ID and size, returning the URL with loading and error state"
+  },
+  {
+    "unitId": "packages/image-store/src/index.ts::useImageUrls",
+    "purpose": "Re-exports the image store hook that batch-loads multiple image URLs, returning a Map of resolved URLs and a combined loading flag"
+  },
+  {
+    "unitId": "packages/image-store/src/index.ts::useImageMetadata",
+    "purpose": "Re-exports the image store hook that fetches and caches metadata for a set of image IDs, returning a Map of metadata keyed by image ID"
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useEntityNarrativeEvents",
+    "purpose": "Ensures narrative events for a specific entity are loaded from the backend and returns the array of that entity's narrative events"
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useNarrativeStatus",
+    "purpose": "Returns the current overall status object of the narrative store, including loading and error state"
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useNarrativeLoading",
+    "purpose": "Returns a boolean indicating whether the narrative store is currently loading data"
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useEntityNarrativeLoading",
+    "purpose": "Returns a boolean indicating whether narrative events for a specific entity are currently being fetched"
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useEntityNarrativeReady",
+    "purpose": "Returns a boolean indicating whether narrative events for a specific entity have already been loaded and are ready to use"
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useAllNarrativeEvents",
+    "purpose": "Returns all narrative events currently held in the store as a flat array"
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useAllNarrativeEventsLoading",
+    "purpose": "Returns a boolean indicating whether the full collection of narrative events is currently being loaded"
+  },
+  {
+    "unitId": "packages/narrative-store/src/index.ts::useAllNarrativeEventsLoaded",
+    "purpose": "Returns a boolean indicating whether the full collection of narrative events has finished loading"
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/components/Ornaments.tsx::ParchmentTexture",
+    "purpose": "Renders a parchment or vellum background texture by loading a photo through a canvas processing pipeline and displaying it as a soft-light blended repeating tile"
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/components/Ornaments.tsx::ParchmentDebugPanel",
+    "purpose": "Renders a collapsible debug panel that exposes live controls for tuning parchment texture configuration parameters"
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/components/Ornaments.tsx::PageFrame",
+    "purpose": "Renders decorative scroll-corner ornaments in all four corners of a page to create a framed layout effect"
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/components/Ornaments.tsx::SectionDivider",
+    "purpose": "Renders an SVG ornamental filigree divider with gold scrollwork and frost-blue accent tendrils for use between content sections"
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/components/Ornaments.tsx::FrostEdge",
+    "purpose": "Renders a decorative SVG ice-crystal band with irregular frost spikes and a gradient background, positioned at the top or bottom edge of a content area"
+  },
+  {
+    "unitId": "apps/chronicler/webui/src/hooks/useBreakpoint.ts::useBreakpoint",
+    "purpose": "Tracks window width via a resize observer and returns the current responsive breakpoint as one of mobile, tablet, or desktop"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::TagSelector",
+    "purpose": "Renders a searchable multi-select dropdown that lets users pick tags from a registry, add new tags, and optionally switch between match-any and match-all modes"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::ToolUsageBadges",
+    "purpose": "Renders a row of badges showing how many times each external tool (e.g. nameforge, coherence) was used, with optional compact icon-only mode"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::DetailUsageBadges",
+    "purpose": "Renders badges listing which generators, systems, or other items reference a given configuration element, and optionally shows a 'Not used' badge when unreferenced"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::ReferenceDropdown",
+    "purpose": "Renders a labeled dropdown that lets the user select a single value from a list of options, with optional search filtering"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::ChipSelect",
+    "purpose": "Renders a chip-based multi-select control where selected values appear as removable chips and new values are chosen from a filtered dropdown"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::SearchableDropdown",
+    "purpose": "Renders a searchable trigger-activated dropdown that lets the user pick one item from a filterable list of named items"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::LevelSelector",
+    "purpose": "Renders a visual level selector combining a labeled discrete scale with an optional numeric slider input for choosing a value from a predefined set of named levels"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::NumberInput",
+    "purpose": "Renders a controlled numeric text input that buffers local edits and commits a validated, optionally integer-clamped number to the parent on blur or Enter"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::LocalTextArea",
+    "purpose": "Renders a textarea that maintains a local draft of text and commits the value to the parent only when the user finishes editing, preventing excessive re-renders"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::IconButton",
+    "purpose": "Renders a small icon-only button with optional danger styling and a tooltip title"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::InfoBox",
+    "purpose": "Renders a styled container box with an optional title header and arbitrary child content for displaying informational callouts"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::SectionHeader",
+    "purpose": "Renders a section heading row with an optional icon, title, item count, description, and right-aligned action controls"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::EmptyState",
+    "purpose": "Renders a centered empty-state placeholder with an optional icon, title, description, and call-to-action children for use when a list or panel has no content"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::CategorySection",
+    "purpose": "Renders a collapsible category group with a header showing an icon, label, item count, and bulk-enable toggle, with a configurable grid of rendered items below"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::AddCard",
+    "purpose": "Renders a clickable card-shaped button used to initiate adding a new item to a list"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::AddItemButton",
+    "purpose": "Renders a styled button for adding a new item to a list, visually distinct as an inline action rather than a card"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::ModalShell",
+    "purpose": "Renders a full-screen modal overlay with a sidebar containing an icon, title, optional tabs with badge support, and a footer, trapping keyboard focus and closing on overlay click unless disabled"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::ItemRow",
+    "purpose": "Renders a labeled row with a name, optional child controls, and an optional remove button for use in editable list items"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::PressureChangesEditor",
+    "purpose": "Renders an inline editor for mapping pressure IDs to numeric delta values, letting users add, adjust, and remove pressure change entries"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::ExpandableCard",
+    "purpose": "Renders a card with a clickable header that toggles an expanded content region, passing an optional stable ID back to the toggle callback to support efficient list renders"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::FormGroup",
+    "purpose": "Renders a labeled form field wrapper with an optional hint text below and support for full-width layout"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::FormRow",
+    "purpose": "Renders a horizontal flex row wrapper that arranges multiple FormGroup controls side by side"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::ErrorBadge",
+    "purpose": "Renders a badge displaying an error count, hiding itself when the count is zero"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::OrphanBadge",
+    "purpose": "Renders a badge indicating that an item is orphaned (not assigned to any era), hiding itself when the item is not orphaned"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::TabValidationBadge",
+    "purpose": "Renders a compact error-count badge intended for display inside tab labels to surface validation issue counts"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::EraBadges",
+    "purpose": "Renders a row of era name badges for an item, capping the visible count and showing an overflow indicator when there are more eras than the maximum"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::ChronicleSeedViewer",
+    "purpose": "Renders a detailed read-only view of a chronicle seed's role assignments, temporal context, and generation parameters for inspection in validation or debug UIs"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::SeedModal",
+    "purpose": "Renders a modal dialog wrapping the ChronicleSeedViewer to display a chronicle seed's generation context in an overlay"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::ExpandableSeedSection",
+    "purpose": "Renders a collapsible inline section that shows or hides a ChronicleSeedViewer for inspecting a chronicle seed's generation context"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::useLocalInputState",
+    "purpose": "Manages a locally buffered copy of an external string value and syncs it back to the parent via a debounced or event-driven callback, preventing controlled input jitter"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::useEditorState",
+    "purpose": "Manages the selection, creation, deletion, and reordering state for a list editor, persisting the selected item ID to storage and providing stable callbacks for all list mutations"
+  },
+  {
+    "unitId": "packages/shared-components/src/components/AddCard.jsx::AddCard",
+    "purpose": "Renders a clickable card-shaped button for adding a new item, serving as the canonical source component that is re-exported from the shared-components index"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::CoverageMatrix",
+    "purpose": "Renders an interactive matrix grid showing coverage relationships between rows and columns with search, grouping, and cell click handling"
+  },
+  {
+    "unitId": "packages/shared-components/src/index.js::EnableToggle",
+    "purpose": "Renders a compact toggle switch for enabling or disabling a boolean setting with optional label"
+  }
+]

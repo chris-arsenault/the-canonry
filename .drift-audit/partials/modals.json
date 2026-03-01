@@ -1,0 +1,543 @@
+[
+  {
+    "id": "modal-close-behavior",
+    "name": "Modal Close Behavior Consistency",
+    "type": "behavioral",
+    "domain": "Modal/Dialog Interaction Consistency",
+    "description": "Modals across the codebase implement overlay-click-to-close with three distinct patterns: ModalShell's canonical mouseDown guard, ad-hoc mouseDown guard reimplementations, and raw onClick on overlay (bug-prone). Several modals lack overlay close entirely.",
+    "impact": "MEDIUM",
+    "total_files": 18,
+    "variants": [
+      {
+        "name": "modalshell-canonical",
+        "description": "Uses ModalShell shared component which provides mouseDown guard overlay close, Escape key close, body scroll lock, and close button — all from a single component import",
+        "file_count": 12,
+        "files": [
+          "packages/shared-components/src/components/ModalShell.jsx",
+          "apps/name-forge/webui/src/components/modals/ConditionsModal.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/CopyGrammarModal.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/CopyLexemeModal.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/profile/ProfileModal.jsx",
+          "apps/illuminator/webui/src/components/EntityLinkPicker.jsx",
+          "apps/illuminator/webui/src/components/HistoryCompressionPreviewModal.jsx",
+          "apps/illuminator/webui/src/components/ImageRefPicker.jsx",
+          "apps/illuminator/webui/src/components/RevisionFilterModal.jsx",
+          "apps/illuminator/webui/src/components/ToneAssignmentPreviewModal.jsx",
+          "apps/coherence-engine/webui/src/components/systems/SystemModal.jsx",
+          "apps/coherence-engine/webui/src/components/actions/modals/ActionModal.jsx",
+          "apps/coherence-engine/webui/src/components/generators/GeneratorModal.jsx"
+        ],
+        "sample_file": "packages/shared-components/src/components/ModalShell.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/ModalShell.jsx",
+            "start_line": 46,
+            "end_line": 73,
+            "snippet": "// Escape key handler\nconst handleKeyDown = useCallback((e) => {\n  if (e.key === 'Escape' && !preventOverlayClose) {\n    onClose();\n  }\n}, [onClose, preventOverlayClose]);\n\nuseEffect(() => {\n  document.addEventListener('keydown', handleKeyDown);\n  return () => document.removeEventListener('keydown', handleKeyDown);\n}, [handleKeyDown]);\n\n// Body scroll lock\nuseEffect(() => {\n  const prev = document.body.style.overflow;\n  document.body.style.overflow = 'hidden';\n  return () => { document.body.style.overflow = prev; };\n}, []);\n\nconst handleOverlayMouseDown = (e) => {\n  mouseDownOnOverlay.current = e.target === e.currentTarget;\n};\n\nconst handleOverlayClick = (e) => {\n  if (!preventOverlayClose && mouseDownOnOverlay.current && e.target === e.currentTarget) {\n    onClose();\n  }\n};"
+          }
+        ],
+        "implementation_details": "ModalShell provides mouseDown guard (prevents text-selection-drag from triggering close), Escape key via document keydown listener (respects preventOverlayClose prop), body scroll lock on mount/unmount (preserves previous overflow value), close button in header, and role/tabIndex ARIA attributes on overlay."
+      },
+      {
+        "name": "ad-hoc-mousedown-guard-full",
+        "description": "Reimplements ModalShell's mouseDown guard overlay close, Escape key close, and body scroll lock manually — identical behavior but duplicated code",
+        "file_count": 5,
+        "files": [
+          "apps/illuminator/webui/src/components/ImageModal.jsx",
+          "apps/illuminator/webui/src/components/ImagePickerModal.jsx",
+          "apps/illuminator/webui/src/components/ChronicleImagePicker.jsx",
+          "apps/illuminator/webui/src/components/ChronicleWizard/ChronicleWizard.tsx",
+          "apps/chronicler/webui/src/components/ImageLightbox.tsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ImageModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ImageModal.jsx",
+            "start_line": 159,
+            "end_line": 190,
+            "snippet": "const handleOverlayMouseDown = (e) => {\n  mouseDownOnOverlay.current = e.target === e.currentTarget;\n};\n\nconst handleOverlayClick = (e) => {\n  if (mouseDownOnOverlay.current && e.target === e.currentTarget) {\n    onClose();\n  }\n};\n\n// Close on escape key\nconst handleKeyDown = useCallback(\n  (e) => {\n    if (e.key === \"Escape\") {\n      onClose();\n    }\n  },\n  [onClose]\n);\n\nuseEffect(() => {\n  if (isOpen) {\n    document.addEventListener(\"keydown\", handleKeyDown);\n    document.body.style.overflow = \"hidden\";\n  }\n  return () => {\n    document.removeEventListener(\"keydown\", handleKeyDown);\n    document.body.style.overflow = \"\";\n  };\n}, [isOpen, handleKeyDown]);"
+          },
+          {
+            "file": "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+            "start_line": 20,
+            "end_line": 50,
+            "snippet": "const mouseDownOnOverlay = useRef(false);\n\nconst handleOverlayMouseDown = (e: MouseEvent<HTMLDivElement>) => {\n  mouseDownOnOverlay.current = e.target === e.currentTarget;\n};\n\nconst handleOverlayClick = (e: MouseEvent<HTMLDivElement>) => {\n  if (mouseDownOnOverlay.current && e.target === e.currentTarget) {\n    onClose();\n  }\n};\n\nconst handleKeyDown = useCallback(\n  (e: KeyboardEvent) => {\n    if (e.key === \"Escape\") {\n      onClose();\n    }\n  },\n  [onClose]\n);\n\nuseEffect(() => {\n  if (!isOpen) return undefined;\n  document.addEventListener(\"keydown\", handleKeyDown);\n  const previousOverflow = document.body.style.overflow;\n  document.body.style.overflow = \"hidden\";\n  return () => {\n    document.removeEventListener(\"keydown\", handleKeyDown);\n    document.body.style.overflow = previousOverflow;\n  };\n}, [isOpen, handleKeyDown]);"
+          }
+        ],
+        "implementation_details": "These modals manually reimplement the exact same mouseDown guard, Escape key listener, and scroll lock that ModalShell provides. ImageLightbox preserves previousOverflow (matches ModalShell), while ImageModal/ImagePickerModal/ChronicleImagePicker/ChronicleWizard reset to empty string. These are structurally identical to ModalShell but cannot benefit from centralized fixes or enhancements. Note: ImageModal has a unique full-viewport layout with floating header, sidebar, and hint text that may justify a specialized component rather than ModalShell, but the interaction behaviors are still duplicated."
+      },
+      {
+        "name": "ad-hoc-mousedown-guard-partial",
+        "description": "Implements mouseDown guard overlay close and close button, but lacks Escape key handler and body scroll lock",
+        "file_count": 4,
+        "files": [
+          "apps/canonry/webui/src/components/HelpModal.jsx",
+          "apps/archivist/webui/src/components/RelationshipStoryModal.tsx",
+          "apps/coherence-engine/webui/src/components/pressures/modals/FactorEditorModal.jsx",
+          "apps/lore-weave/webui/src/components/DebugSettingsModal.jsx"
+        ],
+        "sample_file": "apps/canonry/webui/src/components/HelpModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/components/HelpModal.jsx",
+            "start_line": 183,
+            "end_line": 206,
+            "snippet": "const mouseDownOnOverlay = useRef(false);\n\nconst handleOverlayMouseDown = (e) => {\n  mouseDownOnOverlay.current = e.target === e.currentTarget;\n};\n\nconst handleOverlayClick = (e) => {\n  if (mouseDownOnOverlay.current && e.target === e.currentTarget) {\n    onClose();\n  }\n};\n\nreturn (\n  <div\n    className=\"modal-overlay\"\n    onMouseDown={handleOverlayMouseDown}\n    onClick={handleOverlayClick}\n    role=\"button\"\n    tabIndex={0}\n    onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") handleOverlayClick(e); }}\n  >"
+          },
+          {
+            "file": "apps/archivist/webui/src/components/RelationshipStoryModal.tsx",
+            "start_line": 17,
+            "end_line": 44,
+            "snippet": "const mouseDownOnOverlay = useRef(false);\n\nconst handleOverlayMouseDown = (e: React.MouseEvent) => {\n  mouseDownOnOverlay.current = e.target === e.currentTarget;\n};\n\nconst handleOverlayClick = (e: React.MouseEvent) => {\n  if (mouseDownOnOverlay.current && e.target === e.currentTarget) {\n    onClose();\n  }\n};\n\nreturn (\n  <div\n    className=\"relationship-story-overlay\"\n    onMouseDown={handleOverlayMouseDown}\n    onClick={handleOverlayClick}\n    role=\"button\"\n    tabIndex={0}\n    onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") handleOverlayClick(e); }}\n  >"
+          }
+        ],
+        "implementation_details": "These modals have overlay close with the mouseDown guard (preventing accidental text-selection dismissal) and a close button, but they lack Escape key handling and body scroll lock. HelpModal and FactorEditorModal use modal-overlay CSS from shared styles. RelationshipStoryModal uses its own relationship-story-overlay CSS. DebugSettingsModal uses lw-modal-overlay. All four would gain Escape+scroll-lock for free by migrating to ModalShell."
+      },
+      {
+        "name": "simple-onclick-overlay",
+        "description": "Uses bare onClick on overlay — no mouseDown guard, so text-selection drag from inside the modal triggers accidental close. Missing Escape and scroll lock.",
+        "file_count": 2,
+        "files": [
+          "apps/illuminator/webui/src/components/QuickCheckModal.jsx",
+          "apps/name-forge/webui/src/components/optimizer/ResultsModal.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/QuickCheckModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/QuickCheckModal.jsx",
+            "start_line": 239,
+            "end_line": 243,
+            "snippet": "return <div className=\"qcm-overlay\" onClick={e => {\n  if (e.target === e.currentTarget) onClose();\n}} role=\"button\" tabIndex={0} onKeyDown={e => {\n  if (e.key === \"Enter\" || e.key === \" \") e.currentTarget.click();\n}}>"
+          },
+          {
+            "file": "apps/name-forge/webui/src/components/optimizer/ResultsModal.jsx",
+            "start_line": 70,
+            "end_line": 73,
+            "snippet": "return <div className=\"optimizer-modal-overlay\" onClick={e => {\n  if (e.target === e.currentTarget && !optimizing) onClose();\n}} role=\"button\" tabIndex={0} onKeyDown={e => {\n  if (e.key === \"Enter\" || e.key === \" \") e.currentTarget.click();"
+          }
+        ],
+        "implementation_details": "Both modals use a simple onClick handler with e.target === e.currentTarget guard, but lack the mouseDown guard. This means if a user starts a mouse-down inside the modal (e.g., selecting text) and releases on the overlay, the modal closes — a known UX bug. Neither has Escape key handling or body scroll lock. QuickCheckModal has its own qcm-overlay CSS; ResultsModal uses optimizer-modal-overlay CSS. ResultsModal additionally guards against close during optimizing state."
+      },
+      {
+        "name": "no-overlay-close",
+        "description": "Modal uses a fixed backdrop but has no overlay click handler, no Escape key handler, and no scroll lock — only closable via explicit buttons",
+        "file_count": 2,
+        "files": [
+          "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+          "apps/illuminator/webui/src/components/BulkOperationShell.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+            "start_line": 224,
+            "end_line": 230,
+            "snippet": "return (\n  <div className=\"cem-backdrop\">\n    <div className=\"cem-card\">\n      {/* Header */}\n      <div className=\"cem-header\">\n        <h2 className=\"cem-title\">{title}</h2>"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/BulkOperationShell.jsx",
+            "start_line": 77,
+            "end_line": 80,
+            "snippet": "return <div className=\"bulk-overlay\">\n    <div className=\"bulk-dialog\" style={{\n    \"--bulk-dialog-width\": isConfirming ? confirmWidth : processWidth\n  }}>"
+          }
+        ],
+        "implementation_details": "CreateEntityModal renders a cem-backdrop div with no click handler — the modal can only be closed via the Cancel or Create/Save footer buttons. This may be partially intentional (form data loss prevention), but there is no Escape key handler either, which is inconsistent with all other modals. BulkOperationShell intentionally omits overlay close to prevent accidental interruption of long-running bulk operations — this IS intentional behavior. However, BulkOperationShell also lacks Escape handling even during the confirming phase where closing would be safe."
+      },
+      {
+        "name": "inline-modal-in-parent",
+        "description": "Modal markup is inlined directly in a parent component rather than extracted into a dedicated modal component, using mouseDown guard overlay close but no Escape or scroll lock",
+        "file_count": 1,
+        "files": [
+          "apps/canonry/webui/src/components/ProjectManager.jsx"
+        ],
+        "sample_file": "apps/canonry/webui/src/components/ProjectManager.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/components/ProjectManager.jsx",
+            "start_line": 264,
+            "end_line": 301,
+            "snippet": "{showNewModal && (\n  <div\n    className=\"modal-overlay\"\n    onMouseDown={handleOverlayMouseDown}\n    onClick={handleOverlayClick}\n    role=\"button\"\n    tabIndex={0}\n    onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") handleOverlayClick(e); }}\n  >\n    <div className=\"modal modal-simple\">\n      <div className=\"modal-header\">\n        <div className=\"modal-title\">Create New Project</div>\n        <button className=\"btn-close\" onClick={() => setShowNewModal(false)}>×</button>\n      </div>\n      <div className=\"modal-body\">\n        <input ... autoFocus onKeyDown={(e) => e.key === \"Enter\" && handleCreate()} />\n        <div className=\"modal-actions\">\n          <button onClick={() => setShowNewModal(false)}>Cancel</button>\n          <button onClick={handleCreate}>Create</button>\n        </div>\n      </div>\n    </div>\n  </div>\n)}"
+          }
+        ],
+        "implementation_details": "The Create New Project modal is inlined directly inside ProjectManager.jsx rather than extracted into its own component. It uses the shared modal-overlay class and mouseDown guard (defined in the parent component's scope), but lacks Escape key handling and body scroll lock. The input has autoFocus which is good, but pressing Escape while typing does nothing. Uses the shared modal/modal-header/modal-body CSS classes so it looks consistent, but the interaction behavior is incomplete compared to ModalShell."
+      }
+    ],
+    "behavior_matrix": {
+      "ModalShell (canonical)": {
+        "overlay_close": "mouseDown guard: e.target === e.currentTarget (handleOverlayMouseDown + handleOverlayClick)",
+        "escape_close": "document.addEventListener('keydown') — respects preventOverlayClose prop",
+        "scroll_lock": "document.body.style.overflow = 'hidden' on mount, restore previous on unmount",
+        "close_button": "btn-close in modal-header",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "ImageModal (illuminator)": {
+        "overlay_close": "mouseDown guard: identical to ModalShell",
+        "escape_close": "useCallback + document.addEventListener('keydown')",
+        "scroll_lock": "body.style.overflow = 'hidden' — resets to empty string (not previous value)",
+        "close_button": "Close (Esc) button in floating header",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "ImagePickerModal (illuminator)": {
+        "overlay_close": "mouseDown guard: identical to ModalShell",
+        "escape_close": "useEffect + document.addEventListener('keydown')",
+        "scroll_lock": "body.style.overflow = 'hidden' — resets to empty string",
+        "close_button": "illuminator-modal-close × button",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "ChronicleImagePicker (illuminator)": {
+        "overlay_close": "mouseDown guard: identical to ModalShell",
+        "escape_close": "useEffect + document.addEventListener('keydown')",
+        "scroll_lock": "body.style.overflow = 'hidden' — resets to empty string",
+        "close_button": "illuminator-modal-close × button",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "ChronicleWizard (illuminator)": {
+        "overlay_close": "mouseDown guard: identical to ModalShell",
+        "escape_close": "useEffect + document.addEventListener('keydown') — calls handleClose (resets wizard state)",
+        "scroll_lock": "body.style.overflow = 'hidden' — resets to empty string",
+        "close_button": "close button in wizard UI",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "ImageLightbox (chronicler)": {
+        "overlay_close": "mouseDown guard: identical to ModalShell",
+        "escape_close": "useCallback + document.addEventListener('keydown')",
+        "scroll_lock": "body.style.overflow = 'hidden' — preserves and restores previousOverflow (best practice)",
+        "close_button": "Close button (CSS module styles.closeButton)",
+        "focus_trap": false,
+        "aria_role": "role='dialog' aria-modal='true' aria-label (most accessible — unique in codebase)"
+      },
+      "HelpModal (canonry)": {
+        "overlay_close": "mouseDown guard: identical to ModalShell",
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "btn-close × in modal-header",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "RelationshipStoryModal (archivist)": {
+        "overlay_close": "mouseDown guard: identical to ModalShell",
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "relationship-story-close × button",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "FactorEditorModal (coherence-engine)": {
+        "overlay_close": "mouseDown guard: identical to ModalShell — uses modal-overlay class",
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "btn-close × in modal-header",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "DebugSettingsModal (lore-weave)": {
+        "overlay_close": "mouseDown guard: identical to ModalShell — uses lw-modal-overlay class",
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "close button in header",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "QuickCheckModal (illuminator)": {
+        "overlay_close": "simple onClick with e.target === e.currentTarget (BUG: drag-from-modal triggers close)",
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "qcm-close-btn × and footer Dismiss button",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "ResultsModal (name-forge)": {
+        "overlay_close": "simple onClick with e.target === e.currentTarget (BUG: drag triggers close) — guards against close during optimizing",
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "close button in header",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      },
+      "CreateEntityModal (illuminator)": {
+        "overlay_close": false,
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "Cancel and Create/Save buttons in footer only",
+        "focus_trap": false,
+        "aria_role": "none — bare cem-backdrop div"
+      },
+      "BulkOperationShell (illuminator)": {
+        "overlay_close": "false (intentional — prevents accidental interruption of bulk operations)",
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "Cancel/Close button in footer",
+        "focus_trap": false,
+        "aria_role": "none — bare bulk-overlay div"
+      },
+      "ProjectManager inline modal (canonry)": {
+        "overlay_close": "mouseDown guard: identical to ModalShell — uses modal-overlay class",
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "btn-close × in modal-header + Cancel button",
+        "focus_trap": false,
+        "aria_role": "role='button' tabIndex={0} on overlay"
+      }
+    },
+    "missing_behavior_complexity": {
+      "escape_key_all_missing": "trivial — add useEffect with document keydown listener for e.key === 'Escape' (~5 lines). Even easier: migrate to ModalShell to get it for free.",
+      "scroll_lock_all_missing": "trivial — add useEffect with body.style.overflow = 'hidden' on mount (~4 lines). Even easier: migrate to ModalShell.",
+      "focus_trap": "moderate — needs tabIndex management, focus-on-first-focusable logic, or focus-trap library. No modal in the codebase currently implements this. ModalShell should add it as a centralized enhancement.",
+      "aria_dialog_role": "trivial — ImageLightbox is the only modal using role='dialog' aria-modal='true'. All others use role='button' on overlay, which is semantically incorrect for a dialog."
+    },
+    "analysis": "The codebase has a clear canonical pattern (ModalShell) that provides overlay close with mouseDown guard, Escape key, scroll lock, and close button — but only 12 of ~18 distinct modal components use it. The remaining 6+ custom modals are drift: they manually reimplement some subset of the same behaviors. Five modals (ImageModal, ImagePickerModal, ChronicleImagePicker, ChronicleWizard, ImageLightbox) fully reimplement all behaviors — pure code duplication with minor scroll-lock restoration differences. Four modals (HelpModal, RelationshipStoryModal, FactorEditorModal, DebugSettingsModal) plus ProjectManager's inline modal implement overlay close but miss Escape and scroll lock — these create inconsistent UX where some modals respond to Escape and others don't. Two modals (QuickCheckModal, ResultsModal) have a bug-prone simple onClick pattern that triggers accidental close on text-selection drag. CreateEntityModal intentionally omits overlay close (form data protection) which is reasonable, but still lacks Escape. BulkOperationShell intentionally blocks all dismissal during processing, which is appropriate. The recommended path is: (1) migrate HelpModal, RelationshipStoryModal, FactorEditorModal, DebugSettingsModal, ProjectManager modal, QuickCheckModal, and ResultsModal to ModalShell; (2) for full-viewport modals like ImageModal and ImageLightbox, either extract a LightboxShell variant of ModalShell or add a 'fullscreen' mode; (3) add Escape-to-close to CreateEntityModal (perhaps with unsaved-changes confirmation); (4) add Escape-to-cancel in BulkOperationShell's confirming phase.",
+    "recommendation": "Migrate all standard modals to ModalShell. For non-standard layouts: (a) Add ModalShell variant or 'fullscreen' className for ImageModal/ImageLightbox; (b) QuickCheckModal and ResultsModal should migrate to ModalShell immediately — their onClick bug is user-visible; (c) Add role='dialog' aria-modal='true' to ModalShell (currently only ImageLightbox has correct ARIA); (d) ModalShell should preserve previous overflow value (ImageLightbox pattern) instead of resetting to empty string.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "modal-overlay-css-variants",
+    "name": "Modal Overlay CSS Class Proliferation",
+    "type": "behavioral",
+    "domain": "Modal/Dialog Interaction Consistency",
+    "description": "Modal overlays across the codebase use 8+ different CSS class names for what is fundamentally the same visual pattern (fixed position, dark semi-transparent background, centered flex container). Each carries its own styling definition rather than reusing the canonical .modal-overlay class.",
+    "impact": "LOW",
+    "total_files": 18,
+    "variants": [
+      {
+        "name": "modal-overlay-shared",
+        "description": "Uses the canonical .modal-overlay class from shared-components CSS, adopted by ModalShell users and some ad-hoc modals",
+        "file_count": 8,
+        "files": [
+          "packages/shared-components/src/styles/components/modal.css",
+          "apps/canonry/webui/src/components/HelpModal.jsx",
+          "apps/canonry/webui/src/components/ProjectManager.jsx",
+          "apps/coherence-engine/webui/src/components/pressures/modals/FactorEditorModal.jsx",
+          "apps/coherence-engine/webui/src/components/systems/SystemModal.jsx",
+          "apps/coherence-engine/webui/src/components/actions/modals/ActionModal.jsx",
+          "apps/coherence-engine/webui/src/components/generators/GeneratorModal.jsx",
+          "apps/name-forge/webui/src/components/modals/ConditionsModal.jsx"
+        ],
+        "sample_file": "packages/shared-components/src/styles/components/modal.css",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/styles/components/modal.css",
+            "start_line": 1,
+            "end_line": 8,
+            "snippet": ".modal-overlay {\n  position: fixed;\n  inset: 0;\n  background: rgba(0, 0, 0, 0.5);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  z-index: 1000;\n}"
+          }
+        ],
+        "implementation_details": "Canonical CSS class used by ModalShell and all modals that import shared-components styles. Provides fixed positioning, dark overlay at 50% opacity, flexbox centering, z-index 1000."
+      },
+      {
+        "name": "app-specific-overlay-classes",
+        "description": "Each custom modal invents its own overlay class name with nearly identical CSS",
+        "file_count": 8,
+        "files": [
+          "apps/illuminator/webui/src/components/ImageModal.jsx (imod-overlay)",
+          "apps/illuminator/webui/src/components/ImagePickerModal.jsx (illuminator-modal-overlay)",
+          "apps/illuminator/webui/src/components/ChronicleImagePicker.jsx (illuminator-modal-overlay)",
+          "apps/illuminator/webui/src/components/QuickCheckModal.jsx (qcm-overlay)",
+          "apps/illuminator/webui/src/components/CreateEntityModal.tsx (cem-backdrop)",
+          "apps/illuminator/webui/src/components/BulkOperationShell.jsx (bulk-overlay)",
+          "apps/archivist/webui/src/components/RelationshipStoryModal.tsx (relationship-story-overlay)",
+          "apps/lore-weave/webui/src/components/DebugSettingsModal.jsx (lw-modal-overlay)"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/BulkOperationShell.css",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/BulkOperationShell.css",
+            "start_line": 4,
+            "end_line": 12,
+            "snippet": ".bulk-overlay {\n  position: fixed;\n  inset: 0;\n  background: rgb(0 0 0 / 50%);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  z-index: 10000;\n}"
+          }
+        ],
+        "implementation_details": "Eight different class names that all define the same visual pattern: position: fixed; inset: 0; semi-transparent black background; flexbox centering. The only meaningful differences are z-index (bulk-overlay uses 10000 to layer above other modals, others use 1000) and cem-backdrop uses 60% opacity instead of 50%. ResultsModal uses optimizer-modal-overlay and ImageLightbox uses CSS modules — adding 2 more variants for a total of 10."
+      }
+    ],
+    "behavior_matrix": {
+      ".modal-overlay (shared)": {"z_index": "1000", "background_opacity": "0.5"},
+      ".imod-overlay": {"z_index": "1000", "background_opacity": "~0.5"},
+      ".qcm-overlay": {"z_index": "1000", "background_opacity": "~0.5"},
+      ".cem-backdrop": {"z_index": "1000", "background_opacity": "0.6"},
+      ".bulk-overlay": {"z_index": "10000", "background_opacity": "0.5"},
+      ".relationship-story-overlay": {"z_index": "1000", "background_opacity": "~0.5"},
+      ".lw-modal-overlay": {"z_index": "1000", "background_opacity": "~0.5"},
+      ".illuminator-modal-overlay": {"z_index": "1000", "background_opacity": "~0.5"},
+      ".optimizer-modal-overlay": {"z_index": "1000", "background_opacity": "~0.5"},
+      "styles.overlay (CSS module)": {"z_index": "1000", "background_opacity": "~0.5"}
+    },
+    "missing_behavior_complexity": {
+      "unify_overlay_classes": "trivial — modals migrated to ModalShell automatically use .modal-overlay. For non-ModalShell modals, replace custom overlay class with .modal-overlay import."
+    },
+    "analysis": "This is structural drift — all 10 overlay class variants produce nearly identical visual results (fixed positioning, dark semi-transparent background, centered child). The one meaningful difference is z-index: BulkOperationShell uses z-index 10000 because it needs to layer above other modals, and CreateEntityModal uses 60% opacity instead of 50%. The proliferation of class names creates maintenance burden: if the design team changes the overlay style (e.g., blur instead of opacity), it must be updated in 10 places. Migrating to ModalShell solves this for most cases. For exceptions (BulkOperationShell's stacking, ImageModal's full-viewport layout), the overlay div could still use .modal-overlay with a z-index override.",
+    "recommendation": "Migration to ModalShell eliminates this for standard modals. For non-ModalShell modals, compose with .modal-overlay class plus modifier classes (e.g., .modal-overlay--high-z for bulk operations). Consider a z-index scale in CSS custom properties.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "modal-scroll-lock-restoration",
+    "name": "Modal Scroll Lock Restoration Inconsistency",
+    "type": "behavioral",
+    "domain": "Modal/Dialog Interaction Consistency",
+    "description": "Modals that implement body scroll lock use two different restoration strategies: some preserve and restore the previous overflow value, while others blindly reset to empty string. When modals stack (e.g., CreateEntityModal opened from QuickCheckModal), the incorrect restoration can re-enable body scroll while an outer modal is still open.",
+    "impact": "LOW",
+    "total_files": 6,
+    "variants": [
+      {
+        "name": "preserve-previous-overflow",
+        "description": "Saves previous body.style.overflow value and restores it on unmount — correct behavior for nested modals",
+        "file_count": 2,
+        "files": [
+          "packages/shared-components/src/components/ModalShell.jsx",
+          "apps/chronicler/webui/src/components/ImageLightbox.tsx"
+        ],
+        "sample_file": "packages/shared-components/src/components/ModalShell.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/ModalShell.jsx",
+            "start_line": 58,
+            "end_line": 63,
+            "snippet": "useEffect(() => {\n  const prev = document.body.style.overflow;\n  document.body.style.overflow = 'hidden';\n  return () => { document.body.style.overflow = prev; };\n}, []);"
+          },
+          {
+            "file": "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+            "start_line": 41,
+            "end_line": 49,
+            "snippet": "useEffect(() => {\n  if (!isOpen) return undefined;\n  document.addEventListener(\"keydown\", handleKeyDown);\n  const previousOverflow = document.body.style.overflow;\n  document.body.style.overflow = \"hidden\";\n  return () => {\n    document.removeEventListener(\"keydown\", handleKeyDown);\n    document.body.style.overflow = previousOverflow;\n  };\n}, [isOpen, handleKeyDown]);"
+          }
+        ],
+        "implementation_details": "Both ModalShell and ImageLightbox capture the previous value of body.style.overflow before setting it to 'hidden', then restore that exact value on cleanup. This is the correct pattern for nested modals: if an outer modal already set overflow to 'hidden', the inner modal's cleanup restores 'hidden' rather than re-enabling scroll."
+      },
+      {
+        "name": "reset-to-empty-string",
+        "description": "Sets body.style.overflow to empty string on unmount, which may re-enable scrolling while an outer modal is still visible",
+        "file_count": 4,
+        "files": [
+          "apps/illuminator/webui/src/components/ImageModal.jsx",
+          "apps/illuminator/webui/src/components/ImagePickerModal.jsx",
+          "apps/illuminator/webui/src/components/ChronicleImagePicker.jsx",
+          "apps/illuminator/webui/src/components/ChronicleWizard/ChronicleWizard.tsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ImageModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ImageModal.jsx",
+            "start_line": 179,
+            "end_line": 190,
+            "snippet": "useEffect(() => {\n  if (isOpen) {\n    document.addEventListener(\"keydown\", handleKeyDown);\n    document.body.style.overflow = \"hidden\";\n  }\n  return () => {\n    document.removeEventListener(\"keydown\", handleKeyDown);\n    document.body.style.overflow = \"\";\n  };\n}, [isOpen, handleKeyDown]);"
+          }
+        ],
+        "implementation_details": "These modals reset body.style.overflow to empty string ('') on cleanup rather than restoring the previous value. In isolation this works fine, but when modals are stacked (e.g., ChronicleWizard opens an entity picker), closing the inner modal sets overflow to '' which re-enables body scroll while the outer modal is still open. This causes a visible scroll jump behind the still-open outer modal."
+      }
+    ],
+    "behavior_matrix": {
+      "ModalShell": {"restoration": "prev = body.style.overflow; ... restore prev"},
+      "ImageLightbox": {"restoration": "previousOverflow = body.style.overflow; ... restore previousOverflow"},
+      "ImageModal": {"restoration": "body.style.overflow = '' (reset to empty)"},
+      "ImagePickerModal": {"restoration": "body.style.overflow = '' (reset to empty)"},
+      "ChronicleImagePicker": {"restoration": "body.style.overflow = '' (reset to empty)"},
+      "ChronicleWizard": {"restoration": "body.style.overflow = '' (reset to empty)"}
+    },
+    "missing_behavior_complexity": {
+      "fix_restoration": "trivial — change `document.body.style.overflow = ''` to save-and-restore pattern (~1 line change per file). Even easier: migrate to ModalShell."
+    },
+    "analysis": "This is a subtle but real UX bug that manifests when modals are stacked. The codebase does support modal stacking (e.g., QuickCheckModal can trigger CreateEntityModal, and ChronicleWizard has sub-modals), so the incorrect restoration pattern can produce visible artifacts. ModalShell and ImageLightbox correctly preserve the previous value; the four illuminator custom modals use the reset-to-empty pattern. Since ModalShell already has the correct behavior, migration eliminates this bug automatically. For any remaining custom modals, the fix is a one-line change: capture `const prev = document.body.style.overflow` before setting to 'hidden'.",
+    "recommendation": "Primary fix: migrate custom modals to ModalShell. Interim fix: update the 4 affected modals to use save-and-restore pattern instead of reset-to-empty.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "modal-aria-role-inconsistency",
+    "name": "Modal ARIA Role Inconsistency",
+    "type": "behavioral",
+    "domain": "Modal/Dialog Interaction Consistency",
+    "description": "Only one modal in the entire codebase (ImageLightbox) uses the semantically correct role='dialog' aria-modal='true'. All other modals, including ModalShell itself, use role='button' on the overlay div, which is semantically incorrect — a modal dialog is not a button.",
+    "impact": "MEDIUM",
+    "total_files": 18,
+    "variants": [
+      {
+        "name": "role-dialog-correct",
+        "description": "Uses role='dialog' aria-modal='true' with an aria-label — the correct ARIA pattern for modal dialogs",
+        "file_count": 1,
+        "files": [
+          "apps/chronicler/webui/src/components/ImageLightbox.tsx"
+        ],
+        "sample_file": "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/chronicler/webui/src/components/ImageLightbox.tsx",
+            "start_line": 54,
+            "end_line": 65,
+            "snippet": "<div\n  className={styles.overlay}\n  onMouseDown={handleOverlayMouseDown}\n  onClick={handleOverlayClick}\n  role=\"dialog\"\n  aria-modal=\"true\"\n  aria-label={title || \"Image viewer\"}\n  tabIndex={0}\n  onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") handleOverlayClick(e); }}\n>"
+          }
+        ],
+        "implementation_details": "ImageLightbox is the only modal that uses the correct WAI-ARIA dialog pattern: role='dialog' on the overlay, aria-modal='true' to indicate it traps interaction, and aria-label for screen reader identification."
+      },
+      {
+        "name": "role-button-incorrect",
+        "description": "Uses role='button' tabIndex={0} on the overlay div — satisfies jsx-a11y linting but is semantically incorrect for a dialog",
+        "file_count": 15,
+        "files": [
+          "packages/shared-components/src/components/ModalShell.jsx",
+          "apps/illuminator/webui/src/components/ImageModal.jsx",
+          "apps/illuminator/webui/src/components/ImagePickerModal.jsx",
+          "apps/illuminator/webui/src/components/ChronicleImagePicker.jsx",
+          "apps/illuminator/webui/src/components/QuickCheckModal.jsx",
+          "apps/canonry/webui/src/components/HelpModal.jsx",
+          "apps/canonry/webui/src/components/ProjectManager.jsx",
+          "apps/archivist/webui/src/components/RelationshipStoryModal.tsx",
+          "apps/coherence-engine/webui/src/components/pressures/modals/FactorEditorModal.jsx",
+          "apps/lore-weave/webui/src/components/DebugSettingsModal.jsx",
+          "apps/name-forge/webui/src/components/optimizer/ResultsModal.jsx",
+          "apps/illuminator/webui/src/components/ChronicleWizard/ChronicleWizard.tsx",
+          "(+ all ModalShell consumers via inheritance)"
+        ],
+        "sample_file": "packages/shared-components/src/components/ModalShell.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/ModalShell.jsx",
+            "start_line": 76,
+            "end_line": 77,
+            "snippet": "<div className=\"modal-overlay\" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick} role=\"button\" tabIndex={0} onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") handleOverlayClick(e); }} >\n  <div className={`modal ${className}`.trim()} onClick={(e) => e.stopPropagation()} role=\"button\" tabIndex={0} onKeyDown={(e) => { if (e.key === \"Enter\" || e.key === \" \") e.currentTarget.click(); }} >"
+          }
+        ],
+        "implementation_details": "All ModalShell-based and most custom modals use role='button' on the overlay div AND on the modal container div. This was added to satisfy jsx-a11y/click-events-have-key-events linting, but it is semantically wrong. Screen readers will announce these as buttons, which is confusing. The modal container also has role='button' which means the entire dialog is announced as a button."
+      },
+      {
+        "name": "no-aria-role",
+        "description": "No ARIA role on overlay or modal container — bare divs with no accessibility semantics",
+        "file_count": 2,
+        "files": [
+          "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+          "apps/illuminator/webui/src/components/BulkOperationShell.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+            "start_line": 224,
+            "end_line": 226,
+            "snippet": "return (\n  <div className=\"cem-backdrop\">\n    <div className=\"cem-card\">"
+          }
+        ],
+        "implementation_details": "CreateEntityModal and BulkOperationShell use bare divs with no ARIA attributes. Screen readers have no way to identify these as modal dialogs."
+      }
+    ],
+    "behavior_matrix": {
+      "ImageLightbox": {"overlay_role": "dialog", "aria_modal": "true", "aria_label": "dynamic title"},
+      "ModalShell + consumers": {"overlay_role": "button (incorrect)", "aria_modal": "none", "aria_label": "none"},
+      "All ad-hoc modals": {"overlay_role": "button (incorrect)", "aria_modal": "none", "aria_label": "none"},
+      "CreateEntityModal": {"overlay_role": "none", "aria_modal": "none", "aria_label": "none"},
+      "BulkOperationShell": {"overlay_role": "none", "aria_modal": "none", "aria_label": "none"}
+    },
+    "missing_behavior_complexity": {
+      "fix_modalshell_aria": "trivial — change role='button' to role='dialog' aria-modal='true' on overlay, add aria-label={title} prop. Remove role from inner modal div. One change to ModalShell fixes all consumers (~3 line change).",
+      "fix_custom_modals": "trivial per modal — same role change. Better to migrate to ModalShell first."
+    },
+    "analysis": "This is a codebase-wide accessibility issue rather than drift between modals — nearly every modal has the same incorrect ARIA pattern. The role='button' was likely added as a quick fix for jsx-a11y/click-events-have-key-events lint rule. The correct solution is role='dialog' aria-modal='true' on the overlay, with aria-label or aria-labelledby pointing to the title. The modal container should not have role='button' at all. Since ModalShell is the canonical component, fixing the ARIA in ModalShell propagates to all 12 consumers automatically. ImageLightbox already demonstrates the correct pattern and can serve as the reference implementation. This is a medium-impact finding because it affects screen reader usability for all dialogs.",
+    "recommendation": "Update ModalShell to use role='dialog' aria-modal='true' aria-labelledby={titleId} on the overlay div. Remove role='button' from the inner modal div. Use ImageLightbox as reference for correct ARIA pattern. This single change fixes 12+ modals.",
+    "evidence_quality": "high",
+    "status": "pending"
+  }
+]

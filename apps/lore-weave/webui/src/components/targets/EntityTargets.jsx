@@ -2,15 +2,17 @@
  * EntityTargets - Per-subtype population targets editor
  */
 
-import React from 'react';
-import { NumberInput } from '@penguin-tales/shared-components';
+import React from "react";
+import PropTypes from "prop-types";
+import { NumberInput } from "@the-canonry/shared-components";
+import "./EntityTargets.css";
 
 export default function EntityTargets({ entities, updateTargets, distributionTargets }) {
   // Group by entity kind
   const kindGroups = {};
   Object.entries(entities).forEach(([key, value]) => {
-    if (key === 'comment') return;
-    if (typeof value === 'object') {
+    if (key === "comment") return;
+    if (typeof value === "object") {
       kindGroups[key] = value;
     }
   });
@@ -26,8 +28,9 @@ export default function EntityTargets({ entities, updateTargets, distributionTar
           {Object.entries(subtypes).map(([subtype, config]) => (
             <div key={subtype} className="lw-row">
               <span className="lw-row-label">{subtype}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <label className="lw-label" style={{ marginBottom: 0 }}>Target:</label>
+              <div className="et-controls">
+                <label className="lw-label et-label-inline">
+                  Target:
                 <NumberInput
                   className="lw-input-small"
                   value={config.target || 0}
@@ -36,13 +39,14 @@ export default function EntityTargets({ entities, updateTargets, distributionTar
                     const newEntities = JSON.parse(JSON.stringify(currentEntities));
                     if (!newEntities[kind]) newEntities[kind] = {};
                     newEntities[kind][subtype] = { ...config, target: v ?? 0 };
-                    updateTargets('entities', newEntities);
+                    updateTargets("entities", newEntities);
                   }}
                   integer
                 />
+                </label>
               </div>
               {config.comment && (
-                <span className="lw-comment" style={{ marginTop: 0, marginLeft: '8px' }}>
+                <span className="lw-comment et-comment">
                   {config.comment}
                 </span>
               )}
@@ -53,3 +57,9 @@ export default function EntityTargets({ entities, updateTargets, distributionTar
     </>
   );
 }
+
+EntityTargets.propTypes = {
+  entities: PropTypes.object,
+  updateTargets: PropTypes.func,
+  distributionTargets: PropTypes.object,
+};

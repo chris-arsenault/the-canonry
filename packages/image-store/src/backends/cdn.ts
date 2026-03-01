@@ -45,7 +45,7 @@ export class CDNBackend implements ImageBackend {
     this.legacyImages = legacyImages ?? null;
   }
 
-  async initialize(): Promise<void> {
+  initialize(): Promise<void> {
     // Legacy format: flat { imageId → url } map
     if (this.legacyImages) {
       for (const [imageId, url] of Object.entries(this.legacyImages)) {
@@ -76,15 +76,17 @@ export class CDNBackend implements ImageBackend {
         });
       }
     }
+
+    return Promise.resolve();
   }
 
-  async getImageUrl(imageId: string, size: ImageSize = 'thumb'): Promise<string | null> {
+  getImageUrl(imageId: string, size: ImageSize = 'thumb'): Promise<string | null> {
     const entry = this.urlMap.get(imageId);
-    if (!entry) return null;
-    return size === 'full' ? entry.full : entry.thumb;
+    if (!entry) return Promise.resolve(null);
+    return Promise.resolve(size === 'full' ? entry.full : entry.thumb);
   }
 
-  async getImageUrls(imageIds: string[], size: ImageSize = 'thumb'): Promise<Map<string, string>> {
+  getImageUrls(imageIds: string[], size: ImageSize = 'thumb'): Promise<Map<string, string>> {
     const result = new Map<string, string>();
     for (const id of imageIds) {
       const entry = this.urlMap.get(id);
@@ -92,16 +94,16 @@ export class CDNBackend implements ImageBackend {
         result.set(id, size === 'full' ? entry.full : entry.thumb);
       }
     }
-    return result;
+    return Promise.resolve(result);
   }
 
-  async getMetadata(imageIds: string[]): Promise<Map<string, ImageEntryMetadata>> {
+  getMetadata(imageIds: string[]): Promise<Map<string, ImageEntryMetadata>> {
     const result = new Map<string, ImageEntryMetadata>();
     for (const id of imageIds) {
       const meta = this.metadataMap.get(id);
       if (meta) result.set(id, meta);
     }
-    return result;
+    return Promise.resolve(result);
   }
 
   cleanup(): void {

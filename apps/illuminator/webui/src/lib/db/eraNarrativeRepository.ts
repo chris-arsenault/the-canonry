@@ -2,22 +2,23 @@
  * Era Narrative Repository — Dexie-backed era narrative storage
  */
 
-import { db } from './illuminatorDb';
+import { db } from "./illuminatorDb";
+import { generatePrefixedId } from "./generatePrefixedId";
 import type {
   EraNarrativeRecord,
   EraNarrativeCoverImage,
   EraNarrativeImageRefs,
   EraNarrativeContentVersion,
-} from '../eraNarrativeTypes';
+} from "../eraNarrativeTypes";
 
 export type { EraNarrativeRecord };
 
 export function generateEraNarrativeId(): string {
-  return `eranarr_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return generatePrefixedId("eranarr");
 }
 
 export function generateVersionId(): string {
-  return `enver_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  return generatePrefixedId("enver", 6);
 }
 
 export async function createEraNarrative(record: EraNarrativeRecord): Promise<EraNarrativeRecord> {
@@ -25,7 +26,9 @@ export async function createEraNarrative(record: EraNarrativeRecord): Promise<Er
   return record;
 }
 
-export async function getEraNarrative(narrativeId: string): Promise<EraNarrativeRecord | undefined> {
+export async function getEraNarrative(
+  narrativeId: string
+): Promise<EraNarrativeRecord | undefined> {
   return db.eraNarratives.get(narrativeId);
 }
 
@@ -33,37 +36,35 @@ export async function getEraNarrativesForEra(
   simulationRunId: string,
   eraId: string
 ): Promise<EraNarrativeRecord[]> {
-  return db.eraNarratives
-    .where({ simulationRunId, eraId })
-    .toArray();
+  return db.eraNarratives.where({ simulationRunId, eraId }).toArray();
 }
 
 export async function getEraNarrativesForSimulation(
   simulationRunId: string
 ): Promise<EraNarrativeRecord[]> {
-  return db.eraNarratives
-    .where('simulationRunId')
-    .equals(simulationRunId)
-    .toArray();
+  return db.eraNarratives.where("simulationRunId").equals(simulationRunId).toArray();
 }
 
 export async function updateEraNarrative(
   narrativeId: string,
-  updates: Partial<Pick<EraNarrativeRecord,
-    | 'status'
-    | 'error'
-    | 'currentStep'
-    | 'threadSynthesis'
-    | 'narrative'
-    | 'contentVersions'
-    | 'activeVersionId'
-    | 'coverImage'
-    | 'imageRefs'
-    | 'totalInputTokens'
-    | 'totalOutputTokens'
-    | 'totalActualCost'
-    | 'editInsertion'
-  >>
+  updates: Partial<
+    Pick<
+      EraNarrativeRecord,
+      | "status"
+      | "error"
+      | "currentStep"
+      | "threadSynthesis"
+      | "narrative"
+      | "contentVersions"
+      | "activeVersionId"
+      | "coverImage"
+      | "imageRefs"
+      | "totalInputTokens"
+      | "totalOutputTokens"
+      | "totalActualCost"
+      | "editInsertion"
+    >
+  >
 ): Promise<EraNarrativeRecord> {
   const record = await db.eraNarratives.get(narrativeId);
   if (!record) throw new Error(`Era narrative ${narrativeId} not found`);
@@ -108,7 +109,7 @@ function materializeLegacyVersions(record: EraNarrativeRecord): void {
     versionId: `legacy_gen_${record.narrative.generatedAt}`,
     content: record.narrative.content,
     wordCount: record.narrative.wordCount,
-    step: 'generate',
+    step: "generate",
     generatedAt: record.narrative.generatedAt,
     model: record.narrative.model,
     systemPrompt: record.narrative.systemPrompt,
@@ -121,12 +122,14 @@ function materializeLegacyVersions(record: EraNarrativeRecord): void {
     versions.push({
       versionId: `legacy_edit_${record.narrative.editedAt || record.narrative.generatedAt}`,
       content: record.narrative.editedContent,
-      wordCount: record.narrative.editedWordCount || record.narrative.editedContent.split(/\s+/).filter(Boolean).length,
-      step: 'edit',
+      wordCount:
+        record.narrative.editedWordCount ||
+        record.narrative.editedContent.split(/\s+/).filter(Boolean).length,
+      step: "edit",
       generatedAt: record.narrative.editedAt || record.narrative.generatedAt,
       model: record.narrative.model,
-      systemPrompt: record.narrative.editSystemPrompt || '',
-      userPrompt: record.narrative.editUserPrompt || '',
+      systemPrompt: record.narrative.editSystemPrompt || "",
+      userPrompt: record.narrative.editUserPrompt || "",
       inputTokens: record.narrative.editInputTokens || 0,
       outputTokens: record.narrative.editOutputTokens || 0,
       actualCost: record.narrative.editActualCost || 0,
@@ -149,16 +152,15 @@ export async function deleteEraNarrativeVersion(
   const versions = record.contentVersions || [];
   const target = versions.find((v) => v.versionId === versionId);
   if (!target) throw new Error(`Version ${versionId} not found`);
-  if (target.step === 'generate') throw new Error('Cannot delete the generate version');
+  if (target.step === "generate") throw new Error("Cannot delete the generate version");
 
   record.contentVersions = versions.filter((v) => v.versionId !== versionId);
 
   // If deleted version was active, fall back to latest remaining
   if (record.activeVersionId === versionId) {
     const remaining = record.contentVersions;
-    record.activeVersionId = remaining.length > 0
-      ? remaining[remaining.length - 1].versionId
-      : undefined;
+    record.activeVersionId =
+      remaining.length > 0 ? remaining[remaining.length - 1].versionId : undefined;
   }
 
   record.updatedAt = Date.now();
@@ -209,7 +211,7 @@ export async function updateEraNarrativeCoverImage(
 
 export async function updateEraNarrativeCoverImageStatus(
   narrativeId: string,
-  status: 'pending' | 'generating' | 'complete' | 'failed',
+  status: "pending" | "generating" | "complete" | "failed",
   imageId?: string,
   error?: string
 ): Promise<void> {
@@ -247,7 +249,7 @@ export async function updateEraNarrativeImageRefs(
 export async function updateEraNarrativeImageRefStatus(
   narrativeId: string,
   refId: string,
-  status: 'pending' | 'generating' | 'complete' | 'failed',
+  status: "pending" | "generating" | "complete" | "failed",
   imageId?: string,
   error?: string
 ): Promise<void> {
@@ -255,7 +257,7 @@ export async function updateEraNarrativeImageRefStatus(
   if (!record || !record.imageRefs) return;
 
   const ref = record.imageRefs.refs.find((r) => r.refId === refId);
-  if (!ref || ref.type !== 'prompt_request') return;
+  if (!ref || ref.type !== "prompt_request") return;
 
   ref.status = status;
   if (imageId) ref.generatedImageId = imageId;
@@ -270,7 +272,7 @@ export async function updateEraNarrativeImageRefStatus(
 export async function updateEraNarrativeImageRefField(
   narrativeId: string,
   refId: string,
-  updates: { anchorText?: string; size?: string; justification?: 'left' | 'right' | null }
+  updates: { anchorText?: string; size?: string; justification?: "left" | "right" | null }
 ): Promise<void> {
   const record = await db.eraNarratives.get(narrativeId);
   if (!record || !record.imageRefs) return;
@@ -319,7 +321,7 @@ export function resolveActiveContent(record: EraNarrativeRecord): {
       versionId: `legacy_gen_${record.narrative.generatedAt}`,
       content: record.narrative.content,
       wordCount: record.narrative.wordCount,
-      step: 'generate',
+      step: "generate",
       generatedAt: record.narrative.generatedAt,
       model: record.narrative.model,
       systemPrompt: record.narrative.systemPrompt,
@@ -332,12 +334,14 @@ export function resolveActiveContent(record: EraNarrativeRecord): {
       legacyVersions.push({
         versionId: `legacy_edit_${record.narrative.editedAt || record.narrative.generatedAt}`,
         content: record.narrative.editedContent,
-        wordCount: record.narrative.editedWordCount || record.narrative.editedContent.split(/\s+/).filter(Boolean).length,
-        step: 'edit',
+        wordCount:
+          record.narrative.editedWordCount ||
+          record.narrative.editedContent.split(/\s+/).filter(Boolean).length,
+        step: "edit",
         generatedAt: record.narrative.editedAt || record.narrative.generatedAt,
         model: record.narrative.model,
-        systemPrompt: record.narrative.editSystemPrompt || '',
-        userPrompt: record.narrative.editUserPrompt || '',
+        systemPrompt: record.narrative.editSystemPrompt || "",
+        userPrompt: record.narrative.editUserPrompt || "",
         inputTokens: record.narrative.editInputTokens || 0,
         outputTokens: record.narrative.editOutputTokens || 0,
         actualCost: record.narrative.editActualCost || 0,

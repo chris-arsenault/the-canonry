@@ -22,6 +22,8 @@ export type DomainClass =
  * Semantic category identifier.
  * Categories group planes with similar semantic properties.
  */
+/** Semantic category identifier - categories group planes with similar semantic properties. */
+// eslint-disable-next-line sonarjs/redundant-type-aliases -- CategoryId provides domain semantics distinct from bare string
 export type CategoryId = string;
 
 // ============================================================================

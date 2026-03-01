@@ -1,0 +1,39 @@
+/* MutationCard companion styles */
+.mc-fields-full {
+  flex: 1 1 100%;
+}
+
+.mc-nested-container {
+  grid-column: 1 / -1;
+}
+
+.mc-nested-info {
+  margin-bottom: var(--spacing-md);
+  font-size: 12px;
+}
+
+.mc-nested-action {
+  margin-bottom: var(--spacing-md);
+  margin-left: var(--spacing-xl);
+  padding-left: var(--spacing-lg);
+}
+
+.mc-nested-action-purple {
+  border-left: 2px solid #a855f7;
+}
+
+.mc-nested-action-green {
+  border-left: 2px solid #10b981;
+}
+
+.mc-nested-action-red {
+  border-left: 2px solid #ef4444;
+}
+
+.mc-nested-add-btn {
+  margin-left: var(--spacing-xl);
+}
+
+.mc-conditional-then {
+  margin-bottom: var(--spacing-xl);
+}

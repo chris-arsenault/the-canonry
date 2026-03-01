@@ -5,14 +5,11 @@
  * the specific index they care about changes.
  */
 
-import { useMemo } from 'react';
-import { useIndexStore } from './indexStore';
-import type { ProminenceScale } from '@canonry/world-schema';
-import {
-  buildProminenceScale,
-  DEFAULT_PROMINENCE_DISTRIBUTION,
-} from '@canonry/world-schema';
-import type { EraTemporalEntry } from './indexTypes';
+import { useMemo } from "react";
+import { useIndexStore } from "./indexStore";
+import type { ProminenceScale } from "@canonry/world-schema";
+import { buildProminenceScale, DEFAULT_PROMINENCE_DISTRIBUTION } from "@canonry/world-schema";
+import type { EraTemporalEntry } from "./indexTypes";
 
 const EMPTY_ERA_TEMPORAL: EraTemporalEntry[] = [];
 const EMPTY_PROMINENT: Record<string, Array<{ id: string; name: string }>> = {};
@@ -41,9 +38,7 @@ export function useEraTemporalInfoByKey(): Map<string, EraTemporalEntry> {
   return useMemo(() => {
     if (!eraTemporalInfo?.length) return EMPTY_MAP;
 
-    const byId = new Map<string, EraTemporalEntry>(
-      eraTemporalInfo.map((era) => [era.id, era]),
-    );
+    const byId = new Map<string, EraTemporalEntry>(eraTemporalInfo.map((era) => [era.id, era]));
     const map = new Map(byId);
 
     if (eraIdAliases) {

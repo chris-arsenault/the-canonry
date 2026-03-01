@@ -11,25 +11,45 @@
  * Optional LLM branch: preview → generate → review → apply
  */
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { getChronicle, putChronicle, updateChronicleHistorianNotes } from '../lib/db/chronicleRepository';
-import { useChronicleStore } from '../lib/db/chronicleStore';
-import { useEntityStore } from '../lib/db/entityStore';
-import { useEntityNavList } from '../lib/db/entitySelectors';
-import { setHistorianNotes } from '../lib/db/entityRepository';
-import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
-import { useEnrichmentQueueStore } from '../lib/db/enrichmentQueueStore';
-import { reloadEntities } from '../hooks/useEntityCrud';
-import type { HistorianNote } from '../lib/historianTypes';
-import { isNoteActive } from '../lib/historianTypes';
-import type { MotifVariationPayload, MotifVariationResult } from '../workers/tasks/motifVariationTask';
-import { getEraNarrativesForSimulation, getEraNarrative, updateEraNarrative, resolveActiveContent } from '../lib/db/eraNarrativeRepository';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { ErrorMessage } from "@the-canonry/shared-components";
+import { useAsyncAction } from "../hooks/useAsyncAction";
+import "./CorpusFindReplace.css";
+import {
+  getChronicle,
+  putChronicle,
+  updateChronicleHistorianNotes,
+} from "../lib/db/chronicleRepository";
+import { useChronicleStore } from "../lib/db/chronicleStore";
+import { useEntityStore } from "../lib/db/entityStore";
+import { useEntityNavList } from "../lib/db/entitySelectors";
+import { setHistorianNotes } from "../lib/db/entityRepository";
+import { getEnqueue } from "../lib/db/enrichmentQueueBridge";
+import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
+import { reloadEntities } from "../hooks/useEntityCrud";
+import type { HistorianNote } from "../lib/historianTypes";
+import { isNoteActive } from "../lib/historianTypes";
+import type {
+  MotifVariationPayload,
+  MotifVariationResult,
+} from "../workers/tasks/motifVariationTask";
+import {
+  getEraNarrativesForSimulation,
+  getEraNarrative,
+  updateEraNarrative,
+  resolveActiveContent,
+} from "../lib/db/eraNarrativeRepository";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type SearchContext = 'chronicleContent' | 'chronicleTitles' | 'chronicleAnnotations' | 'entityAnnotations' | 'eraNarrativeContent';
+type SearchContext =
+  | "chronicleContent"
+  | "chronicleTitles"
+  | "chronicleAnnotations"
+  | "entityAnnotations"
+  | "eraNarrativeContent";
 
 interface CorpusMatch {
   id: string;
@@ -49,17 +69,25 @@ interface CorpusMatch {
   batchIndex?: number;
 }
 
-type Phase = 'input' | 'scanning' | 'preview' | 'generating' | 'review' | 'applying' | 'done' | 'empty';
+type Phase =
+  | "input"
+  | "scanning"
+  | "preview"
+  | "generating"
+  | "review"
+  | "applying"
+  | "done"
+  | "empty";
 
 const CONTEXT_RADIUS = 80;
 const BATCH_SIZE = 8;
 
 const CONTEXT_LABELS: Record<SearchContext, string> = {
-  chronicleContent: 'Chronicle Content',
-  chronicleTitles: 'Chronicle Titles',
-  chronicleAnnotations: 'Chronicle Annotations',
-  entityAnnotations: 'Entity Annotations',
-  eraNarrativeContent: 'Era Narratives',
+  chronicleContent: "Chronicle Content",
+  chronicleTitles: "Chronicle Titles",
+  chronicleAnnotations: "Chronicle Annotations",
+  entityAnnotations: "Entity Annotations",
+  eraNarrativeContent: "Era Narratives",
 };
 
 // ============================================================================
@@ -76,7 +104,7 @@ function scanText(
   contentField: string | undefined,
   contentFieldLabel: string | undefined,
   noteId: string | undefined,
-  noteText: string | undefined,
+  noteText: string | undefined
 ): CorpusMatch[] {
   const matches: CorpusMatch[] = [];
   if (!text) return matches;
@@ -90,7 +118,7 @@ function scanText(
     const ctxStart = Math.max(0, startPos - CONTEXT_RADIUS);
     const ctxEnd = Math.min(text.length, startPos + find.length + CONTEXT_RADIUS);
     matches.push({
-      id: `${searchContext}:${sourceId}:${noteId || contentField || 'text'}:${idx}`,
+      id: `${searchContext}:${sourceId}:${noteId || contentField || "text"}:${idx}`,
       context: searchContext,
       sourceId,
       sourceName,
@@ -99,9 +127,10 @@ function scanText(
       contentField,
       contentFieldLabel,
       position: startPos,
-      contextBefore: (ctxStart > 0 ? '\u2026' : '') + text.slice(ctxStart, startPos),
+      contextBefore: (ctxStart > 0 ? "\u2026" : "") + text.slice(ctxStart, startPos),
       matchedText: text.slice(startPos, startPos + find.length), // preserve original case
-      contextAfter: text.slice(startPos + find.length, ctxEnd) + (ctxEnd < text.length ? '\u2026' : ''),
+      contextAfter:
+        text.slice(startPos + find.length, ctxEnd) + (ctxEnd < text.length ? "\u2026" : ""),
     });
     startPos += find.length;
     idx++;
@@ -109,7 +138,12 @@ function scanText(
   return matches;
 }
 
-function applySelectiveReplace(text: string, find: string, replace: string, acceptedPositions: number[]): string {
+function applySelectiveReplace(
+  text: string,
+  find: string,
+  replace: string,
+  acceptedPositions: number[]
+): string {
   if (!text || acceptedPositions.length === 0) return text;
   const sorted = [...acceptedPositions].sort((a, b) => b - a);
   let result = text;
@@ -123,9 +157,16 @@ function applySelectiveReplace(text: string, find: string, replace: string, acce
  * Extract the changed region between the original and rewritten full annotation.
  * Finds the common prefix/suffix and returns only the differing middle.
  */
-function extractDiff(original: string, rewritten: string): { prefix: string; oldMiddle: string; newMiddle: string; suffix: string } {
+function extractDiff(
+  original: string,
+  rewritten: string
+): { prefix: string; oldMiddle: string; newMiddle: string; suffix: string } {
   let prefixLen = 0;
-  while (prefixLen < original.length && prefixLen < rewritten.length && original[prefixLen] === rewritten[prefixLen]) {
+  while (
+    prefixLen < original.length &&
+    prefixLen < rewritten.length &&
+    original[prefixLen] === rewritten[prefixLen]
+  ) {
     prefixLen++;
   }
   let suffixLen = 0;
@@ -136,17 +177,26 @@ function extractDiff(original: string, rewritten: string): { prefix: string; old
   ) {
     suffixLen++;
   }
-  while (prefixLen > 0 && original[prefixLen - 1] !== ' ' && original[prefixLen - 1] !== '\n') prefixLen--;
-  while (suffixLen > 0 && original[original.length - suffixLen] !== ' ' && original[original.length - suffixLen] !== '\n') suffixLen--;
+  while (prefixLen > 0 && original[prefixLen - 1] !== " " && original[prefixLen - 1] !== "\n")
+    prefixLen--;
+  while (
+    suffixLen > 0 &&
+    original[original.length - suffixLen] !== " " &&
+    original[original.length - suffixLen] !== "\n"
+  )
+    suffixLen--;
 
   const contextChars = 80;
   const prefix = original.slice(Math.max(0, prefixLen - contextChars), prefixLen);
-  const suffix = original.slice(original.length - suffixLen, Math.min(original.length, original.length - suffixLen + contextChars));
+  const suffix = original.slice(
+    original.length - suffixLen,
+    Math.min(original.length, original.length - suffixLen + contextChars)
+  );
   return {
-    prefix: (prefixLen - contextChars > 0 ? '\u2026' : '') + prefix,
+    prefix: (prefixLen - contextChars > 0 ? "\u2026" : "") + prefix,
     oldMiddle: original.slice(prefixLen, original.length - suffixLen),
     newMiddle: rewritten.slice(prefixLen, rewritten.length - suffixLen),
-    suffix: suffix + (original.length - suffixLen + contextChars < original.length ? '\u2026' : ''),
+    suffix: suffix + (original.length - suffixLen + contextChars < original.length ? "\u2026" : ""),
   };
 }
 
@@ -160,80 +210,48 @@ function MatchRow({
   variant,
   accepted,
   onToggle,
-}: {
+}: Readonly<{
   match: CorpusMatch;
   replace: string;
   variant?: string;
   accepted: boolean;
   onToggle: () => void;
-}) {
-  const diff = variant ? extractDiff(match.noteText!, variant) : null;
+}>) {
+  const diff = variant ? extractDiff(match.noteText, variant) : null;
 
   return (
     <div
-      style={{
-        padding: '6px 10px',
-        background: accepted ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
-        borderRadius: '4px',
-        border: '1px solid var(--border-color)',
-        opacity: accepted ? 1 : 0.5,
-        marginBottom: '3px',
-        display: 'flex',
-        gap: '8px',
-        alignItems: 'flex-start',
-      }}
+      className={`cfr-match-row ${accepted ? "cfr-match-row-accepted" : "cfr-match-row-rejected"}`}
     >
       <input
         type="checkbox"
         checked={accepted}
         onChange={onToggle}
-        style={{ marginTop: '3px', cursor: 'pointer', flexShrink: 0 }}
+        className="cfr-match-checkbox"
       />
-      <div
-        style={{
-          fontSize: '11px',
-          lineHeight: '1.7',
-          fontFamily: diff ? undefined : 'monospace',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          flex: 1,
-        }}
-      >
+      <div className={`cfr-match-body ${diff ? "" : "cfr-match-body-mono"}`}>
         {diff ? (
           <>
-            <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{diff.prefix}</span>
+            <span className="cfr-diff-context">{diff.prefix}</span>
             <span
-              style={{
-                background: accepted ? 'rgba(239, 68, 68, 0.15)' : 'rgba(139, 115, 85, 0.15)',
-                textDecoration: accepted ? 'line-through' : 'none',
-                padding: '1px 2px',
-                borderRadius: '2px',
-              }}
+              className={`cfr-diff-old ${accepted ? "cfr-diff-old-accepted" : "cfr-diff-old-rejected"}`}
             >
               {diff.oldMiddle}
             </span>
             {accepted && (
               <>
-                {' '}
-                <span style={{ background: 'rgba(34, 197, 94, 0.2)', padding: '1px 2px', borderRadius: '2px' }}>
-                  {diff.newMiddle}
-                </span>
+                {" "}
+                <span className="cfr-diff-new">{diff.newMiddle}</span>
               </>
             )}
-            <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{diff.suffix}</span>
+            <span className="cfr-diff-context">{diff.suffix}</span>
           </>
         ) : (
           <>
-            <span style={{ color: 'var(--text-muted)' }}>{match.contextBefore}</span>
-            <span style={{ background: 'rgba(239, 68, 68, 0.2)', textDecoration: 'line-through', padding: '0 1px', borderRadius: '2px' }}>
-              {match.matchedText}
-            </span>
-            {accepted && (
-              <span style={{ background: 'rgba(34, 197, 94, 0.2)', padding: '0 1px', borderRadius: '2px' }}>
-                {replace}
-              </span>
-            )}
-            <span style={{ color: 'var(--text-muted)' }}>{match.contextAfter}</span>
+            <span className="cfr-literal-context">{match.contextBefore}</span>
+            <span className="cfr-literal-old">{match.matchedText}</span>
+            {accepted && <span className="cfr-literal-new">{replace}</span>}
+            <span className="cfr-literal-context">{match.contextAfter}</span>
           </>
         )}
       </div>
@@ -256,7 +274,7 @@ function SourceGroup({
   onRejectAll,
   expanded,
   onToggleExpand,
-}: {
+}: Readonly<{
   label: string;
   matches: CorpusMatch[];
   replace: string;
@@ -267,49 +285,52 @@ function SourceGroup({
   onRejectAll: () => void;
   expanded: boolean;
   onToggleExpand: () => void;
-}) {
+}>) {
   const acceptCount = matches.filter((m) => decisions[m.id]).length;
 
   return (
-    <div style={{ marginBottom: '4px', border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden' }}>
-      <div
-        onClick={onToggleExpand}
-        style={{
-          padding: '8px 12px',
-          background: 'var(--bg-secondary)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          userSelect: 'none',
-        }}
-      >
-        <span style={{ fontSize: '10px', color: 'var(--text-muted)', width: '10px', flexShrink: 0 }}>
-          {expanded ? '\u25BC' : '\u25B6'}
+    <div className="cfr-source-group">
+      <div onClick={onToggleExpand} className="cfr-source-header" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggleExpand(e); }} >
+        <span className="cfr-source-arrow">{expanded ? "\u25BC" : "\u25B6"}</span>
+        <span className="cfr-source-label">{label}</span>
+        <span className="cfr-source-count">
+          {matches.length} {matches.length === 1 ? "match" : "matches"}
         </span>
-        <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)' }}>{label}</span>
-        <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
-          {matches.length} {matches.length === 1 ? 'match' : 'matches'}
-        </span>
-        {acceptCount > 0 && <span style={{ fontSize: '10px', color: '#22c55e' }}>{acceptCount}{'\u2713'}</span>}
-        {matches.length - acceptCount > 0 && <span style={{ fontSize: '10px', color: '#ef4444' }}>{matches.length - acceptCount}{'\u2717'}</span>}
+        {acceptCount > 0 && (
+          <span className="cfr-source-accept-count">
+            {acceptCount}
+            {"\u2713"}
+          </span>
+        )}
+        {matches.length - acceptCount > 0 && (
+          <span className="cfr-source-reject-count">
+            {matches.length - acceptCount}
+            {"\u2717"}
+          </span>
+        )}
         <button
-          onClick={(e) => { e.stopPropagation(); onAcceptAll(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAcceptAll();
+          }}
           title="Accept all in this group"
-          style={{ background: 'none', border: 'none', color: '#22c55e', fontSize: '10px', cursor: 'pointer', padding: '0 4px' }}
+          className="cfr-source-btn cfr-source-btn-accept"
         >
-          {'all\u2713'}
+          {"all\u2713"}
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); onRejectAll(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRejectAll();
+          }}
           title="Reject all in this group"
-          style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10px', cursor: 'pointer', padding: '0 4px' }}
+          className="cfr-source-btn cfr-source-btn-reject"
         >
-          {'all\u2717'}
+          {"all\u2717"}
         </button>
       </div>
       {expanded && (
-        <div style={{ padding: '6px 8px' }}>
+        <div className="cfr-source-matches">
           {matches.map((m) => (
             <MatchRow
               key={m.id}
@@ -341,7 +362,7 @@ function ContextSection({
   onRejectGroup,
   expandedGroups,
   onToggleExpand,
-}: {
+}: Readonly<{
   contextLabel: string;
   sourceGroups: Array<{ key: string; label: string; matches: CorpusMatch[] }>;
   replace: string;
@@ -352,11 +373,11 @@ function ContextSection({
   onRejectGroup: (matches: CorpusMatch[]) => void;
   expandedGroups: Set<string>;
   onToggleExpand: (key: string) => void;
-}) {
+}>) {
   const totalMatches = sourceGroups.reduce((sum, g) => sum + g.matches.length, 0);
   return (
-    <div style={{ marginBottom: '16px' }}>
-      <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+    <div className="cfr-context-section">
+      <div className="ilu-section-label cfr-context-heading">
         {contextLabel} ({totalMatches})
       </div>
       {sourceGroups.map((group) => (
@@ -379,6 +400,360 @@ function ContextSection({
 }
 
 // ============================================================================
+// Scan helpers (module-level — zero cost to caller cognitive complexity)
+// ============================================================================
+
+type ChronicleNavMap = Record<string, { chronicleId: string; status: string; name: string; historianNoteCount: number }>;
+type EntityNavItem = { id: string; hasHistorianNotes: boolean };
+
+async function scanChronicleContent(
+  navItems: ChronicleNavMap,
+  find: string,
+  caseSensitive: boolean,
+  setScanProgress: (s: string) => void
+): Promise<CorpusMatch[]> {
+  const allMatches: CorpusMatch[] = [];
+  const completeIds = Object.values(navItems)
+    .filter((nav) => nav.status === "complete")
+    .map((nav) => nav.chronicleId);
+  for (let i = 0; i < completeIds.length; i++) {
+    setScanProgress(`Chronicle content ${i + 1}/${completeIds.length}`);
+    const record = await getChronicle(completeIds[i]);
+    if (!record) continue;
+    const name = record.title || navItems[completeIds[i]]?.name || "Untitled";
+    if (record.finalContent) {
+      allMatches.push(...scanText(record.finalContent, find, caseSensitive, name, "chronicleContent", completeIds[i], "final", "Published", undefined, undefined));
+    }
+    if (record.assembledContent && record.assembledContent !== record.finalContent) {
+      allMatches.push(...scanText(record.assembledContent, find, caseSensitive, name, "chronicleContent", completeIds[i], "assembled", "Current Draft", undefined, undefined));
+    }
+  }
+  return allMatches;
+}
+
+async function scanChronicleTitles(
+  navItems: ChronicleNavMap,
+  find: string,
+  caseSensitive: boolean,
+  setScanProgress: (s: string) => void
+): Promise<CorpusMatch[]> {
+  const allMatches: CorpusMatch[] = [];
+  const allIds = Object.values(navItems).map((nav) => nav.chronicleId);
+  for (let i = 0; i < allIds.length; i++) {
+    if (i % 50 === 0) setScanProgress(`Chronicle titles ${i + 1}/${allIds.length}`);
+    const record = await getChronicle(allIds[i]);
+    if (!record?.title) continue;
+    allMatches.push(...scanText(record.title, find, caseSensitive, record.title, "chronicleTitles", allIds[i], "title", "Title", undefined, undefined));
+  }
+  return allMatches;
+}
+
+async function scanChronicleAnnotations(
+  navItems: ChronicleNavMap,
+  find: string,
+  caseSensitive: boolean,
+  setScanProgress: (s: string) => void
+): Promise<CorpusMatch[]> {
+  const allMatches: CorpusMatch[] = [];
+  const annotatedIds = Object.values(navItems)
+    .filter((nav) => nav.historianNoteCount > 0)
+    .map((nav) => nav.chronicleId);
+  for (let i = 0; i < annotatedIds.length; i++) {
+    setScanProgress(`Chronicle annotations ${i + 1}/${annotatedIds.length}`);
+    const record = await getChronicle(annotatedIds[i]);
+    if (!record?.historianNotes) continue;
+    const name = record.title || navItems[annotatedIds[i]]?.name || "Untitled";
+    for (const note of record.historianNotes) {
+      if (!isNoteActive(note)) continue;
+      allMatches.push(...scanText(note.text, find, caseSensitive, name, "chronicleAnnotations", annotatedIds[i], undefined, undefined, note.noteId, note.text));
+      if (note.anchorPhrase) {
+        allMatches.push(...scanText(note.anchorPhrase, find, caseSensitive, name + " (anchor)", "chronicleAnnotations", annotatedIds[i], undefined, undefined, note.noteId, note.text));
+      }
+    }
+  }
+  return allMatches;
+}
+
+async function scanEntityAnnotations(
+  navEntities: EntityNavItem[],
+  find: string,
+  caseSensitive: boolean,
+  setScanProgress: (s: string) => void
+): Promise<CorpusMatch[]> {
+  const allMatches: CorpusMatch[] = [];
+  const annotatedNavs = navEntities.filter((n) => n.hasHistorianNotes);
+  setScanProgress(`Entity annotations: loading ${annotatedNavs.length} entities`);
+  const fullEntities = await useEntityStore.getState().loadEntities(annotatedNavs.map((n) => n.id));
+  for (let i = 0; i < fullEntities.length; i++) {
+    if (i % 50 === 0) setScanProgress(`Entity annotations ${i + 1}/${fullEntities.length}`);
+    const entity = fullEntities[i];
+    const notes = entity.enrichment?.historianNotes;
+    if (!notes) continue;
+    for (const note of notes) {
+      if (!isNoteActive(note)) continue;
+      allMatches.push(...scanText(note.text, find, caseSensitive, entity.name, "entityAnnotations", entity.id, undefined, undefined, note.noteId, note.text));
+      if (note.anchorPhrase) {
+        allMatches.push(...scanText(note.anchorPhrase, find, caseSensitive, entity.name + " (anchor)", "entityAnnotations", entity.id, undefined, undefined, note.noteId, note.text));
+      }
+    }
+  }
+  return allMatches;
+}
+
+async function scanEraNarrativeContent(
+  find: string,
+  caseSensitive: boolean,
+  setScanProgress: (s: string) => void
+): Promise<CorpusMatch[]> {
+  const allMatches: CorpusMatch[] = [];
+  const simRunId = useChronicleStore.getState().simulationRunId;
+  if (!simRunId) return allMatches;
+  const allNarratives = await getEraNarrativesForSimulation(simRunId);
+  const completedNarratives = allNarratives.filter(
+    (n) => n.status === "complete" || n.status === "step_complete"
+  );
+  for (let i = 0; i < completedNarratives.length; i++) {
+    setScanProgress(`Era narratives ${i + 1}/${completedNarratives.length}`);
+    const record = completedNarratives[i];
+    const { content } = resolveActiveContent(record);
+    if (!content) continue;
+    allMatches.push(...scanText(content, find, caseSensitive, record.eraName, "eraNarrativeContent", record.narrativeId, "activeContent", "Active Version", undefined, undefined));
+  }
+  return allMatches;
+}
+
+// ============================================================================
+// Apply helpers (module-level — zero cost to caller cognitive complexity)
+// ============================================================================
+
+interface NoteChangeEntry {
+  noteText?: string;
+  positions: number[];
+  variant?: string;
+}
+
+function collectNoteChanges(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  context: SearchContext,
+  variants: Map<string, string>
+): Map<string, Map<string, NoteChangeEntry>> {
+  const changesBySource = new Map<string, Map<string, NoteChangeEntry>>();
+  for (const m of matches) {
+    if (m.context !== context || !decisions[m.id] || !m.noteId) continue;
+    if (!changesBySource.has(m.sourceId)) changesBySource.set(m.sourceId, new Map());
+    const notes = changesBySource.get(m.sourceId)!;
+    if (!notes.has(m.noteId))
+      notes.set(m.noteId, { noteText: m.noteText, positions: [], variant: variants.get(m.id) });
+    if (!notes.get(m.noteId)!.positions.includes(m.position))
+      notes.get(m.noteId)!.positions.push(m.position);
+  }
+  return changesBySource;
+}
+
+function applyNoteChange(
+  note: HistorianNote,
+  change: NoteChangeEntry,
+  find: string,
+  replace: string,
+  llmMode: boolean
+): { updatedNote: HistorianNote; count: number } {
+  if (llmMode && change.variant) {
+    if (note.text === change.noteText) {
+      return { updatedNote: { ...note, text: change.variant }, count: 1 };
+    }
+    return { updatedNote: note, count: 0 };
+  }
+  const newText = applySelectiveReplace(note.text, find, replace, change.positions);
+  if (newText === note.text) return { updatedNote: note, count: 0 };
+  let updatedNote = { ...note, text: newText };
+  if (updatedNote.anchorPhrase) {
+    updatedNote = { ...updatedNote, anchorPhrase: updatedNote.anchorPhrase.split(find).join(replace) };
+  }
+  return { updatedNote, count: change.positions.length };
+}
+
+async function applyChronicleContent(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  find: string,
+  replace: string
+): Promise<number> {
+  let total = 0;
+  const contentByChronicle = new Map<string, Map<string, number[]>>();
+  for (const m of matches) {
+    if (m.context !== "chronicleContent" || !decisions[m.id]) continue;
+    if (!contentByChronicle.has(m.sourceId)) contentByChronicle.set(m.sourceId, new Map());
+    const fields = contentByChronicle.get(m.sourceId)!;
+    if (!fields.has(m.contentField!)) fields.set(m.contentField!, []);
+    fields.get(m.contentField!)!.push(m.position);
+  }
+  for (const [chronicleId, fields] of contentByChronicle) {
+    const record = await getChronicle(chronicleId);
+    if (!record) continue;
+    for (const [field, positions] of fields) {
+      if (field === "final" && record.finalContent) {
+        record.finalContent = applySelectiveReplace(record.finalContent, find, replace, positions);
+        total += positions.length;
+      } else if (field === "assembled" && record.assembledContent) {
+        record.assembledContent = applySelectiveReplace(record.assembledContent, find, replace, positions);
+        total += positions.length;
+      }
+    }
+    record.updatedAt = Date.now();
+    await putChronicle(record);
+  }
+  return total;
+}
+
+async function applyChronicleTitles(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  find: string,
+  replace: string
+): Promise<number> {
+  let total = 0;
+  const titleByChronicle = new Map<string, number[]>();
+  for (const m of matches) {
+    if (m.context !== "chronicleTitles" || !decisions[m.id]) continue;
+    if (!titleByChronicle.has(m.sourceId)) titleByChronicle.set(m.sourceId, []);
+    titleByChronicle.get(m.sourceId)!.push(m.position);
+  }
+  for (const [chronicleId, positions] of titleByChronicle) {
+    const record = await getChronicle(chronicleId);
+    if (!record?.title) continue;
+    record.title = applySelectiveReplace(record.title, find, replace, positions);
+    record.updatedAt = Date.now();
+    await putChronicle(record);
+    total += positions.length;
+  }
+  return total;
+}
+
+async function applyChronicleAnnotations(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  find: string,
+  replace: string,
+  llmMode: boolean,
+  variants: Map<string, string>
+): Promise<number> {
+  let total = 0;
+  const changesBySource = collectNoteChanges(matches, decisions, "chronicleAnnotations", variants);
+  for (const [chronicleId, noteChanges] of changesBySource) {
+    const record = await getChronicle(chronicleId);
+    if (!record?.historianNotes) continue;
+    const updatedNotes: HistorianNote[] = record.historianNotes.map((n) => ({ ...n }));
+    for (const [noteId, change] of noteChanges) {
+      const noteIdx = updatedNotes.findIndex((n) => n.noteId === noteId);
+      if (noteIdx === -1) continue;
+      const { updatedNote, count } = applyNoteChange(updatedNotes[noteIdx], change, find, replace, llmMode);
+      updatedNotes[noteIdx] = updatedNote;
+      total += count;
+    }
+    await updateChronicleHistorianNotes(chronicleId, updatedNotes);
+  }
+  return total;
+}
+
+async function applyEntityAnnotations(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  find: string,
+  replace: string,
+  llmMode: boolean,
+  variants: Map<string, string>
+): Promise<{ total: number; updatedEntityIds: string[] }> {
+  let total = 0;
+  const updatedEntityIds: string[] = [];
+  const changesBySource = collectNoteChanges(matches, decisions, "entityAnnotations", variants);
+  for (const [entityId, noteChanges] of changesBySource) {
+    const entity = await useEntityStore.getState().loadEntity(entityId);
+    if (!entity?.enrichment?.historianNotes) continue;
+    const updatedNotes: HistorianNote[] = entity.enrichment.historianNotes.map((n) => ({ ...n }));
+    for (const [noteId, change] of noteChanges) {
+      const noteIdx = updatedNotes.findIndex((n) => n.noteId === noteId);
+      if (noteIdx === -1) continue;
+      const { updatedNote, count } = applyNoteChange(updatedNotes[noteIdx], change, find, replace, llmMode);
+      updatedNotes[noteIdx] = updatedNote;
+      total += count;
+    }
+    await setHistorianNotes(entityId, updatedNotes);
+    updatedEntityIds.push(entityId);
+  }
+  return { total, updatedEntityIds };
+}
+
+async function applyEraNarrativeContent(
+  matches: CorpusMatch[],
+  decisions: Record<string, boolean>,
+  find: string,
+  replace: string
+): Promise<number> {
+  let total = 0;
+  const changes = new Map<string, number[]>();
+  for (const m of matches) {
+    if (m.context !== "eraNarrativeContent" || !decisions[m.id]) continue;
+    if (!changes.has(m.sourceId)) changes.set(m.sourceId, []);
+    changes.get(m.sourceId)!.push(m.position);
+  }
+  for (const [narrativeId, positions] of changes) {
+    const record = await getEraNarrative(narrativeId);
+    if (!record) continue;
+    const { activeVersionId } = resolveActiveContent(record);
+    const versions = [...(record.contentVersions || [])];
+    const vIdx = versions.findIndex((v) => v.versionId === activeVersionId);
+    if (vIdx === -1) continue;
+    const updated = { ...versions[vIdx] };
+    updated.content = applySelectiveReplace(updated.content, find, replace, positions);
+    updated.wordCount = updated.content.split(/\s+/).filter(Boolean).length;
+    versions[vIdx] = updated;
+    await updateEraNarrative(narrativeId, { contentVersions: versions });
+    total += positions.length;
+  }
+  return total;
+}
+
+function processQueueCompletions(
+  completed: Array<{ result?: { description?: string } | null }>,
+  currentMatches: CorpusMatch[]
+): Map<string, string> {
+  const variantMap = new Map<string, string>();
+  for (const item of completed) {
+    if (!item.result?.description) continue;
+    try {
+      const results = JSON.parse(item.result.description) as MotifVariationResult[];
+      for (const r of results) {
+        const match = currentMatches.find((m) => m.batchIndex === r.index);
+        if (match) {
+          for (const m of currentMatches) {
+            if (m.sourceId === match.sourceId && m.noteId === match.noteId) {
+              variantMap.set(m.id, r.variant);
+            }
+          }
+        }
+      }
+    } catch {
+      // Skip unparseable results
+    }
+  }
+  return variantMap;
+}
+
+function computeAutoRejectIds(
+  currentMatches: CorpusMatch[],
+  variantMap: Map<string, string>
+): string[] {
+  return currentMatches
+    .filter(
+      (m) =>
+        (m.context === "chronicleAnnotations" || m.context === "entityAnnotations") &&
+        !variantMap.has(m.id)
+    )
+    .map((m) => m.id);
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -387,20 +762,26 @@ export default function CorpusFindReplace() {
   const chronicleNavItems = useChronicleStore((s) => s.navItems);
   const queue = useEnrichmentQueueStore((s) => s.queue);
 
-  const [find, setFind] = useState('');
-  const [replace, setReplace] = useState('');
+  const [find, setFind] = useState("");
+  const [replace, setReplace] = useState("");
   const [caseSensitive, setCaseSensitive] = useState(true);
   const [contexts, setContexts] = useState<Set<SearchContext>>(
-    new Set(['chronicleContent', 'chronicleTitles', 'chronicleAnnotations', 'entityAnnotations', 'eraNarrativeContent']),
+    new Set([
+      "chronicleContent",
+      "chronicleTitles",
+      "chronicleAnnotations",
+      "entityAnnotations",
+      "eraNarrativeContent",
+    ])
   );
   const [llmMode, setLlmMode] = useState(false);
-  const [phase, setPhase] = useState<Phase>('input');
+  const [phase, setPhase] = useState<Phase>("input");
   const [matches, setMatches] = useState<CorpusMatch[]>([]);
   const [decisions, setDecisions] = useState<Record<string, boolean>>({});
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [resultCount, setResultCount] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [scanProgress, setScanProgress] = useState('');
+  const { error, setError } = useAsyncAction();
+  const [scanProgress, setScanProgress] = useState("");
 
   // LLM mode state
   const [variants, setVariants] = useState<Map<string, string>>(new Map());
@@ -411,14 +792,15 @@ export default function CorpusFindReplace() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (phase === 'input' && inputRef.current) inputRef.current.focus();
+    if (phase === "input" && inputRef.current) inputRef.current.focus();
   }, [phase]);
 
   useEffect(() => {
     matchesRef.current = matches;
   }, [matches]);
 
-  const hasAnnotationContext = contexts.has('chronicleAnnotations') || contexts.has('entityAnnotations');
+  const hasAnnotationContext =
+    contexts.has("chronicleAnnotations") || contexts.has("entityAnnotations");
 
   const toggleContext = useCallback((ctx: SearchContext) => {
     setContexts((prev) => {
@@ -432,107 +814,22 @@ export default function CorpusFindReplace() {
   // --- Scan ---
   const handleScan = useCallback(async () => {
     if (!find || contexts.size === 0) return;
-    setPhase('scanning');
+    setPhase("scanning");
     setError(null);
     const allMatches: CorpusMatch[] = [];
 
-    // 1. Chronicle content
-    if (contexts.has('chronicleContent')) {
-      const completeIds = Object.values(chronicleNavItems)
-        .filter((nav) => nav.status === 'complete')
-        .map((nav) => nav.chronicleId);
+    if (contexts.has("chronicleContent"))
+      allMatches.push(...(await scanChronicleContent(chronicleNavItems, find, caseSensitive, setScanProgress)));
+    if (contexts.has("chronicleTitles"))
+      allMatches.push(...(await scanChronicleTitles(chronicleNavItems, find, caseSensitive, setScanProgress)));
+    if (contexts.has("chronicleAnnotations"))
+      allMatches.push(...(await scanChronicleAnnotations(chronicleNavItems, find, caseSensitive, setScanProgress)));
+    if (contexts.has("entityAnnotations"))
+      allMatches.push(...(await scanEntityAnnotations(navEntities, find, caseSensitive, setScanProgress)));
+    if (contexts.has("eraNarrativeContent"))
+      allMatches.push(...(await scanEraNarrativeContent(find, caseSensitive, setScanProgress)));
 
-      for (let i = 0; i < completeIds.length; i++) {
-        setScanProgress(`Chronicle content ${i + 1}/${completeIds.length}`);
-        const record = await getChronicle(completeIds[i]);
-        if (!record) continue;
-        const name = record.title || chronicleNavItems[completeIds[i]]?.name || 'Untitled';
-
-        if (record.finalContent) {
-          allMatches.push(...scanText(record.finalContent, find, caseSensitive, name, 'chronicleContent', completeIds[i], 'final', 'Published', undefined, undefined));
-        }
-        if (record.assembledContent && record.assembledContent !== record.finalContent) {
-          allMatches.push(...scanText(record.assembledContent, find, caseSensitive, name, 'chronicleContent', completeIds[i], 'assembled', 'Current Draft', undefined, undefined));
-        }
-      }
-    }
-
-    // 2. Chronicle titles
-    if (contexts.has('chronicleTitles')) {
-      const allIds = Object.values(chronicleNavItems).map((nav) => nav.chronicleId);
-
-      for (let i = 0; i < allIds.length; i++) {
-        if (i % 50 === 0) setScanProgress(`Chronicle titles ${i + 1}/${allIds.length}`);
-        const record = await getChronicle(allIds[i]);
-        if (!record?.title) continue;
-        allMatches.push(...scanText(record.title, find, caseSensitive, record.title, 'chronicleTitles', allIds[i], 'title', 'Title', undefined, undefined));
-      }
-    }
-
-    // 3. Chronicle annotations
-    if (contexts.has('chronicleAnnotations')) {
-      const annotatedIds = Object.values(chronicleNavItems)
-        .filter((nav) => nav.historianNoteCount > 0)
-        .map((nav) => nav.chronicleId);
-
-      for (let i = 0; i < annotatedIds.length; i++) {
-        setScanProgress(`Chronicle annotations ${i + 1}/${annotatedIds.length}`);
-        const record = await getChronicle(annotatedIds[i]);
-        if (!record?.historianNotes) continue;
-        const name = record.title || chronicleNavItems[annotatedIds[i]]?.name || 'Untitled';
-
-        for (const note of record.historianNotes) {
-          if (!isNoteActive(note)) continue;
-          allMatches.push(...scanText(note.text, find, caseSensitive, name, 'chronicleAnnotations', annotatedIds[i], undefined, undefined, note.noteId, note.text));
-          // Also scan anchor phrases
-          if (note.anchorPhrase) {
-            allMatches.push(...scanText(note.anchorPhrase, find, caseSensitive, name + ' (anchor)', 'chronicleAnnotations', annotatedIds[i], undefined, undefined, note.noteId, note.text));
-          }
-        }
-      }
-    }
-
-    // 4. Entity annotations
-    if (contexts.has('entityAnnotations')) {
-      const annotatedNavs = navEntities.filter((n) => n.hasHistorianNotes);
-      setScanProgress(`Entity annotations: loading ${annotatedNavs.length} entities`);
-
-      const fullEntities = await useEntityStore.getState().loadEntities(annotatedNavs.map((n) => n.id));
-
-      for (let i = 0; i < fullEntities.length; i++) {
-        if (i % 50 === 0) setScanProgress(`Entity annotations ${i + 1}/${fullEntities.length}`);
-        const entity = fullEntities[i];
-        const notes = entity.enrichment?.historianNotes;
-        if (!notes) continue;
-
-        for (const note of notes) {
-          if (!isNoteActive(note)) continue;
-          allMatches.push(...scanText(note.text, find, caseSensitive, entity.name, 'entityAnnotations', entity.id, undefined, undefined, note.noteId, note.text));
-          if (note.anchorPhrase) {
-            allMatches.push(...scanText(note.anchorPhrase, find, caseSensitive, entity.name + ' (anchor)', 'entityAnnotations', entity.id, undefined, undefined, note.noteId, note.text));
-          }
-        }
-      }
-    }
-
-    // 5. Era narrative content
-    if (contexts.has('eraNarrativeContent')) {
-      const simRunId = useChronicleStore.getState().simulationRunId;
-      if (simRunId) {
-        const allNarratives = await getEraNarrativesForSimulation(simRunId);
-        const completedNarratives = allNarratives.filter((n) => n.status === 'complete' || n.status === 'step_complete');
-
-        for (let i = 0; i < completedNarratives.length; i++) {
-          setScanProgress(`Era narratives ${i + 1}/${completedNarratives.length}`);
-          const record = completedNarratives[i];
-          const { content } = resolveActiveContent(record);
-          if (!content) continue;
-          allMatches.push(...scanText(content, find, caseSensitive, record.eraName, 'eraNarrativeContent', record.narrativeId, 'activeContent', 'Active Version', undefined, undefined));
-        }
-      }
-    }
-
-    setScanProgress('');
+    setScanProgress("");
     setMatches(allMatches);
 
     const initial: Record<string, boolean> = {};
@@ -550,17 +847,17 @@ export default function CorpusFindReplace() {
     }
     setExpandedGroups(firstKeys);
 
-    setPhase(allMatches.length > 0 ? 'preview' : 'empty');
+    setPhase(allMatches.length > 0 ? "preview" : "empty");
   }, [find, caseSensitive, contexts, chronicleNavItems, navEntities]);
 
   // --- Generate LLM Variants ---
   const handleGenerate = useCallback(() => {
-    setPhase('generating');
+    setPhase("generating");
     setError(null);
 
     // Only annotation matches go through LLM
     const annotationMatches = matches.filter(
-      (m) => m.context === 'chronicleAnnotations' || m.context === 'entityAnnotations',
+      (m) => m.context === "chronicleAnnotations" || m.context === "entityAnnotations"
     );
 
     // Dedupe by (sourceId, noteId) — one request per unique note
@@ -590,10 +887,10 @@ export default function CorpusFindReplace() {
       const payload: MotifVariationPayload = {
         motifLabel: find,
         instances: batch.map((m) => ({
-          index: m.batchIndex!,
+          index: m.batchIndex,
           entityName: m.sourceName,
-          noteId: m.noteId || '',
-          annotationText: m.noteText || '',
+          noteId: m.noteId || "",
+          annotationText: m.noteText || "",
           matchedPhrase: m.matchedText,
         })),
       };
@@ -601,20 +898,26 @@ export default function CorpusFindReplace() {
       const syntheticEntity = {
         id: `corpus_fr_${dispatchTime}_${bi}`,
         name: `Find/Replace: "${find}" (batch ${bi + 1})`,
-        kind: 'motif' as string,
-        subtype: 'variation' as string,
-        prominence: 'marginal' as unknown as string,
-        culture: '' as string,
-        status: 'active' as string,
-        description: '' as string,
+        kind: "motif" as string,
+        subtype: "variation" as string,
+        prominence: "marginal" as unknown as string,
+        culture: "" as string,
+        status: "active" as string,
+        description: "" as string,
         tags: {} as Record<string, unknown>,
       };
 
       try {
-        getEnqueue()([{ entity: syntheticEntity, type: 'motifVariation' as const, prompt: JSON.stringify(payload) }]);
+        getEnqueue()([
+          {
+            entity: syntheticEntity,
+            type: "motifVariation" as const,
+            prompt: JSON.stringify(payload),
+          },
+        ]);
       } catch (err) {
         setError(`Failed to dispatch batch ${bi + 1}: ${err}`);
-        setPhase('preview');
+        setPhase("preview");
         return;
       }
     }
@@ -622,229 +925,59 @@ export default function CorpusFindReplace() {
 
   // --- Watch queue for LLM completion ---
   useEffect(() => {
-    if (phase !== 'generating') return;
+    if (phase !== "generating") return;
     const dispatchTime = dispatchTimeRef.current;
     if (!dispatchTime) return;
 
-    const motifItems = queue.filter((item) => item.type === 'motifVariation' && item.queuedAt >= dispatchTime);
+    const motifItems = queue.filter(
+      (item) => item.type === "motifVariation" && item.queuedAt >= dispatchTime
+    );
     if (motifItems.length === 0) return;
 
-    const running = motifItems.filter((item) => item.status === 'running' || item.status === 'queued');
-    const completed = motifItems.filter((item) => item.status === 'complete');
-    const errored = motifItems.filter((item) => item.status === 'error');
+    const running = motifItems.filter(
+      (item) => item.status === "running" || item.status === "queued"
+    );
+    const completed = motifItems.filter((item) => item.status === "complete");
+    const errored = motifItems.filter((item) => item.status === "error");
 
     if (running.length === 0 && (completed.length > 0 || errored.length > 0)) {
       if (errored.length > 0) {
-        setError(`${errored.length} batch(es) failed: ${errored[0].error || 'Unknown error'}`);
+        setError(`${errored.length} batch(es) failed: ${errored[0].error || "Unknown error"}`);
       }
-
-      const variantMap = new Map<string, string>();
-      const currentMatches = matchesRef.current;
-
-      for (const item of completed) {
-        if (!item.result?.description) continue;
-        try {
-          const results: MotifVariationResult[] = JSON.parse(item.result.description);
-          for (const r of results) {
-            const match = currentMatches.find((m) => m.batchIndex === r.index);
-            if (match) {
-              // Apply variant to all matches with same sourceId + noteId
-              for (const m of currentMatches) {
-                if (m.sourceId === match.sourceId && m.noteId === match.noteId) {
-                  variantMap.set(m.id, r.variant);
-                }
-              }
-            }
-          }
-        } catch {
-          // Skip unparseable results
-        }
-      }
-
+      const variantMap = processQueueCompletions(completed, matchesRef.current);
       setVariants(variantMap);
-
-      // Auto-reject matches without variants
-      setDecisions((prev) => {
-        const next = { ...prev };
-        for (const m of currentMatches) {
-          if ((m.context === 'chronicleAnnotations' || m.context === 'entityAnnotations') && !variantMap.has(m.id)) {
-            next[m.id] = false;
-          }
-        }
-        return next;
-      });
-
-      setPhase(variantMap.size > 0 ? 'review' : 'empty');
+      const autoRejectIds = computeAutoRejectIds(matchesRef.current, variantMap);
+      setDecisions((prev) => ({
+        ...prev,
+        ...Object.fromEntries(autoRejectIds.map((id) => [id, false])),
+      }));
+      setPhase(variantMap.size > 0 ? "review" : "empty");
     }
   }, [phase, queue]);
 
   // --- Apply ---
   const handleApply = useCallback(async () => {
-    setPhase('applying');
+    setPhase("applying");
     let total = 0;
 
-    // 1. Chronicle content — group by (chronicleId, contentField)
-    const contentByChronicle = new Map<string, Map<string, number[]>>();
-    for (const m of matches) {
-      if (m.context !== 'chronicleContent' || !decisions[m.id]) continue;
-      if (!contentByChronicle.has(m.sourceId)) contentByChronicle.set(m.sourceId, new Map());
-      const fields = contentByChronicle.get(m.sourceId)!;
-      if (!fields.has(m.contentField!)) fields.set(m.contentField!, []);
-      fields.get(m.contentField!)!.push(m.position);
-    }
-
-    for (const [chronicleId, fields] of contentByChronicle) {
-      const record = await getChronicle(chronicleId);
-      if (!record) continue;
-
-      for (const [field, positions] of fields) {
-        if (field === 'final' && record.finalContent) {
-          record.finalContent = applySelectiveReplace(record.finalContent, find, replace, positions);
-          total += positions.length;
-        } else if (field === 'assembled' && record.assembledContent) {
-          record.assembledContent = applySelectiveReplace(record.assembledContent, find, replace, positions);
-          total += positions.length;
-        }
-      }
-
-      record.updatedAt = Date.now();
-      await putChronicle(record);
-    }
-
-    // 2. Chronicle titles — group by chronicleId
-    const titleByChronicle = new Map<string, number[]>();
-    for (const m of matches) {
-      if (m.context !== 'chronicleTitles' || !decisions[m.id]) continue;
-      if (!titleByChronicle.has(m.sourceId)) titleByChronicle.set(m.sourceId, []);
-      titleByChronicle.get(m.sourceId)!.push(m.position);
-    }
-
-    for (const [chronicleId, positions] of titleByChronicle) {
-      const record = await getChronicle(chronicleId);
-      if (!record?.title) continue;
-
-      record.title = applySelectiveReplace(record.title, find, replace, positions);
-      record.updatedAt = Date.now();
-      await putChronicle(record);
-      total += positions.length;
-    }
-
-    // 3. Chronicle annotations — group by chronicleId
-    const chronAnnotChanges = new Map<string, Map<string, { noteText: string; positions: number[]; variant?: string }>>();
-    for (const m of matches) {
-      if (m.context !== 'chronicleAnnotations' || !decisions[m.id] || !m.noteId) continue;
-      if (!chronAnnotChanges.has(m.sourceId)) chronAnnotChanges.set(m.sourceId, new Map());
-      const notes = chronAnnotChanges.get(m.sourceId)!;
-      if (!notes.has(m.noteId)) notes.set(m.noteId, { noteText: m.noteText!, positions: [], variant: variants.get(m.id) });
-      else notes.get(m.noteId)!.positions.push(m.position);
-      if (!notes.get(m.noteId)!.positions.includes(m.position)) notes.get(m.noteId)!.positions.push(m.position);
-    }
-
-    for (const [chronicleId, noteChanges] of chronAnnotChanges) {
-      const record = await getChronicle(chronicleId);
-      if (!record?.historianNotes) continue;
-
-      const updatedNotes: HistorianNote[] = record.historianNotes.map((n) => ({ ...n }));
-      for (const [noteId, change] of noteChanges) {
-        const noteIdx = updatedNotes.findIndex((n) => n.noteId === noteId);
-        if (noteIdx === -1) continue;
-
-        if (llmMode && change.variant) {
-          if (updatedNotes[noteIdx].text === change.noteText) {
-            updatedNotes[noteIdx] = { ...updatedNotes[noteIdx], text: change.variant };
-            total++;
-          }
-        } else {
-          const newText = applySelectiveReplace(updatedNotes[noteIdx].text, find, replace, change.positions);
-          if (newText !== updatedNotes[noteIdx].text) {
-            updatedNotes[noteIdx] = { ...updatedNotes[noteIdx], text: newText };
-            // Also replace in anchor phrase if it matches
-            if (updatedNotes[noteIdx].anchorPhrase) {
-              updatedNotes[noteIdx] = {
-                ...updatedNotes[noteIdx],
-                anchorPhrase: updatedNotes[noteIdx].anchorPhrase!.split(find).join(replace),
-              };
-            }
-            total += change.positions.length;
-          }
-        }
-      }
-
-      await updateChronicleHistorianNotes(chronicleId, updatedNotes);
-    }
-
-    // 4. Entity annotations — group by entityId
-    const entityAnnotChanges = new Map<string, Map<string, { noteText: string; positions: number[]; variant?: string }>>();
-    for (const m of matches) {
-      if (m.context !== 'entityAnnotations' || !decisions[m.id] || !m.noteId) continue;
-      if (!entityAnnotChanges.has(m.sourceId)) entityAnnotChanges.set(m.sourceId, new Map());
-      const notes = entityAnnotChanges.get(m.sourceId)!;
-      if (!notes.has(m.noteId)) notes.set(m.noteId, { noteText: m.noteText!, positions: [], variant: variants.get(m.id) });
-      if (!notes.get(m.noteId)!.positions.includes(m.position)) notes.get(m.noteId)!.positions.push(m.position);
-    }
-
-    const updatedEntityIds: string[] = [];
-    for (const [entityId, noteChanges] of entityAnnotChanges) {
-      const entity = await useEntityStore.getState().loadEntity(entityId);
-      if (!entity?.enrichment?.historianNotes) continue;
-
-      const updatedNotes: HistorianNote[] = entity.enrichment.historianNotes.map((n) => ({ ...n }));
-      for (const [noteId, change] of noteChanges) {
-        const noteIdx = updatedNotes.findIndex((n) => n.noteId === noteId);
-        if (noteIdx === -1) continue;
-
-        if (llmMode && change.variant) {
-          if (updatedNotes[noteIdx].text === change.noteText) {
-            updatedNotes[noteIdx] = { ...updatedNotes[noteIdx], text: change.variant };
-            total++;
-          }
-        } else {
-          const newText = applySelectiveReplace(updatedNotes[noteIdx].text, find, replace, change.positions);
-          if (newText !== updatedNotes[noteIdx].text) {
-            updatedNotes[noteIdx] = { ...updatedNotes[noteIdx], text: newText };
-            if (updatedNotes[noteIdx].anchorPhrase) {
-              updatedNotes[noteIdx] = {
-                ...updatedNotes[noteIdx],
-                anchorPhrase: updatedNotes[noteIdx].anchorPhrase!.split(find).join(replace),
-              };
-            }
-            total += change.positions.length;
-          }
-        }
-      }
-
-      await setHistorianNotes(entityId, updatedNotes);
-      updatedEntityIds.push(entityId);
-    }
-
-    // 5. Era narrative content — group by narrativeId
-    const eraNarrativeChanges = new Map<string, number[]>();
-    for (const m of matches) {
-      if (m.context !== 'eraNarrativeContent' || !decisions[m.id]) continue;
-      if (!eraNarrativeChanges.has(m.sourceId)) eraNarrativeChanges.set(m.sourceId, []);
-      eraNarrativeChanges.get(m.sourceId)!.push(m.position);
-    }
-
-    for (const [narrativeId, positions] of eraNarrativeChanges) {
-      const record = await getEraNarrative(narrativeId);
-      if (!record) continue;
-
-      const { activeVersionId } = resolveActiveContent(record);
-      const versions = [...(record.contentVersions || [])];
-      const vIdx = versions.findIndex((v) => v.versionId === activeVersionId);
-      if (vIdx === -1) continue;
-
-      const updated = { ...versions[vIdx] };
-      updated.content = applySelectiveReplace(updated.content, find, replace, positions);
-      updated.wordCount = updated.content.split(/\s+/).filter(Boolean).length;
-      versions[vIdx] = updated;
-
-      await updateEraNarrative(narrativeId, { contentVersions: versions });
-      total += positions.length;
-    }
+    total += await applyChronicleContent(matches, decisions, find, replace);
+    total += await applyChronicleTitles(matches, decisions, find, replace);
+    total += await applyChronicleAnnotations(matches, decisions, find, replace, llmMode, variants);
+    const { total: entityTotal, updatedEntityIds } = await applyEntityAnnotations(
+      matches, decisions, find, replace, llmMode, variants
+    );
+    total += entityTotal;
+    total += await applyEraNarrativeContent(matches, decisions, find, replace);
 
     // Refresh stores
-    if (contentByChronicle.size > 0 || titleByChronicle.size > 0 || chronAnnotChanges.size > 0) {
+    const hasChronicleChanges = matches.some(
+      (m) =>
+        (m.context === "chronicleContent" ||
+          m.context === "chronicleTitles" ||
+          m.context === "chronicleAnnotations") &&
+        decisions[m.id]
+    );
+    if (hasChronicleChanges) {
       await useChronicleStore.getState().refreshAll();
     }
     if (updatedEntityIds.length > 0) {
@@ -852,7 +985,7 @@ export default function CorpusFindReplace() {
     }
 
     setResultCount(total);
-    setPhase('done');
+    setPhase("done");
   }, [matches, decisions, find, replace, llmMode, variants]);
 
   // --- Decision helpers ---
@@ -863,7 +996,11 @@ export default function CorpusFindReplace() {
   const acceptAllMatches = useCallback(() => {
     setDecisions((prev) => {
       const next = { ...prev };
-      const literalContexts: Set<SearchContext> = new Set(['chronicleContent', 'chronicleTitles', 'eraNarrativeContent']);
+      const literalContexts: Set<SearchContext> = new Set([
+        "chronicleContent",
+        "chronicleTitles",
+        "eraNarrativeContent",
+      ]);
       for (const m of matches) {
         if (!llmMode || literalContexts.has(m.context) || variants.has(m.id)) next[m.id] = true;
       }
@@ -879,16 +1016,23 @@ export default function CorpusFindReplace() {
     });
   }, [matches]);
 
-  const acceptGroup = useCallback((groupMatches: CorpusMatch[]) => {
-    setDecisions((prev) => {
-      const next = { ...prev };
-      const literalContexts: Set<SearchContext> = new Set(['chronicleContent', 'chronicleTitles', 'eraNarrativeContent']);
-      for (const m of groupMatches) {
-        if (!llmMode || literalContexts.has(m.context) || variants.has(m.id)) next[m.id] = true;
-      }
-      return next;
-    });
-  }, [llmMode, variants]);
+  const acceptGroup = useCallback(
+    (groupMatches: CorpusMatch[]) => {
+      setDecisions((prev) => {
+        const next = { ...prev };
+        const literalContexts: Set<SearchContext> = new Set([
+          "chronicleContent",
+          "chronicleTitles",
+          "eraNarrativeContent",
+        ]);
+        for (const m of groupMatches) {
+          if (!llmMode || literalContexts.has(m.context) || variants.has(m.id)) next[m.id] = true;
+        }
+        return next;
+      });
+    },
+    [llmMode, variants]
+  );
 
   const rejectGroup = useCallback((groupMatches: CorpusMatch[]) => {
     setDecisions((prev) => {
@@ -908,14 +1052,14 @@ export default function CorpusFindReplace() {
   }, []);
 
   const handleReset = useCallback(() => {
-    setPhase('input');
+    setPhase("input");
     setMatches([]);
     setDecisions({});
     setExpandedGroups(new Set());
     setVariants(new Map());
     setResultCount(0);
     setError(null);
-    setScanProgress('');
+    setScanProgress("");
   }, []);
 
   // --- Stats ---
@@ -923,9 +1067,19 @@ export default function CorpusFindReplace() {
 
   // --- Groups: context → source → matches ---
   const groupedByContext = useMemo(() => {
-    const result: Array<{ context: SearchContext; label: string; sourceGroups: Array<{ key: string; label: string; matches: CorpusMatch[] }> }> = [];
+    const result: Array<{
+      context: SearchContext;
+      label: string;
+      sourceGroups: Array<{ key: string; label: string; matches: CorpusMatch[] }>;
+    }> = [];
 
-    for (const ctx of ['chronicleContent', 'chronicleTitles', 'chronicleAnnotations', 'entityAnnotations', 'eraNarrativeContent'] as SearchContext[]) {
+    for (const ctx of [
+      "chronicleContent",
+      "chronicleTitles",
+      "chronicleAnnotations",
+      "entityAnnotations",
+      "eraNarrativeContent",
+    ] as SearchContext[]) {
       const ctxMatches = matches.filter((m) => m.context === ctx);
       if (ctxMatches.length === 0) continue;
 
@@ -933,10 +1087,12 @@ export default function CorpusFindReplace() {
       for (const m of ctxMatches) {
         const key = `${ctx}:${m.sourceId}`;
         if (!sourceMap.has(key)) {
-          const label = m.contentFieldLabel ? `${m.sourceName} \u2014 ${m.contentFieldLabel}` : m.sourceName;
+          const label = m.contentFieldLabel
+            ? `${m.sourceName} \u2014 ${m.contentFieldLabel}`
+            : m.sourceName;
           sourceMap.set(key, { key, label, matches: [] });
         }
-        sourceMap.get(key)!.matches.push(m);
+        sourceMap.get(key).matches.push(m);
       }
 
       result.push({
@@ -954,19 +1110,30 @@ export default function CorpusFindReplace() {
   // ============================================================================
 
   return (
-    <div style={{ maxWidth: '800px' }}>
+    <div className="cfr-root">
       {/* Input phase */}
-      {phase === 'input' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {phase === "input" && (
+        <div className="cfr-input-form">
           {/* Context checkboxes */}
           <div>
-            <label style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', fontWeight: 600 }}>
-              Search in
-            </label>
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              {(['chronicleContent', 'chronicleTitles', 'chronicleAnnotations', 'entityAnnotations', 'eraNarrativeContent'] as SearchContext[]).map((ctx) => (
-                <label key={ctx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                  <input type="checkbox" checked={contexts.has(ctx)} onChange={() => toggleContext(ctx)} style={{ cursor: 'pointer' }} />
+            <span className="cfr-field-label">Search in</span>
+            <div className="cfr-checkbox-row">
+              {(
+                [
+                  "chronicleContent",
+                  "chronicleTitles",
+                  "chronicleAnnotations",
+                  "entityAnnotations",
+                  "eraNarrativeContent",
+                ] as SearchContext[]
+              ).map((ctx) => (
+                <label key={ctx} className="cfr-context-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={contexts.has(ctx)}
+                    onChange={() => toggleContext(ctx)}
+                    className="cfr-cursor-pointer"
+                  />
                   {CONTEXT_LABELS[ctx]}
                 </label>
               ))}
@@ -975,67 +1142,62 @@ export default function CorpusFindReplace() {
 
           {/* Find / Replace inputs */}
           <div>
-            <label style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', fontWeight: 600 }}>Find</label>
-            <input
+            <label htmlFor="find" className="cfr-field-label cfr-field-label-tight">Find</label>
+            <input id="find"
               ref={inputRef}
               value={find}
               onChange={(e) => setFind(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && find && contexts.size > 0 && handleScan()}
+              onKeyDown={(e) => { if (e.key === "Enter" && find && contexts.size > 0) void handleScan(); }}
               placeholder="Text to find..."
-              style={{
-                width: '100%', padding: '8px 12px', fontSize: '13px',
-                background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
-                borderRadius: '6px', color: 'var(--text-primary)', boxSizing: 'border-box',
-                fontFamily: 'inherit',
-              }}
+              className="cfr-text-input"
             />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', fontWeight: 600 }}>Replace with</label>
-            <input
+            <label htmlFor="replace-with" className="cfr-field-label cfr-field-label-tight">Replace with</label>
+            <input id="replace-with"
               value={replace}
               onChange={(e) => setReplace(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && find && contexts.size > 0 && handleScan()}
+              onKeyDown={(e) => { if (e.key === "Enter" && find && contexts.size > 0) void handleScan(); }}
               placeholder="Replacement text..."
-              style={{
-                width: '100%', padding: '8px 12px', fontSize: '13px',
-                background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
-                borderRadius: '6px', color: 'var(--text-primary)', boxSizing: 'border-box',
-                fontFamily: 'inherit',
-              }}
+              className="cfr-text-input"
             />
           </div>
 
           {/* Options row */}
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-              <input type="checkbox" checked={caseSensitive} onChange={() => setCaseSensitive(!caseSensitive)} style={{ cursor: 'pointer' }} />
+          <div className="cfr-options-row">
+            <label className="cfr-option-label">
+              <input
+                type="checkbox"
+                checked={caseSensitive}
+                onChange={() => setCaseSensitive(!caseSensitive)}
+                className="cfr-cursor-pointer"
+              />
               Case sensitive
             </label>
             <label
-              style={{
-                display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', cursor: hasAnnotationContext ? 'pointer' : 'not-allowed',
-                color: hasAnnotationContext ? 'var(--text-secondary)' : 'var(--text-muted)',
-              }}
-              title={hasAnnotationContext ? 'Use LLM to generate contextual replacements for annotation matches' : 'LLM mode requires annotation contexts'}
+              className={`cfr-option-label ${hasAnnotationContext ? "" : "cfr-option-label-disabled"}`}
+              title={
+                hasAnnotationContext
+                  ? "Use LLM to generate contextual replacements for annotation matches"
+                  : "LLM mode requires annotation contexts"
+              }
             >
               <input
                 type="checkbox"
                 checked={llmMode}
                 onChange={() => setLlmMode(!llmMode)}
                 disabled={!hasAnnotationContext}
-                style={{ cursor: hasAnnotationContext ? 'pointer' : 'not-allowed' }}
+                className={hasAnnotationContext ? "cfr-cursor-pointer" : "cfr-cursor-not-allowed"}
               />
               LLM-enhanced replace
             </label>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+          <div className="cfr-actions-row">
             <button
-              onClick={handleScan}
+              onClick={() => void handleScan()}
               disabled={!find || contexts.size === 0}
-              className="illuminator-button"
-              style={{ padding: '6px 20px', fontSize: '12px', opacity: find && contexts.size > 0 ? 1 : 0.5 }}
+              className={`illuminator-button cfr-btn-find ${find && contexts.size > 0 ? "" : "cfr-btn-half-opacity"}`}
             >
               Find Matches
             </button>
@@ -1044,63 +1206,57 @@ export default function CorpusFindReplace() {
       )}
 
       {/* Scanning */}
-      {phase === 'scanning' && (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Scanning...</div>
-          {scanProgress && <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{scanProgress}</div>}
+      {phase === "scanning" && (
+        <div className="cfr-phase-center">
+          <div className="cfr-phase-title">Scanning...</div>
+          {scanProgress && <div className="cfr-phase-subtitle">{scanProgress}</div>}
         </div>
       )}
 
       {/* Empty */}
-      {phase === 'empty' && (
-        <div style={{ textAlign: 'center', padding: '30px 0' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '12px' }}>
-            No matches found for &ldquo;{find}&rdquo;
-          </div>
-          <button onClick={handleReset} className="illuminator-button illuminator-button-secondary" style={{ padding: '6px 16px', fontSize: '12px' }}>
+      {phase === "empty" && (
+        <div className="cfr-empty-center">
+          <div className="cfr-empty-msg">No matches found for &ldquo;{find}&rdquo;</div>
+          <button
+            onClick={handleReset}
+            className="illuminator-button illuminator-button-secondary cfr-btn-back"
+          >
             Back
           </button>
         </div>
       )}
 
       {/* Preview / Review phase */}
-      {(phase === 'preview' || phase === 'review') && (
+      {(phase === "preview" || phase === "review") && (
         <div>
           {/* Summary bar */}
-          <div style={{
-            marginBottom: '12px', padding: '8px 14px', background: 'var(--bg-secondary)', borderRadius: '6px',
-            border: '1px solid var(--border-color)', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', fontSize: '12px',
-          }}>
+          <div className="cfr-summary-bar">
             <span>
               <strong>{find}</strong>
-              {' \u2192 '}
-              {llmMode && phase === 'review'
-                ? <em style={{ color: 'var(--text-muted)' }}>contextual variants</em>
-                : <strong>{replace || <em style={{ color: 'var(--text-muted)' }}>(delete)</em>}</strong>
-              }
+              {" \u2192 "}
+              {llmMode && phase === "review" ? (
+                <em className="cfr-summary-em">contextual variants</em>
+              ) : (
+                <strong>{replace || <em className="cfr-summary-em">(delete)</em>}</strong>
+              )}
             </span>
-            <span style={{ color: 'var(--text-muted)' }}>|</span>
-            <span style={{ color: '#22c55e' }}>{acceptCount} accept</span>
-            <span style={{ color: '#ef4444' }}>{matches.length - acceptCount} reject</span>
-            <span style={{ color: 'var(--text-muted)' }}>/ {matches.length} total</span>
-            {phase === 'review' && <span style={{ color: 'var(--text-muted)' }}>({variants.size} variants)</span>}
-            <div style={{ flex: 1 }} />
-            <button onClick={acceptAllMatches} style={{ background: 'none', border: 'none', color: '#22c55e', fontSize: '10px', cursor: 'pointer', textDecoration: 'underline' }}>
+            <span className="cfr-summary-muted">|</span>
+            <span className="cfr-summary-accept">{acceptCount} accept</span>
+            <span className="cfr-summary-reject">{matches.length - acceptCount} reject</span>
+            <span className="cfr-summary-muted">/ {matches.length} total</span>
+            {phase === "review" && (
+              <span className="cfr-summary-muted">({variants.size} variants)</span>
+            )}
+            <div className="cfr-summary-spacer" />
+            <button onClick={acceptAllMatches} className="cfr-summary-link cfr-summary-link-accept">
               Accept All
             </button>
-            <button onClick={rejectAllMatches} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10px', cursor: 'pointer', textDecoration: 'underline' }}>
+            <button onClick={rejectAllMatches} className="cfr-summary-link cfr-summary-link-reject">
               Reject All
             </button>
           </div>
 
-          {error && (
-            <div style={{
-              marginBottom: '12px', padding: '8px 14px', background: 'rgba(239, 68, 68, 0.1)',
-              borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '11px', color: '#ef4444',
-            }}>
-              {error}
-            </div>
-          )}
+          {error && <ErrorMessage message={error} className="ilu-error-banner cfr-error-banner" />}
 
           {/* Grouped matches */}
           {groupedByContext.map((ctxGroup) => (
@@ -1120,56 +1276,73 @@ export default function CorpusFindReplace() {
           ))}
 
           {/* Footer actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
-            <button onClick={handleReset} className="illuminator-button illuminator-button-secondary" style={{ padding: '6px 16px', fontSize: '12px' }}>
+          <div className="cfr-footer">
+            <button
+              onClick={handleReset}
+              className="illuminator-button illuminator-button-secondary cfr-btn-back"
+            >
               Back
             </button>
-            {phase === 'preview' && llmMode && hasAnnotationContext && (
+            {phase === "preview" && llmMode && hasAnnotationContext && (
               <button
                 onClick={handleGenerate}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '6px 16px', fontSize: '12px' }}
+                className="illuminator-button illuminator-button-secondary cfr-btn-back"
               >
-                Generate Variants ({matches.filter((m) => m.context === 'chronicleAnnotations' || m.context === 'entityAnnotations').length})
+                Generate Variants (
+                {
+                  matches.filter(
+                    (m) => m.context === "chronicleAnnotations" || m.context === "entityAnnotations"
+                  ).length
+                }
+                )
               </button>
             )}
             <button
-              onClick={handleApply}
+              onClick={() => void handleApply()}
               disabled={acceptCount === 0}
-              className="illuminator-button"
-              style={{ padding: '6px 20px', fontSize: '12px', opacity: acceptCount > 0 ? 1 : 0.5 }}
+              className={`illuminator-button cfr-btn-apply ${acceptCount > 0 ? "" : "cfr-btn-half-opacity"}`}
             >
-              Apply ({acceptCount} {acceptCount === 1 ? 'replacement' : 'replacements'})
+              Apply ({acceptCount} {acceptCount === 1 ? "replacement" : "replacements"})
             </button>
           </div>
         </div>
       )}
 
       {/* Generating */}
-      {phase === 'generating' && (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Generating contextual variants...</div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            {matches.filter((m) => m.context === 'chronicleAnnotations' || m.context === 'entityAnnotations').length} annotation matches
-            {' \u00B7 '}
-            {Math.ceil(matches.filter((m) => m.context === 'chronicleAnnotations' || m.context === 'entityAnnotations').length / BATCH_SIZE)} LLM calls
+      {phase === "generating" && (
+        <div className="cfr-phase-center">
+          <div className="cfr-phase-title">Generating contextual variants...</div>
+          <div className="cfr-phase-subtitle">
+            {
+              matches.filter(
+                (m) => m.context === "chronicleAnnotations" || m.context === "entityAnnotations"
+              ).length
+            }{" "}
+            annotation matches
+            {" \u00B7 "}
+            {Math.ceil(
+              matches.filter(
+                (m) => m.context === "chronicleAnnotations" || m.context === "entityAnnotations"
+              ).length / BATCH_SIZE
+            )}{" "}
+            LLM calls
           </div>
-          {error && <div style={{ marginTop: '12px', fontSize: '12px', color: '#ef4444' }}>{error}</div>}
+          {error && <ErrorMessage message={error} className="cfr-error-inline" />}
         </div>
       )}
 
       {/* Applying / Done */}
-      {(phase === 'applying' || phase === 'done') && (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-            {phase === 'applying' ? 'Applying replacements...' : 'Replace Complete'}
+      {(phase === "applying" || phase === "done") && (
+        <div className="cfr-phase-center">
+          <div className="cfr-phase-title">
+            {phase === "applying" ? "Applying replacements..." : "Replace Complete"}
           </div>
-          {phase === 'done' && (
+          {phase === "done" && (
             <>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
-                {resultCount} replacement{resultCount !== 1 ? 's' : ''} applied.
+              <div className="cfr-done-msg">
+                {resultCount} replacement{resultCount !== 1 ? "s" : ""} applied.
               </div>
-              <button onClick={handleReset} className="illuminator-button" style={{ padding: '6px 20px', fontSize: '12px', marginTop: '16px' }}>
+              <button onClick={handleReset} className="illuminator-button cfr-btn-new-search">
                 New Search
               </button>
             </>

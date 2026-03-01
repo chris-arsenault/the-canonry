@@ -5,9 +5,9 @@
  * when they need to invent minor characters to represent factions.
  */
 
-import { generate } from 'name-forge';
-import type { Culture } from 'name-forge';
-import type { CultureDefinition } from '@canonry/world-schema';
+import { generate } from "name-forge";
+import type { Culture } from "name-forge";
+import type { CultureDefinition } from "@canonry/world-schema";
 
 const NAMES_PER_CULTURE = 4;
 
@@ -51,7 +51,7 @@ export async function generateNameBank(
 
     try {
       const result = await generate(culture, {
-        kind: 'npc',
+        kind: "npc",
         count: NAMES_PER_CULTURE,
         seed: `namebank-${cultureId}-${Date.now()}`,
       });
@@ -68,11 +68,9 @@ export async function generateNameBank(
 /**
  * Extract unique culture IDs from a list of entities.
  */
-export function extractCultureIds(
-  entities: Array<{ culture?: string }>
-): string[] {
+export function extractCultureIds(entities: Array<{ culture?: string }>): string[] {
   const cultureIds = entities
     .map((e) => e.culture)
-    .filter((c): c is string => c !== undefined && c !== null && c !== '');
+    .filter((c): c is string => c !== undefined && c !== null && c !== "");
   return [...new Set(cultureIds)];
 }

@@ -1,0 +1,86 @@
+/* Shared panel utilities available: see panel-utilities.css in shared-components */
+/* RevisionFilterModal — rfm- prefix */
+/* Overlay, header, close button, scroll lock, and Escape are provided by ModalShell */
+
+.modal.rfm-dialog {
+  width: 440px;
+  max-width: 95vw;
+  height: auto;
+  max-height: 90vh;
+}
+
+.rfm-subtitle {
+  margin: 0 0 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.rfm-counts-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 16px;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.rfm-count-label {
+  color: var(--text-secondary);
+}
+
+.rfm-count-value {
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.rfm-count-value-warning {
+  color: var(--warning-color, #f59e0b);
+}
+
+.rfm-count-value-muted {
+  color: var(--text-muted);
+}
+
+.rfm-count-label-total {
+  font-weight: 600;
+}
+
+/* Chronicle filter toggle */
+.rfm-filter-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.rfm-filter-checkbox {
+  margin-top: 2px;
+}
+
+.rfm-filter-title {
+  font-weight: 600;
+}
+
+.rfm-filter-description {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* No-entities warning */
+.rfm-warning {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid var(--warning-color, #f59e0b);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Footer button sizing (layout provided by modal-footer) */
+/* Shared: compose with .ilu-footer-btn — all base props removed */
+.rfm-footer-btn { }

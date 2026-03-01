@@ -4,12 +4,13 @@
  * Loads world data from the shared Dexie store.
  */
 
-import { useEffect, useMemo, useState } from 'react';
-import './index.css';
-import WorldExplorer from './components/WorldExplorer.tsx';
-import type { WorldState } from './types/world.ts';
-import { validateWorldData } from './utils/schemaValidation.ts';
-import { buildWorldStateForSlot } from '@penguin-tales/world-store';
+import React, { useEffect, useMemo, useState } from "react";
+import "./index.css";
+import WorldExplorer from "./components/WorldExplorer.tsx";
+import type { WorldState } from "./types/world.ts";
+import { validateWorldData } from "./utils/schemaValidation.ts";
+import { buildWorldStateForSlot } from "@the-canonry/world-store";
+import { ErrorMessage } from "@the-canonry/shared-components";
 
 export interface ArchivistRemoteProps {
   projectId?: string;
@@ -22,7 +23,7 @@ export default function ArchivistRemote({
   projectId,
   activeSlotIndex = 0,
   dexieSeededAt,
-}: ArchivistRemoteProps) {
+}: Readonly<ArchivistRemoteProps>) {
   const [worldDataState, setWorldDataState] = useState<WorldState | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export default function ArchivistRemote({
   const effectiveLoadError = projectId ? loadError : null;
   const schemaIssues = useMemo(
     () => (effectiveWorldData ? validateWorldData(effectiveWorldData) : []),
-    [effectiveWorldData],
+    [effectiveWorldData]
   );
 
   useEffect(() => {
@@ -50,11 +51,11 @@ export default function ArchivistRemote({
         if (cancelled) return;
         setWorldDataState(loaded);
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         if (cancelled) return;
-        console.error('[ArchivistRemote] Failed to load world data:', err);
+        console.error("[ArchivistRemote] Failed to load world data:", err);
         setWorldDataState(null);
-        setLoadError(err?.message || 'Failed to load world data from Dexie.');
+        setLoadError(err instanceof Error ? err.message : "Failed to load world data from Dexie.");
       })
       .finally(() => {
         if (cancelled) return;
@@ -80,11 +81,10 @@ export default function ArchivistRemote({
 
   if (effectiveLoadError) {
     return (
-      <div className="archivist-error-state">
+      <div className="archivist-unavailable-state">
         <div className="archivist-state-content">
           <div className="archivist-state-icon">❌</div>
-          <div className="archivist-state-title">World data unavailable</div>
-          <div className="archivist-state-message">{effectiveLoadError}</div>
+          <ErrorMessage title="World data unavailable" message={effectiveLoadError} />
         </div>
       </div>
     );
@@ -97,7 +97,7 @@ export default function ArchivistRemote({
           <div className="archivist-state-icon">📜</div>
           <div className="archivist-state-title">No World Data</div>
           <div className="archivist-state-message">
-            Run a simulation in Lore Weave and click "View in Archivist" to explore your world.
+            Run a simulation in Lore Weave and click &quot;View in Archivist&quot; to explore your world.
           </div>
         </div>
       </div>
@@ -106,12 +106,10 @@ export default function ArchivistRemote({
 
   if (schemaIssues.length > 0) {
     return (
-      <div className="archivist-error-state">
+      <div className="archivist-unavailable-state">
         <div className="archivist-state-content">
           <div className="archivist-state-icon">❌</div>
-          <div className="archivist-state-title">
-            World data is missing required schema fields
-          </div>
+          <div className="archivist-state-title">World data is missing required schema fields</div>
           <ul className="archivist-state-list">
             {schemaIssues.map((issue, index) => (
               <li key={`${issue}-${index}`}>{issue}</li>
@@ -122,10 +120,5 @@ export default function ArchivistRemote({
     );
   }
 
-  return (
-    <WorldExplorer
-      worldData={effectiveWorldData}
-      loreData={null}
-    />
-  );
+  return <WorldExplorer worldData={effectiveWorldData} loreData={null} />;
 }

@@ -1,0 +1,13 @@
+.pm-deviation {
+  font-size: 12px;
+  color: var(--pm-deviation-color);
+}
+
+.pm-pressure-fill {
+  width: var(--pm-pressure-fill-width);
+  background-color: var(--pm-pressure-fill-color);
+}
+
+.pm-pressure-value {
+  color: var(--pm-pressure-value-color);
+}

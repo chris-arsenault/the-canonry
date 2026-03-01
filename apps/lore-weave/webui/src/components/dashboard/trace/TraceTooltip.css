@@ -1,0 +1,33 @@
+.tt-tooltip {
+  background-color: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #e2e8f0;
+  font-size: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.tt-tick-header {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tt-pressure-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tt-pressure-name {
+  color: var(--tt-pressure-color);
+}
+
+.tt-event-header {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tt-event-tick {
+  color: #94a3b8;
+}

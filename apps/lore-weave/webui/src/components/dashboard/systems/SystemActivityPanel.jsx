@@ -7,31 +7,32 @@
  * - System-specific details
  */
 
-import React, { useMemo, useState } from 'react';
-import { Group } from '@visx/group';
-import { scaleLinear, scaleOrdinal, scaleBand } from '@visx/scale';
-import { AxisLeft, AxisBottom } from '@visx/axis';
-import { Bar, Line, LinePath, Circle } from '@visx/shape';
-import { GridRows } from '@visx/grid';
-import { ParentSize } from '@visx/responsive';
-import './SystemActivityPanel.css';
+import React, { useMemo, useState } from "react";
+import PropTypes from "prop-types";
+import { Group } from "@visx/group";
+import { scaleLinear, scaleBand } from "@visx/scale";
+import { AxisLeft, AxisBottom } from "@visx/axis";
+import { LinePath, Circle } from "@visx/shape";
+import { GridRows } from "@visx/grid";
+import { ParentSize } from "@visx/responsive";
+import "./SystemActivityPanel.css";
 
 const MARGIN = { top: 20, right: 20, bottom: 40, left: 120 };
 
 // System type colors
 const SYSTEM_COLORS = {
-  'plane-diffusion': '#f59e0b',
-  'graph-contagion': '#8b5cf6',
-  'cluster-formation': '#22c55e',
-  'connection-evolution': '#3b82f6',
-  'tag-diffusion': '#ec4899',
-  'threshold-trigger': '#14b8a6',
-  'framework-era-manager': '#ef4444',
-  'default': '#64748b',
+  "plane-diffusion": "#f59e0b",
+  "graph-contagion": "#8b5cf6",
+  "cluster-formation": "#22c55e",
+  "connection-evolution": "#3b82f6",
+  "tag-diffusion": "#ec4899",
+  "threshold-trigger": "#14b8a6",
+  "framework-era-manager": "#ef4444",
+  default: "#64748b",
 };
 
 const AXIS_LABEL_PROPS = Object.freeze({
-  fill: '#64748b',
+  fill: "#64748b",
   fontSize: 11,
 });
 
@@ -54,7 +55,7 @@ function processSystemActions(systemActions) {
 
   for (const action of systemActions) {
     // Skip framework-growth (shown via templates)
-    if (action.systemId === 'framework-growth') continue;
+    if (action.systemId === "framework-growth") continue;
 
     maxTick = Math.max(maxTick, action.tick);
 
@@ -82,13 +83,14 @@ function processSystemActions(systemActions) {
   }
 
   // Convert to array and sort by total activity
-  const systems = Array.from(systemMap.values())
-    .sort((a, b) => (b.totalRelationships + b.totalModified) - (a.totalRelationships + a.totalModified));
+  const systems = Array.from(systemMap.values()).sort(
+    (a, b) => b.totalRelationships + b.totalModified - (a.totalRelationships + a.totalModified)
+  );
 
   // Build timeline data (aggregated per tick)
   const timelineMap = new Map();
   for (const action of systemActions) {
-    if (action.systemId === 'framework-growth') continue;
+    if (action.systemId === "framework-growth") continue;
 
     if (!timelineMap.has(action.tick)) {
       timelineMap.set(action.tick, { tick: action.tick, relationships: 0, modified: 0 });
@@ -115,7 +117,7 @@ function SystemSwimlaneChart({ systems, maxTick, width, height }) {
   });
 
   const yScale = scaleBand({
-    domain: systems.map(s => s.id),
+    domain: systems.map((s) => s.id),
     range: [0, innerHeight],
     padding: 0.3,
   });
@@ -124,11 +126,7 @@ function SystemSwimlaneChart({ systems, maxTick, width, height }) {
     <svg width={width} height={height}>
       <Group left={MARGIN.left} top={MARGIN.top}>
         {/* Grid */}
-        <GridRows
-          scale={yScale}
-          width={innerWidth}
-          stroke="rgba(255,255,255,0.05)"
-        />
+        <GridRows scale={yScale} width={innerWidth} stroke="rgba(255,255,255,0.05)" />
 
         {/* System lanes */}
         {systems.map((sys) => {
@@ -162,7 +160,7 @@ function SystemSwimlaneChart({ systems, maxTick, width, height }) {
                     r={size}
                     fill={color}
                     fillOpacity={hasActivity ? 0.8 : 0.3}
-                    stroke={exec.isEraTransition ? '#f59e0b' : 'none'}
+                    stroke={exec.isEraTransition ? "#f59e0b" : "none"}
                     strokeWidth={exec.isEraTransition ? 2 : 0}
                   />
                 );
@@ -177,13 +175,13 @@ function SystemSwimlaneChart({ systems, maxTick, width, height }) {
           stroke="rgba(148, 163, 184, 0.3)"
           tickStroke="transparent"
           tickLabelProps={() => ({
-            fill: '#94a3b8',
+            fill: "#94a3b8",
             fontSize: 11,
-            textAnchor: 'end',
-            dy: '0.33em',
+            textAnchor: "end",
+            dy: "0.33em",
           })}
           tickFormat={(id) => {
-            const sys = systems.find(s => s.id === id);
+            const sys = systems.find((s) => s.id === id);
             return sys?.name || id;
           }}
         />
@@ -195,9 +193,9 @@ function SystemSwimlaneChart({ systems, maxTick, width, height }) {
           stroke="rgba(148, 163, 184, 0.3)"
           tickStroke="rgba(148, 163, 184, 0.3)"
           tickLabelProps={() => ({
-            fill: '#64748b',
+            fill: "#64748b",
             fontSize: 10,
-            textAnchor: 'middle',
+            textAnchor: "middle",
           })}
           label="Tick"
           labelOffset={25}
@@ -215,10 +213,7 @@ function ActivityTimelineChart({ timeline, maxTick, width, height }) {
   const innerWidth = width - MARGIN.left - MARGIN.right;
   const innerHeight = height - MARGIN.top - MARGIN.bottom;
 
-  const maxValue = Math.max(
-    ...timeline.map(t => Math.max(t.relationships, t.modified)),
-    1
-  );
+  const maxValue = Math.max(...timeline.map((t) => Math.max(t.relationships, t.modified)), 1);
 
   const xScale = scaleLinear({
     domain: [0, maxTick],
@@ -234,17 +229,13 @@ function ActivityTimelineChart({ timeline, maxTick, width, height }) {
     <svg width={width} height={height}>
       <Group left={MARGIN.left} top={MARGIN.top}>
         {/* Grid */}
-        <GridRows
-          scale={yScale}
-          width={innerWidth}
-          stroke="rgba(255,255,255,0.05)"
-        />
+        <GridRows scale={yScale} width={innerWidth} stroke="rgba(255,255,255,0.05)" />
 
         {/* Relationships line */}
         <LinePath
           data={timeline}
-          x={d => xScale(d.tick)}
-          y={d => yScale(d.relationships)}
+          x={(d) => xScale(d.tick)}
+          y={(d) => yScale(d.relationships)}
           stroke="#8b5cf6"
           strokeWidth={2}
           strokeLinecap="round"
@@ -253,8 +244,8 @@ function ActivityTimelineChart({ timeline, maxTick, width, height }) {
         {/* Modified entities line */}
         <LinePath
           data={timeline}
-          x={d => xScale(d.tick)}
-          y={d => yScale(d.modified)}
+          x={(d) => xScale(d.tick)}
+          y={(d) => yScale(d.modified)}
           stroke="#22c55e"
           strokeWidth={2}
           strokeLinecap="round"
@@ -267,10 +258,10 @@ function ActivityTimelineChart({ timeline, maxTick, width, height }) {
           stroke="rgba(148, 163, 184, 0.3)"
           tickStroke="rgba(148, 163, 184, 0.3)"
           tickLabelProps={() => ({
-            fill: '#64748b',
+            fill: "#64748b",
             fontSize: 10,
-            textAnchor: 'end',
-            dy: '0.33em',
+            textAnchor: "end",
+            dy: "0.33em",
           })}
           numTicks={5}
         />
@@ -282,9 +273,9 @@ function ActivityTimelineChart({ timeline, maxTick, width, height }) {
           stroke="rgba(148, 163, 184, 0.3)"
           tickStroke="rgba(148, 163, 184, 0.3)"
           tickLabelProps={() => ({
-            fill: '#64748b',
+            fill: "#64748b",
             fontSize: 10,
-            textAnchor: 'middle',
+            textAnchor: "middle",
           })}
         />
       </Group>
@@ -303,7 +294,7 @@ function SystemSummaryCards({ systems }) {
         const execCount = sys.executions.length;
 
         return (
-          <div key={sys.id} className="system-card" style={{ borderLeftColor: color }}>
+          <div key={sys.id} className="system-card" style={{ '--sa-card-border-color': color }}>
             <div className="system-card-header">
               <span className="system-card-name">{sys.name}</span>
               <span className="system-card-count">{execCount}x</span>
@@ -329,7 +320,7 @@ function SystemSummaryCards({ systems }) {
  * Main panel component
  */
 export default function SystemActivityPanel({ systemActions }) {
-  const [activeView, setActiveView] = useState('swimlane');
+  const [activeView, setActiveView] = useState("swimlane");
 
   const { systems, timeline, maxTick } = useMemo(
     () => processSystemActions(systemActions),
@@ -352,14 +343,14 @@ export default function SystemActivityPanel({ systemActions }) {
         <div className="system-activity-title">System Activity</div>
         <div className="system-activity-toggles">
           <button
-            className={`system-toggle ${activeView === 'swimlane' ? 'active' : ''}`}
-            onClick={() => setActiveView('swimlane')}
+            className={`system-toggle ${activeView === "swimlane" ? "active" : ""}`}
+            onClick={() => setActiveView("swimlane")}
           >
             Swimlane
           </button>
           <button
-            className={`system-toggle ${activeView === 'timeline' ? 'active' : ''}`}
-            onClick={() => setActiveView('timeline')}
+            className={`system-toggle ${activeView === "timeline" ? "active" : ""}`}
+            onClick={() => setActiveView("timeline")}
           >
             Timeline
           </button>
@@ -372,11 +363,11 @@ export default function SystemActivityPanel({ systemActions }) {
       {/* Chart area */}
       <div className="system-activity-chart">
         <ParentSize>
-          {({ width, height }) => {
+          {({ width, height: _height }) => {
             if (width === 0) return null;
             const chartHeight = Math.max(200, Math.min(300, systems.length * 40 + 60));
 
-            return activeView === 'swimlane' ? (
+            return activeView === "swimlane" ? (
               <SystemSwimlaneChart
                 systems={systems}
                 maxTick={maxTick}
@@ -397,19 +388,19 @@ export default function SystemActivityPanel({ systemActions }) {
 
       {/* Legend */}
       <div className="system-activity-legend">
-        {activeView === 'timeline' && (
+        {activeView === "timeline" && (
           <>
             <div className="legend-item">
-              <span className="legend-line" style={{ backgroundColor: '#8b5cf6' }} />
+              <span className="legend-line sa-legend-line" style={{ '--sa-legend-line-color': '#8b5cf6' }} />
               <span>Relationships Added</span>
             </div>
             <div className="legend-item">
-              <span className="legend-line dashed" style={{ backgroundColor: '#22c55e' }} />
+              <span className="legend-line dashed sa-legend-line" style={{ '--sa-legend-line-color': '#22c55e' }} />
               <span>Entities Modified</span>
             </div>
           </>
         )}
-        {activeView === 'swimlane' && (
+        {activeView === "swimlane" && (
           <>
             <div className="legend-item">
               <Circle cx={6} cy={6} r={6} fill="#8b5cf6" />
@@ -425,3 +416,25 @@ export default function SystemActivityPanel({ systemActions }) {
     </div>
   );
 }
+
+SystemSwimlaneChart.propTypes = {
+  systems: PropTypes.array,
+  maxTick: PropTypes.number,
+  width: PropTypes.number,
+  height: PropTypes.number,
+};
+
+ActivityTimelineChart.propTypes = {
+  timeline: PropTypes.array,
+  maxTick: PropTypes.number,
+  width: PropTypes.number,
+  height: PropTypes.number,
+};
+
+SystemSummaryCards.propTypes = {
+  systems: PropTypes.array,
+};
+
+SystemActivityPanel.propTypes = {
+  systemActions: PropTypes.array,
+};

@@ -1,0 +1,46 @@
+.tp-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--color-border);
+  background-color: var(--color-bg-card);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.tp-button-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tp-button-active {
+  border-color: rgba(59, 130, 246, 0.4);
+  background-color: rgba(59, 130, 246, 0.15);
+  color: rgb(147, 197, 253);
+}
+
+.tp-tilde {
+  font-size: 11px;
+}
+
+.tp-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  color: var(--color-text-dim);
+  font-size: 14px;
+}

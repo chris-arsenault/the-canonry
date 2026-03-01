@@ -1,6 +1,4 @@
-import type {
-  WorkerTask,
-} from '../../lib/enrichmentTypes';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
 import type {
   ChronicleGenerationContext,
   ChronicleImageRefs,
@@ -10,16 +8,16 @@ import type {
   ChronicleImageSize,
   ChronicleSampling,
   QuickCheckReport,
-} from '../../lib/chronicleTypes';
-import { CHRONICLE_SAMPLING_TOP_P } from '../../lib/chronicleTypes';
-import { analyzeConstellation, type EntityConstellation } from '../../lib/constellationAnalyzer';
+} from "../../lib/chronicleTypes";
+import { CHRONICLE_SAMPLING_TOP_P } from "../../lib/chronicleTypes";
+import { analyzeConstellation, type EntityConstellation } from "../../lib/constellationAnalyzer";
 import {
   synthesizePerspective,
   type PerspectiveSynthesisResult,
-} from '../../lib/perspectiveSynthesizer';
-import type { PerspectiveSynthesisRecord } from '../../lib/chronicleTypes';
-import type { ChronicleCoverImage } from '../../lib/chronicleTypes';
-import { getCoverImageConfig, getScenePromptTemplate } from '../../lib/coverImageStyles';
+} from "../../lib/perspectiveSynthesizer";
+import type { PerspectiveSynthesisRecord } from "../../lib/chronicleTypes";
+import type { ChronicleCoverImage } from "../../lib/chronicleTypes";
+import { getCoverImageConfig, getScenePromptTemplate } from "../../lib/coverImageStyles";
 import {
   createChronicle,
   type ChronicleRecord,
@@ -32,13 +30,12 @@ import {
   updateChronicleImageRefs,
   updateChronicleImageRef,
   updateChronicleCoverImage,
-  updateChronicleCoverImageStatus,
   updateChronicleFailure,
   getChronicle,
   putChronicle,
-} from '../../lib/db/chronicleRepository';
-import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
-import { resolveAnchorPhrase } from '../../lib/fuzzyAnchor';
+} from "../../lib/db/chronicleRepository";
+import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
+import { resolveAnchorPhrase } from "../../lib/fuzzyAnchor";
 import {
   selectEntitiesV2,
   buildV2Prompt,
@@ -47,26 +44,347 @@ import {
   buildCreativeStoryPrompt,
   getCreativeSystemPrompt,
   DEFAULT_V2_CONFIG,
-} from '../../lib/chronicle/v2';
-import type { NarrativeStyle } from '@canonry/world-schema';
-import { getStyleLibrary } from '../../lib/db/styleRepository';
-import { buildCopyEditSystemPrompt, buildCopyEditUserPrompt } from '../../lib/chronicle/v2/copyEditPrompt';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { stripLeadingWrapper, parseJsonObject } from './textParsing';
-import type { TaskHandler, TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
+} from "../../lib/chronicle/v2";
+import { getStyleLibrary } from "../../lib/db/styleRepository";
+import {
+  buildCopyEditSystemPrompt,
+  buildCopyEditUserPrompt,
+} from "../../lib/chronicle/v2/copyEditPrompt";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { stripLeadingWrapper, parseJsonObject } from "./textParsing";
+import type { StoryNarrativeStyle, DocumentNarrativeStyle, NarrativeStyle } from "@canonry/world-schema";
+import type { TaskHandler, TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
+import type { LLMTextCallResult } from "../../lib/llmTextCall";
+import type { ResolvedLLMCallConfig } from "../../lib/llmModelSettings";
+import type { WorkerConfig } from "../types";
+import type { NetworkDebugInfo } from "../../lib/enrichmentTypes";
+
+// ============================================================================
+// Shared Helper Types
+// ============================================================================
+
+interface CostBreakdown {
+  estimated: number;
+  actual: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+// ============================================================================
+// Shared Helper Functions
+// ============================================================================
+
+function extractCost(call: LLMTextCallResult): CostBreakdown {
+  return {
+    estimated: call.estimate.estimatedCost,
+    actual: call.usage.actualCost,
+    inputTokens: call.usage.inputTokens,
+    outputTokens: call.usage.outputTokens,
+  };
+}
+
+function addCosts(a: CostBreakdown, b: CostBreakdown): CostBreakdown {
+  return {
+    estimated: a.estimated + b.estimated,
+    actual: a.actual + b.actual,
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+  };
+}
+
+function buildSuccessResult(
+  chronicleId: string,
+  model: string,
+  cost: CostBreakdown,
+  debug?: NetworkDebugInfo,
+  extra?: Record<string, unknown>
+): TaskResult {
+  return {
+    success: true,
+    result: {
+      chronicleId,
+      generatedAt: Date.now(),
+      model,
+      estimatedCost: cost.estimated,
+      actualCost: cost.actual,
+      inputTokens: cost.inputTokens,
+      outputTokens: cost.outputTokens,
+      ...extra,
+    },
+    debug,
+  };
+}
+
+async function saveCostRecord(
+  task: WorkerTask,
+  chronicleId: string,
+  type: CostType,
+  model: string,
+  cost: CostBreakdown
+): Promise<void> {
+  await saveCostRecordWithDefaults({
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    entityId: task.entityId,
+    entityName: task.entityName,
+    entityKind: task.entityKind,
+    chronicleId,
+    type,
+    model,
+    estimatedCost: cost.estimated,
+    actualCost: cost.actual,
+    inputTokens: cost.inputTokens,
+    outputTokens: cost.outputTokens,
+  });
+}
+
+/** Run an LLM call and check for abort / error conditions. Returns null on failure (result already built). */
+function checkLlmCallResult(
+  call: LLMTextCallResult,
+  isAborted: () => boolean,
+  stepLabel: string
+): TaskResult | null {
+  if (isAborted()) {
+    return { success: false, error: "Task aborted", debug: call.result.debug };
+  }
+  if (call.result.error || !call.result.text) {
+    return {
+      success: false,
+      error: `${stepLabel} failed: ${call.result.error || "No text returned"}`,
+      debug: call.result.debug,
+    };
+  }
+  return null;
+}
+
+/** Build a PerspectiveSynthesisRecord from synthesis outputs and inputs. */
+function buildPerspectiveRecord(
+  perspectiveResult: PerspectiveSynthesisResult,
+  constellation: EntityConstellation,
+  chronicleContext: ChronicleGenerationContext,
+  narrativeStyle: NarrativeStyle,
+  perspectiveConfig: ResolvedLLMCallConfig
+): PerspectiveSynthesisRecord {
+  return {
+    generatedAt: Date.now(),
+    model: perspectiveConfig.model,
+    brief: perspectiveResult.synthesis.brief,
+    facets: perspectiveResult.synthesis.facets,
+    suggestedMotifs: perspectiveResult.synthesis.suggestedMotifs,
+    narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
+    entityDirectives: perspectiveResult.synthesis.entityDirectives,
+    temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
+    constellationSummary: constellation.focusSummary,
+    constellation: {
+      cultures: constellation.cultures,
+      kinds: constellation.kinds,
+      prominentTags: constellation.prominentTags,
+      dominantCulture: constellation.dominantCulture,
+      cultureBalance: constellation.cultureBalance,
+      relationshipKinds: constellation.relationshipKinds,
+    },
+    coreTone: chronicleContext.toneFragments?.core,
+    narrativeStyleId: narrativeStyle.id,
+    narrativeStyleName: narrativeStyle.name,
+    factSelectionRange: buildFactSelectionRange(chronicleContext),
+    inputFacts: chronicleContext.canonFactsWithMetadata?.map((f) => ({
+      id: f.id,
+      text: f.text,
+      type: f.type,
+      required: f.required,
+      disabled: f.disabled,
+    })),
+    inputWorldDynamics: perspectiveResult.resolvedWorldDynamics,
+    inputCulturalIdentities: chronicleContext.culturalIdentities,
+    inputEntities: chronicleContext.entities.slice(0, 15).map((e) => ({
+      name: e.name,
+      kind: e.kind,
+      culture: e.culture,
+      summary: e.summary,
+    })),
+    focalEra: chronicleContext.era
+      ? {
+          id: chronicleContext.era.id,
+          name: chronicleContext.era.name,
+          description: chronicleContext.era.description,
+        }
+      : undefined,
+    inputTokens: perspectiveResult.usage.inputTokens,
+    outputTokens: perspectiveResult.usage.outputTokens,
+    actualCost: perspectiveResult.usage.actualCost,
+  };
+}
+
+function buildFactSelectionRange(
+  chronicleContext: ChronicleGenerationContext
+): { min?: number; max?: number } | undefined {
+  const requestedMin = chronicleContext.factSelection?.minCount;
+  const requestedMax = chronicleContext.factSelection?.maxCount;
+  if (
+    (typeof requestedMin === "number" && requestedMin > 0) ||
+    (typeof requestedMax === "number" && requestedMax > 0)
+  ) {
+    return { min: requestedMin, max: requestedMax };
+  }
+  return undefined;
+}
+
+/** Build tone for generation prompt from PS results (excludes coreTone). */
+function buildToneFromPerspective(perspectiveResult: PerspectiveSynthesisResult): string {
+  const motifLines = perspectiveResult.synthesis.suggestedMotifs.map((m) => `- "${m}"`).join("\n");
+  const motifSection =
+    perspectiveResult.synthesis.suggestedMotifs.length > 0
+      ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${motifLines}`
+      : "";
+  return "PERSPECTIVE FOR THIS CHRONICLE:\n" + perspectiveResult.synthesis.brief + motifSection;
+}
+
+/** Apply perspective synthesis outputs to chronicle context. */
+function applyPerspectiveToContext(
+  baseContext: ChronicleGenerationContext,
+  perspectiveResult: PerspectiveSynthesisResult
+): ChronicleGenerationContext {
+  return {
+    ...baseContext,
+    tone: buildToneFromPerspective(perspectiveResult),
+    canonFacts: perspectiveResult.facetedFacts,
+    narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
+    entityDirectives: perspectiveResult.synthesis.entityDirectives,
+    worldDynamicsResolved: perspectiveResult.resolvedWorldDynamics.map((d) => d.text),
+    temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
+  };
+}
+
+/** Run perspective synthesis with standard error handling. */
+async function runPerspectiveSynthesis(
+  chronicleContext: ChronicleGenerationContext,
+  narrativeStyle: NarrativeStyle,
+  config: WorkerConfig,
+  llmClient: TaskContext["llmClient"]
+): Promise<
+  | { perspectiveResult: PerspectiveSynthesisResult; constellation: EntityConstellation }
+  | { error: string }
+> {
+  const perspectiveConfig = getCallConfig(config, "perspective.synthesis");
+
+  const constellation = analyzeConstellation({
+    entities: chronicleContext.entities,
+    relationships: chronicleContext.relationships,
+    events: chronicleContext.events,
+    focalEra: chronicleContext.era,
+  });
+  console.log(`[Worker] Constellation: ${constellation.focusSummary}`);
+
+  try {
+    const perspectiveResult = await synthesizePerspective(
+      {
+        constellation,
+        entities: chronicleContext.entities,
+        focalEra: chronicleContext.era,
+        factsWithMetadata: chronicleContext.canonFactsWithMetadata,
+        toneFragments: chronicleContext.toneFragments,
+        culturalIdentities: chronicleContext.culturalIdentities,
+        narrativeStyle,
+        proseHints: chronicleContext.proseHints,
+        worldDynamics: chronicleContext.worldDynamics,
+        factSelection: chronicleContext.factSelection,
+        narrativeDirection: chronicleContext.narrativeDirection,
+        roleAssignments: chronicleContext.focus?.roleAssignments,
+      },
+      llmClient,
+      perspectiveConfig
+    );
+
+    console.log(
+      `[Worker] Perspective synthesis complete: ${perspectiveResult.facetedFacts.length} faceted facts, ${perspectiveResult.synthesis.suggestedMotifs.length} motifs`
+    );
+    return { perspectiveResult, constellation };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("[Worker] Perspective synthesis failed:", errorMessage);
+    return { error: `Perspective synthesis failed: ${errorMessage}` };
+  }
+}
+
+/** Extract narrative style fields for building style context blocks. */
+function extractNarrativeStyleBlock(narrativeStyle: NarrativeStyle): string {
+  const parts: string[] = [`**${narrativeStyle.name}** (${narrativeStyle.format})`];
+  if (narrativeStyle.description) parts.push(narrativeStyle.description);
+  if (narrativeStyle.format === "story") {
+    if (narrativeStyle.narrativeInstructions) {
+      parts.push(`Structure: ${narrativeStyle.narrativeInstructions.slice(0, 500)}`);
+    }
+    if (narrativeStyle.proseInstructions) {
+      parts.push(`Prose: ${narrativeStyle.proseInstructions.slice(0, 500)}`);
+    }
+  }
+  if (narrativeStyle.format === "document" && narrativeStyle.documentInstructions) {
+    parts.push(`Document: ${narrativeStyle.documentInstructions.slice(0, 500)}`);
+  }
+  if (narrativeStyle.craftPosture) {
+    parts.push(`Craft Posture: ${narrativeStyle.craftPosture.slice(0, 300)}`);
+  }
+  return parts.join("\n");
+}
 
 // ============================================================================
 // Chronicle Task Execution
 // ============================================================================
 
-async function markChronicleFailure(
+async function _markChronicleFailure(
   chronicleId: string,
   step: string,
   reason: string
 ): Promise<void> {
   await updateChronicleFailure(chronicleId, step, reason);
+}
+
+/**
+ * Dispatch a post-generation step to the appropriate handler.
+ */
+function dispatchPostGenerationStep(
+  step: string,
+  task: WorkerTask,
+  chronicleRecord: ChronicleRecord,
+  context: TaskContext
+): Promise<TaskResult> | TaskResult {
+  switch (step) {
+    case "regenerate_temperature":
+      return executeSamplingRegenerationStep(task, chronicleRecord, context);
+    case "regenerate_full":
+      return executeFullRegenerationStep(task, chronicleRecord, context);
+    case "regenerate_creative":
+      return executeCreativeRegenerationStep(task, chronicleRecord, context);
+    case "compare":
+      return executeCompareStep(task, chronicleRecord, context);
+    case "combine":
+      return executeCombineStep(task, chronicleRecord, context);
+    case "copy_edit":
+      return executeCopyEditStep(task, chronicleRecord, context);
+    case "temporal_check":
+      return executeTemporalCheckStep(task, chronicleRecord, context);
+    case "quick_check":
+      return executeQuickCheckStep(task, chronicleRecord, context);
+    case "summary":
+      return executeSummaryStep(task, chronicleRecord, context);
+    case "title":
+      return executeTitleStep(task, chronicleRecord, context);
+    case "image_refs":
+      if (!task.chronicleContext) {
+        return { success: false, error: "Chronicle context required for image refs step" };
+      }
+      return executeImageRefsStep(task, chronicleRecord, context);
+    case "cover_image_scene":
+      return executeCoverImageSceneStep(task, chronicleRecord, context);
+    case "regenerate_scene_description":
+      return executeRegenerateSceneDescriptionStep(task, chronicleRecord, context);
+    case "cover_image":
+      return executeCoverImageStep(task, chronicleRecord, context);
+    default:
+      return { success: false, error: `Unknown step: ${step}` };
+  }
 }
 
 /**
@@ -77,24 +395,22 @@ async function executeEntityChronicleTask(
   task: WorkerTask,
   context: TaskContext
 ): Promise<TaskResult> {
-  const { config, llmClient, isAborted } = context;
+  const { llmClient } = context;
 
   if (!llmClient.isEnabled()) {
-    return { success: false, error: 'Text generation not configured - missing Anthropic API key' };
+    return { success: false, error: "Text generation not configured - missing Anthropic API key" };
   }
 
-  const step = task.chronicleStep || 'generate_v2';
+  const step = task.chronicleStep || "generate_v2";
   console.log(`[Worker] Chronicle step=${step} for entity=${task.entityId}`);
 
-  // V2 single-shot generation - primary generation path
-  if (step === 'generate_v2') {
+  if (step === "generate_v2") {
     if (!task.chronicleContext) {
-      return { success: false, error: 'Chronicle context required for generate_v2 step' };
+      return { success: false, error: "Chronicle context required for generate_v2 step" };
     }
     return executeV2GenerationStep(task, context);
   }
 
-  // For post-generation steps, we need the existing chronicle
   if (!task.chronicleId) {
     return { success: false, error: `chronicleId required for ${step} step` };
   }
@@ -104,69 +420,13 @@ async function executeEntityChronicleTask(
     return { success: false, error: `Chronicle ${task.chronicleId} not found` };
   }
 
-  if (step === 'regenerate_temperature') {
-    return executeSamplingRegenerationStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'regenerate_full') {
-    return executeFullRegenerationStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'regenerate_creative') {
-    return executeCreativeRegenerationStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'compare') {
-    return executeCompareStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'combine') {
-    return executeCombineStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'copy_edit') {
-    return executeCopyEditStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'temporal_check') {
-    return executeTemporalCheckStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'quick_check') {
-    return executeQuickCheckStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'summary') {
-    return executeSummaryStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'title') {
-    return executeTitleStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'image_refs') {
-    if (!task.chronicleContext) {
-      return { success: false, error: 'Chronicle context required for image refs step' };
-    }
-    return executeImageRefsStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'cover_image_scene') {
-    return executeCoverImageSceneStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'regenerate_scene_description') {
-    return executeRegenerateSceneDescriptionStep(task, chronicleRecord, context);
-  }
-
-  if (step === 'cover_image') {
-    return executeCoverImageStep(task, chronicleRecord, context);
-  }
-
-  return { success: false, error: `Unknown step: ${step}` };
+  return dispatchPostGenerationStep(step, task, chronicleRecord, context);
 }
 
-function resolveTargetVersionContent(record: ChronicleRecord): { versionId: string; content: string } {
+function resolveTargetVersionContent(record: ChronicleRecord): {
+  versionId: string;
+  content: string;
+} {
   const versions = record.generationHistory || [];
   const latest = versions.reduce(
     (acc, v) => (acc && acc.generatedAt > v.generatedAt ? acc : v),
@@ -180,16 +440,17 @@ function resolveTargetVersionContent(record: ChronicleRecord): { versionId: stri
   if (latest) {
     return { versionId: latest.versionId, content: latest.content };
   }
-  return { versionId: activeVersionId || 'unknown', content: record.assembledContent || '' };
+  return { versionId: activeVersionId || "unknown", content: record.assembledContent || "" };
 }
 
 /**
  * Resolve sampling parameters from LLM call config.
  * Sampling is now controlled globally via LLM config (topP: 1.0 = normal, 0.95 = low).
  */
-function resolveChronicleSamplingParams(
-  callConfig: ReturnType<typeof getCallConfig>
-): { temperature?: number; topP?: number } {
+function resolveChronicleSamplingParams(callConfig: ReturnType<typeof getCallConfig>): {
+  temperature?: number;
+  topP?: number;
+} {
   const hasThinking = callConfig.thinkingBudget > 0;
   if (hasThinking) {
     // Use topP from config (1.0 = normal, 0.95 = low)
@@ -208,7 +469,7 @@ function resolveChronicleSamplingParams(
  */
 function deriveSamplingFromConfig(callConfig: ReturnType<typeof getCallConfig>): ChronicleSampling {
   const topP = callConfig.topP ?? CHRONICLE_SAMPLING_TOP_P.normal;
-  return topP <= 0.95 ? 'low' : 'normal';
+  return topP <= 0.95 ? "low" : "normal";
 }
 
 /**
@@ -223,20 +484,20 @@ async function executeSamplingRegenerationStep(
   const { config, llmClient, isAborted } = context;
 
   if (!chronicleRecord) {
-    return { success: false, error: 'Chronicle record missing for regeneration' };
+    return { success: false, error: "Chronicle record missing for regeneration" };
   }
 
-  if (chronicleRecord.status === 'complete' || chronicleRecord.finalContent) {
-    return { success: false, error: 'Sampling regeneration is only available before acceptance' };
+  if (chronicleRecord.status === "complete" || chronicleRecord.finalContent) {
+    return { success: false, error: "Sampling regeneration is only available before acceptance" };
   }
 
   const systemPrompt = chronicleRecord.generationSystemPrompt;
   const userPrompt = chronicleRecord.generationUserPrompt;
   if (!systemPrompt || !userPrompt) {
-    return { success: false, error: 'Stored prompts missing; cannot regenerate this chronicle' };
+    return { success: false, error: "Stored prompts missing; cannot regenerate this chronicle" };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.generation');
+  const callConfig = getCallConfig(config, "chronicle.generation");
   const samplingParams = resolveChronicleSamplingParams(callConfig);
   const sampling = deriveSamplingFromConfig(callConfig);
 
@@ -246,7 +507,7 @@ async function executeSamplingRegenerationStep(
 
   const generationCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.generation',
+    callType: "chronicle.generation",
     callConfig,
     systemPrompt,
     prompt: userPrompt,
@@ -254,67 +515,28 @@ async function executeSamplingRegenerationStep(
     autoMaxTokens: styleMaxTokens,
   });
 
-  const result = generationCall.result;
+  const earlyExit = checkLlmCallResult(generationCall, isAborted, "Sampling regeneration");
+  if (earlyExit) return earlyExit;
 
-  if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: result.debug };
-  }
-
-  if (result.error || !result.text) {
-    return {
-      success: false,
-      error: `Sampling regeneration failed: ${result.error || 'No text returned'}`,
-      debug: result.debug,
-    };
-  }
+  const cost = extractCost(generationCall);
 
   try {
     await regenerateChronicleAssembly(chronicleRecord.chronicleId, {
-      assembledContent: result.text,
+      assembledContent: generationCall.result.text,
       systemPrompt,
       userPrompt,
       model: callConfig.model,
       sampling,
-      step: 'regenerate',
-      cost: {
-        estimated: generationCall.estimate.estimatedCost,
-        actual: generationCall.usage.actualCost,
-        inputTokens: generationCall.usage.inputTokens,
-        outputTokens: generationCall.usage.outputTokens,
-      },
+      step: "regenerate",
+      cost,
     });
   } catch (err) {
     return { success: false, error: `Failed to save regenerated chronicle: ${err}` };
   }
 
-  await saveCostRecordWithDefaults({
-    projectId: task.projectId,
-    simulationRunId: task.simulationRunId,
-    entityId: task.entityId,
-    entityName: task.entityName,
-    entityKind: task.entityKind,
-    chronicleId: chronicleRecord.chronicleId,
-    type: 'chronicleV2',
-    model: callConfig.model,
-    estimatedCost: generationCall.estimate.estimatedCost,
-    actualCost: generationCall.usage.actualCost,
-    inputTokens: generationCall.usage.inputTokens,
-    outputTokens: generationCall.usage.outputTokens,
-  });
+  await saveCostRecord(task, chronicleRecord.chronicleId, "chronicleV2", callConfig.model, cost);
 
-  return {
-    success: true,
-    result: {
-      chronicleId: chronicleRecord.chronicleId,
-      generatedAt: Date.now(),
-      model: callConfig.model,
-      estimatedCost: generationCall.estimate.estimatedCost,
-      actualCost: generationCall.usage.actualCost,
-      inputTokens: generationCall.usage.inputTokens,
-      outputTokens: generationCall.usage.outputTokens,
-    },
-    debug: result.debug,
-  };
+  return buildSuccessResult(chronicleRecord.chronicleId, callConfig.model, cost, generationCall.result.debug);
 }
 
 /**
@@ -330,210 +552,81 @@ async function executeFullRegenerationStep(
   const { config, llmClient, isAborted } = context;
 
   if (!task.chronicleContext) {
-    return { success: false, error: 'Chronicle context required for full regeneration' };
+    return { success: false, error: "Chronicle context required for full regeneration" };
   }
 
-  let chronicleContext = task.chronicleContext!;
-  const narrativeStyle = chronicleContext.narrativeStyle;
-
+  const narrativeStyle = task.chronicleContext.narrativeStyle;
   if (!narrativeStyle) {
-    return { success: false, error: 'Narrative style is required for full regeneration' };
+    return { success: false, error: "Narrative style is required for full regeneration" };
   }
 
-  if (chronicleRecord.status === 'complete' || chronicleRecord.finalContent) {
-    return { success: false, error: 'Full regeneration requires unpublishing first' };
+  if (chronicleRecord.status === "complete" || chronicleRecord.finalContent) {
+    return { success: false, error: "Full regeneration requires unpublishing first" };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.generation');
-  const chronicleId = chronicleRecord.chronicleId;
-  console.log(`[Worker] Full regeneration for chronicle=${chronicleId}, style="${narrativeStyle.name}", model=${callConfig.model}`);
-
-  // Validate perspective synthesis inputs
-  if (!chronicleContext.toneFragments || !chronicleContext.canonFactsWithMetadata) {
+  if (!task.chronicleContext.toneFragments || !task.chronicleContext.canonFactsWithMetadata) {
     return {
       success: false,
-      error: 'Full regeneration requires toneFragments and canonFactsWithMetadata. Configure world context with structured tone and facts.',
+      error: "Full regeneration requires toneFragments and canonFactsWithMetadata. Configure world context with structured tone and facts.",
     };
   }
 
-  let perspectiveResult: PerspectiveSynthesisResult;
-  let perspectiveRecord: PerspectiveSynthesisRecord;
-  let constellation: EntityConstellation;
+  const callConfig = getCallConfig(config, "chronicle.generation");
+  const chronicleId = chronicleRecord.chronicleId;
+  console.log(`[Worker] Full regeneration for chronicle=${chronicleId}, style="${narrativeStyle.name}", model=${callConfig.model}`);
 
   // Run perspective synthesis
-  {
-    console.log('[Worker] Running perspective synthesis for full regeneration...');
-    const perspectiveConfig = getCallConfig(config, 'perspective.synthesis');
-
-    constellation = analyzeConstellation({
-      entities: chronicleContext.entities,
-      relationships: chronicleContext.relationships,
-      events: chronicleContext.events,
-      focalEra: chronicleContext.era,
-    });
-    console.log(`[Worker] Constellation: ${constellation.focusSummary}`);
-
-    try {
-      perspectiveResult = await synthesizePerspective(
-        {
-          constellation,
-          entities: chronicleContext.entities,
-          focalEra: chronicleContext.era,
-          factsWithMetadata: chronicleContext.canonFactsWithMetadata,
-          toneFragments: chronicleContext.toneFragments,
-          culturalIdentities: chronicleContext.culturalIdentities,
-          narrativeStyle,
-          proseHints: chronicleContext.proseHints,
-          worldDynamics: chronicleContext.worldDynamics,
-          factSelection: chronicleContext.factSelection,
-          narrativeDirection: chronicleContext.narrativeDirection,
-          roleAssignments: chronicleContext.focus?.roleAssignments,
-        },
-        llmClient,
-        perspectiveConfig
-      );
-
-      perspectiveRecord = {
-        generatedAt: Date.now(),
-        model: perspectiveConfig.model,
-        brief: perspectiveResult.synthesis.brief,
-        facets: perspectiveResult.synthesis.facets,
-        suggestedMotifs: perspectiveResult.synthesis.suggestedMotifs,
-        narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
-        entityDirectives: perspectiveResult.synthesis.entityDirectives,
-        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
-        constellationSummary: constellation.focusSummary,
-        constellation: {
-          cultures: constellation.cultures,
-          kinds: constellation.kinds,
-          prominentTags: constellation.prominentTags,
-          dominantCulture: constellation.dominantCulture,
-          cultureBalance: constellation.cultureBalance,
-          relationshipKinds: constellation.relationshipKinds,
-        },
-        coreTone: chronicleContext.toneFragments?.core,
-        narrativeStyleId: narrativeStyle.id,
-        narrativeStyleName: narrativeStyle.name,
-        factSelectionRange: (() => {
-          const requestedMin = chronicleContext.factSelection?.minCount;
-          const requestedMax = chronicleContext.factSelection?.maxCount;
-          if (
-            (typeof requestedMin === 'number' && requestedMin > 0) ||
-            (typeof requestedMax === 'number' && requestedMax > 0)
-          ) {
-            return { min: requestedMin, max: requestedMax };
-          }
-          return undefined;
-        })(),
-        inputFacts: chronicleContext.canonFactsWithMetadata?.map((f) => ({
-          id: f.id,
-          text: f.text,
-          type: f.type,
-          required: f.required,
-          disabled: f.disabled,
-        })),
-        inputWorldDynamics: perspectiveResult.resolvedWorldDynamics,
-        inputCulturalIdentities: chronicleContext.culturalIdentities,
-        inputEntities: chronicleContext.entities.slice(0, 15).map((e) => ({
-          name: e.name,
-          kind: e.kind,
-          culture: e.culture,
-          summary: e.summary,
-        })),
-        focalEra: chronicleContext.era ? {
-          id: chronicleContext.era.id,
-          name: chronicleContext.era.name,
-          description: chronicleContext.era.description,
-        } : undefined,
-        inputTokens: perspectiveResult.usage.inputTokens,
-        outputTokens: perspectiveResult.usage.outputTokens,
-        actualCost: perspectiveResult.usage.actualCost,
-      };
-
-      const motifSection = perspectiveResult.synthesis.suggestedMotifs.length > 0
-        ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${perspectiveResult.synthesis.suggestedMotifs.map(m => `- "${m}"`).join('\n')}`
-        : '';
-
-      // coreTone is excluded from the generation prompt for all formats.
-      // It contains world-level prose guidance (SYNTACTIC POETRY, BITTER CAMARADERIE, CLOSING VARIETY, etc.)
-      // that conflicts with narrative style proseInstructions — e.g. "dark, war-weary" fights Dreamscape's
-      // "hallucinatory, fluid" and introduces competing closing line guidance.
-      // PS already receives coreTone as input and incorporates it into its synthesis.
-      // The generation prompt gets only: PS brief + motifs + narrative style proseInstructions.
-      const toneForGeneration = 'PERSPECTIVE FOR THIS CHRONICLE:\n' +
-          perspectiveResult.synthesis.brief +
-          motifSection;
-
-      chronicleContext = {
-        ...chronicleContext,
-        tone: toneForGeneration,
-        canonFacts: perspectiveResult.facetedFacts,
-        narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
-        entityDirectives: perspectiveResult.synthesis.entityDirectives,
-        worldDynamicsResolved: perspectiveResult.resolvedWorldDynamics.map((d) => d.text),
-        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
-      };
-
-      console.log(`[Worker] Perspective synthesis complete: ${perspectiveResult.facetedFacts.length} faceted facts, ${perspectiveResult.synthesis.suggestedMotifs.length} motifs`);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error('[Worker] Perspective synthesis failed:', errorMessage);
-      return { success: false, error: `Perspective synthesis failed: ${errorMessage}` };
-    }
+  const psResult = await runPerspectiveSynthesis(task.chronicleContext, narrativeStyle, config, llmClient);
+  if ("error" in psResult) {
+    return { success: false, error: psResult.error };
   }
+
+  const { perspectiveResult, constellation } = psResult;
+  const perspectiveConfig = getCallConfig(config, "perspective.synthesis");
+  const perspectiveRecord = buildPerspectiveRecord(perspectiveResult, constellation, task.chronicleContext, narrativeStyle, perspectiveConfig);
+  const chronicleContext = applyPerspectiveToContext(task.chronicleContext, perspectiveResult);
 
   // Generate new content
   const selection = selectEntitiesV2(chronicleContext, DEFAULT_V2_CONFIG);
   console.log(`[Worker] V2 selected ${selection.entities.length} entities, ${selection.events.length} events, ${selection.relationships.length} relationships`);
 
   const prompt = buildV2Prompt(chronicleContext, narrativeStyle, selection);
-  const styleMaxTokens = getMaxTokensFromStyle(narrativeStyle);
   const systemPrompt = getV2SystemPrompt(narrativeStyle);
   const samplingParams = resolveChronicleSamplingParams(callConfig);
   const sampling = deriveSamplingFromConfig(callConfig);
   const generationCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.generation',
+    callType: "chronicle.generation",
     callConfig,
     systemPrompt,
     prompt,
     ...samplingParams,
-    autoMaxTokens: styleMaxTokens,
+    autoMaxTokens: getMaxTokensFromStyle(narrativeStyle),
   });
-  const result = generationCall.result;
 
-  console.log(`[Worker] Full regen prompt length: ${prompt.length} chars, maxTokens: ${generationCall.budget.totalMaxTokens}`);
+  const earlyExit = checkLlmCallResult(generationCall, isAborted, "Full regeneration");
+  if (earlyExit) return earlyExit;
 
-  if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: result.debug };
-  }
+  const genCost = extractCost(generationCall);
+  const psCost: CostBreakdown = {
+    estimated: perspectiveResult.usage.actualCost,
+    actual: perspectiveResult.usage.actualCost,
+    inputTokens: perspectiveResult.usage.inputTokens,
+    outputTokens: perspectiveResult.usage.outputTokens,
+  };
+  const totalCost = addCosts(genCost, psCost);
 
-  if (result.error || !result.text) {
-    return {
-      success: false,
-      error: `Full regeneration failed: ${result.error || 'No text returned'}`,
-      debug: result.debug,
-    };
-  }
-
-  // Save as new version (snapshots current to history)
   try {
     await regenerateChronicleAssembly(chronicleId, {
-      assembledContent: result.text,
+      assembledContent: generationCall.result.text,
       systemPrompt,
       userPrompt: prompt,
       model: callConfig.model,
       sampling,
-      step: 'regenerate',
-      cost: {
-        estimated: generationCall.estimate.estimatedCost + perspectiveResult.usage.actualCost,
-        actual: generationCall.usage.actualCost + perspectiveResult.usage.actualCost,
-        inputTokens: generationCall.usage.inputTokens + perspectiveResult.usage.inputTokens,
-        outputTokens: generationCall.usage.outputTokens + perspectiveResult.usage.outputTokens,
-      },
+      step: "regenerate",
+      cost: totalCost,
     });
 
-    // Update perspective synthesis record on the chronicle
     const updatedChronicle = await getChronicle(chronicleId);
     if (updatedChronicle) {
       updatedChronicle.perspectiveSynthesis = perspectiveRecord;
@@ -556,59 +649,10 @@ async function executeFullRegenerationStep(
     return { success: false, error: `Failed to save regenerated chronicle: ${err}` };
   }
 
-  // Record perspective synthesis cost
-  const perspectiveConfig = getCallConfig(config, 'perspective.synthesis');
-  await saveCostRecordWithDefaults({
-    projectId: task.projectId,
-    simulationRunId: task.simulationRunId,
-    entityId: task.entityId,
-    entityName: task.entityName,
-    entityKind: task.entityKind,
-    chronicleId,
-    type: 'chroniclePerspective',
-    model: perspectiveConfig.model,
-    estimatedCost: perspectiveResult.usage.actualCost,
-    actualCost: perspectiveResult.usage.actualCost,
-    inputTokens: perspectiveResult.usage.inputTokens,
-    outputTokens: perspectiveResult.usage.outputTokens,
-  });
+  await saveCostRecord(task, chronicleId, "chroniclePerspective", perspectiveConfig.model, psCost);
+  await saveCostRecord(task, chronicleId, "chronicleV2", callConfig.model, genCost);
 
-  // Record generation cost
-  await saveCostRecordWithDefaults({
-    projectId: task.projectId,
-    simulationRunId: task.simulationRunId,
-    entityId: task.entityId,
-    entityName: task.entityName,
-    entityKind: task.entityKind,
-    chronicleId,
-    type: 'chronicleV2',
-    model: callConfig.model,
-    estimatedCost: generationCall.estimate.estimatedCost,
-    actualCost: generationCall.usage.actualCost,
-    inputTokens: generationCall.usage.inputTokens,
-    outputTokens: generationCall.usage.outputTokens,
-  });
-
-  const totalCost = {
-    estimated: generationCall.estimate.estimatedCost + perspectiveResult.usage.actualCost,
-    actual: generationCall.usage.actualCost + perspectiveResult.usage.actualCost,
-    inputTokens: generationCall.usage.inputTokens + perspectiveResult.usage.inputTokens,
-    outputTokens: generationCall.usage.outputTokens + perspectiveResult.usage.outputTokens,
-  };
-
-  return {
-    success: true,
-    result: {
-      chronicleId,
-      generatedAt: Date.now(),
-      model: callConfig.model,
-      estimatedCost: totalCost.estimated,
-      actualCost: totalCost.actual,
-      inputTokens: totalCost.inputTokens,
-      outputTokens: totalCost.outputTokens,
-    },
-    debug: result.debug,
-  };
+  return buildSuccessResult(chronicleId, callConfig.model, totalCost, generationCall.result.debug);
 }
 
 /**
@@ -625,42 +669,51 @@ async function executeCreativeRegenerationStep(
   const { config, llmClient, isAborted } = context;
 
   if (!task.chronicleContext) {
-    return { success: false, error: 'Chronicle context required for creative regeneration' };
+    return { success: false, error: "Chronicle context required for creative regeneration" };
   }
 
   const narrativeStyle = task.chronicleContext.narrativeStyle;
 
   if (!narrativeStyle) {
-    return { success: false, error: 'Narrative style is required for creative regeneration' };
+    return { success: false, error: "Narrative style is required for creative regeneration" };
   }
 
-  if (narrativeStyle.format !== 'story') {
-    return { success: false, error: 'Creative freedom mode is only available for story format chronicles' };
+  if (narrativeStyle.format !== "story") {
+    return {
+      success: false,
+      error: "Creative freedom mode is only available for story format chronicles",
+    };
   }
 
-  if (chronicleRecord.status === 'complete' || chronicleRecord.finalContent) {
-    return { success: false, error: 'Creative regeneration requires unpublishing first' };
+  if (chronicleRecord.status === "complete" || chronicleRecord.finalContent) {
+    return { success: false, error: "Creative regeneration requires unpublishing first" };
   }
 
   // Read stored PS outputs from the chronicle's perspective synthesis record
   const ps = chronicleRecord.perspectiveSynthesis;
   if (!ps) {
-    return { success: false, error: 'Creative regeneration requires existing perspective synthesis. Generate a structured version first.' };
+    return {
+      success: false,
+      error:
+        "Creative regeneration requires existing perspective synthesis. Generate a structured version first.",
+    };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.generation');
+  const callConfig = getCallConfig(config, "chronicle.generation");
   const chronicleId = chronicleRecord.chronicleId;
-  console.log(`[Worker] Creative freedom regeneration for chronicle=${chronicleId}, style="${narrativeStyle.name}", model=${callConfig.model}`);
+  console.log(
+    `[Worker] Creative freedom regeneration for chronicle=${chronicleId}, style="${narrativeStyle.name}", model=${callConfig.model}`
+  );
 
   // Reconstruct tone from PS outputs (same pattern as regenerate_full)
   // coreTone excluded — PS already received it and incorporated it into synthesis.
   // Generation prompt gets only PS brief + motifs + narrative style proseInstructions.
-  const motifSection = ps.suggestedMotifs.length > 0
-    ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${ps.suggestedMotifs.map(m => `- "${m}"`).join('\n')}`
-    : '';
-  const toneForGeneration = 'PERSPECTIVE FOR THIS CHRONICLE:\n' +
-    ps.brief +
-    motifSection;
+  const psMotifLines = ps.suggestedMotifs.map((m) => `- "${m}"`).join("\n");
+  const motifSection =
+    ps.suggestedMotifs.length > 0
+      ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${psMotifLines}`
+      : "";
+  const toneForGeneration = "PERSPECTIVE FOR THIS CHRONICLE:\n" + ps.brief + motifSection;
 
   // Build faceted facts from PS facets
   const facetedFacts = ps.facets.map((f) => `${f.interpretation}`);
@@ -677,7 +730,9 @@ async function executeCreativeRegenerationStep(
 
   // Entity/event selection
   const selection = selectEntitiesV2(chronicleContext, DEFAULT_V2_CONFIG);
-  console.log(`[Worker] Creative selected ${selection.entities.length} entities, ${selection.events.length} events, ${selection.relationships.length} relationships`);
+  console.log(
+    `[Worker] Creative selected ${selection.entities.length} entities, ${selection.events.length} events, ${selection.relationships.length} relationships`
+  );
 
   // Build creative prompt (same PS data, different framing)
   const prompt = buildCreativeStoryPrompt(chronicleContext, selection);
@@ -688,7 +743,7 @@ async function executeCreativeRegenerationStep(
 
   const generationCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.generation',
+    callType: "chronicle.generation",
     callConfig,
     systemPrompt,
     prompt,
@@ -697,16 +752,18 @@ async function executeCreativeRegenerationStep(
   });
   const result = generationCall.result;
 
-  console.log(`[Worker] Creative prompt length: ${prompt.length} chars, maxTokens: ${generationCall.budget.totalMaxTokens}`);
+  console.log(
+    `[Worker] Creative prompt length: ${prompt.length} chars, maxTokens: ${generationCall.budget.totalMaxTokens}`
+  );
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: result.debug };
+    return { success: false, error: "Task aborted", debug: result.debug };
   }
 
   if (result.error || !result.text) {
     return {
       success: false,
-      error: `Creative regeneration failed: ${result.error || 'No text returned'}`,
+      error: `Creative regeneration failed: ${result.error || "No text returned"}`,
       debug: result.debug,
     };
   }
@@ -719,7 +776,7 @@ async function executeCreativeRegenerationStep(
       userPrompt: prompt,
       model: callConfig.model,
       sampling,
-      step: 'creative',
+      step: "creative",
       cost: {
         estimated: generationCall.estimate.estimatedCost,
         actual: generationCall.usage.actualCost,
@@ -740,7 +797,7 @@ async function executeCreativeRegenerationStep(
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId,
-    type: 'chronicleV2' as CostType,
+    type: "chronicleV2" as CostType,
     model: callConfig.model,
     estimatedCost: generationCall.estimate.estimatedCost,
     actualCost: generationCall.usage.actualCost,
@@ -767,325 +824,151 @@ async function executeCreativeRegenerationStep(
  * V2 Single-Shot Generation
  * One LLM call to generate the complete narrative, with deterministic post-processing.
  */
+/** Save the initial chronicle record with generation results. */
+async function saveV2Chronicle(
+  task: WorkerTask,
+  chronicleId: string,
+  chronicleContext: ChronicleGenerationContext,
+  narrativeStyle: NarrativeStyle,
+  callConfig: ResolvedLLMCallConfig,
+  generationText: string,
+  systemPrompt: string,
+  prompt: string,
+  sampling: ChronicleSampling,
+  selection: ReturnType<typeof selectEntitiesV2>,
+  perspectiveRecord: PerspectiveSynthesisRecord,
+  cost: CostBreakdown
+): Promise<void> {
+  const focus = chronicleContext.focus;
+  const existingChronicle = await getChronicle(chronicleId);
+  const roleAssignments = existingChronicle?.roleAssignments ?? focus?.roleAssignments ?? [];
+  const selectedEntityIds = existingChronicle?.selectedEntityIds ?? focus?.selectedEntityIds ?? [];
+  const selectedEventIds = existingChronicle?.selectedEventIds ?? focus?.selectedEventIds ?? [];
+  const selectedRelationshipIds = existingChronicle?.selectedRelationshipIds ?? focus?.selectedRelationshipIds ?? [];
+  const resolvedTemporal = chronicleContext.temporalContext
+    ? chronicleContext.temporalContext
+    : existingChronicle?.temporalContext;
+
+  await createChronicle(chronicleId, {
+    projectId: task.projectId,
+    simulationRunId: task.simulationRunId,
+    model: callConfig.model,
+    title: existingChronicle?.title,
+    format: existingChronicle?.format || narrativeStyle.format,
+    narrativeStyleId: existingChronicle?.narrativeStyleId || narrativeStyle.id,
+    narrativeStyle: existingChronicle?.narrativeStyle || narrativeStyle,
+    roleAssignments,
+    lens: existingChronicle?.lens ?? focus?.lens,
+    selectedEntityIds,
+    selectedEventIds,
+    selectedRelationshipIds,
+    entrypointId: existingChronicle?.entrypointId,
+    temporalContext: resolvedTemporal,
+    assembledContent: generationText,
+    generationSystemPrompt: systemPrompt,
+    generationUserPrompt: prompt,
+    generationSampling: sampling,
+    generationContext: {
+      worldName: chronicleContext.worldName,
+      worldDescription: chronicleContext.worldDescription,
+      tone: chronicleContext.tone,
+      canonFacts: chronicleContext.canonFacts,
+      nameBank: chronicleContext.nameBank,
+      narrativeVoice: chronicleContext.narrativeVoice,
+      entityDirectives: chronicleContext.entityDirectives,
+      temporalNarrative: chronicleContext.temporalNarrative,
+      narrativeDirection: chronicleContext.narrativeDirection,
+    },
+    selectionSummary: {
+      entityCount: selection.entities.length,
+      eventCount: selection.events.length,
+      relationshipCount: selection.relationships.length,
+    },
+    perspectiveSynthesis: perspectiveRecord,
+    cost,
+  });
+  console.log(`[Worker] Chronicle saved: ${chronicleId}`);
+}
+
 async function executeV2GenerationStep(
   task: WorkerTask,
   context: TaskContext
 ): Promise<TaskResult> {
   const { config, llmClient, isAborted } = context;
-  let chronicleContext = task.chronicleContext!;
-  const narrativeStyle = chronicleContext.narrativeStyle;
+  const baseContext = task.chronicleContext;
+  const narrativeStyle = baseContext.narrativeStyle;
 
   if (!narrativeStyle) {
-    return { success: false, error: 'Narrative style is required for V2 generation' };
+    return { success: false, error: "Narrative style is required for V2 generation" };
   }
 
   if (!task.chronicleId) {
-    return { success: false, error: 'chronicleId required for generate_v2 step' };
+    return { success: false, error: "chronicleId required for generate_v2 step" };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.generation');
-  const chronicleId = task.chronicleId;
-  console.log(`[Worker] V2 generation for chronicle=${chronicleId}, style="${narrativeStyle.name}", model=${callConfig.model}`);
-
-  // ==========================================================================
-  // PERSPECTIVE SYNTHESIS (REQUIRED)
-  // ==========================================================================
-  // Perspective synthesis is the ONLY code path. It:
-  // 1. Analyzes entity constellation (culture mix, kind focus, themes)
-  // 2. LLM selects relevant facts and provides faceted interpretations
-  // 3. Assembles tone from fragments based on constellation
-  // 4. Builds the final tone (assembled + brief + motifs) and facts for generation
-  // ==========================================================================
-  if (!chronicleContext.toneFragments || !chronicleContext.canonFactsWithMetadata) {
+  if (!baseContext.toneFragments || !baseContext.canonFactsWithMetadata) {
     return {
       success: false,
-      error: 'Perspective synthesis requires toneFragments and canonFactsWithMetadata. Configure world context with structured tone and facts.',
+      error: "Perspective synthesis requires toneFragments and canonFactsWithMetadata. Configure world context with structured tone and facts.",
     };
   }
 
-  let perspectiveResult: PerspectiveSynthesisResult;
-  let perspectiveRecord: PerspectiveSynthesisRecord;
-  let constellation: EntityConstellation;
+  const callConfig = getCallConfig(config, "chronicle.generation");
+  const chronicleId = task.chronicleId;
+  console.log(`[Worker] V2 generation for chronicle=${chronicleId}, style="${narrativeStyle.name}", model=${callConfig.model}`);
 
-  {
-    console.log('[Worker] Running perspective synthesis...');
-    const perspectiveConfig = getCallConfig(config, 'perspective.synthesis');
-
-    // Analyze entity constellation
-    constellation = analyzeConstellation({
-      entities: chronicleContext.entities,
-      relationships: chronicleContext.relationships,
-      events: chronicleContext.events,
-      focalEra: chronicleContext.era,
-    });
-    console.log(`[Worker] Constellation: ${constellation.focusSummary}`);
-
-    try {
-      perspectiveResult = await synthesizePerspective(
-        {
-          constellation,
-          entities: chronicleContext.entities,
-          focalEra: chronicleContext.era,
-          factsWithMetadata: chronicleContext.canonFactsWithMetadata,
-          toneFragments: chronicleContext.toneFragments,
-          culturalIdentities: chronicleContext.culturalIdentities,
-          narrativeStyle, // Pass narrative style to weight perspective
-          proseHints: chronicleContext.proseHints, // Pass prose hints for entity directives
-          worldDynamics: chronicleContext.worldDynamics, // Higher-level narrative context
-          factSelection: chronicleContext.factSelection, // Fact selection target + required
-          narrativeDirection: chronicleContext.narrativeDirection,
-          roleAssignments: chronicleContext.focus?.roleAssignments,
-        },
-        llmClient,
-        perspectiveConfig
-      );
-
-      // Build record for storage (includes both INPUT and OUTPUT for debugging)
-      perspectiveRecord = {
-        generatedAt: Date.now(),
-        model: perspectiveConfig.model,
-
-        // OUTPUT (LLM response)
-        brief: perspectiveResult.synthesis.brief,
-        facets: perspectiveResult.synthesis.facets,
-        suggestedMotifs: perspectiveResult.synthesis.suggestedMotifs,
-        narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
-        entityDirectives: perspectiveResult.synthesis.entityDirectives,
-        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
-
-        // INPUT (what was sent to LLM)
-        constellationSummary: constellation.focusSummary,
-        constellation: {
-          cultures: constellation.cultures,
-          kinds: constellation.kinds,
-          prominentTags: constellation.prominentTags,
-          dominantCulture: constellation.dominantCulture,
-          cultureBalance: constellation.cultureBalance,
-          relationshipKinds: constellation.relationshipKinds,
-        },
-        coreTone: chronicleContext.toneFragments?.core,
-        narrativeStyleId: narrativeStyle.id,
-        narrativeStyleName: narrativeStyle.name,
-        factSelectionRange: (() => {
-          const requestedMin = chronicleContext.factSelection?.minCount;
-          const requestedMax = chronicleContext.factSelection?.maxCount;
-          if (
-            (typeof requestedMin === 'number' && requestedMin > 0) ||
-            (typeof requestedMax === 'number' && requestedMax > 0)
-          ) {
-            return { min: requestedMin, max: requestedMax };
-          }
-          return undefined;
-        })(),
-        inputFacts: chronicleContext.canonFactsWithMetadata?.map((f) => ({
-          id: f.id,
-          text: f.text,
-          type: f.type,
-          required: f.required,
-          disabled: f.disabled,
-        })),
-        inputWorldDynamics: perspectiveResult.resolvedWorldDynamics,
-        inputCulturalIdentities: chronicleContext.culturalIdentities,
-        inputEntities: chronicleContext.entities.slice(0, 15).map((e) => ({
-          name: e.name,
-          kind: e.kind,
-          culture: e.culture,
-          summary: e.summary,
-        })),
-        focalEra: chronicleContext.era ? {
-          id: chronicleContext.era.id,
-          name: chronicleContext.era.name,
-          description: chronicleContext.era.description,
-        } : undefined,
-
-        // Cost
-        inputTokens: perspectiveResult.usage.inputTokens,
-        outputTokens: perspectiveResult.usage.outputTokens,
-        actualCost: perspectiveResult.usage.actualCost,
-      };
-
-      // Build perspective section with brief and motifs
-      const motifSection = perspectiveResult.synthesis.suggestedMotifs.length > 0
-        ? `\n\nSUGGESTED MOTIFS (phrases that might echo through this chronicle):\n${perspectiveResult.synthesis.suggestedMotifs.map(m => `- "${m}"`).join('\n')}`
-        : '';
-
-      // Update context with synthesized perspective
-      // coreTone excluded — PS already received it and incorporated it into synthesis.
-      // See comment in full-regeneration path above.
-      const toneForGeneration = 'PERSPECTIVE FOR THIS CHRONICLE:\n' +
-          perspectiveResult.synthesis.brief +
-          motifSection;
-
-      chronicleContext = {
-        ...chronicleContext,
-        tone: toneForGeneration,
-        canonFacts: perspectiveResult.facetedFacts,
-        narrativeVoice: perspectiveResult.synthesis.narrativeVoice,
-        entityDirectives: perspectiveResult.synthesis.entityDirectives,
-        worldDynamicsResolved: perspectiveResult.resolvedWorldDynamics.map((d) => d.text),
-        temporalNarrative: perspectiveResult.synthesis.temporalNarrative,
-      };
-
-      console.log(`[Worker] Perspective synthesis complete: ${perspectiveResult.facetedFacts.length} faceted facts, ${perspectiveResult.synthesis.suggestedMotifs.length} motifs`);
-    } catch (err) {
-      // Per user requirement: if LLM fails, stop the process
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error('[Worker] Perspective synthesis failed:', errorMessage);
-      return { success: false, error: `Perspective synthesis failed: ${errorMessage}` };
-    }
+  // Run perspective synthesis
+  const psResult = await runPerspectiveSynthesis(baseContext, narrativeStyle, config, llmClient);
+  if ("error" in psResult) {
+    return { success: false, error: psResult.error };
   }
 
-  // Simple entity/event selection from 2-hop neighborhood
+  const { perspectiveResult, constellation } = psResult;
+  const perspectiveConfig = getCallConfig(config, "perspective.synthesis");
+  const perspectiveRecord = buildPerspectiveRecord(perspectiveResult, constellation, baseContext, narrativeStyle, perspectiveConfig);
+  const chronicleContext = applyPerspectiveToContext(baseContext, perspectiveResult);
+
+  // Entity/event selection and prompt building
   const selection = selectEntitiesV2(chronicleContext, DEFAULT_V2_CONFIG);
   console.log(`[Worker] V2 selected ${selection.entities.length} entities, ${selection.events.length} events, ${selection.relationships.length} relationships`);
 
-  // Build single-shot prompt
   const prompt = buildV2Prompt(chronicleContext, narrativeStyle, selection);
-  const styleMaxTokens = getMaxTokensFromStyle(narrativeStyle);
   const systemPrompt = getV2SystemPrompt(narrativeStyle);
   const samplingParams = resolveChronicleSamplingParams(callConfig);
   const sampling = deriveSamplingFromConfig(callConfig);
   const generationCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.generation',
+    callType: "chronicle.generation",
     callConfig,
     systemPrompt,
     prompt,
     ...samplingParams,
-    autoMaxTokens: styleMaxTokens,
+    autoMaxTokens: getMaxTokensFromStyle(narrativeStyle),
   });
-  const result = generationCall.result;
 
-  console.log(`[Worker] V2 prompt length: ${prompt.length} chars, maxTokens: ${generationCall.budget.totalMaxTokens}`);
+  const earlyExit = checkLlmCallResult(generationCall, isAborted, "V2 generation");
+  if (earlyExit) return earlyExit;
 
-  if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: result.debug };
-  }
-
-  if (result.error || !result.text) {
-    return {
-      success: false,
-      error: `V2 generation failed: ${result.error || 'No text returned'}`,
-      debug: result.debug,
-    };
-  }
-
-  // Note: Wikilinks are NOT applied here - they are applied once at acceptance time
-  // (in useChronicleGeneration.ts acceptChronicle) to avoid double-bracketing issues.
-
-  // Calculate cost (always includes perspective synthesis)
-  const cost = {
-    estimated: generationCall.estimate.estimatedCost + perspectiveResult.usage.actualCost,
-    actual: generationCall.usage.actualCost + perspectiveResult.usage.actualCost,
-    inputTokens: generationCall.usage.inputTokens + perspectiveResult.usage.inputTokens,
-    outputTokens: generationCall.usage.outputTokens + perspectiveResult.usage.outputTokens,
+  const genCost = extractCost(generationCall);
+  const psCost: CostBreakdown = {
+    estimated: perspectiveResult.usage.actualCost,
+    actual: perspectiveResult.usage.actualCost,
+    inputTokens: perspectiveResult.usage.inputTokens,
+    outputTokens: perspectiveResult.usage.outputTokens,
   };
+  const totalCost = addCosts(genCost, psCost);
 
-  // Save chronicle directly to assembled state (single-shot generation)
   try {
-    const focus = chronicleContext.focus;
-    const existingChronicle = await getChronicle(chronicleId);
-    const roleAssignments = existingChronicle?.roleAssignments ?? focus?.roleAssignments ?? [];
-    const selectedEntityIds = existingChronicle?.selectedEntityIds ?? focus?.selectedEntityIds ?? [];
-    const selectedEventIds = existingChronicle?.selectedEventIds ?? focus?.selectedEventIds ?? [];
-    const selectedRelationshipIds = existingChronicle?.selectedRelationshipIds ?? focus?.selectedRelationshipIds ?? [];
-    // Prefer the context used to build the prompt so stored focal era matches generation.
-    const temporalContext = chronicleContext.temporalContext ?? existingChronicle?.temporalContext;
-
-    await createChronicle(chronicleId, {
-      projectId: task.projectId,
-      simulationRunId: task.simulationRunId,
-      model: callConfig.model,
-      title: existingChronicle?.title,
-      format: existingChronicle?.format || narrativeStyle.format,
-      narrativeStyleId: existingChronicle?.narrativeStyleId || narrativeStyle.id,
-      narrativeStyle: existingChronicle?.narrativeStyle || narrativeStyle,
-      roleAssignments,
-      lens: existingChronicle?.lens ?? focus?.lens,
-      selectedEntityIds,
-      selectedEventIds,
-      selectedRelationshipIds,
-      entrypointId: existingChronicle?.entrypointId,
-      temporalContext,
-      assembledContent: result.text,
-      // Store the ACTUAL prompts sent to the LLM (canonical source of truth)
-      generationSystemPrompt: systemPrompt,
-      generationUserPrompt: prompt,
-      generationSampling: sampling,
-      // Store the generation context snapshot (post-perspective synthesis)
-      // This is what was actually used to build the prompt
-      generationContext: {
-        worldName: chronicleContext.worldName,
-        worldDescription: chronicleContext.worldDescription,
-        tone: chronicleContext.tone, // Final tone (assembled + brief + motifs)
-        canonFacts: chronicleContext.canonFacts, // Faceted facts
-        nameBank: chronicleContext.nameBank,
-        narrativeVoice: chronicleContext.narrativeVoice,
-        entityDirectives: chronicleContext.entityDirectives,
-        temporalNarrative: chronicleContext.temporalNarrative,
-        narrativeDirection: chronicleContext.narrativeDirection,
-      },
-      selectionSummary: {
-        entityCount: selection.entities.length,
-        eventCount: selection.events.length,
-        relationshipCount: selection.relationships.length,
-      },
-      perspectiveSynthesis: perspectiveRecord,
-      cost,
-    });
-    console.log(`[Worker] Chronicle saved: ${chronicleId}`);
+    await saveV2Chronicle(task, chronicleId, chronicleContext, narrativeStyle, callConfig, generationCall.result.text, systemPrompt, prompt, sampling, selection, perspectiveRecord, totalCost);
   } catch (err) {
     return { success: false, error: `Failed to save chronicle: ${err}` };
   }
 
-  // Record perspective synthesis cost
-  const perspectiveConfig = getCallConfig(config, 'perspective.synthesis');
-  await saveCostRecordWithDefaults({
-    projectId: task.projectId,
-    simulationRunId: task.simulationRunId,
-    entityId: task.entityId,
-    entityName: task.entityName,
-    entityKind: task.entityKind,
-    chronicleId,
-    type: 'chroniclePerspective',
-    model: perspectiveConfig.model,
-    estimatedCost: perspectiveResult.usage.actualCost,
-    actualCost: perspectiveResult.usage.actualCost,
-    inputTokens: perspectiveResult.usage.inputTokens,
-    outputTokens: perspectiveResult.usage.outputTokens,
-  });
+  await saveCostRecord(task, chronicleId, "chroniclePerspective", perspectiveConfig.model, psCost);
+  await saveCostRecord(task, chronicleId, "chronicleV2", callConfig.model, genCost);
 
-  // Record generation cost
-  await saveCostRecordWithDefaults({
-    projectId: task.projectId,
-    simulationRunId: task.simulationRunId,
-    entityId: task.entityId,
-    entityName: task.entityName,
-    entityKind: task.entityKind,
-    chronicleId,
-    type: 'chronicleV2',
-    model: callConfig.model,
-    estimatedCost: generationCall.estimate.estimatedCost,
-    actualCost: generationCall.usage.actualCost,
-    inputTokens: generationCall.usage.inputTokens,
-    outputTokens: generationCall.usage.outputTokens,
-  });
-
-  return {
-    success: true,
-    result: {
-      chronicleId,
-      generatedAt: Date.now(),
-      model: callConfig.model,
-      estimatedCost: cost.estimated,
-      actualCost: cost.actual,
-      inputTokens: cost.inputTokens,
-      outputTokens: cost.outputTokens,
-    },
-    debug: result.debug,
-  };
+  return buildSuccessResult(chronicleId, callConfig.model, totalCost, generationCall.result.debug);
 }
-
 
 // ============================================================================
 // Compare Versions Step (user-triggered, produces report only)
@@ -1094,14 +977,19 @@ async function executeV2GenerationStep(
 function collectAllVersionTexts(
   chronicleRecord: NonNullable<Awaited<ReturnType<typeof getChronicle>>>
 ): Array<{ label: string; content: string; sampling?: ChronicleSampling; wordCount: number }> {
-  const versions: Array<{ label: string; content: string; sampling?: ChronicleSampling; wordCount: number }> = [];
+  const versions: Array<{
+    label: string;
+    content: string;
+    sampling?: ChronicleSampling;
+    wordCount: number;
+  }> = [];
 
   const history = [...(chronicleRecord.generationHistory || [])].sort(
     (a, b) => a.generatedAt - b.generatedAt
   );
   for (let i = 0; i < history.length; i++) {
-    const samplingLabel = history[i].sampling ?? 'unspecified';
-    const stepLabel = history[i].step ? `, step=${history[i].step}` : '';
+    const samplingLabel = history[i].sampling ?? "unspecified";
+    const stepLabel = history[i].step ? `, step=${history[i].step}` : "";
     versions.push({
       label: `Version ${i + 1} (sampling=${samplingLabel}${stepLabel})`,
       content: history[i].content,
@@ -1124,56 +1012,45 @@ async function executeCompareStep(
   const versions = collectAllVersionTexts(chronicleRecord);
 
   if (versions.length < 2) {
-    return { success: false, error: 'At least 2 versions required for comparison' };
+    return { success: false, error: "At least 2 versions required for comparison" };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.compare');
+  const callConfig = getCallConfig(config, "chronicle.compare");
   console.log(`[Worker] Comparing ${versions.length} versions, model=${callConfig.model}...`);
 
   const narrativeStyle = chronicleRecord.narrativeStyle;
-  const narrativeStyleName = narrativeStyle?.name || chronicleRecord.narrativeStyleId || 'unknown';
+  const narrativeStyleName = narrativeStyle?.name || chronicleRecord.narrativeStyleId || "unknown";
 
   // Build narrative style context block for the comparison agent
-  let narrativeStyleBlock = '';
-  if (narrativeStyle) {
-    const parts: string[] = [`**${narrativeStyle.name}** (${narrativeStyle.format})`];
-    if (narrativeStyle.description) parts.push(narrativeStyle.description);
-    if ('narrativeInstructions' in narrativeStyle && narrativeStyle.narrativeInstructions) {
-      parts.push(`Structure: ${(narrativeStyle.narrativeInstructions as string).slice(0, 500)}`);
-    }
-    if ('proseInstructions' in narrativeStyle && narrativeStyle.proseInstructions) {
-      parts.push(`Prose: ${(narrativeStyle.proseInstructions as string).slice(0, 500)}`);
-    }
-    if ('documentInstructions' in narrativeStyle && narrativeStyle.documentInstructions) {
-      parts.push(`Document: ${(narrativeStyle.documentInstructions as string).slice(0, 500)}`);
-    }
-    if ('craftPosture' in narrativeStyle && narrativeStyle.craftPosture) {
-      parts.push(`Craft Posture: ${(narrativeStyle.craftPosture as string).slice(0, 300)}`);
-    }
-    narrativeStyleBlock = parts.join('\n');
-  }
+  const narrativeStyleBlock = narrativeStyle ? extractNarrativeStyleBlock(narrativeStyle) : "";
 
-  const versionsBlock = versions.map((v) =>
-    `## ${v.label}\nWord count: ${v.wordCount}\n\n${v.content}`
-  ).join('\n\n---\n\n');
+  const versionsBlock = versions
+    .map((v) => `## ${v.label}\nWord count: ${v.wordCount}\n\n${v.content}`)
+    .join("\n\n---\n\n");
 
   // Build world facts block from canon facts (these are the faceted interpretations used in generation)
   const canonFacts = chronicleRecord.generationContext?.canonFacts || [];
-  const worldFactsBlock = canonFacts.length > 0
-    ? `## World Facts (Faceted)\nThese are the world truths provided to the chronicle generator, already interpreted through the chronicle's perspective:\n${canonFacts.map((f, i) => `${i + 1}. ${f}`).join('\n')}\n`
-    : '';
+  const canonFactLines = canonFacts.map((f, i) => `${i + 1}. ${f}`).join("\n");
+  const worldFactsBlock =
+    canonFacts.length > 0
+      ? `## World Facts (Faceted)\nThese are the world truths provided to the chronicle generator, already interpreted through the chronicle's perspective:\n${canonFactLines}\n`
+      : "";
 
   // Narrative direction (optional, from wizard)
   const narrativeDirection = chronicleRecord.narrativeDirection;
   const narrativeDirectionBlock = narrativeDirection
     ? `\n## Narrative Direction\nThe author specified this narrative purpose: "${narrativeDirection}"\nEvaluate how well each version fulfills this specific intent.\n`
-    : '';
+    : "";
 
-  const isDocumentFormat = chronicleRecord.narrativeStyle?.format === 'document';
+  const isDocumentFormat = chronicleRecord.narrativeStyle?.format === "document";
+
+  const docFormatRef = narrativeStyleBlock ? `\n## Document Format Reference\n${narrativeStyleBlock}\n` : "";
+  const narrativeStyleRef = narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : "";
+  const worldFactsRef = worldFactsBlock ? `\n${worldFactsBlock}` : "";
 
   const comparePrompt = isDocumentFormat
     ? `You are comparing ${versions.length} versions of the same in-universe document. Each was generated from the same prompt and document format (${narrativeStyleName}) but with different sampling modes (normal vs low).
-${narrativeStyleBlock ? `\n## Document Format Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}${narrativeDirectionBlock}
+${docFormatRef}${worldFactsRef}${narrativeDirectionBlock}
 Your output must have THREE sections in this exact order. Keep the total output under 800 words.
 
 ## Comparative Analysis
@@ -1204,7 +1081,7 @@ Don't recommend swapping names or terminology between versions. Trust the writer
 
 ${versionsBlock}`
     : `You are comparing ${versions.length} versions of the same chronicle. Each was generated from the same prompt and narrative style (${narrativeStyleName}) but with different sampling modes (normal vs low).
-${narrativeStyleBlock ? `\n## Narrative Style Reference\n${narrativeStyleBlock}\n` : ''}${worldFactsBlock ? `\n${worldFactsBlock}` : ''}${narrativeDirectionBlock}
+${narrativeStyleRef}${worldFactsRef}${narrativeDirectionBlock}
 Your output must have THREE sections in this exact order. Keep the total output under 800 words.
 
 ## Comparative Analysis
@@ -1238,12 +1115,12 @@ Don't recommend swapping names or terminology between versions. Trust the writer
 ${versionsBlock}`;
 
   const compareSystemPrompt = isDocumentFormat
-    ? 'You are an editorial reviewer evaluating drafts of an in-universe document. The core question is: which draft feels more like a real artifact from this world? Assess believability, world integration, and documentary craft. A document that maintains consistent voice is doing its job — sustained register is a strength.'
-    : 'You are a narrative editor providing a comparative analysis of chronicle drafts. Be specific and cite examples from the text.';
+    ? "You are an editorial reviewer evaluating drafts of an in-universe document. The core question is: which draft feels more like a real artifact from this world? Assess believability, world integration, and documentary craft. A document that maintains consistent voice is doing its job — sustained register is a strength."
+    : "You are a narrative editor providing a comparative analysis of chronicle drafts. Be specific and cite examples from the text.";
 
   const compareCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.compare',
+    callType: "chronicle.compare",
     callConfig,
     systemPrompt: compareSystemPrompt,
     prompt: comparePrompt,
@@ -1251,13 +1128,13 @@ ${versionsBlock}`;
   });
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: compareCall.result.debug };
+    return { success: false, error: "Task aborted", debug: compareCall.result.debug };
   }
 
   if (compareCall.result.error || !compareCall.result.text) {
     return {
       success: false,
-      error: `Compare failed: ${compareCall.result.error || 'No text returned'}`,
+      error: `Compare failed: ${compareCall.result.error || "No text returned"}`,
       debug: compareCall.result.debug,
     };
   }
@@ -1268,7 +1145,9 @@ ${versionsBlock}`;
   const combineHeaderMatch = fullReport.match(/^#{1,4}\s+combine\s+instructions:?\s*$/im);
   let combineInstructions: string | undefined;
   if (combineHeaderMatch && combineHeaderMatch.index != null) {
-    combineInstructions = fullReport.slice(combineHeaderMatch.index + combineHeaderMatch[0].length).trim();
+    combineInstructions = fullReport
+      .slice(combineHeaderMatch.index + combineHeaderMatch[0].length)
+      .trim();
   }
 
   // Store the report and combine instructions on the chronicle record
@@ -1288,7 +1167,7 @@ ${versionsBlock}`;
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId,
-    type: 'chronicleV2',
+    type: "chronicleV2",
     model: callConfig.model,
     estimatedCost: compareCost.estimated,
     actualCost: compareCost.actual,
@@ -1326,42 +1205,40 @@ async function executeCombineStep(
   const versions = collectAllVersionTexts(chronicleRecord);
 
   if (versions.length < 2) {
-    return { success: false, error: 'At least 2 versions required for combining' };
+    return { success: false, error: "At least 2 versions required for combining" };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.combine');
+  const callConfig = getCallConfig(config, "chronicle.combine");
   console.log(`[Worker] Combining ${versions.length} versions, model=${callConfig.model}...`);
 
-  const versionsBlock = versions.map((v) =>
-    `## ${v.label}\n\n${v.content}`
-  ).join('\n\n---\n\n');
+  const versionsBlock = versions.map((v) => `## ${v.label}\n\n${v.content}`).join("\n\n---\n\n");
 
-  const generationSystemPrompt = chronicleRecord.generationSystemPrompt || '';
+  const generationSystemPrompt = chronicleRecord.generationSystemPrompt || "";
   const narrativeStyle = chronicleRecord.narrativeStyle;
-  const styleName = narrativeStyle ? `${narrativeStyle.name} (${narrativeStyle.format})` : 'unknown';
-  const craftPosture = narrativeStyle && 'craftPosture' in narrativeStyle ? (narrativeStyle.craftPosture as string | undefined) : undefined;
-  const isDocumentFormat = narrativeStyle?.format === 'document';
+  const styleName = narrativeStyle
+    ? `${narrativeStyle.name} (${narrativeStyle.format})`
+    : "unknown";
+  const craftPosture = narrativeStyle?.craftPosture;
+  const isDocumentFormat = narrativeStyle?.format === "document";
 
   // Narrative direction (optional, from wizard)
   const combineNarrativeDirection = chronicleRecord.narrativeDirection;
   const combineNarrativeDirectionBlock = combineNarrativeDirection
     ? `\n## Narrative Direction\nThe author specified this narrative purpose: "${combineNarrativeDirection}"\nThe combined version must fulfill this intent.\n`
-    : '';
+    : "";
 
   // Check for combine instructions from a prior compare step
   const hasCombineInstructions = !!chronicleRecord.combineInstructions;
 
-  const combinePrompt = isDocumentFormat
-    ? `You are an editorial reviewer combining ${versions.length} versions of the same in-universe document into a single final version. All versions follow the same prompt and document format — they differ in sampling mode (normal vs low).
-
-You have two drafts of the same in-universe document. Read both. Build your revision from the ground up: which version has the stronger opening? Which handles each section better? Which included details, structure, or framing the other missed? Take the best from each. Where they cover the same ground differently, go with whichever makes the document feel more like a real artifact from its world. Where one draft has something the other lacks entirely, bring it in.
-
-Do not swap names or terminology between versions — keep each draft's choices consistent within the sections you draw from. A polish pass will follow to smooth voice and register; your job is to produce the best possible version of this document.
-${hasCombineInstructions ? `
+  const editorialDirectionBlock = hasCombineInstructions
+    ? `
 ## Editorial Direction
 
 ${chronicleRecord.combineInstructions}
-` : `
+`
+    : "";
+
+  const docSelectionCriteria = `
 ## Selection Criteria
 
 Prefer whichever version:
@@ -1372,11 +1249,36 @@ Prefer whichever version:
 - **Grounds itself in specifics** — concrete details (titles, dates, procedures) over generic atmosphere
 
 If one version has a better opening and another has better closing sections, use each. If versions handle the same section differently, pick the one that feels more like it belongs in this world.
-`}${combineNarrativeDirectionBlock}
+`;
+
+  const storySelectionCriteria = `
+## Selection Criteria
+
+Prefer whichever version has:
+- **Richer world-building details** — invented names, places, customs that feel grounded
+- **More surprising structural choices** — non-obvious scene ordering, interesting POV decisions
+- **More natural prose** — sentences that flow without feeling templated
+- **Better adherence to the narrative voice and entity directives**
+- **Stronger emotional range** — not every beat should feel the same
+
+If one version has a better opening and another has a better middle, use each. If versions handle the same beat differently, pick the one that reads more naturally.
+`;
+
+  const craftPostureBlock = craftPosture ? `\n\n## Craft Posture\nDensity and restraint constraints for this format:\n${craftPosture}` : "";
+  const docCriteriaBlock = hasCombineInstructions ? editorialDirectionBlock : docSelectionCriteria;
+  const storyCriteriaBlock = hasCombineInstructions ? editorialDirectionBlock : storySelectionCriteria;
+
+  const combinePrompt = isDocumentFormat
+    ? `You are an editorial reviewer combining ${versions.length} versions of the same in-universe document into a single final version. All versions follow the same prompt and document format — they differ in sampling mode (normal vs low).
+
+You have two drafts of the same in-universe document. Read both. Build your revision from the ground up: which version has the stronger opening? Which handles each section better? Which included details, structure, or framing the other missed? Take the best from each. Where they cover the same ground differently, go with whichever makes the document feel more like a real artifact from its world. Where one draft has something the other lacks entirely, bring it in.
+
+Do not swap names or terminology between versions — keep each draft's choices consistent within the sections you draw from. A polish pass will follow to smooth voice and register; your job is to produce the best possible version of this document.
+${docCriteriaBlock}${combineNarrativeDirectionBlock}
 ## Original System Prompt Context
 ${generationSystemPrompt}
 
-Style: ${styleName}${craftPosture ? `\n\n## Craft Posture\nDensity and restraint constraints for this format:\n${craftPosture}` : ''}
+Style: ${styleName}${craftPostureBlock}
 
 ## Document Versions
 
@@ -1390,26 +1292,11 @@ Produce the final document by selecting the strongest elements from each version
 You have two drafts of the same story. Read both. Build your revision from the ground up: which version has the stronger opening? Which handles the climax better? Which invented scenes, character beats, or details the other missed? Take the best from each. Where they cover the same ground differently, go with whichever makes the better story. Where one draft has something the other lacks entirely, bring it in.
 
 Do not swap names or terminology between versions — keep each draft's choices consistent within the sections you draw from. A polish pass will follow to smooth voice and tone; your job is to produce the best possible version of this story.
-${hasCombineInstructions ? `
-## Editorial Direction
-
-${chronicleRecord.combineInstructions}
-` : `
-## Selection Criteria
-
-Prefer whichever version has:
-- **Richer world-building details** — invented names, places, customs that feel grounded
-- **More surprising structural choices** — non-obvious scene ordering, interesting POV decisions
-- **More natural prose** — sentences that flow without feeling templated
-- **Better adherence to the narrative voice and entity directives**
-- **Stronger emotional range** — not every beat should feel the same
-
-If one version has a better opening and another has a better middle, use each. If versions handle the same beat differently, pick the one that reads more naturally.
-`}${combineNarrativeDirectionBlock}
+${storyCriteriaBlock}${combineNarrativeDirectionBlock}
 ## Original System Prompt Context
 ${generationSystemPrompt}
 
-Style: ${styleName}${craftPosture ? `\n\n## Craft Posture\nDensity and restraint constraints for this format:\n${craftPosture}` : ''}
+Style: ${styleName}${craftPostureBlock}
 
 ## Chronicle Versions
 
@@ -1420,14 +1307,14 @@ ${versionsBlock}
 Produce the final chronicle by selecting the strongest elements from each version. Output ONLY the chronicle text — no commentary, no labels, no preamble.`;
 
   const combineSystemPrompt = isDocumentFormat
-    ? 'You are an editorial reviewer producing the definitive version of an in-universe document from multiple drafts. The result should feel like a real artifact from this world. Maintain consistent voice. Output only the final document text.'
-    : 'You are a narrative editor producing the definitive version of a chronicle from multiple drafts. Output only the final chronicle text.';
+    ? "You are an editorial reviewer producing the definitive version of an in-universe document from multiple drafts. The result should feel like a real artifact from this world. Maintain consistent voice. Output only the final document text."
+    : "You are a narrative editor producing the definitive version of a chronicle from multiple drafts. Output only the final chronicle text.";
 
   const samplingParams = resolveChronicleSamplingParams(callConfig);
   const combineSampling = deriveSamplingFromConfig(callConfig);
   const combineCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.combine',
+    callType: "chronicle.combine",
     callConfig,
     systemPrompt: combineSystemPrompt,
     prompt: combinePrompt,
@@ -1435,13 +1322,13 @@ Produce the final chronicle by selecting the strongest elements from each versio
   });
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: combineCall.result.debug };
+    return { success: false, error: "Task aborted", debug: combineCall.result.debug };
   }
 
   if (combineCall.result.error || !combineCall.result.text) {
     return {
       success: false,
-      error: `Combine failed: ${combineCall.result.error || 'No text returned'}`,
+      error: `Combine failed: ${combineCall.result.error || "No text returned"}`,
       debug: combineCall.result.debug,
     };
   }
@@ -1453,7 +1340,7 @@ Produce the final chronicle by selecting the strongest elements from each versio
     userPrompt: combinePrompt,
     model: callConfig.model,
     sampling: combineSampling,
-    step: 'combine',
+    step: "combine",
     cost: {
       estimated: combineCall.estimate.estimatedCost,
       actual: combineCall.usage.actualCost,
@@ -1469,7 +1356,7 @@ Produce the final chronicle by selecting the strongest elements from each versio
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId,
-    type: 'chronicleV2',
+    type: "chronicleV2",
     model: callConfig.model,
     estimatedCost: combineCall.estimate.estimatedCost,
     actualCost: combineCall.usage.actualCost,
@@ -1507,26 +1394,31 @@ async function executeCopyEditStep(
   const { content } = resolveTargetVersionContent(chronicleRecord);
 
   if (!content) {
-    return { success: false, error: 'Chronicle has no content to copy-edit' };
+    return { success: false, error: "Chronicle has no content to copy-edit" };
   }
 
   const narrativeStyle = chronicleRecord.narrativeStyle;
   if (!narrativeStyle) {
-    return { success: false, error: 'Chronicle has no narrative style — cannot determine word count target' };
+    return {
+      success: false,
+      error: "Chronicle has no narrative style — cannot determine word count target",
+    };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.copyEdit');
+  const callConfig = getCallConfig(config, "chronicle.copyEdit");
   console.log(`[Worker] Copy-editing chronicle ${chronicleId}, model=${callConfig.model}...`);
 
-  const format = chronicleRecord.format === 'document' ? 'document' : 'story';
+  const format = chronicleRecord.format === "document" ? "document" : "story";
   const systemPrompt = buildCopyEditSystemPrompt(format);
 
   // Pass PS voice textures and motifs so the editor can recognize intentional prose choices
   const ps = chronicleRecord.perspectiveSynthesis;
-  const voiceContext = ps ? {
-    narrativeVoice: ps.narrativeVoice,
-    motifs: ps.suggestedMotifs,
-  } : undefined;
+  const voiceContext = ps
+    ? {
+        narrativeVoice: ps.narrativeVoice,
+        motifs: ps.suggestedMotifs,
+      }
+    : undefined;
 
   const userPrompt = buildCopyEditUserPrompt(content, narrativeStyle, voiceContext);
 
@@ -1534,7 +1426,7 @@ async function executeCopyEditStep(
   const sampling = deriveSamplingFromConfig(callConfig);
   const copyEditCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.copyEdit',
+    callType: "chronicle.copyEdit",
     callConfig,
     systemPrompt,
     prompt: userPrompt,
@@ -1542,13 +1434,13 @@ async function executeCopyEditStep(
   });
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: copyEditCall.result.debug };
+    return { success: false, error: "Task aborted", debug: copyEditCall.result.debug };
   }
 
   if (copyEditCall.result.error || !copyEditCall.result.text) {
     return {
       success: false,
-      error: `Copy-edit failed: ${copyEditCall.result.error || 'No text returned'}`,
+      error: `Copy-edit failed: ${copyEditCall.result.error || "No text returned"}`,
       debug: copyEditCall.result.debug,
     };
   }
@@ -1561,7 +1453,7 @@ async function executeCopyEditStep(
     userPrompt: userPrompt,
     model: callConfig.model,
     sampling,
-    step: 'copy_edit',
+    step: "copy_edit",
     cost: {
       estimated: copyEditCall.estimate.estimatedCost,
       actual: copyEditCall.usage.actualCost,
@@ -1577,7 +1469,7 @@ async function executeCopyEditStep(
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId,
-    type: 'chronicleV2',
+    type: "chronicleV2",
     model: callConfig.model,
     estimatedCost: copyEditCall.estimate.estimatedCost,
     actualCost: copyEditCall.usage.actualCost,
@@ -1604,107 +1496,112 @@ async function executeCopyEditStep(
 // Temporal Alignment Check Step (user-triggered, produces report)
 // ============================================================================
 
+import type { EraTemporalInfo, ChronicleTemporalContext } from "../../lib/chronicleTypes";
+
+function buildEraContextBlock(
+  allEras: EraTemporalInfo[],
+  focalEra: EraTemporalInfo | undefined,
+  touchedEraIds: string[]
+): string {
+  if (allEras.length === 0) return "No era information available.";
+  return allEras
+    .map((era) => {
+      const isFocal = focalEra?.id === era.id ? " \u2190 FOCAL ERA" : "";
+      const isTouched = touchedEraIds.includes(era.id) ? " (touched)" : "";
+      const summarySuffix = era.summary ? `: ${era.summary}` : "";
+      return `- **${era.name}** (years ${era.startTick}\u2013${era.endTick})${isFocal}${isTouched}${summarySuffix}`;
+    })
+    .join("\n");
+}
+
+function buildEraBoundaryBlock(temporal: ChronicleTemporalContext | undefined): string {
+  if (!temporal) return "";
+  const { focalEra, allEras, chronicleTickRange: tickRange, touchedEraIds, isMultiEra } = temporal;
+  if (!focalEra || allEras.length <= 1 || !tickRange) return "";
+
+  const sortedEras = [...allEras].sort((a, b) => a.startTick - b.startTick);
+  const focalIdx = sortedEras.findIndex((e) => e.id === focalEra.id);
+  const adjacentEras: Array<{ era: EraTemporalInfo; boundary: number; direction: string }> = [];
+
+  if (focalIdx > 0) {
+    const prev = sortedEras[focalIdx - 1];
+    const boundary = focalEra.startTick;
+    if (tickRange[0] - boundary < focalEra.duration * 0.25 || touchedEraIds.includes(prev.id)) {
+      adjacentEras.push({ era: prev, boundary, direction: "preceding" });
+    }
+  }
+
+  if (focalIdx < sortedEras.length - 1) {
+    const next = sortedEras[focalIdx + 1];
+    const boundary = focalEra.endTick;
+    if (boundary - tickRange[1] < focalEra.duration * 0.25 || touchedEraIds.includes(next.id)) {
+      adjacentEras.push({ era: next, boundary, direction: "following" });
+    }
+  }
+
+  if (adjacentEras.length === 0 && !isMultiEra) return "";
+
+  const touchedNames = touchedEraIds
+    .map((id) => allEras.find((e) => e.id === id)?.name)
+    .filter(Boolean);
+  const lines = [`## Era Boundary Analysis`];
+  if (isMultiEra) {
+    lines.push(`This chronicle touches ${touchedEraIds.length} eras: ${touchedNames.join(", ")}. Focal era: ${focalEra.name}.`);
+  }
+  for (const { era, boundary, direction } of adjacentEras) {
+    const pair = direction === "preceding"
+      ? era.name + " and " + focalEra.name
+      : focalEra.name + " and " + era.name;
+    lines.push(`The chronicle's year range [${tickRange[0]}\u2013${tickRange[1]}] is near the boundary at year ${boundary} (between ${pair}).`);
+    if (era.summary) lines.push(`**${era.name}:** ${era.summary}`);
+  }
+  lines.push(`\nThis may be a **transition/boundary chronicle** depicting the shift between eras. Elements from adjacent eras may be narratively appropriate if they serve the transition.`);
+  return lines.join("\n") + "\n\n";
+}
+
+function buildWorldDynamicsBlock(worldDynamicsResolved: string[] | undefined): string {
+  if (!worldDynamicsResolved || worldDynamicsResolved.length === 0) return "";
+  const dynamicsLines = worldDynamicsResolved.map((d, i) => `${i + 1}. ${d}`).join("\n");
+  return `## World Dynamics (as provided to generation)\n${dynamicsLines}\n`;
+}
+
 async function executeTemporalCheckStep(
   task: WorkerTask,
   chronicleRecord: NonNullable<Awaited<ReturnType<typeof getChronicle>>>,
   context: TaskContext
 ): Promise<TaskResult> {
   const { config, llmClient, isAborted } = context;
-
   const chronicleId = chronicleRecord.chronicleId;
 
-  // Get the active version content
   const { content } = resolveTargetVersionContent(chronicleRecord);
   if (!content) {
-    return { success: false, error: 'No chronicle content available for temporal check' };
+    return { success: false, error: "No chronicle content available for temporal check" };
   }
 
-  // Get temporal narrative from perspective synthesis
   const temporalNarrative = chronicleRecord.perspectiveSynthesis?.temporalNarrative;
   if (!temporalNarrative) {
-    return { success: false, error: 'No temporal narrative available — requires perspective synthesis with world dynamics' };
+    return { success: false, error: "No temporal narrative available \u2014 requires perspective synthesis with world dynamics" };
   }
 
-  // Get focal era info
-  const focalEra = chronicleRecord.temporalContext?.focalEra;
-  const touchedEraIds = chronicleRecord.temporalContext?.touchedEraIds || [];
-  const allEras = chronicleRecord.temporalContext?.allEras || [];
-  const temporalScope = chronicleRecord.temporalContext?.temporalScope;
-  const temporalDescription = chronicleRecord.temporalContext?.temporalDescription;
+  const temporal = chronicleRecord.temporalContext;
+  const focalEra = temporal?.focalEra;
+  const touchedEraIds = temporal?.touchedEraIds || [];
+  const allEras = temporal?.allEras || [];
+  const eraContextBlock = buildEraContextBlock(allEras, focalEra, touchedEraIds);
+  const boundaryBlock = buildEraBoundaryBlock(temporal);
+  const dynamicsBlock = buildWorldDynamicsBlock(chronicleRecord.generationContext?.worldDynamicsResolved);
 
-  // Build era context block
-  const eraContextBlock = allEras.length > 0
-    ? allEras.map(era => {
-        const isFocal = focalEra?.id === era.id ? ' ← FOCAL ERA' : '';
-        const isTouched = touchedEraIds.includes(era.id) ? ' (touched)' : '';
-        return `- **${era.name}** (years ${era.startTick}–${era.endTick})${isFocal}${isTouched}${era.summary ? `: ${era.summary}` : ''}`;
-      }).join('\n')
-    : 'No era information available.';
-
-  // Build era boundary context
-  const isMultiEra = chronicleRecord.temporalContext?.isMultiEra || false;
-  const tickRange = chronicleRecord.temporalContext?.chronicleTickRange;
-  let boundaryBlock = '';
-
-  if (focalEra && allEras.length > 1 && tickRange) {
-    const sortedEras = [...allEras].sort((a, b) => a.startTick - b.startTick);
-    const focalIdx = sortedEras.findIndex(e => e.id === focalEra.id);
-    const adjacentEras: Array<{ era: typeof focalEra; boundary: number; direction: string }> = [];
-
-    // Check previous era
-    if (focalIdx > 0) {
-      const prev = sortedEras[focalIdx - 1];
-      const boundary = focalEra.startTick;
-      const distToBoundary = tickRange[0] - boundary;
-      if (distToBoundary < focalEra.duration * 0.25 || touchedEraIds.includes(prev.id)) {
-        adjacentEras.push({ era: prev, boundary, direction: 'preceding' });
-      }
-    }
-
-    // Check next era
-    if (focalIdx < sortedEras.length - 1) {
-      const next = sortedEras[focalIdx + 1];
-      const boundary = focalEra.endTick;
-      const distToBoundary = boundary - tickRange[1];
-      if (distToBoundary < focalEra.duration * 0.25 || touchedEraIds.includes(next.id)) {
-        adjacentEras.push({ era: next, boundary, direction: 'following' });
-      }
-    }
-
-    if (adjacentEras.length > 0 || isMultiEra) {
-      const touchedNames = touchedEraIds
-        .map(id => allEras.find(e => e.id === id)?.name)
-        .filter(Boolean);
-      const lines = [`## Era Boundary Analysis`];
-      if (isMultiEra) {
-        lines.push(`This chronicle touches ${touchedEraIds.length} eras: ${touchedNames.join(', ')}. Focal era: ${focalEra.name}.`);
-      }
-      for (const { era, boundary, direction } of adjacentEras) {
-        lines.push(`The chronicle's year range [${tickRange[0]}–${tickRange[1]}] is near the boundary at year ${boundary} (between ${direction === 'preceding' ? era.name + ' and ' + focalEra.name : focalEra.name + ' and ' + era.name}).`);
-        if (era.summary) {
-          lines.push(`**${era.name}:** ${era.summary}`);
-        }
-      }
-      lines.push(`\nThis may be a **transition/boundary chronicle** depicting the shift between eras. Elements from adjacent eras may be narratively appropriate if they serve the transition.`);
-      boundaryBlock = lines.join('\n') + '\n\n';
-    }
-  }
-
-  // Get world dynamics if available
-  const worldDynamicsResolved = (chronicleRecord as any).generationContext?.worldDynamicsResolved;
-  const dynamicsBlock = worldDynamicsResolved && worldDynamicsResolved.length > 0
-    ? `## World Dynamics (as provided to generation)\n${worldDynamicsResolved.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n')}\n`
-    : '';
-
-  const callConfig = getCallConfig(config, 'chronicle.compare');
-  console.log(`[Worker] Temporal alignment check for chronicle=${chronicleId}, model=${callConfig.model}...`);
+  const callConfig = getCallConfig(config, "chronicle.compare");
+  console.log(
+    `[Worker] Temporal alignment check for chronicle=${chronicleId}, model=${callConfig.model}...`
+  );
 
   const systemPrompt = `You are an editorial analyst checking whether a chronicle's narrative is temporally grounded in the correct era. You have access to the focal era, the temporal narrative (synthesized stakes), and the chronicle text. Your job is to identify passages where the chronicle's narrative contradicts, ignores, or is misaligned with the temporal context it was supposed to be grounded in. Some chronicles intentionally depict transitions between eras — these should be evaluated for how well they portray the shift, not penalized for containing elements of both eras.`;
 
   const userPrompt = `## Temporal Context
 
-**Focal Era:** ${focalEra?.name || 'unknown'}${temporalScope ? ` (scope: ${temporalScope})` : ''}
-${temporalDescription ? `**Temporal Description:** ${temporalDescription}` : ''}
+**Focal Era:** ${focalEra?.name || "unknown"}${temporalScope ? ` (scope: ${temporalScope})` : ""}
+${temporalDescription ? `**Temporal Description:** ${temporalDescription}` : ""}
 
 **Era Timeline:**
 ${eraContextBlock}
@@ -1747,7 +1644,7 @@ Keep the total output under 800 words.`;
 
   const checkCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.compare',
+    callType: "chronicle.compare",
     callConfig,
     systemPrompt,
     prompt: userPrompt,
@@ -1755,13 +1652,13 @@ Keep the total output under 800 words.`;
   });
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: checkCall.result.debug };
+    return { success: false, error: "Task aborted", debug: checkCall.result.debug };
   }
 
   if (checkCall.result.error || !checkCall.result.text) {
     return {
       success: false,
-      error: `Temporal check failed: ${checkCall.result.error || 'No text returned'}`,
+      error: `Temporal check failed: ${checkCall.result.error || "No text returned"}`,
       debug: checkCall.result.debug,
     };
   }
@@ -1782,7 +1679,7 @@ Keep the total output under 800 words.`;
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId,
-    type: 'chronicleV2',
+    type: "chronicleV2",
     model: callConfig.model,
     estimatedCost: checkCost.estimated,
     actualCost: checkCost.actual,
@@ -1828,47 +1725,44 @@ You SHOULD flag:
 
 Return ONLY valid JSON. No markdown wrapping.`;
 
-function buildQuickCheckUserPrompt(
-  chronicleRecord: ChronicleRecord,
-  content: string,
-): string {
+function buildQuickCheckUserPrompt(chronicleRecord: ChronicleRecord, content: string): string {
   const sections: string[] = [];
 
   // Cast list with ID slugs (ID slugs preserve original pre-rename names)
   const roleAssignments = chronicleRecord.roleAssignments || [];
   if (roleAssignments.length > 0) {
-    const castLines = roleAssignments.map(ra => {
+    const castLines = roleAssignments.map((ra) => {
       const slugName = ra.entityId
-        .replace(/-[a-f0-9]{4,}$/, '') // strip trailing hash
-        .replace(/-/g, ' ');
+        .replace(/-[a-f0-9]{4,}$/, "") // strip trailing hash
+        .replace(/-/g, " ");
       return `- Name: "${ra.entityName}" | ID slug: "${ra.entityId}" (original: "${slugName}") | Kind: ${ra.entityKind} | Role: ${ra.role}`;
     });
-    sections.push(`== KNOWN ENTITIES (cast) ==\n${castLines.join('\n')}`);
+    sections.push(`== KNOWN ENTITIES (cast) ==\n${castLines.join("\n")}`);
   }
 
   // Tertiary cast — entities detected in text but not in the declared cast
-  const acceptedTertiary = (chronicleRecord.tertiaryCast || []).filter(e => e.accepted);
+  const acceptedTertiary = (chronicleRecord.tertiaryCast || []).filter((e) => e.accepted);
   if (acceptedTertiary.length > 0) {
-    const tertiaryLines = acceptedTertiary.map(e => `- ${e.name} (${e.kind})`);
-    sections.push(`== TERTIARY CAST (detected mentions, not in declared cast — treat as known) ==\n${tertiaryLines.join('\n')}`);
+    const tertiaryLines = acceptedTertiary.map((e) => `- ${e.name} (${e.kind})`);
+    sections.push(
+      `== TERTIARY CAST (detected mentions, not in declared cast — treat as known) ==\n${tertiaryLines.join("\n")}`
+    );
   }
 
   // Name bank
-  const nameBank = chronicleRecord.generationContext?.nameBank;
+  const nameBank = (chronicleRecord.generationContext as { nameBank?: Record<string, string[]> } | undefined)?.nameBank;
   if (nameBank && Object.keys(nameBank).length > 0) {
     const nbLines = Object.entries(nameBank).map(
-      ([culture, names]) => `${culture}: ${(names as string[]).join(', ')}`
+      ([culture, names]) => `${culture}: ${names.join(", ")}`
     );
-    sections.push(`== NAME BANK (expected invented names) ==\n${nbLines.join('\n')}`);
+    sections.push(`== NAME BANK (expected invented names) ==\n${nbLines.join("\n")}`);
   }
 
   // Entity directives (extra name references)
   const directives = chronicleRecord.generationContext?.entityDirectives;
   if (directives && directives.length > 0) {
-    const dLines = directives.map(
-      d => `- ${d.entityName} (${d.entityId}): ${d.directive}`
-    );
-    sections.push(`== ENTITY DIRECTIVES ==\n${dLines.join('\n')}`);
+    const dLines = directives.map((d) => `- ${d.entityName} (${d.entityId}): ${d.directive}`);
+    sections.push(`== ENTITY DIRECTIVES ==\n${dLines.join("\n")}`);
   }
 
   sections.push(`== CHRONICLE TEXT ==\n${content}`);
@@ -1890,7 +1784,7 @@ Return JSON:
   "summary": "One sentence summary of findings"
 }`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 async function executeQuickCheckStep(
@@ -1908,17 +1802,17 @@ async function executeQuickCheckStep(
     content = resolved.content;
   }
   if (!content) {
-    return { success: false, error: 'No chronicle content available for quick check' };
+    return { success: false, error: "No chronicle content available for quick check" };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.quickCheck');
+  const callConfig = getCallConfig(config, "chronicle.quickCheck");
   console.log(`[Worker] Quick check for chronicle=${chronicleId}, model=${callConfig.model}...`);
 
   const userPrompt = buildQuickCheckUserPrompt(chronicleRecord, content);
 
   const callResult = await runTextCall({
     llmClient,
-    callType: 'chronicle.quickCheck',
+    callType: "chronicle.quickCheck",
     callConfig,
     systemPrompt: QUICK_CHECK_SYSTEM_PROMPT,
     prompt: userPrompt,
@@ -1926,13 +1820,13 @@ async function executeQuickCheckStep(
   });
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: callResult.result.debug };
+    return { success: false, error: "Task aborted", debug: callResult.result.debug };
   }
 
   if (callResult.result.error || !callResult.result.text) {
     return {
       success: false,
-      error: `Quick check failed: ${callResult.result.error || 'No text returned'}`,
+      error: `Quick check failed: ${callResult.result.error || "No text returned"}`,
       debug: callResult.result.debug,
     };
   }
@@ -1940,17 +1834,8 @@ async function executeQuickCheckStep(
   // Parse JSON response
   let report: QuickCheckReport;
   try {
-    const parsed = parseJsonObject<QuickCheckReport>(callResult.result.text, 'quickCheck');
-    report = {
-      suspects: Array.isArray(parsed.suspects) ? parsed.suspects.map(s => ({
-        phrase: typeof s.phrase === 'string' ? s.phrase : String(s.phrase ?? ''),
-        context: typeof s.context === 'string' ? s.context : String(s.context ?? ''),
-        reasoning: typeof s.reasoning === 'string' ? s.reasoning : String(s.reasoning ?? ''),
-        confidence: ['high', 'medium', 'low'].includes(s.confidence) ? s.confidence : 'medium',
-      })) : [],
-      assessment: ['clean', 'minor', 'flagged'].includes(parsed.assessment) ? parsed.assessment : 'minor',
-      summary: typeof parsed.summary === 'string' ? parsed.summary : 'Quick check completed.',
-    };
+    const parsed = parseJsonObject<QuickCheckReport>(callResult.result.text, "quickCheck");
+    report = parsed;
   } catch (err) {
     return {
       success: false,
@@ -1975,7 +1860,7 @@ async function executeQuickCheckStep(
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId,
-    type: 'chronicleQuickCheck' as CostType,
+    type: "chronicleQuickCheck" as CostType,
     model: callConfig.model,
     estimatedCost: cost.estimated,
     actualCost: cost.actual,
@@ -2019,15 +1904,44 @@ Return ONLY valid JSON in this exact format:
 
 // Words that stay lowercase in title case (unless first word)
 const TITLE_CASE_MINOR = new Set([
-  'a', 'an', 'the', 'and', 'but', 'or', 'nor', 'for', 'yet', 'so',
-  'in', 'on', 'at', 'to', 'by', 'of', 'up', 'as', 'if', 'off',
-  'per', 'via', 'from', 'into', 'with', 'over', 'near', 'upon',
-  'than', 'that', 'when', 'where', 'who',
+  "a",
+  "an",
+  "the",
+  "and",
+  "but",
+  "or",
+  "nor",
+  "for",
+  "yet",
+  "so",
+  "in",
+  "on",
+  "at",
+  "to",
+  "by",
+  "of",
+  "up",
+  "as",
+  "if",
+  "off",
+  "per",
+  "via",
+  "from",
+  "into",
+  "with",
+  "over",
+  "near",
+  "upon",
+  "than",
+  "that",
+  "when",
+  "where",
+  "who",
 ]);
 
 function toTitleCase(title: string): string {
   return title
-    .split(/(\s+|-)/  )
+    .split(/(\s+|-)/)
     .map((segment, i) => {
       // Preserve whitespace and hyphens as-is
       if (/^[\s-]+$/.test(segment)) return segment;
@@ -2037,7 +1951,7 @@ function toTitleCase(title: string): string {
       if (TITLE_CASE_MINOR.has(lower)) return lower;
       return segment.charAt(0).toUpperCase() + segment.slice(1);
     })
-    .join('');
+    .join("");
 }
 
 // =============================================================================
@@ -2050,23 +1964,23 @@ function toTitleCase(title: string): string {
 async function lookupTitleGuidance(styleId: string | undefined): Promise<string | undefined> {
   if (!styleId) return undefined;
   const library = await getStyleLibrary();
-  const style = library.narrativeStyles.find(s => s.id === styleId);
-  return (style as any)?.titleGuidance;
+  const style = library.narrativeStyles.find((s) => s.id === styleId);
+  return style?.titleGuidance as string | undefined;
 }
 
 function buildTitleStyleContext(ctx: TitlePromptContext): string {
-  if (!ctx.narrativeStyleName) return '';
+  if (!ctx.narrativeStyleName) return "";
 
   const parts: string[] = [];
   parts.push(`Style: "${ctx.narrativeStyleName}"`);
   if (ctx.narrativeStyleDescription) parts.push(ctx.narrativeStyleDescription);
   parts.push(`\n${ctx.titleGuidance}`);
 
-  return parts.join('\n');
+  return parts.join("\n");
 }
 
 interface TitlePromptContext {
-  format: 'story' | 'document';
+  format: "story" | "document";
   narrativeStyleName?: string;
   narrativeStyleDescription?: string;
   narrativeInstructions?: string;
@@ -2080,30 +1994,30 @@ interface TitlePromptContext {
 // --- Phase 1: Fragment Extraction ---
 
 function buildFragmentExtractionSystemPrompt(ctx: TitlePromptContext): string {
-  const formatLabel = ctx.format === 'document' ? 'document' : 'story';
+  const formatLabel = ctx.format === "document" ? "document" : "story";
   const styleContext = buildTitleStyleContext(ctx);
 
   return [
     `You are reading an in-universe ${formatLabel} and mining it for title material.`,
-    '',
-    'THE FORM:',
+    "",
+    "THE FORM:",
     styleContext,
-    '',
-    'The title guidance above tells you what the title needs to be made of. Extract the raw material that guidance calls for. If it says to name correspondents, extract the names. If it says to name a product, extract product and vendor names. If it says to name an image, extract images. Let the guidance shape what you notice.',
-    '',
-    'Also extract:',
-    '- Names of people, places, objects, or institutions that carry weight in the text',
-    '- Phrases with sonic quality or compression',
-    '- The subject or matter at the center of the text',
-    '',
-    'Extract 8-12 fragments. Each should be 1-6 words. Draw from the actual text — quote, compress, or distill.',
-    '',
+    "",
+    "The title guidance above tells you what the title needs to be made of. Extract the raw material that guidance calls for. If it says to name correspondents, extract the names. If it says to name a product, extract product and vendor names. If it says to name an image, extract images. Let the guidance shape what you notice.",
+    "",
+    "Also extract:",
+    "- Names of people, places, objects, or institutions that carry weight in the text",
+    "- Phrases with sonic quality or compression",
+    "- The subject or matter at the center of the text",
+    "",
+    "Extract 8-12 fragments. Each should be 1-6 words. Draw from the actual text — quote, compress, or distill.",
+    "",
     'Output ONLY valid JSON: {"fragments": ["...", "...", ...]}',
-  ].join('\n');
+  ].join("\n");
 }
 
 function buildFragmentExtractionUserPrompt(content: string, ctx: TitlePromptContext): string {
-  const label = ctx.format === 'document' ? 'document' : 'story';
+  const label = ctx.format === "document" ? "document" : "story";
   const parts: string[] = [];
 
   parts.push(`Extract 8-12 evocative fragments from this ${label} that could seed a title.`);
@@ -2113,44 +2027,52 @@ function buildFragmentExtractionUserPrompt(content: string, ctx: TitlePromptCont
     parts.push(`Thematic context:\n${ctx.perspectiveBrief}`);
   }
   if (ctx.motifs && ctx.motifs.length > 0) {
-    parts.push(`Recurring motifs:\n${ctx.motifs.map(m => `- "${m}"`).join('\n')}`);
+    const motifList = ctx.motifs.map((m) => `- "${m}"`).join("\n");
+    parts.push(`Recurring motifs:\n${motifList}`);
   }
 
   parts.push(content);
 
-  return parts.join('\n\n');
+  return parts.join("\n\n");
 }
 
 // --- Phase 2: Title Shaping ---
 
 function buildTitleShapingSystemPrompt(ctx: TitlePromptContext): string {
-  const formatLabel = ctx.format === 'document' ? 'document' : 'story';
+  const formatLabel = ctx.format === "document" ? "document" : "story";
   const styleContext = buildTitleStyleContext(ctx);
 
   return [
     `You are the author of an in-universe ${formatLabel}, choosing the title this work will be known by.`,
-    '',
-    'THE FORM:',
+    "",
+    "THE FORM:",
     styleContext,
-    '',
-    'The title guidance above is your primary creative constraint. It defines the register, the shape, and what the title should feel like. Follow it closely. Titles should be short — most great titles are 2-6 words.',
-    '',
-    'You have fragments extracted from the text and the full text itself. The fragments are starting points — thematic material, not finished titles. Do not reproduce or truncate any fragment as a title. Combine ideas across fragments, compress, or find something in the text the fragments point toward but don\'t say directly.',
-    '',
-    'Craft exactly 5 titles. Each should feel distinct from the others. Order best to worst.',
-    '',
+    "",
+    "The title guidance above is your primary creative constraint. It defines the register, the shape, and what the title should feel like. Follow it closely. Titles should be short — most great titles are 2-6 words.",
+    "",
+    "You have fragments extracted from the text and the full text itself. The fragments are starting points — thematic material, not finished titles. Do not reproduce or truncate any fragment as a title. Combine ideas across fragments, compress, or find something in the text the fragments point toward but don't say directly.",
+    "",
+    "Craft exactly 5 titles. Each should feel distinct from the others. Order best to worst.",
+    "",
     'Output ONLY valid JSON: {"titles": ["...", "...", "...", "...", "..."]}',
-    'Use Title Case capitalization.',
-  ].join('\n');
+    "Use Title Case capitalization.",
+  ].join("\n");
 }
 
-function buildTitleShapingUserPrompt(fragments: string[], content: string, ctx: TitlePromptContext): string {
+function buildTitleShapingUserPrompt(
+  fragments: string[],
+  content: string,
+  ctx: TitlePromptContext
+): string {
   const parts: string[] = [];
 
   parts.push('Return ONLY valid JSON: {"titles": ["...", "...", "...", "...", "..."]}');
 
   if (fragments.length > 0) {
-    parts.push('Fragments (thematic material, not titles — do not reproduce these):\n' + fragments.map(f => `- ${f}`).join('\n'));
+    parts.push(
+      "Fragments (thematic material, not titles — do not reproduce these):\n" +
+        fragments.map((f) => `- ${f}`).join("\n")
+    );
   }
 
   if (ctx.perspectiveBrief) {
@@ -2159,23 +2081,24 @@ function buildTitleShapingUserPrompt(fragments: string[], content: string, ctx: 
 
   // Deduplicate: only include motifs that aren't already in the fragments list
   if (ctx.motifs && ctx.motifs.length > 0) {
-    const fragmentLower = new Set(fragments.map(f => f.toLowerCase()));
-    const uniqueMotifs = ctx.motifs.filter(m => !fragmentLower.has(m.toLowerCase()));
+    const fragmentLower = new Set(fragments.map((f) => f.toLowerCase()));
+    const uniqueMotifs = ctx.motifs.filter((m) => !fragmentLower.has(m.toLowerCase()));
     if (uniqueMotifs.length > 0) {
-      parts.push(`Recurring motifs:\n${uniqueMotifs.map(m => `- "${m}"`).join('\n')}`);
+      const uniqueMotifList = uniqueMotifs.map((m) => `- "${m}"`).join("\n");
+      parts.push(`Recurring motifs:\n${uniqueMotifList}`);
     }
   }
 
   parts.push(content);
 
-  return parts.join('\n\n');
+  return parts.join("\n\n");
 }
 
 function formatImageRefEntities(
   chronicleContext: ChronicleGenerationContext,
   visualIdentities?: Record<string, string>
 ): string {
-  if (chronicleContext.entities.length === 0) return '(none)';
+  if (chronicleContext.entities.length === 0) return "(none)";
 
   return chronicleContext.entities
     .map((entity) => {
@@ -2186,7 +2109,7 @@ function formatImageRefEntities(
       }
       return line;
     })
-    .join('\n');
+    .join("\n");
 }
 
 /**
@@ -2194,7 +2117,18 @@ function formatImageRefEntities(
  * Splits at whitespace boundaries to avoid cutting words.
  * Returns 3-7 chunks, weighted by content length (longer = more chunks).
  */
-function splitIntoChunks(content: string): Array<{ index: number; text: string; startOffset: number }> {
+function findWordBoundary(content: string, targetEnd: number): number {
+  if (targetEnd >= content.length) return targetEnd;
+  const searchEnd = Math.min(targetEnd + 50, content.length);
+  for (let j = targetEnd; j < searchEnd; j++) {
+    if (/\s/.test(content[j])) return j;
+  }
+  return targetEnd;
+}
+
+function splitIntoChunks(
+  content: string
+): Array<{ index: number; text: string; startOffset: number }> {
   // Estimate word count for chunk calculation
   const wordCount = content.split(/\s+/).length;
 
@@ -2208,7 +2142,13 @@ function splitIntoChunks(content: string): Array<{ index: number; text: string; 
   else baseChunkCount = 7;
 
   // Add slight randomness: +/-1 chunk
-  const randomOffset = Math.random() < 0.3 ? -1 : (Math.random() > 0.7 ? 1 : 0);
+  // eslint-disable-next-line sonarjs/pseudo-random -- non-security chunk size jitter
+  const rng = Math.random();
+  let randomOffset: number;
+  if (rng < 0.3) randomOffset = -1;
+  // eslint-disable-next-line sonarjs/pseudo-random -- non-security chunk size jitter
+  else if (Math.random() > 0.7) randomOffset = 1;
+  else randomOffset = 0;
   const chunkCount = Math.max(3, Math.min(7, baseChunkCount + randomOffset));
 
   const targetChunkSize = Math.ceil(content.length / chunkCount);
@@ -2219,21 +2159,7 @@ function splitIntoChunks(content: string): Array<{ index: number; text: string; 
     const targetEnd = Math.min(currentStart + targetChunkSize, content.length);
 
     // Find next whitespace after target end (don't cut words)
-    let actualEnd = targetEnd;
-    if (targetEnd < content.length) {
-      // Look for whitespace within 50 chars after target
-      const searchEnd = Math.min(targetEnd + 50, content.length);
-      for (let j = targetEnd; j < searchEnd; j++) {
-        if (/\s/.test(content[j])) {
-          actualEnd = j;
-          break;
-        }
-      }
-      // If no whitespace found, use target (rare edge case)
-      if (actualEnd === targetEnd && targetEnd < content.length) {
-        actualEnd = targetEnd;
-      }
-    }
+    const actualEnd = findWordBoundary(content, targetEnd);
 
     chunks.push({
       index: i,
@@ -2264,11 +2190,13 @@ function buildImageRefsPrompt(
   const chunks = splitIntoChunks(content);
 
   // Build chunk display with markers (full text, no truncation)
-  const chunksDisplay = chunks.map((chunk, i) => {
-    return `### CHUNK ${i + 1} of ${chunks.length}
+  const chunksDisplay = chunks
+    .map((chunk, i) => {
+      return `### CHUNK ${i + 1} of ${chunks.length}
 ${chunk.text}
 ---`;
-  }).join('\n\n');
+    })
+    .join("\n\n");
 
   return `You are adding image references to a chronicle. Your task is to identify optimal placement points for images that enhance the narrative.
 
@@ -2330,66 +2258,59 @@ ${chunksDisplay}`;
 /**
  * Parse the LLM response for image refs into structured ChronicleImageRef array
  */
+function parseOneImageRef(
+  ref: Record<string, unknown>,
+  index: number,
+  validSizes: ChronicleImageSize[]
+): ChronicleImageRef {
+  const refId = `imgref_${Date.now()}_${index}`;
+  const anchorText = typeof ref.anchorText === "string" ? ref.anchorText : "";
+  const rawSize = typeof ref.size === "string" ? ref.size : "medium";
+  const size: ChronicleImageSize = validSizes.includes(rawSize as ChronicleImageSize)
+    ? (rawSize as ChronicleImageSize)
+    : "medium";
+  const caption = typeof ref.caption === "string" ? ref.caption : undefined;
+
+  if (ref.type === "entity_ref") {
+    const entityId = typeof ref.entityId === "string" ? ref.entityId : "";
+    if (!entityId) {
+      throw new Error(`entity_ref at index ${index} missing entityId`);
+    }
+    return { refId, type: "entity_ref", entityId, anchorText, size, caption } as EntityImageRef;
+  } else if (ref.type === "prompt_request") {
+    const sceneDescription = typeof ref.sceneDescription === "string" ? ref.sceneDescription : "";
+    if (!sceneDescription) {
+      throw new Error(`prompt_request at index ${index} missing sceneDescription`);
+    }
+    let involvedEntityIds: string[] | undefined;
+    if (Array.isArray(ref.involvedEntityIds)) {
+      involvedEntityIds = (ref.involvedEntityIds as unknown[]).filter(
+        (id): id is string => typeof id === "string" && id.length > 0
+      );
+      if (involvedEntityIds.length === 0) involvedEntityIds = undefined;
+    }
+    return {
+      refId, type: "prompt_request", sceneDescription, involvedEntityIds,
+      anchorText, size, caption, status: "pending",
+    } as PromptRequestRef;
+  }
+  const typeStr = typeof ref.type === "string" ? ref.type : "unknown";
+  throw new Error(`Unknown image ref type at index ${index}: ${typeStr}`);
+}
+
 function parseImageRefsResponse(text: string): ChronicleImageRef[] {
-  const parsed = parseJsonObject<Record<string, unknown>>(text, 'image refs response');
+  const parsed = parseJsonObject<Record<string, unknown>>(text, "image refs response");
   const rawRefs = parsed.imageRefs;
 
   if (!rawRefs || !Array.isArray(rawRefs)) {
-    throw new Error('imageRefs array not found in response');
+    throw new Error("imageRefs array not found in response");
   }
 
-  const validSizes: ChronicleImageSize[] = ['small', 'medium', 'large', 'full-width'];
+  const validSizes: ChronicleImageSize[] = ["small", "medium", "large", "full-width"];
 
-  return rawRefs.map((ref: Record<string, unknown>, index: number) => {
-    const refId = `imgref_${Date.now()}_${index}`;
-    const anchorText = typeof ref.anchorText === 'string' ? ref.anchorText : '';
-    const rawSize = typeof ref.size === 'string' ? ref.size : 'medium';
-    const size: ChronicleImageSize = validSizes.includes(rawSize as ChronicleImageSize)
-      ? (rawSize as ChronicleImageSize)
-      : 'medium';
-    const caption = typeof ref.caption === 'string' ? ref.caption : undefined;
-
-    if (ref.type === 'entity_ref') {
-      const entityId = typeof ref.entityId === 'string' ? ref.entityId : '';
-      if (!entityId) {
-        throw new Error(`entity_ref at index ${index} missing entityId`);
-      }
-      return {
-        refId,
-        type: 'entity_ref',
-        entityId,
-        anchorText,
-        size,
-        caption,
-      } as EntityImageRef;
-    } else if (ref.type === 'prompt_request') {
-      const sceneDescription = typeof ref.sceneDescription === 'string' ? ref.sceneDescription : '';
-      if (!sceneDescription) {
-        throw new Error(`prompt_request at index ${index} missing sceneDescription`);
-      }
-      // Parse involvedEntityIds - can be array of strings or empty
-      let involvedEntityIds: string[] | undefined;
-      if (Array.isArray(ref.involvedEntityIds)) {
-        involvedEntityIds = ref.involvedEntityIds
-          .filter((id): id is string => typeof id === 'string' && id.length > 0);
-        if (involvedEntityIds.length === 0) {
-          involvedEntityIds = undefined;
-        }
-      }
-      return {
-        refId,
-        type: 'prompt_request',
-        sceneDescription,
-        involvedEntityIds,
-        anchorText,
-        size,
-        caption,
-        status: 'pending',
-      } as PromptRequestRef;
-    } else {
-      throw new Error(`Unknown image ref type at index ${index}: ${ref.type}`);
-    }
-  });
+  return rawRefs.map((ref: Record<string, unknown>, index: number) =>
+    parseOneImageRef(ref, index, validSizes)
+  );
 }
 
 async function executeSummaryStep(
@@ -2400,46 +2321,55 @@ async function executeSummaryStep(
   const { config, llmClient, isAborted } = context;
 
   if (!chronicleRecord) {
-    return { success: false, error: 'Chronicle record missing for summary' };
+    return { success: false, error: "Chronicle record missing for summary" };
   }
-  const { versionId: summaryVersionId, content: summaryContent } = resolveTargetVersionContent(chronicleRecord);
+  const { versionId: summaryVersionId, content: summaryContent } =
+    resolveTargetVersionContent(chronicleRecord);
   if (!summaryContent) {
-    return { success: false, error: 'Chronicle has no assembled content to summarize' };
+    return { success: false, error: "Chronicle has no assembled content to summarize" };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.summary');
+  const callConfig = getCallConfig(config, "chronicle.summary");
   const chronicleId = chronicleRecord.chronicleId;
 
   const summaryPrompt = buildSummaryPrompt(summaryContent);
   const summaryCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.summary',
+    callType: "chronicle.summary",
     callConfig,
-    systemPrompt: 'You are a careful editor who writes concise, faithful summaries. Always respond with valid JSON.',
+    systemPrompt:
+      "You are a careful editor who writes concise, faithful summaries. Always respond with valid JSON.",
     prompt: summaryPrompt,
     temperature: 0.3,
   });
   const debug = summaryCall.result.debug;
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug };
+    return { success: false, error: "Task aborted", debug };
   }
 
   if (summaryCall.result.error || !summaryCall.result.text) {
-    return { success: false, error: `Summary failed: ${summaryCall.result.error || 'Empty response'}`, debug };
+    return {
+      success: false,
+      error: `Summary failed: ${summaryCall.result.error || "Empty response"}`,
+      debug,
+    };
   }
 
   let summaryText: string;
   try {
-    const parsed = parseJsonObject<Record<string, unknown>>(summaryCall.result.text, 'summary response');
-    summaryText = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
+    const parsed = parseJsonObject<Record<string, unknown>>(
+      summaryCall.result.text,
+      "summary response"
+    );
+    summaryText = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
     if (!summaryText) {
-      return { success: false, error: 'Summary response missing summary field', debug };
+      return { success: false, error: "Summary response missing summary field", debug };
     }
   } catch {
-    summaryText = stripLeadingWrapper(summaryCall.result.text).replace(/\s+/g, ' ').trim();
+    summaryText = stripLeadingWrapper(summaryCall.result.text).replace(/\s+/g, " ").trim();
     if (!summaryText) {
-      return { success: false, error: 'Summary response empty', debug };
+      return { success: false, error: "Summary response empty", debug };
     }
   }
 
@@ -2450,7 +2380,13 @@ async function executeSummaryStep(
     outputTokens: summaryCall.usage.outputTokens,
   };
 
-  await updateChronicleSummary(chronicleId, summaryText, summaryCost, callConfig.model, summaryVersionId);
+  await updateChronicleSummary(
+    chronicleId,
+    summaryText,
+    summaryCost,
+    callConfig.model,
+    summaryVersionId
+  );
 
   await saveCostRecordWithDefaults({
     projectId: task.projectId,
@@ -2459,7 +2395,7 @@ async function executeSummaryStep(
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId,
-    type: 'chronicleSummary' as CostType,
+    type: "chronicleSummary" as CostType,
     model: callConfig.model,
     estimatedCost: summaryCost.estimated,
     actualCost: summaryCost.actual,
@@ -2482,6 +2418,42 @@ async function executeSummaryStep(
   };
 }
 
+function parseTitleJsonList(text: string | undefined, key: string): string[] {
+  if (!text) return [];
+  try {
+    const parsed = parseJsonObject<Record<string, unknown>>(text, `title ${key} response`);
+    if (Array.isArray(parsed[key])) {
+      return (parsed[key] as unknown[])
+        .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+        .map((v) => v.trim());
+    }
+  } catch {
+    // parse failed — return empty
+  }
+  return [];
+}
+
+async function buildTitleContext(
+  chronicleRecord: ChronicleRecord
+): Promise<TitlePromptContext> {
+  const format = chronicleRecord.format || "story";
+  const ns = chronicleRecord.narrativeStyle as NarrativeStyle | undefined;
+  const ps = chronicleRecord.perspectiveSynthesis;
+  return {
+    format,
+    narrativeStyleName: ns?.name,
+    narrativeStyleDescription: ns?.description,
+    narrativeInstructions: ns?.format === "story" ? ns.narrativeInstructions : undefined,
+    proseInstructions: ns?.format === "story" ? ns.proseInstructions : undefined,
+    documentInstructions: ns?.format === "document" ? ns.documentInstructions : undefined,
+    titleGuidance:
+      ns?.titleGuidance ||
+      (await lookupTitleGuidance(chronicleRecord.narrativeStyleId || ns?.id)),
+    perspectiveBrief: ps?.brief,
+    motifs: ps?.suggestedMotifs,
+  };
+}
+
 async function executeTitleStep(
   task: WorkerTask,
   chronicleRecord: Awaited<ReturnType<typeof getChronicle>>,
@@ -2490,33 +2462,18 @@ async function executeTitleStep(
   const { config, llmClient, isAborted } = context;
 
   if (!chronicleRecord) {
-    return { success: false, error: 'Chronicle record missing for title' };
+    return { success: false, error: "Chronicle record missing for title" };
   }
 
   // Use finalContent for published chronicles, assembled content for drafts
   const content = chronicleRecord.finalContent || chronicleRecord.assembledContent;
   if (!content) {
-    return { success: false, error: 'Chronicle has no content to generate title from' };
+    return { success: false, error: "Chronicle has no content to generate title from" };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.title');
+  const callConfig = getCallConfig(config, "chronicle.title");
   const chronicleId = chronicleRecord.chronicleId;
-  const narrativeStyle = chronicleRecord.narrativeStyle;
-  const format = chronicleRecord.format || 'story';
-
-  const ps = chronicleRecord.perspectiveSynthesis;
-  const titleCtx: TitlePromptContext = {
-    format,
-    narrativeStyleName: narrativeStyle?.name,
-    narrativeStyleDescription: narrativeStyle?.description,
-    narrativeInstructions: narrativeStyle?.format === 'story' ? (narrativeStyle as any).narrativeInstructions : undefined,
-    proseInstructions: narrativeStyle?.format === 'story' ? (narrativeStyle as any).proseInstructions : undefined,
-    documentInstructions: narrativeStyle?.format === 'document' ? (narrativeStyle as any).documentInstructions : undefined,
-    titleGuidance: (narrativeStyle as any)?.titleGuidance
-      || await lookupTitleGuidance(chronicleRecord.narrativeStyleId || narrativeStyle?.id),
-    perspectiveBrief: ps?.brief,
-    motifs: ps?.suggestedMotifs,
-  };
+  const titleCtx = await buildTitleContext(chronicleRecord);
 
   const debugParts: string[] = [];
 
@@ -2525,7 +2482,7 @@ async function executeTitleStep(
   const fragmentUserPrompt = buildFragmentExtractionUserPrompt(content, titleCtx);
   const fragmentCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.title',
+    callType: "chronicle.title",
     callConfig,
     systemPrompt: fragmentSystemPrompt,
     prompt: fragmentUserPrompt,
@@ -2535,32 +2492,23 @@ async function executeTitleStep(
   if (fragmentCall.result.debug) debugParts.push(fragmentCall.result.debug);
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: debugParts.join('\n---\n') || undefined };
+    return {
+      success: false,
+      error: "Task aborted",
+      debug: debugParts.join("\n---\n") || undefined,
+    };
   }
 
   // Parse fragments — graceful fallback to empty if extraction fails
-  let fragments: string[] = [];
-  if (!fragmentCall.result.error && fragmentCall.result.text) {
-    try {
-      const parsed = parseJsonObject<Record<string, unknown>>(fragmentCall.result.text, 'fragment extraction response');
-      if (Array.isArray(parsed.fragments)) {
-        fragments = parsed.fragments
-          .filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
-          .map(f => f.trim());
-      }
-    } catch {
-      // Fragment parse failed — Phase 2 will work with motifs/brief alone
-    }
-  }
+  const fragments = parseTitleJsonList(fragmentCall.result.text, "fragments");
 
   // --- Phase 2: Title Shaping (convergent, lower temperature) ---
   const shapingSystemPrompt = buildTitleShapingSystemPrompt(titleCtx);
   const shapingUserPrompt = buildTitleShapingUserPrompt(fragments, content, titleCtx);
 
-
   const shapingCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.title',
+    callType: "chronicle.title",
     callConfig,
     systemPrompt: shapingSystemPrompt,
     prompt: shapingUserPrompt,
@@ -2570,22 +2518,14 @@ async function executeTitleStep(
   if (shapingCall.result.debug) debugParts.push(shapingCall.result.debug);
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: debugParts.join('\n---\n') || undefined };
+    return {
+      success: false,
+      error: "Task aborted",
+      debug: debugParts.join("\n---\n") || undefined,
+    };
   }
 
-  let candidates: string[] = [];
-  if (!shapingCall.result.error && shapingCall.result.text) {
-    try {
-      const parsed = parseJsonObject<Record<string, unknown>>(shapingCall.result.text, 'title shaping response');
-      if (Array.isArray(parsed.titles)) {
-        candidates = parsed.titles
-          .filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
-          .map(t => t.trim());
-      }
-    } catch {
-      // Title parse failed
-    }
-  }
+  let candidates = parseTitleJsonList(shapingCall.result.text, "titles");
 
   if (candidates.length > 0) {
     const seen = new Set<string>();
@@ -2600,7 +2540,11 @@ async function executeTitleStep(
   }
 
   if (candidates.length === 0) {
-    return { success: false, error: 'Title generation produced no candidates', debug: debugParts.join('\n---\n') || undefined };
+    return {
+      success: false,
+      error: "Title generation produced no candidates",
+      debug: debugParts.join("\n---\n") || undefined,
+    };
   }
 
   const title = candidates[0];
@@ -2613,9 +2557,16 @@ async function executeTitleStep(
     outputTokens: fragmentCall.usage.outputTokens + shapingCall.usage.outputTokens,
   };
 
-  const debug = debugParts.length > 0 ? debugParts.join('\n---\n') : undefined;
+  const debug = debugParts.length > 0 ? debugParts.join("\n---\n") : undefined;
 
-  await updateChronicleTitle(chronicleId, title, candidates, fragments, totalCost, callConfig.model);
+  await updateChronicleTitle(
+    chronicleId,
+    title,
+    candidates,
+    fragments,
+    totalCost,
+    callConfig.model
+  );
 
   await saveCostRecordWithDefaults({
     projectId: task.projectId,
@@ -2624,7 +2575,7 @@ async function executeTitleStep(
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId,
-    type: 'chronicleSummary' as CostType,
+    type: "chronicleSummary" as CostType,
     model: callConfig.model,
     estimatedCost: totalCost.estimated,
     actualCost: totalCost.actual,
@@ -2658,22 +2609,27 @@ async function executeImageRefsStep(
   const { config, llmClient, isAborted } = context;
 
   if (!chronicleRecord) {
-    return { success: false, error: 'Chronicle record missing for image refs' };
+    return { success: false, error: "Chronicle record missing for image refs" };
   }
-  const { versionId: imageRefsVersionId, content: imageRefsContent } = resolveTargetVersionContent(chronicleRecord);
+  const { versionId: imageRefsVersionId, content: imageRefsContent } =
+    resolveTargetVersionContent(chronicleRecord);
   if (!imageRefsContent) {
-    return { success: false, error: 'Chronicle has no assembled content for image refs' };
+    return { success: false, error: "Chronicle has no assembled content for image refs" };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.imageRefs');
+  const callConfig = getCallConfig(config, "chronicle.imageRefs");
   const chronicleId = chronicleRecord.chronicleId;
-  const chronicleContext = task.chronicleContext!;
-  const imageRefsPrompt = buildImageRefsPrompt(imageRefsContent, chronicleContext, task.visualIdentities);
+  const chronicleContext = task.chronicleContext;
+  const imageRefsPrompt = buildImageRefsPrompt(
+    imageRefsContent,
+    chronicleContext,
+    task.visualIdentities
+  );
   const imageRefsCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.imageRefs',
+    callType: "chronicle.imageRefs",
     callConfig,
-    systemPrompt: 'You are planning draft image placements for a chronicle.',
+    systemPrompt: "You are planning draft image placements for a chronicle.",
     prompt: imageRefsPrompt,
     temperature: 0.4,
   });
@@ -2681,11 +2637,15 @@ async function executeImageRefsStep(
   const debug = imageRefsResult.debug;
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug };
+    return { success: false, error: "Task aborted", debug };
   }
 
   if (imageRefsResult.error || !imageRefsResult.text) {
-    return { success: false, error: `Image refs failed: ${imageRefsResult.error || 'Empty response'}`, debug };
+    return {
+      success: false,
+      error: `Image refs failed: ${imageRefsResult.error || "Empty response"}`,
+      debug,
+    };
   }
 
   // Parse the response into structured image refs
@@ -2695,13 +2655,13 @@ async function executeImageRefsStep(
   } catch (e) {
     return {
       success: false,
-      error: `Failed to parse image refs: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      error: `Failed to parse image refs: ${e instanceof Error ? e.message : "Unknown error"}`,
       debug,
     };
   }
 
   if (parsedRefs.length === 0) {
-    return { success: false, error: 'No image refs found in response', debug };
+    return { success: false, error: "No image refs found in response", debug };
   }
 
   // Calculate anchorIndex for each ref based on position in assembled content
@@ -2731,7 +2691,13 @@ async function executeImageRefsStep(
     outputTokens: imageRefsCall.usage.outputTokens,
   };
 
-  await updateChronicleImageRefs(chronicleId, imageRefs, imageRefsCost, callConfig.model, imageRefsVersionId);
+  await updateChronicleImageRefs(
+    chronicleId,
+    imageRefs,
+    imageRefsCost,
+    callConfig.model,
+    imageRefsVersionId
+  );
 
   await saveCostRecordWithDefaults({
     projectId: task.projectId,
@@ -2740,7 +2706,7 @@ async function executeImageRefsStep(
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId,
-    type: 'chronicleImageRefs' as CostType,
+    type: "chronicleImageRefs" as CostType,
     model: callConfig.model,
     estimatedCost: imageRefsCost.estimated,
     actualCost: imageRefsCost.actual,
@@ -2770,21 +2736,27 @@ async function executeImageRefsStep(
 function buildCoverImageScenePrompt(
   content: string,
   title: string,
-  roleAssignments: Array<{ entityId: string; entityName: string; entityKind: string; role: string; isPrimary: boolean }>,
+  roleAssignments: Array<{
+    entityId: string;
+    entityName: string;
+    entityKind: string;
+    role: string;
+    isPrimary: boolean;
+  }>,
   sceneFraming: string,
   sceneInstructions: string,
   visualIdentities?: Record<string, string>
 ): string {
   const castList = roleAssignments
     .map((r) => {
-      let line = `- ${r.entityName} (${r.entityKind}, ${r.role}${r.isPrimary ? ', primary' : ''})`;
+      let line = `- ${r.entityName} (${r.entityKind}, ${r.role}${r.isPrimary ? ", primary" : ""})`;
       const visual = visualIdentities?.[r.entityId];
       if (visual) {
         line += `\n  Visual: ${visual}`;
       }
       return line;
     })
-    .join('\n');
+    .join("\n");
 
   return `${sceneFraming}
 
@@ -2817,13 +2789,13 @@ async function executeCoverImageSceneStep(
 
   const { content } = resolveTargetVersionContent(chronicleRecord);
   if (!content) {
-    return { success: false, error: 'Chronicle has no assembled content for cover image scene' };
+    return { success: false, error: "Chronicle has no assembled content for cover image scene" };
   }
 
-  const callConfig = getCallConfig(config, 'chronicle.coverImageScene');
+  const callConfig = getCallConfig(config, "chronicle.coverImageScene");
   const chronicleId = chronicleRecord.chronicleId;
 
-  const narrativeStyleId = task.chronicleContext?.narrativeStyle?.id || 'epic-drama';
+  const narrativeStyleId = task.chronicleContext?.narrativeStyle?.id || "epic-drama";
   const coverConfig = getCoverImageConfig(narrativeStyleId);
   const sceneTemplate = getScenePromptTemplate(coverConfig.scenePromptId);
 
@@ -2838,9 +2810,10 @@ async function executeCoverImageSceneStep(
 
   const sceneCall = await runTextCall({
     llmClient,
-    callType: 'chronicle.coverImageScene',
+    callType: "chronicle.coverImageScene",
     callConfig,
-    systemPrompt: 'You are a visual art director creating cover image compositions. Always respond with valid JSON.',
+    systemPrompt:
+      "You are a visual art director creating cover image compositions. Always respond with valid JSON.",
     prompt: scenePrompt,
     temperature: 0.5,
   });
@@ -2848,23 +2821,39 @@ async function executeCoverImageSceneStep(
   const sceneResult = sceneCall.result;
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: sceneResult.debug };
+    return { success: false, error: "Task aborted", debug: sceneResult.debug };
   }
 
   if (sceneResult.error || !sceneResult.text) {
-    return { success: false, error: `Cover image scene failed: ${sceneResult.error || 'Empty response'}`, debug: sceneResult.debug };
+    return {
+      success: false,
+      error: `Cover image scene failed: ${sceneResult.error || "Empty response"}`,
+      debug: sceneResult.debug,
+    };
   }
 
   let sceneDescription: string;
 
   try {
-    const parsed = parseJsonObject<Record<string, unknown>>(sceneResult.text, 'cover image scene response');
-    sceneDescription = typeof parsed.coverImageScene === 'string' ? parsed.coverImageScene.trim() : '';
+    const parsed = parseJsonObject<Record<string, unknown>>(
+      sceneResult.text,
+      "cover image scene response"
+    );
+    sceneDescription =
+      typeof parsed.coverImageScene === "string" ? parsed.coverImageScene.trim() : "";
     if (!sceneDescription) {
-      return { success: false, error: 'Cover image scene response missing coverImageScene field', debug: sceneResult.debug };
+      return {
+        success: false,
+        error: "Cover image scene response missing coverImageScene field",
+        debug: sceneResult.debug,
+      };
     }
   } catch {
-    return { success: false, error: 'Failed to parse cover image scene response', debug: sceneResult.debug };
+    return {
+      success: false,
+      error: "Failed to parse cover image scene response",
+      debug: sceneResult.debug,
+    };
   }
 
   // Use all primary role assignments for involvedEntityIds (visual identity is now in the scene description)
@@ -2875,7 +2864,7 @@ async function executeCoverImageSceneStep(
   const coverImage: ChronicleCoverImage = {
     sceneDescription,
     involvedEntityIds,
-    status: 'pending',
+    status: "pending",
   };
 
   const sceneCost = {
@@ -2894,7 +2883,7 @@ async function executeCoverImageSceneStep(
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId,
-    type: 'chronicleCoverImageScene' as CostType,
+    type: "chronicleCoverImageScene" as CostType,
     model: callConfig.model,
     estimatedCost: sceneCost.estimated,
     actualCost: sceneCost.actual,
@@ -2926,15 +2915,18 @@ async function executeCoverImageSceneStep(
 // is needed. For now, the UI handles: build prompt → dispatch image task →
 // update cover image status via updateChronicleCoverImageStatus.
 
-async function executeCoverImageStep(
+function executeCoverImageStep(
   _task: WorkerTask,
   chronicleRecord: ChronicleRecord,
   _context: TaskContext
-): Promise<TaskResult> {
+): TaskResult {
   if (!chronicleRecord.coverImage) {
-    return { success: false, error: 'Chronicle has no cover image scene description' };
+    return { success: false, error: "Chronicle has no cover image scene description" };
   }
-  return { success: false, error: 'Cover image generation is handled via the image task pipeline from the UI' };
+  return {
+    success: false,
+    error: "Cover image generation is handled via the image task pipeline from the UI",
+  };
 }
 
 // ============================================================================
@@ -2958,7 +2950,7 @@ function buildRegenerateSceneDescriptionPrompt(
       }
       return line;
     })
-    .join('\n');
+    .join("\n");
 
   return `You are rewriting a scene description for an image that will be placed in a chronicle.
 
@@ -2969,13 +2961,13 @@ ${chunk}
 The image appears near: "${anchorText}"
 
 ## Involved Entities
-${entityList || '(none specified)'}
+${entityList || "(none specified)"}
 
 ## Previous Description
-${originalDescription || '(none)'}
+${originalDescription || "(none)"}
 
 ## Previous Caption
-${originalCaption || '(none)'}
+${originalCaption || "(none)"}
 
 ## Instructions
 Write a vivid 1-2 sentence scene description for this image placement. The description should:
@@ -2998,20 +2990,20 @@ async function executeRegenerateSceneDescriptionStep(
   const { config, llmClient, isAborted } = context;
 
   if (!chronicleRecord) {
-    return { success: false, error: 'Chronicle record missing' };
+    return { success: false, error: "Chronicle record missing" };
   }
   if (!task.imageRefId) {
-    return { success: false, error: 'imageRefId required for scene description regeneration' };
+    return { success: false, error: "imageRefId required for scene description regeneration" };
   }
 
   const { content } = resolveTargetVersionContent(chronicleRecord);
   if (!content) {
-    return { success: false, error: 'Chronicle has no content' };
+    return { success: false, error: "Chronicle has no content" };
   }
 
   // Find the target ref
   const ref = chronicleRecord.imageRefs?.refs.find((r) => r.refId === task.imageRefId);
-  if (!ref || ref.type !== 'prompt_request') {
+  if (!ref || ref.type !== "prompt_request") {
     return { success: false, error: `Prompt request ref ${task.imageRefId} not found` };
   }
 
@@ -3037,41 +3029,55 @@ async function executeRegenerateSceneDescriptionStep(
     ref.caption
   );
 
-  const callConfig = getCallConfig(config, 'chronicle.imageRefs');
+  const callConfig = getCallConfig(config, "chronicle.imageRefs");
   const call = await runTextCall({
     llmClient,
-    callType: 'chronicle.imageRefs',
+    callType: "chronicle.imageRefs",
     callConfig,
-    systemPrompt: 'You are rewriting a scene description for a chronicle image. Always respond with valid JSON.',
+    systemPrompt:
+      "You are rewriting a scene description for a chronicle image. Always respond with valid JSON.",
     prompt,
     temperature: 0.6,
   });
 
   if (isAborted()) {
-    return { success: false, error: 'Task aborted', debug: call.result.debug };
+    return { success: false, error: "Task aborted", debug: call.result.debug };
   }
 
   if (call.result.error || !call.result.text) {
-    return { success: false, error: `Scene description failed: ${call.result.error || 'Empty response'}`, debug: call.result.debug };
+    return {
+      success: false,
+      error: `Scene description failed: ${call.result.error || "Empty response"}`,
+      debug: call.result.debug,
+    };
   }
 
   let newDescription: string;
   let newCaption: string | undefined;
   try {
-    const parsed = parseJsonObject<{ sceneDescription: string; caption?: string }>(call.result.text, 'scene description');
-    newDescription = typeof parsed.sceneDescription === 'string' ? parsed.sceneDescription.trim() : '';
+    const parsed = parseJsonObject<{ sceneDescription: string; caption?: string }>(
+      call.result.text,
+      "scene description"
+    );
+    newDescription =
+      typeof parsed.sceneDescription === "string" ? parsed.sceneDescription.trim() : "";
     if (!newDescription) {
-      return { success: false, error: 'No sceneDescription in response', debug: call.result.debug };
+      return { success: false, error: "No sceneDescription in response", debug: call.result.debug };
     }
-    newCaption = typeof parsed.caption === 'string' ? parsed.caption.trim() || undefined : undefined;
+    newCaption =
+      typeof parsed.caption === "string" ? parsed.caption.trim() || undefined : undefined;
   } catch {
-    return { success: false, error: 'Failed to parse scene description response', debug: call.result.debug };
+    return {
+      success: false,
+      error: "Failed to parse scene description response",
+      debug: call.result.debug,
+    };
   }
 
   // Update the ref in storage — scene description + caption
   const refUpdates: Parameters<typeof updateChronicleImageRef>[2] = {
     sceneDescription: newDescription,
-    status: 'pending' as const,
+    status: "pending" as const,
   };
   if (newCaption) {
     refUpdates.caption = newCaption;
@@ -3092,7 +3098,7 @@ async function executeRegenerateSceneDescriptionStep(
     entityName: task.entityName,
     entityKind: task.entityKind,
     chronicleId: chronicleRecord.chronicleId,
-    type: 'chronicleImageRefRegen' as CostType,
+    type: "chronicleImageRefRegen" as CostType,
     model: callConfig.model,
     estimatedCost: cost.estimated,
     actualCost: cost.actual,
@@ -3116,6 +3122,6 @@ async function executeRegenerateSceneDescriptionStep(
 }
 
 export const chronicleTask = {
-  type: 'entityChronicle',
+  type: "entityChronicle",
   execute: executeEntityChronicleTask,
-} satisfies TaskHandler<WorkerTask & { type: 'entityChronicle' }>;
+} satisfies TaskHandler<WorkerTask & { type: "entityChronicle" }>;

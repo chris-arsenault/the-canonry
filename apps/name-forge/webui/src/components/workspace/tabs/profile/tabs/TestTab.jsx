@@ -2,14 +2,16 @@
  * TestTab - Test name generation for a profile
  */
 
-import { useState } from 'react';
-import { NumberInput } from '@penguin-tales/shared-components';
-import { generateTestNames } from '../../../../../lib/browser-generator.js';
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import { NumberInput, ErrorMessage } from "@the-canonry/shared-components";
+import { generateTestNames } from "../../../../../lib/browser-generator.js";
+import { useAsyncAction } from "../../../../../hooks/useAsyncAction";
 
 export default function TestTab({ profile, cultureConfig }) {
   const [testNames, setTestNames] = useState([]);
   const [testLoading, setTestLoading] = useState(false);
-  const [testError, setTestError] = useState(null);
+  const { error: testError, setError: setTestError } = useAsyncAction();
   const [strategyUsage, setStrategyUsage] = useState(null);
   const [count, setCount] = useState(10);
 
@@ -42,7 +44,7 @@ export default function TestTab({ profile, cultureConfig }) {
     <div className="profile-test-tab">
       <div className="test-controls">
         <div className="test-count-control">
-          <label>Count:</label>
+          <label>Count:
           <NumberInput
             min={1}
             max={100}
@@ -50,19 +52,14 @@ export default function TestTab({ profile, cultureConfig }) {
             onChange={(v) => setCount(v ?? 10)}
             integer
           />
+          </label>
         </div>
-        <button
-          className="primary"
-          onClick={handleTestNames}
-          disabled={testLoading}
-        >
-          {testLoading ? 'Generating...' : 'Generate Names'}
+        <button className="primary" onClick={handleTestNames} disabled={testLoading}>
+          {testLoading ? "Generating..." : "Generate Names"}
         </button>
       </div>
 
-      {testError && (
-        <div className="error-box">{testError}</div>
-      )}
+      {testError && <ErrorMessage message={testError} />}
 
       {strategyUsage && Object.keys(strategyUsage).length > 0 && (
         <div className="strategy-usage-summary">
@@ -93,9 +90,14 @@ export default function TestTab({ profile, cultureConfig }) {
         </div>
       ) : (
         <div className="empty-test-state">
-          <p>Click "Generate Names" to test this profile</p>
+          <p>Click &quot;Generate Names&quot; to test this profile</p>
         </div>
       )}
     </div>
   );
 }
+
+TestTab.propTypes = {
+  profile: PropTypes.object,
+  cultureConfig: PropTypes.object,
+};

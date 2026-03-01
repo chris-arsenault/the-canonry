@@ -2,19 +2,22 @@
  * FinalDiagnostics - Tabbed view of simulation results
  */
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import "./FinalDiagnostics.css";
 
-const ACCENT_COLOR = '#a78bfa'; // Keep for JS template bar calculations
+const ACCENT_COLOR = "#a78bfa"; // Keep for JS template bar calculations
 
 export default function FinalDiagnostics({
   entityBreakdown,
   catalystStats,
   relationshipBreakdown,
-  notableEntities
+  notableEntities,
 }) {
-  const [activeTab, setActiveTab] = useState('entities');
+  const [activeTab, setActiveTab] = useState("entities");
 
-  const hasDiagnostics = entityBreakdown || catalystStats || relationshipBreakdown || notableEntities;
+  const hasDiagnostics =
+    entityBreakdown || catalystStats || relationshipBreakdown || notableEntities;
 
   if (!hasDiagnostics) {
     return null;
@@ -31,10 +34,10 @@ export default function FinalDiagnostics({
 
       {/* Tab navigation */}
       <div className="lw-filter-tabs">
-        {['entities', 'relationships', 'agents', 'notable'].map(tab => (
+        {["entities", "relationships", "agents", "notable"].map((tab) => (
           <button
             key={tab}
-            className={`lw-filter-tab ${activeTab === tab ? 'active' : ''}`}
+            className={`lw-filter-tab ${activeTab === tab ? "active" : ""}`}
             onClick={() => setActiveTab(tab)}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -43,16 +46,14 @@ export default function FinalDiagnostics({
       </div>
 
       <div className="lw-panel-content">
-        {activeTab === 'entities' && entityBreakdown && (
+        {activeTab === "entities" && entityBreakdown && (
           <EntityBreakdownTab entityBreakdown={entityBreakdown} />
         )}
-        {activeTab === 'relationships' && relationshipBreakdown && (
+        {activeTab === "relationships" && relationshipBreakdown && (
           <RelationshipBreakdownTab relationshipBreakdown={relationshipBreakdown} />
         )}
-        {activeTab === 'agents' && catalystStats && (
-          <AgentsTab catalystStats={catalystStats} />
-        )}
-        {activeTab === 'notable' && notableEntities && (
+        {activeTab === "agents" && catalystStats && <AgentsTab catalystStats={catalystStats} />}
+        {activeTab === "notable" && notableEntities && (
           <NotableEntitiesTab notableEntities={notableEntities} />
         )}
       </div>
@@ -63,19 +64,22 @@ export default function FinalDiagnostics({
 function EntityBreakdownTab({ entityBreakdown }) {
   return (
     <div>
-      <div style={{ marginBottom: '12px', fontSize: '13px', color: 'var(--lw-text-secondary)' }}>
+      <div className="fd-total-label">
         Total: {entityBreakdown.totalEntities} entities
       </div>
       <div className="lw-flex-col lw-gap-sm">
         {Object.entries(entityBreakdown.byKind).map(([kind, data]) => (
           <div key={kind} className="lw-metric-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontWeight: 600, color: 'var(--lw-text-primary)' }}>{kind}</span>
-              <span style={{ color: ACCENT_COLOR }}>{data.total}</span>
+            <div className="fd-kind-header">
+              <span className="fd-kind-name">{kind}</span>
+              <span className="fd-kind-count">{data.total}</span>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            <div className="fd-subtype-list">
               {Object.entries(data.bySubtype).map(([subtype, count]) => (
-                <span key={subtype} className="lw-badge" style={{ backgroundColor: 'var(--lw-bg-tertiary)', color: 'var(--lw-text-muted)' }}>
+                <span
+                  key={subtype}
+                  className="lw-badge fd-subtype-badge"
+                >
                   {subtype}: {count}
                 </span>
               ))}
@@ -90,15 +94,20 @@ function EntityBreakdownTab({ entityBreakdown }) {
 function RelationshipBreakdownTab({ relationshipBreakdown }) {
   return (
     <div>
-      <div style={{ marginBottom: '12px', fontSize: '13px', color: 'var(--lw-text-secondary)' }}>
+      <div className="fd-total-label">
         Total: {relationshipBreakdown.totalRelationships} relationships
       </div>
       <div className="lw-flex-col lw-gap-sm">
         {relationshipBreakdown.byKind.map((rel) => (
           <div key={rel.kind} className="lw-pressure-gauge">
-            <span className="lw-pressure-name" style={{ width: '180px' }}>{rel.kind}</span>
+            <span className="lw-pressure-name fd-rel-name">
+              {rel.kind}
+            </span>
             <div className="lw-pressure-bar">
-              <div className="lw-pressure-fill" style={{ width: `${rel.percentage}%`, backgroundColor: ACCENT_COLOR }} />
+              <div
+                className="lw-pressure-fill fd-rel-fill"
+                style={{ '--fd-rel-fill-width': `${rel.percentage}%` }}
+              />
             </div>
             <span className="lw-pressure-value">
               {rel.count} ({rel.percentage.toFixed(1)}%)
@@ -136,20 +145,22 @@ function AgentsTab({ catalystStats }) {
       </div>
 
       {catalystStats.topAgents.length > 0 && (
-        <div style={{ marginTop: '16px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--lw-text-muted)', marginBottom: '8px' }}>
+        <div className="lw-section-spacer">
+          <div className="lw-section-label">
             Top Agents by Actions
           </div>
           <div className="lw-flex-col lw-gap-sm">
             {catalystStats.topAgents.map((agent, i) => (
               <div
                 key={agent.id}
-                className="lw-template-item"
-                style={{ borderLeft: `3px solid ${i === 0 ? ACCENT_COLOR : 'var(--lw-border-color)'}` }}
+                className="lw-template-item fd-agent-item"
+                style={{
+                  '--fd-agent-border-left': `3px solid ${i === 0 ? ACCENT_COLOR : "var(--lw-border-color)"}`,
+                }}
               >
-                <span className="lw-template-name" style={{ width: 'auto', flex: 1 }}>
+                <span className="lw-template-name fd-agent-name">
                   {agent.name}
-                  <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--lw-text-muted)' }}>
+                  <span className="fd-agent-kind">
                     ({agent.kind})
                   </span>
                 </span>
@@ -161,21 +172,21 @@ function AgentsTab({ catalystStats }) {
       )}
 
       {unusedCount > 0 && (
-        <div style={{ marginTop: '16px' }}>
-          <div
-            className="lw-unused-header"
-            onClick={() => setShowUnused(!showUnused)}
-          >
-            <span className="lw-unused-toggle">{showUnused ? '▼' : '▶'}</span>
+        <div className="lw-section-spacer">
+          <div className="lw-unused-header" onClick={() => setShowUnused(!showUnused)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+            <span className="lw-unused-toggle">{showUnused ? "▼" : "▶"}</span>
             <span className="lw-unused-title">Unused Actions ({unusedCount})</span>
           </div>
           {showUnused && (
             <div className="lw-unused-list">
-              {catalystStats.unusedActions.map(action => (
-                <div key={action.actionId} className="lw-template-item" style={{ borderLeft: '3px solid var(--lw-text-muted)' }}>
-                  <span className="lw-template-name" style={{ width: 'auto', flex: 1 }}>
+              {catalystStats.unusedActions.map((action) => (
+                <div
+                  key={action.actionId}
+                  className="lw-template-item fd-unused-item"
+                >
+                  <span className="lw-template-name fd-unused-name">
                     {action.actionName}
-                    <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--lw-text-muted)' }}>
+                    <span className="fd-unused-kind">
                       ({action.actionId})
                     </span>
                   </span>
@@ -193,15 +204,18 @@ function NotableEntitiesTab({ notableEntities }) {
   return (
     <div>
       {notableEntities.mythic.length > 0 && (
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '12px', color: '#fbbf24', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="fd-mythic-section">
+          <div className="fd-mythic-label">
             <span>⭐</span> Mythic ({notableEntities.mythic.length})
           </div>
           <div className="lw-flex-col lw-gap-sm">
-            {notableEntities.mythic.map(e => (
-              <div key={e.id} className="lw-template-item" style={{ borderLeft: '3px solid #fbbf24' }}>
-                <span style={{ flex: 1, color: 'var(--lw-text-primary)' }}>{e.name}</span>
-                <span style={{ fontSize: '11px', color: 'var(--lw-text-muted)' }}>
+            {notableEntities.mythic.map((e) => (
+              <div
+                key={e.id}
+                className="lw-template-item fd-mythic-item"
+              >
+                <span className="fd-entity-name">{e.name}</span>
+                <span className="fd-entity-type">
                   {e.kind}:{e.subtype}
                 </span>
               </div>
@@ -212,20 +226,23 @@ function NotableEntitiesTab({ notableEntities }) {
 
       {notableEntities.renowned.length > 0 && (
         <div>
-          <div style={{ fontSize: '12px', color: '#a78bfa', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className="fd-renowned-label">
             <span>★</span> Renowned ({notableEntities.renowned.length})
           </div>
           <div className="lw-flex-col lw-gap-sm">
-            {notableEntities.renowned.slice(0, 10).map(e => (
-              <div key={e.id} className="lw-template-item" style={{ borderLeft: '3px solid #a78bfa' }}>
-                <span style={{ flex: 1, color: 'var(--lw-text-primary)' }}>{e.name}</span>
-                <span style={{ fontSize: '11px', color: 'var(--lw-text-muted)' }}>
+            {notableEntities.renowned.slice(0, 10).map((e) => (
+              <div
+                key={e.id}
+                className="lw-template-item fd-renowned-item"
+              >
+                <span className="fd-entity-name">{e.name}</span>
+                <span className="fd-entity-type">
                   {e.kind}:{e.subtype}
                 </span>
               </div>
             ))}
             {notableEntities.renowned.length > 10 && (
-              <div style={{ fontSize: '12px', color: 'var(--lw-text-muted)', textAlign: 'center' }}>
+              <div className="fd-more-label">
                 +{notableEntities.renowned.length - 10} more
               </div>
             )}
@@ -242,3 +259,26 @@ function NotableEntitiesTab({ notableEntities }) {
     </div>
   );
 }
+
+FinalDiagnostics.propTypes = {
+  entityBreakdown: PropTypes.object,
+  catalystStats: PropTypes.object,
+  relationshipBreakdown: PropTypes.object,
+  notableEntities: PropTypes.object,
+};
+
+EntityBreakdownTab.propTypes = {
+  entityBreakdown: PropTypes.object,
+};
+
+RelationshipBreakdownTab.propTypes = {
+  relationshipBreakdown: PropTypes.object,
+};
+
+AgentsTab.propTypes = {
+  catalystStats: PropTypes.object,
+};
+
+NotableEntitiesTab.propTypes = {
+  notableEntities: PropTypes.object,
+};

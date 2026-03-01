@@ -1,4 +1,4 @@
-import { SimulationSystem, SystemResult, ComponentPurpose } from '../engine/types';
+import { SimulationSystem, SystemResult } from '../engine/types';
 import { HardState, Relationship } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { rollProbability, hasTag, generateId } from '../utils';
@@ -16,10 +16,8 @@ import type {
   Mutation,
   MutationResult,
   Condition,
-  RuleContext,
   EntityModification,
   VariableSelectionRule,
-  VariableDefinitionForResolution,
 } from '../rules';
 
 /**
@@ -238,52 +236,143 @@ function clusterEntities(
 // ACTION APPLICATION
 // =============================================================================
 
+/** Bundled mutable results accumulated during action application */
+interface ActionResults {
+  modifications: Array<EntityModification & { narrativeGroupId?: string }>;
+  relationships: Array<Relationship & { narrativeGroupId?: string }>;
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId?: string }>;
+  relationshipsToArchive: Array<{ kind: string; src: string; dst: string; narrativeGroupId?: string }>;
+  pressureChanges: Record<string, number>;
+  narrationsByGroup: Record<string, string>;
+  skippedMembers: number;
+}
+
+function pushWithNarrativeGroup<T extends object>(
+  items: T[],
+  dest: Array<T & { narrativeGroupId?: string }>,
+  narrativeGroupId?: string
+): void {
+  for (const item of items) {
+    dest.push(narrativeGroupId ? { ...item, narrativeGroupId } : item as T & { narrativeGroupId?: string });
+  }
+}
+
+function mergeRelationshipsCreated(
+  created: MutationResult['relationshipsCreated'],
+  dest: Array<Relationship & { narrativeGroupId?: string }>,
+  narrativeGroupId?: string
+): void {
+  for (const rel of created) {
+    dest.push({
+      kind: rel.kind,
+      src: rel.src,
+      dst: rel.dst,
+      strength: rel.strength,
+      category: rel.category,
+      ...(narrativeGroupId ? { narrativeGroupId } : {}),
+    });
+  }
+}
+
+function mergePressureChanges(from: Record<string, number>, into: Record<string, number>): void {
+  for (const [pressureId, delta] of Object.entries(from)) {
+    into[pressureId] = (into[pressureId] || 0) + delta;
+  }
+}
+
 function mergeMutationResult(
   result: MutationResult,
-  modifications: Array<EntityModification & { narrativeGroupId?: string }>,
-  relationships: Array<Relationship & { narrativeGroupId?: string }>,
-  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId?: string }>,
-  relationshipsToArchive: Array<{ kind: string; src: string; dst: string; narrativeGroupId?: string }>,
-  pressureChanges: Record<string, number>,
+  out: ActionResults,
   narrativeGroupId?: string
 ): void {
   if (!result.applied) return;
+  pushWithNarrativeGroup(result.entityModifications, out.modifications, narrativeGroupId);
+  mergeRelationshipsCreated(result.relationshipsCreated, out.relationships, narrativeGroupId);
+  pushWithNarrativeGroup(result.relationshipsAdjusted, out.relationshipsAdjusted, narrativeGroupId);
+  pushWithNarrativeGroup(result.relationshipsToArchive, out.relationshipsToArchive, narrativeGroupId);
+  mergePressureChanges(result.pressureChanges, out.pressureChanges);
+}
 
-  if (result.entityModifications.length > 0) {
-    for (const mod of result.entityModifications) {
-      modifications.push(narrativeGroupId ? { ...mod, narrativeGroupId } : mod);
-    }
-  }
-
-  if (result.relationshipsCreated.length > 0) {
-    for (const rel of result.relationshipsCreated) {
-      const relWithGroup = {
-        kind: rel.kind,
-        src: rel.src,
-        dst: rel.dst,
-        strength: rel.strength,
-        category: rel.category,
-        ...(narrativeGroupId ? { narrativeGroupId } : {}),
+function applyBetweenMatchingPairs(
+  actionKind: string,
+  members: HardState[],
+  clusterCtx: ReturnType<typeof createSystemContext>,
+  action: Mutation,
+  out: ActionResults,
+  narrativeGroupId: string | undefined,
+  graphView: WorldRuntime
+): void {
+  for (let i = 0; i < members.length; i++) {
+    for (let j = i + 1; j < members.length; j++) {
+      const src = members[i];
+      const dst = members[j];
+      if (graphView.hasRelationship(src.id, dst.id, actionKind)) continue;
+      const pairCtx = {
+        ...clusterCtx,
+        entities: { ...(clusterCtx.entities ?? {}), member: src, member2: dst },
       };
-      relationships.push(relWithGroup);
+      const result = prepareMutation(action, pairCtx);
+      mergeMutationResult(result, out, narrativeGroupId);
+    }
+  }
+}
+
+function applyClusterActions(
+  actions: TriggerAction[],
+  members: HardState[],
+  clusterCtx: ReturnType<typeof createSystemContext>,
+  out: ActionResults,
+  narrativeGroupId: string | undefined,
+  graphView: WorldRuntime
+): void {
+  for (const action of actions) {
+    if (action.type === 'modify_pressure') {
+      const result = prepareMutation(action, clusterCtx);
+      mergeMutationResult(result, out, narrativeGroupId);
+    }
+    if (action.type === 'create_relationship' && action.betweenMatching && members.length >= 2) {
+      applyBetweenMatchingPairs((action as { kind: string }).kind, members, clusterCtx, action, out, narrativeGroupId, graphView);
+    }
+  }
+}
+
+function applyActionsToMember(
+  member: HardState,
+  config: ThresholdTriggerConfig,
+  clusterCtx: ReturnType<typeof createSystemContext>,
+  out: ActionResults,
+  narrativeGroupId: string | undefined
+): boolean {
+  const resolvedVars = config.variables
+    ? resolveVariablesForEntity(config.variables, clusterCtx, member)
+    : {};
+  if (resolvedVars === null) return false;
+
+  const memberCtx = {
+    ...clusterCtx,
+    self: member,
+    entities: { ...(clusterCtx.entities ?? {}), self: member, ...resolvedVars },
+  };
+
+  if (config.narrationTemplate && narrativeGroupId) {
+    const narrationCtx = createSystemRuleContext({
+      self: member,
+      variables: resolvedVars as Record<string, HardState | undefined>,
+    });
+    const narration = interpolate(config.narrationTemplate, narrationCtx);
+    if (narration.complete) {
+      out.narrationsByGroup[narrativeGroupId] = narration.text;
     }
   }
 
-  if (result.relationshipsAdjusted.length > 0) {
-    for (const adj of result.relationshipsAdjusted) {
-      relationshipsAdjusted.push(narrativeGroupId ? { ...adj, narrativeGroupId } : adj);
-    }
+  for (const action of config.actions) {
+    if (action.type === 'modify_pressure') continue;
+    if (action.type === 'create_relationship' && action.betweenMatching) continue;
+    const mutation: Mutation = action;
+    const result = prepareMutation(mutation, memberCtx);
+    mergeMutationResult(result, out, narrativeGroupId);
   }
-
-  if (result.relationshipsToArchive.length > 0) {
-    for (const arch of result.relationshipsToArchive) {
-      relationshipsToArchive.push(narrativeGroupId ? { ...arch, narrativeGroupId } : arch);
-    }
-  }
-
-  for (const [pressureId, delta] of Object.entries(result.pressureChanges)) {
-    pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
-  }
+  return true;
 }
 
 function applyActions(
@@ -299,16 +388,16 @@ function applyActions(
   skippedMembers: number;
   narrationsByGroup: Record<string, string>;
 } {
-  const modifications: Array<EntityModification & { narrativeGroupId?: string }> = [];
-  const relationships: Array<Relationship & { narrativeGroupId?: string }> = [];
-  const relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId?: string }> = [];
-  const relationshipsToArchive: Array<{ kind: string; src: string; dst: string; narrativeGroupId?: string }> = [];
-  const pressureChanges: Record<string, number> = {};
-  const narrationsByGroup: Record<string, string> = {};
+  const out: ActionResults = {
+    modifications: [],
+    relationships: [],
+    relationshipsAdjusted: [],
+    relationshipsToArchive: [],
+    pressureChanges: {},
+    narrationsByGroup: {},
+    skippedMembers: 0,
+  };
   const baseCtx = createSystemContext(graphView);
-  let skippedMembers = 0;
-
-  // When clusterMode is 'individual', each cluster is one entity and should get its own narrative event
   const usePerClusterNarrative = config.clusterMode === 'individual';
 
   for (const [clusterId, members] of clusters) {
@@ -316,93 +405,30 @@ function applyActions(
       ...baseCtx,
       values: { ...(baseCtx.values ?? {}), cluster_id: clusterId },
     };
-
-    // narrativeGroupId is the clusterId when using per-cluster narrative grouping
-    // For 'individual' mode, clusterId equals the entity's id
     const narrativeGroupId = usePerClusterNarrative ? clusterId : undefined;
 
-    // Handle cluster-level actions (modify_pressure, betweenMatching)
-    for (const action of config.actions) {
-      if (action.type === 'modify_pressure') {
-        const result = prepareMutation(action, clusterCtx);
-        mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, relationshipsToArchive, pressureChanges, narrativeGroupId);
-      }
+    applyClusterActions(config.actions, members, clusterCtx, out, narrativeGroupId, graphView);
 
-      if (action.type === 'create_relationship' && action.betweenMatching && members.length >= 2) {
-        for (let i = 0; i < members.length; i++) {
-          for (let j = i + 1; j < members.length; j++) {
-            const src = members[i];
-            const dst = members[j];
-
-            if (graphView.hasRelationship(src.id, dst.id, action.kind)) {
-              continue;
-            }
-
-            const pairCtx = {
-              ...clusterCtx,
-              entities: { ...(clusterCtx.entities ?? {}), member: src, member2: dst },
-            };
-
-            const mutation: Mutation = action;
-            const result = prepareMutation(mutation, pairCtx);
-            mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, relationshipsToArchive, pressureChanges, narrativeGroupId);
-          }
-        }
-      }
-    }
-
-    // Handle per-member actions with variable resolution
     for (const member of members) {
-      // Resolve variables for this member (if any are defined)
-      const resolvedVars = config.variables
-        ? resolveVariablesForEntity(config.variables, clusterCtx, member)
-        : {};
-      if (resolvedVars === null) {
-        // Required variable not found - skip this member
-        skippedMembers++;
-        continue;
-      }
-
-      // Build context with resolved variables
-      const memberCtx = {
-        ...clusterCtx,
-        self: member,
-        entities: { ...(clusterCtx.entities ?? {}), self: member, ...resolvedVars },
-      };
-
-      // Generate narration if template provided, keyed by narrativeGroupId
-      if (config.narrationTemplate && narrativeGroupId) {
-        const narrationCtx = createSystemRuleContext({
-          self: member,
-          variables: resolvedVars as Record<string, HardState | undefined>,
-        });
-        const result = interpolate(config.narrationTemplate, narrationCtx);
-        if (result.complete) {
-          narrationsByGroup[narrativeGroupId] = result.text;
-        }
-      }
-
-      // Apply non-cluster-level actions
-      for (const action of config.actions) {
-        // Skip cluster-level actions (already handled above)
-        if (action.type === 'modify_pressure') continue;
-        if (action.type === 'create_relationship' && action.betweenMatching) continue;
-
-        const mutation: Mutation = action;
-        const result = prepareMutation(mutation, memberCtx);
-        mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, relationshipsToArchive, pressureChanges, narrativeGroupId);
+      if (!applyActionsToMember(member, config, clusterCtx, out, narrativeGroupId)) {
+        out.skippedMembers++;
       }
     }
   }
 
-  // Add config-level pressure changes if any triggers fired
   if (clusters.size > 0 && config.pressureChanges) {
-    for (const [pressureId, delta] of Object.entries(config.pressureChanges)) {
-      pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
-    }
+    mergePressureChanges(config.pressureChanges, out.pressureChanges);
   }
 
-  return { modifications, relationships, relationshipsAdjusted, relationshipsToArchive, pressureChanges, skippedMembers, narrationsByGroup };
+  return {
+    modifications: out.modifications,
+    relationships: out.relationships,
+    relationshipsAdjusted: out.relationshipsAdjusted,
+    relationshipsToArchive: out.relationshipsToArchive,
+    pressureChanges: out.pressureChanges,
+    skippedMembers: out.skippedMembers,
+    narrationsByGroup: out.narrationsByGroup,
+  };
 }
 
 // =============================================================================

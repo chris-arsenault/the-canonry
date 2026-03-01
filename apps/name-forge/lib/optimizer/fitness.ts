@@ -18,6 +18,7 @@ import type {
 import { validateCapacity } from "../validation/metrics/capacity.js";
 import { validateDiffuseness } from "../validation/metrics/diffuseness.js";
 import { validateSeparation } from "../validation/metrics/separation.js";
+import type { CapacityReport, DiffusenessReport, SeparationReport } from "../validation/validation.js";
 
 // No longer need dynamic imports - metrics are now local
 async function loadValidationMetrics() {
@@ -27,13 +28,13 @@ async function loadValidationMetrics() {
 /**
  * Normalize capacity metrics to 0-1 score (higher is better)
  */
-function normalizeCapacityScore(report: any, settings: ValidationSettings): number {
+function normalizeCapacityScore(report: CapacityReport, _settings: ValidationSettings): number {
   // Lower collision rate is better
-  const collisionRate = report?.collisionRate ?? 0;
+  const collisionRate = report.collisionRate ?? 0;
   const collisionScore = Math.max(0, 1 - collisionRate / 0.1);
 
   // Higher entropy is better (normalize to typical range 2-5 bits/char)
-  const entropy = report?.entropy ?? 3;
+  const entropy = report.entropy ?? 3;
   const entropyScore = Math.min(1, Math.max(0, (entropy - 2) / 3));
 
   const score = (collisionScore + entropyScore) / 2;
@@ -43,14 +44,14 @@ function normalizeCapacityScore(report: any, settings: ValidationSettings): numb
 /**
  * Normalize diffuseness metrics to 0-1 score (higher is better)
  */
-function normalizeDiffusenessScore(report: any, settings: ValidationSettings): number {
+function normalizeDiffusenessScore(report: DiffusenessReport, settings: ValidationSettings): number {
   // Levenshtein NN distance (normalized)
-  const levenshteinP5 = report?.levenshteinNN?.p5 ?? 0.3;
+  const levenshteinP5 = report.levenshteinNN?.p5 ?? 0.3;
   const minNN = settings.minNN_p5 ?? 0.3;
   const levenshteinScore = minNN > 0 ? Math.min(1, levenshteinP5 / minNN) : 0.5;
 
   // Shape NN distance (normalized)
-  const shapeP5 = report?.shapeNN?.p5 ?? 0.2;
+  const shapeP5 = report.shapeNN?.p5 ?? 0.2;
   const minShape = settings.minShapeNN_p5 ?? 0.2;
   const shapeScore = minShape > 0 ? Math.min(1, shapeP5 / minShape) : 0.5;
 
@@ -61,12 +62,12 @@ function normalizeDiffusenessScore(report: any, settings: ValidationSettings): n
 /**
  * Normalize separation metrics to 0-1 score (higher is better)
  */
-function normalizeSeparationScore(report: any, settings: ValidationSettings): number {
+function normalizeSeparationScore(report: SeparationReport, settings: ValidationSettings): number {
   // Classifier accuracy
-  const classifierScore = report?.classifierAccuracy ?? 0.5;
+  const classifierScore = report.classifierAccuracy ?? 0.5;
 
   // Min pairwise centroid distance
-  const distances = Object.values(report?.pairwiseDistances ?? {}) as number[];
+  const distances = Object.values(report.pairwiseDistances ?? {});
   const minDistance = distances.length > 0 ? Math.min(...distances) : 1;
   const minCentroid = settings.minCentroidDistance ?? 0.2;
   const centroidScore = minCentroid > 0 ? Math.min(1, minDistance / minCentroid) : 0.5;
@@ -193,16 +194,14 @@ export async function computeFitness(
   // Run capacity and diffuseness in parallel (they're independent)
   log(`Computing metrics in parallel (${sampleSize} names)...`);
 
-  const [capacityReport, diffusenessReport] = await Promise.all([
-    validateCapacity(config, {
-      sampleSize,
-      seed: `fitness-${iteration}-capacity`,
-    }),
-    validateDiffuseness(config, {
-      sampleSize,
-      seed: `fitness-${iteration}-diffuseness`,
-    }),
-  ]);
+  const capacityReport = validateCapacity(config, {
+    sampleSize,
+    seed: `fitness-${iteration}-capacity`,
+  });
+  const diffusenessReport = validateDiffuseness(config, {
+    sampleSize,
+    seed: `fitness-${iteration}-diffuseness`,
+  });
 
   // For separation, we need multiple domains (run after parallel metrics)
   let separationScore = 1.0; // Default if no other domains
@@ -211,7 +210,7 @@ export async function computeFitness(
     const perDomainSample = Math.floor(sampleSize / allDomains.length);
 
     log(`Computing separation (${allDomains.length} domains, ${perDomainSample} names each)...`);
-    const separationReport = await validateSeparation(allDomains, {
+    const separationReport = validateSeparation(allDomains, {
       sampleSize: perDomainSample,
       seed: `fitness-${iteration}-separation`,
     });

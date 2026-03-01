@@ -1,0 +1,21 @@
+.ls-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ls-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--lw-text-primary);
+}
+
+.ls-count {
+  font-size: 12px;
+  color: var(--lw-text-muted);
+}
+
+.ls-filter-bar {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--lw-border-color);
+}

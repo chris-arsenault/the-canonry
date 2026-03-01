@@ -5,191 +5,112 @@
  * pick a tone before triggering a review. Same historian persona, different mood.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
+import PropTypes from "prop-types";
+import "./HistorianToneSelector.css";
 
 // ============================================================================
 // Tone Options
 // ============================================================================
 
-const TONE_OPTIONS = [
-  {
-    value: 'scholarly',
-    label: 'Scholarly',
-    description: 'Professional, measured, objective',
-    symbol: '◎',
-  },
-  {
-    value: 'witty',
-    label: 'Witty',
-    description: 'Sarcastic, playful, sly',
-    symbol: '✶',
-  },
-  {
-    value: 'weary',
-    label: 'Weary',
-    description: 'Resigned satire, black humor',
-    symbol: '○',
-  },
-  {
-    value: 'forensic',
-    label: 'Forensic',
-    description: 'Clinical, methodical, cold',
-    symbol: '◈',
-  },
-  {
-    value: 'elegiac',
-    label: 'Elegiac',
-    description: 'Mournful, lyrical, grief',
-    symbol: '◇',
-  },
-  {
-    value: 'cantankerous',
-    label: 'Cantankerous',
-    description: 'Irritable, exacting, sharp',
-    symbol: '♯',
-  },
-  {
-    value: 'rueful',
-    label: 'Rueful',
-    description: 'Self-aware regret, crooked smile',
-    symbol: '⌒',
-  },
-  {
-    value: 'conspiratorial',
-    label: 'Conspiratorial',
-    description: 'Whispering asides, sharing secrets',
-    symbol: '⊘',
-  },
-  {
-    value: 'bemused',
-    label: 'Bemused',
-    description: 'Puzzled, entertained by absurdity',
-    symbol: '⁂',
-  },
-];
-
-export const TONE_META = Object.fromEntries(
-  TONE_OPTIONS.map((t) => [t.value, t])
-);
+const TONE_OPTIONS = [{
+  value: "scholarly",
+  label: "Scholarly",
+  description: "Professional, measured, objective",
+  symbol: "\u25CE"
+}, {
+  value: "witty",
+  label: "Witty",
+  description: "Sarcastic, playful, sly",
+  symbol: "\u2736"
+}, {
+  value: "weary",
+  label: "Weary",
+  description: "Resigned satire, black humor",
+  symbol: "\u25CB"
+}, {
+  value: "forensic",
+  label: "Forensic",
+  description: "Clinical, methodical, cold",
+  symbol: "\u25C8"
+}, {
+  value: "elegiac",
+  label: "Elegiac",
+  description: "Mournful, lyrical, grief",
+  symbol: "\u25C7"
+}, {
+  value: "cantankerous",
+  label: "Cantankerous",
+  description: "Irritable, exacting, sharp",
+  symbol: "\u266F"
+}, {
+  value: "rueful",
+  label: "Rueful",
+  description: "Self-aware regret, crooked smile",
+  symbol: "\u2312"
+}, {
+  value: "conspiratorial",
+  label: "Conspiratorial",
+  description: "Whispering asides, sharing secrets",
+  symbol: "\u2298"
+}, {
+  value: "bemused",
+  label: "Bemused",
+  description: "Puzzled, entertained by absurdity",
+  symbol: "\u2042"
+}];
+export const TONE_META = Object.fromEntries(TONE_OPTIONS.map(t => [t.value, t]));
 
 // ============================================================================
 // Component
 // ============================================================================
 
-export default function HistorianToneSelector({ onSelect, disabled, hasNotes, style, label }) {
+export default function HistorianToneSelector({
+  onSelect,
+  disabled,
+  hasNotes,
+  className,
+  label
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
   // Close on outside click
   useEffect(() => {
     if (!isOpen) return;
-    const handleClickOutside = (e) => {
+    const handleClickOutside = e => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
-
-  const handleSelect = (tone) => {
+  const handleSelect = tone => {
     setIsOpen(false);
     onSelect(tone);
   };
-
-  return (
-    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block', ...style }}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={disabled}
-        title="Select historian tone and generate annotations"
-        style={{
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-color)',
-          color: disabled ? 'var(--text-muted)' : 'var(--text-secondary)',
-          fontSize: '10px',
-          padding: '1px 6px',
-          borderRadius: '3px',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          textTransform: 'none',
-          letterSpacing: 'normal',
-          opacity: disabled ? 0.6 : 1,
-        }}
-      >
-        {label || (hasNotes ? 'Re-annotate' : 'Historian')} ▾
+  return <div ref={containerRef} className={`htsel-container${className ? " " + className : ""}`}>
+      <button onClick={() => setIsOpen(!isOpen)} disabled={disabled} title="Select historian tone and generate annotations" className={`htsel-trigger ${disabled ? "htsel-trigger-disabled" : ""}`}>
+        {label || (hasNotes ? "Re-annotate" : "Historian")} ▾
       </button>
 
-      {isOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 4px)',
-            left: 0,
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '4px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            zIndex: 10000,
-            minWidth: '220px',
-            padding: '4px',
-          }}
-        >
-          <div style={{
-            padding: '6px 8px 4px',
-            fontSize: '11px',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            borderBottom: '1px solid var(--border-color)',
-            marginBottom: '4px',
-          }}>
-            Historian Tone
-          </div>
-          {TONE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => handleSelect(option.value)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                width: '100%',
-                padding: '6px 8px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer',
-                textAlign: 'left',
-                color: 'inherit',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--bg-tertiary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-              }}
-            >
-              <span style={{
-                fontSize: '13px',
-                color: '#8b7355',
-                width: '18px',
-                textAlign: 'center',
-                flexShrink: 0,
-              }}>
-                {option.symbol}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {option.label}
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '1px' }}>
-                  {option.description}
-                </div>
+      {isOpen && <div className="htsel-dropdown">
+          <div className="htsel-dropdown-header">Historian Tone</div>
+          {TONE_OPTIONS.map(option => <button key={option.value} onClick={() => handleSelect(option.value)} className="htsel-option">
+              <span className="htsel-option-symbol">{option.symbol}</span>
+              <div className="htsel-option-content">
+                <div className="htsel-option-label">{option.label}</div>
+                <div className="htsel-option-description">{option.description}</div>
               </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+            </button>)}
+        </div>}
+    </div>;
 }
+HistorianToneSelector.propTypes = {
+  onSelect: PropTypes.func,
+  disabled: PropTypes.bool,
+  hasNotes: PropTypes.bool,
+  className: PropTypes.string,
+  label: PropTypes.string
+};

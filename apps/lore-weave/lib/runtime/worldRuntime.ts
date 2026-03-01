@@ -630,9 +630,14 @@ export class WorldRuntime implements Graph {
         })[0]
       : undefined;
     const explicitEraId = (settingsOrPartial as CreateEntitySettings).eraId ?? partial.eraId;
-    const resolvedEraId = typeof explicitEraId === 'string' && explicitEraId
-      ? explicitEraId
-      : (partial.kind === FRAMEWORK_ENTITY_KINDS.ERA ? partial.subtype : currentEraEntity?.id);
+    let resolvedEraId: string | undefined;
+    if (typeof explicitEraId === 'string' && explicitEraId) {
+      resolvedEraId = explicitEraId;
+    } else if (partial.kind === FRAMEWORK_ENTITY_KINDS.ERA) {
+      resolvedEraId = partial.subtype;
+    } else {
+      resolvedEraId = currentEraEntity?.id;
+    }
 
     const entityId = await this.graph.createEntity({
       id: resolvedId,
@@ -862,11 +867,14 @@ export class WorldRuntime implements Graph {
     for (const rel of relationships) {
       if (rel.kind !== kind || rel.status === 'historical') continue;
 
-      const matches = direction === 'any'
-        ? (rel.src === entityId || rel.dst === entityId)
-        : direction === 'src'
-          ? rel.src === entityId
-          : rel.dst === entityId;
+      let matches: boolean;
+      if (direction === 'any') {
+        matches = rel.src === entityId || rel.dst === entityId;
+      } else if (direction === 'src') {
+        matches = rel.src === entityId;
+      } else {
+        matches = rel.dst === entityId;
+      }
 
       if (matches) {
         archiveRel(this.graph, rel.src, rel.dst, rel.kind);
@@ -1008,7 +1016,7 @@ export class WorldRuntime implements Graph {
       if (entity.id === referenceEntity.id) continue;
 
       const dist = this.getDistance(referenceEntity, entity);
-      if (dist !== undefined && dist <= radius) {
+      if (dist <= radius) {
         results.push({ entity, distance: dist });
       }
     }
@@ -1120,34 +1128,31 @@ export class WorldRuntime implements Graph {
       (this.engineConfig.schema.axisDefinitions || []).map(axis => [axis.id, axis])
     );
 
+    const resolveAxisConcept = (value: number, axis: { lowTag: string; highTag: string }): string => {
+      if (value < 33) return axis.lowTag;
+      if (value > 66) return axis.highTag;
+      return 'neutral';
+    };
+
     // Interpret x-axis
     const xAxis = axes.x?.axisId ? axisById.get(axes.x.axisId) : undefined;
     if (xAxis) {
       const xValue = coords.x;
-      const xConcept = xValue < 33 ? xAxis.lowTag
-        : xValue > 66 ? xAxis.highTag
-          : 'neutral';
-      result[xAxis.name] = { value: xValue, concept: xConcept };
+      result[xAxis.name] = { value: xValue, concept: resolveAxisConcept(xValue, xAxis) };
     }
 
     // Interpret y-axis
     const yAxis = axes.y?.axisId ? axisById.get(axes.y.axisId) : undefined;
     if (yAxis) {
       const yValue = coords.y;
-      const yConcept = yValue < 33 ? yAxis.lowTag
-        : yValue > 66 ? yAxis.highTag
-          : 'neutral';
-      result[yAxis.name] = { value: yValue, concept: yConcept };
+      result[yAxis.name] = { value: yValue, concept: resolveAxisConcept(yValue, yAxis) };
     }
 
     // Interpret z-axis (optional in semantic plane)
     const zAxis = axes.z?.axisId ? axisById.get(axes.z.axisId) : undefined;
     if (zAxis) {
       const zValue = coords.z;
-      const zConcept = zValue < 33 ? zAxis.lowTag
-        : zValue > 66 ? zAxis.highTag
-          : 'neutral';
-      result[zAxis.name] = { value: zValue, concept: zConcept };
+      result[zAxis.name] = { value: zValue, concept: resolveAxisConcept(zValue, zAxis) };
     }
 
     return result;
@@ -1395,10 +1400,10 @@ export class WorldRuntime implements Graph {
       return null;
     };
 
-    const trySparse = async (
+    const trySparse = (
       preferPeriphery: boolean,
       resolvedVia: string
-    ): Promise<PlacementResultWithDebug | null> => {
+    ): PlacementResultWithDebug | null => {
       const sparseResult = this.findSparseArea(entityKind, {
         minDistanceFromEntities: spacingMin,
         preferPeriphery
@@ -1420,11 +1425,13 @@ export class WorldRuntime implements Graph {
       resolvedVia: string
     ): PlacementResultWithDebug => {
       const b = bounds || { x: [0, 100], y: [0, 100] };
+      /* eslint-disable sonarjs/pseudo-random -- simulation coordinate generation */
       const coords: Point = {
         x: (b.x?.[0] ?? 0) + Math.random() * ((b.x?.[1] ?? 100) - (b.x?.[0] ?? 0)),
         y: (b.y?.[0] ?? 0) + Math.random() * ((b.y?.[1] ?? 100) - (b.y?.[0] ?? 0)),
         z: b.z ? (b.z[0] + Math.random() * (b.z[1] - b.z[0])) : 50
       };
+      /* eslint-enable sonarjs/pseudo-random */
       const derived = deriveInfo(coords);
       return {
         coordinates: coords,
@@ -1521,15 +1528,17 @@ export class WorldRuntime implements Graph {
             z: withCoords.reduce((s, r) => s + r.coordinates.z, 0) / withCoords.length
           };
           if (anchor.jitter) {
+            /* eslint-disable sonarjs/pseudo-random -- simulation coordinate jitter */
             centroid.x += (Math.random() - 0.5) * anchor.jitter;
             centroid.y += (Math.random() - 0.5) * anchor.jitter;
+            /* eslint-enable sonarjs/pseudo-random */
           }
           result = tryNearPoint(centroid, 'anchor');
         }
         break;
       }
       case 'sparse':
-        result = await trySparse(anchor.preferPeriphery ?? false, 'sparse');
+        result = trySparse(anchor.preferPeriphery ?? false, 'sparse');
         break;
       case 'bounds':
         result = tryBounds(anchor.bounds, 'bounds');
@@ -1555,7 +1564,7 @@ export class WorldRuntime implements Graph {
             break;
           case 'sparse': {
             const preferPeriphery = anchor.type === 'sparse' ? (anchor.preferPeriphery ?? false) : false;
-            result = await trySparse(preferPeriphery, 'sparse');
+            result = trySparse(preferPeriphery, 'sparse');
             break;
           }
           case 'random':
@@ -1647,7 +1656,7 @@ export class WorldRuntime implements Graph {
 
     // Merge entity tags with derived tags
     // Debug info (derivedTags) now captured in structured template_application event
-    const mergedTags = mergeTags(entity.tags as EntityTags | undefined, placementResult.derivedTags);
+    const mergedTags = mergeTags(entity.tags, placementResult.derivedTags);
 
     const entityWithCoords: Partial<HardState> = {
       ...entity,
@@ -1714,7 +1723,7 @@ export class WorldRuntime implements Graph {
     }
 
     // Merge entity tags with derived tags
-    const mergedTags = mergeTags(entity.tags as EntityTags | undefined, placementResult.derivedTags);
+    const mergedTags = mergeTags(entity.tags, placementResult.derivedTags);
 
     const entityWithCoords: Partial<HardState> = {
       ...entity,
@@ -1770,7 +1779,7 @@ export class WorldRuntime implements Graph {
     }
 
     // Merge entity tags with derived tags
-    const mergedTags = mergeTags(entity.tags as EntityTags | undefined, placementResult.derivedTags);
+    const mergedTags = mergeTags(entity.tags, placementResult.derivedTags);
 
     const entityWithCoords: Partial<HardState> = {
       ...entity,
@@ -1839,7 +1848,7 @@ export class WorldRuntime implements Graph {
 
     // Merge entity tags with derived tags
     // Debug info (derivedTags) now captured in structured template_application event
-    const mergedTags = mergeTags(entity.tags as EntityTags | undefined, placementResult.derivedTags);
+    const mergedTags = mergeTags(entity.tags, placementResult.derivedTags);
 
     const entityWithCoords: Partial<HardState> = {
       ...entity,

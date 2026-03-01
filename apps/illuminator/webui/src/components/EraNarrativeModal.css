@@ -1,0 +1,677 @@
+/* EraNarrativeModal.css — co-located styles for EraNarrativeModal.jsx */
+
+/* ============================================================================
+ * Modal overlay & container
+ * ============================================================================ */
+
+.era-narr-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  background: rgb(0 0 0 / 50%);
+}
+
+.era-narr-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  width: 700px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
+}
+
+/* ============================================================================
+ * Header
+ * ============================================================================ */
+
+.era-narr-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.era-narr-header-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.era-narr-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.era-narr-header-minimize-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.era-narr-header-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-muted);
+  padding: 4px;
+}
+
+/* ============================================================================
+ * Body
+ * ============================================================================ */
+
+.era-narr-body {
+  padding: 20px;
+  overflow: auto;
+  flex: 1;
+}
+
+/* ============================================================================
+ * Setup form fields
+ * ============================================================================ */
+
+.era-narr-field {
+  margin-bottom: 16px;
+}
+
+.era-narr-field-lg {
+  margin-bottom: 20px;
+}
+
+.era-narr-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.era-narr-label-optional {
+  font-style: italic;
+}
+
+.era-narr-select-full {
+  width: 100%;
+  font-size: 13px;
+}
+
+/* Warnings */
+.era-narr-warning {
+  padding: 10px;
+  margin-bottom: 16px;
+  background: #fef3c7;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #92400e;
+}
+
+/* Thesis link */
+.era-narr-thesis-link {
+  padding: 10px;
+  margin-bottom: 16px;
+  background: rgb(59 130 246 / 8%);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.era-narr-thesis-link-label {
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.era-narr-thesis-link-text {
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Chronicle list */
+.era-narr-chronicle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 200px;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.era-narr-chronicle-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  font-size: 12px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+}
+
+.era-narr-chronicle-item-unprepped {
+  opacity: 0.5;
+}
+
+.era-narr-chronicle-item-weight {
+  font-size: 10px;
+  width: 14px;
+  text-align: center;
+  color: var(--era-narr-weight-color);
+}
+
+.era-narr-chronicle-item-title {
+  flex: 1;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.era-narr-chronicle-item-year {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.era-narr-chronicle-item-style {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.era-narr-chronicle-item-prep {
+  font-size: 11px;
+  width: 14px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.era-narr-chronicle-item-prep-yes {
+  color: #8b7355;
+}
+
+/* Existing narratives list */
+.era-narr-existing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.era-narr-existing-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.era-narr-existing-item-status {
+  font-weight: 600;
+  color: var(--era-narr-status-color);
+}
+
+.era-narr-existing-item-step {
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.era-narr-existing-item-time {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.era-narr-existing-item-cost {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.era-narr-existing-item-resume-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.era-narr-existing-item-view-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.era-narr-existing-item-delete-btn {
+  padding: 2px 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Tone buttons */
+.era-narr-tone-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.era-narr-tone-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.era-narr-tone-btn-active {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
+/* Arc direction */
+.era-narr-textarea {
+  width: 100%;
+  min-height: 60px;
+  max-height: 120px;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* Start buttons */
+.era-narr-start-row {
+  display: flex;
+  gap: 8px;
+}
+
+.era-narr-start-btn {
+  flex: 1;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.era-narr-start-btn-primary {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
+.era-narr-headless-btn {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.era-narr-start-btn-dimmed {
+  opacity: 0.5;
+}
+
+/* ============================================================================
+ * Generating state
+ * ============================================================================ */
+
+.era-narr-generating {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.era-narr-generating-status {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.era-narr-generating-era {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ============================================================================
+ * Failed state
+ * ============================================================================ */
+
+.era-narr-aborted {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.era-narr-aborted-title {
+  font-size: 14px;
+  color: #ef4444;
+  margin-bottom: 8px;
+}
+
+.era-narr-aborted-error {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+/* ============================================================================
+ * Thread Synthesis Review
+ * ============================================================================ */
+
+.era-narr-review-section {
+  margin-bottom: 16px;
+}
+
+.era-narr-review-heading {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.era-narr-thesis-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.era-narr-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.era-narr-thread-card {
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.era-narr-thread-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.era-narr-thread-card-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.era-narr-thread-card-actors {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.era-narr-thread-card-register {
+  font-size: 11px;
+  color: #8b7355;
+  font-style: italic;
+}
+
+.era-narr-thread-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.era-narr-thread-card-material {
+  margin-top: 6px;
+}
+
+.era-narr-thread-card-material-summary {
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.era-narr-thread-card-material-body {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+  padding-left: 8px;
+  border-left: 2px solid var(--border-color);
+}
+
+/* Movement plan */
+.era-narr-movement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.era-narr-movement-card {
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.era-narr-movement-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.era-narr-movement-card-index {
+  font-weight: 500;
+}
+
+.era-narr-movement-card-range {
+  color: var(--text-muted);
+}
+
+.era-narr-movement-card-threads {
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.era-narr-movement-card-world-state {
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.era-narr-movement-card-beats {
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Counterweight */
+.era-narr-counterweight {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Strategic dynamics */
+.era-narr-dynamics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.era-narr-dynamic-card {
+  padding: 6px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.era-narr-dynamic-card-interaction {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.era-narr-dynamic-card-actors {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.era-narr-dynamic-card-text {
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+/* Quotes */
+.era-narr-quotes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.era-narr-quote-card {
+  padding: 6px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.era-narr-quote-card-text {
+  font-style: italic;
+  color: var(--text-primary);
+}
+
+.era-narr-quote-card-origin {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Motifs */
+.era-narr-motifs {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ============================================================================
+ * Narrative / Edit Review
+ * ============================================================================ */
+
+.era-narr-content-header {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.era-narr-content-header-mb8 {
+  margin-bottom: 8px;
+}
+
+.era-narr-content-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.era-narr-content-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.era-narr-content-viewer {
+  padding: 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  max-height: 400px;
+  overflow: auto;
+  color: var(--text-secondary);
+}
+
+.era-narr-no-content {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ============================================================================
+ * Complete: Version selector
+ * ============================================================================ */
+
+.era-narr-version-row {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.era-narr-version-select {
+  width: auto;
+  min-width: 240px;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+
+.era-narr-version-active-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgb(16 185 129 / 15%);
+  color: #10b981;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.era-narr-version-make-active-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.era-narr-version-delete-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.era-narr-version-delete-btn-confirming {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+}
+
+.era-narr-version-delete-btn-normal {
+  color: var(--text-muted);
+}
+
+/* ============================================================================
+ * Footer
+ * ============================================================================ */
+
+.era-narr-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.era-narr-footer-cost {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.era-narr-footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.era-narr-footer-primary-btn {
+  background: var(--accent-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.era-narr-footer-rerun-btn {
+  font-weight: 500;
+}

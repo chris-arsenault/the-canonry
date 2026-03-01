@@ -11,30 +11,41 @@
  * - "None" - no style/composition constraint, let the prompt decide
  */
 
-import { useMemo } from 'react';
-import { DEFAULT_RANDOM_EXCLUSIONS } from '@canonry/world-schema';
+import React, { useMemo, useId } from "react";
+import PropTypes from "prop-types";
+import { DEFAULT_RANDOM_EXCLUSIONS } from "@canonry/world-schema";
+import "./StyleSelector.css";
 
-const RANDOM_ID = 'random';
-const NONE_ID = 'none';
+const RANDOM_ID = "random";
+const NONE_ID = "none";
 
 /**
  * Category display names for grouping compositions
  */
 const CATEGORY_LABELS = {
-  character: 'Character',
-  collective: 'Collective',
-  place: 'Place',
-  object: 'Object',
-  concept: 'Concept',
-  power: 'Power',
-  era: 'Era',
-  event: 'Event',
+  character: "Character",
+  collective: "Collective",
+  place: "Place",
+  object: "Object",
+  concept: "Concept",
+  power: "Power",
+  era: "Era",
+  event: "Event",
 };
 
 /**
  * Order for displaying category groups
  */
-const CATEGORY_ORDER = ['character', 'collective', 'place', 'object', 'concept', 'power', 'era', 'event'];
+const CATEGORY_ORDER = [
+  "character",
+  "collective",
+  "place",
+  "object",
+  "concept",
+  "power",
+  "era",
+  "event",
+];
 
 /**
  * Group composition styles by targetCategory
@@ -72,8 +83,8 @@ function groupCompositionsByCategory(styles) {
   // Add uncategorized at the end if any
   if (uncategorized.length > 0) {
     result.push({
-      category: 'other',
-      label: 'Other',
+      category: "other",
+      label: "Other",
       styles: uncategorized,
     });
   }
@@ -92,6 +103,7 @@ export default function StyleSelector({
   entityKind,
   compact = false,
 }) {
+  const compositionId = useId();
   const artisticStyles = styleLibrary?.artisticStyles || [];
   const compositionStyles = styleLibrary?.compositionStyles || [];
   const colorPalettes = styleLibrary?.colorPalettes || [];
@@ -102,7 +114,10 @@ export default function StyleSelector({
       return compositionStyles;
     }
     return compositionStyles.filter(
-      (s) => !s.suitableForKinds || s.suitableForKinds.length === 0 || s.suitableForKinds.includes(entityKind)
+      (s) =>
+        !s.suitableForKinds ||
+        s.suitableForKinds.length === 0 ||
+        s.suitableForKinds.includes(entityKind)
     );
   }, [compositionStyles, entityKind]);
 
@@ -117,21 +132,13 @@ export default function StyleSelector({
 
   if (compact) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          flexWrap: 'wrap',
-        }}
-      >
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Style:</span>
+      <div className="stsel-compact">
+        <span className="ilu-hint">Style:</span>
         <select
           value={selectedArtisticStyleId || RANDOM_ID}
           onChange={(e) => onArtisticStyleChange(e.target.value || RANDOM_ID)}
-          className="illuminator-select"
-          style={{ width: 'auto', minWidth: '120px' }}
-          title={selectedArtistic?.description || 'Select artistic style'}
+          className="illuminator-select stsel-compact-select"
+          title={selectedArtistic?.description || "Select artistic style"}
         >
           <option value={RANDOM_ID}>Random</option>
           <option value={NONE_ID}>None</option>
@@ -145,9 +152,8 @@ export default function StyleSelector({
         <select
           value={selectedCompositionStyleId || RANDOM_ID}
           onChange={(e) => onCompositionStyleChange(e.target.value || RANDOM_ID)}
-          className="illuminator-select"
-          style={{ width: 'auto', minWidth: '120px' }}
-          title={selectedComposition?.description || 'Select composition style'}
+          className="illuminator-select stsel-compact-select"
+          title={selectedComposition?.description || "Select composition style"}
         >
           <option value={RANDOM_ID}>Random</option>
           <option value={NONE_ID}>None</option>
@@ -165,9 +171,8 @@ export default function StyleSelector({
         <select
           value={selectedColorPaletteId || RANDOM_ID}
           onChange={(e) => onColorPaletteChange(e.target.value || RANDOM_ID)}
-          className="illuminator-select"
-          style={{ width: 'auto', minWidth: '120px' }}
-          title={selectedColorPalette?.description || 'Select color palette'}
+          className="illuminator-select stsel-compact-select"
+          title={selectedColorPalette?.description || "Select color palette"}
         >
           <option value={RANDOM_ID}>Random</option>
           <option value={NONE_ID}>None</option>
@@ -182,26 +187,11 @@ export default function StyleSelector({
   }
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
-        gap: '12px',
-      }}
-    >
+    <div className="stsel-grid">
       {/* Artistic Style */}
       <div>
-        <label
-          style={{
-            display: 'block',
-            fontSize: '12px',
-            color: 'var(--text-muted)',
-            marginBottom: '4px',
-          }}
-        >
-          Artistic Style
-        </label>
-        <select
+        <label htmlFor="artistic-style" className="ilu-hint stsel-label">Artistic Style</label>
+        <select id="artistic-style"
           value={selectedArtisticStyleId || RANDOM_ID}
           onChange={(e) => onArtisticStyleChange(e.target.value || RANDOM_ID)}
           className="illuminator-select"
@@ -215,31 +205,16 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedArtistic && (
-          <div
-            style={{
-              fontSize: '11px',
-              color: 'var(--text-muted)',
-              marginTop: '4px',
-            }}
-          >
-            {selectedArtistic.description}
-          </div>
+          <div className="ilu-hint-sm stsel-description">{selectedArtistic.description}</div>
         )}
       </div>
 
       {/* Composition Style */}
       <div>
-        <label
-          style={{
-            display: 'block',
-            fontSize: '12px',
-            color: 'var(--text-muted)',
-            marginBottom: '4px',
-          }}
-        >
+        <label htmlFor={compositionId} className="ilu-hint stsel-label">
           Composition Style{entityKind && ` (for ${entityKind})`}
         </label>
-        <select
+        <select id={compositionId}
           value={selectedCompositionStyleId || RANDOM_ID}
           onChange={(e) => onCompositionStyleChange(e.target.value || RANDOM_ID)}
           className="illuminator-select"
@@ -257,31 +232,14 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedComposition && (
-          <div
-            style={{
-              fontSize: '11px',
-              color: 'var(--text-muted)',
-              marginTop: '4px',
-            }}
-          >
-            {selectedComposition.description}
-          </div>
+          <div className="ilu-hint-sm stsel-description">{selectedComposition.description}</div>
         )}
       </div>
 
       {/* Color Palette */}
       <div>
-        <label
-          style={{
-            display: 'block',
-            fontSize: '12px',
-            color: 'var(--text-muted)',
-            marginBottom: '4px',
-          }}
-        >
-          Color Palette
-        </label>
-        <select
+        <label htmlFor="color-palette" className="ilu-hint stsel-label">Color Palette</label>
+        <select id="color-palette"
           value={selectedColorPaletteId || RANDOM_ID}
           onChange={(e) => onColorPaletteChange(e.target.value || RANDOM_ID)}
           className="illuminator-select"
@@ -295,15 +253,7 @@ export default function StyleSelector({
           ))}
         </select>
         {selectedColorPalette && (
-          <div
-            style={{
-              fontSize: '11px',
-              color: 'var(--text-muted)',
-              marginTop: '4px',
-            }}
-          >
-            {selectedColorPalette.description}
-          </div>
+          <div className="ilu-hint-sm stsel-description">{selectedColorPalette.description}</div>
         )}
       </div>
     </div>
@@ -318,7 +268,7 @@ function pickRandom(arr) {
   if (!arr || arr.length === 0) return null;
   const randomBuffer = new Uint32Array(1);
   crypto.getRandomValues(randomBuffer);
-  const randomValue = randomBuffer[0] / (0xFFFFFFFF + 1);
+  const randomValue = randomBuffer[0] / (0xffffffff + 1);
   return arr[Math.floor(randomValue * arr.length)];
 }
 
@@ -351,18 +301,33 @@ export function resolveStyleSelection({
   // Filter composition styles by entity kind
   const filteredCompositionStyles = entityKind
     ? compositionStyles.filter(
-        (s) => !s.suitableForKinds || s.suitableForKinds.length === 0 || s.suitableForKinds.includes(entityKind)
+        (s) =>
+          !s.suitableForKinds ||
+          s.suitableForKinds.length === 0 ||
+          s.suitableForKinds.includes(entityKind)
       )
     : compositionStyles;
 
   const styleIsRandom = selection.artisticStyleId === RANDOM_ID || !selection.artisticStyleId;
   const compIsRandom = selection.compositionStyleId === RANDOM_ID || !selection.compositionStyleId;
 
-  if (styleIsRandom && compIsRandom && selection.artisticStyleId !== NONE_ID && selection.compositionStyleId !== NONE_ID) {
+  if (
+    styleIsRandom &&
+    compIsRandom &&
+    selection.artisticStyleId !== NONE_ID &&
+    selection.compositionStyleId !== NONE_ID
+  ) {
     // Both random: pick composition first, then filter styles for that composition
     result.compositionStyle = pickRandom(filteredCompositionStyles);
     if (result.compositionStyle && rules.length > 0) {
-      const filteredStyles = filterByExclusion(artisticStyles, result.compositionStyle.id, rules, artisticStyles, compositionStyles, 'style');
+      const filteredStyles = filterByExclusion(
+        artisticStyles,
+        result.compositionStyle.id,
+        rules,
+        artisticStyles,
+        compositionStyles,
+        "style"
+      );
       result.artisticStyle = pickRandom(filteredStyles);
     } else {
       result.artisticStyle = pickRandom(artisticStyles);
@@ -375,15 +340,20 @@ export function resolveStyleSelection({
       // Style is random, composition is fixed — filter styles for fixed composition
       const fixedCompId = selection.compositionStyleId;
       if (fixedCompId && fixedCompId !== NONE_ID && rules.length > 0) {
-        const filteredStyles = filterByExclusion(artisticStyles, fixedCompId, rules, artisticStyles, compositionStyles, 'style');
+        const filteredStyles = filterByExclusion(
+          artisticStyles,
+          fixedCompId,
+          rules,
+          artisticStyles,
+          compositionStyles,
+          "style"
+        );
         result.artisticStyle = pickRandom(filteredStyles);
       } else {
         result.artisticStyle = pickRandom(artisticStyles);
       }
     } else {
-      result.artisticStyle = artisticStyles.find(
-        (s) => s.id === selection.artisticStyleId
-      );
+      result.artisticStyle = artisticStyles.find((s) => s.id === selection.artisticStyleId);
     }
 
     // Resolve composition style
@@ -393,7 +363,14 @@ export function resolveStyleSelection({
       // Composition is random, style is fixed — filter compositions for fixed style
       const fixedStyleId = selection.artisticStyleId;
       if (fixedStyleId && fixedStyleId !== NONE_ID && rules.length > 0) {
-        const filteredComps = filterByExclusion(filteredCompositionStyles, fixedStyleId, rules, artisticStyles, compositionStyles, 'composition');
+        const filteredComps = filterByExclusion(
+          filteredCompositionStyles,
+          fixedStyleId,
+          rules,
+          artisticStyles,
+          compositionStyles,
+          "composition"
+        );
         result.compositionStyle = pickRandom(filteredComps);
       } else {
         result.compositionStyle = pickRandom(filteredCompositionStyles);
@@ -411,9 +388,7 @@ export function resolveStyleSelection({
   } else if (selection.colorPaletteId === RANDOM_ID || !selection.colorPaletteId) {
     result.colorPalette = pickRandom(colorPalettes);
   } else {
-    result.colorPalette = colorPalettes.find(
-      (p) => p.id === selection.colorPaletteId
-    );
+    result.colorPalette = colorPalettes.find((p) => p.id === selection.colorPaletteId);
   }
 
   // Get culture style keywords
@@ -432,8 +407,8 @@ export function resolveStyleSelection({
  */
 function filterByExclusion(items, fixedId, rules, artisticStyles, compositionStyles, axis) {
   return items.filter((item) => {
-    const styleId = axis === 'style' ? item.id : fixedId;
-    const compId = axis === 'style' ? fixedId : item.id;
+    const styleId = axis === "style" ? item.id : fixedId;
+    const compId = axis === "style" ? fixedId : item.id;
     return !isExcludedPairLocal(styleId, compId, rules, artisticStyles, compositionStyles);
   });
 }
@@ -444,7 +419,11 @@ function filterByExclusion(items, fixedId, rules, artisticStyles, compositionSty
 function isExcludedPairLocal(styleId, compositionId, rules, artisticStyles, compositionStyles) {
   for (const rule of rules) {
     const excludedStyles = expandPatterns(rule.styles, artisticStyles, (s) => s.category);
-    const excludedComps = expandPatterns(rule.compositions, compositionStyles, (c) => c.targetCategory);
+    const excludedComps = expandPatterns(
+      rule.compositions,
+      compositionStyles,
+      (c) => c.targetCategory
+    );
     if (excludedStyles.has(styleId) && excludedComps.has(compositionId)) {
       if (rule.allow?.some(([s, c]) => s === styleId && c === compositionId)) {
         continue;
@@ -458,7 +437,7 @@ function isExcludedPairLocal(styleId, compositionId, rules, artisticStyles, comp
 function expandPatterns(patterns, items, getCategoryFn) {
   const ids = new Set();
   for (const pattern of patterns) {
-    if (pattern.startsWith('cat:')) {
+    if (pattern.startsWith("cat:")) {
       const cat = pattern.slice(4);
       for (const item of items) {
         if (getCategoryFn(item) === cat) {
@@ -471,5 +450,17 @@ function expandPatterns(patterns, items, getCategoryFn) {
   }
   return ids;
 }
+
+StyleSelector.propTypes = {
+  styleLibrary: PropTypes.object,
+  selectedArtisticStyleId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  selectedCompositionStyleId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  selectedColorPaletteId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onArtisticStyleChange: PropTypes.func,
+  onCompositionStyleChange: PropTypes.func,
+  onColorPaletteChange: PropTypes.func,
+  entityKind: PropTypes.string,
+  compact: PropTypes.bool,
+};
 
 export { RANDOM_ID, NONE_ID };

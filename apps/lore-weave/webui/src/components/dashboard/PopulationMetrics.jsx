@@ -2,7 +2,9 @@
  * PopulationMetrics - Entity counts and population health
  */
 
-import React from 'react';
+import React from "react";
+import PropTypes from "prop-types";
+import "./PopulationMetrics.css";
 
 export default function PopulationMetrics({ populationReport, epochStats }) {
   // Get latest epoch stats for entity breakdown
@@ -35,11 +37,16 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
           Population Metrics
         </div>
         {populationReport && (
-          <span style={{
-            fontSize: '12px',
-            color: populationReport.avgDeviation < 0.2 ? 'var(--lw-success)' :
-                   populationReport.avgDeviation < 0.4 ? 'var(--lw-warning)' : 'var(--lw-danger)'
-          }}>
+          <span
+            className="pm-deviation"
+            style={{
+              '--pm-deviation-color': (() => {
+                if (populationReport.avgDeviation < 0.2) return "var(--lw-success)";
+                if (populationReport.avgDeviation < 0.4) return "var(--lw-warning)";
+                return "var(--lw-danger)";
+              })(),
+            }}
+          >
             {(populationReport.avgDeviation * 100).toFixed(1)}% avg deviation
           </span>
         )}
@@ -61,28 +68,32 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
 
         {/* Population deviations */}
         {populationReport && populationReport.entityMetrics.length > 0 && (
-          <div style={{ marginTop: '16px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--lw-text-muted)', marginBottom: '8px' }}>
+          <div className="lw-section-spacer">
+            <div className="lw-section-label">
               Population Health
             </div>
             <div className="lw-flex-col lw-gap-sm">
-              {populationReport.entityMetrics.slice(0, 6).map(metric => {
+              {populationReport.entityMetrics.slice(0, 6).map((metric) => {
                 const deviationPercent = Math.abs(metric.deviation * 100);
-                const color = deviationPercent < 20 ? 'var(--lw-success)' :
-                              deviationPercent < 40 ? 'var(--lw-warning)' : 'var(--lw-danger)';
+                let color;
+                if (deviationPercent < 20) color = "var(--lw-success)";
+                else if (deviationPercent < 40) color = "var(--lw-warning)";
+                else color = "var(--lw-danger)";
                 return (
                   <div key={`${metric.kind}:${metric.subtype}`} className="lw-pressure-gauge">
-                    <span className="lw-pressure-name">{metric.kind}:{metric.subtype}</span>
+                    <span className="lw-pressure-name">
+                      {metric.kind}:{metric.subtype}
+                    </span>
                     <div className="lw-pressure-bar">
                       <div
-                        className="lw-pressure-fill"
+                        className="lw-pressure-fill pm-pressure-fill"
                         style={{
-                          width: `${Math.min(100, (metric.count / metric.target) * 50)}%`,
-                          backgroundColor: color
+                          '--pm-pressure-fill-width': `${Math.min(100, (metric.count / metric.target) * 50)}%`,
+                          '--pm-pressure-fill-color': color,
                         }}
                       />
                     </div>
-                    <span className="lw-pressure-value" style={{ color }}>
+                    <span className="lw-pressure-value pm-pressure-value" style={{ '--pm-pressure-value-color': color }}>
                       {metric.count}/{metric.target}
                     </span>
                   </div>
@@ -95,3 +106,8 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
     </div>
   );
 }
+
+PopulationMetrics.propTypes = {
+  populationReport: PropTypes.object,
+  epochStats: PropTypes.array,
+};

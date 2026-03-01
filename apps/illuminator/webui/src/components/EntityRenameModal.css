@@ -1,0 +1,504 @@
+/* EntityRenameModal styles */
+
+/* Type badge color variants */
+.erm-type-badge-full {
+  background: #22c55e;
+}
+
+.erm-type-badge-partial {
+  background: #f59e0b;
+}
+
+.erm-type-badge-metadata {
+  background: #6366f1;
+}
+
+.erm-type-badge-id_slug {
+  background: #06b6d4;
+}
+
+.erm-type-badge-unknown {
+  background: #666;
+}
+
+/* FK badge uses id_slug color */
+.erm-fk-badge-colored {
+  background: #06b6d4;
+}
+
+/* Footer button disabled state */
+.erm-footer-btn-disabled {
+  opacity: 0.5;
+}
+
+/* Preview footer button disabled state */
+.erm-footer-btn-active {
+  opacity: 1;
+}
+
+/* MatchRow */
+.erm-match-row {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 3px;
+}
+
+.erm-match-row-accepted {
+  background: var(--bg-tertiary);
+  opacity: 1;
+}
+
+.erm-match-row-rejected {
+  background: var(--bg-secondary);
+  opacity: 0.5;
+}
+
+.erm-match-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.erm-type-badge {
+  color: #fff;
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.erm-field-label {
+  opacity: 0.6;
+}
+
+.erm-partial-fragment {
+  font-style: italic;
+}
+
+.erm-snippet {
+  font-size: 11px;
+  line-height: 1.7;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 4px;
+}
+
+.erm-context-text {
+  color: var(--text-muted);
+}
+
+.erm-strikethrough {
+  background: rgba(239, 68, 68, 0.2);
+  text-decoration: line-through;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.erm-replacement {
+  background: rgba(34, 197, 94, 0.2);
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.erm-action-controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.erm-action-btn {
+  color: var(--text-primary);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.erm-action-btn-inactive {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.erm-action-btn-accept {
+  background: rgba(34, 197, 94, 0.3);
+  border: 1px solid #22c55e;
+}
+
+.erm-action-btn-reject {
+  background: rgba(239, 68, 68, 0.3);
+  border: 1px solid #ef4444;
+}
+
+.erm-action-btn-edit {
+  background: rgba(99, 102, 241, 0.3);
+  border: 1px solid #6366f1;
+}
+
+.erm-edit-input {
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid #6366f1;
+  color: var(--text-primary);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  outline: none;
+}
+
+/* SourceSection */
+.erm-source-section {
+  margin-bottom: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.erm-source-header {
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.erm-expand-icon {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 10px;
+  flex-shrink: 0;
+}
+
+.erm-source-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.erm-source-badge {
+  font-size: 9px;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+}
+
+.erm-match-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.erm-stat-accepts {
+  font-size: 10px;
+  color: #22c55e;
+}
+
+.erm-stat-rejects {
+  font-size: 10px;
+  color: #ef4444;
+}
+
+.erm-stat-edits {
+  font-size: 10px;
+  color: #6366f1;
+}
+
+.erm-bulk-accept-btn {
+  background: none;
+  border: none;
+  color: #22c55e;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.erm-bulk-reject-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.erm-source-body {
+  padding: 6px 8px;
+}
+
+/* Connection items */
+.erm-connection-section {
+  margin-top: 4px;
+}
+
+.erm-connection-item {
+  padding: 3px 10px;
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.erm-fk-badge {
+  color: #fff;
+  padding: 0 3px;
+  border-radius: 2px;
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Main Modal */
+.erm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.erm-card {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: 900px;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.erm-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.erm-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.erm-subtitle {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.erm-cancel-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.erm-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 20px;
+  min-height: 0;
+}
+
+/* Input phase */
+.erm-current-name-box {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.erm-current-name-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.erm-current-name-value {
+  font-size: 15px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.erm-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.erm-name-input {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  outline: none;
+}
+
+.erm-roll-btn {
+  padding: 8px 16px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.erm-alias-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+/* Compose with ilu-hint-sm from panel-utilities.css for font-size/color */
+.erm-help-text {
+  line-height: 1.6;
+}
+
+/* Scanning phase */
+.erm-centered-phase {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.erm-phase-title {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.erm-phase-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Preview phase */
+.erm-stats-bar {
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.erm-stat-separator {
+  color: var(--text-muted);
+}
+
+.erm-stat-total {
+  color: var(--text-muted);
+}
+
+.erm-stat-connections {
+  color: #06b6d4;
+}
+
+.erm-stats-spacer {
+  flex: 1;
+}
+
+.erm-accept-all-btn {
+  background: none;
+  border: none;
+  color: #22c55e;
+  font-size: 10px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.erm-reject-partials-btn {
+  background: none;
+  border: none;
+  color: #f59e0b;
+  font-size: 10px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Connection-only section */
+.erm-conn-only-section {
+  margin-top: 12px;
+}
+
+.erm-conn-only-header {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  padding: 0 2px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 10px;
+}
+
+.erm-conn-only-item {
+  padding: 4px 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.erm-conn-only-name {
+  color: var(--text-primary);
+}
+
+.erm-empty-preview {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Done phase — compose with ilu-hint from panel-utilities.css for font-size/color */
+.erm-done-subtitle {
+  margin-top: 8px;
+}
+
+/* Footer */
+.erm-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.erm-footer-btn {
+  padding: 6px 20px;
+  font-size: 12px;
+}
+
+.erm-footer-btn-secondary {
+  padding: 6px 16px;
+  font-size: 12px;
+}

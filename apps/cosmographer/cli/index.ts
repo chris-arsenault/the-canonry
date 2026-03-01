@@ -45,7 +45,7 @@ program
   .option('--no-metadata', 'Exclude classification metadata from output')
   .option('--strategy <type>', 'Saturation strategy: density, count, or failures', 'density')
   .option('--threshold <number>', 'Density threshold (0.0-1.0)', '0.7')
-  .action(async (inputPath: string, options) => {
+  .action((inputPath: string, options: { metadata: boolean; strategy: string; threshold: string; output?: string }) => {
     try {
       // Read and parse input
       const fullPath = resolve(inputPath);
@@ -90,7 +90,7 @@ program
       console.error(`Planes: ${input.planes.length}`);
 
       // Generate
-      const output = await generateManifold(input);
+      const output = generateManifold(input);
 
       // Output
       const json = JSON.stringify(output, null, 2);
@@ -130,12 +130,12 @@ program
   .command('analyze <term>')
   .description('Analyze a term and show its likely categories')
   .option('-d, --domain <type>', 'Domain class: spatial, metaphysical, conceptual, hybrid', 'hybrid')
-  .action(async (term: string, options) => {
+  .action((term: string, options: { domain: string }) => {
     try {
       console.log(`Analyzing: "${term}"`);
       console.log(`Domain: ${options.domain}\n`);
 
-      const results = await analyzeTerm(term, options.domain as DomainClass);
+      const results = analyzeTerm(term, options.domain as DomainClass);
 
       if (results.length === 0) {
         console.log('No matching categories found.');
@@ -164,7 +164,7 @@ program
   .description('List available categories')
   .option('-d, --domain <type>', 'Filter by domain class: spatial, metaphysical, conceptual, hybrid')
   .option('--verbose', 'Show full category details')
-  .action((options) => {
+  .action((options: { domain?: string; verbose?: boolean }) => {
     try {
       if (options.domain) {
         const categories = getCategoriesForDomain(options.domain as DomainClass);

@@ -4,5 +4,5 @@
  * Re-exports the browser-compatible image generation client for use in workers.
  */
 
-export { ImageGenerationClient as ImageClient } from './llmClient.browser';
-export type { ImageConfig, ImageRequest, ImageResult } from './llmClient.browser';
+export { ImageGenerationClient as ImageClient } from "./imageClient.browser";
+export type { ImageConfig, ImageRequest, ImageResult } from "./imageClient.browser";

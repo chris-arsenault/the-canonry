@@ -1,0 +1,541 @@
+[
+  {
+    "id": "success-failure-feedback-mechanisms",
+    "name": "Success/Failure Feedback Mechanisms",
+    "type": "behavioral",
+    "domain": "Notification & Feedback Patterns",
+    "description": "After async operations complete (save, sync, rename, bulk ops), different apps and components provide feedback through vastly different mechanisms: fixed-position toast (ChroniclePanel), inline error div with dismiss button (NameForge EntityWorkspace), inline error text (CorpusFindReplace), styled error box (SimulationRunner), snapshotStatus state object (Canonry AWS), or console.error only. No shared toast/notification system exists.",
+    "impact": "MEDIUM",
+    "total_files": 25,
+    "variants": [
+      {
+        "name": "ad-hoc-fixed-toast-chronicle",
+        "description": "Fixed-position toast notifications built inline in ChroniclePanel JSX. Each toast type has its own useState + onClick-to-dismiss + close button. Positioned bottom-right with z-index 1001. Uses chron-toast / chron-toast-success / chron-toast-error classes. Five separate toast instances copy-pasted with identical structure but different state variables.",
+        "file_count": 1,
+        "files": ["apps/illuminator/webui/src/components/ChroniclePanel.jsx:2483-2558"],
+        "sample_file": "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+            "start_line": 2483,
+            "end_line": 2497,
+            "snippet": "{eraSummaryRefreshResult && <div className={`chron-toast ${eraSummaryRefreshResult.success ? \"chron-toast-success\" : \"chron-toast-error\"}`} onClick={() => setEraSummaryRefreshResult(null)} role=\"button\" tabIndex={0} onKeyDown={e => {\n  if (e.key === \"Enter\" || e.key === \" \") e.currentTarget.click();\n}}>\n  <span>{(() => {\n    if (!eraSummaryRefreshResult.success) return `Error: ${eraSummaryRefreshResult.error}`;\n    if (eraSummaryRefreshResult.count > 0) {\n      const plural = eraSummaryRefreshResult.count !== 1 ? \"s\" : \"\";\n      return `Updated era summaries in ${eraSummaryRefreshResult.count} chronicle${plural}`;\n    }\n    return \"All chronicle era summaries are already up to date\";\n  })()}</span>\n  <button className=\"chron-toast-close\">&times;</button>\n</div>}"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/ChroniclePanel.css",
+            "start_line": 663,
+            "end_line": 691,
+            "snippet": ".chron-toast {\n  position: fixed;\n  bottom: 24px;\n  right: 24px;\n  color: white;\n  padding: 16px 24px;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);\n  z-index: 1001;\n  display: flex;\n  align-items: center;\n  gap: 12px;\n}\n.chron-toast-success { background: rgb(16 185 129 / 95%); }\n.chron-toast-error { background: rgb(239 68 68 / 95%); }"
+          }
+        ],
+        "implementation_details": "Five separate useState hooks (eraSummaryRefreshResult, temporalCheckResult, bulkSummaryResult, resetBackportResult, reconcileBackportResult) each drive an identical toast template. No auto-dismiss timer. User must click to dismiss. No shared toast component or store."
+      },
+      {
+        "name": "inline-error-with-dismiss-button",
+        "description": "Error state shown as an inline div with a 'Dismiss' button, positioned inside the component's header area. Uses generic .error CSS class. Pattern used in NameForge EntityWorkspace and CultureSidebar.",
+        "file_count": 3,
+        "files": [
+          "apps/name-forge/webui/src/components/workspace/EntityWorkspace.jsx:120-127",
+          "apps/name-forge/webui/src/components/sidebar/CultureSidebar.jsx:14-55",
+          "apps/name-forge/webui/src/components/workspace/tabs/LexemesTab.jsx:105-136"
+        ],
+        "sample_file": "apps/name-forge/webui/src/components/workspace/EntityWorkspace.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/name-forge/webui/src/components/workspace/EntityWorkspace.jsx",
+            "start_line": 120,
+            "end_line": 127,
+            "snippet": "{error && (\n  <div className=\"error mt-sm\">\n    {error}\n    <button className=\"secondary ml-sm\" onClick={() => setError(null)}>\n      Dismiss\n    </button>\n  </div>\n)}"
+          },
+          {
+            "file": "apps/name-forge/webui/src/App.css",
+            "start_line": 582,
+            "end_line": 590,
+            "snippet": ".error {\n  background: rgb(239 68 68 / 15%);\n  color: #fca5a5;\n  padding: var(--space-md);\n  border-radius: 4px;\n  margin-bottom: var(--space-md);\n  border: 1px solid rgb(239 68 68 / 30%);\n  font-size: var(--text-sm);\n}"
+          }
+        ],
+        "implementation_details": "Local useState for error string. Set by validation or catch blocks, cleared by user click. Rendered inline in component header. Uses NameForge's global .error class. No auto-dismiss."
+      },
+      {
+        "name": "styled-error-box-loreweave",
+        "description": "Dedicated .lw-error-box CSS class for error display in SimulationRunner. Shows error message + phase context inline. No dismiss button — persists until next run.",
+        "file_count": 1,
+        "files": ["apps/lore-weave/webui/src/components/runner/SimulationRunner.jsx:566-571"],
+        "sample_file": "apps/lore-weave/webui/src/components/runner/SimulationRunner.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/lore-weave/webui/src/components/runner/SimulationRunner.jsx",
+            "start_line": 566,
+            "end_line": 571,
+            "snippet": "{simState.error && (\n  <div className=\"lw-error-box\">\n    <strong>Error:</strong> {simState.error.message}\n    {simState.error.phase && <span> (during {simState.error.phase})</span>}\n  </div>\n)}"
+          },
+          {
+            "file": "apps/lore-weave/webui/src/App.css",
+            "start_line": 973,
+            "end_line": 981,
+            "snippet": ".lw-error-box {\n  background-color: rgb(239 68 68 / 10%);\n  border: 1px solid rgb(239 68 68 / 30%);\n  border-radius: var(--lw-radius-lg);\n  padding: var(--lw-space-lg);\n  margin-bottom: var(--lw-space-xl);\n  color: var(--lw-danger);\n  font-size: var(--lw-text-lg);\n}"
+          }
+        ],
+        "implementation_details": "Error comes from simState.error (worker hook state), not a local useState. Includes phase context. No dismiss mechanism. Disappears when simulation is restarted."
+      },
+      {
+        "name": "cfr-error-banner-inline",
+        "description": "CorpusFindReplace uses two different error display variants within the same component: .cfr-error-banner (styled box in preview phase) and .cfr-error-inline (plain text in generating phase). Both are component-scoped CSS.",
+        "file_count": 1,
+        "files": ["apps/illuminator/webui/src/components/CorpusFindReplace.tsx:1303,1374"],
+        "sample_file": "apps/illuminator/webui/src/components/CorpusFindReplace.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/CorpusFindReplace.tsx",
+            "start_line": 1303,
+            "end_line": 1303,
+            "snippet": "{error && <div className=\"cfr-error-banner\">{error}</div>}"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/CorpusFindReplace.css",
+            "start_line": 348,
+            "end_line": 362,
+            "snippet": ".cfr-error-banner {\n  margin-bottom: 12px;\n  padding: 8px 14px;\n  background: rgb(239 68 68 / 10%);\n  border-radius: 6px;\n  border: 1px solid rgb(239 68 68 / 30%);\n  font-size: 11px;\n  color: #ef4444;\n}\n.cfr-error-inline {\n  margin-top: 12px;\n  font-size: 12px;\n  color: #ef4444;\n}"
+          }
+        ],
+        "implementation_details": "Same component uses two CSS-only variants for error display depending on the current phase. No dismiss button in either. Error cleared on operation reset via setError(null)."
+      },
+      {
+        "name": "canonry-status-state-object",
+        "description": "Canonry AWS operations use a status state object { state: 'idle'|'working'|'error', detail: string } in the Zustand store. Status is rendered inline with conditional CSS class toggling (canonry-snapshot-detail-error vs canonry-snapshot-detail-default).",
+        "file_count": 2,
+        "files": [
+          "apps/canonry/webui/src/App.jsx:2416-2418",
+          "apps/canonry/webui/src/stores/useCanonryAwsStore.js:39,56"
+        ],
+        "sample_file": "apps/canonry/webui/src/App.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/App.jsx",
+            "start_line": 2416,
+            "end_line": 2418,
+            "snippet": "{snapshotStatus.detail && <div className={snapshotStatus.state === \"error\" ? \"canonry-snapshot-detail canonry-snapshot-detail-error\" : \"canonry-snapshot-detail canonry-snapshot-detail-default\"}>\n  {snapshotStatus.detail}\n</div>}"
+          },
+          {
+            "file": "apps/canonry/webui/src/stores/useCanonryAwsStore.js",
+            "start_line": 39,
+            "end_line": 56,
+            "snippet": "status: { state: \"idle\", detail: \"\" },\nsyncProgress: { phase: \"idle\", processed: 0, total: 0, uploaded: 0 },\nsnapshotStatus: { state: \"idle\", detail: \"\" },"
+          }
+        ],
+        "implementation_details": "Uses a structured state object in Zustand store rather than a simple error string. State machine semantics (idle/working/error). Rendered inline with ternary className. No dismiss mechanism — overwritten by next operation."
+      },
+      {
+        "name": "canonry-global-error-banner",
+        "description": "Canonry App renders a global error banner at the bottom of the page using the project storage error state. Unstyled inline class (inline-extracted-6 from a previous CSS extraction).",
+        "file_count": 1,
+        "files": ["apps/canonry/webui/src/App.jsx:2187-2189"],
+        "sample_file": "apps/canonry/webui/src/App.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/App.jsx",
+            "start_line": 2187,
+            "end_line": 2189,
+            "snippet": "{error && <div className=\"inline-extracted-6\">\n  Error: {error}\n</div>}"
+          }
+        ],
+        "implementation_details": "Project-level error from useProjectStorage hook displayed as fixed-position banner near footer. No dismiss button. Error persists until cleared by a successful operation. Uses a generated class name from inline style extraction."
+      },
+      {
+        "name": "window-confirm-for-destructive-actions",
+        "description": "Destructive confirmation uses native window.confirm() dialogs across all apps. Used for deletions, overwrites, and data imports. 15+ instances across canonry, illuminator, cosmographer, and name-forge.",
+        "file_count": 6,
+        "files": [
+          "apps/canonry/webui/src/components/SlotSelector.jsx:30,58,65,221,330",
+          "apps/canonry/webui/src/App.jsx:847",
+          "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx:804-814",
+          "apps/illuminator/webui/src/components/StoragePanel.jsx:190,221",
+          "apps/illuminator/webui/src/hooks/useDataSync.js:53,59",
+          "apps/name-forge/webui/src/components/workspace/tabs/DomainTab.jsx:94"
+        ],
+        "sample_file": "apps/illuminator/webui/src/hooks/useDataSync.js",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/hooks/useDataSync.js",
+            "start_line": 53,
+            "end_line": 63,
+            "snippet": "const ok = window.confirm(\n  `Hard state run ID (${hardRunId}) does not match this slot's run (${slotRecord.simulationRunId}). Importing will switch this slot to the hard state run. Continue?`\n);\nif (!ok) return { cancelled: true };\n...\nconst ok = window.confirm(\n  \"Overwrite will replace ALL Dexie entities, events, and relationships for this run with hard state. This can delete local enrichment. Continue?\"\n);\nif (!ok) return { cancelled: true };"
+          },
+          {
+            "file": "apps/canonry/webui/src/components/SlotSelector.jsx",
+            "start_line": 30,
+            "end_line": 30,
+            "snippet": "<button onClick={() => { if (window.confirm(\"Clear scratch data? This cannot be undone.\")) { onClearSlot(0); setShowDropdown(false); } }} title=\"Clear scratch data\">x</button>"
+          }
+        ],
+        "implementation_details": "Universally uses native browser confirm() for destructive action confirmation. Consistent across all apps. Inline in JSX onClick handlers or in hook functions. No custom confirmation modal (except BulkOperationShell's confirming phase, which serves a different purpose)."
+      }
+    ],
+    "behavior_matrix": {
+      "ChroniclePanel (toast)": {
+        "mechanism": "fixed-position toast, bottom-right, z-index 1001",
+        "success_feedback": "green toast with result count text",
+        "failure_feedback": "red toast with error message",
+        "auto_dismiss": false,
+        "user_dismissable": "click anywhere on toast or x button",
+        "placement": "fixed bottom-right overlay"
+      },
+      "NameForge EntityWorkspace": {
+        "mechanism": "inline div with dismiss button in component header",
+        "success_feedback": "none (silent)",
+        "failure_feedback": "inline .error div with Dismiss button",
+        "auto_dismiss": false,
+        "user_dismissable": "click Dismiss button",
+        "placement": "inline in workspace header"
+      },
+      "SimulationRunner": {
+        "mechanism": "inline .lw-error-box div, persists until next run",
+        "success_feedback": "dashboard shows complete status + score",
+        "failure_feedback": "inline red error box with phase context",
+        "auto_dismiss": false,
+        "user_dismissable": "no — cleared on next run",
+        "placement": "inline above simulation card"
+      },
+      "CorpusFindReplace": {
+        "mechanism": "two different inline error styles in same component",
+        "success_feedback": "result count shown in phase UI",
+        "failure_feedback": ".cfr-error-banner (styled) or .cfr-error-inline (plain text)",
+        "auto_dismiss": false,
+        "user_dismissable": "no — cleared on reset/retry",
+        "placement": "inline in component body"
+      },
+      "Canonry AWS snapshot": {
+        "mechanism": "Zustand state object { state, detail } with inline class toggle",
+        "success_feedback": "detail text with default styling",
+        "failure_feedback": "detail text with error styling",
+        "auto_dismiss": false,
+        "user_dismissable": "no — overwritten by next operation",
+        "placement": "inline in AWS settings panel"
+      },
+      "Canonry App (global)": {
+        "mechanism": "inline div near footer from useProjectStorage error state",
+        "success_feedback": "none",
+        "failure_feedback": "inline 'Error: {message}' text",
+        "auto_dismiss": false,
+        "user_dismissable": "no explicit dismiss",
+        "placement": "near page footer"
+      },
+      "Destructive actions (all apps)": {
+        "mechanism": "native window.confirm() dialog",
+        "success_feedback": "operation proceeds silently",
+        "failure_feedback": "operation not performed (silent cancel)",
+        "auto_dismiss": "n/a",
+        "user_dismissable": "n/a — modal dialog",
+        "placement": "browser-native centered modal"
+      }
+    },
+    "missing_behavior_complexity": {
+      "shared_toast_component": "moderate — needs a Zustand store + fixed-position renderer component + auto-dismiss timer. ChroniclePanel's 5 toast instances would collapse to ~5 one-liner calls.",
+      "auto_dismiss_timers": "trivial — add setTimeout in toast show handler (~3 lines per toast, or built into shared component)",
+      "success_feedback_for_silent_ops": "moderate — NameForge and Canonry operations that succeed silently could surface a transient success toast, but requires deciding which operations warrant feedback"
+    },
+    "analysis": "This is genuine behavioral drift, not intentional variation. The ChroniclePanel has grown 5 copy-pasted toast instances because no shared toast system exists. Every other component that needs feedback has independently invented its own pattern — inline divs with ad-hoc CSS classes, Zustand state objects, or no feedback at all. The visual inconsistency is notable: ChroniclePanel shows floating green/red toasts, while NameForge shows red inline banners, while SimulationRunner shows a styled error box, while Canonry shows plain text. Success feedback is especially inconsistent — ChroniclePanel is the only component that provides positive feedback, while other apps silently succeed. A shared ToastNotification component backed by a Zustand store would unify the floating toast pattern, and the 5 ChroniclePanel toasts would each become a single store call. The target API would be something like: useToast().show({ message, variant: 'success'|'error', autoDismissMs?: number }).",
+    "recommendation": "Create a shared toast notification store + renderer in packages/shared-components. API: useToastStore.getState().show({ message: string, variant: 'success' | 'error' | 'info', autoDismissMs?: number }). Renderer: <ToastContainer /> mounted once in each app shell. Migrate ChroniclePanel's 5 toasts first (highest duplication). Leave inline error displays as-is for form validation (inline errors near the relevant field are appropriate UX for validation), but async operation results should use the shared toast.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "progress-feedback-during-async-ops",
+    "name": "Progress Feedback During Async Operations",
+    "type": "behavioral",
+    "domain": "Notification & Feedback Patterns",
+    "description": "Long-running async operations display progress through three distinct mechanisms: BulkOperationShell (shared modal with progress bar, status text, minimize-to-pill), SimulationDashboard (real-time streaming dashboard with logs, charts, epoch timeline), and inline status text. BulkOperationShell is well-unified for Illuminator bulk ops. SimulationRunner is appropriately specialized. The drift is between components that do NOT use BulkOperationShell despite running similar async operations.",
+    "impact": "LOW",
+    "total_files": 12,
+    "variants": [
+      {
+        "name": "bulk-operation-shell-unified",
+        "description": "BulkOperationShell provides a shared modal wrapper for bulk operations with header (title + minimize + status), body (children), footer (confirm/cancel/close), floating pill lifecycle, and progress bar. Used by 7 bulk modals in Illuminator.",
+        "file_count": 8,
+        "files": [
+          "apps/illuminator/webui/src/components/BulkOperationShell.jsx:1-221",
+          "apps/illuminator/webui/src/components/BulkHistorianModal.jsx:51",
+          "apps/illuminator/webui/src/components/BulkToneRankingModal.jsx:49",
+          "apps/illuminator/webui/src/components/BulkFactCoverageModal.jsx:50",
+          "apps/illuminator/webui/src/components/BulkChronicleAnnotationModal.jsx:66",
+          "apps/illuminator/webui/src/components/BulkBackportModal.jsx:40",
+          "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx:82-204",
+          "apps/illuminator/webui/src/components/InterleavedAnnotationModal.jsx:20-56"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/BulkOperationShell.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/BulkOperationShell.jsx",
+            "start_line": 31,
+            "end_line": 76,
+            "snippet": "export default function BulkOperationShell({\n  pillId, title, tabId = \"chronicle\", progress,\n  onConfirm, onCancel, onClose, confirmLabel,\n  statusText, pillStatusText, confirmWidth, processWidth, children\n}) {\n  const isMinimized = useFloatingPillStore(s => s.isMinimized(pillId));\n  useEffect(() => {\n    if (!isMinimized || !progress) return;\n    useFloatingPillStore.getState().updatePill(pillId, {\n      statusText: pillStatusText || progressStatus,\n      statusColor: getStatusColor(progressStatus)\n    });\n  }, [isMinimized, progress, progressStatus, pillId, pillStatusText]);\n  const handleMinimize = () => {\n    useFloatingPillStore.getState().minimize({\n      id: pillId, label: title,\n      statusText: pillStatusText || progressStatus,\n      statusColor: getStatusColor(progressStatus), tabId\n    });\n  };\n}"
+          }
+        ],
+        "implementation_details": "Well-architected shared shell. All bulk modals pass progress, handlers, and children. Shell manages pill lifecycle, phase detection, and button logic. Includes shared sub-components: BulkProgressBar, BulkTerminalMessage, BulkFailedList, BulkCost."
+      },
+      {
+        "name": "floating-pill-standalone",
+        "description": "EraNarrativeModal and InterleavedAnnotationModal use FloatingPillStore directly without BulkOperationShell, implementing their own minimize/expand/update logic. BulkEraNarrativeModal also does direct pill management alongside BulkOperationShell usage.",
+        "file_count": 3,
+        "files": [
+          "apps/illuminator/webui/src/components/EraNarrativeModal.jsx:89,259,285",
+          "apps/illuminator/webui/src/components/InterleavedAnnotationModal.jsx:20,29,36,53",
+          "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx:82,154,201"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/EraNarrativeModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/EraNarrativeModal.jsx",
+            "start_line": 259,
+            "end_line": 295,
+            "snippet": "useFloatingPillStore.getState().minimize({\n  id: PILL_ID, label: \"Era Narrative\",\n  statusText: narrative?.currentStep || \"Working\",\n  statusColor: \"#f59e0b\", tabId: \"enrichment\"\n});\n// ... later ...\nuseFloatingPillStore.getState().updatePill(PILL_ID, {\n  statusText, statusColor: getStatusColor(narrative.status)\n});\n// ... on complete/close ...\nuseFloatingPillStore.getState().remove(PILL_ID);"
+          }
+        ],
+        "implementation_details": "These modals interact with FloatingPillStore directly rather than through BulkOperationShell. They duplicate the minimize/update/remove lifecycle that BulkOperationShell already handles. EraNarrativeModal is the most complex — it has its own multi-step workflow (outline -> build -> assemble) that doesn't fit BulkOperationShell's linear progress model."
+      },
+      {
+        "name": "simulation-dashboard-streaming",
+        "description": "SimulationRunner shows a real-time dashboard with logs, epoch timeline, charts, and run scoring. Completely different paradigm — streaming data from a web worker rather than batch progress.",
+        "file_count": 2,
+        "files": [
+          "apps/lore-weave/webui/src/components/runner/SimulationRunner.jsx:545-619",
+          "apps/lore-weave/webui/src/components/dashboard/SimulationDashboard.jsx"
+        ],
+        "sample_file": "apps/lore-weave/webui/src/components/runner/SimulationRunner.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/lore-weave/webui/src/components/runner/SimulationRunner.jsx",
+            "start_line": 545,
+            "end_line": 619,
+            "snippet": "const showDashboard =\n  workerIsRunning || workerIsPaused ||\n  simState.status === \"complete\" || simState.status === \"error\" ||\n  simState.logs.length > 0;\n\nreturn (\n  <div className=\"lw-container\">\n    {simState.error && (\n      <div className=\"lw-error-box\">\n        <strong>Error:</strong> {simState.error.message}\n        {simState.error.phase && <span> (during {simState.error.phase})</span>}\n      </div>\n    )}\n    {showDashboard && <SimulationDashboard simState={simState} />}\n  </div>\n);"
+          }
+        ],
+        "implementation_details": "Intentionally different from BulkOperationShell — simulation is a real-time streaming process, not a batch operation. Dashboard shows live epoch timeline, log entries, population charts. This is appropriate specialization, not drift."
+      },
+      {
+        "name": "canonry-export-spinner-inline",
+        "description": "Canonry bundle export shows an inline spinner + status text within the export modal. No progress bar or percentage — just a CSS spinner animation and text.",
+        "file_count": 1,
+        "files": ["apps/canonry/webui/src/App.jsx:2203-2210"],
+        "sample_file": "apps/canonry/webui/src/App.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/App.jsx",
+            "start_line": 2203,
+            "end_line": 2210,
+            "snippet": "<div className=\"modal-status\">\n  <div className=\"modal-spinner\" aria-hidden=\"true\" />\n  <div>\n    <div className=\"modal-status-title\">Building viewer bundle</div>\n    <div className=\"modal-status-subtitle\">\n      {exportBundleStatus.detail || \"This can take a few minutes for large image sets.\"}\n    </div>\n  </div>\n</div>"
+          }
+        ],
+        "implementation_details": "Ad-hoc spinner within an existing modal. No progress percentage, no minimize capability, no pill. Modal becomes non-closable during export (close button hidden). Single text string updates for phase feedback."
+      }
+    ],
+    "behavior_matrix": {
+      "BulkOperationShell modals (7)": {
+        "progress_bar": "yes — BulkProgressBar with processed/total + pct%",
+        "status_text": "yes — header status text",
+        "minimizable": "yes — FloatingPill via store",
+        "cancel_support": "yes — footer Cancel button",
+        "terminal_state": "yes — BulkTerminalMessage + BulkFailedList + Close button",
+        "auto_close": false
+      },
+      "EraNarrativeModal": {
+        "progress_bar": "no — uses step labels (outline -> build -> assemble)",
+        "status_text": "yes — step name in header",
+        "minimizable": "yes — direct FloatingPillStore calls",
+        "cancel_support": "yes — Cancel button during generation",
+        "terminal_state": "yes — complete/failed state with review",
+        "auto_close": false
+      },
+      "InterleavedAnnotationModal": {
+        "progress_bar": "no — uses processed/total text only",
+        "status_text": "yes — via direct pill store",
+        "minimizable": "yes — direct FloatingPillStore calls",
+        "cancel_support": "yes",
+        "terminal_state": "yes",
+        "auto_close": false
+      },
+      "SimulationRunner": {
+        "progress_bar": "no — streaming dashboard with epoch timeline + charts",
+        "status_text": "yes — RunControls shows status",
+        "minimizable": "no",
+        "cancel_support": "yes — Abort button",
+        "terminal_state": "yes — complete status with score + unused system warnings",
+        "auto_close": false
+      },
+      "Canonry export": {
+        "progress_bar": "no — CSS spinner only",
+        "status_text": "yes — phase description text",
+        "minimizable": "no",
+        "cancel_support": "yes — Cancel Export button",
+        "terminal_state": "no — modal closes, export downloads",
+        "auto_close": true
+      }
+    },
+    "missing_behavior_complexity": {
+      "migrate_era_narrative_to_bulk_shell": "significant — EraNarrativeModal has a multi-step workflow (outline/build/assemble/review) that doesn't fit BulkOperationShell's linear progress model. Would need extending BulkOperationShell or creating a StepOperationShell variant.",
+      "canonry_export_progress_bar": "moderate — would need to thread progress events from the zip builder back to the UI. Currently the zip build is a single async call."
+    },
+    "analysis": "The progress feedback landscape is mostly well-structured thanks to BulkOperationShell unifying 7 bulk modals in Illuminator. The drift is minor: EraNarrativeModal and InterleavedAnnotationModal directly use FloatingPillStore instead of routing through BulkOperationShell, duplicating pill lifecycle management. EraNarrativeModal's deviation is arguably intentional — it has a multi-step workflow (outline -> build -> assemble -> review) that doesn't map to BulkOperationShell's linear batch model. InterleavedAnnotationModal's deviation is less justified. SimulationRunner's dashboard-based approach is appropriately specialized for streaming simulation data. The main actionable drift is the Canonry export spinner, which could benefit from progress feedback but is a different app entirely.",
+    "recommendation": "Low priority. Consider migrating InterleavedAnnotationModal to use BulkOperationShell (straightforward — it already has similar structure). EraNarrativeModal could potentially be migrated if BulkOperationShell gained a 'steps' mode, but the cost/benefit is marginal. SimulationRunner should remain specialized.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "error-boundary-coverage",
+    "name": "Error Boundary Coverage",
+    "type": "behavioral",
+    "domain": "Notification & Feedback Patterns",
+    "description": "A shared ErrorBoundary component exists in packages/shared-components but its adoption and error display style varies. The ErrorBoundary shows a generic recovery UI with retry button. Meanwhile, some apps have custom error states (Chronicler WikiExplorer, Archivist) with different visual treatments. The boundary between 'use ErrorBoundary' and 'handle error inline' is inconsistent.",
+    "impact": "LOW",
+    "total_files": 5,
+    "variants": [
+      {
+        "name": "shared-error-boundary",
+        "description": "ErrorBoundary from shared-components. Class component with getDerivedStateFromError, retry button, configurable title. Generic recovery UI.",
+        "file_count": 1,
+        "files": ["packages/shared-components/src/components/ErrorBoundary.jsx:1-57"],
+        "sample_file": "packages/shared-components/src/components/ErrorBoundary.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/ErrorBoundary.jsx",
+            "start_line": 12,
+            "end_line": 48,
+            "snippet": "export class ErrorBoundary extends React.Component {\n  constructor(props) {\n    super(props);\n    this.state = { error: null };\n  }\n  static getDerivedStateFromError(error) {\n    return { error };\n  }\n  handleRetry = () => {\n    this.setState({ error: null });\n  };\n  render() {\n    if (this.state.error) {\n      return (\n        <div className={`error-boundary ${this.props.className || \"\"}`.trim()}>\n          <div className=\"error-boundary-icon\">!</div>\n          <div className=\"error-boundary-title\">\n            {this.props.title || \"Something went wrong\"}\n          </div>\n          <div className=\"error-boundary-message\">\n            {this.state.error.message || \"An unexpected error occurred.\"}\n          </div>\n          <button className=\"error-boundary-retry\" onClick={this.handleRetry}>\n            Retry\n          </button>\n        </div>\n      );\n    }\n    return this.props.children;\n  }\n}"
+          }
+        ],
+        "implementation_details": "Generic error boundary for MFE remote entry points. Shows '!' icon, title, error message, and retry button. Used to wrap module federation remotes so one module's crash doesn't take down the host."
+      },
+      {
+        "name": "chronicler-custom-error-state",
+        "description": "WikiExplorer has its own custom error display with styled error card, title, details, and a fix steps list. Uses CSS modules (styles.errorContainer, etc.) — completely separate from ErrorBoundary.",
+        "file_count": 1,
+        "files": ["apps/chronicler/webui/src/components/WikiExplorer.tsx:639-643"],
+        "sample_file": "apps/chronicler/webui/src/components/WikiExplorer.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/chronicler/webui/src/components/WikiExplorer.tsx",
+            "start_line": 639,
+            "end_line": 643,
+            "snippet": "<div className={styles.errorContainer}>\n  <div className={styles.errorCard}>\n    <h2 className={styles.errorTitle}>{dataError.message}</h2>\n    <p className={styles.errorDetails}>{dataError.details}</p>\n    <div className={styles.errorFix}>"
+          }
+        ],
+        "implementation_details": "Custom error state specific to data loading failures. Shows a rich error card with message, details, and fix steps. This is data-fetch error handling, not a render crash boundary — different concern than ErrorBoundary."
+      },
+      {
+        "name": "archivist-error-state",
+        "description": "Archivist has custom error state displays using archivist-error-state CSS class for loading and initialization errors.",
+        "file_count": 1,
+        "files": ["apps/archivist/webui/src/ArchivistRemote.tsx:83,109"],
+        "sample_file": "apps/archivist/webui/src/ArchivistRemote.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/archivist/webui/src/ArchivistRemote.tsx",
+            "start_line": 83,
+            "end_line": 83,
+            "snippet": "<div className=\"archivist-error-state\">"
+          }
+        ],
+        "implementation_details": "Custom error state for initialization/loading failures. Separate visual treatment from shared ErrorBoundary."
+      }
+    ],
+    "behavior_matrix": {
+      "shared ErrorBoundary": {
+        "trigger": "React render error (getDerivedStateFromError)",
+        "display": "generic card: ! icon + title + message + Retry button",
+        "styling": "error-boundary CSS classes",
+        "recovery": "retry button resets error state"
+      },
+      "WikiExplorer error state": {
+        "trigger": "data fetch error (conditional render on dataError)",
+        "display": "rich card: title + details + fix steps list",
+        "styling": "CSS modules (styles.errorContainer)",
+        "recovery": "fix steps guide user to resolve"
+      },
+      "Archivist error state": {
+        "trigger": "initialization/loading error",
+        "display": "error state div",
+        "styling": "archivist-error-state class",
+        "recovery": "not specified"
+      }
+    },
+    "missing_behavior_complexity": {},
+    "analysis": "This is largely intentional variation rather than drift. ErrorBoundary serves as a crash guard for render errors — a fundamentally different concern from data-fetch error states. WikiExplorer's custom error card with fix steps is appropriate UX for data loading failures that the user can resolve. Archivist's custom error state similarly handles initialization failures. The only genuine drift is in visual consistency of error displays across apps, but since each app has its own CSS namespace and these error states serve different purposes, unification is low-value. The shared ErrorBoundary is correctly used for its intended purpose (MFE crash recovery).",
+    "recommendation": "No action needed. ErrorBoundary is correctly scoped to render crashes. Data-fetch and initialization error states are a separate concern and each app's custom treatment is appropriate. If visual consistency of error states becomes important, consider a shared ErrorState component for data-fetch errors, but this is low priority.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "console-error-without-ui-feedback",
+    "name": "Console-Only Error Logging Without UI Feedback",
+    "type": "behavioral",
+    "domain": "Notification & Feedback Patterns",
+    "description": "92 console.warn/console.error calls exist in UI component files (JSX/TSX). Many of these are in catch blocks for operations that silently fail from the user's perspective — the operation fails, a console.error is logged, but no UI feedback is shown. This is especially common in ChroniclePanel (24 instances), Canonry App.jsx (17 instances), and StoragePanel (6 instances).",
+    "impact": "MEDIUM",
+    "total_files": 30,
+    "variants": [
+      {
+        "name": "console-error-with-ui-fallback",
+        "description": "Some components log to console AND surface the error to the user via setError or a toast. This is the correct pattern.",
+        "file_count": 8,
+        "files": [
+          "apps/illuminator/webui/src/components/CorpusFindReplace.tsx",
+          "apps/illuminator/webui/src/components/DescriptionMotifWeaver.tsx",
+          "apps/canonry/webui/src/storage/useProjectStorage.js"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/CorpusFindReplace.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/CorpusFindReplace.tsx",
+            "start_line": 755,
+            "end_line": 758,
+            "snippet": "} catch (err) {\n  setError(`Failed to dispatch batch ${bi + 1}: ${err}`);\n  setPhase(\"preview\");\n  return;\n}"
+          }
+        ],
+        "implementation_details": "Error is caught, surfaced to user via setError(), and the component transitions to a recoverable phase. Console may also be logged but the user is informed."
+      },
+      {
+        "name": "console-error-only-silent",
+        "description": "Components log errors to console but do not surface them to the user. The operation silently fails. Common in image loading, entity operations, and storage interactions.",
+        "file_count": 20,
+        "files": [
+          "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+          "apps/illuminator/webui/src/components/StoragePanel.jsx",
+          "apps/illuminator/webui/src/components/ImagePickerModal.jsx",
+          "apps/illuminator/webui/src/components/StaticPagesPanel.jsx",
+          "apps/canonry/webui/src/App.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+            "start_line": 0,
+            "end_line": 0,
+            "snippet": "// Representative pattern (24 instances in this file):\ncatch (err) {\n  console.error(\"Failed to do X:\", err);\n  // No UI feedback — user sees nothing\n}"
+          }
+        ],
+        "implementation_details": "Error is caught and logged to console only. No state update, no toast, no inline error display. The user's action appears to do nothing. They would need to open browser devtools to understand what happened."
+      }
+    ],
+    "behavior_matrix": {
+      "Pattern A: console + UI feedback": {
+        "console_log": true,
+        "user_visible": true,
+        "recovery_guidance": "error message explains what failed",
+        "files_count": "~8 files"
+      },
+      "Pattern B: console only": {
+        "console_log": true,
+        "user_visible": false,
+        "recovery_guidance": "none — user must check devtools",
+        "files_count": "~20 files (92 total instances in JSX/TSX)"
+      }
+    },
+    "missing_behavior_complexity": {
+      "surface_errors_to_ui": "trivial per-instance (add setError or toast call) but moderate in aggregate — 92 instances across 30 files need individual assessment of whether the error is user-actionable"
+    },
+    "analysis": "This is the most impactful feedback gap in the codebase. Many console.error calls in catch blocks represent real user-visible failures (image load failures, entity save failures, chronicle operations) that silently fail from the user's perspective. Some console.error calls are appropriate (background preloading that doesn't affect the user), but a significant portion represent operations the user explicitly triggered where failure should be communicated. The lack of a shared toast system (finding B1) makes this worse — adding UI feedback today means each component needs its own error display mechanism, which discourages developers from adding it. A shared toast system would make it trivial to replace console.error(msg) with showToast({ message: msg, variant: 'error' }) for user-initiated operations.",
+    "recommendation": "After implementing the shared toast system from finding B1, audit all console.error/console.warn calls in UI components and classify each as: (a) user-initiated operation failure -> add toast, (b) background/passive failure -> leave as console, (c) developer debug info -> leave as console. Focus first on ChroniclePanel (24 instances) and StoragePanel (6 instances) as highest-impact targets.",
+    "evidence_quality": "medium",
+    "status": "pending"
+  }
+]

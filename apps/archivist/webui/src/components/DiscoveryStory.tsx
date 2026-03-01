@@ -1,116 +1,157 @@
-import { useState, useRef } from 'react';
-import type { DiscoveryEventLore } from '../types/world.ts';
-import './DiscoveryStory.css';
+import React, { useCallback, useRef } from "react";
+import { useExpandSingle } from "@the-canonry/shared-components";
+import type { DiscoveryEventLore } from "../types/world.ts";
+import "./archivist-section.css";
+import "./DiscoveryStory.css";
+
+type SectionKey = "discovery" | "significance";
 
 interface DiscoveryStoryProps {
   lore: DiscoveryEventLore;
   onExplorerClick?: (explorerId: string) => void;
-  onClose?: () => void;  // Optional close handler for modal mode
-  isModal?: boolean;  // Whether to render as modal
+  onClose?: () => void;
+  isModal?: boolean;
 }
 
-export default function DiscoveryStory({ lore, onExplorerClick, onClose, isModal = false }: DiscoveryStoryProps) {
-  const [expandedSection, setExpandedSection] = useState<'discovery' | 'significance' | null>('discovery');
+function DiscoveryBlock({
+  sectionKey,
+  title,
+  expandedId,
+  onToggle,
+  children,
+}: Readonly<{
+  sectionKey: SectionKey;
+  title: string;
+  expandedId: string | null;
+  onToggle: (id: string) => void;
+  children: React.ReactNode;
+}>) {
+  return (
+    <div className="ds-block">
+      <button onClick={() => onToggle(sectionKey)} className="ds-block-hdr">
+        <span className="ds-block-icon">
+          {expandedId === sectionKey ? "\u25BC" : "\u25B6"}
+        </span>
+        <span className="archivist-section-title">{title}</span>
+      </button>
+      {expandedId === sectionKey && (
+        <div className="archivist-narrative ds-block-body">{children}</div>
+      )}
+    </div>
+  );
+}
+
+function ExplorerRow({
+  lore,
+  onExplorerClick,
+}: Readonly<{
+  lore: DiscoveryEventLore;
+  onExplorerClick?: (id: string) => void;
+}>) {
+  const isEntityId = /^(npc_|faction_|location_)/.test(lore.metadata.explorer);
+
+  return (
+    <div className="discovery-story-meta">
+      <div className="discovery-story-meta-row">
+        <span className="archivist-label discovery-story-meta-label">Discovered by:</span>
+        {isEntityId && onExplorerClick ? (
+          <button
+            onClick={() => onExplorerClick(lore.metadata.explorer)}
+            className="discovery-story-explorer-link"
+          >
+            {lore.metadata.explorer}
+          </button>
+        ) : (
+          <span className="discovery-story-meta-value">{lore.metadata.explorer}</span>
+        )}
+      </div>
+      <div className="discovery-story-meta-row">
+        <span className="archivist-label discovery-story-meta-label">When:</span>
+        <span className="discovery-story-meta-value">Tick {lore.metadata.tick}</span>
+      </div>
+      <div className="discovery-story-meta-row">
+        <span className="archivist-label discovery-story-meta-label">Method:</span>
+        <span className={`discovery-story-type-badge discovery-story-type-${lore.metadata.discoveryType}`}>
+          {lore.metadata.discoveryType}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function DiscoveryStory({
+  lore,
+  onExplorerClick,
+  onClose,
+  isModal = false,
+}: Readonly<DiscoveryStoryProps>) {
+  const { expandedId, toggle } = useExpandSingle();
   const mouseDownOnOverlay = useRef(false);
 
-  const handleOverlayMouseDown = (e: React.MouseEvent) => {
+  const handleOverlayMouseDown = useCallback((e: React.MouseEvent) => {
     mouseDownOnOverlay.current = e.target === e.currentTarget;
-  };
+  }, []);
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
-      onClose?.();
-    }
-  };
+  const handleOverlayClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
+        onClose?.();
+      }
+    },
+    [onClose],
+  );
 
-  const toggleSection = (section: 'discovery' | 'significance') => {
-    setExpandedSection(expandedSection === section ? null : section);
-  };
-
-  // Check if explorer is an entity ID (starts with known prefixes)
-  const isEntityId = lore.metadata.explorer.match(/^(npc_|faction_|location_)/);
+  // Default to "discovery" expanded on first render
+  const activeId = expandedId ?? "discovery";
 
   const content = (
-    <div className={`discovery-story ${isModal ? 'discovery-story-modal-content' : ''}`}>
-      <div className="discovery-story-header">
-        <span className="discovery-story-icon">🧭</span>
-        <span className="discovery-story-title">Discovery Story</span>
+    <div className={`archivist-section discovery-story ${isModal ? "discovery-story-modal-content" : ""}`}>
+      <div className="archivist-section-hdr">
+        <span className="archivist-section-icon">compass</span>
+        <span className="archivist-section-title">Discovery Story</span>
       </div>
 
-      <div className="discovery-story-meta">
-        <div className="discovery-story-meta-row">
-          <span className="discovery-story-meta-label">Discovered by:</span>
-          {isEntityId && onExplorerClick ? (
-            <button
-              onClick={() => onExplorerClick(lore.metadata.explorer)}
-              className="discovery-story-explorer-link"
-            >
-              {lore.metadata.explorer}
-            </button>
-          ) : (
-            <span className="discovery-story-meta-value">{lore.metadata.explorer}</span>
-          )}
-        </div>
-        <div className="discovery-story-meta-row">
-          <span className="discovery-story-meta-label">When:</span>
-          <span className="discovery-story-meta-value">Tick {lore.metadata.tick}</span>
-        </div>
-        <div className="discovery-story-meta-row">
-          <span className="discovery-story-meta-label">Method:</span>
-          <span className={`discovery-story-type-badge discovery-story-type-${lore.metadata.discoveryType}`}>
-            {lore.metadata.discoveryType}
-          </span>
-        </div>
-      </div>
+      <ExplorerRow lore={lore} onExplorerClick={onExplorerClick} />
 
-      {/* The Discovery */}
-      <div className="discovery-story-section">
-        <button
-          onClick={() => toggleSection('discovery')}
-          className="discovery-story-section-header"
-        >
-          <span className="discovery-story-section-icon">{expandedSection === 'discovery' ? '▼' : '▶'}</span>
-          <span className="discovery-story-section-title">The Discovery</span>
-        </button>
-        {expandedSection === 'discovery' && (
-          <div className="discovery-story-section-content">
-            {lore.text}
-          </div>
-        )}
-      </div>
+      <DiscoveryBlock
+        sectionKey="discovery"
+        title="The Discovery"
+        expandedId={activeId}
+        onToggle={toggle}
+      >
+        {lore.text}
+      </DiscoveryBlock>
 
-      {/* Why It Matters */}
-      <div className="discovery-story-section">
-        <button
-          onClick={() => toggleSection('significance')}
-          className="discovery-story-section-header"
-        >
-          <span className="discovery-story-section-icon">{expandedSection === 'significance' ? '▼' : '▶'}</span>
-          <span className="discovery-story-section-title">Why It Matters</span>
-        </button>
-        {expandedSection === 'significance' && (
-          <div className="discovery-story-section-content">
-            {lore.metadata.significance}
-          </div>
-        )}
-      </div>
+      <DiscoveryBlock
+        sectionKey="significance"
+        title="Why It Matters"
+        expandedId={activeId}
+        onToggle={toggle}
+      >
+        {lore.metadata.significance}
+      </DiscoveryBlock>
 
-      {/* Close button for modal mode */}
       {isModal && onClose && (
-        <div className="discovery-story-footer">
-          <button onClick={onClose} className="discovery-story-close">Close</button>
+        <div className="archivist-section-footer discovery-story-footer">
+          <button onClick={onClose} className="archivist-close-btn discovery-story-close">
+            Close
+          </button>
         </div>
       )}
     </div>
   );
 
-  // Wrap in modal overlay if in modal mode
   if (isModal && onClose) {
     return (
-      <div className="discovery-story-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
-        <div>
-          {content}
-        </div>
+      <div
+        className="archivist-modal-overlay discovery-story-overlay"
+        onMouseDown={handleOverlayMouseDown}
+        onClick={handleOverlayClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
+      >
+        <div>{content}</div>
       </div>
     );
   }

@@ -9,21 +9,18 @@
  * 5. Import final dynamics into worldContext
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import type { EnrichmentType } from '../lib/enrichmentTypes';
-import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
-import type {
-  DynamicsRun,
-  DynamicsMessage,
-} from '../lib/dynamicsGenerationTypes';
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { EnrichmentType } from "../lib/enrichmentTypes";
+import { getEnqueue } from "../lib/db/enrichmentQueueBridge";
+import type { DynamicsRun, DynamicsMessage } from "../lib/dynamicsGenerationTypes";
 import {
   createDynamicsRun,
   getDynamicsRun,
   updateDynamicsRun,
   generateRunId,
   deleteDynamicsRun,
-} from '../lib/db/dynamicsRepository';
-import type { EntityContext, RelationshipContext } from '../lib/chronicleTypes';
+} from "../lib/db/dynamicsRepository";
+import type { EntityContext, RelationshipContext } from "../lib/chronicleTypes";
 
 // ============================================================================
 // Types
@@ -47,9 +44,9 @@ export interface UseDynamicsGenerationReturn {
   /** Whether a generation is active */
   isActive: boolean;
   /** Start a new dynamics generation session */
-  startGeneration: (config: DynamicsGenerationConfig) => void;
+  startGeneration: (config: DynamicsGenerationConfig) => Promise<void>;
   /** Submit user feedback and trigger next LLM turn */
-  submitFeedback: (feedback: string) => void;
+  submitFeedback: (feedback: string) => Promise<void>;
   /** Accept proposed dynamics and close the session */
   acceptDynamics: () => void;
   /** Cancel the current session */
@@ -63,7 +60,7 @@ export interface UseDynamicsGenerationReturn {
 const POLL_INTERVAL_MS = 1000;
 
 export function useDynamicsGeneration(
-  onDynamicsAccepted?: (dynamics: DynamicsRun['proposedDynamics']) => void
+  onDynamicsAccepted?: (dynamics: DynamicsRun["proposedDynamics"]) => void
 ): UseDynamicsGenerationReturn {
   const [run, setRun] = useState<DynamicsRun | null>(null);
   const [isActive, setIsActive] = useState(false);
@@ -81,86 +78,103 @@ export function useDynamicsGeneration(
   useEffect(() => stopPolling, [stopPolling]);
 
   // Poll IndexedDB for run state changes
-  const startPolling = useCallback((runId: string) => {
-    stopPolling();
-    pollRef.current = setInterval(async () => {
-      const updated = await getDynamicsRun(runId);
-      if (!updated) return;
+  const startPolling = useCallback(
+    (runId: string) => {
+      stopPolling();
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getDynamicsRun(runId);
+          if (!updated) return;
 
-      setRun(updated);
+          setRun(updated);
 
-      // Stop polling on terminal states
-      if (updated.status === 'awaiting_review' || updated.status === 'complete' || updated.status === 'failed') {
-        stopPolling();
-      }
-    }, POLL_INTERVAL_MS);
-  }, [stopPolling]);
+          // Stop polling on terminal states
+          if (
+            updated.status === "awaiting_review" ||
+            updated.status === "complete" ||
+            updated.status === "failed"
+          ) {
+            stopPolling();
+          }
+        })();
+      }, POLL_INTERVAL_MS);
+    },
+    [stopPolling]
+  );
 
   // Dispatch a worker task for one LLM turn
   const dispatchWorkerTask = useCallback((runId: string) => {
     const sentinelEntity = {
-      id: '__dynamics__',
-      name: 'World Dynamics',
-      kind: 'system',
-      subtype: '',
-      prominence: '',
-      culture: '',
-      status: 'active',
-      description: '',
+      id: "__dynamics__",
+      name: "World Dynamics",
+      kind: "system",
+      subtype: "",
+      prominence: "",
+      culture: "",
+      status: "active",
+      description: "",
       tags: {},
     };
 
-    getEnqueue()([{
-      entity: sentinelEntity,
-      type: 'dynamicsGeneration' as EnrichmentType,
-      prompt: '',
-      chronicleId: runId, // Repurpose chronicleId for runId
-    }]);
+    getEnqueue()([
+      {
+        entity: sentinelEntity,
+        type: "dynamicsGeneration" as EnrichmentType,
+        prompt: "",
+        chronicleId: runId, // Repurpose chronicleId for runId
+      },
+    ]);
   }, []);
 
   // Start a new generation session
-  const startGeneration = useCallback(async (config: DynamicsGenerationConfig) => {
-    const runId = generateRunId();
+  const startGeneration = useCallback(
+    async (config: DynamicsGenerationConfig) => {
+      const runId = generateRunId();
 
-    // Create run with full world context as system message
-    const initialMessage: DynamicsMessage = {
-      role: 'system',
-      content: buildInitialContext(config),
-      timestamp: Date.now(),
-    };
+      // Create run with full world context as system message
+      const initialMessage: DynamicsMessage = {
+        role: "system",
+        content: buildInitialContext(config),
+        timestamp: Date.now(),
+      };
 
-    const newRun = await createDynamicsRun(runId, config.projectId, config.simulationRunId);
-    await updateDynamicsRun(runId, {
-      messages: [initialMessage],
-      status: 'pending',
-    });
+      const newRun = await createDynamicsRun(runId, config.projectId, config.simulationRunId);
+      await updateDynamicsRun(runId, {
+        messages: [initialMessage],
+        status: "pending",
+      });
 
-    const updatedRun = await getDynamicsRun(runId);
-    setRun(updatedRun || newRun);
-    setIsActive(true);
+      const updatedRun = await getDynamicsRun(runId);
+      setRun(updatedRun || newRun);
+      setIsActive(true);
 
-    // Dispatch first worker turn
-    dispatchWorkerTask(runId);
+      // Dispatch first worker turn
+      dispatchWorkerTask(runId);
 
-    // Start polling
-    startPolling(runId);
-  }, [dispatchWorkerTask, startPolling]);
+      // Start polling
+      startPolling(runId);
+    },
+    [dispatchWorkerTask, startPolling]
+  );
 
   // Submit user feedback and trigger next turn
-  const submitFeedback = useCallback(async (feedback: string) => {
-    if (!run) return;
+  const submitFeedback = useCallback(
+    async (feedback: string) => {
+      if (!run) return;
 
-    await updateDynamicsRun(run.runId, {
-      userFeedback: feedback,
-      status: 'pending',
-    });
+      await updateDynamicsRun(run.runId, {
+        userFeedback: feedback,
+        status: "pending",
+      });
 
-    // Dispatch next worker turn
-    dispatchWorkerTask(run.runId);
+      // Dispatch next worker turn
+      dispatchWorkerTask(run.runId);
 
-    // Resume polling
-    startPolling(run.runId);
-  }, [run, dispatchWorkerTask, startPolling]);
+      // Resume polling
+      startPolling(run.runId);
+    },
+    [run, dispatchWorkerTask, startPolling]
+  );
 
   // Accept proposed dynamics
   const acceptDynamics = useCallback(() => {
@@ -200,6 +214,18 @@ export function useDynamicsGeneration(
 // Context Assembly
 // ============================================================================
 
+function formatEntityLine(e: EntityContext, kind: string): string {
+  const parts = [`${e.name}`];
+  if (e.subtype) parts[0] += ` (${e.subtype})`;
+  if (kind === "era") parts.push(`id: ${e.id}`);
+  parts.push(`prominence: ${e.prominence}`);
+  if (e.culture) parts.push(`culture: ${e.culture}`);
+  if (e.status && e.status !== "active") parts.push(`status: ${e.status}`);
+  const text = e.summary || e.description || "";
+  if (text) parts.push(text);
+  return `- ${parts.join(" | ")}`;
+}
+
 function buildInitialContext(config: DynamicsGenerationConfig): string {
   const sections: string[] = [];
 
@@ -215,9 +241,15 @@ function buildInitialContext(config: DynamicsGenerationConfig): string {
 
   // World state: Entity summaries grouped by kind
   // Sort by prominence so the most important entities appear first
-  const prominenceOrder: Record<string, number> = { mythic: 0, renowned: 1, recognized: 2, marginal: 3, forgotten: 4 };
-  const sortedEntities = [...config.entities].sort((a, b) =>
-    (prominenceOrder[a.prominence] ?? 5) - (prominenceOrder[b.prominence] ?? 5)
+  const prominenceOrder: Record<string, number> = {
+    mythic: 0,
+    renowned: 1,
+    recognized: 2,
+    marginal: 3,
+    forgotten: 4,
+  };
+  const sortedEntities = [...config.entities].sort(
+    (a, b) => (prominenceOrder[a.prominence] ?? 5) - (prominenceOrder[b.prominence] ?? 5)
   );
 
   const byKind = new Map<string, EntityContext[]>();
@@ -227,37 +259,29 @@ function buildInitialContext(config: DynamicsGenerationConfig): string {
     byKind.set(e.kind, list);
   }
 
-  const formatEntity = (e: EntityContext, kind: string): string => {
-    const parts = [`${e.name}`];
-    if (e.subtype) parts[0] += ` (${e.subtype})`;
-    if (kind === 'era') parts.push(`id: ${e.id}`);
-    parts.push(`prominence: ${e.prominence}`);
-    if (e.culture) parts.push(`culture: ${e.culture}`);
-    if (e.status && e.status !== 'active') parts.push(`status: ${e.status}`);
-    const text = e.summary || e.description || '';
-    if (text) parts.push(text);
-    return `- ${parts.join(' | ')}`;
-  };
-
   // Prominent entities get full summaries; marginal/forgotten get name-only lists
   const entitySections: string[] = [];
   for (const [kind, entities] of byKind.entries()) {
-    const prominent = entities.filter((e) => e.prominence !== 'marginal' && e.prominence !== 'forgotten');
-    const minor = entities.filter((e) => e.prominence === 'marginal' || e.prominence === 'forgotten');
+    const prominent = entities.filter(
+      (e) => e.prominence !== "marginal" && e.prominence !== "forgotten"
+    );
+    const minor = entities.filter(
+      (e) => e.prominence === "marginal" || e.prominence === "forgotten"
+    );
 
     const lines: string[] = [];
     if (prominent.length > 0) {
-      lines.push(...prominent.map((e) => formatEntity(e, kind)));
+      lines.push(...prominent.map((e) => formatEntityLine(e, kind)));
     }
     if (minor.length > 0) {
-      const names = minor.map((e) => e.name).join(', ');
+      const names = minor.map((e) => e.name).join(", ");
       lines.push(`- [${minor.length} minor]: ${names}`);
     }
-    entitySections.push(`### ${kind} (${entities.length})\n${lines.join('\n')}`);
+    entitySections.push(`### ${kind} (${entities.length})\n${lines.join("\n")}`);
   }
 
   if (entitySections.length > 0) {
-    sections.push(`=== WORLD STATE: ALL ENTITIES ===\n${entitySections.join('\n\n')}`);
+    sections.push(`=== WORLD STATE: ALL ENTITIES ===\n${entitySections.join("\n\n")}`);
   }
 
   // Relationship patterns: summarize by kind with counts
@@ -273,10 +297,10 @@ function buildInitialContext(config: DynamicsGenerationConfig): string {
     }
 
     const relLines = Array.from(relByKind.entries()).map(([kind, data]) => {
-      const examples = data.examples.join('; ');
+      const examples = data.examples.join("; ");
       return `- ${kind}: ${data.count} relationships (e.g., ${examples})`;
     });
-    sections.push(`=== WORLD STATE: RELATIONSHIP PATTERNS ===\n${relLines.join('\n')}`);
+    sections.push(`=== WORLD STATE: RELATIONSHIP PATTERNS ===\n${relLines.join("\n")}`);
   }
 
   // Quick overview
@@ -286,8 +310,10 @@ function buildInitialContext(config: DynamicsGenerationConfig): string {
   }
   const breakdown = Object.entries(kindCounts)
     .map(([k, v]) => `${k}: ${v}`)
-    .join(', ');
-  sections.push(`=== WORLD STATE OVERVIEW ===\nEntity breakdown: ${breakdown}\nTotal entities: ${config.entities.length}\nTotal relationships: ${config.relationships.length}`);
+    .join(", ");
+  sections.push(
+    `=== WORLD STATE OVERVIEW ===\nEntity breakdown: ${breakdown}\nTotal entities: ${config.entities.length}\nTotal relationships: ${config.relationships.length}`
+  );
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }

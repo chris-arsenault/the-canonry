@@ -1,0 +1,41 @@
+.rph-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px;
+  text-align: center;
+}
+
+.rph-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.rph-title {
+  font-size: 20px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+
+.rph-message {
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--color-text-muted);
+  margin-bottom: 24px;
+  max-width: 400px;
+}
+
+.rph-instructions {
+  background-color: var(--color-bg-card);
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: monospace;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}

@@ -1,13 +1,14 @@
 {
-  "name": "@penguin-tales/shared-components",
+  "name": "@the-canonry/shared-components",
   "version": "1.0.0",
   "description": "Shared React components and CSS for Canonry MFEs",
   "type": "module",
-  "main": "./src/index.js",
+  "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.js",
+    ".": "./src/index.ts",
     "./styles": "./src/styles/index.css",
-    "./TagSelector": "./src/TagSelector.jsx"
+    "./styles/arctic-theme-base": "./src/styles/arctic-theme-base.css",
+    "./TagSelector": "./src/TagSelector.tsx"
   },
   "peerDependencies": {
     "react": "^19.0.0"

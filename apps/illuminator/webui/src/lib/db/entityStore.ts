@@ -45,10 +45,10 @@
  * they're small enough that the split isn't worth the complexity.
  */
 
-import { create } from 'zustand';
-import type { PersistedEntity } from './illuminatorDb';
-import { buildEntityNavItem, type EntityNavItem } from './entityNav';
-import * as entityRepo from './entityRepository';
+import { create } from "zustand";
+import type { PersistedEntity } from "./illuminatorDb";
+import { buildEntityNavItem, type EntityNavItem } from "./entityNav";
+import * as entityRepo from "./entityRepository";
 
 // Max full PersistedEntity records held in memory at once.
 // 50 × ~10KB = ~500KB worst case. Evicts oldest on overflow.
@@ -71,7 +71,11 @@ export interface EntityStoreState {
   reset: () => void;
 }
 
-function addToCache(cache: Map<string, PersistedEntity>, id: string, entity: PersistedEntity): void {
+function addToCache(
+  cache: Map<string, PersistedEntity>,
+  id: string,
+  entity: PersistedEntity
+): void {
   cache.set(id, entity);
   if (cache.size > CACHE_LIMIT) {
     const firstKey = cache.keys().next().value;
@@ -106,7 +110,7 @@ export const useEntityStore = create<EntityStoreState>((set, get) => ({
         loading: false,
       });
     } catch (err) {
-      console.error('[EntityStore] Failed to initialize:', err);
+      console.error("[EntityStore] Failed to initialize:", err);
       set({
         error: err instanceof Error ? err.message : String(err),
         loading: false,
@@ -164,7 +168,7 @@ export const useEntityStore = create<EntityStoreState>((set, get) => ({
       results.push(...freshEntities);
       return results;
     } catch (err) {
-      console.error('[EntityStore] Failed to load entities:', err);
+      console.error("[EntityStore] Failed to load entities:", err);
       return results;
     }
   },

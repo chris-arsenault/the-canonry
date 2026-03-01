@@ -11,10 +11,10 @@
  * After migration, legacy databases are deleted.
  */
 
-import { db } from './illuminatorDb';
+import { db } from "./illuminatorDb";
 
-const LOG_PREFIX = '[LegacyMigration]';
-const STORAGE_KEY = 'illuminator:legacy-migration';
+const LOG_PREFIX = "[LegacyMigration]";
+const STORAGE_KEY = "illuminator:legacy-migration";
 
 interface MigrationState {
   [dbName: string]: { migratedAt: number };
@@ -72,7 +72,7 @@ function readAllFromStore<T>(idb: IDBDatabase, storeName: string): Promise<T[]> 
       resolve([]);
       return;
     }
-    const tx = idb.transaction(storeName, 'readonly');
+    const tx = idb.transaction(storeName, "readonly");
     const request = tx.objectStore(storeName).getAll();
     request.onsuccess = () => resolve(request.result as T[]);
     request.onerror = () => reject(request.error);
@@ -100,14 +100,17 @@ function deleteLegacyDb(name: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 async function migrateChronicles(): Promise<void> {
-  const dbName = 'canonry-chronicles';
+  const dbName = "canonry-chronicles";
   if (isAlreadyMigrated(dbName)) return;
 
   const idb = await openLegacyDb(dbName, 1);
-  if (!idb) { markMigrated(dbName); return; }
+  if (!idb) {
+    markMigrated(dbName);
+    return;
+  }
 
   try {
-    const records = await readAllFromStore(idb, 'chronicles');
+    const records = await readAllFromStore(idb, "chronicles");
     if (records.length > 0) {
       await db.chronicles.bulkPut(records);
       console.log(`${LOG_PREFIX} Migrated ${records.length} chronicles`);
@@ -122,14 +125,17 @@ async function migrateChronicles(): Promise<void> {
 }
 
 async function migrateImages(): Promise<void> {
-  const dbName = 'canonry-images';
+  const dbName = "canonry-images";
   if (isAlreadyMigrated(dbName)) return;
 
   const idb = await openLegacyDb(dbName, 4);
-  if (!idb) { markMigrated(dbName); return; }
+  if (!idb) {
+    markMigrated(dbName);
+    return;
+  }
 
   try {
-    const records = await readAllFromStore<any>(idb, 'images');
+    const records = await readAllFromStore<any>(idb, "images");
     if (records.length > 0) {
       // Split into metadata (no blob) and blob records for v3 schema
       const metadataRecords = records.map(({ blob, ...rest }: any) => rest);
@@ -137,7 +143,7 @@ async function migrateImages(): Promise<void> {
         .filter((r: any) => r.blob)
         .map((r: any) => ({ imageId: r.imageId, blob: r.blob }));
 
-      await db.transaction('rw', [db.images, db.imageBlobs], async () => {
+      await db.transaction("rw", [db.images, db.imageBlobs], async () => {
         await db.images.bulkPut(metadataRecords);
         await db.imageBlobs.bulkPut(blobRecords);
       });
@@ -153,14 +159,17 @@ async function migrateImages(): Promise<void> {
 }
 
 async function migrateCosts(): Promise<void> {
-  const dbName = 'canonry-costs';
+  const dbName = "canonry-costs";
   if (isAlreadyMigrated(dbName)) return;
 
   const idb = await openLegacyDb(dbName, 2);
-  if (!idb) { markMigrated(dbName); return; }
+  if (!idb) {
+    markMigrated(dbName);
+    return;
+  }
 
   try {
-    const records = await readAllFromStore(idb, 'costs');
+    const records = await readAllFromStore(idb, "costs");
     if (records.length > 0) {
       await db.costs.bulkPut(records);
       console.log(`${LOG_PREFIX} Migrated ${records.length} cost records`);
@@ -175,15 +184,18 @@ async function migrateCosts(): Promise<void> {
 }
 
 async function migrateTraits(): Promise<void> {
-  const dbName = 'canonry-traits';
+  const dbName = "canonry-traits";
   if (isAlreadyMigrated(dbName)) return;
 
   const idb = await openLegacyDb(dbName, 1);
-  if (!idb) { markMigrated(dbName); return; }
+  if (!idb) {
+    markMigrated(dbName);
+    return;
+  }
 
   try {
-    const palettes = await readAllFromStore(idb, 'palettes');
-    const usedTraits = await readAllFromStore(idb, 'usedTraits');
+    const palettes = await readAllFromStore(idb, "palettes");
+    const usedTraits = await readAllFromStore(idb, "usedTraits");
     if (palettes.length > 0) {
       await db.traitPalettes.bulkPut(palettes);
       console.log(`${LOG_PREFIX} Migrated ${palettes.length} trait palettes`);
@@ -202,14 +214,17 @@ async function migrateTraits(): Promise<void> {
 }
 
 async function migrateHistorianRuns(): Promise<void> {
-  const dbName = 'canonry-historian';
+  const dbName = "canonry-historian";
   if (isAlreadyMigrated(dbName)) return;
 
   const idb = await openLegacyDb(dbName, 1);
-  if (!idb) { markMigrated(dbName); return; }
+  if (!idb) {
+    markMigrated(dbName);
+    return;
+  }
 
   try {
-    const records = await readAllFromStore(idb, 'runs');
+    const records = await readAllFromStore(idb, "runs");
     if (records.length > 0) {
       await db.historianRuns.bulkPut(records);
       console.log(`${LOG_PREFIX} Migrated ${records.length} historian runs`);
@@ -224,14 +239,17 @@ async function migrateHistorianRuns(): Promise<void> {
 }
 
 async function migrateSummaryRevisionRuns(): Promise<void> {
-  const dbName = 'canonry-summary-revision';
+  const dbName = "canonry-summary-revision";
   if (isAlreadyMigrated(dbName)) return;
 
   const idb = await openLegacyDb(dbName, 1);
-  if (!idb) { markMigrated(dbName); return; }
+  if (!idb) {
+    markMigrated(dbName);
+    return;
+  }
 
   try {
-    const records = await readAllFromStore(idb, 'runs');
+    const records = await readAllFromStore(idb, "runs");
     if (records.length > 0) {
       await db.summaryRevisionRuns.bulkPut(records);
       console.log(`${LOG_PREFIX} Migrated ${records.length} summary revision runs`);
@@ -246,14 +264,17 @@ async function migrateSummaryRevisionRuns(): Promise<void> {
 }
 
 async function migrateDynamicsRuns(): Promise<void> {
-  const dbName = 'canonry-dynamics-generation';
+  const dbName = "canonry-dynamics-generation";
   if (isAlreadyMigrated(dbName)) return;
 
   const idb = await openLegacyDb(dbName, 1);
-  if (!idb) { markMigrated(dbName); return; }
+  if (!idb) {
+    markMigrated(dbName);
+    return;
+  }
 
   try {
-    const records = await readAllFromStore(idb, 'runs');
+    const records = await readAllFromStore(idb, "runs");
     if (records.length > 0) {
       await db.dynamicsRuns.bulkPut(records);
       console.log(`${LOG_PREFIX} Migrated ${records.length} dynamics runs`);
@@ -268,14 +289,17 @@ async function migrateDynamicsRuns(): Promise<void> {
 }
 
 async function migrateStaticPages(): Promise<void> {
-  const dbName = 'canonry-static-pages';
+  const dbName = "canonry-static-pages";
   if (isAlreadyMigrated(dbName)) return;
 
   const idb = await openLegacyDb(dbName, 1);
-  if (!idb) { markMigrated(dbName); return; }
+  if (!idb) {
+    markMigrated(dbName);
+    return;
+  }
 
   try {
-    const records = await readAllFromStore(idb, 'static-pages');
+    const records = await readAllFromStore(idb, "static-pages");
     if (records.length > 0) {
       await db.staticPages.bulkPut(records);
       console.log(`${LOG_PREFIX} Migrated ${records.length} static pages`);
@@ -290,14 +314,17 @@ async function migrateStaticPages(): Promise<void> {
 }
 
 async function migrateStyleLibrary(): Promise<void> {
-  const dbName = 'illuminator-styles';
+  const dbName = "illuminator-styles";
   if (isAlreadyMigrated(dbName)) return;
 
   const idb = await openLegacyDb(dbName, 1);
-  if (!idb) { markMigrated(dbName); return; }
+  if (!idb) {
+    markMigrated(dbName);
+    return;
+  }
 
   try {
-    const records = await readAllFromStore(idb, 'styleLibrary');
+    const records = await readAllFromStore(idb, "styleLibrary");
     if (records.length > 0) {
       await db.styleLibrary.bulkPut(records);
       console.log(`${LOG_PREFIX} Migrated ${records.length} style library records`);
@@ -322,12 +349,18 @@ async function migrateStyleLibrary(): Promise<void> {
 export async function migrateFromLegacyDbs(): Promise<void> {
   const state = getState();
   const allDbs = [
-    'canonry-chronicles', 'canonry-images', 'canonry-costs', 'canonry-traits',
-    'canonry-historian', 'canonry-summary-revision', 'canonry-dynamics-generation',
-    'canonry-static-pages', 'illuminator-styles',
+    "canonry-chronicles",
+    "canonry-images",
+    "canonry-costs",
+    "canonry-traits",
+    "canonry-historian",
+    "canonry-summary-revision",
+    "canonry-dynamics-generation",
+    "canonry-static-pages",
+    "illuminator-styles",
   ];
 
-  const pending = allDbs.filter(name => !(name in state));
+  const pending = allDbs.filter((name) => !(name in state));
   if (pending.length === 0) return;
 
   console.log(`${LOG_PREFIX} Starting migration for ${pending.length} legacy databases:`, pending);

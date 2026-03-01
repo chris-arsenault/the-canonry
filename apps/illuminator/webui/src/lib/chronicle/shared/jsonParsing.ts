@@ -6,15 +6,19 @@
 function extractJsonBlock(response: string): string {
   let jsonStr = response.trim();
 
-  const fenced = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
+  const fenced = jsonStr.match(/```(?:json)?[ \t]*([\s\S]*?)```/);
   if (fenced) {
     jsonStr = fenced[1].trim();
-  } else if (jsonStr.startsWith('```')) {
-    jsonStr = jsonStr.replace(/^```(?:json)?[\s\n]*/, '').replace(/```\s*$/, '').trim();
+  } else if (jsonStr.startsWith("```")) {
+    jsonStr = jsonStr
+      .replace(/^```(?:json)?\s*/, "")
+      .replace(/```\s*$/, "")
+      .trim();
   }
 
-  const firstBrace = jsonStr.indexOf('{');
-  const lastBrace = jsonStr.lastIndexOf('}');
+  const firstBrace = jsonStr.indexOf("{");
+  const lastBrace = jsonStr.lastIndexOf("}");
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
     jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
   }
@@ -26,9 +30,9 @@ function applyJsonFixes(raw: string): string {
   let fixed = raw;
 
   // Remove // comments
-  fixed = fixed.replace(/\/\/[^\n]*/g, '');
+  fixed = fixed.replace(/\/\/[^\n]*/g, "");
   // Remove trailing commas
-  fixed = fixed.replace(/,(\s*[}\]])/g, '$1');
+  fixed = fixed.replace(/,(\s*[}\]])/g, "$1");
 
   return fixed;
 }
@@ -37,18 +41,18 @@ function applyAggressiveFixes(raw: string): string {
   let fixed = raw;
 
   // Double commas
-  fixed = fixed.replace(/,\s*,/g, ',');
+  fixed = fixed.replace(/,\s*,/g, ",");
   // Missing commas between objects/arrays
-  fixed = fixed.replace(/}(\s*){/g, '},$1{');
-  fixed = fixed.replace(/](\s*)\[/g, '],$1[');
+  fixed = fixed.replace(/}(\s*){/g, "},$1{");
+  fixed = fixed.replace(/](\s*)\[/g, "],$1[");
   // Missing commas after values
-  fixed = fixed.replace(/"(\s*\n\s*)"/g, '",$1"');
-  fixed = fixed.replace(/"(\s*\n\s*){/g, '",$1{');
-  fixed = fixed.replace(/}(\s*\n\s*)"/g, '},$1"');
-  fixed = fixed.replace(/](\s*\n\s*)"/g, '],$1"');
-  fixed = fixed.replace(/](\s*\n\s*){/g, '],$1{');
-  fixed = fixed.replace(/,\s*,/g, ',');
-  fixed = fixed.replace(/,(\s*[}\]])/g, '$1');
+  fixed = fixed.replace(/"([^\S\n]*\n[^\S\n]*)"/g, '",$1"');
+  fixed = fixed.replace(/"([^\S\n]*\n[^\S\n]*){/g, '",$1{');
+  fixed = fixed.replace(/}([^\S\n]*\n[^\S\n]*)"/g, '},$1"');
+  fixed = fixed.replace(/]([^\S\n]*\n[^\S\n]*)"/g, '],$1"');
+  fixed = fixed.replace(/]([^\S\n]*\n[^\S\n]*){/g, "],$1{");
+  fixed = fixed.replace(/,\s*,/g, ",");
+  fixed = fixed.replace(/,(\s*[}\]])/g, "$1");
 
   // Balance brackets
   const openBraces = (fixed.match(/{/g) || []).length;
@@ -57,10 +61,10 @@ function applyAggressiveFixes(raw: string): string {
   const closeBrackets = (fixed.match(/\]/g) || []).length;
 
   for (let i = 0; i < openBrackets - closeBrackets; i += 1) {
-    fixed += ']';
+    fixed += "]";
   }
   for (let i = 0; i < openBraces - closeBraces; i += 1) {
-    fixed += '}';
+    fixed += "}";
   }
 
   return fixed;
@@ -87,9 +91,11 @@ export function parseJsonResponse<T>(response: string): T {
         const lastChar = before.trim().slice(-1);
         const firstChar = after.trim()[0];
 
-        if ((lastChar === '"' || lastChar === '}' || lastChar === ']') &&
-            (firstChar === '"' || firstChar === '{' || firstChar === '[')) {
-          const patched = before + ',' + after;
+        if (
+          (lastChar === '"' || lastChar === "}" || lastChar === "]") &&
+          (firstChar === '"' || firstChar === "{" || firstChar === "[")
+        ) {
+          const patched = before + "," + after;
           return JSON.parse(patched) as T;
         }
       }

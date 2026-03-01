@@ -1,0 +1,1133 @@
+{
+  "created": "2026-02-26T14:45:00Z",
+  "updated": "2026-03-01T06:29:49.875923+00:00",
+  "merges": [
+    {
+      "primary": "modal-implementation-drift",
+      "absorbed": "modal-close-behavior-drift",
+      "reason": "Same drift from structural vs behavioral perspective. Behavioral matrix merged into structural entry."
+    },
+    {
+      "primary": "dependency-version-two-cohort-split",
+      "absorbed": "shared-component-adoption-gap",
+      "reason": "Jaccard file overlap: 0.78"
+    },
+    {
+      "primary": "dependency-version-two-cohort-split",
+      "absorbed": "eslint-config-fragmentation",
+      "reason": "Jaccard file overlap: 0.55"
+    },
+    {
+      "primary": "vite-path-alias-configuration",
+      "absorbed": "vite-config-language-mismatch",
+      "reason": "Jaccard file overlap: 1.00"
+    },
+    {
+      "primary": "bulk-store-architecture",
+      "absorbed": "workflow-phase-lifecycle",
+      "reason": "Jaccard file overlap: 1.00"
+    },
+    {
+      "primary": "bulk-modal-shell-adoption",
+      "absorbed": "streaming-progress-display",
+      "reason": "Jaccard file overlap: 0.88"
+    },
+    {
+      "primary": "bulk-store-architecture",
+      "absorbed": "progress-status-union",
+      "reason": "Jaccard file overlap: 0.83"
+    },
+    {
+      "primary": "bulk-store-architecture",
+      "absorbed": "bulk-error-recovery",
+      "reason": "Jaccard file overlap: 0.83"
+    },
+    {
+      "primary": "scroll-lock-overflow-restore",
+      "absorbed": "modal-scroll-lock-restoration",
+      "reason": "Jaccard file overlap: 0.67"
+    },
+    {
+      "primary": "bulk-modal-shell-adoption",
+      "absorbed": "progress-feedback-during-async-ops",
+      "reason": "Jaccard file overlap: 0.54"
+    },
+    {
+      "primary": "modal-close-behavior",
+      "absorbed": "modal-aria-role-inconsistency",
+      "reason": "Jaccard file overlap: 0.54"
+    },
+    {
+      "primary": "semantic-cluster-004",
+      "absorbed": "semantic-cluster-006",
+      "reason": "Jaccard file overlap: 0.63"
+    }
+  ],
+  "plan": [
+    {
+      "area_id": "error-display-patterns",
+      "rank": 1,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": "Unified by orchestrator on 2026-02-28",
+      "guard_artifacts": [
+        "docs/adr/021-shared-error-display.md",
+        "docs/patterns/error-display.md",
+        "eslint-rules/no-raw-error-div.js"
+      ]
+    },
+    {
+      "area_id": "semantic-cluster-009",
+      "rank": 2,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/022-prefixed-id-generation.md",
+        "docs/patterns/prefixed-id-generation.md",
+        "eslint-rules/no-inline-id-generation.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-009",
+      "rank": 3,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/023-css-component-deduplication.md",
+        "docs/patterns/css-component-deduplication.md",
+        "eslint-rules/no-duplicate-component-css.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-008",
+      "rank": 4,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "css-css-cluster-013",
+      "rank": 5,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/024-tab-form-css-consolidation.md",
+        "docs/patterns/tab-form-styles.md",
+        "eslint-rules/no-tab-companion-css.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-007",
+      "rank": 6,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "vite-path-alias-configuration",
+      "rank": 7,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/025-vite-alias-configuration.md",
+        "docs/patterns/vite-alias-configuration.md",
+        "eslint-rules/no-cross-app-alias.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-006",
+      "rank": 8,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "css-css-cluster-015",
+      "rank": 9,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/026-visualization-overlay-css.md",
+        "docs/patterns/visualization-overlay.md",
+        "eslint-rules/no-viz-overlay-drift.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-011",
+      "rank": 10,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/027-remote-shell-css.md",
+        "docs/patterns/remote-shell.md",
+        "eslint-rules/no-remote-shell-drift.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-001",
+      "rank": 11,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/028-bulk-modal-shell-consolidation.md",
+        "docs/patterns/bulk-modal-shell.md",
+        "eslint-rules/no-bulk-shell-drift.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-002",
+      "rank": 12,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/029-panel-css-utilities.md",
+        "docs/patterns/panel-css-utilities.md",
+        "eslint-rules/no-panel-css-duplication.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-003",
+      "rank": 13,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "css-css-cluster-004",
+      "rank": 14,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/030-viewer-css-consolidation.md",
+        "docs/patterns/viewer-css.md",
+        "eslint-rules/no-viewer-pattern-drift.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-012",
+      "rank": 15,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/031-hint-text-css-deduplication.md",
+        "docs/patterns/hint-text-utilities.md",
+        "eslint-rules/no-hint-css-duplication.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-016",
+      "rank": 16,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/032-archivist-section-css-consolidation.md",
+        "docs/patterns/archivist-section.md",
+        "eslint-rules/no-archivist-section-drift.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-018",
+      "rank": 17,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/033-version-toolbar-css-consolidation.md",
+        "docs/patterns/version-toolbar-css.md",
+        "eslint-rules/no-version-toolbar-drift.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-019",
+      "rank": 18,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/034-dashboard-section-css-consolidation.md",
+        "docs/patterns/dashboard-section-css.md",
+        "eslint-rules/no-dashboard-section-drift.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-022",
+      "rank": 19,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/035-schema-editor-shared-css.md",
+        "docs/patterns/schema-editor-shared-css.md",
+        "eslint-rules/no-schema-editor-css-drift.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-014",
+      "rank": 20,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/036-app-css-base-consolidation.md",
+        "docs/patterns/app-css-theme.md",
+        "eslint-rules/no-app-css-base-duplication.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-017",
+      "rank": 21,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/037-matrix-css-consolidation.md",
+        "docs/patterns/matrix-css-base.md",
+        "eslint-rules/no-matrix-css-duplication.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-024",
+      "rank": 22,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/038-toggle-css-consolidation.md",
+        "docs/patterns/toggle-css.md",
+        "eslint-rules/no-toggle-css-drift.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-021",
+      "rank": 23,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/039-visualization-base-css.md",
+        "docs/patterns/visualization-base-css.md",
+        "eslint-rules/no-viz-utility-drift.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-020",
+      "rank": 24,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/040-cosmographer-editor-css.md",
+        "docs/patterns/cosmographer-editor-css.md",
+        "eslint-rules/no-cosmo-editor-drift.js"
+      ]
+    },
+    {
+      "area_id": "search-keyboard-navigation-duplication",
+      "rank": 25,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/041-keyboard-navigation-hook.md",
+        "docs/patterns/keyboard-navigation.md",
+        "eslint-rules/no-inline-keyboard-nav.js"
+      ]
+    },
+    {
+      "area_id": "css-css-cluster-023",
+      "rank": 26,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/042-centered-message-layout.md",
+        "docs/patterns/centered-message-layout.md",
+        "eslint-rules/no-error-boundary-without-base.js"
+      ]
+    },
+    {
+      "area_id": "test-infrastructure-coverage",
+      "rank": 27,
+      "depends_on": [],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/043-webui-test-infrastructure.md",
+        "docs/patterns/webui-test-infrastructure.md",
+        "eslint-rules/no-non-vitest-testing.js"
+      ]
+    },
+    {
+      "area_id": "typescript-javascript-migration-state",
+      "rank": 28,
+      "depends_on": [
+        "error-display-patterns"
+      ],
+      "phase": "completed",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": [
+        "docs/adr/044-typescript-migration.md",
+        "docs/patterns/typescript-migration.md",
+        "eslint-rules/no-js-file-extension.js"
+      ]
+    },
+    {
+      "area_id": "semantic-cluster-001",
+      "rank": 29,
+      "depends_on": [
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "textarea-commit-pattern",
+      "rank": 30,
+      "depends_on": [
+        "error-display-patterns",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "bulk-store-architecture",
+      "rank": 31,
+      "depends_on": [
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "modal-dialog-role-semantics",
+      "rank": 32,
+      "depends_on": [
+        "error-display-patterns",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "validation-display-patterns",
+      "rank": 33,
+      "depends_on": [
+        "error-display-patterns",
+        "textarea-commit-pattern"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "collapsible-section-aria-expanded",
+      "rank": 34,
+      "depends_on": [
+        "error-display-patterns",
+        "modal-dialog-role-semantics",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "toggle-switch-semantics",
+      "rank": 35,
+      "depends_on": [
+        "textarea-commit-pattern",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "loading-indicator-patterns",
+      "rank": 36,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "error-display-patterns",
+        "modal-dialog-role-semantics",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "empty-state-patterns",
+      "rank": 37,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "error-display-patterns",
+        "loading-indicator-patterns",
+        "modal-dialog-role-semantics",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "error-recovery-retry-patterns",
+      "rank": 38,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "loading-indicator-patterns",
+        "modal-dialog-role-semantics",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "error-boundary-adoption",
+      "rank": 39,
+      "depends_on": [
+        "empty-state-patterns",
+        "loading-indicator-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "success-failure-feedback-mechanisms",
+      "rank": 40,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "loading-indicator-patterns",
+        "modal-dialog-role-semantics",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "modal-close-behavior",
+      "rank": 41,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "modal-dialog-role-semantics",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "webui-src-directory-structure",
+      "rank": 42,
+      "depends_on": [
+        "semantic-cluster-001",
+        "success-failure-feedback-mechanisms",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "console-error-without-ui-feedback",
+      "rank": 43,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "loading-indicator-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "success-failure-feedback-mechanisms",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "modal-shell-adoption",
+      "rank": 44,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "console-error-without-ui-feedback",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "semantic-cluster-004",
+      "rank": 45,
+      "depends_on": [
+        "semantic-cluster-001",
+        "semantic-cluster-009",
+        "typescript-javascript-migration-state",
+        "webui-src-directory-structure"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "component-organization-pattern",
+      "rank": 46,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "console-error-without-ui-feedback",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "loading-indicator-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-shell-adoption",
+        "success-failure-feedback-mechanisms",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "scroll-lock-overflow-restore",
+      "rank": 47,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-shell-adoption",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "css-architecture-and-scoping",
+      "rank": 48,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "console-error-without-ui-feedback",
+        "css-css-cluster-008",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "loading-indicator-patterns",
+        "modal-dialog-role-semantics",
+        "success-failure-feedback-mechanisms",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "bulk-modal-shell-adoption",
+      "rank": 49,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "console-error-without-ui-feedback",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "modal-shell-adoption",
+        "success-failure-feedback-mechanisms"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "modal-overlay-css-variants",
+      "rank": 50,
+      "depends_on": [
+        "component-organization-pattern",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-shell-adoption",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "number-input-adoption",
+      "rank": 51,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-shell-adoption",
+        "success-failure-feedback-mechanisms",
+        "textarea-commit-pattern",
+        "toggle-switch-semantics",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "progress-display-inconsistency",
+      "rank": 52,
+      "depends_on": [
+        "component-organization-pattern",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "modal-dialog-role-semantics",
+        "textarea-commit-pattern"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "css-css-cluster-005",
+      "rank": 53,
+      "depends_on": [
+        "css-architecture-and-scoping"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "css-css-cluster-010",
+      "rank": 54,
+      "depends_on": [
+        "css-architecture-and-scoping"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "text-input-blur-commit-hook",
+      "rank": 55,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-shell-adoption",
+        "number-input-adoption",
+        "success-failure-feedback-mechanisms",
+        "textarea-commit-pattern",
+        "toggle-switch-semantics",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "listbox-option-role-incomplete",
+      "rank": 56,
+      "depends_on": [
+        "component-organization-pattern",
+        "console-error-without-ui-feedback",
+        "css-architecture-and-scoping",
+        "error-display-patterns",
+        "loading-indicator-patterns",
+        "modal-dialog-role-semantics",
+        "success-failure-feedback-mechanisms",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "css-css-cluster-025",
+      "rank": 57,
+      "depends_on": [
+        "css-architecture-and-scoping"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "debounce-autosave-patterns",
+      "rank": 58,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "console-error-without-ui-feedback",
+        "error-display-patterns",
+        "loading-indicator-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-shell-adoption",
+        "number-input-adoption",
+        "success-failure-feedback-mechanisms",
+        "text-input-blur-commit-hook",
+        "textarea-commit-pattern",
+        "toggle-switch-semantics",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "required-field-indicators",
+      "rank": 59,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "debounce-autosave-patterns",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-shell-adoption",
+        "number-input-adoption",
+        "success-failure-feedback-mechanisms",
+        "text-input-blur-commit-hook",
+        "textarea-commit-pattern",
+        "toggle-switch-semantics",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "form-submission-patterns",
+      "rank": 60,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "debounce-autosave-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-shell-adoption",
+        "number-input-adoption",
+        "required-field-indicators",
+        "success-failure-feedback-mechanisms",
+        "text-input-blur-commit-hook",
+        "textarea-commit-pattern",
+        "toggle-switch-semantics",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "aria-label-sparse-usage",
+      "rank": 61,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "css-architecture-and-scoping",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "form-submission-patterns",
+        "loading-indicator-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-shell-adoption",
+        "number-input-adoption",
+        "required-field-indicators",
+        "scroll-lock-overflow-restore",
+        "success-failure-feedback-mechanisms",
+        "text-input-blur-commit-hook",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "raw-select-vs-shared-dropdowns",
+      "rank": 62,
+      "depends_on": [
+        "aria-label-sparse-usage",
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "console-error-without-ui-feedback",
+        "css-architecture-and-scoping",
+        "debounce-autosave-patterns",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "form-submission-patterns",
+        "listbox-option-role-incomplete",
+        "loading-indicator-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-overlay-css-variants",
+        "modal-shell-adoption",
+        "number-input-adoption",
+        "required-field-indicators",
+        "success-failure-feedback-mechanisms",
+        "text-input-blur-commit-hook",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "error-boundary-coverage",
+      "rank": 63,
+      "depends_on": [
+        "aria-label-sparse-usage",
+        "component-organization-pattern",
+        "empty-state-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "loading-indicator-patterns",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "enable-toggle-vs-checkbox",
+      "rank": 64,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "console-error-without-ui-feedback",
+        "debounce-autosave-patterns",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "form-submission-patterns",
+        "loading-indicator-patterns",
+        "modal-dialog-role-semantics",
+        "modal-shell-adoption",
+        "number-input-adoption",
+        "raw-select-vs-shared-dropdowns",
+        "required-field-indicators",
+        "success-failure-feedback-mechanisms",
+        "text-input-blur-commit-hook",
+        "textarea-commit-pattern",
+        "toggle-switch-semantics",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "multi-select-chip-adoption",
+      "rank": 65,
+      "depends_on": [
+        "aria-label-sparse-usage",
+        "collapsible-section-aria-expanded",
+        "css-architecture-and-scoping",
+        "empty-state-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-overlay-css-variants",
+        "modal-shell-adoption",
+        "number-input-adoption",
+        "raw-select-vs-shared-dropdowns",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "empty-state-adoption",
+      "rank": 66,
+      "depends_on": [
+        "aria-label-sparse-usage",
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "css-architecture-and-scoping",
+        "debounce-autosave-patterns",
+        "empty-state-patterns",
+        "error-boundary-coverage",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "form-submission-patterns",
+        "loading-indicator-patterns",
+        "modal-close-behavior",
+        "modal-dialog-role-semantics",
+        "modal-overlay-css-variants",
+        "multi-select-chip-adoption",
+        "number-input-adoption",
+        "progress-display-inconsistency",
+        "raw-select-vs-shared-dropdowns",
+        "required-field-indicators",
+        "success-failure-feedback-mechanisms",
+        "text-input-blur-commit-hook",
+        "textarea-commit-pattern",
+        "typescript-javascript-migration-state",
+        "validation-display-patterns"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    },
+    {
+      "area_id": "import-extension-conventions",
+      "rank": 67,
+      "depends_on": [
+        "collapsible-section-aria-expanded",
+        "component-organization-pattern",
+        "console-error-without-ui-feedback",
+        "debounce-autosave-patterns",
+        "empty-state-adoption",
+        "empty-state-patterns",
+        "enable-toggle-vs-checkbox",
+        "error-boundary-coverage",
+        "error-display-patterns",
+        "error-recovery-retry-patterns",
+        "loading-indicator-patterns",
+        "modal-dialog-role-semantics",
+        "success-failure-feedback-mechanisms",
+        "typescript-javascript-migration-state"
+      ],
+      "phase": "planned",
+      "canonical_variant": null,
+      "unify_summary": null,
+      "guard_artifacts": []
+    }
+  ]
+}

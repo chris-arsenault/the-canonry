@@ -9,8 +9,10 @@
  * Note: Generator/system weights are managed in the Weight Matrix editor
  */
 
-import React, { useState, useCallback } from 'react';
-import { EraCard } from './EraCard';
+import React, { useState, useCallback } from "react";
+import PropTypes from "prop-types";
+import { EraCard } from "./EraCard";
+import "./ErasEditor.css";
 
 /**
  * @param {Object} props
@@ -19,40 +21,41 @@ import { EraCard } from './EraCard';
  * @param {Array} props.pressures - Available pressures
  * @param {Object} props.schema - Domain schema
  */
-export default function ErasEditor({
-  eras = [],
-  onChange,
-  pressures = [],
-  schema,
-}) {
+export default function ErasEditor({ eras = [], onChange, pressures = [], schema }) {
   const [expandedEra, setExpandedEra] = useState(null);
 
-  const handleEraChange = useCallback((index, updatedEra) => {
-    const newEras = [...eras];
-    newEras[index] = updatedEra;
-    onChange(newEras);
-  }, [eras, onChange]);
-
-  const handleDeleteEra = useCallback((index) => {
-    if (confirm(`Delete era "${eras[index].name}"?`)) {
-      const newEras = eras.filter((_, i) => i !== index);
+  const handleEraChange = useCallback(
+    (index, updatedEra) => {
+      const newEras = [...eras];
+      newEras[index] = updatedEra;
       onChange(newEras);
-      if (expandedEra === index) {
-        setExpandedEra(null);
+    },
+    [eras, onChange]
+  );
+
+  const handleDeleteEra = useCallback(
+    (index) => {
+      if (confirm(`Delete era "${eras[index].name}"?`)) {
+        const newEras = eras.filter((_, i) => i !== index);
+        onChange(newEras);
+        if (expandedEra === index) {
+          setExpandedEra(null);
+        }
       }
-    }
-  }, [eras, onChange, expandedEra]);
+    },
+    [eras, onChange, expandedEra]
+  );
 
   const handleAddEra = useCallback(() => {
     const newEra = {
       id: `era_${Date.now()}`,
-      name: 'New Era',
-      description: 'A new period in world history',
+      name: "New Era",
+      description: "A new period in world history",
       templateWeights: {},
       systemModifiers: {},
       entryConditions: [],
       entryEffects: { mutations: [] },
-      exitConditions: [{ type: 'growth_phases_complete', minPhases: 2 }],
+      exitConditions: [{ type: "growth_phases_complete", minPhases: 2 }],
       exitEffects: { mutations: [] },
     };
     onChange([...eras, newEra]);
@@ -64,22 +67,17 @@ export default function ErasEditor({
       <div className="editor-container">
         <div className="header">
           <h1 className="title">Eras</h1>
-          <p className="subtitle">
-            Define historical eras that structure world generation
-          </p>
+          <p className="subtitle">Define historical eras that structure world generation</p>
         </div>
         <div className="empty-state">
           <div className="empty-state-icon">🕰️</div>
-          <div className="empty-state-title">
-            No eras defined
-          </div>
+          <div className="empty-state-title">No eras defined</div>
           <div className="empty-state-desc">
-            Eras control which generators and systems are active during different
-            phases of world history.
+            Eras control which generators and systems are active during different phases of world
+            history.
           </div>
           <button
-            className="btn btn-primary"
-            style={{ width: 'auto', padding: '14px 28px' }}
+            className="btn btn-primary ee-create-btn"
             onClick={handleAddEra}
           >
             + Create First Era
@@ -94,8 +92,8 @@ export default function ErasEditor({
       <div className="header">
         <h1 className="title">Eras</h1>
         <p className="subtitle">
-          Define historical eras that structure world generation. Each era controls
-          which generators and systems are active and at what strength.
+          Define historical eras that structure world generation. Each era controls which generators
+          and systems are active and at what strength.
         </p>
       </div>
 
@@ -121,3 +119,10 @@ export default function ErasEditor({
     </div>
   );
 }
+
+ErasEditor.propTypes = {
+  eras: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  pressures: PropTypes.array,
+  schema: PropTypes.object,
+};

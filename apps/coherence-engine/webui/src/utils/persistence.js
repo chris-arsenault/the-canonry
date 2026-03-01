@@ -1,7 +1,7 @@
-const STORAGE_PREFIX = 'coherence:ui:';
+const STORAGE_PREFIX = "coherence:ui:";
 
 function canUseStorage() {
-  return typeof localStorage !== 'undefined';
+  return typeof localStorage !== "undefined";
 }
 
 export function buildStorageKey(projectId, suffix) {

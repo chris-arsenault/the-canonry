@@ -4,34 +4,31 @@
  * All Dexie access for narrative events goes through this module.
  */
 
-import type { NarrativeEvent } from '@canonry/world-schema';
-import { db, type PersistedNarrativeEvent } from './illuminatorDb';
-import { applyNarrativeEventPatches as applyPatches, type EventPatch } from '../entityRename';
+import type { NarrativeEvent } from "@canonry/world-schema";
+import { db, type PersistedNarrativeEvent } from "./illuminatorDb";
+import { applyNarrativeEventPatches as applyPatches, type EventPatch } from "../entityRename";
 
 // ---------------------------------------------------------------------------
 // Seed
 // ---------------------------------------------------------------------------
 
 export async function isNarrativeEventsSeeded(simulationRunId: string): Promise<boolean> {
-  const count = await db.narrativeEvents
-    .where('simulationRunId')
-    .equals(simulationRunId)
-    .count();
-  console.log('[EventRepo] isNarrativeEventsSeeded', { simulationRunId, count, seeded: count > 0 });
+  const count = await db.narrativeEvents.where("simulationRunId").equals(simulationRunId).count();
+  console.log("[EventRepo] isNarrativeEventsSeeded", { simulationRunId, count, seeded: count > 0 });
   return count > 0;
 }
 
 export async function seedNarrativeEvents(
   simulationRunId: string,
-  events: NarrativeEvent[],
+  events: NarrativeEvent[]
 ): Promise<void> {
-  console.log('[EventRepo] seedNarrativeEvents', { simulationRunId, eventCount: events.length });
+  console.log("[EventRepo] seedNarrativeEvents", { simulationRunId, eventCount: events.length });
   const records: PersistedNarrativeEvent[] = events.map((e) => ({
     ...e,
     simulationRunId,
   }));
   await db.narrativeEvents.bulkPut(records);
-  console.log('[EventRepo] seedNarrativeEvents complete');
+  console.log("[EventRepo] seedNarrativeEvents complete");
 }
 
 /**
@@ -40,12 +37,12 @@ export async function seedNarrativeEvents(
  */
 export async function patchNarrativeEvents(
   simulationRunId: string,
-  events: NarrativeEvent[],
+  events: NarrativeEvent[]
 ): Promise<number> {
   if (!events?.length) return 0;
 
   const existing = await db.narrativeEvents
-    .where('simulationRunId')
+    .where("simulationRunId")
     .equals(simulationRunId)
     .toArray();
   const existingIds = new Set(existing.map((e) => e.id));
@@ -69,18 +66,18 @@ export async function patchNarrativeEvents(
 // ---------------------------------------------------------------------------
 
 export async function getNarrativeEventsForRun(
-  simulationRunId: string,
+  simulationRunId: string
 ): Promise<PersistedNarrativeEvent[]> {
   const events = await db.narrativeEvents
-    .where('simulationRunId')
+    .where("simulationRunId")
     .equals(simulationRunId)
     .toArray();
-  console.log('[EventRepo] getNarrativeEventsForRun', { simulationRunId, count: events.length });
+  console.log("[EventRepo] getNarrativeEventsForRun", { simulationRunId, count: events.length });
   return events;
 }
 
 export async function getNarrativeEvent(
-  eventId: string,
+  eventId: string
 ): Promise<PersistedNarrativeEvent | undefined> {
   return db.narrativeEvents.get(eventId);
 }
@@ -96,9 +93,9 @@ export async function getNarrativeEvent(
  */
 export async function applyEventPatches(
   eventPatches: EventPatch[],
-  simulationRunId: string,
+  simulationRunId: string
 ): Promise<string[]> {
-  console.log('[EventRepo] applyEventPatches called', {
+  console.log("[EventRepo] applyEventPatches called", {
     patchCount: eventPatches.length,
     simulationRunId,
     patchEventIds: eventPatches.map((p) => p.eventId),
@@ -109,14 +106,14 @@ export async function applyEventPatches(
 
   const updatedIds: string[] = [];
 
-  await db.transaction('rw', db.narrativeEvents, async () => {
+  await db.transaction("rw", db.narrativeEvents, async () => {
     // Load all events for the run (needed for the batch patch function)
     const allEvents = await db.narrativeEvents
-      .where('simulationRunId')
+      .where("simulationRunId")
       .equals(simulationRunId)
       .toArray();
 
-    console.log('[EventRepo] Loaded events from Dexie', {
+    console.log("[EventRepo] Loaded events from Dexie", {
       totalEvents: allEvents.length,
       simulationRunId,
     });
@@ -125,13 +122,13 @@ export async function applyEventPatches(
     const firstPatchId = eventPatches[0]?.eventId;
     const sampleBefore = allEvents.find((e) => e.id === firstPatchId);
     if (sampleBefore) {
-      console.log('[EventRepo] Sample event BEFORE patch', {
+      console.log("[EventRepo] Sample event BEFORE patch", {
         id: sampleBefore.id,
         description: sampleBefore.description?.substring(0, 200),
         action: (sampleBefore as any).action?.substring(0, 200),
       });
     } else {
-      console.warn('[EventRepo] First patch target NOT FOUND in Dexie events', {
+      console.warn("[EventRepo] First patch target NOT FOUND in Dexie events", {
         targetId: firstPatchId,
         availableIds: allEvents.slice(0, 5).map((e) => e.id),
       });
@@ -143,7 +140,7 @@ export async function applyEventPatches(
     // Sample the same event AFTER applying patches
     const sampleAfter = patched.find((e) => e.id === firstPatchId);
     if (sampleAfter) {
-      console.log('[EventRepo] Sample event AFTER patch', {
+      console.log("[EventRepo] Sample event AFTER patch", {
         id: sampleAfter.id,
         description: sampleAfter.description?.substring(0, 200),
         action: (sampleAfter as any).action?.substring(0, 200),
@@ -160,7 +157,7 @@ export async function applyEventPatches(
         writeCount++;
       }
     }
-    console.log('[EventRepo] Wrote patched events back to Dexie', {
+    console.log("[EventRepo] Wrote patched events back to Dexie", {
       writeCount,
       updatedIds,
     });
@@ -169,7 +166,7 @@ export async function applyEventPatches(
   // Verify: re-read one event to confirm persistence
   if (updatedIds.length > 0) {
     const verify = await db.narrativeEvents.get(updatedIds[0]);
-    console.log('[EventRepo] VERIFY after transaction', {
+    console.log("[EventRepo] VERIFY after transaction", {
       id: verify?.id,
       description: verify?.description?.substring(0, 200),
       action: (verify as any)?.action?.substring(0, 200),
@@ -184,5 +181,5 @@ export async function applyEventPatches(
 // ---------------------------------------------------------------------------
 
 export async function deleteEventsForRun(simulationRunId: string): Promise<void> {
-  await db.narrativeEvents.where('simulationRunId').equals(simulationRunId).delete();
+  await db.narrativeEvents.where("simulationRunId").equals(simulationRunId).delete();
 }

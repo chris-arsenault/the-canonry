@@ -19,7 +19,7 @@ export interface PaletteItem {
 }
 
 export interface TraitPalette {
-  id: string;                   // `${projectId}_${entityKind}`
+  id: string; // `${projectId}_${entityKind}`
   projectId: string;
   entityKind: string;
   items: PaletteItem[];
@@ -27,7 +27,7 @@ export interface TraitPalette {
 }
 
 export interface UsedTraitRecord {
-  id: string;                   // `${projectId}_${simulationRunId}_${entityKind}_${entityId}`
+  id: string; // `${projectId}_${simulationRunId}_${entityKind}_${entityId}`
   projectId: string;
   simulationRunId: string;
   entityKind: string;
@@ -43,5 +43,5 @@ export interface TraitGuidance {
   /** Category usage counts for transparency (debugging/UI) */
   categoryUsage: Record<string, number>;
   /** Selection method used */
-  selectionMethod: 'weighted-random' | 'llm-selected' | 'fallback';
+  selectionMethod: "weighted-random" | "llm-selected" | "fallback";
 }

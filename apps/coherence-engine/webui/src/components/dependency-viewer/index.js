@@ -5,4 +5,4 @@
  * Internal modules (components) are used internally.
  */
 
-export { default, DependencyViewer } from './DependencyViewer';
+export { default, DependencyViewer } from "./DependencyViewer";

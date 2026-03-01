@@ -1,11 +1,27 @@
-import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
-import ForceGraph3D from 'react-force-graph-3d';
-import type { WorldState } from '../types/world.ts';
-import type { ProminenceScale } from '@canonry/world-schema';
-import { getKindColor, prominenceToNumber } from '../utils/dataTransform.ts';
-import * as THREE from 'three';
+import React, { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import ForceGraph3D from "react-force-graph-3d";
+import type { WorldState } from "../types/world.ts";
+import type { ProminenceScale } from "@canonry/world-schema";
+import { getKindColor, prominenceToNumber } from "../utils/dataTransform.ts";
+import * as THREE from "three";
+import "./visualization-overlay.css";
 
-export type EdgeMetric = 'strength' | 'distance' | 'none';
+export type EdgeMetric = "strength" | "distance" | "none";
+
+/** Minimal typing for the d3 link force returned by ForceGraph */
+interface D3LinkForce {
+  distance(fn: (link: GraphLink) => number): D3LinkForce;
+  strength(val: number): D3LinkForce;
+  stop?: () => void;
+}
+
+/** Minimal typing for the imperative handle exposed by react-force-graph-3d */
+interface ForceGraphInstance {
+  camera(): THREE.Camera;
+  pauseAnimation?: () => void;
+  d3Force(name: string): D3LinkForce | undefined;
+  d3ReheatSimulation(): void;
+}
 
 interface GraphView3DProps {
   data: WorldState;
@@ -36,8 +52,8 @@ interface GraphLink {
 
 function detectWebGL(): boolean {
   try {
-    const canvas = document.createElement('canvas');
-    return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+    const canvas = document.createElement("canvas");
+    return !!(canvas.getContext("webgl2") || canvas.getContext("webgl"));
   } catch {
     return false;
   }
@@ -50,10 +66,10 @@ export default function GraphView3D({
   selectedNodeId,
   onNodeSelect,
   showCatalyzedBy = false,
-  edgeMetric = 'strength',
+  edgeMetric = "strength",
   prominenceScale,
-}: GraphView3DProps) {
-  const fgRef = useRef<any>(null);
+}: Readonly<GraphView3DProps>) {
+  const fgRef = useRef<ForceGraphInstance>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   // Delay render by one frame to let any stale animation callbacks clear
@@ -61,21 +77,8 @@ export default function GraphView3D({
   // Unique ID per mount to ensure ForceGraph gets a fresh instance
   const [mountId] = useState(() => Date.now());
 
-  if (!webglAvailable) {
-    return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a1929', color: '#93c5fd' }}>
-        <div style={{ textAlign: 'center', maxWidth: 400 }}>
-          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>&#x1F4A0;</div>
-          <div style={{ fontSize: 16, fontWeight: 500, color: '#fff', marginBottom: 8 }}>WebGL not available</div>
-          <div style={{ fontSize: 13 }}>
-            3D graph view requires WebGL. Switch to the <strong>2D Graph</strong> or <strong>Map</strong> view instead.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
+    if (!webglAvailable) return;
     const frameId = requestAnimationFrame(() => {
       setIsReady(true);
     });
@@ -84,12 +87,13 @@ export default function GraphView3D({
 
   // Get container dimensions
   useEffect(() => {
+    if (!webglAvailable) return;
     if (containerRef.current) {
       const updateDimensions = () => {
         if (containerRef.current) {
           setDimensions({
             width: containerRef.current.clientWidth,
-            height: containerRef.current.clientHeight
+            height: containerRef.current.clientHeight,
           });
         }
       };
@@ -97,32 +101,32 @@ export default function GraphView3D({
       updateDimensions();
 
       // Update on window resize
-      window.addEventListener('resize', updateDimensions);
-      return () => window.removeEventListener('resize', updateDimensions);
+      window.addEventListener("resize", updateDimensions);
+      return () => window.removeEventListener("resize", updateDimensions);
     }
   }, []);
 
   // Transform data to force-graph format
   // We need both useMemo (for sync computation) and imperative update (library mutates data)
   const graphData = useMemo(() => {
-    const nodes: GraphNode[] = data.hardState.map(entity => ({
+    const nodes: GraphNode[] = data.hardState.map((entity) => ({
       id: entity.id,
       name: entity.name,
       kind: entity.kind,
       prominence: prominenceToNumber(entity.prominence, data.schema, prominenceScale),
       color: getKindColor(entity.kind, data.schema),
-      val: prominenceToNumber(entity.prominence, data.schema, prominenceScale) + 1 // Size multiplier (1-5)
+      val: prominenceToNumber(entity.prominence, data.schema, prominenceScale) + 1, // Size multiplier (1-5)
     }));
 
-    const links: GraphLink[] = data.relationships.map(rel => {
-      const catalyzedBy = (rel as any).catalyzedBy;
+    const links: GraphLink[] = data.relationships.map((rel) => {
+      const catalyzedBy = rel.catalyzedBy;
       return {
         source: rel.src,
         target: rel.dst,
         kind: rel.kind,
         strength: rel.strength ?? 0.5,
         distance: rel.distance,
-        catalyzed: showCatalyzedBy && !!catalyzedBy
+        catalyzed: showCatalyzedBy && !!catalyzedBy,
       };
     });
 
@@ -136,7 +140,7 @@ export default function GraphView3D({
   }, [mountId, data.hardState.length]);
 
   const legendItems = useMemo(() => {
-    return data.schema.entityKinds.map(kind => {
+    return data.schema.entityKinds.map((kind) => {
       const label = kind.style?.displayName || kind.description || kind.kind;
       return {
         kind: kind.kind,
@@ -147,27 +151,33 @@ export default function GraphView3D({
   }, [data.schema]);
 
   // Calculate link distance based on selected metric
-  const linkDistance = useCallback((link: any) => {
-    if (edgeMetric === 'none') {
-      return 100; // Equal distance for all links
-    } else if (edgeMetric === 'distance') {
-      // Lower distance = more similar = shorter spring (pull closer together)
-      // distance is 0-1, so we scale it: 0 -> 30px, 1 -> 200px
-      const dist = link.distance ?? 0.5;
-      return 30 + dist * 170;
-    } else {
-      // strength metric (default)
-      // Higher strength = shorter spring (pull closer together)
-      // strength is 0-1, so we invert it: 1 -> 30px, 0 -> 200px
-      const strength = link.strength ?? 0.5;
-      return 30 + (1 - strength) * 170;
-    }
-  }, [edgeMetric]);
+  const linkDistance = useCallback(
+    (link: GraphLink) => {
+      if (edgeMetric === "none") {
+        return 100; // Equal distance for all links
+      } else if (edgeMetric === "distance") {
+        // Lower distance = more similar = shorter spring (pull closer together)
+        // distance is 0-1, so we scale it: 0 -> 30px, 1 -> 200px
+        const dist = link.distance ?? 0.5;
+        return 30 + dist * 170;
+      } else {
+        // strength metric (default)
+        // Higher strength = shorter spring (pull closer together)
+        // strength is 0-1, so we invert it: 1 -> 30px, 0 -> 200px
+        const strength = link.strength ?? 0.5;
+        return 30 + (1 - strength) * 170;
+      }
+    },
+    [edgeMetric]
+  );
 
   // Handle node click
-  const handleNodeClick = useCallback((node: any) => {
-    onNodeSelect(node.id);
-  }, [onNodeSelect]);
+  const handleNodeClick = useCallback(
+    (node: GraphNode) => {
+      onNodeSelect(node.id);
+    },
+    [onNodeSelect]
+  );
 
   // Handle background click
   const handleBackgroundClick = useCallback(() => {
@@ -175,91 +185,94 @@ export default function GraphView3D({
   }, [onNodeSelect]);
 
   // Custom node appearance with text label
-  const nodeThreeObject = useCallback((node: any) => {
-    const group = new THREE.Group();
+  const nodeThreeObject = useCallback(
+    (node: GraphNode) => {
+      const group = new THREE.Group();
 
-    // Node sphere
-    const geometry = new THREE.SphereGeometry(node.val * 2, 16, 16);
-    const material = new THREE.MeshLambertMaterial({
-      color: node.color,
-      transparent: true,
-      opacity: node.id === selectedNodeId ? 1 : 0.9
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    group.add(mesh);
-
-    // Add glow for selected node
-    if (node.id === selectedNodeId) {
-      const glowGeometry = new THREE.SphereGeometry(node.val * 2.5, 16, 16);
-      const glowMaterial = new THREE.MeshBasicMaterial({
-        color: '#FFD700',
+      // Node sphere
+      const geometry = new THREE.SphereGeometry(node.val * 2, 16, 16);
+      const material = new THREE.MeshLambertMaterial({
+        color: node.color,
         transparent: true,
-        opacity: 0.3
+        opacity: node.id === selectedNodeId ? 1 : 0.9,
       });
-      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-      group.add(glow);
-    }
+      const mesh = new THREE.Mesh(geometry, material);
+      group.add(mesh);
 
-    // Create text sprite
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (context) {
-      canvas.width = 256;
-      canvas.height = 64;
+      // Add glow for selected node
+      if (node.id === selectedNodeId) {
+        const glowGeometry = new THREE.SphereGeometry(node.val * 2.5, 16, 16);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+          color: "#FFD700",
+          transparent: true,
+          opacity: 0.3,
+        });
+        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        group.add(glow);
+      }
 
-      context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      context.fillRect(0, 0, canvas.width, canvas.height);
+      // Create text sprite
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      if (context) {
+        canvas.width = 256;
+        canvas.height = 64;
 
-      context.font = 'Bold 20px Arial';
-      context.fillStyle = 'white';
-      context.textAlign = 'center';
-      context.textBaseline = 'middle';
-      context.fillText(node.name, canvas.width / 2, canvas.height / 2);
+        context.fillStyle = "rgba(0, 0, 0, 0.7)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
 
-      const texture = new THREE.CanvasTexture(canvas);
-      const spriteMaterial = new THREE.SpriteMaterial({
-        map: texture,
-        transparent: true,
-        opacity: 0.9
-      });
-      const sprite = new THREE.Sprite(spriteMaterial);
-      sprite.scale.set(20, 5, 1);
-      sprite.position.set(0, node.val * 2 + 5, 0); // Position above the node
-      group.add(sprite);
-    }
+        context.font = "Bold 20px Arial";
+        context.fillStyle = "white";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(node.name, canvas.width / 2, canvas.height / 2);
 
-    return group;
-  }, [selectedNodeId]);
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({
+          map: texture,
+          transparent: true,
+          opacity: 0.9,
+        });
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(20, 5, 1);
+        sprite.position.set(0, node.val * 2 + 5, 0); // Position above the node
+        group.add(sprite);
+      }
+
+      return group;
+    },
+    [selectedNodeId]
+  );
 
   // Custom link appearance
-  const linkColor = useCallback((link: any) => {
+  const linkColor = useCallback((link: GraphLink) => {
     if (link.catalyzed) {
-      return '#a78bfa'; // Purple for catalyzed
+      return "#a78bfa"; // Purple for catalyzed
     }
     // Fade color based on strength
-    const opacity = Math.floor(link.strength * 255).toString(16).padStart(2, '0');
+    const opacity = Math.floor(link.strength * 255)
+      .toString(16)
+      .padStart(2, "0");
     return `#ffffff${opacity}`;
   }, []);
 
-  const linkWidth = useCallback((link: any) => {
+  const linkWidth = useCallback((link: GraphLink) => {
     return link.strength * 2; // 0-2px width based on strength
   }, []);
 
   // Set initial camera position and cleanup on unmount
   useEffect(() => {
-    if (fgRef.current) {
-      const camera = fgRef.current.camera();
-      camera.position.set(0, 0, 500);
-    }
+    if (!fgRef.current) return;
+    const fg = fgRef.current;
+    const camera = fg.camera();
+    camera.position.set(0, 0, 500);
 
     // Cleanup: pause animation when component unmounts to prevent stale tick errors
     return () => {
-      if (fgRef.current) {
-        fgRef.current.pauseAnimation?.();
-        // Also stop the d3 simulation
-        const simulation = fgRef.current.d3Force?.('simulation');
-        simulation?.stop?.();
-      }
+      fg.pauseAnimation?.();
+      // Also stop the d3 simulation
+      const simulation = fg.d3Force("simulation");
+      simulation?.stop?.();
     };
   }, []);
 
@@ -269,13 +282,13 @@ export default function GraphView3D({
       const fg = fgRef.current;
 
       // Configure the d3 link force to use our distance function
-      const linkForce = fg.d3Force('link');
+      const linkForce = fg.d3Force("link");
       if (linkForce) {
         linkForce
-          .distance((link: any) => {
-            if (edgeMetric === 'none') {
+          .distance((link: GraphLink) => {
+            if (edgeMetric === "none") {
               return 100;
-            } else if (edgeMetric === 'distance') {
+            } else if (edgeMetric === "distance") {
               const dist = link.distance ?? 0.5;
               return 30 + dist * 170;
             } else {
@@ -291,67 +304,95 @@ export default function GraphView3D({
     }
   }, [edgeMetric]);
 
+  if (!webglAvailable) {
+    return (
+      <div className="viz-no-webgl">
+        <div className="viz-no-webgl-inner">
+          <div className="viz-no-webgl-icon">&#x1F4A0;</div>
+          <div className="viz-no-webgl-title">
+            WebGL not available
+          </div>
+          <div className="viz-no-webgl-message">
+            3D graph view requires WebGL. Switch to the <strong>2D Graph</strong> or{" "}
+            <strong>Map</strong> view instead.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div ref={containerRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+    <div ref={containerRef} className="viz-container viz-theme-blue">
       {isReady && (
         <ForceGraph3D
           key={graphKey}
           ref={fgRef}
           graphData={graphData}
-        width={dimensions.width}
-        height={dimensions.height}
-        nodeId="id"
-        nodeLabel="name"
-        nodeColor="color"
-        nodeVal="val"
-        nodeThreeObject={nodeThreeObject}
-        onNodeClick={handleNodeClick}
-        onBackgroundClick={handleBackgroundClick}
-        linkSource="source"
-        linkTarget="target"
-        linkColor={linkColor}
-        linkWidth={linkWidth}
-        linkOpacity={0.6}
-        // @ts-expect-error react-force-graph supports linkDistance
-        linkDistance={linkDistance}
-        linkDirectionalArrowLength={3}
-        linkDirectionalArrowRelPos={1}
-        enableNodeDrag={true}
-        enableNavigationControls={true}
-        showNavInfo={false}
-        backgroundColor="#0a1929"
-        d3VelocityDecay={0.4}
-        d3AlphaDecay={0.015}
-        d3AlphaMin={0.001}
-        warmupTicks={200}
-        cooldownTicks={Infinity}
-        cooldownTime={20000}
+          width={dimensions.width}
+          height={dimensions.height}
+          nodeId="id"
+          nodeLabel="name"
+          nodeColor="color"
+          nodeVal="val"
+          nodeThreeObject={nodeThreeObject}
+          onNodeClick={handleNodeClick}
+          onBackgroundClick={handleBackgroundClick}
+          linkSource="source"
+          linkTarget="target"
+          linkColor={linkColor}
+          linkWidth={linkWidth}
+          linkOpacity={0.6}
+          // @ts-expect-error react-force-graph supports linkDistance
+          linkDistance={linkDistance}
+          linkDirectionalArrowLength={3}
+          linkDirectionalArrowRelPos={1}
+          enableNodeDrag={true}
+          enableNavigationControls={true}
+          showNavInfo={false}
+          backgroundColor="#0a1929"
+          d3VelocityDecay={0.4}
+          d3AlphaDecay={0.015}
+          d3AlphaMin={0.001}
+          warmupTicks={200}
+          cooldownTicks={Infinity}
+          cooldownTime={20000}
         />
       )}
 
       {/* Legend */}
-      <div className="absolute bottom-6 left-6 rounded-xl text-white text-sm shadow-2xl border border-blue-500-30 overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, rgba(30, 58, 95, 0.95) 0%, rgba(10, 25, 41, 0.95) 100%)' }}>
-        <div className="px-5 py-3 border-b border-blue-500-20" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
+      <div
+        className="absolute bottom-6 left-6 rounded-xl text-white text-sm shadow-2xl border border-blue-500-30 overflow-hidden viz-legend"
+      >
+        <div
+          className="px-5 py-3 border-b border-blue-500-20 viz-legend-header"
+        >
           <div className="font-bold text-blue-200 uppercase tracking-wider text-xs">Legend</div>
         </div>
         <div className="px-5 py-4 space-y-3">
-          {legendItems.map(item => (
+          {legendItems.map((item) => (
             <div key={item.kind} className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full shadow-lg flex-shrink-0" style={{ backgroundColor: item.color }}></div>
+              <div
+                className="w-5 h-5 rounded-full shadow-lg flex-shrink-0 viz-legend-swatch"
+                style={{ '--viz-swatch-color': item.color } as React.CSSProperties}
+              ></div>
               <span className="font-medium">{item.label}</span>
             </div>
           ))}
         </div>
-        <div className="px-5 py-3 border-t border-blue-500-20" style={{ background: 'rgba(59, 130, 246, 0.05)' }}>
+        <div
+          className="px-5 py-3 border-t border-blue-500-20 viz-legend-footer"
+        >
           <div className="text-xs text-blue-300 italic">Size indicates prominence</div>
         </div>
       </div>
 
       {/* Controls hint */}
-      <div className="absolute top-6 left-6 rounded-xl text-white text-xs shadow-2xl border border-blue-500-30 overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, rgba(30, 58, 95, 0.95) 0%, rgba(10, 25, 41, 0.95) 100%)' }}>
-        <div className="px-5 py-3 border-b border-blue-500-20" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
+      <div
+        className="absolute top-6 left-6 rounded-xl text-white text-xs shadow-2xl border border-blue-500-30 overflow-hidden viz-controls"
+      >
+        <div
+          className="px-5 py-3 border-b border-blue-500-20 viz-controls-header"
+        >
           <div className="font-bold text-blue-200 uppercase tracking-wider">3D Controls</div>
         </div>
         <div className="px-5 py-3 space-y-2">

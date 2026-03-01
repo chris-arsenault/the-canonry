@@ -104,8 +104,7 @@ export interface FrameworkSystemConfig {
  * Era Spawner system config.
  * Creates era entities at simulation start with lineage relationships.
  */
-export interface EraSpawnerConfig extends FrameworkSystemConfig {
-}
+export type EraSpawnerConfig = FrameworkSystemConfig;
 
 /**
  * Era Transition system config.
@@ -243,9 +242,11 @@ export function createSystemFromDeclarative(
       }
       return createGrowthSystem(declarative.config, options.growthDependencies);
 
-    default:
+    default: {
       // TypeScript should catch this, but just in case
-      throw new Error(`Unknown system type: ${(declarative as any).systemType}`);
+      const exhaustive: never = declarative;
+      throw new Error(`Unknown system type: ${(exhaustive as DeclarativeSystem).systemType}`);
+    }
   }
 }
 

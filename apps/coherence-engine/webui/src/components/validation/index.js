@@ -5,4 +5,4 @@
  * Internal modules (cards, utils) are used internally.
  */
 
-export { default, ValidationEditor, getValidationStatus } from './ValidationEditor';
+export { default, ValidationEditor, getValidationStatus } from "./ValidationEditor";

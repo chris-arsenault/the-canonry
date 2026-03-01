@@ -2,9 +2,11 @@
  * SelectionFiltersEditor - Manage a list of selection filters
  */
 
-import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
-import { FILTER_TYPES } from '../constants';
-import { SelectionFilterCard } from './SelectionFilterCard';
+import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
+import PropTypes from "prop-types";
+import { FILTER_TYPES } from "../constants";
+import { SelectionFilterCard } from "./SelectionFilterCard";
+import "./SelectionFiltersEditor.css";
 
 /**
  * @param {Object} props
@@ -38,37 +40,38 @@ export function SelectionFiltersEditor({ filters, onChange, schema, availableRef
         setShowTypeMenu(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showTypeMenu]);
 
   const handleAddFilter = (type) => {
     // Create with empty required fields - validation will flag them
     const newFilter = { type };
     // Tag filters
-    if (type === 'has_tag') newFilter.tag = '';
-    if (type === 'has_tags') newFilter.tags = [];
-    if (type === 'has_any_tag') newFilter.tags = [];
-    if (type === 'lacks_tag') newFilter.tag = '';
-    if (type === 'lacks_any_tag') newFilter.tags = [];
+    if (type === "has_tag") newFilter.tag = "";
+    if (type === "has_tags") newFilter.tags = [];
+    if (type === "has_any_tag") newFilter.tags = [];
+    if (type === "lacks_tag") newFilter.tag = "";
+    if (type === "lacks_any_tag") newFilter.tags = [];
     // Attribute filters
-    if (type === 'has_culture') newFilter.culture = '';
-    if (type === 'matches_culture') newFilter.with = '';
-    if (type === 'has_status') newFilter.status = '';
-    if (type === 'has_prominence') newFilter.minProminence = '';
+    if (type === "has_culture") newFilter.culture = "";
+    if (type === "matches_culture") newFilter.with = "";
+    if (type === "has_status") newFilter.status = "";
+    if (type === "has_prominence") newFilter.minProminence = "";
     // Relationship filters
-    if (type === 'has_relationship') newFilter.kind = '';
-    if (type === 'lacks_relationship') newFilter.kind = '';
-    if (type === 'shares_related') {
-      newFilter.relationshipKind = '';
-      newFilter.with = '';
+    if (type === "has_relationship") newFilter.kind = "";
+    if (type === "lacks_relationship") newFilter.kind = "";
+    if (type === "shares_related") {
+      newFilter.relationshipKind = "";
+      newFilter.with = "";
     }
     // Other
-    if (type === 'exclude') newFilter.entities = [];
-    if (type === 'graph_path') newFilter.assert = {
-      check: '',
-      path: [{ via: '', direction: '', targetKind: '', targetSubtype: '' }]
-    };
+    if (type === "exclude") newFilter.entities = [];
+    if (type === "graph_path")
+      newFilter.assert = {
+        check: "",
+        path: [{ via: "", direction: "", targetKind: "", targetSubtype: "" }],
+      };
     onChange([...(filters || []), newFilter]);
     setShowTypeMenu(false);
   };
@@ -104,34 +107,24 @@ export function SelectionFiltersEditor({ filters, onChange, schema, availableRef
         </div>
       )}
 
-      <div ref={containerRef} style={{ position: 'relative', marginTop: '12px' }}>
-        <button
-          onClick={() => setShowTypeMenu(!showTypeMenu)}
-          className="btn-add-inline"
-        >
+      <div ref={containerRef} className="relative mt-lg">
+        <button onClick={() => setShowTypeMenu(!showTypeMenu)} className="btn-add-inline">
           + Add Filter
         </button>
 
         {showTypeMenu && (
           <div
-            className="dropdown-menu"
-            style={{
-              position: 'fixed',
-              top: dropdownPos.top,
-              left: dropdownPos.left,
-              width: dropdownPos.width,
-              maxHeight: '300px',
-              overflowY: 'auto',
-              zIndex: 10000,
-            }}
+            className="dropdown-menu sfe-dropdown-fixed"
+            // eslint-disable-next-line local/no-inline-styles -- dynamic position from measured DOM rect
+            style={{ '--sfe-dd-top': `${dropdownPos.top}px`, '--sfe-dd-left': `${dropdownPos.left}px`, '--sfe-dd-width': `${dropdownPos.width}px`, top: 'var(--sfe-dd-top)', left: 'var(--sfe-dd-left)', width: 'var(--sfe-dd-width)' }}
           >
             {Object.entries(FILTER_TYPES).map(([type, config]) => (
-              <div
-                key={type}
-                onClick={() => handleAddFilter(type)}
-                className="dropdown-menu-item"
-              >
-                <span className="dropdown-menu-icon" style={{ backgroundColor: `${config.color}20` }}>
+              <div key={type} onClick={() => handleAddFilter(type)} className="dropdown-menu-item" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+                <span
+                  className="dropdown-menu-icon"
+                  // eslint-disable-next-line local/no-inline-styles -- dynamic color per filter type
+                  style={{ '--sfe-icon-bg': `${config.color}20`, backgroundColor: 'var(--sfe-icon-bg)' }}
+                >
                   {config.icon}
                 </span>
                 <span className="dropdown-menu-label">{config.label}</span>
@@ -143,5 +136,12 @@ export function SelectionFiltersEditor({ filters, onChange, schema, availableRef
     </div>
   );
 }
+
+SelectionFiltersEditor.propTypes = {
+  filters: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+};
 
 export default SelectionFiltersEditor;

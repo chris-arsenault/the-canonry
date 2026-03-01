@@ -11,7 +11,7 @@ import type {
   WorldMetadata as CanonryWorldMetadata,
   WorldOutput as CanonryWorldOutput,
   WorldRelationship as CanonryWorldRelationship,
-} from '@canonry/world-schema';
+} from "@canonry/world-schema";
 
 /** Links an anchor phrase in an entity's description to a source chronicle */
 export interface ChronicleBackref {
@@ -20,11 +20,15 @@ export interface ChronicleBackref {
   anchorPhrase: string;
   createdAt: number;
   /** Image to display at this backref anchor. undefined = legacy fallback (cover), null = no image */
-  imageSource?: { source: 'cover' } | { source: 'image_ref'; refId: string } | { source: 'entity'; entityId: string } | null;
+  imageSource?:
+    | { source: "cover" }
+    | { source: "image_ref"; refId: string }
+    | { source: "entity"; entityId: string }
+    | null;
   /** Display size for the backref image */
-  imageSize?: 'small' | 'medium' | 'large' | 'full-width';
+  imageSize?: "small" | "medium" | "large" | "full-width";
   /** Float alignment for the backref image */
-  imageAlignment?: 'left' | 'right';
+  imageAlignment?: "left" | "right";
 }
 
 export type HardState = CanonryWorldEntity & {
@@ -39,40 +43,41 @@ export type HardState = CanonryWorldEntity & {
       generatedAt?: number;
       model?: string;
     };
+    slugAliases?: string[];
     chronicleBackrefs?: ChronicleBackref[];
     historianNotes?: Array<{
       noteId: string;
       anchorPhrase: string;
       text: string;
       type: string;
-      display?: 'disabled' | 'popout' | 'full';
+      display?: "disabled" | "popout" | "full";
       enabled?: boolean;
     }>;
   };
 };
-export type WorldState = Omit<CanonryWorldOutput, 'hardState'> & {
+export type WorldState = Omit<CanonryWorldOutput, "hardState"> & {
   hardState: HardState[];
 };
 export type Relationship = CanonryWorldRelationship;
 export type WorldMetadata = CanonryWorldMetadata;
 export type Prominence = ProminenceLabel;
-export type EntityKind = EntityKindDefinition['kind'];
+export type EntityKind = EntityKindDefinition["kind"];
 export type Point = SemanticCoordinates;
 export type Region = SemanticRegion;
 export type Schema = CanonrySchemaSlice;
 
 // Lore types
 export type LoreType =
-  | 'description'
-  | 'relationship_backstory'
-  | 'era_narrative'
-  | 'chain_link'
-  | 'discovery_event'
-  | 'era_chapter'
-  | 'entity_chronicle'
-  | 'enhanced_entity_page'
-  | 'relationship_narrative'
-  | 'chronicle';
+  | "description"
+  | "relationship_backstory"
+  | "era_narrative"
+  | "chain_link"
+  | "discovery_event"
+  | "era_chapter"
+  | "entity_chronicle"
+  | "enhanced_entity_page"
+  | "relationship_narrative"
+  | "chronicle";
 
 export interface LoreWikiSection {
   heading: string;
@@ -105,7 +110,7 @@ export interface LoreData {
 }
 
 /** Image aspect ratio classification */
-export type ImageAspect = 'portrait' | 'landscape' | 'square';
+export type ImageAspect = "portrait" | "landscape" | "square";
 
 export interface EntityImage {
   entityId: string;
@@ -137,7 +142,7 @@ export interface ImageMetadata {
  * - 'thumb': Thumbnail (~400px wide) for inline display and hover cards
  * - 'full': Full-size image for lightbox view
  */
-export type ImageSize = 'thumb' | 'full';
+export type ImageSize = "thumb" | "full";
 
 /**
  * Lightweight page index entry for navigation and search
@@ -146,13 +151,13 @@ export type ImageSize = 'thumb' | 'full';
 export interface PageIndexEntry {
   id: string;
   title: string;
-  type: WikiPage['type'];
+  type: WikiPage["type"];
   slug: string;
   summary?: string;
   aliases?: string[];
   categories: string[];
   chronicle?: {
-    format: 'story' | 'document';
+    format: "story" | "document";
     entrypointId?: string;
     narrativeStyleId?: string;
     roleAssignments?: ChronicleRoleAssignment[];
@@ -168,7 +173,7 @@ export interface PageIndexEntry {
   // For static pages
   static?: {
     pageId: string;
-    status: 'draft' | 'published';
+    status: "draft" | "published";
   };
   // For era narrative pages
   eraNarrative?: {
@@ -190,9 +195,9 @@ export interface PageIndexEntry {
 export interface DisambiguationEntry {
   pageId: string;
   title: string;
-  namespace?: string;  // e.g., "Cultures", "Names", or undefined for no namespace
-  type: WikiPage['type'];
-  entityKind?: string;  // For entity pages
+  namespace?: string; // e.g., "Cultures", "Names", or undefined for no namespace
+  type: WikiPage["type"];
+  entityKind?: string; // For entity pages
 }
 
 /**
@@ -254,9 +259,17 @@ export interface WikiPage {
   id: string;
   slug: string;
   title: string;
-  type: 'entity' | 'era' | 'category' | 'relationship' | 'chronicle' | 'static' | 'region' | 'era_narrative';
+  type:
+    | "entity"
+    | "era"
+    | "category"
+    | "relationship"
+    | "chronicle"
+    | "static"
+    | "region"
+    | "era_narrative";
   chronicle?: {
-    format: 'story' | 'document';
+    format: "story" | "document";
     entrypointId?: string;
     // Seed data for generation context display
     narrativeStyleId?: string;
@@ -267,7 +280,7 @@ export interface WikiPage {
   };
   static?: {
     pageId: string;
-    status: 'draft' | 'published';
+    status: "draft" | "published";
   };
   eraNarrative?: {
     eraId: string;
@@ -292,7 +305,7 @@ export interface WikiHistorianNote {
   text: string;
   type: string;
   /** Display mode: 'full' (inline callout) or 'popout' (collapsed/minimal) */
-  display: 'full' | 'popout';
+  display: "full" | "popout";
 }
 
 export interface WikiContent {
@@ -306,19 +319,19 @@ export interface WikiContent {
 }
 
 /** Image display size for chronicle inline images */
-export type WikiImageSize = 'small' | 'medium' | 'large' | 'full-width';
+export type WikiImageSize = "small" | "medium" | "large" | "full-width";
 
 /** Inline image within a wiki section */
 export interface WikiSectionImage {
   refId: string;
-  type: 'entity_ref' | 'chronicle_image';
+  type: "entity_ref" | "chronicle_image";
   entityId?: string;
   imageId: string;
   anchorText: string;
   /** Character index where anchorText was found (fallback if text changes) */
   anchorIndex?: number;
   size: WikiImageSize;
-  justification?: 'left' | 'right';
+  justification?: "left" | "right";
   caption?: string;
 }
 
@@ -332,7 +345,7 @@ export interface WikiSection {
 }
 
 export interface WikiInfobox {
-  type: 'entity' | 'era' | 'relationship';
+  type: "entity" | "era" | "relationship";
   fields: WikiInfoboxField[];
   image?: WikiImage;
 }
@@ -360,24 +373,24 @@ export interface WikiCategory {
   name: string;
   description?: string;
   parentCategory?: string;
-  type: 'auto' | 'manual';
+  type: "auto" | "manual";
   pageCount: number;
 }
 
 export interface WikiBacklink {
   pageId: string;
   pageTitle: string;
-  pageType: WikiPage['type'];
+  pageType: WikiPage["type"];
   context: string;
 }
 
 // Per-page layout override (mirrors illuminator's PageLayoutOverride)
-export type LayoutMode = 'flow' | 'margin' | 'centered';
-export type AnnotationDisplay = 'full' | 'popout' | 'disabled';
-export type AnnotationPosition = 'sidenote' | 'inline' | 'footnote';
-export type ImageLayout = 'float' | 'margin' | 'block' | 'hidden';
-export type ContentWidth = 'narrow' | 'standard' | 'wide';
-export type TextAlign = 'left' | 'center' | 'justify';
+export type LayoutMode = "flow" | "margin" | "centered";
+export type AnnotationDisplay = "full" | "popout" | "disabled";
+export type AnnotationPosition = "sidenote" | "inline" | "footnote";
+export type ImageLayout = "float" | "margin" | "block" | "hidden";
+export type ContentWidth = "narrow" | "standard" | "wide";
+export type TextAlign = "left" | "center" | "justify";
 
 export interface PageLayoutOverride {
   pageId: string;

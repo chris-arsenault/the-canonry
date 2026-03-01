@@ -2,8 +2,10 @@
  * AddRuleButton - Button with type picker for adding applicability rules
  */
 
-import React, { useState } from 'react';
-import { APPLICABILITY_TYPES } from '../constants';
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import { APPLICABILITY_TYPES } from "../constants";
+import "./AddRuleButton.css";
 
 /**
  * @param {Object} props
@@ -15,33 +17,37 @@ export function AddRuleButton({ onAdd, depth = 0 }) {
 
   return (
     <div className="dropdown">
-      <button
-        className="btn-add"
-        onClick={() => setShowPicker(!showPicker)}
-      >
+      <button className="btn-add" onClick={() => setShowPicker(!showPicker)}>
         + Add Rule
       </button>
 
       {showPicker && (
-        <div className="dropdown-menu" style={{ minWidth: '280px' }}>
+        <div className="dropdown-menu arb-dropdown">
           <div className="dropdown-options">
             {Object.entries(APPLICABILITY_TYPES)
-              .filter(([type]) => depth < 2 || (type !== 'or' && type !== 'and'))
+              .filter(([type]) => depth < 2 || (type !== "or" && type !== "and"))
               .map(([type, config]) => (
                 <div
                   key={type}
                   className="dropdown-menu-item"
-                  onClick={() => { onAdd(type); setShowPicker(false); }}
+                  onClick={() => {
+                    onAdd(type);
+                    setShowPicker(false);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 >
                   <div
                     className="dropdown-menu-icon"
-                    style={{ backgroundColor: `${config.color}20` }}
+                    // eslint-disable-next-line local/no-inline-styles -- dynamic color per rule type
+                    style={{ '--arb-icon-bg': `${config.color}20`, backgroundColor: 'var(--arb-icon-bg)' }}
                   >
                     {config.icon}
                   </div>
                   <div>
                     <div className="dropdown-menu-label">{config.label}</div>
-                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+                    <div className="arb-desc">
                       {config.desc}
                     </div>
                   </div>
@@ -53,5 +59,10 @@ export function AddRuleButton({ onAdd, depth = 0 }) {
     </div>
   );
 }
+
+AddRuleButton.propTypes = {
+  onAdd: PropTypes.func.isRequired,
+  depth: PropTypes.number,
+};
 
 export default AddRuleButton;

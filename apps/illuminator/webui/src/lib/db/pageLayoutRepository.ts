@@ -5,8 +5,8 @@
  * Each override is keyed by [simulationRunId, pageId].
  */
 
-import { db } from './illuminatorDb';
-import type { PageLayoutOverride } from '../preprint/prePrintTypes';
+import { db } from "./illuminatorDb";
+import type { PageLayoutOverride } from "../preprint/prePrintTypes";
 
 export async function getPageLayout(
   simulationRunId: string,
@@ -20,17 +20,12 @@ export async function putPageLayout(override: PageLayoutOverride): Promise<void>
   await db.pageLayouts.put(override);
 }
 
-export async function deletePageLayout(
-  simulationRunId: string,
-  pageId: string
-): Promise<void> {
+export async function deletePageLayout(simulationRunId: string, pageId: string): Promise<void> {
   await db.pageLayouts.delete([simulationRunId, pageId]);
 }
 
-export async function getAllPageLayouts(
-  simulationRunId: string
-): Promise<PageLayoutOverride[]> {
-  return db.pageLayouts.where('simulationRunId').equals(simulationRunId).toArray();
+export async function getAllPageLayouts(simulationRunId: string): Promise<PageLayoutOverride[]> {
+  return db.pageLayouts.where("simulationRunId").equals(simulationRunId).toArray();
 }
 
 export async function getPageLayoutMap(

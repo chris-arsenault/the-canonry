@@ -2,9 +2,10 @@
  * GeneratorListCard - Card display for a single generator in the list view
  */
 
-import React, { useMemo } from 'react';
-import { getElementValidation } from '@penguin-tales/shared-components';
-import { ErrorBadge, OrphanBadge, EraBadges, EnableToggle } from '../../shared';
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
+import { getElementValidation } from "@the-canonry/shared-components";
+import { ErrorBadge, OrphanBadge, EraBadges, EnableToggle } from "../../shared";
 
 /**
  * @param {Object} props
@@ -17,15 +18,19 @@ export function GeneratorListCard({ generator, onClick, onToggle, usageMap }) {
   const isEnabled = generator.enabled !== false;
 
   const summary = useMemo(() => {
-    const creates = generator.creation?.map((c) => c.kind).filter((v, i, a) => a.indexOf(v) === i) || [];
+    const creates =
+      generator.creation?.map((c) => c.kind).filter((v, i, a) => a.indexOf(v) === i) || [];
     const rels = generator.relationships?.length || 0;
     const effects = generator.stateUpdates?.length || 0;
     return { creates, rels, effects };
   }, [generator]);
 
   // Get validation and usage info
-  const validation = useMemo(() =>
-    usageMap ? getElementValidation(usageMap, 'generator', generator.id) : { invalidRefs: [], isOrphan: false },
+  const validation = useMemo(
+    () =>
+      usageMap
+        ? getElementValidation(usageMap, "generator", generator.id)
+        : { invalidRefs: [], isOrphan: false },
     [usageMap, generator.id]
   );
 
@@ -40,12 +45,15 @@ export function GeneratorListCard({ generator, onClick, onToggle, usageMap }) {
 
   return (
     <div
-      className={`card card-clickable ${!isEnabled ? 'card-disabled' : ''} ${hasErrors ? 'card-error' : ''} ${isOrphan && !hasErrors ? 'card-warning' : ''}`}
+      className={`card card-clickable ${!isEnabled ? "card-disabled" : ""} ${hasErrors ? "card-error" : ""} ${isOrphan && !hasErrors ? "card-warning" : ""}`}
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(e); }}
     >
       <div className="card-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="flex items-center gap-md">
             <span className="card-title">{generator.name || generator.id}</span>
             <ErrorBadge count={errorCount} />
           </div>
@@ -53,30 +61,48 @@ export function GeneratorListCard({ generator, onClick, onToggle, usageMap }) {
         </div>
         <EnableToggle
           enabled={isEnabled}
-          onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
         />
       </div>
 
       <div className="card-stats">
-        <div className="card-stat"><span>✨</span> {generator.creation?.length || 0} creates</div>
-        <div className="card-stat"><span>🔗</span> {summary.rels} rels</div>
-        <div className="card-stat"><span>⚡</span> {summary.effects} effects</div>
+        <div className="card-stat">
+          <span>✨</span> {generator.creation?.length || 0} creates
+        </div>
+        <div className="card-stat">
+          <span>🔗</span> {summary.rels} rels
+        </div>
+        <div className="card-stat">
+          <span>⚡</span> {summary.effects} effects
+        </div>
       </div>
 
       <div className="card-badges">
         {summary.creates.slice(0, 3).map((kind) => (
-          <span key={kind} className="badge badge-entity-kind">+ {kind}</span>
+          <span key={kind} className="badge badge-entity-kind">
+            + {kind}
+          </span>
         ))}
       </div>
 
       <EraBadges eras={eraUsage} />
       {isOrphan && (
-        <div style={{ marginTop: '8px' }}>
+        <div className="mt-md">
           <OrphanBadge isOrphan={isOrphan} />
         </div>
       )}
     </div>
   );
 }
+
+GeneratorListCard.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onClick: PropTypes.func.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  usageMap: PropTypes.object,
+};
 
 export default GeneratorListCard;

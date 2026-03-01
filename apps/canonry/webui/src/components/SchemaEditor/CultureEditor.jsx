@@ -6,14 +6,35 @@
  * - Naming data is edited in Name Forge
  */
 
-import React, { useState } from 'react';
-import { ExpandableCard, FormGroup, FormRow, SectionHeader, EmptyState, InfoBox } from '@penguin-tales/shared-components';
+import React, { useState, useCallback } from "react";
+import PropTypes from "prop-types";
+import {
+  ExpandableCard,
+  FormGroup,
+  FormRow,
+  SectionHeader,
+  EmptyState,
+  InfoBox,
+} from "@the-canonry/shared-components";
+import "./CultureEditor.css";
 
 const PRESET_COLORS = [
-  '#ff6b7a', '#ff8f6b', '#ffb366', '#ffdd59',
-  '#7bed9f', '#66ddb3', '#6c9bff', '#5352ed',
-  '#a55eea', '#ff6b81', '#70a1ff', '#eccc68',
-  '#ff7f50', '#20bf6b', '#0fb9b1', '#778ca3',
+  "#ff6b7a",
+  "#ff8f6b",
+  "#ffb366",
+  "#ffdd59",
+  "#7bed9f",
+  "#66ddb3",
+  "#6c9bff",
+  "#5352ed",
+  "#a55eea",
+  "#ff6b81",
+  "#70a1ff",
+  "#eccc68",
+  "#ff7f50",
+  "#20bf6b",
+  "#0fb9b1",
+  "#778ca3",
 ];
 
 export default function CultureEditor({ cultures, onChange }) {
@@ -21,16 +42,16 @@ export default function CultureEditor({ cultures, onChange }) {
 
   const getStableKey = (culture) => culture._key || culture.id;
 
-  const toggleCulture = (stableKey) => {
+  const toggleCulture = useCallback((stableKey) => {
     setExpandedCultures((prev) => ({ ...prev, [stableKey]: !prev[stableKey] }));
-  };
+  }, []);
 
   const addCulture = () => {
     const stableKey = `culture_${Date.now()}`;
     const newCulture = {
       id: stableKey,
-      name: 'New Culture',
-      description: '',
+      name: "New Culture",
+      description: "",
       color: PRESET_COLORS[cultures.length % PRESET_COLORS.length],
       _key: stableKey,
     };
@@ -47,7 +68,7 @@ export default function CultureEditor({ cultures, onChange }) {
   const deleteCulture = (cultureId) => {
     const existing = cultures.find((c) => c.id === cultureId);
     if (existing?.isFramework) return;
-    if (confirm('Delete this culture?')) {
+    if (confirm("Delete this culture?")) {
       onChange(cultures.filter((c) => c.id !== cultureId));
     }
   };
@@ -55,8 +76,8 @@ export default function CultureEditor({ cultures, onChange }) {
   const getCultureSummary = (culture) => {
     const parts = [];
     if (culture.naming?.domains?.length) parts.push(`${culture.naming.domains.length} domains`);
-    if (culture.axisBiases && Object.keys(culture.axisBiases).length) parts.push('axis biases');
-    return parts.length > 0 ? parts.join(', ') : 'not configured';
+    if (culture.axisBiases && Object.keys(culture.axisBiases).length) parts.push("axis biases");
+    return parts.length > 0 ? parts.join(", ") : "not configured";
   };
 
   const renderHeaderActions = () => (
@@ -66,15 +87,10 @@ export default function CultureEditor({ cultures, onChange }) {
   );
 
   const renderCultureTitle = (culture) => (
-    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <span className="ced-title-wrapper">
       <span
-        style={{
-          width: '16px',
-          height: '16px',
-          borderRadius: '50%',
-          backgroundColor: culture.color,
-          border: '2px solid var(--color-border)',
-        }}
+        className="ced-color-swatch"
+        style={{ '--ced-swatch-color': culture.color }}
       />
       {culture.name}
     </span>
@@ -83,12 +99,16 @@ export default function CultureEditor({ cultures, onChange }) {
   const renderCultureActions = (culture, isFramework) => (
     <span className="text-muted text-small">
       {getCultureSummary(culture)}
-      {isFramework && <span className="badge badge-info" style={{ marginLeft: '8px' }}>framework</span>}
+      {isFramework && (
+        <span className="badge badge-info ced-framework-badge">
+          framework
+        </span>
+      )}
     </span>
   );
 
   return (
-    <div className="editor-container" style={{ maxWidth: '900px' }}>
+    <div className="editor-container ced-container">
       <SectionHeader
         title="Cultures"
         description="Define cultural groups with their own naming conventions and placement biases."
@@ -113,7 +133,8 @@ export default function CultureEditor({ cultures, onChange }) {
               <ExpandableCard
                 key={stableKey}
                 expanded={isExpanded}
-                onToggle={() => toggleCulture(stableKey)}
+                onToggle={toggleCulture}
+                toggleId={stableKey}
                 title={renderCultureTitle(culture)}
                 subtitle={culture.id}
                 actions={renderCultureActions(culture, isFramework)}
@@ -135,7 +156,7 @@ export default function CultureEditor({ cultures, onChange }) {
                       value={culture.id}
                       disabled={isFramework}
                       onChange={(e) => {
-                        const newId = e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '');
+                        const newId = e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "");
                         if (newId && !cultures.some((c) => c.id === newId && c.id !== culture.id)) {
                           updateCulture(culture.id, { id: newId });
                         }
@@ -149,7 +170,7 @@ export default function CultureEditor({ cultures, onChange }) {
                   <FormGroup label="Description" wide>
                     <input
                       className="input"
-                      value={culture.description || ''}
+                      value={culture.description || ""}
                       disabled={isFramework}
                       onChange={(e) => updateCulture(culture.id, { description: e.target.value })}
                       placeholder="Optional description"
@@ -160,31 +181,26 @@ export default function CultureEditor({ cultures, onChange }) {
                 {/* Color Selection */}
                 <div className="section">
                   <div className="section-title">Color</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="ced-color-row">
                     <div
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: culture.color,
-                        border: '3px solid var(--color-border)',
-                        }}
+                      className="ced-color-preview"
+                      style={{ '--ced-preview-color': culture.color }}
                     />
                     <div className="chip-list">
                       {PRESET_COLORS.map((color) => (
                         <div
                           key={color}
-                          className={`chip chip-clickable ${culture.color === color ? 'chip-active' : ''}`}
+                          className={`chip chip-clickable ced-color-chip ${culture.color === color ? "chip-active" : ""}`}
                           style={{
-                            width: '24px',
-                            height: '24px',
-                            padding: 0,
-                            backgroundColor: color,
-                            borderColor: culture.color === color ? '#fff' : 'transparent',
-                            opacity: isFramework ? 0.6 : 1,
-                            pointerEvents: isFramework ? 'none' : 'auto',
+                            '--ced-chip-bg': color,
+                            '--ced-chip-border': culture.color === color ? '#fff' : 'transparent',
+                            '--ced-chip-opacity': isFramework ? 0.6 : 1,
+                            '--ced-chip-pointer': isFramework ? 'none' : 'auto',
                           }}
                           onClick={() => updateCulture(culture.id, { color })}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                         />
                       ))}
                     </div>
@@ -193,19 +209,27 @@ export default function CultureEditor({ cultures, onChange }) {
 
                 {/* Info about other editors */}
                 <InfoBox title="Additional configuration">
-                  <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
-                    <li><strong>Names tab</strong> — Configure naming domains, grammars, and profiles</li>
-                    <li><strong>Cosmography tab</strong> — Configure axis biases and home regions</li>
+                  <ul className="ced-info-list">
+                    <li>
+                      <strong>Names tab</strong> — Configure naming domains, grammars, and profiles
+                    </li>
+                    <li>
+                      <strong>Cosmography tab</strong> — Configure axis biases and home regions
+                    </li>
                   </ul>
                 </InfoBox>
 
                 {/* Actions */}
                 <div className="danger-zone">
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="ced-action-badges">
                     {culture.naming && <span className="badge">has naming</span>}
                     {culture.axisBiases && <span className="badge">has biases</span>}
                   </div>
-                  <button className="btn btn-danger" onClick={() => deleteCulture(culture.id)} disabled={isFramework}>
+                  <button
+                    className="btn btn-danger"
+                    onClick={() => deleteCulture(culture.id)}
+                    disabled={isFramework}
+                  >
                     Delete Culture
                   </button>
                 </div>
@@ -217,3 +241,8 @@ export default function CultureEditor({ cultures, onChange }) {
     </div>
   );
 }
+
+CultureEditor.propTypes = {
+  cultures: PropTypes.array.isRequired,
+  onChange: PropTypes.func.isRequired,
+};

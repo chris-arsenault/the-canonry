@@ -1,5 +1,5 @@
 {
-  "name": "@penguin-tales/image-store",
+  "name": "@the-canonry/image-store",
   "version": "1.0.0",
   "description": "Shared image store with Zustand + pluggable backends (IndexedDB/CDN)",
   "type": "module",

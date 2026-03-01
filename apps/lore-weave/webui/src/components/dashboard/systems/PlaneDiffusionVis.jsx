@@ -11,21 +11,22 @@
  * Grid is 100x100 matching the semantic coordinate space.
  */
 
-import React, { useMemo, useState, useCallback, useRef } from 'react';
-import { Group } from '@visx/group';
-import { scaleLinear } from '@visx/scale';
-import { ParentSize } from '@visx/responsive';
-import './visualizations.css';
+import React, { useMemo, useState, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
+import { Group } from "@visx/group";
+import { scaleLinear } from "@visx/scale";
+import { ParentSize } from "@visx/responsive";
+import "./visualizations.css";
 
 const MARGIN = { top: 20, right: 20, bottom: 40, left: 40 };
 
 // Diverging color scale: blue (negative) → white (zero) → red (positive)
 const COLOR_STOPS = [
-  { offset: 0, color: '#2166ac' },      // -100: deep blue
-  { offset: 0.25, color: '#67a9cf' },   // -50: light blue
-  { offset: 0.5, color: '#f7f7f7' },    // 0: white/neutral
-  { offset: 0.75, color: '#ef8a62' },   // +50: light red
-  { offset: 1, color: '#b2182b' },      // +100: deep red
+  { offset: 0, color: "#2166ac" }, // -100: deep blue
+  { offset: 0.25, color: "#67a9cf" }, // -50: light blue
+  { offset: 0.5, color: "#f7f7f7" }, // 0: white/neutral
+  { offset: 0.75, color: "#ef8a62" }, // +50: light red
+  { offset: 1, color: "#b2182b" }, // +100: deep red
 ];
 
 /**
@@ -80,10 +81,12 @@ function normalizeValue(value, minValue = -100, maxValue = 100) {
  */
 function symlog(value, threshold = 1) {
   if (Math.abs(value) < threshold) {
-    return value / threshold * 0.5; // Linear region near zero
+    return (value / threshold) * 0.5; // Linear region near zero
   }
   const sign = value > 0 ? 1 : -1;
-  return sign * (0.5 + Math.log10(Math.abs(value) / threshold) / Math.log10(100 / threshold) * 0.5);
+  return (
+    sign * (0.5 + (Math.log10(Math.abs(value) / threshold) / Math.log10(100 / threshold)) * 0.5)
+  );
 }
 
 /**
@@ -101,14 +104,12 @@ function normalizeValueLog(value) {
  * Gradient legend component with diverging scale
  */
 function GradientLegend({ title, minLabel, maxLabel, centerLabel }) {
-  const gradientStyle = {
-    background: `linear-gradient(to right, ${COLOR_STOPS.map(s => s.color).join(', ')})`,
-  };
+  const gradientBackground = `linear-gradient(to right, ${COLOR_STOPS.map((s) => s.color).join(", ")})`;
 
   return (
     <div className="vis-legend vis-legend-gradient">
       <div className="vis-legend-title">{title}</div>
-      <div className="vis-legend-gradient-bar" style={gradientStyle} />
+      <div className="vis-legend-gradient-bar vis-legend-gradient-bar-dynamic" style={{ '--vis-gradient-bg': gradientBackground }} />
       <div className="vis-legend-gradient-labels">
         <span>{minLabel}</span>
         <span>{centerLabel}</span>
@@ -121,7 +122,17 @@ function GradientLegend({ title, minLabel, maxLabel, centerLabel }) {
 /**
  * Main visualization component - renders raw grid data directly
  */
-function DiffusionFieldChart({ width, height, gridData, gridSize, valueRange, sources, sinks, entities, useLogScale }) {
+function DiffusionFieldChart({
+  width,
+  height,
+  gridData,
+  gridSize,
+  valueRange,
+  sources,
+  sinks,
+  entities,
+  useLogScale,
+}) {
   const [tooltip, setTooltip] = useState(null);
   const svgRef = useRef(null);
 
@@ -175,31 +186,34 @@ function DiffusionFieldChart({ width, height, gridData, gridSize, valueRange, so
   const { min: minValue, max: maxValue } = valueRange || { min: -100, max: 100 };
 
   // Handle mouse move for tooltip
-  const handleMouseMove = useCallback((event) => {
-    if (!svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const relX = event.clientX - rect.left - MARGIN.left - offsetX;
-    const relY = event.clientY - rect.top - MARGIN.top - offsetY;
-    const x = relX / innerWidth;
-    const y = 1 - relY / innerHeight; // Invert Y for coordinate display
+  const handleMouseMove = useCallback(
+    (event) => {
+      if (!svgRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      const relX = event.clientX - rect.left - MARGIN.left - offsetX;
+      const relY = event.clientY - rect.top - MARGIN.top - offsetY;
+      const x = relX / innerWidth;
+      const y = 1 - relY / innerHeight; // Invert Y for coordinate display
 
-    if (x >= 0 && x <= 1 && y >= 0 && y <= 1) {
-      const gridX = Math.floor(x * displayGridSize);
-      const gridY = Math.floor((1 - y) * displayGridSize);
-      const value = field[gridY]?.[gridX] ?? 0;
+      if (x >= 0 && x <= 1 && y >= 0 && y <= 1) {
+        const gridX = Math.floor(x * displayGridSize);
+        const gridY = Math.floor((1 - y) * displayGridSize);
+        const value = field[gridY]?.[gridX] ?? 0;
 
-      // Convert to semantic coordinates (0-100)
-      const coordX = (x * 100).toFixed(0);
-      const coordY = (y * 100).toFixed(0);
+        // Convert to semantic coordinates (0-100)
+        const coordX = (x * 100).toFixed(0);
+        const coordY = (y * 100).toFixed(0);
 
-      setTooltip({
-        x: event.clientX,
-        y: event.clientY,
-        coords: { x: coordX, y: coordY },
-        value: value.toFixed(1),
-      });
-    }
-  }, [innerWidth, innerHeight, displayGridSize, field, offsetX, offsetY]);
+        setTooltip({
+          x: event.clientX,
+          y: event.clientY,
+          coords: { x: coordX, y: coordY },
+          value: value.toFixed(1),
+        });
+      }
+    },
+    [innerWidth, innerHeight, displayGridSize, field, offsetX, offsetY]
+  );
 
   const handleMouseLeave = useCallback(() => {
     setTooltip(null);
@@ -228,13 +242,7 @@ function DiffusionFieldChart({ width, height, gridData, gridSize, valueRange, so
 
         <Group left={MARGIN.left + offsetX} top={MARGIN.top + offsetY}>
           {/* Background */}
-          <rect
-            x={0}
-            y={0}
-            width={innerWidth}
-            height={innerHeight}
-            fill="#1e293b"
-          />
+          <rect x={0} y={0} width={innerWidth} height={innerHeight} fill="#1e293b" />
 
           {/* Heatmap cells - Y is inverted: grid row 0 corresponds to data Y=1 (top) */}
           {field.map((row, yi) =>
@@ -245,7 +253,9 @@ function DiffusionFieldChart({ width, height, gridData, gridSize, valueRange, so
                 y={(displayGridSize - 1 - yi) * cellSize}
                 width={cellSize + 0.5}
                 height={cellSize + 0.5}
-                fill={interpolateColor(useLogScale ? normalizeValueLog(value) : normalizeValue(value, minValue, maxValue))}
+                fill={interpolateColor(
+                  useLogScale ? normalizeValueLog(value) : normalizeValue(value, minValue, maxValue)
+                )}
                 fillOpacity={0.9}
               />
             ))
@@ -275,11 +285,11 @@ function DiffusionFieldChart({ width, height, gridData, gridSize, valueRange, so
 
           {/* Source markers */}
           {sources.map((source, i) => (
-            <g key={`source-${i}`} transform={`translate(${xScale(source.x)}, ${dataYToSvgY(source.y)})`}>
-              <circle
-                r={6 + Math.abs(source.strength) / 20}
-                className="source-marker"
-              />
+            <g
+              key={`source-${i}`}
+              transform={`translate(${xScale(source.x)}, ${dataYToSvgY(source.y)})`}
+            >
+              <circle r={6 + Math.abs(source.strength) / 20} className="source-marker" />
               <text
                 y={-10 - Math.abs(source.strength) / 20}
                 textAnchor="middle"
@@ -321,7 +331,11 @@ function DiffusionFieldChart({ width, height, gridData, gridSize, valueRange, so
               cx={xScale(entity.x)}
               cy={dataYToSvgY(entity.y)}
               r={4}
-              fill={entity.fieldValue > 0 ? '#ef4444' : entity.fieldValue < 0 ? '#3b82f6' : '#94a3b8'}
+              fill={(() => {
+                if (entity.fieldValue > 0) return "#ef4444";
+                if (entity.fieldValue < 0) return "#3b82f6";
+                return "#94a3b8";
+              })()}
               fillOpacity={0.7}
               stroke="rgba(255,255,255,0.3)"
               strokeWidth={1}
@@ -354,13 +368,15 @@ function DiffusionFieldChart({ width, height, gridData, gridSize, valueRange, so
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="vis-tooltip"
+          className="vis-tooltip vis-tooltip-dynamic"
           style={{
-            left: tooltip.x + 15,
-            top: tooltip.y - 10,
+            '--vis-tooltip-left': `${tooltip.x + 15}px`,
+            '--vis-tooltip-top': `${tooltip.y - 10}px`,
           }}
         >
-          <div className="vis-tooltip-header">Position ({tooltip.coords.x}, {tooltip.coords.y})</div>
+          <div className="vis-tooltip-header">
+            Position ({tooltip.coords.x}, {tooltip.coords.y})
+          </div>
           <div className="vis-tooltip-row">
             <span className="vis-tooltip-label">Field Value</span>
             <span className="vis-tooltip-value">{tooltip.value}</span>
@@ -376,19 +392,24 @@ function DiffusionFieldChart({ width, height, gridData, gridSize, valueRange, so
  *
  * @param {boolean} autoScaleColors - If true, scale colors to actual min/max instead of fixed -100/100
  */
-export function PlaneDiffusionVis({ config, systemActions, selectedTick, autoScaleColors = false }) {
+export function PlaneDiffusionVis({
+  config,
+  systemActions,
+  selectedTick,
+  autoScaleColors = false,
+}) {
   // Find the snapshot for the selected tick (or most recent if no tick selected)
   const snapshot = useMemo(() => {
     if (!systemActions?.length) return null;
 
     // Filter to actions from this system that have diffusion snapshots
-    const validActions = systemActions.filter(a => a.details?.diffusionSnapshot);
+    const validActions = systemActions.filter((a) => a.details?.diffusionSnapshot);
     if (!validActions.length) return null;
 
     // If selectedTick is specified, find closest action at or before that tick
     // If no snapshot exists yet at that tick, return null (don't show future data)
     if (selectedTick !== undefined && selectedTick !== null) {
-      const atOrBefore = validActions.filter(a => a.tick <= selectedTick);
+      const atOrBefore = validActions.filter((a) => a.tick <= selectedTick);
       if (atOrBefore.length > 0) {
         return atOrBefore[atOrBefore.length - 1].details.diffusionSnapshot;
       }
@@ -401,9 +422,25 @@ export function PlaneDiffusionVis({ config, systemActions, selectedTick, autoSca
   }, [systemActions, selectedTick]);
 
   // Extract data from snapshot
-  const { gridData, gridSize, valueRange, gridStats, sources, sinks, entities: entityData } = useMemo(() => {
+  const {
+    gridData,
+    gridSize,
+    valueRange,
+    gridStats,
+    sources,
+    sinks,
+    entities: entityData,
+  } = useMemo(() => {
     if (!snapshot) {
-      return { gridData: null, gridSize: 100, valueRange: { min: -100, max: 100 }, gridStats: null, sources: [], sinks: [], entities: [] };
+      return {
+        gridData: null,
+        gridSize: 100,
+        valueRange: { min: -100, max: 100 },
+        gridStats: null,
+        sources: [],
+        sinks: [],
+        entities: [],
+      };
     }
 
     // Use fixed coordinate system (0-100 is the semantic plane range)
@@ -433,15 +470,15 @@ export function PlaneDiffusionVis({ config, systemActions, selectedTick, autoSca
       gridSize: snapshot.gridSize || 100,
       valueRange: effectiveRange,
       gridStats: snapshot.gridStats || null,
-      sources: snapshot.sources.map(s => ({
+      sources: snapshot.sources.map((s) => ({
         ...normalize(s),
-        label: s.name?.slice(0, 8) || 'S',
+        label: s.name?.slice(0, 8) || "S",
       })),
-      sinks: (snapshot.sinks || []).map(k => ({
+      sinks: (snapshot.sinks || []).map((k) => ({
         ...normalize(k),
-        label: k.name?.slice(0, 8) || 'K',
+        label: k.name?.slice(0, 8) || "K",
       })),
-      entities: snapshot.entities.map(e => ({
+      entities: snapshot.entities.map((e) => ({
         ...normalize(e),
         fieldValue: e.fieldValue,
       })),
@@ -462,7 +499,7 @@ export function PlaneDiffusionVis({ config, systemActions, selectedTick, autoSca
       <div className="vis-empty">
         <div className="vis-empty-icon">&#9783;</div>
         <div>No diffusion data</div>
-        <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+        <div className="vis-info-hint">
           Run simulation with {config.name} enabled
         </div>
       </div>
@@ -474,21 +511,25 @@ export function PlaneDiffusionVis({ config, systemActions, selectedTick, autoSca
       <div className="vis-container-header">
         <div className="vis-container-title">
           {config.name}
-          {selectedTick !== undefined && <span style={{ color: '#64748b', marginLeft: 8 }}>Tick {selectedTick}</span>}
+          {selectedTick !== undefined && (
+            <span className="vis-subtitle">Tick {selectedTick}</span>
+          )}
         </div>
-        <div style={{ fontSize: 11, color: '#64748b' }}>
+        <div className="vis-info-text">
           {sources.length} sources, {sinks.length} sinks, {entityData.length} entities
           {gridStats && (
-            <span style={{ marginLeft: 12 }}>
-              | min: {gridStats.min?.toFixed(1)} max: {gridStats.max?.toFixed(1)} avg: {gridStats.avg?.toFixed(2)} ({gridStats.nonZeroCount} non-zero)
+            <span className="vis-info-stats">
+              | min: {gridStats.min?.toFixed(1)} max: {gridStats.max?.toFixed(1)} avg:{" "}
+              {gridStats.avg?.toFixed(2)} ({gridStats.nonZeroCount} non-zero)
             </span>
           )}
         </div>
       </div>
       <div className="vis-container-body">
         <ParentSize>
-          {({ width, height }) => (
-            width > 0 && height > 0 && (
+          {({ width, height }) =>
+            width > 0 &&
+            height > 0 && (
               <DiffusionFieldChart
                 width={width}
                 height={height}
@@ -501,7 +542,7 @@ export function PlaneDiffusionVis({ config, systemActions, selectedTick, autoSca
                 useLogScale={autoScaleColors}
               />
             )
-          )}
+          }
         </ParentSize>
         <GradientLegend
           title={autoScaleColors ? "Field Value (log scale)" : "Field Value"}
@@ -513,5 +554,31 @@ export function PlaneDiffusionVis({ config, systemActions, selectedTick, autoSca
     </div>
   );
 }
+
+GradientLegend.propTypes = {
+  title: PropTypes.string,
+  minLabel: PropTypes.string,
+  maxLabel: PropTypes.string,
+  centerLabel: PropTypes.string,
+};
+
+DiffusionFieldChart.propTypes = {
+  width: PropTypes.number,
+  height: PropTypes.number,
+  gridData: PropTypes.array,
+  gridSize: PropTypes.number,
+  valueRange: PropTypes.object,
+  sources: PropTypes.array,
+  sinks: PropTypes.array,
+  entities: PropTypes.array,
+  useLogScale: PropTypes.bool,
+};
+
+PlaneDiffusionVis.propTypes = {
+  config: PropTypes.object,
+  systemActions: PropTypes.array,
+  selectedTick: PropTypes.number,
+  autoScaleColors: PropTypes.bool,
+};
 
 export default PlaneDiffusionVis;

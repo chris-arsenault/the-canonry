@@ -12,30 +12,30 @@
 // =============================================================================
 
 export type HistorianTone =
-  | 'scholarly'       // Professional, measured, striving for objectivity. Biases surface in emphasis.
-  | 'witty'          // Tongue-in-cheek, sarcastic, playful
-  | 'weary'          // Resigned satire, black humor, aloof compassion
-  | 'forensic'       // Cold, clinical, methodical — the historian as detective
-  | 'elegiac'        // Mournful, lyrical, focused on loss and what's been forgotten
-  | 'cantankerous'   // Irritable, contrarian, perpetually annoyed by sloppy scholarship
-  | 'rueful'         // Self-aware regret with a crooked smile, warmth in hindsight
-  | 'conspiratorial' // Whispering asides, sharing secrets with the reader
-  | 'bemused';       // Quietly puzzled and entertained by human absurdity
+  | "scholarly" // Professional, measured, striving for objectivity. Biases surface in emphasis.
+  | "witty" // Tongue-in-cheek, sarcastic, playful
+  | "weary" // Resigned satire, black humor, aloof compassion
+  | "forensic" // Cold, clinical, methodical — the historian as detective
+  | "elegiac" // Mournful, lyrical, focused on loss and what's been forgotten
+  | "cantankerous" // Irritable, contrarian, perpetually annoyed by sloppy scholarship
+  | "rueful" // Self-aware regret with a crooked smile, warmth in hindsight
+  | "conspiratorial" // Whispering asides, sharing secrets with the reader
+  | "bemused"; // Quietly puzzled and entertained by human absurdity
 
 // =============================================================================
 // Note Types
 // =============================================================================
 
 export type HistorianNoteType =
-  | 'commentary'    // General observation, admiration, color — tone-dependent
-  | 'correction'    // Factual inconsistency or inaccuracy callout
-  | 'tangent'       // Personal digression, aside, memory
-  | 'skepticism'    // Disputes or questions the account
-  | 'pedantic'      // Scholarly pedantic correction (names, dates, terminology)
-  | 'temporal';     // Temporal displacement, anachronism, ice-echo observation
+  | "commentary" // General observation, admiration, color — tone-dependent
+  | "correction" // Factual inconsistency or inaccuracy callout
+  | "tangent" // Personal digression, aside, memory
+  | "skepticism" // Disputes or questions the account
+  | "pedantic" // Scholarly pedantic correction (names, dates, terminology)
+  | "temporal"; // Temporal displacement, anachronism, ice-echo observation
 
 /** Display mode for a historian note */
-export type HistorianNoteDisplay = 'disabled' | 'popout' | 'full';
+export type HistorianNoteDisplay = "disabled" | "popout" | "full";
 
 export interface HistorianNote {
   /** Unique note ID */
@@ -61,15 +61,17 @@ export interface HistorianNote {
 }
 
 /** Resolve effective display mode, handling legacy `enabled` field */
-export function noteDisplay(note: Pick<HistorianNote, 'display' | 'enabled'>): HistorianNoteDisplay {
+export function noteDisplay(
+  note: Pick<HistorianNote, "display" | "enabled">
+): HistorianNoteDisplay {
   if (note.display) return note.display;
-  if (note.enabled === false) return 'disabled';
-  return 'full';
+  if (note.enabled === false) return "disabled";
+  return "full";
 }
 
 /** Whether a note is functionally active (not disabled) */
-export function isNoteActive(note: Pick<HistorianNote, 'display' | 'enabled'>): boolean {
-  return noteDisplay(note) !== 'disabled';
+export function isNoteActive(note: Pick<HistorianNote, "display" | "enabled">): boolean {
+  return noteDisplay(note) !== "disabled";
 }
 
 // =============================================================================
@@ -94,11 +96,11 @@ export interface HistorianConfig {
 }
 
 export const DEFAULT_HISTORIAN_CONFIG: HistorianConfig = {
-  name: '',
-  background: '',
+  name: "",
+  background: "",
   personalityTraits: [],
   biases: [],
-  stance: '',
+  stance: "",
   privateFacts: [],
   runningGags: [],
 };
@@ -112,13 +114,13 @@ export function isHistorianConfigured(config: HistorianConfig): boolean {
 // Historian Run (IndexedDB record for review workflow)
 // =============================================================================
 
-export type HistorianTargetType = 'entity' | 'chronicle' | 'chronology';
+export type HistorianTargetType = "entity" | "chronicle" | "chronology";
 
 export function computeNoteRange(
   targetType: HistorianTargetType,
-  wordCount: number,
+  wordCount: number
 ): { min: number; max: number } {
-  if (targetType === 'entity') {
+  if (targetType === "entity") {
     if (wordCount < 150) return { min: 1, max: 1 };
     if (wordCount < 300) return { min: 1, max: 3 };
     if (wordCount < 600) return { min: 2, max: 4 };
@@ -134,12 +136,12 @@ export function computeNoteRange(
 }
 
 export type HistorianRunStatus =
-  | 'pending'
-  | 'generating'
-  | 'reviewing'    // Notes generated, user reviewing
-  | 'complete'
-  | 'cancelled'
-  | 'failed';
+  | "pending"
+  | "generating"
+  | "reviewing" // Notes generated, user reviewing
+  | "complete"
+  | "cancelled"
+  | "failed";
 
 export interface HistorianRun {
   runId: string;
@@ -197,7 +199,7 @@ export interface HistorianLLMResponse {
     anchorPhrase: string;
     text: string;
     type: HistorianNoteType;
-    weight: 'major' | 'minor';
+    weight: "major" | "minor";
   }>;
 }
 

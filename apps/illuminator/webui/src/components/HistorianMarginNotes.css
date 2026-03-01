@@ -1,0 +1,208 @@
+/* HistorianMarginNotes — prefix: hmn */
+
+/* ============================================================================
+   AnchorEditor
+   ============================================================================ */
+
+.hmn-anchor-editor {
+  padding: 6px 0;
+  border-top: 1px solid rgb(139 115 85 / 15%);
+  margin-top: 4px;
+}
+
+.hmn-anchor-editor-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.hmn-anchor-input {
+  flex: 1;
+  font-size: 11px;
+  padding: 3px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.hmn-anchor-save-btn {
+  font-size: 10px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: default;
+  opacity: 0.5;
+}
+
+.hmn-anchor-save-btn-resolved {
+  background: #8b7355;
+  color: #fff;
+  cursor: pointer;
+  opacity: 1;
+}
+
+.hmn-anchor-cancel-btn {
+  font-size: 10px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.hmn-anchor-status {
+  font-size: 10px;
+  margin-top: 3px;
+}
+
+.hmn-anchor-status-resolved {
+  color: #5b7a5e;
+}
+
+.hmn-anchor-status-unresolved {
+  color: #c0392b;
+}
+
+/* ============================================================================
+   NoteItem
+   ============================================================================ */
+
+.hmn-note-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgb(139 115 85 / 8%);
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 4px;
+  transition: opacity 0.15s;
+  border-left: 3px solid var(--hmn-note-color);
+}
+
+.hmn-note-item-disabled {
+  background: rgb(139 115 85 / 3%);
+  opacity: 0.5;
+  border-left-color: var(--border-color);
+}
+
+.hmn-display-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--hmn-note-color);
+}
+
+.hmn-display-toggle-disabled {
+  color: #8b735560;
+}
+
+.hmn-note-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.hmn-note-header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.hmn-type-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  color: var(--hmn-note-color);
+}
+
+.hmn-type-label-disabled {
+  opacity: 0.6;
+}
+
+.hmn-display-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.hmn-anchor-text {
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.hmn-anchor-text-missing {
+  color: #ef4444;
+}
+
+.hmn-anchor-text-normal {
+  color: var(--text-muted);
+}
+
+.hmn-anchor-text-editable {
+  cursor: pointer;
+}
+
+.hmn-anchor-text-readonly {
+  cursor: default;
+}
+
+.hmn-anchor-warning {
+  font-size: 11px;
+  color: #ef4444;
+  margin-top: 4px;
+}
+
+.hmn-note-text {
+  font-size: 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.hmn-note-text-disabled {
+  color: var(--text-muted);
+}
+
+.hmn-note-text-active {
+  color: var(--text-secondary);
+}
+
+/* ============================================================================
+   Main Component
+   ============================================================================ */
+
+.hmn-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hmn-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b7355;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hmn-summary {
+  font-size: 10px;
+  color: var(--text-muted);
+}

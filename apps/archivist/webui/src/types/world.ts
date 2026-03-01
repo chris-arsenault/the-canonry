@@ -10,9 +10,9 @@ import type {
   WorldMetadata as CanonryWorldMetadata,
   WorldOutput as CanonryWorldOutput,
   WorldRelationship as CanonryWorldRelationship,
-} from '@canonry/world-schema';
+} from "@canonry/world-schema";
 
-export type WorldState = Omit<CanonryWorldOutput, 'hardState'> & {
+export type WorldState = Omit<CanonryWorldOutput, "hardState"> & {
   hardState: HardState[];
 };
 export type HardState = CanonryWorldEntity & {
@@ -25,7 +25,7 @@ export type HardState = CanonryWorldEntity & {
 export type Relationship = CanonryWorldRelationship;
 export type WorldMetadata = CanonryWorldMetadata;
 export type Prominence = CanonryProminenceLabel;
-export type EntityKind = EntityKindDefinition['kind'];
+export type EntityKind = EntityKindDefinition["kind"];
 export type Point = SemanticCoordinates;
 export type Region = SemanticRegion;
 export type Schema = CanonrySchemaSlice;
@@ -42,27 +42,32 @@ export interface Filters {
   showHistoricalRelationships: boolean;
 }
 
-export type GraphMode = 'full' | 'radial' | 'temporal' | 'faction' | 'conflict' | 'economic';
+export type GraphMode = "full" | "radial" | "temporal" | "faction" | "conflict" | "economic";
 
 // Lore types
-export type LoreType = 'description' | 'relationship_backstory' | 'era_narrative' | 'chain_link' | 'discovery_event';
+export type LoreType =
+  | "description"
+  | "relationship_backstory"
+  | "era_narrative"
+  | "chain_link"
+  | "discovery_event";
 
 export interface LoreRecord {
   id: string;
   type: LoreType;
-  targetId?: string;  // For description, relationship_backstory, chain_link, discovery_event
+  targetId?: string; // For description, relationship_backstory, chain_link, discovery_event
   text: string;
   cached?: boolean;
   warnings?: string[];
 }
 
 export interface DescriptionLore extends LoreRecord {
-  type: 'description';
+  type: "description";
   targetId: string;
 }
 
 export interface RelationshipBackstoryLore extends LoreRecord {
-  type: 'relationship_backstory';
+  type: "relationship_backstory";
   targetId: string;
   relationship: {
     kind: string;
@@ -72,7 +77,7 @@ export interface RelationshipBackstoryLore extends LoreRecord {
 }
 
 export interface EraNarrativeLore extends LoreRecord {
-  type: 'era_narrative';
+  type: "era_narrative";
   metadata: {
     from: string;
     to: string;
@@ -81,7 +86,7 @@ export interface EraNarrativeLore extends LoreRecord {
 }
 
 export interface ChainLinkLore extends LoreRecord {
-  type: 'chain_link';
+  type: "chain_link";
   targetId: string;
   metadata: {
     sourceLocation: string;
@@ -90,11 +95,11 @@ export interface ChainLinkLore extends LoreRecord {
 }
 
 export interface DiscoveryEventLore extends LoreRecord {
-  type: 'discovery_event';
+  type: "discovery_event";
   targetId: string;
   metadata: {
     explorer: string;
-    discoveryType: 'pressure' | 'chain';
+    discoveryType: "pressure" | "chain";
     significance: string;
     tick: number;
   };
@@ -103,11 +108,17 @@ export interface DiscoveryEventLore extends LoreRecord {
 export interface LoreData {
   llmEnabled: boolean;
   model: string;
-  records: (DescriptionLore | RelationshipBackstoryLore | EraNarrativeLore | ChainLinkLore | DiscoveryEventLore)[];
+  records: (
+    | DescriptionLore
+    | RelationshipBackstoryLore
+    | EraNarrativeLore
+    | ChainLinkLore
+    | DiscoveryEventLore
+  )[];
 }
 
 /** Image aspect ratio classification */
-export type ImageAspect = 'portrait' | 'landscape' | 'square';
+export type ImageAspect = "portrait" | "landscape" | "square";
 
 export interface EntityImage {
   entityId: string;
@@ -129,9 +140,4 @@ export interface ImageMetadata {
   results: EntityImage[];
 }
 
-export type {
-  CanonrySchemaSlice,
-  CultureDefinition,
-  EntityKindDefinition,
-  Validation,
-};
+export type { CanonrySchemaSlice, CultureDefinition, EntityKindDefinition, Validation };

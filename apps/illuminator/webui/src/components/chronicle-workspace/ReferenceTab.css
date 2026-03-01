@@ -1,0 +1,719 @@
+/* ReferenceTab.css — co-located styles for ReferenceTab.jsx */
+/* Shared utilities available: .ilu-section, .ilu-container, .ilu-container-header,
+   .ilu-container-header-bordered, .ilu-action-btn, .ilu-empty, .ilu-footer,
+   .ilu-warning-banner, .ilu-error-banner, .ilu-section-label
+   (from packages/shared-components/src/styles/components/panel-utilities.css) */
+
+/* ============================================================================
+ * PerspectiveSynthesisViewer
+ * ============================================================================ */
+
+/* Shared: compose with .ilu-container */
+.ref-tab-synth {
+  margin-bottom: 16px;
+}
+
+/* Shared: compose with .ilu-container-header */
+.ref-tab-synth-header {
+  gap: 12px;
+  cursor: pointer;
+}
+
+.ref-tab-synth-header-expanded {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ref-tab-synth-toggle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ref-tab-synth-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ref-tab-synth-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.ref-tab-synth-body {
+  padding: 16px;
+}
+
+/* Tabs */
+.ref-tab-synth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.ref-tab-synth-tab-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 400;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ref-tab-synth-tab-btn-active {
+  font-weight: 600;
+  background: var(--accent-primary);
+  color: white;
+}
+
+/* Section heading (reused across many sections) */
+.ref-tab-section-heading {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.ref-tab-section-heading-mb8 {
+  margin-bottom: 8px;
+}
+
+/* Group wrapper (spacing between sub-sections) */
+.ref-tab-group {
+  margin-bottom: 16px;
+}
+
+/* Text blocks */
+.ref-tab-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ref-tab-text-brief {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+/* Vertical list */
+.ref-tab-vlist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ref-tab-vlist-tight {
+  gap: 6px;
+}
+
+/* Card items (facets, directives, voice entries, entities, facts, dynamics, cultures) */
+.ref-tab-card {
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.ref-tab-card-accent-left {
+  border-left: 3px solid var(--accent-color);
+}
+
+.ref-tab-card-accent-secondary {
+  border-left: 3px solid var(--accent-secondary, #8b5cf6);
+}
+
+.ref-tab-card-accent-tertiary {
+  border-left: 3px solid var(--accent-tertiary, #f59e0b);
+}
+
+.ref-tab-card-accent-green {
+  border-left: 3px solid #10b981;
+}
+
+.ref-tab-card-accent-cyan {
+  border-left: 3px solid #06b6d4;
+}
+
+.ref-tab-card-id {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--accent-color);
+  margin-bottom: 4px;
+}
+
+.ref-tab-card-body {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.ref-tab-card-heading {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-secondary, #8b5cf6);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.ref-tab-card-heading-tertiary {
+  color: var(--accent-tertiary, #f59e0b);
+}
+
+.ref-tab-card-heading-cyan {
+  color: #06b6d4;
+}
+
+/* Motifs */
+.ref-tab-motifs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ref-tab-motif {
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Metadata footer */
+.ref-tab-synth-footer {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  margin-top: 8px;
+}
+
+/* Input tab specific */
+.ref-tab-card-style {
+  font-size: 12px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-secondary, #8b5cf6);
+}
+
+.ref-tab-card-name {
+  font-weight: 500;
+}
+
+.ref-tab-card-inline-meta {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.ref-tab-card-sub {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Entity entry */
+.ref-tab-entity {
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ref-tab-entity-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ref-tab-entity-meta {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.ref-tab-entity-summary {
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+/* Fact entry */
+.ref-tab-fact {
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ref-tab-fact-constraint {
+  border-left: 3px solid #f59e0b;
+}
+
+.ref-tab-fact-normal {
+  border-left: 3px solid var(--accent-color);
+}
+
+.ref-tab-fact-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ref-tab-fact-id {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ref-tab-fact-badge {
+  padding: 2px 6px;
+  background: rgb(245 158 11 / 15%);
+  color: #f59e0b;
+  font-size: 10px;
+  border-radius: 4px;
+}
+
+.ref-tab-fact-text {
+  color: var(--text-secondary);
+}
+
+/* Culture identity */
+.ref-tab-culture {
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.ref-tab-culture-name {
+  font-weight: 500;
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.ref-tab-culture-traits {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ref-tab-culture-trait-key {
+  color: var(--text-muted);
+}
+
+/* Constellation analysis */
+.ref-tab-constellation {
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ref-tab-constellation-row {
+  margin-bottom: 8px;
+}
+
+.ref-tab-constellation-row:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+ * FactCoverageGrid
+ * ============================================================================ */
+
+.ref-tab-fcg {
+  margin-bottom: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.ref-tab-fcg-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ref-tab-fcg-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ref-tab-fcg-legend {
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 10px;
+}
+
+.ref-tab-fcg-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 16px;
+}
+
+.ref-tab-fcg-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ref-tab-fcg-symbol {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ref-tab-fcg-fact-id {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ref-tab-fcg-included {
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+/* ============================================================================
+ * FactCoverageViewer
+ * ============================================================================ */
+
+/* Shared: compose with .ilu-container */
+.ref-tab-fcv {
+  margin-bottom: 16px;
+}
+
+/* Shared: compose with .ilu-container-header */
+.ref-tab-fcv-header {
+  gap: 12px;
+  cursor: pointer;
+}
+
+.ref-tab-fcv-header-expanded {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ref-tab-fcv-body {
+  padding: 12px 16px;
+}
+
+.ref-tab-fcv-entry {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.ref-tab-fcv-entry-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ref-tab-fcv-symbol {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ref-tab-fcv-fact-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.ref-tab-fcv-faceted {
+  color: #8b7355;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.ref-tab-fcv-evidence {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 2px;
+  margin-left: 20px;
+}
+
+.ref-tab-fcv-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  text-align: right;
+}
+
+/* ============================================================================
+ * TemporalContextEditor
+ * ============================================================================ */
+
+/* Shared: compose with .ilu-section */
+.ref-tab-temporal {
+  margin-bottom: 16px;
+}
+
+.ref-tab-temporal-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.ref-tab-temporal-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ref-tab-temporal-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.ref-tab-temporal-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ref-tab-temporal-select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  min-width: 200px;
+}
+
+.ref-tab-temporal-update-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.ref-tab-temporal-update-btn-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ref-tab-temporal-update-btn-enabled {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.ref-tab-temporal-info {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ref-tab-temporal-info-label {
+  color: var(--text-muted);
+}
+
+/* Timeline area */
+.ref-tab-temporal-timeline {
+  margin-top: 16px;
+}
+
+.ref-tab-temporal-timeline-heading {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.ref-tab-temporal-no-events {
+  margin-top: 16px;
+  padding: 20px 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Temporal narrative section */
+.ref-tab-temporal-narrative {
+  margin-top: 16px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+.ref-tab-temporal-narrative-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.ref-tab-temporal-narrative-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.ref-tab-temporal-check-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.ref-tab-temporal-check-btn-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ref-tab-temporal-check-btn-enabled {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.ref-tab-temporal-narrative-text {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid #06b6d4;
+  white-space: pre-wrap;
+}
+
+/* Temporal check report */
+.ref-tab-temporal-report {
+  margin-top: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ref-tab-temporal-report-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ref-tab-temporal-report-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ref-tab-temporal-report-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ref-tab-temporal-report-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.ref-tab-temporal-export-btn {
+  padding: 2px 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.ref-tab-temporal-report-body {
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+}
+
+.ref-tab-rating-symbol {
+  font-weight: 600;
+}
+
+.ref-tab-rating-integral {
+  color: #10b981;
+}
+
+.ref-tab-rating-prevalent {
+  color: #3b82f6;
+}
+
+.ref-tab-rating-mentioned {
+  color: #f59e0b;
+}
+
+.ref-tab-rating-missing {
+  color: var(--text-muted);
+}
+
+.ref-tab-fcg-entry-highlight {
+  background: rgba(59, 130, 246, 0.12);
+  border-radius: 3px;
+}
+
+.ref-tab-fcg-included-yes {
+  color: #10b981;
+}
+
+.ref-tab-fcg-included-no {
+  color: var(--text-muted);
+}
+
+.ref-tab-fcg-legend-symbol {
+  font-weight: 600;
+  color: var(--ref-legend-color, var(--text-muted));
+}
+
+.ref-tab-fcg-legend-yes {
+  color: #10b981;
+}
+
+.ref-tab-fcg-legend-no {
+  color: var(--text-muted);
+}
+
+.ref-tab-fcg-entry-dynamic {
+  background: var(--ref-entry-bg);
+  border-radius: var(--ref-entry-radius);
+}
+
+.ref-tab-fcg-symbol-dynamic {
+  color: var(--ref-symbol-color, var(--text-muted));
+}
+
+.ref-tab-fcv-symbol-dynamic {
+  color: var(--ref-symbol-color, var(--text-muted));
+}

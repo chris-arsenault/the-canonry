@@ -188,5 +188,5 @@ export function normalizeWeights(weights: number[]): number[] {
  * Note: Loses functions, undefined, symbols, etc.
  */
 export function deepClone<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
+  return JSON.parse(JSON.stringify(obj)) as T;
 }

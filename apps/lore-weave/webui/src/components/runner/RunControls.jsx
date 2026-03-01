@@ -2,7 +2,9 @@
  * RunControls - Simulation run/stop/step buttons
  */
 
-import React from 'react';
+import React from "react";
+import PropTypes from "prop-types";
+import "./RunControls.css";
 
 function ValidityBadge({ runValidity }) {
   if (!runValidity) return null;
@@ -11,7 +13,9 @@ function ValidityBadge({ runValidity }) {
 
   const detailParts = [];
   if (scoreBreakdown?.templates) {
-    detailParts.push(`Templates ${scoreBreakdown.templates.used}/${scoreBreakdown.templates.total}`);
+    detailParts.push(
+      `Templates ${scoreBreakdown.templates.used}/${scoreBreakdown.templates.total}`
+    );
   }
   if (scoreBreakdown?.actions) {
     detailParts.push(`Actions ${scoreBreakdown.actions.used}/${scoreBreakdown.actions.total}`);
@@ -20,35 +24,23 @@ function ValidityBadge({ runValidity }) {
     detailParts.push(`Systems ${scoreBreakdown.systems.used}/${scoreBreakdown.systems.total}`);
   }
 
-  const title = detailParts.length > 0
-    ? `Score ${score}/${maxScore} • ${detailParts.join(', ')}`
-    : `Score ${score}/${maxScore}`;
+  const title =
+    detailParts.length > 0
+      ? `Score ${score}/${maxScore} • ${detailParts.join(", ")}`
+      : `Score ${score}/${maxScore}`;
 
   const scoreRatio = maxScore > 0 ? score / maxScore : 1;
-  const style = scoreRatio >= 0.9
-    ? {
-        backgroundColor: 'rgba(34, 197, 94, 0.15)',
-        color: '#22c55e',
-        border: '1px solid rgba(34, 197, 94, 0.3)'
-      }
-    : scoreRatio >= 0.6
-      ? {
-          backgroundColor: 'rgba(245, 158, 11, 0.15)',
-          color: '#f59e0b',
-          border: '1px solid rgba(245, 158, 11, 0.3)'
-        }
-      : {
-          backgroundColor: 'rgba(239, 68, 68, 0.15)',
-          color: '#ef4444',
-          border: '1px solid rgba(239, 68, 68, 0.3)'
-        };
+  let badgeClass;
+  if (scoreRatio >= 0.9) {
+    badgeClass = "rc-badge-good";
+  } else if (scoreRatio >= 0.6) {
+    badgeClass = "rc-badge-mid";
+  } else {
+    badgeClass = "rc-badge-low";
+  }
 
   return (
-    <span
-      className="lw-validity-badge"
-      style={style}
-      title={title}
-    >
+    <span className={`lw-validity-badge ${badgeClass}`} title={title}>
       Score {score}/{maxScore}
     </span>
   );
@@ -81,8 +73,10 @@ export default function RunControls({
     return (
       <>
         <div className="lw-step-indicator">
-          <span>Attempt {validityAttempts} / {maxValidityAttempts}</span>
-          <span style={{ color: 'var(--lw-accent)' }}>SEARCHING FOR BEST RUN</span>
+          <span>
+            Attempt {validityAttempts} / {maxValidityAttempts}
+          </span>
+          <span className="rc-searching-label">SEARCHING FOR BEST RUN</span>
         </div>
         <button className="lw-btn lw-btn-danger" onClick={onCancelRunUntilValid}>
           ◼ Cancel
@@ -105,8 +99,10 @@ export default function RunControls({
     return (
       <>
         <div className="lw-step-indicator">
-          <span>Epoch {simState.progress?.epoch || 0} / {simState.progress?.totalEpochs || 0}</span>
-          <span style={{ color: 'var(--lw-warning)' }}>PAUSED</span>
+          <span>
+            Epoch {simState.progress?.epoch || 0} / {simState.progress?.totalEpochs || 0}
+          </span>
+          <span className="rc-paused-label">PAUSED</span>
         </div>
         <div className="lw-button-group">
           <button className="lw-btn lw-btn-step" onClick={onStep}>
@@ -123,7 +119,7 @@ export default function RunControls({
             ↻ Reset
           </button>
         </div>
-        {simState.status === 'complete' && onViewResults && (
+        {simState.status === "complete" && onViewResults && (
           <button className="lw-btn lw-btn-success" onClick={onViewResults}>
             ✓ View Results
           </button>
@@ -135,32 +131,25 @@ export default function RunControls({
   // Idle or complete state - show run/step buttons
   return (
     <>
-      {simState.status === 'complete' && (
-        <ValidityBadge runValidity={runValidity} />
-      )}
+      {simState.status === "complete" && <ValidityBadge runValidity={runValidity} />}
       {validitySearchComplete && validityReport && (
         <span
-          className="lw-validity-badge"
-          style={{
-            backgroundColor: 'rgba(139, 92, 246, 0.15)',
-            color: '#8b5cf6',
-            border: '1px solid rgba(139, 92, 246, 0.3)'
-          }}
-          title={`Best score ${validityReport.summary.bestScore}${validityReport.summary.bestScoreMax ? `/${validityReport.summary.bestScoreMax}` : ''} on attempt ${validityReport.summary.bestAttempt}`}
+          className="lw-validity-badge rc-badge-search"
+          title={`Best score ${validityReport.summary.bestScore}${validityReport.summary.bestScoreMax ? "/" + validityReport.summary.bestScoreMax : ""} on attempt ${validityReport.summary.bestAttempt}`}
         >
           {validityReport.summary.totalAttempts} runs
         </span>
       )}
       <div className="lw-button-group">
         <button
-          className={`lw-btn lw-btn-primary ${!validation.isValid ? 'disabled' : ''}`}
+          className={`lw-btn lw-btn-primary ${!validation.isValid ? "disabled" : ""}`}
           onClick={onRun}
           disabled={!validation.isValid}
         >
           ▶ Run
         </button>
         <button
-          className={`lw-btn lw-btn-secondary ${!validation.isValid ? 'disabled' : ''}`}
+          className={`lw-btn lw-btn-secondary ${!validation.isValid ? "disabled" : ""}`}
           onClick={onRunUntilValid}
           disabled={!validation.isValid}
           title={`Run up to ${maxValidityAttempts} simulations and keep the highest score`}
@@ -168,7 +157,7 @@ export default function RunControls({
           ⟳ Search
         </button>
         <button
-          className={`lw-btn lw-btn-step ${!validation.isValid ? 'disabled' : ''}`}
+          className={`lw-btn lw-btn-step ${!validation.isValid ? "disabled" : ""}`}
           onClick={onStartStepMode}
           disabled={!validation.isValid}
           title="Run one epoch at a time"
@@ -185,7 +174,7 @@ export default function RunControls({
           ⬇ Download Runs
         </button>
       )}
-      {simState.status === 'complete' && onViewResults && (
+      {simState.status === "complete" && onViewResults && (
         <button className="lw-btn lw-btn-success" onClick={onViewResults}>
           ✓ View Results
         </button>
@@ -193,3 +182,30 @@ export default function RunControls({
     </>
   );
 }
+
+ValidityBadge.propTypes = {
+  runValidity: PropTypes.object,
+};
+
+RunControls.propTypes = {
+  isRunning: PropTypes.bool,
+  isPaused: PropTypes.bool,
+  simState: PropTypes.object,
+  validation: PropTypes.object,
+  runValidity: PropTypes.object,
+  isRunningUntilValid: PropTypes.bool,
+  validityAttempts: PropTypes.number,
+  maxValidityAttempts: PropTypes.number,
+  validitySearchComplete: PropTypes.bool,
+  validityReport: PropTypes.object,
+  onRun: PropTypes.func,
+  onRunUntilValid: PropTypes.func,
+  onCancelRunUntilValid: PropTypes.func,
+  onDownloadValidityData: PropTypes.func,
+  onStartStepMode: PropTypes.func,
+  onStep: PropTypes.func,
+  onRunToCompletion: PropTypes.func,
+  onAbort: PropTypes.func,
+  onReset: PropTypes.func,
+  onViewResults: PropTypes.func,
+};

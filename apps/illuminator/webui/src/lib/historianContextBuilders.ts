@@ -9,20 +9,28 @@
  * - useBulkHistorian hook (batch flows, via bulkHistorianDeps)
  */
 
-import { useEntityStore } from './db/entityStore';
-import { useRelationshipStore } from './db/relationshipStore';
-import { useIndexStore } from './db/indexStore';
-import { useIlluminatorConfigStore } from './db/illuminatorConfigStore';
-import { prominenceLabelFromScale, buildProminenceScale, DEFAULT_PROMINENCE_DISTRIBUTION } from '@canonry/world-schema';
-import { isHistorianConfigured, isNoteActive } from './historianTypes';
-import type { HistorianConfig } from './historianTypes';
-import type { HistorianEditionConfig } from '../hooks/useHistorianEdition';
-import type { HistorianReviewConfig } from '../hooks/useHistorianReview';
-import { getChronicle, getChroniclesForSimulation, computeCorpusFactStrength, computeAnnotationReinforcementCounts } from './db/chronicleRepository';
-import type { ReinforcementCounts } from './db/chronicleRepository';
-import type { FactCoverageReport } from './chronicleTypes';
-import * as entityRepo from './db/entityRepository';
-import type { EntityNavItem } from './db/entityNav';
+import { useEntityStore } from "./db/entityStore";
+import { useRelationshipStore } from "./db/relationshipStore";
+import { useIndexStore } from "./db/indexStore";
+import { useIlluminatorConfigStore } from "./db/illuminatorConfigStore";
+import {
+  prominenceLabelFromScale,
+  buildProminenceScale,
+  DEFAULT_PROMINENCE_DISTRIBUTION,
+} from "@canonry/world-schema";
+import { isHistorianConfigured, isNoteActive } from "./historianTypes";
+import type { HistorianEditionConfig } from "../hooks/useHistorianEdition";
+import type { HistorianReviewConfig } from "../hooks/useHistorianReview";
+import {
+  getChronicle,
+  getChroniclesForSimulation,
+  computeCorpusFactStrength,
+  computeAnnotationReinforcementCounts,
+} from "./db/chronicleRepository";
+import type { ReinforcementCounts } from "./db/chronicleRepository";
+import type { FactCoverageReport } from "./chronicleTypes";
+import * as entityRepo from "./db/entityRepository";
+import type { EntityNavItem } from "./db/entityNav";
 
 // ============================================================================
 // Prominence scale helper
@@ -59,7 +67,7 @@ interface NeighborSummary {
  */
 async function buildRelationshipsAndNeighbors(
   entityId: string,
-  entityNavMap: Map<string, EntityNavItem>,
+  entityNavMap: Map<string, EntityNavItem>
 ): Promise<{ relationships: RelationshipSummary[]; neighborSummaries: NeighborSummary[] }> {
   const byEntity = useRelationshipStore.getState().byEntity;
   const rels = (byEntity.get(entityId) || []).slice(0, 12).map((rel) => {
@@ -68,13 +76,13 @@ async function buildRelationshipsAndNeighbors(
     return {
       kind: rel.kind,
       targetName: target?.name || targetId,
-      targetKind: target?.kind || 'unknown',
+      targetKind: target?.kind || "unknown",
     };
   });
 
-  const neighborIds = (byEntity.get(entityId) || []).slice(0, 5).map((rel) =>
-    rel.src === entityId ? rel.dst : rel.src,
-  );
+  const neighborIds = (byEntity.get(entityId) || [])
+    .slice(0, 5)
+    .map((rel) => (rel.src === entityId ? rel.dst : rel.src));
   const neighborFull = await useEntityStore.getState().loadEntities(neighborIds);
   const neighborMap = new Map(neighborFull.map((e) => [e.id, e]));
   const neighborSummaries = neighborIds
@@ -84,7 +92,7 @@ async function buildRelationshipsAndNeighbors(
       return {
         name: target.name,
         kind: target.kind,
-        summary: target.summary || target.description?.slice(0, 200) || '',
+        summary: target.summary || target.description?.slice(0, 200) || "",
       };
     })
     .filter((s): s is NeighborSummary => s !== null);
@@ -117,6 +125,7 @@ const HISTORIAN_SAMPLING = {
 
 function shuffleInPlace<T>(items: T[]): void {
   for (let i = items.length - 1; i > 0; i -= 1) {
+    // eslint-disable-next-line sonarjs/pseudo-random -- non-security shuffle for processing order
     const j = Math.floor(Math.random() * (i + 1));
     [items[i], items[j]] = [items[j], items[i]];
   }
@@ -148,11 +157,13 @@ interface PreviousNoteSummary {
   type: string;
 }
 
-export async function collectPreviousNotes(options: {
-  relatedEntityIds?: string[];
-  relatedChronicleIds?: string[];
-  maxOverride?: number;
-} = {}): Promise<PreviousNoteSummary[]> {
+export async function collectPreviousNotes(
+  options: {
+    relatedEntityIds?: string[];
+    relatedChronicleIds?: string[];
+    maxOverride?: number;
+  } = {}
+): Promise<PreviousNoteSummary[]> {
   const { maxPerTarget, relatedRatio } = HISTORIAN_SAMPLING;
   const maxTotal = options.maxOverride ?? HISTORIAN_SAMPLING.maxTotal;
   if (maxTotal <= 0) return [];
@@ -165,7 +176,7 @@ export async function collectPreviousNotes(options: {
   const addNotesForTarget = (
     targetKey: string,
     targetMeta: { type: string; id: string; name: string },
-    notes: Array<{ noteId?: string; anchorPhrase: string; text: string; type: string }>,
+    notes: Array<{ noteId?: string; anchorPhrase: string; text: string; type: string }>
   ) => {
     if (!notes.length) return;
     const mapped: NoteEntry[] = notes.map((note, index) => ({
@@ -186,11 +197,15 @@ export async function collectPreviousNotes(options: {
     const allEntities = await entityRepo.getEntitiesForRun(simulationRunId);
     for (const entity of allEntities) {
       const notes = (entity.enrichment?.historianNotes || []).filter(isNoteActive);
-      addNotesForTarget(`entity:${entity.id}`, {
-        type: 'entity',
-        id: entity.id,
-        name: entity.name,
-      }, notes);
+      addNotesForTarget(
+        `entity:${entity.id}`,
+        {
+          type: "entity",
+          id: entity.id,
+          name: entity.name,
+        },
+        notes
+      );
     }
   }
 
@@ -199,11 +214,15 @@ export async function collectPreviousNotes(options: {
     const chronicleRecords = await getChroniclesForSimulation(simulationRunId);
     for (const chronicle of chronicleRecords) {
       const notes = (chronicle.historianNotes || []).filter(isNoteActive);
-      addNotesForTarget(`chronicle:${chronicle.chronicleId}`, {
-        type: 'chronicle',
-        id: chronicle.chronicleId,
-        name: chronicle.title || chronicle.chronicleId,
-      }, notes);
+      addNotesForTarget(
+        `chronicle:${chronicle.chronicleId}`,
+        {
+          type: "chronicle",
+          id: chronicle.chronicleId,
+          name: chronicle.title || chronicle.chronicleId,
+        },
+        notes
+      );
     }
   }
 
@@ -219,8 +238,8 @@ export async function collectPreviousNotes(options: {
 
   const total = Math.min(maxTotal, cappedNotes.length);
   const relatedNotes = cappedNotes.filter((note) => {
-    if (note.targetType === 'entity') return relatedEntityIds.has(note.targetId);
-    if (note.targetType === 'chronicle') return relatedChronicleIds.has(note.targetId);
+    if (note.targetType === "entity") return relatedEntityIds.has(note.targetId);
+    if (note.targetType === "chronicle") return relatedChronicleIds.has(note.targetId);
     return false;
   });
 
@@ -252,7 +271,7 @@ export async function collectPreviousNotes(options: {
 export async function buildHistorianEditionContext(
   entityId: string,
   tone?: string,
-  reEdition?: boolean,
+  reEdition?: boolean
 ): Promise<HistorianEditionConfig | null> {
   const { projectId, simulationRunId, worldContext, historianConfig } =
     useIlluminatorConfigStore.getState();
@@ -267,16 +286,16 @@ export async function buildHistorianEditionContext(
   // output). The first historian-edition or legacy-copy-edit entry is always the pre-historian
   // text that was replaced by the first edition. Filter edition entries from the archive so
   // the LLM works from the original source material, not prior historian rewrites.
-  const editionSources = new Set(['historian-edition', 'legacy-copy-edit']);
+  const editionSources = new Set(["historian-edition", "legacy-copy-edit"]);
   let description = entity.description;
   let filteredHistory = entity.enrichment?.descriptionHistory || [];
-  const firstEdition = filteredHistory.find(
-    (h: { source?: string }) => editionSources.has(h.source || ''),
+  const firstEdition = filteredHistory.find((h: { source?: string }) =>
+    editionSources.has(h.source || "")
   );
   if (firstEdition) {
     description = firstEdition.description;
     filteredHistory = filteredHistory.filter(
-      (h: { source?: string }) => !editionSources.has(h.source || ''),
+      (h: { source?: string }) => !editionSources.has(h.source || "")
     );
   } else if (reEdition) {
     return null; // re-edition requested but no prior edition exists
@@ -287,7 +306,7 @@ export async function buildHistorianEditionContext(
 
   const { relationships, neighborSummaries } = await buildRelationshipsAndNeighbors(
     entity.id,
-    entityNavMap,
+    entityNavMap
   );
 
   // Gather chronicle summaries from backrefs
@@ -306,8 +325,8 @@ export async function buildHistorianEditionContext(
         chronicleSummaries.push({
           chronicleId: chronicle.chronicleId,
           title: chronicle.title,
-          format: chronicle.format || '',
-          summary: chronicle.summary || chronicle.finalContent?.slice(0, 500) || '',
+          format: chronicle.format || "",
+          summary: chronicle.summary || chronicle.finalContent?.slice(0, 500) || "",
         });
       }
     } catch {
@@ -325,11 +344,11 @@ export async function buildHistorianEditionContext(
     entityId: entity.id,
     entityName: entity.name,
     entityKind: entity.kind,
-    entitySubtype: entity.subtype || '',
-    entityCulture: entity.culture || '',
+    entitySubtype: entity.subtype || "",
+    entityCulture: entity.culture || "",
     entityProminence: prominenceLabelFromScale(entity.prominence, prominenceScale),
     description,
-    summary: entity.summary || '',
+    summary: entity.summary || "",
     descriptionHistory: filteredHistory,
     chronicleSummaries,
     relationships,
@@ -338,7 +357,7 @@ export async function buildHistorianEditionContext(
     worldDynamics: (worldContext.worldDynamics || []).map((d: { text: string }) => d.text),
     previousNotes,
     historianConfig,
-    tone: (tone || 'scholarly') as HistorianEditionConfig['tone'],
+    tone: (tone || "scholarly") as HistorianEditionConfig["tone"],
   };
 }
 
@@ -350,7 +369,7 @@ export async function buildHistorianReviewContext(
   entityId: string,
   tone?: string,
   voiceDigestCache?: CorpusVoiceDigestCache,
-  maxNotesOverride?: number,
+  maxNotesOverride?: number
 ): Promise<HistorianReviewConfig | null> {
   const { projectId, simulationRunId, worldContext, historianConfig } =
     useIlluminatorConfigStore.getState();
@@ -365,7 +384,7 @@ export async function buildHistorianReviewContext(
 
   const { relationships, neighborSummaries } = await buildRelationshipsAndNeighbors(
     entity.id,
-    entityNavMap,
+    entityNavMap
   );
 
   // Build corpus voice digest (cached across batch runs)
@@ -375,10 +394,10 @@ export async function buildHistorianReviewContext(
     entityId: entity.id,
     entityName: entity.name,
     entityKind: entity.kind,
-    entitySubtype: entity.subtype || '',
-    entityCulture: entity.culture || '',
+    entitySubtype: entity.subtype || "",
+    entityCulture: entity.culture || "",
     entityProminence: prominenceLabelFromScale(entity.prominence, prominenceScale),
-    summary: entity.summary || '',
+    summary: entity.summary || "",
     relationships,
     neighborSummaries,
     canonFacts: (worldContext.canonFactsWithMetadata || []).map((f: { text: string }) => f.text),
@@ -394,14 +413,14 @@ export async function buildHistorianReviewContext(
   return {
     projectId,
     simulationRunId,
-    targetType: 'entity',
+    targetType: "entity",
     targetId: entity.id,
     targetName: entity.name,
     sourceText: entity.description,
     contextJson,
     previousNotesJson: JSON.stringify(previousNotes),
     historianConfig,
-    tone: (tone || 'weary') as HistorianReviewConfig['tone'],
+    tone: (tone || "weary") as HistorianReviewConfig["tone"],
   };
 }
 
@@ -414,13 +433,55 @@ export async function buildHistorianReviewContext(
  */
 export type ReinforcementCache = { runId: string | null; data: ReinforcementCounts | null };
 
+async function resolveCachedValue<T>(
+  cache: { runId: string | null; [key: string]: unknown } | undefined,
+  runId: string,
+  cacheKey: string,
+  compute: () => Promise<T>
+): Promise<T> {
+  if (cache && cache.runId === runId && cache[cacheKey] != null) {
+    return cache[cacheKey] as T;
+  }
+  const value = await compute();
+  if (cache) {
+    cache.runId = runId;
+    cache[cacheKey] = value;
+  }
+  return value;
+}
+
+async function resolveFactCoverageGuidance(
+  factCoverageReport: ChronicleRecord["factCoverageReport"],
+  simulationRunId: string,
+  worldContext: { canonFactsWithMetadata?: Array<{ id: string; type?: string; disabled?: boolean }> },
+  corpusStrengthCache?: { runId: string | null; strength: Map<string, number> | null },
+  reinforcementCache?: ReinforcementCache
+) {
+  const corpusStrength = await resolveCachedValue(
+    corpusStrengthCache, simulationRunId, "strength",
+    () => computeCorpusFactStrength(simulationRunId)
+  );
+  const reinforcement = await resolveCachedValue(
+    reinforcementCache, simulationRunId, "data",
+    () => computeAnnotationReinforcementCounts(simulationRunId)
+  );
+
+  const constraintFactIds = new Set(
+    (worldContext.canonFactsWithMetadata || [])
+      .filter((f) => f.type === "generation_constraint" || f.disabled)
+      .map((f) => f.id)
+  );
+
+  return buildFactCoverageGuidance(factCoverageReport, corpusStrength, constraintFactIds, reinforcement);
+}
+
 export async function buildChronicleReviewContext(
   chronicleId: string,
   tone?: string,
   corpusStrengthCache?: { runId: string | null; strength: Map<string, number> | null },
   voiceDigestCache?: CorpusVoiceDigestCache,
   reinforcementCache?: ReinforcementCache,
-  maxNotesOverride?: number,
+  maxNotesOverride?: number
 ): Promise<HistorianReviewConfig | null> {
   const { projectId, simulationRunId, worldContext, historianConfig } =
     useIlluminatorConfigStore.getState();
@@ -429,81 +490,54 @@ export async function buildChronicleReviewContext(
 
   const chronicle = await getChronicle(chronicleId);
   if (!chronicle) return null;
-  if (chronicle.status !== 'complete' || !chronicle.finalContent) return null;
+  if (chronicle.status !== "complete" || !chronicle.finalContent) return null;
 
   const content = chronicle.finalContent;
 
   // Build cast summaries
-  const castEntityIds = (chronicle.roleAssignments || []).map((ra: { entityId: string }) => ra.entityId).filter(Boolean);
+  const castEntityIds = (chronicle.roleAssignments || [])
+    .map((ra: { entityId: string }) => ra.entityId)
+    .filter(Boolean);
   const castFull = await useEntityStore.getState().loadEntities(castEntityIds);
   const castMap = new Map(castFull.map((e: { id: string }) => [e.id, e]));
 
-  const castSummaries = (chronicle.roleAssignments || []).slice(0, 10).map((ra: { entityId: string }) => {
-    const entity = castMap.get(ra.entityId);
-    if (!entity) return null;
-    return {
-      name: entity.name,
-      kind: entity.kind,
-      summary: entity.summary || entity.description?.slice(0, 200) || '',
-    };
-  }).filter(Boolean);
+  const castSummaries = (chronicle.roleAssignments || [])
+    .slice(0, 10)
+    .map((ra: { entityId: string }) => {
+      const entity = castMap.get(ra.entityId);
+      if (!entity) return null;
+      return {
+        name: entity.name,
+        kind: entity.kind,
+        summary: entity.summary || entity.description?.slice(0, 200) || "",
+      };
+    })
+    .filter(Boolean);
 
   const cast = (chronicle.roleAssignments || []).map((ra: { entityId: string; role: string }) => {
     const entity = castMap.get(ra.entityId);
     return {
       entityName: entity?.name || ra.entityId,
       role: ra.role,
-      kind: entity?.kind || 'unknown',
+      kind: entity?.kind || "unknown",
     };
   });
 
-  // Compute fact coverage guidance if report exists
-  let factCoverageGuidance = undefined;
-  if (chronicle.factCoverageReport?.entries?.length) {
-    let corpusStrength: Map<string, number>;
-    if (corpusStrengthCache && corpusStrengthCache.runId === simulationRunId && corpusStrengthCache.strength) {
-      corpusStrength = corpusStrengthCache.strength;
-    } else {
-      corpusStrength = await computeCorpusFactStrength(simulationRunId);
-      if (corpusStrengthCache) {
-        corpusStrengthCache.runId = simulationRunId;
-        corpusStrengthCache.strength = corpusStrength;
-      }
-    }
-
-    // Reinforcement counts for dynamic dampening
-    let reinforcement: ReinforcementCounts | undefined;
-    if (reinforcementCache && reinforcementCache.runId === simulationRunId && reinforcementCache.data) {
-      reinforcement = reinforcementCache.data;
-    } else {
-      reinforcement = await computeAnnotationReinforcementCounts(simulationRunId);
-      if (reinforcementCache) {
-        reinforcementCache.runId = simulationRunId;
-        reinforcementCache.data = reinforcement;
-      }
-    }
-
-    const constraintFactIds = new Set(
-      (worldContext.canonFactsWithMetadata || [])
-        .filter((f: { type?: string; disabled?: boolean }) => f.type === 'generation_constraint' || f.disabled)
-        .map((f: { id: string }) => f.id),
-    );
-    factCoverageGuidance = buildFactCoverageGuidance(
-      chronicle.factCoverageReport,
-      corpusStrength,
-      constraintFactIds,
-      reinforcement,
-    );
-  }
+  const factCoverageGuidance = chronicle.factCoverageReport?.entries?.length
+    ? await resolveFactCoverageGuidance(
+        chronicle.factCoverageReport, simulationRunId, worldContext,
+        corpusStrengthCache, reinforcementCache
+      )
+    : undefined;
 
   // Build corpus voice digest (cached across batch runs)
   const voiceDigest = await buildCorpusVoiceDigest(voiceDigestCache);
 
   const contextJson = JSON.stringify({
     chronicleId: chronicle.chronicleId,
-    title: chronicle.title || 'Untitled',
+    title: chronicle.title || "Untitled",
     format: chronicle.format,
-    narrativeStyleId: chronicle.narrativeStyleId || '',
+    narrativeStyleId: chronicle.narrativeStyleId || "",
     cast,
     castSummaries,
     canonFacts: (worldContext.canonFactsWithMetadata || []).map((f: { text: string }) => f.text),
@@ -512,15 +546,16 @@ export async function buildChronicleReviewContext(
     voiceDigest: voiceDigest.totalNotes > 0 ? voiceDigest : undefined,
     temporalNarrative: chronicle.perspectiveSynthesis?.temporalNarrative || undefined,
     focalEra: chronicle.temporalContext?.focalEra
-      ? { name: chronicle.temporalContext.focalEra.name, description: chronicle.temporalContext.focalEra.description }
+      ? {
+          name: chronicle.temporalContext.focalEra.name,
+          description: chronicle.temporalContext.focalEra.description,
+        }
       : undefined,
     temporalCheckReport: chronicle.temporalCheckReport || undefined,
   });
 
   const relatedEntityIds = new Set(
-    (chronicle.roleAssignments || [])
-      .map((ra: { entityId: string }) => ra.entityId)
-      .filter(Boolean),
+    (chronicle.roleAssignments || []).map((ra: { entityId: string }) => ra.entityId).filter(Boolean)
   );
   const previousNotes = await collectPreviousNotes({
     relatedEntityIds: Array.from(relatedEntityIds),
@@ -530,14 +565,14 @@ export async function buildChronicleReviewContext(
   return {
     projectId,
     simulationRunId,
-    targetType: 'chronicle',
+    targetType: "chronicle",
     targetId: chronicleId,
-    targetName: chronicle.title || 'Untitled Chronicle',
+    targetName: chronicle.title || "Untitled Chronicle",
     sourceText: content,
     contextJson,
     previousNotesJson: JSON.stringify(previousNotes),
     historianConfig,
-    tone: (tone || chronicle.assignedTone || 'weary') as HistorianReviewConfig['tone'],
+    tone: (tone || chronicle.assignedTone || "weary") as HistorianReviewConfig["tone"],
   };
 }
 
@@ -565,83 +600,85 @@ export type CorpusVoiceDigestCache = {
   digest: CorpusVoiceDigest | null;
 };
 
-const SUPERLATIVE_RE = /\bthe (most|only|finest|best|worst|first|last|greatest|single) [^.,;:!?()\[\]"—\n]+/gi;
+const SUPERLATIVE_RE =
+  /\bthe (most|only|finest|best|worst|first|last|greatest|single) [^.,;:!?()\[\]"—\n]+/gi;
 
 /**
  * Build a corpus-wide voice digest from all existing historian annotations.
  * Tracks superlative claims, overused openings, length distribution, and tangent count.
  * Follows the same cache pattern as corpusStrengthCache for batch flows.
  */
-export async function buildCorpusVoiceDigest(
-  cache?: CorpusVoiceDigestCache,
-): Promise<CorpusVoiceDigest> {
-  const { simulationRunId } = useEntityStore.getState();
-
-  if (cache && cache.runId === simulationRunId && cache.digest) {
-    return cache.digest;
-  }
-
-  // Collect all notes across the corpus
+async function collectCorpusNotes(
+  simulationRunId: string
+): Promise<Array<{ text: string; type: string; targetName: string }>> {
   const allTexts: Array<{ text: string; type: string; targetName: string }> = [];
 
-  if (simulationRunId) {
-    const allEntities = await entityRepo.getEntitiesForRun(simulationRunId);
-    for (const entity of allEntities) {
-      for (const note of (entity.enrichment?.historianNotes || []).filter(isNoteActive)) {
-        allTexts.push({ text: note.text, type: note.type, targetName: entity.name });
-      }
-    }
-
-    const chronicleRecords = await getChroniclesForSimulation(simulationRunId);
-    for (const chronicle of chronicleRecords) {
-      for (const note of (chronicle.historianNotes || []).filter(isNoteActive)) {
-        allTexts.push({
-          text: note.text,
-          type: note.type,
-          targetName: chronicle.title || chronicle.chronicleId,
-        });
-      }
+  const allEntities = await entityRepo.getEntitiesForRun(simulationRunId);
+  for (const entity of allEntities) {
+    for (const note of (entity.enrichment?.historianNotes || []).filter(isNoteActive)) {
+      allTexts.push({ text: note.text, type: note.type, targetName: entity.name });
     }
   }
 
-  // Superlative extraction
-  const superlativesByPattern = new Map<string, string[]>();
+  const chronicleRecords = await getChroniclesForSimulation(simulationRunId);
+  for (const chronicle of chronicleRecords) {
+    for (const note of (chronicle.historianNotes || []).filter(isNoteActive)) {
+      allTexts.push({
+        text: note.text, type: note.type,
+        targetName: chronicle.title || chronicle.chronicleId,
+      });
+    }
+  }
+
+  return allTexts;
+}
+
+function extractSuperlativeClaims(
+  allTexts: Array<{ text: string; targetName: string }>
+): string[] {
+  const byPattern = new Map<string, string[]>();
   for (const { text, targetName } of allTexts) {
     const matches = text.match(SUPERLATIVE_RE);
     if (!matches) continue;
     for (const rawMatch of matches) {
       const normalized = rawMatch.trim().toLowerCase();
-      const targets = superlativesByPattern.get(normalized) || [];
+      const targets = byPattern.get(normalized) || [];
       targets.push(targetName);
-      superlativesByPattern.set(normalized, targets);
-    }
-  }
-  // Track all superlative claims: repeated (2+ targets) get [repeated] marker
-  const superlativeClaims: string[] = [];
-  for (const [phrase, targets] of superlativesByPattern) {
-    const unique = [...new Set(targets)];
-    if (unique.length >= 2) {
-      superlativeClaims.push(`[repeated] "${phrase}" — used on: ${unique.slice(0, 4).join(', ')}${unique.length > 4 ? ` (+${unique.length - 4} more)` : ''}`);
-    } else {
-      superlativeClaims.push(`"${phrase}" — on "${unique[0]}"`);
+      byPattern.set(normalized, targets);
     }
   }
 
-  // Overused openings (first 4 words)
+  const claims: string[] = [];
+  for (const [phrase, targets] of byPattern) {
+    const unique = [...new Set(targets)];
+    if (unique.length >= 2) {
+      const overflowSuffix = unique.length > 4 ? ` (+${unique.length - 4} more)` : "";
+      claims.push(
+        `[repeated] "${phrase}" — used on: ${unique.slice(0, 4).join(", ")}${overflowSuffix}`
+      );
+    } else {
+      claims.push(`"${phrase}" — on "${unique[0]}"`);
+    }
+  }
+  return claims;
+}
+
+function findOverusedOpenings(allTexts: Array<{ text: string }>): string[] {
   const openingCounts = new Map<string, number>();
   for (const { text } of allTexts) {
     const words = text.trim().split(/\s+/).slice(0, 4);
     if (words.length < 4) continue;
-    const opening = words.join(' ').toLowerCase().replace(/[.,;:!?]$/g, '');
+    const opening = words.join(" ").toLowerCase().replace(/[.,;:!?]$/g, "");
     openingCounts.set(opening, (openingCounts.get(opening) || 0) + 1);
   }
-  const overusedOpenings = [...openingCounts.entries()]
+  return [...openingCounts.entries()]
     .filter(([, count]) => count >= 3)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
-    .map(([opening, count]) => `"${opening}..." (×${count})`);
+    .map(([opening, count]) => `"${opening}..." (x${count})`);
+}
 
-  // Length histogram
+function computeLengthHistogram(allTexts: Array<{ text: string }>): { short: number; medium: number; long: number; total: number } {
   let short = 0, medium = 0, long = 0;
   for (const { text } of allTexts) {
     const wc = text.trim().split(/\s+/).length;
@@ -649,20 +686,27 @@ export async function buildCorpusVoiceDigest(
     else if (wc <= 70) medium++;
     else long++;
   }
+  return { short, medium, long, total: allTexts.length };
+}
 
-  // Tangent count
-  const tangentCount = allTexts.filter((n) => n.type === 'tangent').length;
+export async function buildCorpusVoiceDigest(
+  cache?: CorpusVoiceDigestCache
+): Promise<CorpusVoiceDigest> {
+  const { simulationRunId } = useEntityStore.getState();
 
-  // Count distinct targets
-  const targetNames = new Set(allTexts.map((n) => n.targetName));
+  if (cache && cache.runId === simulationRunId && cache.digest) {
+    return cache.digest;
+  }
+
+  const allTexts = simulationRunId ? await collectCorpusNotes(simulationRunId) : [];
 
   const digest: CorpusVoiceDigest = {
-    superlativeClaims,
-    overusedOpenings,
-    lengthHistogram: { short, medium, long, total: allTexts.length },
-    tangentCount,
+    superlativeClaims: extractSuperlativeClaims(allTexts),
+    overusedOpenings: findOverusedOpenings(allTexts),
+    lengthHistogram: computeLengthHistogram(allTexts),
+    tangentCount: allTexts.filter((n) => n.type === "tangent").length,
     totalNotes: allTexts.length,
-    targetCount: targetNames.size,
+    targetCount: new Set(allTexts.map((n) => n.targetName)).size,
   };
 
   if (cache) {
@@ -680,7 +724,7 @@ export async function buildCorpusVoiceDigest(
 export interface FactGuidanceTarget {
   factId: string;
   factText: string;
-  action: 'surface' | 'connect';
+  action: "surface" | "connect";
   /** Evidence quote from coverage report (surface targets only) */
   evidence?: string;
   /** Corpus-wide strength percentage */
@@ -702,24 +746,25 @@ export function buildFactCoverageGuidance(
   report: FactCoverageReport,
   corpusStrength: Map<string, number>,
   excludeFactIds?: Set<string>,
-  reinforcement?: ReinforcementCounts,
+  reinforcement?: ReinforcementCounts
 ): FactGuidanceTarget[] | null {
   const eligible = report.entries
-    .filter((e) => e.rating !== 'integral' && e.rating !== 'prevalent')
+    .filter((e) => e.rating !== "integral" && e.rating !== "prevalent")
     .filter((e) => !excludeFactIds || !excludeFactIds.has(e.factId));
 
   // Fair share: if each annotation picks 2 targets from F eligible facts across T annotations,
   // each fact's expected reinforcement count is 2T / F.
   const eligibleFactCount = eligible.length;
-  const fairShare = (reinforcement && eligibleFactCount > 0 && reinforcement.totalAnnotationsWithGuidance > 0)
-    ? (2 * reinforcement.totalAnnotationsWithGuidance) / eligibleFactCount
-    : 0;
+  const fairShare =
+    reinforcement && eligibleFactCount > 0 && reinforcement.totalAnnotationsWithGuidance > 0
+      ? (2 * reinforcement.totalAnnotationsWithGuidance) / eligibleFactCount
+      : 0;
 
   const scored = eligible
     .map((e) => {
       let score = 0;
-      if (e.rating === 'mentioned') score += 3;
-      if (e.rating === 'missing') score += 1;
+      if (e.rating === "mentioned") score += 3;
+      if (e.rating === "missing") score += 1;
       const strength = corpusStrength.get(e.factId) ?? 50;
       if (strength < 25) score += 3;
       else if (strength < 50) score += 1;
@@ -745,8 +790,8 @@ export function buildFactCoverageGuidance(
   return scored.map((s) => ({
     factId: s.entry.factId,
     factText: s.entry.factText,
-    action: s.entry.rating === 'mentioned' ? 'surface' as const : 'connect' as const,
-    evidence: s.entry.rating === 'mentioned' ? s.entry.evidence : undefined,
+    action: s.entry.rating === "mentioned" ? ("surface" as const) : ("connect" as const),
+    evidence: s.entry.rating === "mentioned" ? s.entry.evidence : undefined,
     corpusStrength: s.strength,
   }));
 }

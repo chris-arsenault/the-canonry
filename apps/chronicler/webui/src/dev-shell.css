@@ -1,0 +1,18 @@
+/**
+ * Dev Shell Styles
+ * Standalone development mode wrapper for Chronicler MFE
+ */
+
+.dev-shell {
+  padding: var(--spacing-xl);
+}
+
+.dev-shell-title {
+  margin-bottom: var(--spacing-lg);
+  font-family: var(--font-family-display);
+}
+
+.dev-shell-notice {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-xl);
+}

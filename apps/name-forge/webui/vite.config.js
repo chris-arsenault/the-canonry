@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { federation } from '@module-federation/vite'
-import { resolve } from 'path'
+import { resolve } from 'node:path'
+import { federationOnWarn, sharedDeps } from '../../../config/federation.js'
 
 // Name Forge is now an MFE remote only - standalone mode has been removed.
 // To use Name Forge, run The Canonry (apps/canonry/webui).
@@ -16,10 +17,7 @@ export default defineConfig({
       exposes: {
         './NameForgeRemote': './src/NameForgeRemote.jsx',
       },
-      shared: {
-        react: { singleton: true, requiredVersion: '^19.0.0' },
-        'react-dom': { singleton: true, requiredVersion: '^19.0.0' },
-      },
+      shared: sharedDeps(),
     }),
   ],
   // Base path - use /name-forge/ in dev (via proxy) and production
@@ -41,16 +39,7 @@ export default defineConfig({
     target: 'esnext',
     minify: false,
     rollupOptions: {
-      onwarn(warning, warn) {
-        const isModuleFederationEval =
-          warning.code === 'EVAL' &&
-          (warning.id?.includes('@module-federation/sdk') ||
-            warning.message.includes('@module-federation/sdk'))
-        if (isModuleFederationEval) {
-          return
-        }
-        warn(warning)
-      },
+      onwarn: federationOnWarn,
     },
   },
 })

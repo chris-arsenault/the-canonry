@@ -5,12 +5,12 @@
  * Era narratives appear in the chronicle nav list alongside chronicle items,
  * distinguished by the `itemType: 'era_narrative'` discriminator and a prefixed ID.
  */
-import type { EraNarrativeRecord } from '../eraNarrativeTypes';
+import type { EraNarrativeRecord } from "../eraNarrativeTypes";
 
 export interface EraNarrativeNavItem {
-  id: string;                    // prefixed: `eranarr:${narrativeId}`
+  id: string; // prefixed: `eranarr:${narrativeId}`
   narrativeId: string;
-  itemType: 'era_narrative';
+  itemType: "era_narrative";
   name: string;
   eraName: string;
   eraId: string;
@@ -32,16 +32,14 @@ export interface EraNarrativeNavItem {
 
 export function buildEraNarrativeNavItem(
   record: EraNarrativeRecord,
-  eraOrder?: number,
+  eraOrder?: number
 ): EraNarrativeNavItem {
-  const wordCount = record.narrative?.editedWordCount
-    ?? record.narrative?.wordCount
-    ?? 0;
+  const wordCount = record.narrative?.editedWordCount ?? record.narrative?.wordCount ?? 0;
 
   return {
     id: `eranarr:${record.narrativeId}`,
     narrativeId: record.narrativeId,
-    itemType: 'era_narrative',
+    itemType: "era_narrative",
     name: record.eraName,
     eraName: record.eraName,
     eraId: record.eraId,

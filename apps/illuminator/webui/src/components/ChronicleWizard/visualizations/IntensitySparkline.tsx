@@ -5,8 +5,9 @@
  * helping users identify natural story arcs (rising action, climax, resolution).
  */
 
-import { useMemo } from 'react';
-import type { IntensityPoint } from '../../../lib/chronicle/timelineUtils';
+import React, { useMemo } from "react";
+import type { IntensityPoint } from "../../../lib/chronicle/timelineUtils";
+import "./IntensitySparkline.css";
 
 interface IntensitySparklineProps {
   points: IntensityPoint[];
@@ -27,9 +28,9 @@ export default function IntensitySparkline({
   height,
   extent,
   selectedRange,
-  fillColor = 'rgba(99, 102, 241, 0.2)',
-  strokeColor = 'rgba(99, 102, 241, 0.6)',
-}: IntensitySparklineProps) {
+  fillColor = "rgba(99, 102, 241, 0.2)",
+  strokeColor = "rgba(99, 102, 241, 0.6)",
+}: Readonly<IntensitySparklineProps>) {
   // Match padding with NarrativeTimeline for visual alignment
   const padding = { left: 40, right: 40, top: 4, bottom: 4 };
   const innerWidth = width - padding.left - padding.right;
@@ -38,21 +39,19 @@ export default function IntensitySparkline({
   // Build the SVG path
   const { areaPath, linePath } = useMemo(() => {
     if (points.length < 2) {
-      return { areaPath: '', linePath: '' };
+      return { areaPath: "", linePath: "" };
     }
 
     const [minTick, maxTick] = extent;
     const tickRange = maxTick - minTick || 1;
 
-    const scaleX = (tick: number) =>
-      padding.left + ((tick - minTick) / tickRange) * innerWidth;
+    const scaleX = (tick: number) => padding.left + ((tick - minTick) / tickRange) * innerWidth;
 
-    const scaleY = (intensity: number) =>
-      padding.top + (1 - intensity) * innerHeight;
+    const scaleY = (intensity: number) => padding.top + (1 - intensity) * innerHeight;
 
     // Build line path
-    let lineParts: string[] = [];
-    let areaParts: string[] = [];
+    const lineParts: string[] = [];
+    const areaParts: string[] = [];
 
     points.forEach((point, i) => {
       const x = scaleX(point.tick);
@@ -71,11 +70,11 @@ export default function IntensitySparkline({
     // Close the area path
     const lastX = scaleX(points[points.length - 1].tick);
     areaParts.push(`L ${lastX} ${height - padding.bottom}`);
-    areaParts.push('Z');
+    areaParts.push("Z");
 
     return {
-      areaPath: areaParts.join(' '),
-      linePath: lineParts.join(' '),
+      areaPath: areaParts.join(" "),
+      linePath: lineParts.join(" "),
     };
   }, [points, extent, innerWidth, innerHeight, height, padding]);
 
@@ -86,8 +85,7 @@ export default function IntensitySparkline({
     const [minTick, maxTick] = extent;
     const tickRange = maxTick - minTick || 1;
 
-    const scaleX = (tick: number) =>
-      padding.left + ((tick - minTick) / tickRange) * innerWidth;
+    const scaleX = (tick: number) => padding.left + ((tick - minTick) / tickRange) * innerWidth;
 
     const x1 = scaleX(selectedRange[0]);
     const x2 = scaleX(selectedRange[1]);
@@ -115,7 +113,7 @@ export default function IntensitySparkline({
   }
 
   return (
-    <svg width={width} height={height} style={{ display: 'block' }}>
+    <svg width={width} height={height} className="is-svg">
       {/* Selected range highlight */}
       {highlightRect && (
         <rect
@@ -134,13 +132,7 @@ export default function IntensitySparkline({
       <path d={linePath} fill="none" stroke={strokeColor} strokeWidth={1.5} />
 
       {/* Label */}
-      <text
-        x={4}
-        y={12}
-        fontSize="9"
-        fill="var(--text-muted)"
-        fontFamily="inherit"
-      >
+      <text x={4} y={12} fontSize="9" fill="var(--text-muted)" fontFamily="inherit">
         Narrative Intensity
       </text>
     </svg>

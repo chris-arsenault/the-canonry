@@ -1,0 +1,786 @@
+[
+  {
+    "id": "textarea-commit-pattern",
+    "name": "Textarea State Commit Pattern Inconsistency",
+    "type": "behavioral",
+    "domain": "Form Validation & Input Behavior",
+    "description": "The shared component library provides LocalTextArea (blur-commit with focus-tracking to prevent cursor jumping), but illuminator uses raw <textarea> elements with ad-hoc local state in 11 files while only 4 files adopt LocalTextArea. Coherence-engine has near-perfect adoption (10+ files). The ad-hoc implementations in illuminator lack the focus-tracking guard that LocalTextArea provides, making them vulnerable to parent re-render disruption during editing.",
+    "impact": "MEDIUM",
+    "total_files": 26,
+    "variants": [
+      {
+        "name": "shared-local-textarea",
+        "description": "Uses LocalTextArea from shared-components — maintains local draft, syncs on blur only if changed, tracks isFocused to prevent parent re-renders from overwriting user input",
+        "file_count": 14,
+        "files": [
+          "apps/coherence-engine/webui/src/components/actions/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/ClusterFormationTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/GraphContagionTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/ConnectionEvolutionTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/ThresholdTriggerTab.jsx",
+          "apps/coherence-engine/webui/src/components/eras/sections/BasicInfoSection.jsx",
+          "apps/illuminator/webui/src/components/ConfigPanel.jsx",
+          "apps/illuminator/webui/src/components/WorldContextEditor.jsx",
+          "apps/illuminator/webui/src/components/EntityGuidanceEditor.jsx",
+          "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/LexemesTab.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ConfigPanel.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/LocalTextArea.jsx",
+            "start_line": 37,
+            "end_line": 66,
+            "snippet": "const externalValue = value || '';\nconst [localValue, setLocalValue] = useState(externalValue);\nconst [isFocused, setIsFocused] = useState(false);\n\nconst handleFocus = useCallback(() => {\n  setLocalValue(externalValue);\n  setIsFocused(true);\n}, [externalValue]);\n\nconst handleBlur = useCallback(() => {\n  setIsFocused(false);\n  if (localValue !== externalValue) {\n    onChange(localValue);\n  }\n}, [externalValue, localValue, onChange]);\n\nreturn (\n  <textarea\n    value={isFocused ? localValue : externalValue}\n    onChange={(e) => setLocalValue(e.target.value)}\n    onFocus={handleFocus}\n    onBlur={handleBlur}\n    ...\n  />\n);"
+          }
+        ],
+        "implementation_details": "Uses isFocused state to switch between local draft (during editing) and external value (when not focused). Syncs draft from external on focus, commits on blur only if changed. Prevents parent re-renders from overwriting user input mid-keystroke."
+      },
+      {
+        "name": "ad-hoc-textarea-with-blur-commit",
+        "description": "Raw <textarea> with manual local state and onBlur handler — functionally similar to LocalTextArea but hand-rolled without the isFocused guard pattern",
+        "file_count": 3,
+        "files": [
+          "apps/illuminator/webui/src/components/EntityDetailView.tsx:323-357",
+          "apps/illuminator/webui/src/components/preprint/TreeNodeRenderer.tsx:53",
+          "apps/coherence-engine/webui/src/components/pressures/cards/PressureCard.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/EntityDetailView.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/EntityDetailView.tsx",
+            "start_line": 322,
+            "end_line": 357,
+            "snippet": "const [editingSummary, setEditingSummary] = useState(false);\nconst [summaryDraft, setSummaryDraft] = useState(\"\");\n\nconst startEditSummary = useCallback(() => {\n  setSummaryDraft(entity.summary || \"\");\n  setEditingSummary(true);\n}, [entity.summary]);\n\nconst saveSummary = useCallback(() => {\n  const trimmed = summaryDraft.trim();\n  if (trimmed && trimmed !== entity.summary) {\n    void handleUpdateSummary(entity.id, trimmed);\n  }\n  setEditingSummary(false);\n}, [handleUpdateSummary, summaryDraft, entity.summary, entity.id]);\n\n// Usage:\n<textarea\n  value={summaryDraft}\n  onChange={(e) => setSummaryDraft(e.target.value)}\n  onKeyDown={(e) => {\n    if (e.key === \"Enter\" && (e.ctrlKey || e.metaKey)) saveSummary();\n    if (e.key === \"Escape\") cancelSummary();\n  }}\n  onBlur={saveSummary}\n/>"
+          }
+        ],
+        "implementation_details": "Manually tracks editingSummary/summaryDraft state pairs. Commits on blur with trim validation. Also supports Ctrl+Enter to commit and Escape to cancel — extra keyboard behaviors not present in LocalTextArea. Lacks isFocused guard so parent re-renders during editing could reset the textarea value."
+      },
+      {
+        "name": "ad-hoc-textarea-immediate-commit",
+        "description": "Raw <textarea> with onChange directly updating parent state on every keystroke — no local draft, no blur-commit",
+        "file_count": 9,
+        "files": [
+          "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+          "apps/illuminator/webui/src/components/EraNarrativeModal.jsx",
+          "apps/illuminator/webui/src/components/HistorianConfigEditor.jsx",
+          "apps/illuminator/webui/src/components/DynamicsGenerationModal.jsx",
+          "apps/illuminator/webui/src/components/BackportConfigModal.jsx",
+          "apps/illuminator/webui/src/components/HistorianReviewModal.jsx",
+          "apps/illuminator/webui/src/components/ActivityPanel.jsx",
+          "apps/illuminator/webui/src/components/ChronicleWizard/steps/GenerateStep.tsx",
+          "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+            "start_line": 278,
+            "end_line": 288,
+            "snippet": "<label htmlFor=\"name\" className=\"cem-label\">Name *</label>\n<input id=\"name\"\n  type=\"text\"\n  value={nameInput}\n  onChange={(e) => setNameInput(e.target.value)}\n  placeholder=\"Entity name\"\n  className=\"illuminator-select cem-full-width-box\"\n  autoFocus\n/>"
+          }
+        ],
+        "implementation_details": "State lives in a modal-local useState. Every keystroke calls setState directly. This works because the state is local to the modal (no external parent to cause re-renders), but it means there is no consistent commit pattern across the app. Some textareas blur-commit, some immediate-commit, with no architectural guidance on when to use which."
+      }
+    ],
+    "behavior_matrix": {
+      "coherence-engine OverviewTabs": {
+        "component": "LocalTextArea",
+        "commit_timing": "blur",
+        "focus_guard": true,
+        "trim_validation": false,
+        "keyboard_shortcuts": false
+      },
+      "illuminator ConfigPanel/WorldContextEditor": {
+        "component": "LocalTextArea",
+        "commit_timing": "blur",
+        "focus_guard": true,
+        "trim_validation": false,
+        "keyboard_shortcuts": false
+      },
+      "illuminator EntityDetailView": {
+        "component": "raw <textarea>",
+        "commit_timing": "blur + Ctrl+Enter",
+        "focus_guard": false,
+        "trim_validation": true,
+        "keyboard_shortcuts": "Ctrl+Enter commit, Escape cancel"
+      },
+      "illuminator CreateEntityModal": {
+        "component": "raw <textarea>/<input>",
+        "commit_timing": "immediate (onChange)",
+        "focus_guard": false,
+        "trim_validation": "on submit only",
+        "keyboard_shortcuts": false
+      },
+      "illuminator EraNarrativeModal": {
+        "component": "raw <textarea>",
+        "commit_timing": "immediate (onChange)",
+        "focus_guard": false,
+        "trim_validation": false,
+        "keyboard_shortcuts": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "focus_guard_on_ad_hoc_textareas": "trivial — replace raw <textarea> with LocalTextArea import (~1 line change per instance)",
+      "keyboard_shortcuts_on_LocalTextArea": "moderate — LocalTextArea would need optional onKeyDown prop or a wrapper component to support Ctrl+Enter and Escape"
+    },
+    "analysis": "This is genuine drift, not intentional variation. The shared LocalTextArea exists precisely to solve cursor-jumping and parent-re-render problems, yet 12 of 26 textarea uses bypass it. The ad-hoc implementations in illuminator's modals (CreateEntityModal, EraNarrativeModal, etc.) work correctly only because modal-local state doesn't cause external re-renders — but this is accidental safety, not by design. EntityDetailView's custom implementation adds valuable keyboard shortcuts (Ctrl+Enter, Escape) that LocalTextArea lacks, suggesting the shared component needs enhancement rather than wholesale replacement. The user-visible impact is subtle: cursor jumping and lost keystrokes could occur in ad-hoc textareas if parent components begin re-rendering more frequently (e.g., from real-time collaboration or autosave). Recommended target: enhance LocalTextArea with optional onCommit (for Ctrl+Enter), onCancel (for Escape), and trimOnCommit props, then migrate all 12 ad-hoc instances.",
+    "recommendation": "Enhance LocalTextArea({ onCommit?: () => void, onCancel?: () => void, trimOnCommit?: boolean }) and migrate all raw <textarea> uses in illuminator to use it.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "number-input-adoption",
+    "name": "NumberInput Shared Component Adoption Gap",
+    "type": "behavioral",
+    "domain": "Form Validation & Input Behavior",
+    "description": "The shared NumberInput component handles edge cases (negative numbers, intermediate states like '-' and '.', min/max constraints, blur-commit with revert on invalid) and is heavily adopted in coherence-engine (23 files), name-forge, lore-weave, and cosmographer. However, illuminator uses 0 NumberInput instances and instead has 12+ raw <input type=\"number\"> elements that lack intermediate state handling and use immediate onChange with parseFloat/parseInt.",
+    "impact": "LOW",
+    "total_files": 8,
+    "variants": [
+      {
+        "name": "shared-number-input",
+        "description": "Uses NumberInput from shared-components — renders as <input type=\"text\" inputMode=\"numeric\">, maintains internal string state during editing, parses on blur, handles '-', '.', and '-.' intermediate states, applies min/max constraints",
+        "file_count": 30,
+        "files": [
+          "apps/coherence-engine/webui/src/components/systems/tabs/FrameworkSystemTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/PlaneDiffusionTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/ConnectionEvolutionTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/GraphContagionTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+          "apps/lore-weave/webui/src/components/runner/ParameterForm.jsx",
+          "apps/lore-weave/webui/src/components/targets/EntityTargets.jsx",
+          "apps/name-forge/webui/src/components/generator/GenerateTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/profile/StrategyGroupEditor.jsx",
+          "apps/cosmographer/webui/src/components/RelationshipEditor/index.jsx"
+        ],
+        "sample_file": "apps/lore-weave/webui/src/components/runner/ParameterForm.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/NumberInput.jsx",
+            "start_line": 46,
+            "end_line": 94,
+            "snippet": "const [localValue, setLocalValue] = useState(() => externalDisplayValue);\nconst [isFocused, setIsFocused] = useState(false);\n\nconst parseValue = useCallback((str) => {\n  if (str === '' || str === '-' || str === '.' || str === '-.') {\n    return null; // Intermediate state, not valid yet\n  }\n  const parsed = integer ? parseInt(str, 10) : parseFloat(str);\n  if (isNaN(parsed)) return null;\n  return parsed;\n}, [integer]);\n\nconst handleChange = useCallback((e) => {\n  const newValue = e.target.value;\n  const validPattern = integer ? /^-?\\d*$/ : /^-?\\d*\\.?\\d*$/;\n  if (!validPattern.test(newValue)) return; // Reject invalid chars\n  setLocalValue(newValue);\n  const parsed = parseValue(newValue);\n  if (parsed !== null) {\n    let constrained = parsed;\n    if (min !== undefined && constrained < min) constrained = min;\n    if (max !== undefined && constrained > max) constrained = max;\n    onChange(constrained);\n  }\n}, [...]);"
+          }
+        ],
+        "implementation_details": "Renders as type=\"text\" with inputMode=\"numeric\" to avoid browser native number input quirks. Validates input character-by-character with regex. Allows intermediate states ('-', '.') without rejecting them. Applies min/max constraints both on change and on blur. Reverts to parent value on blur if input is invalid. Uses isFocused guard like LocalTextArea."
+      },
+      {
+        "name": "raw-html-number-input",
+        "description": "Raw <input type=\"number\"> with immediate onChange calling parseFloat/parseInt — no intermediate state handling, no blur-commit, browser-native spinner controls",
+        "file_count": 8,
+        "files": [
+          "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx:605-703",
+          "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+          "apps/illuminator/webui/src/components/ChronologyModal.jsx",
+          "apps/illuminator/webui/src/components/WorldContextEditor.jsx",
+          "apps/illuminator/webui/src/components/LLMCallConfigPanel.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/PhonemeWeightGrid.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+            "start_line": 604,
+            "end_line": 616,
+            "snippet": "<input type=\"number\" min=\"100\" step=\"100\"\n  value={formData.wordCountMin}\n  onChange={e => handleChange(\"wordCountMin\", e.target.value)}\n  className=\"illuminator-input style-editor-input-sm\" />\n<span>\u2013</span>\n<input type=\"number\" min=\"100\" step=\"100\"\n  value={formData.wordCountMax}\n  onChange={e => handleChange(\"wordCountMax\", e.target.value)}\n  className=\"illuminator-input style-editor-input-sm\" />\n\n<input type=\"number\" min=\"1\" max=\"20\"\n  value={formData.sceneCountMin}\n  onChange={e => handleChange(\"sceneCountMin\", e.target.value)}\n  className=\"illuminator-input style-editor-input-xs\" />"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/LLMCallConfigPanel.jsx",
+            "start_line": 126,
+            "end_line": 131,
+            "snippet": "const handleTemperatureChange = (e) => {\n  const newTemperature = parseFloat(e.target.value);\n  if (Number.isNaN(newTemperature)) return;\n  onUpdate(callType, buildUpdatePayload({ temperature: newTemperature }));\n};"
+          }
+        ],
+        "implementation_details": "Uses browser-native <input type=\"number\"> which shows spinner controls and has inconsistent behavior across browsers (especially for negative numbers and decimal entry). onChange passes raw e.target.value string to parent — some handlers parse immediately (LLMCallConfigPanel), some pass the string directly to state (StyleLibraryEditor). No intermediate state handling."
+      }
+    ],
+    "behavior_matrix": {
+      "coherence-engine (all numeric fields)": {
+        "component": "NumberInput",
+        "input_type": "text + inputMode=numeric",
+        "intermediate_state_handling": true,
+        "min_max_constraints": true,
+        "blur_commit": true,
+        "focus_guard": true
+      },
+      "lore-weave ParameterForm": {
+        "component": "NumberInput",
+        "input_type": "text + inputMode=numeric",
+        "intermediate_state_handling": true,
+        "min_max_constraints": true,
+        "blur_commit": true,
+        "focus_guard": true
+      },
+      "name-forge GenerateTab": {
+        "component": "NumberInput",
+        "input_type": "text + inputMode=numeric",
+        "intermediate_state_handling": true,
+        "min_max_constraints": true,
+        "blur_commit": true,
+        "focus_guard": true
+      },
+      "illuminator StyleLibraryEditor": {
+        "component": "raw <input type=\"number\">",
+        "input_type": "number (browser-native)",
+        "intermediate_state_handling": false,
+        "min_max_constraints": "browser-native only",
+        "blur_commit": false,
+        "focus_guard": false
+      },
+      "illuminator LLMCallConfigPanel": {
+        "component": "raw <select> for most, parseFloat for temperature",
+        "input_type": "select + number",
+        "intermediate_state_handling": false,
+        "min_max_constraints": "select options constrain",
+        "blur_commit": false,
+        "focus_guard": false
+      },
+      "name-forge PhonemeWeightGrid": {
+        "component": "raw <input type=\"number\"> with onBlur",
+        "input_type": "number (browser-native)",
+        "intermediate_state_handling": false,
+        "min_max_constraints": "manual on blur",
+        "blur_commit": true,
+        "focus_guard": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "migrate_illuminator_to_NumberInput": "trivial — swap <input type=\"number\"> for <NumberInput>, adjust onChange signature (~2 lines per instance, 12 instances)",
+      "migrate_PhonemeWeightGrid": "trivial — same swap, remove manual parse logic"
+    },
+    "analysis": "This is drift from incomplete adoption rather than intentional variation. The illuminator app was likely built or significantly expanded after the shared NumberInput existed, and developers used the more familiar <input type=\"number\"> pattern. The LLMCallConfigPanel is a borderline case — it uses <select> elements for most fields (model, thinking budget, max tokens) which is appropriate, but the temperature field uses a raw number input with parseFloat. The StyleLibraryEditor's 6 raw number inputs handle word counts and scene counts where the browser-native spinner is arguably adequate, but the inconsistency with the rest of the monorepo creates maintenance burden and visual inconsistency (native spinner vs no spinner). PhonemeWeightGrid in name-forge is the only outlier in an otherwise well-adopted app. User-visible impact is low — the main issue is that native <input type=\"number\"> blocks typing '-' on some browsers and has inconsistent step behavior.",
+    "recommendation": "Migrate all raw <input type=\"number\"> to NumberInput across illuminator (12 instances in 5 files) and name-forge's PhonemeWeightGrid (1 instance).",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "text-input-blur-commit-hook",
+    "name": "useLocalInputState Hook Adoption Gap",
+    "type": "behavioral",
+    "domain": "Form Validation & Input Behavior",
+    "description": "The useLocalInputState hook provides blur-commit behavior for text inputs to prevent cursor jumping. It is well-adopted in coherence-engine (4 files, used for ID and name fields) but completely unused in illuminator, name-forge, cosmographer, and other apps — even where the same cursor-jumping problem exists.",
+    "impact": "LOW",
+    "total_files": 4,
+    "variants": [
+      {
+        "name": "shared-useLocalInputState",
+        "description": "Uses the shared hook: [localValue, setLocalValue, handleBlur] = useLocalInputState(externalValue, onUpdate)",
+        "file_count": 4,
+        "files": [
+          "apps/coherence-engine/webui/src/components/actions/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/pressures/cards/PressureCard.jsx"
+        ],
+        "sample_file": "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+            "start_line": 21,
+            "end_line": 50,
+            "snippet": "const [localId, setLocalId, handleIdBlur] = useLocalInputState(generator.id, (value) =>\n  updateField(\"id\", value)\n);\nconst [localName, setLocalName, handleNameBlur] = useLocalInputState(generator.name, (value) =>\n  updateField(\"name\", value)\n);\n\n// Usage:\n<input id=\"generator-id\"\n  type=\"text\"\n  value={localId}\n  onChange={(e) => setLocalId(e.target.value)}\n  onBlur={handleIdBlur}\n  className=\"input\"\n/>"
+          }
+        ],
+        "implementation_details": "Hook manages local state copy, syncs from external via useEffect, commits on blur only if value changed. Canonical pattern for text inputs bound to parent/store state. Prevents cursor jumping caused by React re-rendering the input with the old external value between keystrokes."
+      },
+      {
+        "name": "direct-state-binding",
+        "description": "Text inputs bound directly to parent state via onChange — no local draft, susceptible to cursor jumping if parent re-renders frequently",
+        "file_count": 20,
+        "files": [
+          "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+          "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+          "apps/illuminator/webui/src/components/WorldContextEditor.jsx",
+          "apps/illuminator/webui/src/components/ChronologyModal.jsx",
+          "apps/illuminator/webui/src/components/EntityRenameModal.tsx",
+          "apps/cosmographer/webui/src/components/EntityEditor/index.jsx",
+          "apps/cosmographer/webui/src/components/AxisRegistry/index.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/DomainTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/GrammarsTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/CopyGrammarModal.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/EntityKindEditor.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/CultureEditor.jsx",
+          "apps/archivist/webui/src/components/FilterPanel.tsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+            "start_line": 107,
+            "end_line": 148,
+            "snippet": "const handleChange = (field, value) => {\n  setFormData(prev => ({\n    ...prev,\n    [field]: value\n  }));\n};\n\n// Usage:\n<input id=\"name\" type=\"text\"\n  value={formData.name}\n  onChange={e => handleChange(\"name\", e.target.value)}\n  className=\"illuminator-input\"\n  placeholder=\"e.g., Oil Painting\"\n  autoFocus />"
+          }
+        ],
+        "implementation_details": "State is local to modal (useState), so cursor jumping is not a problem here. But the same pattern is used in components where state lives in a Zustand store or is passed as props, where cursor jumping can occur. No consistent rule for when to use useLocalInputState vs direct binding."
+      }
+    ],
+    "behavior_matrix": {
+      "coherence-engine (ID/name fields)": {
+        "pattern": "useLocalInputState hook",
+        "cursor_jump_safe": true,
+        "commit_timing": "blur"
+      },
+      "illuminator modals": {
+        "pattern": "modal-local useState + direct onChange",
+        "cursor_jump_safe": "accidentally (local state)",
+        "commit_timing": "immediate"
+      },
+      "illuminator store-bound fields": {
+        "pattern": "direct onChange to store",
+        "cursor_jump_safe": false,
+        "commit_timing": "immediate"
+      },
+      "canonry SchemaEditor": {
+        "pattern": "custom TagIdInput with local state + onBlur",
+        "cursor_jump_safe": true,
+        "commit_timing": "blur with validation"
+      }
+    },
+    "missing_behavior_complexity": {
+      "adopt_in_illuminator_store_bound": "trivial — import hook and wrap existing inputs (~3 lines per input)",
+      "adopt_in_canonry_schema_editors": "trivial — replace custom local state pattern with hook"
+    },
+    "analysis": "This is partial drift. In illuminator, many text inputs are modal-local (CreateEntityModal, StyleLibraryEditor) where cursor jumping cannot occur because state is local. In those cases, useLocalInputState is unnecessary overhead. However, components like WorldContextEditor and ConfigPanel use LocalTextArea (which internally has the same blur-commit pattern) for textareas but use direct binding for their text inputs — an inconsistency within the same component. The coherence-engine's consistent use of useLocalInputState for ID/name fields is the right pattern for store-bound inputs. The canonry SchemaEditor's TagIdInput independently reimplements the same hook logic with additional validation (checking for duplicate IDs), suggesting the hook could benefit from an optional validator parameter. User impact is low because most direct-bound inputs are in modals where the state is local anyway.",
+    "recommendation": "Document when to use useLocalInputState (store-bound inputs) vs direct binding (modal-local state). Optionally add a validate parameter to the hook for the TagIdInput use case.",
+    "evidence_quality": "medium",
+    "status": "pending"
+  },
+  {
+    "id": "debounce-autosave-patterns",
+    "name": "Inconsistent Debounce/Autosave Implementation",
+    "type": "behavioral",
+    "domain": "Form Validation & Input Behavior",
+    "description": "Three distinct autosave/debounce patterns exist: (1) canonry App.jsx has 6 identical useEffect blocks with 300ms setTimeout for persistence, (2) name-forge ProfileModal and GrammarsTab use 1000ms setTimeout with ref-based last-saved tracking, and (3) illuminator uses no debounce — changes propagate immediately or are blur-committed. All debounce implementations are hand-rolled with useRef + setTimeout; no shared utility exists.",
+    "impact": "LOW",
+    "total_files": 8,
+    "variants": [
+      {
+        "name": "300ms-persistence-debounce",
+        "description": "Canonry App.jsx pattern: useEffect watches state, sets 300ms setTimeout to persist, clears on cleanup. Six identical blocks for six different config sections.",
+        "file_count": 1,
+        "files": [
+          "apps/canonry/webui/src/App.jsx:1266-1323"
+        ],
+        "sample_file": "apps/canonry/webui/src/App.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/App.jsx",
+            "start_line": 1266,
+            "end_line": 1282,
+            "snippet": "// Persist world context when it changes (for Illuminator)\nuseEffect(() => {\n  if (!currentProject?.id) return;\n  if (!worldContext) return;\n  const timeoutId = setTimeout(() => {\n    saveWorldContext(currentProject.id, worldContext);\n  }, 300);\n  return () => clearTimeout(timeoutId);\n}, [currentProject?.id, worldContext]);\n\n// Persist entity guidance when it changes (for Illuminator)\nuseEffect(() => {\n  if (!currentProject?.id) return;\n  if (!entityGuidance) return;\n  const timeoutId = setTimeout(() => {\n    saveEntityGuidance(currentProject.id, entityGuidance);\n  }, 300);\n  return () => clearTimeout(timeoutId);\n}, [currentProject?.id, entityGuidance]);"
+          }
+        ],
+        "implementation_details": "Six copy-pasted useEffect blocks in App.jsx, each watching a different state variable (worldContext, entityGuidance, cultureIdentities, enrichmentConfig, styleSelection, historianConfig). All use 300ms delay. Debounce is achieved by cleanup function clearing the timeout when state changes again before the 300ms elapses. No ref-based deduplication."
+      },
+      {
+        "name": "1000ms-autosave-with-ref-tracking",
+        "description": "Name-forge pattern: useEffect watches state, compares JSON.stringify against lastSavedRef, sets 1000ms setTimeout via autosaveTimeoutRef. More robust deduplication than the canonry pattern.",
+        "file_count": 2,
+        "files": [
+          "apps/name-forge/webui/src/components/workspace/tabs/profile/ProfileModal.jsx:39-60",
+          "apps/name-forge/webui/src/components/workspace/tabs/GrammarsTab.jsx:46-66"
+        ],
+        "sample_file": "apps/name-forge/webui/src/components/workspace/tabs/profile/ProfileModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/name-forge/webui/src/components/workspace/tabs/profile/ProfileModal.jsx",
+            "start_line": 39,
+            "end_line": 60,
+            "snippet": "useEffect(() => {\n  if (!editedProfile) return;\n\n  const profileStr = JSON.stringify(editedProfile);\n  if (profileStr === lastSavedRef.current) return; // Skip if unchanged\n\n  if (autosaveTimeoutRef.current) {\n    clearTimeout(autosaveTimeoutRef.current);\n  }\n\n  autosaveTimeoutRef.current = setTimeout(() => {\n    handleSave(editedProfile);\n    lastSavedRef.current = profileStr;\n  }, 1000);\n\n  return () => {\n    if (autosaveTimeoutRef.current) {\n      clearTimeout(autosaveTimeoutRef.current);\n    }\n  };\n}, [editedProfile]);"
+          }
+        ],
+        "implementation_details": "Uses JSON.stringify comparison against lastSavedRef to skip unnecessary saves. Uses autosaveTimeoutRef for manual timeout management. 1000ms delay (3x longer than canonry). More robust but more boilerplate than the canonry pattern."
+      },
+      {
+        "name": "no-debounce-immediate-commit",
+        "description": "Coherence-engine and most of illuminator: changes propagate immediately to parent state or store on every onChange/onBlur. No debounce layer.",
+        "file_count": 40,
+        "files": [
+          "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/OverviewTab.jsx",
+          "apps/illuminator/webui/src/components/EntityDetailView.tsx",
+          "apps/illuminator/webui/src/components/WorldContextEditor.jsx"
+        ],
+        "sample_file": "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+            "start_line": 17,
+            "end_line": 19,
+            "snippet": "const updateField = (field, value) => {\n  onChange({ ...generator, [field]: value });\n};"
+          }
+        ],
+        "implementation_details": "Every field change immediately calls the parent onChange with a new object. Parent is responsible for any persistence debouncing. This is the simplest pattern and works well when the parent handles persistence separately (as in coherence-engine where canonry App.jsx does the debounced persistence)."
+      }
+    ],
+    "behavior_matrix": {
+      "canonry App.jsx (persistence layer)": {
+        "debounce_delay": "300ms",
+        "dedup_strategy": "useEffect cleanup",
+        "implementation": "6 copy-pasted useEffect blocks",
+        "scope": "top-level config persistence"
+      },
+      "name-forge ProfileModal": {
+        "debounce_delay": "1000ms",
+        "dedup_strategy": "JSON.stringify comparison + ref",
+        "implementation": "manual useRef + setTimeout",
+        "scope": "modal-level autosave"
+      },
+      "name-forge GrammarsTab": {
+        "debounce_delay": "1000ms",
+        "dedup_strategy": "JSON.stringify comparison + ref",
+        "implementation": "manual useRef + setTimeout",
+        "scope": "tab-level autosave"
+      },
+      "coherence-engine / illuminator (components)": {
+        "debounce_delay": "none",
+        "dedup_strategy": "n/a",
+        "implementation": "immediate propagation",
+        "scope": "field-level"
+      }
+    },
+    "missing_behavior_complexity": {
+      "shared_useDebouncedSave_hook": "moderate — extract a reusable hook: useDebouncedSave(value, saveFn, delay, { compareWith?: ref }). Would replace 8 copy-pasted useEffect blocks across 3 files."
+    },
+    "analysis": "The 300ms vs 1000ms debounce delay is likely intentional — canonry persists config that feeds into other apps and should be fast, while name-forge autosaves complex grammar structures where a longer delay reduces write frequency. The real drift is in implementation: canonry has 6 identical copy-pasted useEffect blocks that should be a single parametric hook, and name-forge's two autosave implementations are also copy-pasted. A shared useDebouncedSave hook would eliminate ~60 lines of duplicated code. The absence of debounce in coherence-engine components is not drift — those components propagate changes upward and rely on canonry's App.jsx persistence layer for debouncing. User-visible impact is minimal since the debounce behavior works correctly everywhere; this is primarily a DRY concern.",
+    "recommendation": "Extract a shared useDebouncedSave(value, saveFn, delay) hook into shared-components. Parametrize delay (300ms for persistence, 1000ms for complex editors). Replace the 6 identical useEffect blocks in App.jsx and 2 in name-forge.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "validation-display-patterns",
+    "name": "Validation Error Display Pattern Divergence",
+    "type": "behavioral",
+    "domain": "Form Validation & Input Behavior",
+    "description": "Four distinct validation display patterns exist across the monorepo: (1) ValidationPopover in canonry — compact stay-open popover with auto-fix capability, (2) ValidationPanel in lore-weave — full-page panel with error/warning separation, (3) ErrorBadge/TabValidationBadge in coherence-engine — inline count badges on cards and tabs, (4) inline error divs in name-forge and cosmographer. Each was built independently with different ErrorCard components, different CSS class prefixes, and different levels of detail shown.",
+    "impact": "MEDIUM",
+    "total_files": 15,
+    "variants": [
+      {
+        "name": "validation-popover",
+        "description": "Compact button + stay-open popover showing top 5 errors with path, message, expected value, and optional auto-fix for additional properties. Used in canonry toolbar.",
+        "file_count": 1,
+        "files": [
+          "apps/canonry/webui/src/components/ValidationPopover.jsx"
+        ],
+        "sample_file": "apps/canonry/webui/src/components/ValidationPopover.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/components/ValidationPopover.jsx",
+            "start_line": 15,
+            "end_line": 51,
+            "snippet": "function ErrorCard({ error, isWarning, onRemoveProperty }) {\n  const headerClassName = isWarning ? \"vp-warning-header\" : \"vp-error-header\";\n  const isAdditionalPropError = error.expected?.startsWith(\"no additional property:\");\n  const additionalProp = isAdditionalPropError\n    ? error.expected.replace(\"no additional property: \", \"\").trim()\n    : null;\n  return (\n    <div className=\"vp-error-card\">\n      <div className={headerClassName}>\n        <div className=\"vp-error-path\">{error.path}</div>\n        <div className=\"vp-error-message\">{error.message}</div>\n      </div>\n      <div className=\"vp-error-body\">\n        <div className=\"vp-error-row\">\n          <span className=\"vp-error-label\">Expected:</span>\n          <code className=\"vp-error-value\">{error.expected}</code>\n        </div>\n        {isAdditionalPropError && onRemoveProperty && (\n          <button className=\"vp-remove-button\"\n            onClick={() => onRemoveProperty(error.path, additionalProp)}>\n            Remove \"{additionalProp}\"\n          </button>\n        )}\n      </div>\n    </div>\n  );\n}"
+          }
+        ],
+        "implementation_details": "Features: error/warning color-coding, path breadcrumb, expected value, auto-fix button for 'additional properties' errors, 'View all in Validation tab' link, limited to 5 items with overflow count. CSS prefix: vp-. Unique feature: auto-fix capability for schema validation errors."
+      },
+      {
+        "name": "validation-panel-full-page",
+        "description": "Full-page validation panel with separate error and warning sections, each with its own card component. Used in lore-weave config validation before simulation.",
+        "file_count": 1,
+        "files": [
+          "apps/lore-weave/webui/src/components/validation/ValidationPanel.jsx"
+        ],
+        "sample_file": "apps/lore-weave/webui/src/components/validation/ValidationPanel.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/lore-weave/webui/src/components/validation/ValidationPanel.jsx",
+            "start_line": 10,
+            "end_line": 54,
+            "snippet": "function ErrorCard({ error }) {\n  return (\n    <div className=\"validation-panel-error-card\">\n      <div className=\"validation-panel-error-header\">\n        <div className=\"validation-panel-error-path\">{error.path}</div>\n        <div className=\"validation-panel-error-message\">{error.message}</div>\n      </div>\n      <div className=\"validation-panel-error-body\">\n        <div className=\"validation-panel-error-row\">\n          <span className=\"validation-panel-error-label\">Expected:</span>\n          <code className=\"validation-panel-error-value\">{error.expected}</code>\n        </div>\n        <div className=\"validation-panel-error-row\">\n          <span className=\"validation-panel-error-label\">Got:</span>\n          <code className=\"validation-panel-error-value\">{JSON.stringify(error.value)}</code>\n        </div>\n        {error.suggestion && (\n          <div className=\"validation-panel-suggestion\">\n            <div className=\"validation-panel-suggestion-label\">Suggestion</div>\n            <div className=\"validation-panel-suggestion-text\">{error.suggestion}</div>\n          </div>\n        )}\n      </div>\n    </div>\n  );\n}\n\nfunction WarningCard({ warning }) {\n  return (\n    <div className=\"validation-panel-warning-card\">\n      ...\n    </div>\n  );\n}"
+          }
+        ],
+        "implementation_details": "Features: separate ErrorCard and WarningCard components, shows 'Got' value (which Popover doesn't), shows 'Suggestion' text, full-page layout. CSS prefix: validation-panel-. Structurally very similar to ValidationPopover's ErrorCard but with different CSS classes and the additional 'Got' field."
+      },
+      {
+        "name": "badge-based-validation",
+        "description": "Shared ErrorBadge, OrphanBadge, and TabValidationBadge components showing error counts as colored badges on list cards and tab headers.",
+        "file_count": 10,
+        "files": [
+          "packages/shared-components/src/components/ValidationBadge.jsx",
+          "apps/coherence-engine/webui/src/components/generators/cards/GeneratorListCard.jsx",
+          "apps/coherence-engine/webui/src/components/actions/cards/ActionListCard.jsx",
+          "apps/coherence-engine/webui/src/components/systems/cards/SystemListCard.jsx",
+          "apps/coherence-engine/webui/src/components/pressures/cards/PressureCard.jsx",
+          "apps/coherence-engine/webui/src/components/generators/GeneratorModal.jsx"
+        ],
+        "sample_file": "packages/shared-components/src/components/ValidationBadge.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/ValidationBadge.jsx",
+            "start_line": 14,
+            "end_line": 51,
+            "snippet": "export function ErrorBadge({ count, className = '' }) {\n  if (!count) return null;\n  return (\n    <span className={`badge badge-validation badge-error ${className}`.trim()}>\n      {count} error{count !== 1 ? 's' : ''}\n    </span>\n  );\n}\n\nexport function OrphanBadge({ isOrphan, className = '' }) {\n  if (!isOrphan) return null;\n  return (\n    <span className={`badge badge-validation badge-orphan ${className}`.trim()}>\n      Not in any era\n    </span>\n  );\n}\n\nexport function TabValidationBadge({ count, className = '' }) {\n  if (!count) return null;\n  return (\n    <span className={`badge badge-validation badge-error ${className}`.trim()}>\n      {count}\n    </span>\n  );\n}"
+          }
+        ],
+        "implementation_details": "Simple count-based badges for list views and tab headers. No error details, no drill-down — just a count to draw attention. Used alongside getElementValidation() utility. CSS: badge badge-validation badge-error."
+      },
+      {
+        "name": "inline-error-div",
+        "description": "Simple inline <div> with error class, shown conditionally below the trigger element. Ad-hoc implementations in name-forge and cosmographer.",
+        "file_count": 3,
+        "files": [
+          "apps/name-forge/webui/src/components/generator/GenerateTab.jsx:369",
+          "apps/cosmographer/webui/src/components/EntityEditor/index.jsx:242-245"
+        ],
+        "sample_file": "apps/name-forge/webui/src/components/generator/GenerateTab.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/name-forge/webui/src/components/generator/GenerateTab.jsx",
+            "start_line": 369,
+            "end_line": 369,
+            "snippet": "{error && <div className=\"error mt-md\">{error}</div>}"
+          },
+          {
+            "file": "apps/cosmographer/webui/src/components/EntityEditor/index.jsx",
+            "start_line": 242,
+            "end_line": 245,
+            "snippet": "{generateError && (\n  <div className=\"ee-generate-error\">{generateError}</div>\n)}"
+          }
+        ],
+        "implementation_details": "Simplest pattern: conditionally render a div with an error message. Different CSS class names across apps. No structured error object — just a string message. Appropriate for operation errors (generation failures) rather than field validation."
+      }
+    ],
+    "behavior_matrix": {
+      "canonry ValidationPopover": {
+        "display_type": "stay-open popover",
+        "error_fields": "path, message, expected, suggestion",
+        "auto_fix": true,
+        "max_items": 5,
+        "css_prefix": "vp-"
+      },
+      "lore-weave ValidationPanel": {
+        "display_type": "full-page panel",
+        "error_fields": "path, message, expected, got, suggestion",
+        "auto_fix": false,
+        "max_items": "unlimited",
+        "css_prefix": "validation-panel-"
+      },
+      "coherence-engine badges": {
+        "display_type": "inline badge on card/tab",
+        "error_fields": "count only",
+        "auto_fix": false,
+        "max_items": "n/a (count)",
+        "css_prefix": "badge badge-validation"
+      },
+      "name-forge/cosmographer inline": {
+        "display_type": "inline div below trigger",
+        "error_fields": "message string only",
+        "auto_fix": false,
+        "max_items": 1,
+        "css_prefix": "error / ee-generate-error"
+      }
+    },
+    "missing_behavior_complexity": {
+      "shared_ErrorCard_component": "moderate — extract a shared ErrorCard with configurable fields (path, message, expected, got, suggestion, auto-fix callback). Would unify ValidationPopover and ValidationPanel's near-identical ErrorCard implementations.",
+      "shared_inline_error_component": "trivial — standardize the inline error div pattern with a shared component and consistent CSS class"
+    },
+    "analysis": "This is partially intentional, partially drift. The ValidationPopover (compact, stays open for reference) and ValidationPanel (full-page, comprehensive) serve genuinely different UX needs and should remain separate components. However, their internal ErrorCard components are near-identical — both show path + message + expected + suggestion, but with different CSS prefixes and one shows 'Got' while the other doesn't. Extracting a shared ErrorCard would reduce 60+ lines of duplication. The badge-based pattern in coherence-engine serves a different purpose (summary counts in lists) and is appropriate as-is. The inline error divs in name-forge/cosmographer are for operation errors (not validation), so the inconsistent CSS classes are minor. User-visible impact is moderate: users editing configs in canonry see a different validation UX than users viewing validation in lore-weave, despite the same underlying validation engine producing the errors.",
+    "recommendation": "Extract a shared ErrorCard({ error, isWarning, showGot?, onAutoFix? }) component. Keep ValidationPopover and ValidationPanel as separate containers but have them both use the shared ErrorCard. Standardize inline error display with a shared InlineError component.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "required-field-indicators",
+    "name": "Inconsistent Required Field Indication",
+    "type": "behavioral",
+    "domain": "Form Validation & Input Behavior",
+    "description": "Required field indication is inconsistent: some forms use asterisk (*) in labels (StyleLibraryEditor 'Name *', 'Prompt Fragment *'; CreateEntityModal 'Name *'), most forms show no required indicator at all, and no forms use HTML required attributes or aria-required. Validation of required fields happens at submit time via disabled button state rather than inline feedback.",
+    "impact": "LOW",
+    "total_files": 4,
+    "variants": [
+      {
+        "name": "asterisk-in-label",
+        "description": "Required fields marked with ' *' suffix in the label text, plus disabled submit button when required fields are empty",
+        "file_count": 2,
+        "files": [
+          "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx:144-174",
+          "apps/illuminator/webui/src/components/CreateEntityModal.tsx:278"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+            "start_line": 143,
+            "end_line": 174,
+            "snippet": "<div className=\"illuminator-form-group\">\n  <label htmlFor=\"name\" className=\"illuminator-label\">Name *</label>\n  <input id=\"name\" type=\"text\"\n    value={formData.name}\n    onChange={e => handleChange(\"name\", e.target.value)}\n    className=\"illuminator-input\"\n    placeholder=\"e.g., Oil Painting\"\n    autoFocus />\n</div>\n\n<div className=\"illuminator-form-group\">\n  <label className=\"illuminator-label\">Prompt Fragment *\n  <LocalTextArea value={formData.promptFragment}\n    onChange={value => handleChange(\"promptFragment\", value)}\n    className=\"illuminator-textarea\" rows={3} />\n  </label>\n</div>\n\n...\n<button type=\"submit\" disabled={!isValid}\n  className=\"illuminator-btn illuminator-btn-primary\">\n  {isNew ? \"Add Style\" : \"Save Changes\"}\n</button>"
+          }
+        ],
+        "implementation_details": "Asterisk (*) appended to label text. isValid computed from trim() checks on required fields. Submit button disabled when !isValid. No inline error messages — user only sees disabled button as feedback. No aria-required attribute on inputs."
+      },
+      {
+        "name": "no-indicator",
+        "description": "Required fields exist (form won't submit without them) but no visual indicator distinguishes required from optional fields",
+        "file_count": 20,
+        "files": [
+          "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/actions/tabs/OverviewTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/DomainTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/LexemesTab.jsx",
+          "apps/cosmographer/webui/src/components/EntityEditor/index.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/EntityKindEditor.jsx"
+        ],
+        "sample_file": "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+            "start_line": 43,
+            "end_line": 50,
+            "snippet": "<div className=\"form-group\">\n  <label htmlFor=\"generator-id\" className=\"label\">Generator ID</label>\n  <input id=\"generator-id\"\n    type=\"text\"\n    value={localId}\n    onChange={(e) => setLocalId(e.target.value)}\n    onBlur={handleIdBlur}\n    className=\"input\"\n  />"
+          }
+        ],
+        "implementation_details": "Generator ID and Name are de facto required (the generator won't work without them) but no visual indicator tells the user this. The coherence-engine's auto-save-on-blur pattern means there's no submit button to disable, so empty fields silently persist as empty strings."
+      }
+    ],
+    "behavior_matrix": {
+      "illuminator StyleLibraryEditor": {
+        "indicator": "asterisk (*) in label text",
+        "validation_timing": "on submit (disabled button)",
+        "html_required": false,
+        "aria_required": false
+      },
+      "illuminator CreateEntityModal": {
+        "indicator": "asterisk (*) on Name only",
+        "validation_timing": "on submit (disabled button)",
+        "html_required": false,
+        "aria_required": false
+      },
+      "coherence-engine OverviewTabs": {
+        "indicator": "none",
+        "validation_timing": "none (auto-save on blur)",
+        "html_required": false,
+        "aria_required": false
+      },
+      "name-forge DomainTab": {
+        "indicator": "none",
+        "validation_timing": "on save button click",
+        "html_required": false,
+        "aria_required": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "consistent_asterisk_pattern": "trivial — add ' *' to label text for all required fields (~1 char per field)",
+      "aria_required_attributes": "trivial — add aria-required=\"true\" to required inputs (~1 prop per input)"
+    },
+    "analysis": "This is likely unintentional inconsistency rather than deliberate design choice. The illuminator modals were built with more polish (labeled required fields, disabled submit buttons) while the coherence-engine editor tabs were built for power users who understand which fields are required from context. The absence of HTML required attributes and aria-required across all apps is a consistent gap — neither the asterisk variant nor the no-indicator variant addresses accessibility. User-visible impact is low for this domain-expert tooling, but it's a standard UX best practice that would improve discoverability. The coherence-engine auto-save pattern creates a unique challenge: there's no submit step where validation could block, so empty required fields silently persist.",
+    "recommendation": "Standardize on asterisk (*) for required labels across all form-like interfaces. Add aria-required=\"true\" to all required inputs. For coherence-engine's auto-save pattern, consider a visual cue (e.g., red border) when a required field is empty.",
+    "evidence_quality": "medium",
+    "status": "pending"
+  },
+  {
+    "id": "form-submission-patterns",
+    "name": "Form Submission Pattern Inconsistency",
+    "type": "behavioral",
+    "domain": "Form Validation & Input Behavior",
+    "description": "Forms are submitted through three different mechanisms: (1) HTML <form onSubmit> with e.preventDefault() in illuminator's StyleLibraryEditor (supports Enter-to-submit), (2) button onClick handlers in most modals (CreateEntityModal, DomainTab, LexemesTab), (3) implicit auto-save on blur with no explicit submit in coherence-engine. The HTML form pattern supports Enter-to-submit and proper form semantics; the onClick pattern does not.",
+    "impact": "LOW",
+    "total_files": 15,
+    "variants": [
+      {
+        "name": "html-form-onsubmit",
+        "description": "Proper <form> element with onSubmit handler, e.preventDefault(), type=\"submit\" button. Supports Enter-to-submit keyboard behavior.",
+        "file_count": 2,
+        "files": [
+          "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx:142-178"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx",
+            "start_line": 113,
+            "end_line": 142,
+            "snippet": "const handleSubmit = e => {\n  e.preventDefault();\n  const result = {\n    id: isNew ? generateStyleId(type) : formData.id,\n    name: formData.name.trim(),\n    promptFragment: formData.promptFragment.trim()\n  };\n  if (formData.description.trim()) {\n    result.description = formData.description.trim();\n  }\n  onSave(result, isNew);\n};\n\n<form onSubmit={handleSubmit} className=\"illuminator-modal-body\">\n  ...\n  <button type=\"submit\" disabled={!isValid}\n    className=\"illuminator-btn illuminator-btn-primary\">\n    {isNew ? \"Add Style\" : \"Save Changes\"}\n  </button>\n</form>"
+          }
+        ],
+        "implementation_details": "Proper HTML form semantics: <form onSubmit> wraps all inputs, type=\"submit\" on primary button, type=\"button\" on cancel. Supports Enter-to-submit in any text field. Trim validation on submit. disabled={!isValid} prevents empty submissions."
+      },
+      {
+        "name": "button-onclick-handler",
+        "description": "No <form> element — modal content uses button with onClick handler for submission. No Enter-to-submit support.",
+        "file_count": 10,
+        "files": [
+          "apps/illuminator/webui/src/components/CreateEntityModal.tsx:164",
+          "apps/name-forge/webui/src/components/workspace/tabs/DomainTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/LexemesTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/CopyGrammarModal.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/CopyLexemeModal.jsx",
+          "apps/illuminator/webui/src/components/ChronologyModal.jsx",
+          "apps/illuminator/webui/src/components/EntityRenameModal.tsx",
+          "apps/illuminator/webui/src/components/DynamicsGenerationModal.jsx",
+          "apps/illuminator/webui/src/components/BackportConfigModal.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+            "start_line": 161,
+            "end_line": 183,
+            "snippet": "const canSubmit = effectiveName.trim().length > 0 && kind;\n\nconst handleSubmit = useCallback(() => {\n  if (!canSubmit) return;\n  const entity = {\n    kind,\n    subtype,\n    name: effectiveName.trim(),\n    culture,\n    status,\n    prominence,\n    description,\n    tags,\n    coordinates: editEntity?.coordinates || { x: 0, y: 0, z: 0 },\n  };\n  onSubmit(entity);\n}, [...]);\n\n// Button (not inside a <form>):\n<button onClick={handleSubmit} disabled={!canSubmit}\n  className=\"illuminator-btn illuminator-btn-primary\">\n  {submitLabel}\n</button>"
+          }
+        ],
+        "implementation_details": "No <form> element. Primary action button uses onClick instead of type=\"submit\". canSubmit guards the button's disabled state. Trim validation happens in the handler. Enter-to-submit is NOT supported."
+      },
+      {
+        "name": "implicit-autosave-no-submit",
+        "description": "No submit action at all — changes auto-save on blur (useLocalInputState) or immediately on change. No explicit save/submit button.",
+        "file_count": 30,
+        "files": [
+          "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/actions/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/pressures/cards/PressureCard.jsx"
+        ],
+        "sample_file": "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+            "start_line": 16,
+            "end_line": 26,
+            "snippet": "export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {\n  const updateField = (field, value) => {\n    onChange({ ...generator, [field]: value });\n  };\n\n  const [localId, setLocalId, handleIdBlur] = useLocalInputState(generator.id, (value) =>\n    updateField(\"id\", value)\n  );\n  const [localName, setLocalName, handleNameBlur] = useLocalInputState(generator.name, (value) =>\n    updateField(\"name\", value)\n  );"
+          }
+        ],
+        "implementation_details": "No form element, no submit button. Every field change propagates immediately or on blur. Parent component persists changes through the debounced-save pipeline. This is the coherence-engine's deliberate architectural choice — all editing is live."
+      }
+    ],
+    "behavior_matrix": {
+      "illuminator StyleLibraryEditor": {
+        "mechanism": "<form onSubmit>",
+        "enter_to_submit": true,
+        "explicit_save_button": true,
+        "form_semantics": true
+      },
+      "illuminator CreateEntityModal": {
+        "mechanism": "button onClick",
+        "enter_to_submit": false,
+        "explicit_save_button": true,
+        "form_semantics": false
+      },
+      "coherence-engine editors": {
+        "mechanism": "auto-save on blur/change",
+        "enter_to_submit": "n/a",
+        "explicit_save_button": false,
+        "form_semantics": false
+      },
+      "name-forge modals": {
+        "mechanism": "button onClick or 1000ms autosave",
+        "enter_to_submit": false,
+        "explicit_save_button": "mixed",
+        "form_semantics": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "wrap_modals_in_form": "trivial — wrap modal content in <form onSubmit>, change primary button to type=\"submit\" (~3 lines per modal)",
+      "enter_to_submit_without_form": "trivial — add onKeyDown handler checking for Enter key on the modal container"
+    },
+    "analysis": "This is mostly intentional variation with some drift. The coherence-engine's auto-save pattern is a deliberate architectural choice — its editor UI is designed for continuous editing without explicit save points. The illuminator modals that use button onClick instead of <form onSubmit> are drift from the StyleLibraryEditor's better pattern. The lack of Enter-to-submit in most modals (CreateEntityModal, EntityRenameModal, etc.) is a minor UX gap — users filling out a modal with a single text field (like EntityRenameModal) expect Enter to submit. User-visible impact is low but noticeable for keyboard-heavy users. The fix is straightforward: wrap modal body in <form> and use type=\"submit\" on the primary button.",
+    "recommendation": "For modals with explicit submit actions, wrap content in <form onSubmit> and use type=\"submit\" on primary buttons to enable Enter-to-submit. Leave coherence-engine's auto-save pattern as-is — it's intentionally formless.",
+    "evidence_quality": "medium",
+    "status": "pending"
+  }
+]

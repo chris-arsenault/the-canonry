@@ -1,0 +1,56 @@
+.se-container {
+  display: flex;
+  height: 100%;
+}
+
+.se-sidebar {
+  width: 200px;
+  background-color: var(--color-bg-dark);
+  border-right: 1px solid var(--color-border);
+  padding: 16px;
+}
+
+.se-sidebar-title {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.se-sidebar-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: all 0.15s;
+}
+
+.se-sidebar-item-active {
+  background: var(--se-sidebar-active-bg);
+  color: var(--color-bg-dark);
+  font-weight: 600;
+}
+
+.se-sidebar-item-inactive {
+  background-color: transparent;
+  color: var(--color-text-muted);
+}
+
+.se-sidebar-count {
+  float: right;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.se-main {
+  flex: 1;
+  padding: 24px;
+  overflow: auto;
+  background-color: var(--color-bg);
+}

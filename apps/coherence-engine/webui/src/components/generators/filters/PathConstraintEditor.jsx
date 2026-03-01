@@ -2,9 +2,10 @@
  * PathConstraintEditor - Edit a constraint on graph path traversal
  */
 
-import React from 'react';
-import { PATH_DIRECTIONS, PATH_CONSTRAINT_TYPES } from '../constants';
-import { ReferenceDropdown } from '../../shared';
+import React from "react";
+import PropTypes from "prop-types";
+import { PATH_DIRECTIONS, PATH_CONSTRAINT_TYPES } from "../constants";
+import { ReferenceDropdown } from "../../shared";
 
 /**
  * @param {Object} props
@@ -45,75 +46,81 @@ export function PathConstraintEditor({ constraint, onChange, onRemove, schema, a
 
   const renderConstraintFields = () => {
     switch (constraint.type) {
-      case 'not_self':
+      case "not_self":
         return <span className="text-muted text-small">Target cannot be the starting entity</span>;
 
-      case 'not_in':
-      case 'in':
+      case "not_in":
+      case "in":
         return (
           <div>
-            <label className="label label-micro">Set Variable</label>
+            <label className="label label-micro">Set Variable
             <ReferenceDropdown
-              value={constraint.set || ''}
-              onChange={(v) => updateConstraint('set', v)}
+              value={constraint.set || ""}
+              onChange={(v) => updateConstraint("set", v)}
               options={refOptions}
               placeholder="e.g. $allies"
             />
+            </label>
           </div>
         );
 
-      case 'kind_equals':
+      case "kind_equals":
         return (
           <div>
-            <label className="label label-micro">Entity Kind</label>
+            <label className="label label-micro">Entity Kind
             <ReferenceDropdown
-              value={constraint.kind || ''}
-              onChange={(v) => updateConstraint('kind', v)}
+              value={constraint.kind || ""}
+              onChange={(v) => updateConstraint("kind", v)}
               options={entityKindOptions}
             />
+            </label>
           </div>
         );
 
-      case 'subtype_equals':
+      case "subtype_equals":
         return (
           <div>
-            <label className="label label-micro">Subtype</label>
+            <label className="label label-micro">Subtype
             <ReferenceDropdown
-              value={constraint.subtype || ''}
-              onChange={(v) => updateConstraint('subtype', v)}
+              value={constraint.subtype || ""}
+              onChange={(v) => updateConstraint("subtype", v)}
               options={allSubtypeOptions}
               placeholder="Select subtype..."
             />
+            </label>
           </div>
         );
 
-      case 'has_relationship':
-      case 'lacks_relationship':
+      case "has_relationship":
+      case "lacks_relationship":
         return (
           <div className="constraint-fields-grid">
             <div>
-              <label className="label label-micro">Kind</label>
+              <label className="label label-micro">Kind
               <ReferenceDropdown
-                value={constraint.kind || ''}
-                onChange={(v) => updateConstraint('kind', v)}
+                value={constraint.kind || ""}
+                onChange={(v) => updateConstraint("kind", v)}
                 options={relationshipKindOptions}
               />
+              </label>
             </div>
             <div>
-              <label className="label label-micro">With</label>
+              <label className="label label-micro">With
               <ReferenceDropdown
-                value={constraint.with || ''}
-                onChange={(v) => updateConstraint('with', v)}
+                value={constraint.with || ""}
+                onChange={(v) => updateConstraint("with", v)}
                 options={refOptions}
               />
+              </label>
             </div>
             <div>
-              <label className="label label-micro">Direction</label>
+              <label className="label label-micro">Direction
               <ReferenceDropdown
-                value={constraint.direction || 'any'}
-                onChange={(v) => updateConstraint('direction', v)}
+                value={constraint.direction || "any"}
+                onChange={(v) => updateConstraint("direction", v)}
                 options={PATH_DIRECTIONS}
               />
+              </label>
             </div>
           </div>
         );
@@ -123,7 +130,8 @@ export function PathConstraintEditor({ constraint, onChange, onRemove, schema, a
     }
   };
 
-  const constraintLabel = PATH_CONSTRAINT_TYPES.find(c => c.value === constraint.type)?.label || constraint.type;
+  const constraintLabel =
+    PATH_CONSTRAINT_TYPES.find((c) => c.value === constraint.type)?.label || constraint.type;
 
   return (
     <div className="path-constraint-card">
@@ -137,5 +145,13 @@ export function PathConstraintEditor({ constraint, onChange, onRemove, schema, a
     </div>
   );
 }
+
+PathConstraintEditor.propTypes = {
+  constraint: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  availableRefs: PropTypes.array,
+};
 
 export default PathConstraintEditor;

@@ -1,0 +1,117 @@
+/* PipelineTab - pt prefix */
+/* Shared: panel-utilities.css provides .ilu-section, .ilu-action-btn */
+
+/* RefinementRow */
+.pt-refrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pt-refrow-content {
+  flex: 1;
+}
+
+.pt-refrow-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.pt-refrow-checkbox {
+  margin-right: 8px;
+}
+
+.pt-refrow-checkbox-done {
+  color: #10b981;
+}
+
+.pt-refrow-checkbox-pending {
+  color: var(--text-muted);
+}
+
+.pt-refrow-description {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 24px;
+}
+
+.pt-refrow-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  margin-left: 24px;
+}
+
+.pt-refrow-indicator {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  margin-left: 24px;
+}
+
+/* Shared: compose with .ilu-action-btn */
+.pt-refrow-btn {
+  height: 32px;
+  align-self: center;
+}
+
+/* Shared: covered by .ilu-action-btn:not(:disabled) */
+.pt-refrow-btn-enabled {
+  opacity: 1;
+}
+
+/* Shared: covered by .ilu-action-btn:disabled */
+.pt-refrow-btn-disabled {
+  /* base: .ilu-action-btn:disabled */
+}
+
+/* Refinement checklist container */
+/* Shared: compose with .ilu-section */
+.pt-checklist {
+  margin-bottom: 24px;
+}
+
+.pt-checklist-header {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.pt-checklist-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.pt-checklist-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Title candidates */
+.pt-title-candidates {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+  margin-left: 24px;
+}
+
+.pt-title-selected {
+  color: var(--text-secondary);
+}
+
+.pt-title-candidate-icon {
+  opacity: 0.6;
+}
+
+.pt-title-fragments {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  margin-left: 24px;
+  font-style: italic;
+}

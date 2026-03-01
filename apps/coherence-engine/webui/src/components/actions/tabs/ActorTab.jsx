@@ -2,15 +2,16 @@
  * ActorTab - Actor requirements configuration
  */
 
-import React from 'react';
-import { AddRuleButton } from '../../generators/applicability/AddRuleButton';
-import { ApplicabilityRuleCard } from '../../generators/applicability/ApplicabilityRuleCard';
-import { createNewRule } from '../../generators/applicability/createNewRule';
-import SelectionRuleEditor from '../../shared/SelectionRuleEditor';
+import React from "react";
+import PropTypes from "prop-types";
+import { AddRuleButton } from "../../generators/applicability/AddRuleButton";
+import { ApplicabilityRuleCard } from "../../generators/applicability/ApplicabilityRuleCard";
+import { createNewRule } from "../../generators/applicability/createNewRule";
+import SelectionRuleEditor from "../../shared/SelectionRuleEditor";
 
 export function ActorTab({ action, onChange, schema, pressures }) {
   const actor = action.actor || {};
-  const selection = actor.selection || { strategy: 'by_kind' };
+  const selection = actor.selection || { strategy: "by_kind" };
   const conditions = actor.conditions || [];
 
   const updateActor = (field, value) => {
@@ -20,15 +21,15 @@ export function ActorTab({ action, onChange, schema, pressures }) {
     });
   };
 
-  const availableRefs = ['$actor'];
+  const availableRefs = ["$actor"];
 
   return (
     <div>
       <div className="info-box">
         <div className="info-box-title">Actor Configuration</div>
         <div className="info-box-text">
-          The actor is the primary entity that performs the action on the target.
-          Optional instigator rules can provide richer context.
+          The actor is the primary entity that performs the action on the target. Optional
+          instigator rules can provide richer context.
         </div>
       </div>
 
@@ -36,7 +37,7 @@ export function ActorTab({ action, onChange, schema, pressures }) {
         <div className="section-title">🎭 Actor Selection</div>
         <SelectionRuleEditor
           value={selection}
-          onChange={(updated) => updateActor('selection', updated)}
+          onChange={(updated) => updateActor("selection", updated)}
           schema={schema}
           availableRefs={availableRefs}
           showPickStrategy={false}
@@ -60,9 +61,14 @@ export function ActorTab({ action, onChange, schema, pressures }) {
               onChange={(updated) => {
                 const next = [...conditions];
                 next[index] = updated;
-                updateActor('conditions', next);
+                updateActor("conditions", next);
               }}
-              onRemove={() => updateActor('conditions', conditions.filter((_, i) => i !== index))}
+              onRemove={() =>
+                updateActor(
+                  "conditions",
+                  conditions.filter((_, i) => i !== index)
+                )
+              }
               schema={schema}
               pressures={pressures}
             />
@@ -72,10 +78,17 @@ export function ActorTab({ action, onChange, schema, pressures }) {
         <AddRuleButton
           onAdd={(type) => {
             const newRule = createNewRule(type, pressures);
-            updateActor('conditions', [...conditions, newRule]);
+            updateActor("conditions", [...conditions, newRule]);
           }}
         />
       </div>
     </div>
   );
 }
+
+ActorTab.propTypes = {
+  action: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+};

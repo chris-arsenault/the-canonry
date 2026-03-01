@@ -14,5 +14,4 @@
  * - Effects: Pressure modifications and archives
  */
 
-export { default } from './generators';
-export * from './generators';
+export { default } from "./generators";

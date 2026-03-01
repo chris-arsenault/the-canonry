@@ -9,8 +9,10 @@
  * - Category and relationship type additions
  */
 
-import type { EntityContext } from '../../../lib/chronicleTypes';
-import type { EntitySelectionMetrics } from '../../../lib/chronicle/selectionWizard';
+import type { EntityContext } from "../../../lib/chronicleTypes";
+import type { EntitySelectionMetrics } from "../../../lib/chronicle/selectionWizard";
+import React from "react";
+import "./EntityDetailCard.css";
 
 interface EntityDetailCardProps {
   entity: EntityContext | null;
@@ -28,66 +30,35 @@ export default function EntityDetailCard({
   eraColor,
   isEntryPoint = false,
   isAssigned = false,
-}: EntityDetailCardProps) {
+}: Readonly<EntityDetailCardProps>) {
   // Empty state
   if (!entity) {
     return (
-      <div style={{
-        background: 'var(--bg-secondary)',
-        borderRadius: '6px',
-        padding: '12px',
-        fontSize: '10px',
-        color: 'var(--text-muted)',
-        textAlign: 'center',
-      }}>
-        <div style={{ marginBottom: '4px' }}>No entity selected</div>
-        <div style={{ fontSize: '9px', opacity: 0.7 }}>Click a node to see details</div>
+      <div className="edc-empty">
+        <div className="edc-empty-sub">No entity selected</div>
+        <div className="edc-empty-hint">Click a node to see details</div>
       </div>
     );
   }
 
   return (
-    <div style={{
-      background: 'var(--bg-secondary)',
-      borderRadius: '6px',
-      padding: '10px',
-      fontSize: '10px',
-    }}>
+    <div className="edc-card">
       {/* Header - compact */}
-      <div style={{ marginBottom: '8px' }}>
-        <div style={{
-          fontWeight: 600,
-          fontSize: '11px',
-          marginBottom: '2px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-        }}>
+      <div className="edc-header">
+        <div className="edc-name-row">
           {entity.name}
           {isEntryPoint && (
-            <span style={{
-              padding: '1px 4px',
-              background: 'var(--accent-color)',
-              color: 'white',
-              borderRadius: '3px',
-              fontSize: '8px',
-            }}>
+            <span className="edc-entry-badge">
               Entry
             </span>
           )}
           {isAssigned && !isEntryPoint && (
-            <span style={{
-              padding: '1px 4px',
-              background: 'var(--success)',
-              color: 'white',
-              borderRadius: '3px',
-              fontSize: '8px',
-            }}>
+            <span className="edc-assigned-badge">
               Assigned
             </span>
           )}
         </div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '9px' }}>
+        <div className="edc-kind-line">
           {entity.kind}
           {entity.subtype && ` · ${entity.subtype}`}
         </div>
@@ -95,38 +66,36 @@ export default function EntityDetailCard({
 
       {/* Metrics - two rows: stats on top, story effects below */}
       {(metrics || eraName) && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div className="edc-metrics">
           {/* Row 1: Basic stats */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+          <div className="edc-metric-row">
             {metrics && (
               <>
                 <MetricChip
-                  label={
-                    metrics.distance === 0 ? 'Entry' :
-                    metrics.distance === 1 ? 'Direct' :
-                    metrics.distance >= 99 ? 'Distant' :
-                    `${metrics.distance}-hop`
-                  }
+                  label={(() => {
+                    if (metrics.distance === 0) return "Entry";
+                    if (metrics.distance === 1) return "Direct";
+                    if (metrics.distance >= 99) return "Distant";
+                    return `${metrics.distance}-hop`;
+                  })()}
                 />
                 <MetricChip
                   label={`${metrics.usageCount}x used`}
-                  variant={metrics.usageCount >= 5 ? 'error' : metrics.usageCount >= 2 ? 'warning' : 'default'}
+                  variant={(() => {
+                    if (metrics.usageCount >= 5) return "error" as const;
+                    if (metrics.usageCount >= 2) return "warning" as const;
+                    return "default" as const;
+                  })()}
                 />
-                <MetricChip
-                  label={`${(metrics.avgStrength * 100).toFixed(0)}% link`}
-                />
+                <MetricChip label={`${(metrics.avgStrength * 100).toFixed(0)}% link`} />
               </>
             )}
-            {eraName && (
-              <MetricChip label={eraName} customColor={eraColor} />
-            )}
+            {eraName && <MetricChip label={eraName} customColor={eraColor} />}
           </div>
           {/* Row 2: Story effects (always separate line) */}
           {(metrics?.addsNewCategory || (metrics && metrics.newRelTypes > 0)) && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-              {metrics?.addsNewCategory && (
-                <MetricChip label="+category" variant="accent" />
-              )}
+            <div className="edc-metric-row">
+              {metrics?.addsNewCategory && <MetricChip label="+category" variant="accent" />}
               {metrics && metrics.newRelTypes > 0 && (
                 <MetricChip label={`+${metrics.newRelTypes} rel`} variant="accent" />
               )}
@@ -140,31 +109,29 @@ export default function EntityDetailCard({
 
 interface MetricChipProps {
   label: string;
-  variant?: 'default' | 'success' | 'warning' | 'error' | 'accent';
+  variant?: "default" | "success" | "warning" | "error" | "accent";
   customColor?: string;
 }
 
-function MetricChip({ label, variant = 'default', customColor }: MetricChipProps) {
-  const colors = {
-    default: { bg: 'var(--bg-tertiary)', text: 'var(--text-muted)' },
-    success: { bg: 'rgba(16, 185, 129, 0.15)', text: 'var(--success)' },
-    warning: { bg: 'rgba(245, 158, 11, 0.15)', text: 'var(--warning)' },
-    error: { bg: 'rgba(239, 68, 68, 0.15)', text: 'var(--error)' },
-    accent: { bg: 'rgba(99, 102, 241, 0.15)', text: 'var(--accent-color)' },
-  };
+function MetricChip({ label, variant = "default", customColor }: Readonly<MetricChipProps>) {
+  if (customColor) {
+    return (
+      <span
+        className="edc-chip"
+        style={{
+          '--edc-chip-bg': `${customColor}26`,
+          '--edc-chip-color': customColor,
+        } as React.CSSProperties}
+      >
+        {label}
+      </span>
+    );
+  }
 
-  const bg = customColor ? `${customColor}26` : colors[variant].bg;
-  const text = customColor ?? colors[variant].text;
+  const variantClass = `edc-chip-${variant}`;
 
   return (
-    <span style={{
-      padding: '2px 6px',
-      background: bg,
-      color: text,
-      borderRadius: '3px',
-      fontSize: '9px',
-      fontWeight: 500,
-    }}>
+    <span className={`edc-chip ${variantClass}`}>
       {label}
     </span>
   );

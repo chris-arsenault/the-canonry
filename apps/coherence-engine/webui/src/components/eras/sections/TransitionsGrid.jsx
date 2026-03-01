@@ -5,12 +5,13 @@
  * Each column has conditions and effects stacked vertically.
  */
 
-import React from 'react';
-import { EmptyState, AddItemButton, SearchableDropdown } from '../../shared';
-import { TransitionConditionEditor, TransitionEffectItem } from '../shared';
+import React from "react";
+import PropTypes from "prop-types";
+import { AddItemButton, SearchableDropdown } from "../../shared";
+import { TransitionConditionEditor, TransitionEffectItem } from "../shared";
 
 const ADD_ITEM_STYLES = Object.freeze({
-  addItemBtn: { marginTop: '8px', padding: '6px 12px', fontSize: '12px' },
+  addItemBtn: { marginTop: "8px", padding: "6px 12px", fontSize: "12px" },
 });
 
 /**
@@ -25,14 +26,21 @@ function MiniSection({ title, icon, count, children, isEmpty, emptyMessage }) {
         <span className="transitions-mini-count">{count}</span>
       </div>
       <div className="transitions-mini-content">
-        {isEmpty && (
-          <div className="transitions-mini-empty">{emptyMessage}</div>
-        )}
+        {isEmpty && <div className="transitions-mini-empty">{emptyMessage}</div>}
         {children}
       </div>
     </div>
   );
 }
+
+MiniSection.propTypes = {
+  title: PropTypes.string.isRequired,
+  icon: PropTypes.string,
+  count: PropTypes.number,
+  children: PropTypes.node,
+  isEmpty: PropTypes.bool,
+  emptyMessage: PropTypes.string,
+};
 
 /**
  * @param {Object} props
@@ -214,3 +222,27 @@ export function TransitionsGrid({
     </div>
   );
 }
+
+TransitionsGrid.propTypes = {
+  entryConditions: PropTypes.array,
+  exitConditions: PropTypes.array,
+  entryPressureChanges: PropTypes.array,
+  exitPressureChanges: PropTypes.array,
+  onUpdateEntryCondition: PropTypes.func.isRequired,
+  onRemoveEntryCondition: PropTypes.func.isRequired,
+  onAddEntryCondition: PropTypes.func.isRequired,
+  onUpdateExitCondition: PropTypes.func.isRequired,
+  onRemoveExitCondition: PropTypes.func.isRequired,
+  onAddExitCondition: PropTypes.func.isRequired,
+  onUpdateEntryEffect: PropTypes.func.isRequired,
+  onRemoveEntryEffect: PropTypes.func.isRequired,
+  onAddEntryEffect: PropTypes.func.isRequired,
+  onUpdateExitEffect: PropTypes.func.isRequired,
+  onRemoveExitEffect: PropTypes.func.isRequired,
+  onAddExitEffect: PropTypes.func.isRequired,
+  availablePressuresForEntry: PropTypes.array,
+  availablePressuresForExit: PropTypes.array,
+  pressures: PropTypes.array,
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+};

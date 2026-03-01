@@ -10,22 +10,22 @@
  * 6. Apply accepted patches to entity state
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import type { EnrichmentType } from '../lib/enrichmentTypes';
-import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { EnrichmentType } from "../lib/enrichmentTypes";
+import { getEnqueue } from "../lib/db/enrichmentQueueBridge";
 import type {
   SummaryRevisionRun,
   SummaryRevisionBatch,
   SummaryRevisionPatch,
   RevisionEntityContext,
-} from '../lib/summaryRevisionTypes';
+} from "../lib/summaryRevisionTypes";
 import {
   createRevisionRun,
   getRevisionRun,
   updateRevisionRun,
   generateRevisionRunId,
   deleteRevisionRun,
-} from '../lib/db/summaryRevisionRepository';
+} from "../lib/db/summaryRevisionRepository";
 
 // ============================================================================
 // Types
@@ -52,13 +52,13 @@ export interface UseSummaryRevisionReturn {
   /** Whether a revision session is active */
   isActive: boolean;
   /** Start a new revision session */
-  startRevision: (config: SummaryRevisionConfig) => void;
+  startRevision: (config: SummaryRevisionConfig) => Promise<void>;
   /** Continue to next batch after reviewing current one */
-  continueToNextBatch: () => void;
+  continueToNextBatch: () => Promise<void>;
   /** Auto-continue all remaining batches without per-batch review */
-  autoContineAll: () => void;
+  autoContineAll: () => Promise<void>;
   /** Toggle accept/reject for a specific entity patch */
-  togglePatchDecision: (entityId: string, accepted: boolean) => void;
+  togglePatchDecision: (entityId: string, accepted: boolean) => Promise<void>;
   /** Apply all accepted patches and close the session */
   applyAccepted: () => SummaryRevisionPatch[];
   /** Cancel the current session */
@@ -70,7 +70,7 @@ export interface UseSummaryRevisionReturn {
 // ============================================================================
 
 const POLL_INTERVAL_MS = 1500;
-const BATCH_SIZE = 18;  // Target 15-20, use 18 as default
+const BATCH_SIZE = 18; // Target 15-20, use 18 as default
 
 // ============================================================================
 // Batch Grouping
@@ -80,7 +80,7 @@ function groupEntitiesIntoBatches(entities: RevisionEntityContext[]): SummaryRev
   // Group by culture
   const byCulture = new Map<string, RevisionEntityContext[]>();
   for (const e of entities) {
-    const culture = e.culture || 'uncategorized';
+    const culture = e.culture || "uncategorized";
     const list = byCulture.get(culture) || [];
     list.push(e);
     byCulture.set(culture, list);
@@ -88,7 +88,11 @@ function groupEntitiesIntoBatches(entities: RevisionEntityContext[]): SummaryRev
 
   // Sort within each culture by prominence
   const prominenceOrder: Record<string, number> = {
-    mythic: 0, renowned: 1, recognized: 2, marginal: 3, forgotten: 4,
+    mythic: 0,
+    renowned: 1,
+    recognized: 2,
+    marginal: 3,
+    forgotten: 4,
   };
 
   const batches: SummaryRevisionBatch[] = [];
@@ -104,7 +108,7 @@ function groupEntitiesIntoBatches(entities: RevisionEntityContext[]): SummaryRev
       batches.push({
         culture,
         entityIds: chunk.map((e) => e.id),
-        status: 'pending',
+        status: "pending",
         patches: [],
       });
     }
@@ -119,13 +123,12 @@ function groupEntitiesIntoBatches(entities: RevisionEntityContext[]): SummaryRev
 
 export function useSummaryRevision(
   /** Callback to get entity context by IDs (called when dispatching a batch) */
-  getEntityContexts: (entityIds: string[]) => RevisionEntityContext[],
+  getEntityContexts: (entityIds: string[]) => RevisionEntityContext[]
 ): UseSummaryRevisionReturn {
   const [run, setRun] = useState<SummaryRevisionRun | null>(null);
   const [isActive, setIsActive] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoModeRef = useRef(false);
-  const entityContextCacheRef = useRef<Map<string, RevisionEntityContext[]>>(new Map());
 
   // Stop polling
   const stopPolling = useCallback(() => {
@@ -139,102 +142,115 @@ export function useSummaryRevision(
   useEffect(() => stopPolling, [stopPolling]);
 
   // Dispatch a worker task for one batch
-  const dispatchBatch = useCallback((runId: string, batchEntityContexts: RevisionEntityContext[]) => {
-    const sentinelEntity = {
-      id: '__summary_revision__',
-      name: 'Summary Revision',
-      kind: 'system',
-      subtype: '',
-      prominence: '',
-      culture: '',
-      status: 'active',
-      description: '',
-      tags: {},
-    };
+  const dispatchBatch = useCallback(
+    (runId: string, batchEntityContexts: RevisionEntityContext[]) => {
+      const sentinelEntity = {
+        id: "__summary_revision__",
+        name: "Summary Revision",
+        kind: "system",
+        subtype: "",
+        prominence: "",
+        culture: "",
+        status: "active",
+        description: "",
+        tags: {},
+      };
 
-    getEnqueue()([{
-      entity: sentinelEntity,
-      type: 'summaryRevision' as EnrichmentType,
-      prompt: JSON.stringify(batchEntityContexts),
-      chronicleId: runId,
-    }]);
-  }, []);
+      getEnqueue()([
+        {
+          entity: sentinelEntity,
+          type: "summaryRevision" as EnrichmentType,
+          prompt: JSON.stringify(batchEntityContexts),
+          chronicleId: runId,
+        },
+      ]);
+    },
+    []
+  );
 
   // Poll IndexedDB for run state changes
-  const startPolling = useCallback((runId: string) => {
-    stopPolling();
-    pollRef.current = setInterval(async () => {
-      const updated = await getRevisionRun(runId);
-      if (!updated) return;
+  const startPolling = useCallback(
+    (runId: string) => {
+      stopPolling();
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getRevisionRun(runId);
+          if (!updated) return;
 
-      setRun(updated);
+          setRun(updated);
 
-      // Stop polling on review/terminal states
-      if (
-        updated.status === 'batch_reviewing' ||
-        updated.status === 'run_reviewing' ||
-        updated.status === 'complete' ||
-        updated.status === 'failed' ||
-        updated.status === 'cancelled'
-      ) {
-        stopPolling();
+          // Stop polling on review/terminal states
+          if (
+            updated.status === "batch_reviewing" ||
+            updated.status === "run_reviewing" ||
+            updated.status === "complete" ||
+            updated.status === "failed" ||
+            updated.status === "cancelled"
+          ) {
+            stopPolling();
 
-        // In auto mode, continue to next batch if batch_reviewing
-        if (autoModeRef.current && updated.status === 'batch_reviewing') {
-          const nextIndex = updated.currentBatchIndex + 1;
-          if (nextIndex < updated.batches.length) {
-            // Dispatch next batch
-            const nextBatch = updated.batches[nextIndex];
-            const contexts = getEntityContexts(nextBatch.entityIds);
-            await updateRevisionRun(runId, { currentBatchIndex: nextIndex });
-            dispatchBatch(runId, contexts);
-            startPolling(runId);
+            // In auto mode, continue to next batch if batch_reviewing
+            if (autoModeRef.current && updated.status === "batch_reviewing") {
+              const nextIndex = updated.currentBatchIndex + 1;
+              if (nextIndex < updated.batches.length) {
+                // Dispatch next batch
+                const nextBatch = updated.batches[nextIndex];
+                const contexts = getEntityContexts(nextBatch.entityIds);
+                await updateRevisionRun(runId, { currentBatchIndex: nextIndex });
+                dispatchBatch(runId, contexts);
+                startPolling(runId);
+              }
+            }
           }
-        }
-      }
-    }, POLL_INTERVAL_MS);
-  }, [stopPolling, dispatchBatch, getEntityContexts]);
+        })();
+      }, POLL_INTERVAL_MS);
+    },
+    [stopPolling, dispatchBatch, getEntityContexts]
+  );
 
   // Start a new revision session
-  const startRevision = useCallback(async (config: SummaryRevisionConfig) => {
-    const runId = generateRevisionRunId();
-    autoModeRef.current = false;
+  const startRevision = useCallback(
+    async (config: SummaryRevisionConfig) => {
+      const runId = generateRevisionRunId();
+      autoModeRef.current = false;
 
-    // Filter out locked-summary entities
-    const eligibleEntities = config.entities;
+      // Filter out locked-summary entities
+      const eligibleEntities = config.entities;
 
-    // Group into batches
-    const batches = groupEntitiesIntoBatches(eligibleEntities);
+      // Group into batches
+      const batches = groupEntitiesIntoBatches(eligibleEntities);
 
-    if (batches.length === 0) {
-      return;
-    }
+      if (batches.length === 0) {
+        return;
+      }
 
-    // Cache entity contexts for batch dispatch
-    const contextMap = new Map<string, RevisionEntityContext>();
-    for (const e of eligibleEntities) {
-      contextMap.set(e.id, e);
-    }
+      // Create run in IndexedDB
+      const newRun = await createRevisionRun(
+        runId,
+        config.projectId,
+        config.simulationRunId,
+        batches,
+        {
+          worldDynamicsContext: config.worldDynamicsContext,
+          staticPagesContext: config.staticPagesContext,
+          schemaContext: config.schemaContext,
+          revisionGuidance: config.revisionGuidance,
+        }
+      );
 
-    // Create run in IndexedDB
-    const newRun = await createRevisionRun(runId, config.projectId, config.simulationRunId, batches, {
-      worldDynamicsContext: config.worldDynamicsContext,
-      staticPagesContext: config.staticPagesContext,
-      schemaContext: config.schemaContext,
-      revisionGuidance: config.revisionGuidance,
-    });
+      setRun(newRun);
+      setIsActive(true);
 
-    setRun(newRun);
-    setIsActive(true);
+      // Dispatch first batch
+      const firstBatch = batches[0];
+      const firstContexts = getEntityContexts(firstBatch.entityIds);
+      dispatchBatch(runId, firstContexts);
 
-    // Dispatch first batch
-    const firstBatch = batches[0];
-    const firstContexts = getEntityContexts(firstBatch.entityIds);
-    dispatchBatch(runId, firstContexts);
-
-    // Start polling
-    startPolling(runId);
-  }, [dispatchBatch, startPolling, getEntityContexts]);
+      // Start polling
+      startPolling(runId);
+    },
+    [dispatchBatch, startPolling, getEntityContexts]
+  );
 
   // Continue to next batch after reviewing current one
   const continueToNextBatch = useCallback(async () => {
@@ -243,7 +259,7 @@ export function useSummaryRevision(
     const nextIndex = run.currentBatchIndex + 1;
     if (nextIndex >= run.batches.length) {
       // All batches done — move to run_reviewing
-      await updateRevisionRun(run.runId, { status: 'run_reviewing' });
+      await updateRevisionRun(run.runId, { status: "run_reviewing" });
       const updated = await getRevisionRun(run.runId);
       if (updated) setRun(updated);
       return;
@@ -252,7 +268,7 @@ export function useSummaryRevision(
     // Advance to next batch
     await updateRevisionRun(run.runId, {
       currentBatchIndex: nextIndex,
-      status: 'generating',
+      status: "generating",
     });
 
     const nextBatch = run.batches[nextIndex];
@@ -271,14 +287,17 @@ export function useSummaryRevision(
   }, [run, continueToNextBatch]);
 
   // Toggle accept/reject for a specific entity patch
-  const togglePatchDecision = useCallback(async (entityId: string, accepted: boolean) => {
-    if (!run) return;
+  const togglePatchDecision = useCallback(
+    async (entityId: string, accepted: boolean) => {
+      if (!run) return;
 
-    const newDecisions = { ...run.patchDecisions, [entityId]: accepted };
-    await updateRevisionRun(run.runId, { patchDecisions: newDecisions });
+      const newDecisions = { ...run.patchDecisions, [entityId]: accepted };
+      await updateRevisionRun(run.runId, { patchDecisions: newDecisions });
 
-    setRun((prev) => prev ? { ...prev, patchDecisions: newDecisions } : null);
-  }, [run]);
+      setRun((prev) => (prev ? { ...prev, patchDecisions: newDecisions } : null));
+    },
+    [run]
+  );
 
   // Apply all accepted patches and return them
   const applyAccepted = useCallback((): SummaryRevisionPatch[] => {

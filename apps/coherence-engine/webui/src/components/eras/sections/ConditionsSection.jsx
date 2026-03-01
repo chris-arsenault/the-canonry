@@ -2,20 +2,21 @@
  * ConditionsSection - Reusable section for entry/exit conditions
  */
 
-import React from 'react';
-import { SectionHeader, EmptyState, AddItemButton } from '../../shared';
-import { TransitionConditionEditor } from '../shared';
+import React from "react";
+import PropTypes from "prop-types";
+import { SectionHeader, EmptyState, AddItemButton } from "../../shared";
+import { TransitionConditionEditor } from "../shared";
 
 const EMPTY_STATE_STYLES = Object.freeze({
   emptyState: {
-    padding: '16px',
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    borderRadius: '8px',
+    padding: "16px",
+    backgroundColor: "rgba(59, 130, 246, 0.05)",
+    borderRadius: "8px",
   },
 });
 
 const ADD_ITEM_STYLES = Object.freeze({
-  addItemBtn: { marginTop: '10px', padding: '10px 16px' },
+  addItemBtn: { marginTop: "10px", padding: "10px 16px" },
 });
 
 /**
@@ -50,15 +51,12 @@ export function ConditionsSection({
       <SectionHeader
         icon={icon}
         title={title}
-        count={`${conditions.length} condition${conditions.length !== 1 ? 's' : ''}`}
+        count={`${conditions.length} condition${conditions.length !== 1 ? "s" : ""}`}
         description={description}
       />
       <div className="items-grid">
         {conditions.length === 0 ? (
-          <EmptyState
-            title={emptyMessage}
-            styles={EMPTY_STATE_STYLES}
-          />
+          <EmptyState title={emptyMessage} styles={EMPTY_STATE_STYLES} />
         ) : (
           conditions.map((condition, index) => (
             <TransitionConditionEditor
@@ -73,11 +71,21 @@ export function ConditionsSection({
           ))
         )}
       </div>
-      <AddItemButton
-        onClick={onAdd}
-        label={addLabel}
-        styles={ADD_ITEM_STYLES}
-      />
+      <AddItemButton onClick={onAdd} label={addLabel} styles={ADD_ITEM_STYLES} />
     </div>
   );
 }
+
+ConditionsSection.propTypes = {
+  title: PropTypes.string.isRequired,
+  icon: PropTypes.string,
+  description: PropTypes.string,
+  emptyMessage: PropTypes.string,
+  conditions: PropTypes.array.isRequired,
+  onUpdate: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  onAdd: PropTypes.func.isRequired,
+  addLabel: PropTypes.string,
+  pressures: PropTypes.array,
+  schema: PropTypes.object,
+};

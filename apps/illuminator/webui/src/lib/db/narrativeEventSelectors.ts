@@ -5,7 +5,7 @@
  * the specific event data they care about changes.
  */
 
-import { useNarrativeEventStore } from './narrativeEventStore';
+import { useNarrativeEventStore } from "./narrativeEventStore";
 
 /** Full narrative events array — re-renders when events change */
 export function useNarrativeEvents() {

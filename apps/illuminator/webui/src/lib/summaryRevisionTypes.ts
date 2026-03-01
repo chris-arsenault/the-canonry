@@ -14,13 +14,13 @@
 // =============================================================================
 
 export type SummaryRevisionRunStatus =
-  | 'pending'                // Created, waiting for first batch
-  | 'generating'             // LLM call in progress for current batch
-  | 'batch_reviewing'        // Current batch complete, user reviewing before continuing
-  | 'run_reviewing'          // All batches complete, final per-entity accept/reject
-  | 'complete'               // User applied selected patches
-  | 'cancelled'              // User cancelled the run
-  | 'failed';                // Error occurred
+  | "pending" // Created, waiting for first batch
+  | "generating" // LLM call in progress for current batch
+  | "batch_reviewing" // Current batch complete, user reviewing before continuing
+  | "run_reviewing" // All batches complete, final per-entity accept/reject
+  | "complete" // User applied selected patches
+  | "cancelled" // User cancelled the run
+  | "failed"; // Error occurred
 
 // =============================================================================
 // Patches
@@ -48,7 +48,7 @@ export interface SummaryRevisionBatch {
   /** Entity IDs in this batch, sorted by prominence */
   entityIds: string[];
   /** Batch-level status */
-  status: 'pending' | 'generating' | 'complete' | 'failed';
+  status: "pending" | "generating" | "complete" | "failed";
   /** Proposed patches from LLM */
   patches: SummaryRevisionPatch[];
   /** Error message if status=failed */

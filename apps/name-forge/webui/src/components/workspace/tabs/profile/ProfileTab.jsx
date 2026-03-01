@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
-import { computeProfileGeneratorUsage } from './utils';
-import ProfileModal from './ProfileModal';
+import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
+import { computeProfileGeneratorUsage } from "./utils";
+import ProfileModal from "./ProfileModal";
 
 /**
  * ProfileTab - Profile list with modal editing
@@ -29,7 +30,7 @@ export default function ProfileTab({
       id: `${cultureId}_profile_${profiles.length + 1}`,
       strategyGroups: [
         {
-          name: 'Default',
+          name: "Default",
           priority: 0,
           conditions: null,
           strategies: [],
@@ -134,21 +135,23 @@ export default function ProfileTab({
                 key={profile.id}
                 className="profile-card-item"
                 onClick={() => handleEditProfile(profile)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
               >
                 <div className="profile-card-header">
                   <strong className="profile-card-title">{profile.id}</strong>
                   <div className="profile-badges">
-                    {profile.isDefault && (
-                      <span className="profile-badge default">Default</span>
-                    )}
+                    {profile.isDefault && <span className="profile-badge default">Default</span>}
                     {profile.entityKinds?.length > 0 && (
-                      <span className="profile-badge kinds" title={profile.entityKinds.join(', ')}>
-                        {profile.entityKinds.length} kind{profile.entityKinds.length !== 1 ? 's' : ''}
+                      <span className="profile-badge kinds" title={profile.entityKinds.join(", ")}>
+                        {profile.entityKinds.length} kind
+                        {profile.entityKinds.length !== 1 ? "s" : ""}
                       </span>
                     )}
                     {matchCount > 0 && (
                       <span className="generator-match-pill">
-                        {matchCount} generator{matchCount !== 1 ? 's' : ''}
+                        {matchCount} generator{matchCount !== 1 ? "s" : ""}
                       </span>
                     )}
                   </div>
@@ -191,3 +194,12 @@ export default function ProfileTab({
     </div>
   );
 }
+
+ProfileTab.propTypes = {
+  cultureId: PropTypes.string,
+  cultureConfig: PropTypes.object,
+  onProfilesChange: PropTypes.func,
+  worldSchema: PropTypes.object,
+  onAddTag: PropTypes.func,
+  generators: PropTypes.array,
+};

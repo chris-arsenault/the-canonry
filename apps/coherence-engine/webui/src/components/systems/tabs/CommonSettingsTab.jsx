@@ -2,11 +2,12 @@
  * CommonSettingsTab - Shared settings for all system types
  */
 
-import React from 'react';
-import { PressureChangesEditor, NumberInput } from '../../shared';
-import SelectionRuleEditor from '../../shared/SelectionRuleEditor';
+import React from "react";
+import PropTypes from "prop-types";
+import { PressureChangesEditor, NumberInput } from "../../shared";
+import SelectionRuleEditor from "../../shared/SelectionRuleEditor";
 
-const DEFAULT_SELECTION = Object.freeze({ strategy: 'by_kind', kind: 'any' });
+const DEFAULT_SELECTION = Object.freeze({ strategy: "by_kind", kind: "any" });
 const EMPTY_PRESSURE_CHANGES = Object.freeze({});
 
 /**
@@ -20,12 +21,12 @@ export function CommonSettingsTab({ system, onChange, schema, pressures }) {
   const config = system.config;
   const selection = config.selection || DEFAULT_SELECTION;
   const supportsSelection = [
-    'graphContagion',
-    'connectionEvolution',
-    'thresholdTrigger',
-    'clusterFormation',
-    'tagDiffusion',
-    'planeDiffusion',
+    "graphContagion",
+    "connectionEvolution",
+    "thresholdTrigger",
+    "clusterFormation",
+    "tagDiffusion",
+    "planeDiffusion",
   ].includes(system.systemType);
 
   const updateConfig = (field, value) => {
@@ -37,12 +38,10 @@ export function CommonSettingsTab({ system, onChange, schema, pressures }) {
       {supportsSelection && (
         <div className="section">
           <div className="section-title">Entity Selection</div>
-          <div className="section-desc">
-            Define which entities this system operates on.
-          </div>
+          <div className="section-desc">Define which entities this system operates on.</div>
           <SelectionRuleEditor
             value={selection}
-            onChange={(next) => updateConfig('selection', next)}
+            onChange={(next) => updateConfig("selection", next)}
             schema={schema}
             availableRefs={[]}
             showPickStrategy={false}
@@ -58,10 +57,10 @@ export function CommonSettingsTab({ system, onChange, schema, pressures }) {
         <div className="section-title">Throttling</div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Throttle Chance (0-1)</label>
+            <label className="label">Throttle Chance (0-1)
             <NumberInput
               value={config.throttleChance}
-              onChange={(v) => updateConfig('throttleChance', v)}
+              onChange={(v) => updateConfig("throttleChance", v)}
               className="input"
               min={0}
               max={1}
@@ -69,18 +68,20 @@ export function CommonSettingsTab({ system, onChange, schema, pressures }) {
               placeholder="0.2"
               allowEmpty
             />
+            </label>
           </div>
           <div className="form-group">
-            <label className="label">Cooldown (ticks)</label>
+            <label className="label">Cooldown (ticks)
             <NumberInput
               value={config.cooldown}
-              onChange={(v) => updateConfig('cooldown', v)}
+              onChange={(v) => updateConfig("cooldown", v)}
               className="input"
               min={0}
               placeholder="0"
               allowEmpty
               integer
             />
+            </label>
           </div>
         </div>
       </div>
@@ -88,10 +89,19 @@ export function CommonSettingsTab({ system, onChange, schema, pressures }) {
       <div className="section">
         <PressureChangesEditor
           value={config.pressureChanges || EMPTY_PRESSURE_CHANGES}
-          onChange={(v) => updateConfig('pressureChanges', Object.keys(v).length > 0 ? v : undefined)}
+          onChange={(v) =>
+            updateConfig("pressureChanges", Object.keys(v).length > 0 ? v : undefined)
+          }
           pressures={pressures}
         />
       </div>
     </div>
   );
 }
+
+CommonSettingsTab.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+};

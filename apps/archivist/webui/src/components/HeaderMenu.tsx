@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import './HeaderMenu.css';
+import React, { useState, useRef, useEffect } from "react";
+import "./HeaderMenu.css";
 
-export type EdgeMetric = 'strength' | 'distance' | 'none';
-export type ViewMode = 'graph3d' | 'graph2d' | 'map';
+export type EdgeMetric = "strength" | "distance" | "none";
+export type ViewMode = "graph3d" | "graph2d" | "map";
 
 interface HeaderMenuProps {
   viewMode: ViewMode;
@@ -13,7 +13,14 @@ interface HeaderMenuProps {
   onToggleStats: () => void;
 }
 
-export default function HeaderMenu({ viewMode, edgeMetric, onViewModeChange, onEdgeMetricChange, onRecalculateLayout, onToggleStats }: HeaderMenuProps) {
+export default function HeaderMenu({
+  viewMode,
+  edgeMetric,
+  onViewModeChange,
+  onEdgeMetricChange,
+  onRecalculateLayout,
+  onToggleStats,
+}: Readonly<HeaderMenuProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -26,8 +33,8 @@ export default function HeaderMenu({ viewMode, edgeMetric, onViewModeChange, onE
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen]);
 
@@ -38,11 +45,7 @@ export default function HeaderMenu({ viewMode, edgeMetric, onViewModeChange, onE
 
   return (
     <div className="header-menu" ref={menuRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="header-menu-button"
-        title="Menu"
-      >
+      <button onClick={() => setIsOpen(!isOpen)} className="header-menu-button" title="Menu">
         <span className="header-menu-icon">☰</span>
       </button>
 
@@ -51,24 +54,24 @@ export default function HeaderMenu({ viewMode, edgeMetric, onViewModeChange, onE
           <div className="header-menu-section">
             <div className="header-menu-section-title">View Mode</div>
             <button
-              onClick={() => handleMenuItemClick(() => onViewModeChange('graph3d'))}
-              className={`header-menu-item ${viewMode === 'graph3d' ? 'active' : ''}`}
+              onClick={() => handleMenuItemClick(() => onViewModeChange("graph3d"))}
+              className={`header-menu-item ${viewMode === "graph3d" ? "active" : ""}`}
             >
-              <span className="header-menu-item-icon">{viewMode === 'graph3d' ? '✓' : '○'}</span>
+              <span className="header-menu-item-icon">{viewMode === "graph3d" ? "✓" : "○"}</span>
               <span>3D Graph</span>
             </button>
             <button
-              onClick={() => handleMenuItemClick(() => onViewModeChange('graph2d'))}
-              className={`header-menu-item ${viewMode === 'graph2d' ? 'active' : ''}`}
+              onClick={() => handleMenuItemClick(() => onViewModeChange("graph2d"))}
+              className={`header-menu-item ${viewMode === "graph2d" ? "active" : ""}`}
             >
-              <span className="header-menu-item-icon">{viewMode === 'graph2d' ? '✓' : '○'}</span>
+              <span className="header-menu-item-icon">{viewMode === "graph2d" ? "✓" : "○"}</span>
               <span>2D Graph</span>
             </button>
             <button
-              onClick={() => handleMenuItemClick(() => onViewModeChange('map'))}
-              className={`header-menu-item ${viewMode === 'map' ? 'active' : ''}`}
+              onClick={() => handleMenuItemClick(() => onViewModeChange("map"))}
+              className={`header-menu-item ${viewMode === "map" ? "active" : ""}`}
             >
-              <span className="header-menu-item-icon">{viewMode === 'map' ? '✓' : '○'}</span>
+              <span className="header-menu-item-icon">{viewMode === "map" ? "✓" : "○"}</span>
               <span>Coordinate Map</span>
             </button>
           </div>
@@ -76,24 +79,24 @@ export default function HeaderMenu({ viewMode, edgeMetric, onViewModeChange, onE
           <div className="header-menu-section">
             <div className="header-menu-section-title">Edge Spring Metric</div>
             <button
-              onClick={() => handleMenuItemClick(() => onEdgeMetricChange('strength'))}
-              className={`header-menu-item ${edgeMetric === 'strength' ? 'active' : ''}`}
+              onClick={() => handleMenuItemClick(() => onEdgeMetricChange("strength"))}
+              className={`header-menu-item ${edgeMetric === "strength" ? "active" : ""}`}
             >
-              <span className="header-menu-item-icon">{edgeMetric === 'strength' ? '✓' : '○'}</span>
+              <span className="header-menu-item-icon">{edgeMetric === "strength" ? "✓" : "○"}</span>
               <span>Strength</span>
             </button>
             <button
-              onClick={() => handleMenuItemClick(() => onEdgeMetricChange('distance'))}
-              className={`header-menu-item ${edgeMetric === 'distance' ? 'active' : ''}`}
+              onClick={() => handleMenuItemClick(() => onEdgeMetricChange("distance"))}
+              className={`header-menu-item ${edgeMetric === "distance" ? "active" : ""}`}
             >
-              <span className="header-menu-item-icon">{edgeMetric === 'distance' ? '✓' : '○'}</span>
+              <span className="header-menu-item-icon">{edgeMetric === "distance" ? "✓" : "○"}</span>
               <span>Distance</span>
             </button>
             <button
-              onClick={() => handleMenuItemClick(() => onEdgeMetricChange('none'))}
-              className={`header-menu-item ${edgeMetric === 'none' ? 'active' : ''}`}
+              onClick={() => handleMenuItemClick(() => onEdgeMetricChange("none"))}
+              className={`header-menu-item ${edgeMetric === "none" ? "active" : ""}`}
             >
-              <span className="header-menu-item-icon">{edgeMetric === 'none' ? '✓' : '○'}</span>
+              <span className="header-menu-item-icon">{edgeMetric === "none" ? "✓" : "○"}</span>
               <span>None (Equal)</span>
             </button>
           </div>
@@ -106,10 +109,7 @@ export default function HeaderMenu({ viewMode, edgeMetric, onViewModeChange, onE
             <span>Recalculate Layout</span>
           </button>
 
-          <button
-            onClick={() => handleMenuItemClick(onToggleStats)}
-            className="header-menu-item"
-          >
+          <button onClick={() => handleMenuItemClick(onToggleStats)} className="header-menu-item">
             <span className="header-menu-item-icon">📊</span>
             <span>Toggle Stats</span>
           </button>

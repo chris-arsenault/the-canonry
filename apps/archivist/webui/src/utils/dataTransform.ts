@@ -1,21 +1,21 @@
-import type { HardState, Prominence, WorldState, Filters, Schema } from '../types/world.ts';
+import type { HardState, Prominence, WorldState, Filters, Schema } from "../types/world.ts";
 import {
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,
   prominenceLabelFromScale,
   type ProminenceScale,
-} from '@canonry/world-schema';
+} from "@canonry/world-schema";
 
 const VALID_PROMINENCE_LEVELS: ReadonlySet<Prominence> = new Set([
-  'forgotten',
-  'marginal',
-  'recognized',
-  'renowned',
-  'mythic',
+  "forgotten",
+  "marginal",
+  "recognized",
+  "renowned",
+  "mythic",
 ]);
 
 const FALLBACK_PROMINENCE_SCALE = buildProminenceScale([], {
-  distribution: DEFAULT_PROMINENCE_DISTRIBUTION
+  distribution: DEFAULT_PROMINENCE_DISTRIBUTION,
 });
 
 function resolveProminenceScale(prominenceScale?: ProminenceScale): ProminenceScale {
@@ -31,11 +31,11 @@ export function getTagsArray(tags: Record<string, string | boolean>): string[] {
 export function getProminenceLevels(schema?: Schema): Prominence[] {
   const levels = schema?.uiConfig?.prominenceLevels;
   if (!levels || levels.length === 0) {
-    throw new Error('Archivist: schema.uiConfig.prominenceLevels is required.');
+    throw new Error("Archivist: schema.uiConfig.prominenceLevels is required.");
   }
-  const invalidLevels = levels.filter(level => !VALID_PROMINENCE_LEVELS.has(level as Prominence));
+  const invalidLevels = levels.filter((level) => !VALID_PROMINENCE_LEVELS.has(level as Prominence));
   if (invalidLevels.length > 0) {
-    throw new Error(`Archivist: unsupported prominence levels: ${invalidLevels.join(', ')}.`);
+    throw new Error(`Archivist: unsupported prominence levels: ${invalidLevels.join(", ")}.`);
   }
   return levels as Prominence[];
 }
@@ -43,7 +43,7 @@ export function getProminenceLevels(schema?: Schema): Prominence[] {
 export function getProminenceColor(prominence: Prominence, schema?: Schema): string {
   const colors = schema?.uiConfig?.prominenceColors;
   if (!colors) {
-    throw new Error('Archivist: schema.uiConfig.prominenceColors is required.');
+    throw new Error("Archivist: schema.uiConfig.prominenceColors is required.");
   }
   const color = colors[prominence];
   if (!color) {
@@ -57,7 +57,7 @@ export function prominenceToNumber(
   schema?: Schema,
   prominenceScale?: ProminenceScale
 ): number {
-  if (typeof prominence === 'number' && Number.isFinite(prominence)) {
+  if (typeof prominence === "number" && Number.isFinite(prominence)) {
     const scale = resolveProminenceScale(prominenceScale);
     const label = prominenceLabelFromScale(prominence, scale);
     const index = scale.labels.indexOf(label);
@@ -67,13 +67,15 @@ export function prominenceToNumber(
   const levels = getProminenceLevels(schema);
   const index = levels.indexOf(prominence as Prominence);
   if (index < 0) {
-    throw new Error(`Archivist: prominence "${String(prominence)}" not found in schema.uiConfig.prominenceLevels.`);
+    throw new Error(
+      `Archivist: prominence "${String(prominence)}" not found in schema.uiConfig.prominenceLevels.`
+    );
   }
   return index;
 }
 
 export function getKindColor(kind: string, schema?: Schema): string {
-  const entityKind = schema?.entityKinds?.find(ek => ek.kind === kind);
+  const entityKind = schema?.entityKinds?.find((ek) => ek.kind === kind);
   if (!entityKind) {
     throw new Error(`Archivist: entity kind "${kind}" not found in schema.`);
   }
@@ -89,29 +91,30 @@ export function transformWorldData(
   prominenceScale?: ProminenceScale
 ) {
   const resolvedScale = resolveProminenceScale(prominenceScale);
-  const nodes = worldState.hardState.map(entity => ({
+  const nodes = worldState.hardState.map((entity) => ({
     data: {
       id: entity.id,
       name: entity.name,
       kind: entity.kind,
       subtype: entity.subtype,
       prominence: prominenceToNumber(entity.prominence, worldState.schema, resolvedScale),
-      prominenceLabel: typeof entity.prominence === 'number'
-        ? prominenceLabelFromScale(entity.prominence, resolvedScale)
-        : entity.prominence,
+      prominenceLabel:
+        typeof entity.prominence === "number"
+          ? prominenceLabelFromScale(entity.prominence, resolvedScale)
+          : entity.prominence,
       status: entity.status,
       tags: entity.tags,
       description: entity.description,
       createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt
+      updatedAt: entity.updatedAt,
     },
-    classes: `${entity.kind} ${entity.subtype} ${entity.prominence}`
+    classes: `${entity.kind} ${entity.subtype} ${entity.prominence}`,
   }));
 
   const edges = worldState.relationships.map((rel) => {
     // Check if this relationship was catalyzed by an event or entity
     // In a full implementation, this would check for catalyzedBy metadata
-    const catalyzedBy = (rel as any).catalyzedBy;
+    const catalyzedBy = rel.catalyzedBy;
     const hasCatalyst = !!catalyzedBy;
 
     return {
@@ -120,15 +123,14 @@ export function transformWorldData(
         source: rel.src,
         target: rel.dst,
         kind: rel.kind,
-        label: rel.kind.replace(/_/g, ' '),
+        label: rel.kind.replace(/_/g, " "),
         strength: rel.strength ?? 0.5,
         catalyzedBy: catalyzedBy,
-        hasCatalyst: hasCatalyst
+        hasCatalyst: hasCatalyst,
       },
-      classes: [
-        rel.kind.replace(/_/g, '-'),
-        hasCatalyst && showCatalyzedBy ? 'catalyzed' : ''
-      ].filter(Boolean).join(' ')
+      classes: [rel.kind.replace(/_/g, "-"), hasCatalyst && showCatalyzedBy ? "catalyzed" : ""]
+        .filter(Boolean)
+        .join(" "),
     };
   });
 
@@ -144,14 +146,15 @@ export function applyFilters(
   const minProminenceIndex = prominenceOrder.indexOf(filters.minProminence);
   const resolvedScale = resolveProminenceScale(prominenceScale);
 
-  let filtered = worldState.hardState.filter(entity => {
+  const filtered = worldState.hardState.filter((entity) => {
     // Filter by kind
     if (!filters.kinds.includes(entity.kind)) return false;
 
     // Filter by prominence
-    const entityProminenceLabel = typeof entity.prominence === 'number'
-      ? prominenceLabelFromScale(entity.prominence, resolvedScale)
-      : entity.prominence;
+    const entityProminenceLabel =
+      typeof entity.prominence === "number"
+        ? prominenceLabelFromScale(entity.prominence, resolvedScale)
+        : entity.prominence;
     const entityProminenceIndex = prominenceOrder.indexOf(entityProminenceLabel);
     if (entityProminenceIndex < minProminenceIndex) return false;
 
@@ -163,7 +166,7 @@ export function applyFilters(
     // Filter by tags
     if (filters.tags.length > 0) {
       const entityTags = getTagsArray(entity.tags);
-      const hasMatchingTag = filters.tags.some(tag => entityTags.includes(tag));
+      const hasMatchingTag = filters.tags.some((tag) => entityTags.includes(tag));
       if (!hasMatchingTag) return false;
     }
 
@@ -174,7 +177,7 @@ export function applyFilters(
       const matches =
         entity.name.toLowerCase().includes(query) ||
         entity.description.toLowerCase().includes(query) ||
-        entityTags.some(tag => tag.toLowerCase().includes(query));
+        entityTags.some((tag) => tag.toLowerCase().includes(query));
       if (!matches) return false;
     }
 
@@ -182,14 +185,14 @@ export function applyFilters(
   });
 
   // Get IDs of filtered entities
-  const filteredIds = new Set(filtered.map(e => e.id));
+  const filteredIds = new Set(filtered.map((e) => e.id));
 
   // Get all unique relationship types for comparison
-  const allRelTypes = new Set(worldState.relationships.map(r => r.kind));
+  const allRelTypes = new Set(worldState.relationships.map((r) => r.kind));
 
   // Filter relationships to only include those between filtered entities
   // Also filter by relationship type and strength if specified
-  const filteredRelationships = worldState.relationships.filter(rel => {
+  const filteredRelationships = worldState.relationships.filter((rel) => {
     // Must be between visible entities
     if (!filteredIds.has(rel.src) || !filteredIds.has(rel.dst)) return false;
 
@@ -198,8 +201,10 @@ export function applyFilters(
     if (strength < filters.minStrength) return false;
 
     // If relationship type filter has ALL types selected, show none (special "clear all" case)
-    if (filters.relationshipTypes.length === allRelTypes.size &&
-        filters.relationshipTypes.length > 0) {
+    if (
+      filters.relationshipTypes.length === allRelTypes.size &&
+      filters.relationshipTypes.length > 0
+    ) {
       return false;
     }
 
@@ -209,7 +214,7 @@ export function applyFilters(
     }
 
     // Filter historical relationships unless explicitly shown
-    if (!filters.showHistoricalRelationships && rel.status === 'historical') {
+    if (!filters.showHistoricalRelationships && rel.status === "historical") {
       return false;
     }
 
@@ -224,46 +229,43 @@ export function applyFilters(
     metadata: {
       ...worldState.metadata,
       entityCount: filtered.length,
-      relationshipCount: filteredRelationships.length
-    }
+      relationshipCount: filteredRelationships.length,
+    },
   };
 }
 
 export function getAllTags(worldState: WorldState): string[] {
   const tagSet = new Set<string>();
-  worldState.hardState.forEach(entity => {
-    getTagsArray(entity.tags).forEach(tag => tagSet.add(tag));
+  worldState.hardState.forEach((entity) => {
+    getTagsArray(entity.tags).forEach((tag) => tagSet.add(tag));
   });
-  return Array.from(tagSet).sort();
+  return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
 }
 
 export function getAllRelationshipTypes(worldState: WorldState): string[] {
   const typeSet = new Set<string>();
-  worldState.relationships.forEach(rel => {
+  worldState.relationships.forEach((rel) => {
     typeSet.add(rel.kind);
   });
-  return Array.from(typeSet).sort();
+  return Array.from(typeSet).sort((a, b) => a.localeCompare(b));
 }
 
 export function getRelationshipTypeCounts(worldState: WorldState): Record<string, number> {
   const counts: Record<string, number> = {};
-  worldState.relationships.forEach(rel => {
+  worldState.relationships.forEach((rel) => {
     counts[rel.kind] = (counts[rel.kind] || 0) + 1;
   });
   return counts;
 }
 
 export function getEntityById(worldState: WorldState, id: string): HardState | undefined {
-  return worldState.hardState.find(e => e.id === id);
+  return worldState.hardState.find((e) => e.id === id);
 }
 
-export function getRelatedEntities(
-  worldState: WorldState,
-  entityId: string
-): HardState[] {
+export function getRelatedEntities(worldState: WorldState, entityId: string): HardState[] {
   const relatedIds = new Set<string>();
 
-  worldState.relationships.forEach(rel => {
+  worldState.relationships.forEach((rel) => {
     if (rel.src === entityId) {
       relatedIds.add(rel.dst);
     }
@@ -272,29 +274,24 @@ export function getRelatedEntities(
     }
   });
 
-  return worldState.hardState.filter(e => relatedIds.has(e.id));
+  return worldState.hardState.filter((e) => relatedIds.has(e.id));
 }
 
-export function getRelationships(
-  worldState: WorldState,
-  entityId: string
-) {
-  return worldState.relationships.filter(
-    rel => rel.src === entityId || rel.dst === entityId
-  );
+export function getRelationships(worldState: WorldState, entityId: string) {
+  return worldState.relationships.filter((rel) => rel.src === entityId || rel.dst === entityId);
 }
 
 export function applyTemporalFilter(worldState: WorldState, maxTick: number): WorldState {
   // Filter entities created at or before maxTick
-  const filteredEntities = worldState.hardState.filter(entity => entity.createdAt <= maxTick);
+  const filteredEntities = worldState.hardState.filter((entity) => entity.createdAt <= maxTick);
 
   // Filter relationships where both source and destination entities exist at maxTick
-  const filteredRelationships = worldState.relationships.filter(rel => {
-    const srcEntity = worldState.hardState.find(e => e.id === rel.src);
-    const dstEntity = worldState.hardState.find(e => e.id === rel.dst);
-    return srcEntity && dstEntity &&
-           srcEntity.createdAt <= maxTick &&
-           dstEntity.createdAt <= maxTick;
+  const filteredRelationships = worldState.relationships.filter((rel) => {
+    const srcEntity = worldState.hardState.find((e) => e.id === rel.src);
+    const dstEntity = worldState.hardState.find((e) => e.id === rel.dst);
+    return (
+      srcEntity && dstEntity && srcEntity.createdAt <= maxTick && dstEntity.createdAt <= maxTick
+    );
   });
 
   return {
@@ -305,7 +302,7 @@ export function applyTemporalFilter(worldState: WorldState, maxTick: number): Wo
       ...worldState.metadata,
       tick: maxTick,
       entityCount: filteredEntities.length,
-      relationshipCount: filteredRelationships.length
-    }
+      relationshipCount: filteredRelationships.length,
+    },
   };
 }

@@ -1,0 +1,297 @@
+/* ImagesTab — prefix: itab- */
+/* Shared: panel-utilities.css provides .ilu-section, .ilu-action-btn, .ilu-empty */
+
+/* ImageRefVersionWarning */
+
+.itab-version-warning {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: rgb(245 158 11 / 10%);
+  border: 1px solid rgb(245 158 11 / 30%);
+  border-radius: 8px;
+}
+
+.itab-version-warning-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #f59e0b;
+  margin-bottom: 4px;
+}
+
+.itab-version-warning-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.itab-analyze-btn {
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.itab-analyze-btn-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.itab-analyze-btn-enabled {
+  cursor: pointer;
+  opacity: 1;
+}
+
+/* ImageRefCompatibilityResults */
+
+.itab-compat-panel {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.itab-compat-heading {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.itab-compat-summary {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.itab-compat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.itab-compat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.itab-compat-ref-info {
+  flex: 1;
+}
+
+.itab-compat-ref-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.itab-compat-ref-reason {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.itab-compat-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--itab-badge-bg);
+  color: var(--itab-badge-color);
+}
+
+.itab-compat-select {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.itab-compat-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.itab-compat-help {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.itab-apply-btn {
+  padding: 6px 14px;
+  background: #3b82f6;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.itab-apply-btn-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.itab-apply-btn-enabled {
+  cursor: pointer;
+  opacity: 1;
+}
+
+/* CoverImagePreview */
+
+.itab-cover-loading {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.itab-cover-unavailable {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #ef4444;
+}
+
+.itab-cover-preview {
+  margin-top: 10px;
+}
+
+.itab-cover-img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  object-fit: contain;
+}
+
+.itab-cover-img-btn {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.itab-cover-img-btn-clickable {
+  cursor: pointer;
+}
+
+.itab-cover-img-clickable {
+  cursor: pointer;
+}
+
+/* Cover Image section */
+
+/* Shared: compose with .ilu-section */
+.itab-cover-section {
+  margin-bottom: 20px;
+}
+
+.itab-cover-heading {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.itab-cover-layout {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.itab-cover-info {
+  flex: 1;
+}
+
+.itab-cover-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.itab-cover-status {
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.itab-cover-status-default {
+  color: var(--text-muted);
+}
+
+.itab-cover-status-pending {
+  color: #f59e0b;
+}
+
+.itab-cover-status-generating {
+  color: var(--text-muted);
+}
+
+.itab-cover-status-complete {
+  color: #10b981;
+}
+
+.itab-cover-status-aborted {
+  color: #ef4444;
+}
+
+.itab-scene-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  font-style: italic;
+  line-height: 1.4;
+  max-width: 500px;
+}
+
+.itab-cover-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: flex-start;
+}
+
+.itab-cover-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+/* Shared: compose with .ilu-action-btn */
+.itab-cover-btn {
+  height: 32px;
+  white-space: nowrap;
+}
+
+/* Shared: covered by .ilu-action-btn:disabled */
+.itab-cover-btn-disabled {
+  /* base: .ilu-action-btn:disabled */
+}
+
+/* Shared: covered by .ilu-action-btn:not(:disabled) */
+.itab-cover-btn-enabled {
+  opacity: 1;
+}
+
+/* Image Anchors section */
+
+.itab-anchors-heading {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.itab-anchors-count {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Empty state */
+/* Shared: compose with .ilu-empty */
+.itab-empty {
+  /* base: .ilu-empty */
+}

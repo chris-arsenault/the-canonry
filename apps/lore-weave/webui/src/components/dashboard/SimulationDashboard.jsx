@@ -2,13 +2,34 @@
  * SimulationDashboard - Real-time visualization of simulation progress
  */
 
-import React, { useMemo } from 'react';
-import ProgressOverview from './ProgressOverview';
-import EpochTimeline from './EpochTimeline';
-import PopulationMetrics from './PopulationMetrics';
-import TemplateUsage from './TemplateUsage';
-import FinalDiagnostics from './FinalDiagnostics';
-import LogStream from './LogStream';
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
+import ProgressOverview from "./ProgressOverview";
+import EpochTimeline from "./EpochTimeline";
+import PopulationMetrics from "./PopulationMetrics";
+import TemplateUsage from "./TemplateUsage";
+import FinalDiagnostics from "./FinalDiagnostics";
+import LogStream from "./LogStream";
+
+/**
+ * Accumulate feedback items from one tick into the running feedback sum map.
+ */
+function aggregateFeedbackByLabel(feedbackSum, feedbackItems) {
+  for (const f of feedbackItems) {
+    const current = feedbackSum.get(f.label) || {
+      label: f.label,
+      type: f.type,
+      totalRawValue: 0,
+      coefficient: f.coefficient,
+      totalContribution: 0,
+      ticksSeen: 0,
+    };
+    current.totalRawValue += f.rawValue;
+    current.totalContribution += f.contribution;
+    current.ticksSeen++;
+    feedbackSum.set(f.label, current);
+  }
+}
 
 /**
  * Aggregate all pressure updates for the current epoch into a single summary.
@@ -18,7 +39,7 @@ function aggregatePressureUpdates(pressureUpdates, currentEpochNumber) {
   if (!pressureUpdates?.length) return null;
 
   // Filter updates for the current epoch
-  const epochUpdates = pressureUpdates.filter(u => u.epoch === currentEpochNumber);
+  const epochUpdates = pressureUpdates.filter((u) => u.epoch === currentEpochNumber);
   if (epochUpdates.length === 0) return null;
 
   // Sort by tick to ensure proper ordering
@@ -47,7 +68,7 @@ function aggregatePressureUpdates(pressureUpdates, currentEpochNumber) {
       totalRawDelta: 0,
       totalSmoothedDelta: 0,
       homeostasis: p.breakdown.homeostasis,
-      tickCount: 0
+      tickCount: 0,
     });
   }
 
@@ -69,37 +90,9 @@ function aggregatePressureUpdates(pressureUpdates, currentEpochNumber) {
       agg.totalSmoothedDelta += p.breakdown.smoothedDelta;
       agg.homeostasis = p.breakdown.homeostasis;
 
-      // Aggregate positive feedback by label
-      for (const f of p.breakdown.positiveFeedback) {
-        const current = agg.positiveFeedbackSum.get(f.label) || {
-          label: f.label,
-          type: f.type,
-          totalRawValue: 0,
-          coefficient: f.coefficient,
-          totalContribution: 0,
-          ticksSeen: 0
-        };
-        current.totalRawValue += f.rawValue;
-        current.totalContribution += f.contribution;
-        current.ticksSeen++;
-        agg.positiveFeedbackSum.set(f.label, current);
-      }
-
-      // Aggregate negative feedback by label
-      for (const f of p.breakdown.negativeFeedback) {
-        const current = agg.negativeFeedbackSum.get(f.label) || {
-          label: f.label,
-          type: f.type,
-          totalRawValue: 0,
-          coefficient: f.coefficient,
-          totalContribution: 0,
-          ticksSeen: 0
-        };
-        current.totalRawValue += f.rawValue;
-        current.totalContribution += f.contribution;
-        current.ticksSeen++;
-        agg.negativeFeedbackSum.set(f.label, current);
-      }
+      // Aggregate positive and negative feedback by label
+      aggregateFeedbackByLabel(agg.positiveFeedbackSum, p.breakdown.positiveFeedback);
+      aggregateFeedbackByLabel(agg.negativeFeedbackSum, p.breakdown.negativeFeedback);
     }
   }
 
@@ -113,29 +106,29 @@ function aggregatePressureUpdates(pressureUpdates, currentEpochNumber) {
       delta: agg.epochEndValue - agg.epochStartValue,
       tickCount: agg.tickCount,
       breakdown: {
-        positiveFeedback: Array.from(agg.positiveFeedbackSum.values()).map(f => ({
+        positiveFeedback: Array.from(agg.positiveFeedbackSum.values()).map((f) => ({
           label: f.label,
           type: f.type,
           rawValue: f.totalRawValue / f.ticksSeen, // Average raw value
           coefficient: f.coefficient,
-          contribution: f.totalContribution // Total contribution across epoch
+          contribution: f.totalContribution, // Total contribution across epoch
         })),
-        negativeFeedback: Array.from(agg.negativeFeedbackSum.values()).map(f => ({
+        negativeFeedback: Array.from(agg.negativeFeedbackSum.values()).map((f) => ({
           label: f.label,
           type: f.type,
           rawValue: f.totalRawValue / f.ticksSeen, // Average raw value
           coefficient: f.coefficient,
-          contribution: f.totalContribution // Total contribution across epoch
+          contribution: f.totalContribution, // Total contribution across epoch
         })),
         feedbackTotal: agg.totalFeedback,
-        growthScaling: lastUpdate.pressures.find(p => p.id === id)?.breakdown.growthScaling ?? 1,
+        growthScaling: lastUpdate.pressures.find((p) => p.id === id)?.breakdown.growthScaling ?? 1,
         scaledFeedback: agg.totalScaledFeedback,
         homeostasis: agg.homeostasis,
         homeostaticDelta: agg.totalHomeostaticDelta,
-        eraModifier: lastUpdate.pressures.find(p => p.id === id)?.breakdown.eraModifier ?? 1,
+        eraModifier: lastUpdate.pressures.find((p) => p.id === id)?.breakdown.eraModifier ?? 1,
         rawDelta: agg.totalRawDelta,
-        smoothedDelta: agg.totalSmoothedDelta
-      }
+        smoothedDelta: agg.totalSmoothedDelta,
+      },
     });
   }
 
@@ -152,7 +145,7 @@ function aggregatePressureUpdates(pressureUpdates, currentEpochNumber) {
     epoch: currentEpochNumber,
     ticksAggregated: epochUpdates.length,
     pressures: aggregatedPressures,
-    discreteModifications: allDiscreteMods
+    discreteModifications: allDiscreteMods,
   };
 }
 
@@ -162,9 +155,7 @@ export default function SimulationDashboard({ simState, onClearLogs }) {
     progress,
     currentEpoch,
     epochStats,
-    templateApplications,
     pressureUpdates,
-    systemActions,
     populationReport,
     templateUsage,
     systemHealth,
@@ -173,14 +164,15 @@ export default function SimulationDashboard({ simState, onClearLogs }) {
     relationshipBreakdown,
     notableEntities,
     result,
-    logs
+    logs,
   } = simState;
 
   // Extract pressures from latest epoch stats
   const pressures = epochStats.length > 0 ? epochStats[epochStats.length - 1].pressures : null;
 
   // Get the current epoch number
-  const currentEpochNumber = currentEpoch?.epoch ?? (epochStats.length > 0 ? epochStats[epochStats.length - 1].epoch : 0);
+  const currentEpochNumber =
+    currentEpoch?.epoch ?? (epochStats.length > 0 ? epochStats[epochStats.length - 1].epoch : 0);
 
   // Aggregate all pressure updates for the current epoch
   const aggregatedPressureUpdate = useMemo(
@@ -191,8 +183,12 @@ export default function SimulationDashboard({ simState, onClearLogs }) {
   const reachability = result?.metadata?.reachability;
 
   // Show final diagnostics when simulation is complete or we have diagnostic data
-  const showFinalDiagnostics = status === 'complete' ||
-    entityBreakdown || catalystStats || relationshipBreakdown || notableEntities;
+  const showFinalDiagnostics =
+    status === "complete" ||
+    entityBreakdown ||
+    catalystStats ||
+    relationshipBreakdown ||
+    notableEntities;
 
   return (
     <div className="lw-dashboard">
@@ -212,14 +208,8 @@ export default function SimulationDashboard({ simState, onClearLogs }) {
 
         {/* Right Panel - stacked */}
         <div className="lw-flex-col lw-gap-lg">
-          <PopulationMetrics
-            populationReport={populationReport}
-            epochStats={epochStats}
-          />
-          <TemplateUsage
-            templateUsage={templateUsage}
-            systemHealth={systemHealth}
-          />
+          <PopulationMetrics populationReport={populationReport} epochStats={epochStats} />
+          <TemplateUsage templateUsage={templateUsage} systemHealth={systemHealth} />
         </div>
       </div>
 
@@ -238,3 +228,8 @@ export default function SimulationDashboard({ simState, onClearLogs }) {
     </div>
   );
 }
+
+SimulationDashboard.propTypes = {
+  simState: PropTypes.object,
+  onClearLogs: PropTypes.func,
+};

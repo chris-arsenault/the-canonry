@@ -2,13 +2,13 @@
  * Chronicle Storage - Read-only access to chronicles in the illuminator DB
  */
 
-import { openIlluminatorDb } from '../lib/illuminatorDbReader';
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
-const CHRONICLE_STORE_NAME = 'chronicles';
+const CHRONICLE_STORE_NAME = "chronicles";
 
 function filterCompleted(records = []) {
   return records
-    .filter((record) => record.status === 'complete' && record.acceptedAt)
+    .filter((record) => record.status === "complete" && record.acceptedAt)
     .sort((a, b) => (b.acceptedAt || 0) - (a.acceptedAt || 0));
 }
 
@@ -19,19 +19,19 @@ export async function getCompletedChroniclesForSimulation(simulationRunId) {
     const db = await openIlluminatorDb();
     try {
       return await new Promise((resolve, reject) => {
-        const tx = db.transaction(CHRONICLE_STORE_NAME, 'readonly');
+        const tx = db.transaction(CHRONICLE_STORE_NAME, "readonly");
         const store = tx.objectStore(CHRONICLE_STORE_NAME);
-        const index = store.index('simulationRunId');
+        const index = store.index("simulationRunId");
         const request = index.getAll(IDBKeyRange.only(simulationRunId));
 
         request.onsuccess = () => resolve(filterCompleted(request.result || []));
-        request.onerror = () => reject(request.error || new Error('Failed to get chronicles'));
+        request.onerror = () => reject(request.error || new Error("Failed to get chronicles"));
       });
     } finally {
       db.close();
     }
   } catch (err) {
-    console.error('[chronicleStorage] Failed to load chronicles:', err);
+    console.error("[chronicleStorage] Failed to load chronicles:", err);
     return [];
   }
 }
@@ -43,19 +43,19 @@ export async function getCompletedChroniclesForProject(projectId) {
     const db = await openIlluminatorDb();
     try {
       return await new Promise((resolve, reject) => {
-        const tx = db.transaction(CHRONICLE_STORE_NAME, 'readonly');
+        const tx = db.transaction(CHRONICLE_STORE_NAME, "readonly");
         const store = tx.objectStore(CHRONICLE_STORE_NAME);
-        const index = store.index('projectId');
+        const index = store.index("projectId");
         const request = index.getAll(IDBKeyRange.only(projectId));
 
         request.onsuccess = () => resolve(filterCompleted(request.result || []));
-        request.onerror = () => reject(request.error || new Error('Failed to get chronicles'));
+        request.onerror = () => reject(request.error || new Error("Failed to get chronicles"));
       });
     } finally {
       db.close();
     }
   } catch (err) {
-    console.error('[chronicleStorage] Failed to load chronicles:', err);
+    console.error("[chronicleStorage] Failed to load chronicles:", err);
     return [];
   }
 }
@@ -81,7 +81,7 @@ export async function importChronicles(projectId, chronicles, options = {}) {
 
   try {
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(CHRONICLE_STORE_NAME, 'readwrite');
+      const tx = db.transaction(CHRONICLE_STORE_NAME, "readwrite");
       const store = tx.objectStore(CHRONICLE_STORE_NAME);
 
       for (const chronicle of chronicles) {
@@ -106,7 +106,7 @@ export async function importChronicles(projectId, chronicles, options = {}) {
       }
 
       tx.oncomplete = () => resolve({ imported, overwritten, skipped });
-      tx.onerror = () => reject(tx.error || new Error('Failed to import chronicles'));
+      tx.onerror = () => reject(tx.error || new Error("Failed to import chronicles"));
     });
   } finally {
     db.close();
@@ -118,12 +118,12 @@ export async function getChronicleCountForProject(projectId) {
   const db = await openIlluminatorDb();
   try {
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(CHRONICLE_STORE_NAME, 'readonly');
+      const tx = db.transaction(CHRONICLE_STORE_NAME, "readonly");
       const store = tx.objectStore(CHRONICLE_STORE_NAME);
-      const index = store.index('projectId');
+      const index = store.index("projectId");
       const request = index.count(projectId);
       request.onsuccess = () => resolve(request.result || 0);
-      request.onerror = () => reject(request.error || new Error('Failed to count chronicles'));
+      request.onerror = () => reject(request.error || new Error("Failed to count chronicles"));
     });
   } finally {
     db.close();

@@ -2,5 +2,5 @@
  * Shared components for ErasEditor
  */
 
-export { TransitionConditionEditor } from './TransitionConditionEditor';
-export { TransitionEffectItem } from './TransitionEffectItem';
+export { TransitionConditionEditor } from "./TransitionConditionEditor";
+export { TransitionEffectItem } from "./TransitionEffectItem";

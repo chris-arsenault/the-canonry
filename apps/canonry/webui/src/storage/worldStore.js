@@ -17,38 +17,38 @@ import {
   getRunSlot,
   saveRunSlot,
   deleteRunSlot,
-  deleteRunSlotsForProject
-} from './runStore.js';
+  deleteRunSlotsForProject,
+} from "./runStore.js";
 
-const DB_NAME = 'canonry-world';
+const DB_NAME = "canonry-world";
 const DB_VERSION = 2;
-const STORE_NAME = 'projects';
-const LOCAL_PREFIX = 'canonry:world:';
+const STORE_NAME = "projects";
+const LOCAL_PREFIX = "canonry:world:";
 
 const MAX_SAVE_SLOTS = 4; // Slots 1-4
 
 let dbPromise = null;
 
 function canUseStorage() {
-  return typeof localStorage !== 'undefined';
+  return typeof localStorage !== "undefined";
 }
 
 function openDb() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
-      reject(new Error('IndexedDB unavailable'));
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("IndexedDB unavailable"));
       return;
     }
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'projectId' });
+        db.createObjectStore(STORE_NAME, { keyPath: "projectId" });
       }
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error('Failed to open IndexedDB'));
+    request.onerror = () => reject(request.error || new Error("Failed to open IndexedDB"));
   });
   return dbPromise;
 }
@@ -56,9 +56,9 @@ function openDb() {
 async function idbSet(projectId, data) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const tx = db.transaction(STORE_NAME, "readwrite");
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('IDB write failed'));
+    tx.onerror = () => reject(tx.error || new Error("IDB write failed"));
     tx.objectStore(STORE_NAME).put({ projectId, ...data, savedAt: Date.now() });
   });
 }
@@ -66,19 +66,19 @@ async function idbSet(projectId, data) {
 async function idbGet(projectId) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
+    const tx = db.transaction(STORE_NAME, "readonly");
     const request = tx.objectStore(STORE_NAME).get(projectId);
     request.onsuccess = () => resolve(request.result || null);
-    request.onerror = () => reject(request.error || new Error('IDB read failed'));
+    request.onerror = () => reject(request.error || new Error("IDB read failed"));
   });
 }
 
 async function idbDelete(projectId) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const tx = db.transaction(STORE_NAME, "readwrite");
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('IDB delete failed'));
+    tx.onerror = () => reject(tx.error || new Error("IDB delete failed"));
     tx.objectStore(STORE_NAME).delete(projectId);
   });
 }
@@ -120,7 +120,7 @@ function normalizeWorldStore(record) {
   if (!record) return null;
   return {
     ...record,
-    activeSlotIndex: typeof record.activeSlotIndex === 'number' ? record.activeSlotIndex : 0
+    activeSlotIndex: typeof record.activeSlotIndex === "number" ? record.activeSlotIndex : 0,
   };
 }
 
@@ -239,7 +239,7 @@ export async function saveSlot(projectId, slotIndex, slotData) {
  */
 export async function saveToActiveSlot(projectId, slotData) {
   const activeIndex = await getActiveSlotIndex(projectId);
-  const existingSlot = await getSlot(projectId, activeIndex) || {};
+  const existingSlot = (await getSlot(projectId, activeIndex)) || {};
   const updatedSlot = { ...existingSlot, ...slotData };
   await saveRunSlot(projectId, activeIndex, updatedSlot);
 }
@@ -256,13 +256,14 @@ export async function saveToSlot(projectId, targetSlotIndex) {
   const scratchData = await getSlot(projectId, 0);
 
   if (!scratchData || !scratchData.simulationResults) {
-    throw new Error('No data in scratch slot to save');
+    throw new Error("No data in scratch slot to save");
   }
 
   // Generate title if not present
-  const title = scratchData.title && scratchData.title !== 'Scratch'
-    ? scratchData.title
-    : generateSlotTitle(targetSlotIndex);
+  const title =
+    scratchData.title && scratchData.title !== "Scratch"
+      ? scratchData.title
+      : generateSlotTitle(targetSlotIndex);
 
   // Move data to target slot
   await saveRunSlot(projectId, targetSlotIndex, { ...scratchData, title, savedAt: Date.now() });
@@ -288,7 +289,7 @@ export async function loadSlot(projectId, slotIndex) {
  * Clear a specific slot
  */
 export async function clearSlot(projectId, slotIndex) {
-  const store = await loadWorldStore(projectId) || { activeSlotIndex: 0 };
+  const store = (await loadWorldStore(projectId)) || { activeSlotIndex: 0 };
   await deleteRunSlot(projectId, slotIndex);
 
   const slots = await getSlots(projectId);
@@ -303,7 +304,9 @@ export async function clearSlot(projectId, slotIndex) {
       newActiveSlotIndex = 0;
     } else {
       // Find first available slot (prefer scratch if it exists, otherwise first saved slot)
-      const availableSlots = Object.keys(slots).map(Number).sort((a, b) => a - b);
+      const availableSlots = Object.keys(slots)
+        .map(Number)
+        .sort((a, b) => a - b);
       newActiveSlotIndex = availableSlots.length > 0 ? availableSlots[0] : 0;
     }
   }
@@ -338,11 +341,11 @@ export async function getNextAvailableSlot(projectId) {
  */
 export function generateSlotTitle(slotIndex, timestamp = Date.now()) {
   const date = new Date(timestamp);
-  const formatted = date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+  const formatted = date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
     hour12: true,
   });
   return `Run ${slotIndex} - ${formatted}`;
@@ -357,7 +360,7 @@ export function generateSlotTitle(slotIndex, timestamp = Date.now()) {
  */
 export async function saveSimulationData(projectId, { simulationResults, simulationState }) {
   // Always write new simulations to scratch (slot 0)
-  const existingSlot = await getSlot(projectId, 0) || {};
+  const existingSlot = (await getSlot(projectId, 0)) || {};
   const updatedSlot = { ...existingSlot, simulationResults, simulationState };
   await saveRunSlot(projectId, 0, updatedSlot);
   await saveWorldStore(projectId, { activeSlotIndex: 0 });
@@ -462,4 +465,3 @@ export async function loadStyleSelection(projectId) {
   const store = await loadWorldStore(projectId);
   return store?.styleSelection || null;
 }
-

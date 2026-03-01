@@ -18,7 +18,6 @@ import type {
 import {
   getCategoriesForDomain,
   getCategory,
-  CATEGORY_REGISTRY
 } from '../ontology/index.js';
 
 import { getEmbeddingSimilarity, hasEmbeddings } from '../embeddings/loader.js';
@@ -182,10 +181,10 @@ function fuzzyScore(
 /**
  * Score a plane against a category using word embeddings.
  */
-async function embeddingScore(
+function embeddingScore(
   plane: PlaneSpecification,
   category: CategoryDefinition
-): Promise<number> {
+): number {
   if (!hasEmbeddings()) {
     return 0;
   }
@@ -198,7 +197,7 @@ async function embeddingScore(
 
   for (const pt of planeTerms) {
     for (const ct of categoryTerms) {
-      const sim = await getEmbeddingSimilarity(pt, ct);
+      const sim = getEmbeddingSimilarity(pt, ct);
       if (sim !== null) {
         totalSim += sim;
         count++;
@@ -212,10 +211,10 @@ async function embeddingScore(
 /**
  * Classify a plane specification into a category.
  */
-export async function classifyPlane(
+export function classifyPlane(
   plane: PlaneSpecification,
   config: Partial<ClassifierConfig> = {}
-): Promise<SemanticAnalysisResult> {
+): SemanticAnalysisResult {
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
   // If plane has explicit category hint, use it
@@ -238,7 +237,7 @@ export async function classifyPlane(
     const kw = keywordScore(plane, category) * cfg.keywordWeight;
     const fz = fuzzyScore(plane, category) * cfg.fuzzyWeight;
     const em = cfg.embeddingWeight > 0
-      ? (await embeddingScore(plane, category)) * cfg.embeddingWeight
+      ? embeddingScore(plane, category) * cfg.embeddingWeight
       : 0;
 
     const totalScore = kw + fz + em;
@@ -273,14 +272,14 @@ export async function classifyPlane(
 /**
  * Classify multiple planes.
  */
-export async function classifyPlanes(
+export function classifyPlanes(
   planes: PlaneSpecification[],
   config: Partial<ClassifierConfig> = {}
-): Promise<Map<string, SemanticAnalysisResult>> {
+): Map<string, SemanticAnalysisResult> {
   const results = new Map<string, SemanticAnalysisResult>();
 
   for (const plane of planes) {
-    const result = await classifyPlane(plane, config);
+    const result = classifyPlane(plane, config);
     results.set(plane.id, result);
   }
 

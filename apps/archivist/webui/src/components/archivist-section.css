@@ -1,0 +1,96 @@
+/* Shared structural patterns for archivist content sections.
+ *
+ * Components set color/theme custom properties on their root element:
+ *   --_section-border      Border color for the section container
+ *   --_section-bg           Background (gradient or solid) for the container
+ *   --_section-header-bg    Background for the header bar
+ *   --_section-separator    Color for borders between sub-sections
+ *   --_section-accent       Accent color for titles and labels
+ *   --_section-text         Color for narrative/body text
+ *
+ * See docs/patterns/archivist-section.md for usage.
+ */
+
+/* Content section container */
+.archivist-section {
+  margin-top: var(--spacing-xl);
+  border: 2px solid var(--_section-border);
+  border-radius: var(--radius-lg);
+  background: var(--_section-bg);
+  overflow: hidden;
+}
+
+/* Header bar: icon + title */
+.archivist-section-hdr {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--_section-header-bg);
+  border-bottom: 1px solid var(--_section-separator);
+}
+
+/* Section icon */
+.archivist-section-icon {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+}
+
+/* Section title */
+.archivist-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--_section-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Serif italic narrative text */
+.archivist-narrative {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--_section-text);
+}
+
+/* Uppercase label (meta labels, sub-section labels) */
+.archivist-label {
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--_section-accent);
+}
+
+/* Modal overlay */
+.archivist-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl);
+}
+
+/* Modal close button */
+.archivist-close-btn {
+  padding: var(--spacing-md) var(--spacing-3xl);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.archivist-close-btn:hover {
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Footer bar */
+.archivist-section-footer {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--_section-separator);
+}

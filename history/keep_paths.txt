@@ -1,4 +1,0 @@
-# Exact paths or directory prefixes ending with '/'
-# Update this list before running scan/apply.
-apps/canonry/webui/public/default-project/
-apps/viewer/webui/public/bundles/default/bundle.json

@@ -1,0 +1,33 @@
+/**
+ * ChroniclerStatusScreen CSS Module
+ * Status/loading/error screens shown before chronicle data is available
+ */
+
+.container {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-muted);
+}
+
+.content {
+  text-align: center;
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+  font-family: var(--font-family-display);
+}
+
+.detail {
+  font-size: var(--font-size-sm);
+}
+
+.icon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-lg);
+}

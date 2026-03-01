@@ -2,4 +2,4 @@
  * Card components for ValidationEditor
  */
 
-export { IssueCard } from './IssueCard';
+export { IssueCard } from "./IssueCard";

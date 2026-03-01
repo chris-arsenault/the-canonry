@@ -8,7 +8,12 @@
  * - Range selection helpers
  */
 
-import type { NarrativeEventContext, EntityContext, ChronicleRoleAssignment, NarrativeLens } from '../chronicleTypes';
+import type {
+  NarrativeEventContext,
+  EntityContext,
+  ChronicleRoleAssignment,
+  NarrativeLens,
+} from "../chronicleTypes";
 
 export interface EraRange {
   id: string;
@@ -39,14 +44,14 @@ export interface IntensityPoint {
 
 // Era color palette - distinct, accessible colors
 const ERA_COLORS = [
-  '#6366f1', // indigo
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#f59e0b', // amber
-  '#10b981', // emerald
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#84cc16', // lime
+  "#6366f1", // indigo
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#f59e0b", // amber
+  "#10b981", // emerald
+  "#06b6d4", // cyan
+  "#f97316", // orange
+  "#84cc16", // lime
 ];
 
 /**
@@ -69,7 +74,10 @@ export function getEraRanges(
 export const computeEraRanges = (
   _events: NarrativeEventContext[],
   eras: Array<{ id: string; name: string; startTick?: number; endTick?: number | null }>
-) => getEraRanges(eras as Array<{ id: string; name: string; startTick: number; endTick: number | null }>);
+) =>
+  getEraRanges(
+    eras as Array<{ id: string; name: string; startTick: number; endTick: number | null }>
+  );
 
 /**
  * Transform events into timeline format
@@ -80,22 +88,20 @@ export function prepareTimelineEvents(
   assignedEntityIds: Set<string>,
   selectedEventIds: Set<string>
 ): TimelineEvent[] {
-  return events.map(event => {
+  return events.map((event) => {
     const participants = event.participants || [];
-    const participantIds = new Set(participants.map(p => p.id));
+    const participantIds = new Set(participants.map((p) => p.id));
 
     // Check if entry point or subject/object
-    const involvesEntryPoint = entryPointId !== null && (
-      event.subjectId === entryPointId ||
-      event.objectId === entryPointId ||
-      participantIds.has(entryPointId)
-    );
+    const involvesEntryPoint =
+      entryPointId !== null &&
+      (event.subjectId === entryPointId ||
+        event.objectId === entryPointId ||
+        participantIds.has(entryPointId));
 
     // Check if any cast member is involved
-    const involvesCastMember = [...assignedEntityIds].some(id =>
-      event.subjectId === id ||
-      event.objectId === id ||
-      participantIds.has(id)
+    const involvesCastMember = [...assignedEntityIds].some(
+      (id) => event.subjectId === id || event.objectId === id || participantIds.has(id)
     );
 
     return {
@@ -150,7 +156,7 @@ export function computeIntensityCurve(
       if (t >= tick - halfWindow && t <= tick + halfWindow) {
         // Weight by distance from center
         const distance = Math.abs(t - tick);
-        const weight = 1 - (distance / (halfWindow + 1));
+        const weight = 1 - distance / (halfWindow + 1);
         intensity += sig * weight;
       }
     }
@@ -159,8 +165,8 @@ export function computeIntensityCurve(
   }
 
   // Normalize to 0-1
-  const maxIntensity = Math.max(...points.map(p => p.intensity), 0.001);
-  return points.map(p => ({
+  const maxIntensity = Math.max(...points.map((p) => p.intensity), 0.001);
+  return points.map((p) => ({
     tick: p.tick,
     intensity: p.intensity / maxIntensity,
   }));
@@ -174,7 +180,7 @@ export function getEventsInRange(
   startTick: number,
   endTick: number
 ): TimelineEvent[] {
-  return events.filter(e => e.tick >= startTick && e.tick <= endTick);
+  return events.filter((e) => e.tick >= startTick && e.tick <= endTick);
 }
 
 /**
@@ -186,9 +192,7 @@ export function getTimelineExtent(
 ): [number, number] {
   if (eras.length === 0) return [0, 100];
 
-  const maxTick = Math.max(
-    ...eras.map(e => e.endTick ?? e.startTick + 100)
-  );
+  const maxTick = Math.max(...eras.map((e) => e.endTick ?? e.startTick + 100));
 
   return [0, maxTick];
 }
@@ -237,15 +241,19 @@ export function xToTick(
  * Get fill pattern based on involvement level
  */
 export function getEventFill(event: TimelineEvent): string {
-  if (event.involvesEntryPoint) return 'var(--accent-color)';
-  if (event.involvesCastMember) return 'var(--accent-color-muted, rgba(99, 102, 241, 0.6))';
-  return 'var(--text-muted)';
+  if (event.involvesEntryPoint) return "var(--accent-color)";
+  if (event.involvesCastMember) return "var(--accent-color-muted, rgba(99, 102, 241, 0.6))";
+  return "var(--text-muted)";
 }
 
 /**
  * Get event height based on significance (for visual weight)
  */
-export function getEventHeight(significance: number, maxHeight: number = 40, minHeight: number = 16): number {
+export function getEventHeight(
+  significance: number,
+  maxHeight: number = 40,
+  minHeight: number = 16
+): number {
   return minHeight + significance * (maxHeight - minHeight);
 }
 
@@ -271,21 +279,24 @@ export interface CastMarker {
  */
 export function getCastMarkerShape(kind: string): { path: string; size: number } {
   switch (kind) {
-    case 'person':
+    case "person":
       // Diamond
-      return { path: 'M 0 -4 L 4 0 L 0 4 L -4 0 Z', size: 8 };
-    case 'faction':
+      return { path: "M 0 -4 L 4 0 L 0 4 L -4 0 Z", size: 8 };
+    case "faction":
       // Circle
-      return { path: 'M 0 -3.5 A 3.5 3.5 0 1 1 0 3.5 A 3.5 3.5 0 1 1 0 -3.5 Z', size: 7 };
-    case 'location':
+      return { path: "M 0 -3.5 A 3.5 3.5 0 1 1 0 3.5 A 3.5 3.5 0 1 1 0 -3.5 Z", size: 7 };
+    case "location":
       // Square
-      return { path: 'M -3 -3 L 3 -3 L 3 3 L -3 3 Z', size: 6 };
-    case 'occurrence':
+      return { path: "M -3 -3 L 3 -3 L 3 3 L -3 3 Z", size: 6 };
+    case "occurrence":
       // 6-pointed star (outer=4, inner=2)
-      return { path: 'M 0 -4 L 1 -1.7 L 3.5 -2 L 2 0 L 3.5 2 L 1 1.7 L 0 4 L -1 1.7 L -3.5 2 L -2 0 L -3.5 -2 L -1 -1.7 Z', size: 8 };
+      return {
+        path: "M 0 -4 L 1 -1.7 L 3.5 -2 L 2 0 L 3.5 2 L 1 1.7 L 0 4 L -1 1.7 L -3.5 2 L -2 0 L -3.5 -2 L -1 -1.7 Z",
+        size: 8,
+      };
     default:
       // Triangle
-      return { path: 'M 0 -3.5 L 3.5 3 L -3.5 3 Z', size: 7 };
+      return { path: "M 0 -3.5 L 3.5 3 L -3.5 3 Z", size: 7 };
   }
 }
 
@@ -295,13 +306,20 @@ export function getCastMarkerShape(kind: string): { path: string; size: number }
  */
 export function getCastMarkerColor(kind: string): string {
   switch (kind) {
-    case 'person': return '#818cf8';
-    case 'faction': return '#a78bfa';
-    case 'location': return '#34d399';
-    case 'occurrence': return '#fbbf24';
-    case 'ability': return '#f472b6';
-    case 'rule': return '#22d3ee';
-    default: return '#9ca3af';
+    case "person":
+      return "#818cf8";
+    case "faction":
+      return "#a78bfa";
+    case "location":
+      return "#34d399";
+    case "occurrence":
+      return "#fbbf24";
+    case "ability":
+      return "#f472b6";
+    case "rule":
+      return "#22d3ee";
+    default:
+      return "#9ca3af";
   }
 }
 

@@ -173,7 +173,9 @@
   cursor: pointer;
   padding: 0;
   opacity: 0.8;
-  transition: opacity var(--transition-fast), color var(--transition-fast);
+  transition:
+    opacity var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .chronicler-link:hover {
@@ -452,4 +454,65 @@
 
 .entity-image:hover {
   opacity: 1;
+}
+
+.entity-badge-culture-fixed {
+  border-color: var(--color-blue-400);
+  color: var(--color-blue-300);
+}
+
+.entity-rel-strength {
+  color: #93c5fd;
+  font-weight: bold;
+}
+
+.entity-rel-strength-historical {
+  color: #9ca3af;
+}
+
+/* Culture badge with dynamic border/text color */
+.ed-culture-badge {
+  border-color: var(--ed-culture-color);
+  color: var(--ed-culture-color);
+}
+
+/* Region description text */
+.ed-region-description {
+  font-size: 13px;
+  color: #bfdbfe;
+  margin: 0;
+}
+
+/* Empty state icon */
+.ed-empty-icon {
+  filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.4));
+}
+
+/* Historical relationship row button */
+.ed-row-historical {
+  opacity: 0.6;
+}
+
+/* Historical scroll icon */
+.ed-historical-icon {
+  color: #9ca3af;
+  margin-right: 0.5rem;
+}
+
+/* Relationship strength/distance indicator */
+.ed-rel-metric {
+  color: #93c5fd;
+  font-weight: bold;
+}
+
+.ed-rel-metric-historical {
+  color: #9ca3af;
+  font-weight: bold;
+}
+
+/* Archived timestamp label */
+.ed-archived-label {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
 }

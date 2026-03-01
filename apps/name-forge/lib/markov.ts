@@ -13,7 +13,6 @@ export interface MarkovModel {
   transitions: Record<string, Record<string, number>>; // state -> (char -> probability)
 }
 
-const START = "^";
 const END = "$";
 
 /**

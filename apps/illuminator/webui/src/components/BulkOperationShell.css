@@ -1,0 +1,278 @@
+/* BulkOperationShell - shared bulk operation modal styles */
+
+/* Overlay */
+.bulk-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+/* Dialog */
+.bulk-dialog {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: var(--bulk-dialog-width, 480px);
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
+}
+
+/* Header */
+.bulk-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.bulk-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bulk-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.bulk-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bulk-minimize-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+/* Status label */
+.bulk-status {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.bulk-status-complete { color: #10b981; }
+.bulk-status-failed { color: #ef4444; }
+.bulk-status-cancelled { color: #f59e0b; }
+
+/* Body */
+.bulk-body {
+  padding: 20px;
+}
+
+.bulk-body-confirming {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Progress bar */
+.bulk-progress-section {
+  margin-bottom: 16px;
+}
+
+.bulk-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.bulk-progress-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bulk-progress-pct {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.bulk-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.bulk-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  width: var(--bulk-progress-width);
+}
+
+.bulk-progress-fill-ok { background: #10b981; }
+.bulk-progress-fill-failed { background: #ef4444; }
+.bulk-progress-fill-cancelled { background: #f59e0b; }
+
+/* Terminal messages */
+.bulk-terminal-msg {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.bulk-terminal-msg-complete {
+  background: rgb(16 185 129 / 10%);
+  border: 1px solid rgb(16 185 129 / 20%);
+}
+
+.bulk-terminal-msg-cancelled {
+  background: rgb(245 158 11 / 10%);
+  border: 1px solid rgb(245 158 11 / 20%);
+}
+
+.bulk-terminal-msg-failed {
+  background: rgb(239 68 68 / 10%);
+  border: 1px solid rgb(239 68 68 / 20%);
+}
+
+/* Failed items */
+.bulk-issue-section {
+  margin-top: 12px;
+}
+
+.bulk-issue-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.bulk-issue-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.bulk-failed-item {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.bulk-failed-item:last-child {
+  border-bottom: none;
+}
+
+.bulk-failed-item-title {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.bulk-failed-item-error {
+  font-size: 11px;
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+/* Cost */
+.bulk-cost {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Footer */
+.bulk-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.bulk-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}
+
+/* Shared content patterns */
+.bulk-info-box {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.bulk-item-list-section {
+  margin-bottom: 12px;
+}
+
+.bulk-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.bulk-item-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.bulk-item-list-entry {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bulk-item-list-entry:last-child {
+  border-bottom: none;
+}
+
+.bulk-current-item {
+  margin-bottom: 12px;
+}
+
+.bulk-current-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.bulk-current-item-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bulk-progress-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bulk-failed-inline {
+  color: #ef4444;
+}

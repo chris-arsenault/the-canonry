@@ -9,12 +9,12 @@
  * only the "open" triggers and state are centralized here.
  */
 
-import { create } from 'zustand';
-import { useEntityStore } from './entityStore';
+import { create } from "zustand";
+import { useEntityStore } from "./entityStore";
 
 interface RenameModalState {
   entityId: string;
-  mode: 'rename' | 'patch';
+  mode: "rename" | "patch";
 }
 
 interface EraNarrativeModalState {
@@ -25,7 +25,7 @@ interface IlluminatorModalsState {
   // State
   renameModal: RenameModalState | null;
   createEntityModal: boolean;
-  editEntityModal: unknown | null;  // PersistedEntity | null
+  editEntityModal: unknown; // PersistedEntity | null
   imageSettingsOpen: boolean;
   eraNarrativeModal: EraNarrativeModalState | null;
 
@@ -56,8 +56,8 @@ export const useIlluminatorModals = create<IlluminatorModalsState>((set) => ({
   imageSettingsOpen: false,
   eraNarrativeModal: null,
 
-  openRename: (entityId) => set({ renameModal: { entityId, mode: 'rename' } }),
-  openPatchEvents: (entityId) => set({ renameModal: { entityId, mode: 'patch' } }),
+  openRename: (entityId) => set({ renameModal: { entityId, mode: "rename" } }),
+  openPatchEvents: (entityId) => set({ renameModal: { entityId, mode: "patch" } }),
   openCreateEntity: () => {
     // Guard: only open if a simulation is loaded
     if (!useEntityStore.getState().simulationRunId) return;
@@ -77,9 +77,10 @@ export const useIlluminatorModals = create<IlluminatorModalsState>((set) => ({
   closeImageSettings: () => set({ imageSettingsOpen: false }),
   closeEraNarrative: () => set({ eraNarrativeModal: null }),
 
-  setEraNarrativeId: (narrativeId) => set((state) => ({
-    eraNarrativeModal: state.eraNarrativeModal
-      ? { ...state.eraNarrativeModal, narrativeId }
-      : null,
-  })),
+  setEraNarrativeId: (narrativeId) =>
+    set((state) => ({
+      eraNarrativeModal: state.eraNarrativeModal
+        ? { ...state.eraNarrativeModal, narrativeId }
+        : null,
+    })),
 }));

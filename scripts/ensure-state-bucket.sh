@@ -6,13 +6,13 @@
 #   ./scripts/ensure-state-bucket.sh
 #
 # Environment overrides:
-#   STATE_BUCKET  - bucket name (default: penguin-tales-tfstate-<account-id>)
+#   STATE_BUCKET  - bucket name (default: the-canonry-tfstate-<account-id>)
 #   STATE_REGION  - bucket region (default: us-east-1)
 
 set -euo pipefail
 
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-STATE_BUCKET="${STATE_BUCKET:-penguin-tales-tfstate-${AWS_ACCOUNT_ID}}"
+STATE_BUCKET="${STATE_BUCKET:-the-canonry-tfstate-${AWS_ACCOUNT_ID}}"
 STATE_REGION="${STATE_REGION:-us-east-1}"
 
 echo "State bucket: ${STATE_BUCKET}"

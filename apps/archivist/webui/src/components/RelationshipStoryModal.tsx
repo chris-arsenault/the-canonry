@@ -1,7 +1,8 @@
-import { useRef } from 'react';
-import type { RelationshipBackstoryLore, WorldState } from '../types/world.ts';
-import { getEntityById } from '../utils/dataTransform.ts';
-import './RelationshipStoryModal.css';
+import React, { useCallback, useRef } from "react";
+import type { RelationshipBackstoryLore, WorldState } from "../types/world.ts";
+import { getEntityById } from "../utils/dataTransform.ts";
+import "./archivist-section.css";
+import "./RelationshipStoryModal.css";
 
 interface RelationshipStoryModalProps {
   lore: RelationshipBackstoryLore;
@@ -9,76 +10,90 @@ interface RelationshipStoryModalProps {
   onClose: () => void;
 }
 
-export default function RelationshipStoryModal({ lore, worldData, onClose }: RelationshipStoryModalProps) {
+/** Parses "backstory | Stakes: ... | Perception: ..." into named parts. */
+function parseLoreText(text: string): {
+  backstory: string;
+  stakes: string;
+  perception: string;
+} {
+  const parts = text.split("|").map((p) => p.trim());
+  return {
+    backstory: parts[0] || "",
+    stakes: parts[1]?.replace(/^Stakes:\s*/i, "") || "",
+    perception: parts[2]?.replace(/^Perception:\s*/i, "") || "",
+  };
+}
+
+function StoryBlock({
+  icon,
+  title,
+  children,
+}: Readonly<{ icon: string; title: string; children: React.ReactNode }>) {
+  return (
+    <div className="rs-block">
+      <div className="rs-block-hdr">
+        <span className="rs-block-icon">{icon}</span>
+        <span className="rs-block-title">{title}</span>
+      </div>
+      <div className="rs-block-body">{children}</div>
+    </div>
+  );
+}
+
+export default function RelationshipStoryModal({
+  lore,
+  worldData,
+  onClose,
+}: Readonly<RelationshipStoryModalProps>) {
   const mouseDownOnOverlay = useRef(false);
 
-  const handleOverlayMouseDown = (e: React.MouseEvent) => {
+  const handleOverlayMouseDown = useCallback((e: React.MouseEvent) => {
     mouseDownOnOverlay.current = e.target === e.currentTarget;
-  };
+  }, []);
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
-      onClose();
-    }
-  };
+  const handleOverlayClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
+        onClose();
+      }
+    },
+    [onClose],
+  );
+
   const srcEntity = getEntityById(worldData, lore.relationship.src);
   const dstEntity = getEntityById(worldData, lore.relationship.dst);
-
-  // Parse the text which is formatted as "backstory | stakes | perception"
-  const parts = lore.text.split('|').map(p => p.trim());
-  const backstory = parts[0] || '';
-  const stakes = parts[1]?.replace(/^Stakes:\s*/i, '') || '';
-  const perception = parts[2]?.replace(/^Perception:\s*/i, '') || '';
+  const { backstory, stakes, perception } = parseLoreText(lore.text);
 
   return (
-    <div className="relationship-story-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
+    <div
+      className="relationship-story-overlay"
+      onMouseDown={handleOverlayMouseDown}
+      onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
+    >
       <div className="relationship-story-modal">
-        {/* Header */}
         <div className="relationship-story-header">
           <div className="relationship-story-entities">
-            <span className="relationship-story-entity">{srcEntity?.name || lore.relationship.src}</span>
-            <span className="relationship-story-kind">{lore.relationship.kind.replace(/_/g, ' ')}</span>
-            <span className="relationship-story-entity">{dstEntity?.name || lore.relationship.dst}</span>
+            <span className="relationship-story-entity">
+              {srcEntity?.name || lore.relationship.src}
+            </span>
+            <span className="relationship-story-kind">
+              {lore.relationship.kind.replace(/_/g, " ")}
+            </span>
+            <span className="relationship-story-entity">
+              {dstEntity?.name || lore.relationship.dst}
+            </span>
           </div>
-          <button onClick={onClose} className="relationship-story-close">×</button>
+          <button onClick={onClose} className="relationship-story-close">
+            x
+          </button>
         </div>
 
-        {/* Backstory */}
-        <div className="relationship-story-section">
-          <div className="relationship-story-section-header">
-            <span className="relationship-story-section-icon">📖</span>
-            <span className="relationship-story-section-title">How It Began</span>
-          </div>
-          <div className="relationship-story-section-content">
-            {backstory}
-          </div>
-        </div>
-
-        {/* Stakes */}
-        {stakes && (
-          <div className="relationship-story-section">
-            <div className="relationship-story-section-header">
-              <span className="relationship-story-section-icon">⚠️</span>
-              <span className="relationship-story-section-title">What's at Stake</span>
-            </div>
-            <div className="relationship-story-section-content">
-              {stakes}
-            </div>
-          </div>
-        )}
-
-        {/* Perception */}
-        {perception && (
-          <div className="relationship-story-section">
-            <div className="relationship-story-section-header">
-              <span className="relationship-story-section-icon">👁️</span>
-              <span className="relationship-story-section-title">Different Perspectives</span>
-            </div>
-            <div className="relationship-story-section-content">
-              {perception}
-            </div>
-          </div>
-        )}
+        <StoryBlock icon="book" title="How It Began">{backstory}</StoryBlock>
+        {stakes && <StoryBlock icon="warning" title="What's at Stake">{stakes}</StoryBlock>}
+        {perception && <StoryBlock icon="eye" title="Different Perspectives">{perception}</StoryBlock>}
       </div>
     </div>
   );

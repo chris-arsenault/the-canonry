@@ -1,0 +1,14 @@
+/* PlaneDiffusionTab companion styles */
+.pdt-hint {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: var(--spacing-xs);
+  line-height: 1.4;
+}
+
+.pdt-section-hint {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.4;
+}

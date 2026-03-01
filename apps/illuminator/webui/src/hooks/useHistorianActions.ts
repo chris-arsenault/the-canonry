@@ -20,21 +20,24 @@
  * since it's part of the action logic, not modal rendering.
  */
 
-import { useState, useCallback } from 'react';
-import { useEntityStore } from '../lib/db/entityStore';
-import { useChronicleStore } from '../lib/db/chronicleStore';
-import { useIlluminatorConfigStore } from '../lib/db/illuminatorConfigStore';
-import { isHistorianConfigured } from '../lib/historianTypes';
+import { useState, useCallback } from "react";
+import { useEntityStore } from "../lib/db/entityStore";
+import { useChronicleStore } from "../lib/db/chronicleStore";
+import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
+import { isHistorianConfigured } from "../lib/historianTypes";
 import {
   buildHistorianEditionContext,
   buildHistorianReviewContext,
-} from '../lib/historianContextBuilders';
-import { compressDescriptionHistory, COMPRESSION_FLOOR } from '../lib/descriptionHistoryCompression';
-import { reloadEntities } from './useEntityCrud';
-import * as entityRepo from '../lib/db/entityRepository';
-import { getChronicle, updateChronicleHistorianNotes } from '../lib/db/chronicleRepository';
-import type { HistorianEditionConfig } from './useHistorianEdition';
-import type { HistorianReviewConfig } from './useHistorianReview';
+} from "../lib/historianContextBuilders";
+import {
+  compressDescriptionHistory,
+  COMPRESSION_FLOOR,
+} from "../lib/descriptionHistoryCompression";
+import { reloadEntities } from "./useEntityCrud";
+import * as entityRepo from "../lib/db/entityRepository";
+import { getChronicle, updateChronicleHistorianNotes } from "../lib/db/chronicleRepository";
+import type { HistorianEditionConfig } from "./useHistorianEdition";
+import type { HistorianReviewConfig } from "./useHistorianReview";
 
 // ============================================================================
 // Bridge — IlluminatorRemote registers the primitive hook start functions
@@ -57,7 +60,7 @@ export function registerHistorianStarters(starters: HistorianStarters): void {
 
 function getStarters(): HistorianStarters {
   if (!_starters) {
-    throw new Error('registerHistorianStarters must be called before using useHistorianActions');
+    throw new Error("registerHistorianStarters must be called before using useHistorianActions");
   }
   return _starters;
 }
@@ -86,25 +89,28 @@ export function useHistorianActions() {
   // Edition preview state (compression check before starting)
   const [editionPreview, setEditionPreview] = useState<EditionPreview | null>(null);
 
-  const handleHistorianEdition = useCallback(async (entityId: string, tone: string, reEdition?: boolean) => {
-    const config = await buildHistorianEditionContext(entityId, tone, reEdition);
-    if (!config) return;
+  const handleHistorianEdition = useCallback(
+    async (entityId: string, tone: string, reEdition?: boolean) => {
+      const config = await buildHistorianEditionContext(entityId, tone, reEdition);
+      if (!config) return;
 
-    const history = config.descriptionHistory || [];
-    if (history.length > COMPRESSION_FLOOR) {
-      const compressed = compressDescriptionHistory(history);
-      if (compressed.length < history.length) {
-        setEditionPreview({
-          config,
-          entityName: config.entityName,
-          originalCount: history.length,
-          compressed,
-        });
-        return;
+      const history = config.descriptionHistory || [];
+      if (history.length > COMPRESSION_FLOOR) {
+        const compressed = compressDescriptionHistory(history);
+        if (compressed.length < history.length) {
+          setEditionPreview({
+            config,
+            entityName: config.entityName,
+            originalCount: history.length,
+            compressed,
+          });
+          return;
+        }
       }
-    }
-    getStarters().startHistorianEdition(config);
-  }, []);
+      getStarters().startHistorianEdition(config);
+    },
+    []
+  );
 
   const handleEditionPreviewProceed = useCallback(() => {
     if (editionPreview?.config) getStarters().startHistorianEdition(editionPreview.config);
@@ -125,31 +131,31 @@ export function useHistorianActions() {
       targetType: string,
       targetId: string,
       noteId: string,
-      updates: Record<string, unknown>,
+      updates: Record<string, unknown>
     ) => {
-      if (targetType === 'entity' && targetId) {
+      if (targetType === "entity" && targetId) {
         const entity = await useEntityStore.getState().loadEntity(targetId);
         if (!entity?.enrichment?.historianNotes) return;
         const updatedNotes = entity.enrichment.historianNotes.map((n) =>
-          n.noteId === noteId ? { ...n, ...updates } : n,
+          n.noteId === noteId ? { ...n, ...updates } : n
         );
         await entityRepo.setHistorianNotes(targetId, updatedNotes);
         await reloadEntities([targetId]);
-      } else if (targetType === 'chronicle' && targetId) {
+      } else if (targetType === "chronicle" && targetId) {
         try {
           const chronicle = await getChronicle(targetId);
           if (!chronicle?.historianNotes) return;
           const updatedNotes = chronicle.historianNotes.map((n: { noteId: string }) =>
-            n.noteId === noteId ? { ...n, ...updates } : n,
+            n.noteId === noteId ? { ...n, ...updates } : n
           );
           await updateChronicleHistorianNotes(targetId, updatedNotes);
           await useChronicleStore.getState().refreshChronicle(targetId);
         } catch (err) {
-          console.error('[Historian] Failed to update note:', err);
+          console.error("[Historian] Failed to update note:", err);
         }
       }
     },
-    [],
+    []
   );
 
   return {

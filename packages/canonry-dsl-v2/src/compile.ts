@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/cognitive-complexity */
 import { parseCanon } from './parser.js';
 import type {
   AstFile,
@@ -626,7 +627,6 @@ function validateTextFormattingStatement(
     for (const child of stmt.body) {
       validateTextFormattingStatement(child, diagnostics);
     }
-    return;
   }
 }
 
@@ -967,7 +967,7 @@ interface NamingResourceCollection {
 
 function normalizeForSignature(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map((entry) => normalizeForSignature(entry));
+    return (value as unknown[]).map((entry: unknown) => normalizeForSignature(entry));
   }
   if (isRecord(value)) {
     const result: Record<string, unknown> = {};
@@ -1048,7 +1048,7 @@ function extractCultureIds(
     return [raw];
   }
   if (Array.isArray(raw) && raw.every((entry) => typeof entry === 'string')) {
-    return raw as string[];
+    return raw;
   }
   diagnostics.push({
     severity: 'error',
@@ -1150,7 +1150,7 @@ function applyNamingResources(
 
   const ensureNaming = (culture: Record<string, unknown>): Record<string, unknown> => {
     if (isRecord(culture.naming)) {
-      return culture.naming as Record<string, unknown>;
+      return culture.naming;
     }
     culture.naming = {};
     return culture.naming as Record<string, unknown>;
@@ -1174,7 +1174,7 @@ function applyNamingResources(
     } else {
       diagnostics.push({
         severity: 'error',
-        message: `culture "${culture.id}" naming.${key} must be an array`,
+        message: `culture "${String(culture.id)}" naming.${key} must be an array`,
         span
       });
       return;
@@ -1183,7 +1183,7 @@ function applyNamingResources(
     if (typeof id === 'string' && list.some((item) => isRecord(item) && item.id === id)) {
       diagnostics.push({
         severity: 'error',
-        message: `Duplicate ${label} "${id}" for culture "${culture.id}"`,
+        message: `Duplicate ${label} "${id}" for culture "${String(culture.id)}"`,
         span
       });
       return;
@@ -1204,11 +1204,11 @@ function applyNamingResources(
       lists = {};
       naming.lexemeLists = lists;
     } else if (isRecord(existing)) {
-      lists = existing as Record<string, unknown>;
+      lists = existing;
     } else {
       diagnostics.push({
         severity: 'error',
-        message: `culture "${culture.id}" naming.lexemeLists must be an object`,
+        message: `culture "${String(culture.id)}" naming.lexemeLists must be an object`,
         span
       });
       return;
@@ -1225,7 +1225,7 @@ function applyNamingResources(
     if (lists[id]) {
       diagnostics.push({
         severity: 'error',
-        message: `Duplicate lexeme_list "${id}" for culture "${culture.id}"`,
+        message: `Duplicate lexeme_list "${id}" for culture "${String(culture.id)}"`,
         span
       });
       return;
@@ -1404,7 +1404,7 @@ function inlineBlockFromAttribute(
   };
 }
 
-function objectValueToStatements(value: ObjectValue): StatementNode[] {
+function _objectValueToStatements(value: ObjectValue): StatementNode[] {
   return value.entries.map((entry) => ({
     type: 'attribute',
     key: entry.key,
@@ -1460,7 +1460,7 @@ function makeObjectValue(entries: Array<{ key: string; value: Value }>, span: At
   };
 }
 
-function ensureArrayValue(
+function _ensureArrayValue(
   value: Value | undefined,
   diagnostics: Diagnostic[],
   stmt: AttributeNode,
@@ -1592,24 +1592,21 @@ function parseTagInline(
     if (keyword === 'kinds' || keyword === 'related' || keyword === 'conflicts' || keyword === 'exclusive' || keyword === 'templates') {
       const parsed = consumeInlineSetValues(items, index + 1, keywordSet, diagnostics, stmt, keyword);
       if (!parsed) return null;
-      const key =
-        keyword === 'kinds'
-          ? 'entityKinds'
-          : keyword === 'related'
-            ? 'relatedTags'
-            : keyword === 'conflicts'
-              ? 'conflictingTags'
-              : keyword === 'exclusive'
-                ? 'mutuallyExclusiveWith'
-                : 'templates';
+      const keyMap: Record<string, string> = {
+        kinds: 'entityKinds',
+        related: 'relatedTags',
+        conflicts: 'conflictingTags',
+        exclusive: 'mutuallyExclusiveWith',
+        templates: 'templates',
+      };
+      const key = keyMap[keyword];
       statements.push(makeAttributeStatement(key, parsed.value, stmt.span));
       index = parsed.nextIndex;
       continue;
     }
 
     if (keyword === 'usage') {
-      const next = items[index + 1];
-      if (next === undefined) {
+      if (index + 1 >= items.length) {
         diagnostics.push({
           severity: 'error',
           message: 'usage requires min and max values',
@@ -1619,7 +1616,7 @@ function parseTagInline(
       }
       const minValue = items[index + 1];
       const maxValue = items[index + 2];
-      if (minValue === undefined || maxValue === undefined) {
+      if (index + 2 >= items.length) {
         diagnostics.push({
           severity: 'error',
           message: 'usage requires min and max values',
@@ -1635,7 +1632,7 @@ function parseTagInline(
 
     if (keyword === 'count') {
       const value = items[index + 1];
-      if (value === undefined) {
+      if (index + 1 >= items.length) {
         diagnostics.push({
           severity: 'error',
           message: 'count requires a value',
@@ -1741,7 +1738,7 @@ function parseRelationshipKindInline(
     if (keyword === 'verbs') {
       const formed = items[index + 1];
       const ended = items[index + 2];
-      if (formed === undefined || ended === undefined) {
+      if (index + 2 >= items.length) {
         diagnostics.push({
           severity: 'error',
           message: 'verbs requires formed and ended values',
@@ -1761,8 +1758,7 @@ function parseRelationshipKindInline(
       continue;
     }
     if (keyword === 'category') {
-      const value = items[index + 1];
-      if (value === undefined) {
+      if (index + 1 >= items.length) {
         diagnostics.push({
           severity: 'error',
           message: 'category requires a value',
@@ -1770,13 +1766,13 @@ function parseRelationshipKindInline(
         });
         return null;
       }
+      const value = items[index + 1];
       statements.push(makeAttributeStatement('category', value, stmt.span));
       index += 2;
       continue;
     }
     if (keyword === 'name') {
-      const value = items[index + 1];
-      if (value === undefined) {
+      if (index + 1 >= items.length) {
         diagnostics.push({
           severity: 'error',
           message: 'name requires a value',
@@ -1784,13 +1780,13 @@ function parseRelationshipKindInline(
         });
         return null;
       }
+      const value = items[index + 1];
       statements.push(makeAttributeStatement('name', value, stmt.span));
       index += 2;
       continue;
     }
     if (keyword === 'desc') {
-      const value = items[index + 1];
-      if (value === undefined) {
+      if (index + 1 >= items.length) {
         diagnostics.push({
           severity: 'error',
           message: 'desc requires a value',
@@ -1798,7 +1794,8 @@ function parseRelationshipKindInline(
         });
         return null;
       }
-      statements.push(makeAttributeStatement('description', value, stmt.span));
+      const descValue = items[index + 1];
+      statements.push(makeAttributeStatement('description', descValue, stmt.span));
       index += 2;
       continue;
     }
@@ -1842,14 +1839,18 @@ function parseSeedRelationshipInline(
   let strength: Value | undefined;
   const keyword = coerceStringValue(items[index]);
   if (keyword === 'strength') {
-    strength = items[index + 1];
+    if (index + 1 >= items.length) {
+      strength = undefined;
+    } else {
+      strength = items[index + 1];
+    }
     index += 2;
   } else {
     strength = items[index];
     index += 1;
   }
 
-  if (strength === undefined) {
+  if (strength == null) {
     diagnostics.push({
       severity: 'error',
       message: 'seed_relationship requires a strength value',
@@ -2134,12 +2135,8 @@ function parseOperatorKeyword(
   span: BlockNode['span']
 ): string | null {
   if (typeof token === 'string') {
-    const mapped = token === '>' ? 'gt'
-      : token === '>=' ? 'gte'
-        : token === '<' ? 'lt'
-          : token === '<=' ? 'lte'
-            : token === '==' ? 'eq'
-              : null;
+    const operatorMap: Record<string, string> = { '>': 'gt', '>=': 'gte', '<': 'lt', '<=': 'lte', '==': 'eq' };
+    const mapped = operatorMap[token] ?? null;
     if (mapped) return mapped;
     if (SYSTEM_OPERATOR_KEYWORDS.has(token)) return token;
   }
@@ -2720,7 +2717,7 @@ function buildSystemConditionGroup(
   return { type, conditions };
 }
 
-function buildSystemConditions(
+function _buildSystemConditions(
   statements: StatementNode[],
   ctx: GeneratorContext
 ): Record<string, unknown>[] {
@@ -2752,7 +2749,7 @@ function buildSystemActionListFromStatements(
   return buildMutationListFromStatements(statements, ctx, { requireMutateBlock: true });
 }
 
-function parseSystemActionStatement(
+function _parseSystemActionStatement(
   stmt: StatementNode,
   ctx: GeneratorContext
 ): Record<string, unknown> | null {
@@ -3114,9 +3111,12 @@ function parseMetricBlock(
       });
       continue;
     }
-    const value = (child.value === null && child.labels && child.labels.length > 0)
-      ? (child.labels.length === 1 ? child.labels[0] : child.labels.slice())
-      : valueToJson(child.value, ctx.diagnostics, ctx.parent);
+    let value;
+    if (child.value === null && child.labels && child.labels.length > 0) {
+      value = child.labels.length === 1 ? child.labels[0] : child.labels.slice();
+    } else {
+      value = valueToJson(child.value, ctx.diagnostics, ctx.parent);
+    }
     if (metricType === 'shared_relationship') {
       if (child.key === 'relationship' || child.key === 'relationship_kind' || child.key === 'relationshipKind') {
         metric.sharedRelationshipKind = value;
@@ -3271,15 +3271,8 @@ function parseRuleBlock(
           });
           continue;
         }
-        const operator = op === 'gt'
-          ? '>'
-          : op === 'gte'
-            ? '>='
-            : op === 'lt'
-              ? '<'
-              : op === 'lte'
-                ? '<='
-                : '==';
+        const reverseOpMap: Record<string, string> = { gt: '>', gte: '>=', lt: '<', lte: '<=' };
+        const operator = reverseOpMap[op] ?? '==';
         rule.condition = { operator, threshold };
         continue;
       }
@@ -5886,8 +5879,9 @@ function normalizeKindList(
     return [value];
   }
   if (Array.isArray(value)) {
-    const items = value.filter((entry) => typeof entry === 'string') as string[];
-    if (items.length !== value.length) {
+    const arr = value as unknown[];
+    const items = arr.filter((entry): entry is string => typeof entry === 'string');
+    if (items.length !== arr.length) {
       diagnostics.push({
         severity: 'error',
         message: `${label} must be a list of strings`,
@@ -5911,28 +5905,7 @@ function normalizeStringList(
   parent: BlockNode,
   label: string
 ): string[] | null {
-  if (typeof value === 'string') {
-    if (value === 'none') return [];
-    return [value];
-  }
-  if (Array.isArray(value)) {
-    const items = value.filter((entry) => typeof entry === 'string') as string[];
-    if (items.length !== value.length) {
-      diagnostics.push({
-        severity: 'error',
-        message: `${label} must be a list of strings`,
-        span: parent.span
-      });
-      return null;
-    }
-    return items;
-  }
-  diagnostics.push({
-    severity: 'error',
-    message: `${label} must be a string or list of strings`,
-    span: parent.span
-  });
-  return null;
+  return normalizeKindList(value, diagnostics, parent, label);
 }
 
 function buildSeedEntityItem(block: BlockNode, diagnostics: Diagnostic[]): Record<string, unknown> | null {
@@ -6093,9 +6066,10 @@ function buildSeedEntityItem(block: BlockNode, diagnostics: Diagnostic[]): Recor
   }
 
   if (Array.isArray(item.coordinates)) {
-    const [x, y, z] = item.coordinates;
+    const coords = item.coordinates as unknown[];
+    const [x, y, z] = [coords[0], coords[1], coords[2]];
     if ([x, y, z].every((value) => typeof value === 'number')) {
-      item.coordinates = { x, y, z };
+      item.coordinates = { x: x as number, y: y as number, z: z as number };
     } else {
       diagnostics.push({
         severity: 'error',
@@ -6264,7 +6238,8 @@ function buildSeedRelationshipGroup(
       });
       continue;
     }
-    const [dst, strength] = raw;
+    const dst: unknown = raw[0];
+    const strength: unknown = raw[1];
     if (typeof dst !== 'string' || typeof strength !== 'number') {
       diagnostics.push({
         severity: 'error',
@@ -6311,8 +6286,11 @@ function buildCultureItem(block: BlockNode, diagnostics: Diagnostic[]): Record<s
           });
           continue;
         }
-        const [kind, x, y, z] = raw;
-        if (typeof kind !== 'string' || [x, y, z].some((val) => typeof val !== 'number')) {
+        const kind: unknown = raw[0];
+        const x: unknown = raw[1];
+        const y: unknown = raw[2];
+        const z: unknown = raw[3];
+        if (typeof kind !== 'string' || typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
           diagnostics.push({
             severity: 'error',
             message: 'axis_bias requires kind and numeric x y z values',
@@ -6335,8 +6313,9 @@ function buildCultureItem(block: BlockNode, diagnostics: Diagnostic[]): Record<s
           });
           continue;
         }
-        const [kind, ...rest] = normalized;
-        const regions = rest.flatMap((entry) => Array.isArray(entry) ? entry : [entry]);
+        const kind: unknown = normalized[0];
+        const rest: unknown[] = normalized.slice(1);
+        const regions = rest.flatMap((entry: unknown) => Array.isArray(entry) ? entry as unknown[] : [entry]);
         if (typeof kind !== 'string') {
           diagnostics.push({
             severity: 'error',
@@ -7012,7 +6991,8 @@ function buildLexemeSpec(block: BlockNode, diagnostics: Diagnostic[]): Record<st
         continue;
       }
       if (stmt.key === 'quality' && Array.isArray(value) && value.length >= 2) {
-        spec.qualityFilter = { minLength: value[0], maxLength: value[1] };
+        const arr = value as unknown[];
+        spec.qualityFilter = { minLength: arr[0], maxLength: arr[1] };
         continue;
       }
       if (stmt.key === 'max_words') {
@@ -7093,7 +7073,9 @@ function buildGrammarFromBlock(block: BlockNode, diagnostics: Diagnostic[]): Rec
         });
         return null;
       }
-      const [name, ...rest] = raw;
+      const rawArr = raw as unknown[];
+      const name: unknown = rawArr[0];
+      const rest: unknown[] = rawArr.slice(1);
       if (typeof name !== 'string') {
         diagnostics.push({
           severity: 'error',
@@ -7143,7 +7125,7 @@ function buildGrammarFromBlock(block: BlockNode, diagnostics: Diagnostic[]): Rec
   return grammar;
 }
 
-function buildNamingFromStatements(
+function _buildNamingFromStatements(
   statements: StatementNode[],
   diagnostics: Diagnostic[],
   parent: BlockNode
@@ -7207,7 +7189,7 @@ function buildNamingFromStatements(
         if (lexemeLists[lexeme.id as string]) {
           diagnostics.push({
             severity: 'error',
-            message: `Duplicate lexeme list "${lexeme.id}"`,
+            message: `Duplicate lexeme list "${String(lexeme.id)}"`,
             span: stmt.span
           });
           continue;
@@ -7725,7 +7707,10 @@ function buildSubtypeFromPositional(
     });
     return null;
   }
-  const [id, name, ...rest] = raw;
+  const rawArr = raw as unknown[];
+  const id: unknown = rawArr[0];
+  const name: unknown = rawArr[1];
+  const rest: unknown[] = rawArr.slice(2);
   if (typeof id !== 'string' || typeof name !== 'string') {
     diagnostics.push({
       severity: 'error',
@@ -7832,7 +7817,11 @@ function buildStatusFromPositional(
     });
     return null;
   }
-  const [id, name, polarity, ...rest] = raw;
+  const rawArr2 = raw as unknown[];
+  const id: unknown = rawArr2[0];
+  const name: unknown = rawArr2[1];
+  const polarity: unknown = rawArr2[2];
+  const rest: unknown[] = rawArr2.slice(3);
   if (typeof id !== 'string' || typeof name !== 'string' || typeof polarity !== 'string') {
     diagnostics.push({
       severity: 'error',
@@ -7969,7 +7958,8 @@ function buildRequiredRelationshipFromPositional(
     });
     return null;
   }
-  const [kind, description] = raw;
+  const kind: unknown = (raw as unknown[])[0];
+  const description: unknown = (raw as unknown[])[1];
   if (typeof kind !== 'string') {
     diagnostics.push({
       severity: 'error',
@@ -8012,8 +8002,8 @@ function buildStyleFromValue(
     }
     const style: Record<string, unknown> = {};
     for (let i = 0; i < raw.length; i += 2) {
-      const key = raw[i];
-      const val = raw[i + 1];
+      const key: unknown = (raw as unknown[])[i];
+      const val: unknown = (raw as unknown[])[i + 1];
       if (typeof key !== 'string') {
         diagnostics.push({
           severity: 'error',
@@ -8222,7 +8212,7 @@ function parseAxesList(
     if (!resolvedX || !resolvedY) return null;
     axes.x = resolvedX;
     axes.y = resolvedY;
-    if (z !== undefined) {
+    if (tokens.length >= 3) {
       const resolvedZ = parseResourceReferenceString(z, diagnostics, parent.span, 'axis', ['axis']);
       if (!resolvedZ) return null;
       axes.z = resolvedZ;
@@ -8368,7 +8358,8 @@ function buildEraItem(block: BlockNode, diagnostics: Diagnostic[]): Record<strin
           });
           continue;
         }
-        const [templateId, weight] = tokens;
+        const templateId: unknown = (tokens as unknown[])[0];
+        const weight: unknown = (tokens as unknown[])[1];
         if (typeof templateId !== 'string' || typeof weight !== 'number') {
           diagnostics.push({
             severity: 'error',
@@ -8400,7 +8391,8 @@ function buildEraItem(block: BlockNode, diagnostics: Diagnostic[]): Record<strin
           });
           continue;
         }
-        const [systemId, multiplier] = tokens;
+        const systemId: unknown = (tokens as unknown[])[0];
+        const multiplier: unknown = (tokens as unknown[])[1];
         if (typeof systemId !== 'string' || typeof multiplier !== 'number') {
           diagnostics.push({
             severity: 'error',
@@ -8479,7 +8471,10 @@ function buildEraItem(block: BlockNode, diagnostics: Diagnostic[]): Record<strin
     }
 
     if (stmt.type === 'block') {
-      if (applySetFieldBlock(stmt, item, diagnostics)) continue;
+      if (SET_FIELD_KEYS.has(stmt.name)) {
+        applySetFieldBlock(stmt, item, diagnostics);
+        continue;
+      }
       const child = buildObjectFromStatements(stmt.body, diagnostics, stmt);
       if (stmt.labels.length > 0) {
         const existingId = child.id;
@@ -8624,7 +8619,7 @@ function buildDistributionTargetsItem(
         });
         continue;
       }
-      const { id: _id, ...rest } = entry;
+      const { id: _id, ...rest } = entry; // eslint-disable-line sonarjs/no-unused-vars
       perEra[id] = rest;
     }
     item.perEra = perEra;
@@ -8689,7 +8684,8 @@ function buildRegionFromBlock(block: BlockNode, diagnostics: Diagnostic[]): Reco
       }
       let value = valueToJson(stmt.value, diagnostics, block);
       if (stmt.key === 'zRange' && Array.isArray(value) && value.length >= 2) {
-        value = { min: value[0], max: value[1] };
+        const arr = value as unknown[];
+        value = { min: arr[0], max: arr[1] };
       }
       setObjectValue(region, stmt.key, value);
       continue;
@@ -8741,7 +8737,7 @@ function buildBoundsFromBlock(block: BlockNode, diagnostics: Diagnostic[]): Reco
   }
 
   if (shape === 'rect') {
-    const { x1, y1, x2, y2 } = raw as Record<string, unknown>;
+    const { x1, y1, x2, y2 } = raw;
     if (![x1, y1, x2, y2].every((value) => typeof value === 'number')) {
       diagnostics.push({
         severity: 'error',
@@ -8811,7 +8807,9 @@ function buildBoundsFromLine(
     return null;
   }
 
-  const [shape, ...rest] = raw;
+  const rawArr3 = raw as unknown[];
+  const shape: unknown = rawArr3[0];
+  const rest: unknown[] = rawArr3.slice(1);
   if (typeof shape !== 'string') {
     diagnostics.push({
       severity: 'error',
@@ -8822,8 +8820,10 @@ function buildBoundsFromLine(
   }
 
   if (shape === 'circle') {
-    const [x, y, radius] = rest;
-    if ([x, y, radius].every((entry) => typeof entry === 'number')) {
+    const x: unknown = rest[0];
+    const y: unknown = rest[1];
+    const radius: unknown = rest[2];
+    if (typeof x === 'number' && typeof y === 'number' && typeof radius === 'number') {
       return { shape, center: { x, y }, radius };
     }
     diagnostics.push({
@@ -8835,8 +8835,11 @@ function buildBoundsFromLine(
   }
 
   if (shape === 'rect') {
-    const [x1, y1, x2, y2] = rest;
-    if ([x1, y1, x2, y2].every((entry) => typeof entry === 'number')) {
+    const x1: unknown = rest[0];
+    const y1: unknown = rest[1];
+    const x2: unknown = rest[2];
+    const y2: unknown = rest[3];
+    if (typeof x1 === 'number' && typeof y1 === 'number' && typeof x2 === 'number' && typeof y2 === 'number') {
       return { shape, x1, y1, x2, y2 };
     }
     diagnostics.push({
@@ -8858,8 +8861,8 @@ function buildBoundsFromLine(
     }
     const points: Array<{ x: number; y: number }> = [];
     for (let i = 0; i < rest.length; i += 2) {
-      const x = rest[i];
-      const y = rest[i + 1];
+      const x: unknown = rest[i];
+      const y: unknown = rest[i + 1];
       if (typeof x !== 'number' || typeof y !== 'number') {
         diagnostics.push({
           severity: 'error',
@@ -8887,13 +8890,16 @@ function normalizePoint(
   parent: BlockNode
 ): { x: number; y: number } | null {
   if (Array.isArray(value) && value.length >= 2) {
-    const [x, y] = value;
+    const arr = value as unknown[];
+    const x: unknown = arr[0];
+    const y: unknown = arr[1];
     if (typeof x === 'number' && typeof y === 'number') {
       return { x, y };
     }
   }
   if (isRecord(value)) {
-    const { x, y } = value as Record<string, unknown>;
+    const x: unknown = value.x;
+    const y: unknown = value.y;
     if (typeof x === 'number' && typeof y === 'number') {
       return { x, y };
     }
@@ -8967,7 +8973,7 @@ function buildStaticPageFromBlock(
   if (page.title !== undefined && page.title !== titleLabel) {
     diagnostics.push({
       severity: 'error',
-      message: `static_page title mismatch: label "${titleLabel}" vs title "${page.title}"`,
+      message: `static_page title mismatch: label "${titleLabel}" vs title "${String(page.title)}"`,
       span: block.span
     });
     return null;
@@ -9392,7 +9398,8 @@ function applyActionLabeledAttribute(
   if (labels.length === 0) return false;
 
   if (key === 'let' || key === 'var' || key === 'variable') {
-    return addVariableEntryDsl(labels, stmt.value, obj, ctx, { useBareKey: true });
+    addVariableEntryDsl(labels, stmt.value, obj, ctx, { useBareKey: true });
+    return true;
   }
 
   return false;
@@ -10375,7 +10382,6 @@ function parseArchiveRelationship(
     relationshipKind: kind
   };
 
-  let idx = 2;
   if (!allowAll) {
     if (typeof withToken !== 'string') {
       ctx.diagnostics.push({
@@ -10386,7 +10392,6 @@ function parseArchiveRelationship(
       return null;
     }
     result.with = normalizeRefName(withToken, ctx);
-    idx = 3;
   }
 
   const label = allowAll ? withToken : maybeDirection;
@@ -10423,7 +10428,7 @@ function applyActionProminence(
   }
   const outcome = ensureActionOutcome(obj);
   const deltaKey = target === 'actor' ? 'actorProminenceDelta' : 'targetProminenceDelta';
-  const delta = isRecord(outcome[deltaKey]) ? (outcome[deltaKey] as Record<string, unknown>) : {};
+  const delta = isRecord(outcome[deltaKey]) ? (outcome[deltaKey]) : {};
 
   let idx = 1;
   while (idx < tokens.length) {
@@ -10540,7 +10545,7 @@ function applyGeneratorStatement(
       }
       if (!mode) {
         if (conditions.length === 1 && isRecord(conditions[0])) {
-          const candidate = conditions[0] as Record<string, unknown>;
+          const candidate = conditions[0];
           if (typeof candidate.type === 'string' && Array.isArray(candidate.conditions)) {
             pushArrayValue(obj, 'applicability', candidate);
             return;
@@ -11201,7 +11206,7 @@ function valueToTokenList(
   span: BlockNode['span']
 ): unknown[] | null {
   const raw = valueToJson(value, ctx.diagnostics, ctx.parent);
-  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw)) return raw as unknown[];
   if (raw === undefined) {
     ctx.diagnostics.push({
       severity: 'error',
@@ -11944,7 +11949,7 @@ function parseGraphPathHeader(
   stmt: BlockNode,
   ctx: GeneratorContext
 ): { check?: string } {
-  let labels = stmt.labels;
+  const labels = stmt.labels;
   const check = labels[0];
   if (!check) {
     ctx.diagnostics.push({
@@ -12123,6 +12128,7 @@ function parseGraphPathStepBlock(
   return step;
 }
 
+// eslint-disable-next-line sonarjs/function-return-type -- union return by design: single string, array of strings, or null on error
 function parseViaToken(
   token: unknown,
   ctx: GeneratorContext,
@@ -12624,16 +12630,20 @@ function applyLabeledAttributeDsl(
   if (labels.length === 0) return false;
 
   if (key === 'create') {
-    return addCreationEntryDsl(labels, stmt.value, obj, ctx);
+    addCreationEntryDsl(labels, stmt.value, obj, ctx);
+    return true;
   }
   if (key === 'relationship' || key === 'rel') {
-    return addRelationshipEntryDsl(labels, stmt.value, obj, ctx);
+    addRelationshipEntryDsl(labels, stmt.value, obj, ctx);
+    return true;
   }
   if (key === 'var' || key === 'variable' || key === 'let') {
-    return addVariableEntryDsl(labels, stmt.value, obj, ctx);
+    addVariableEntryDsl(labels, stmt.value, obj, ctx);
+    return true;
   }
   if (key === 'applicability') {
-    return addApplicabilityEntry(labels, stmt.value, obj, ctx.diagnostics, ctx.parent);
+    addApplicabilityEntry(labels, stmt.value, obj, ctx.diagnostics, ctx.parent);
+    return true;
   }
 
   return false;
@@ -12644,7 +12654,7 @@ function addCreationEntryDsl(
   rawValue: Value | Record<string, unknown>,
   obj: Record<string, unknown>,
   ctx: GeneratorContext
-): boolean {
+): void {
   const label = labels[0];
   if (!label) {
     ctx.diagnostics.push({
@@ -12652,21 +12662,20 @@ function addCreationEntryDsl(
       message: 'create requires an entity label',
       span: ctx.parent.span
     });
-    return true;
+    return;
   }
   const normalizedLabel = normalizeDeclaredBinding(label, ctx);
-  if (!normalizedLabel) return true;
+  if (!normalizedLabel) return;
 
   const value = isRecord(rawValue)
     ? rawValue
-    : parseInlineKeyValuePairs(rawValue as Value, ctx.diagnostics, ctx.parent, 'create');
-  if (!value) return true;
+    : parseInlineKeyValuePairs(rawValue, ctx.diagnostics, ctx.parent, 'create');
+  if (!value) return;
 
   value.entityRef = normalizedLabel;
   normalizeRefsInObject(value, ctx);
   normalizeTagMapField(value, 'tags', ctx.diagnostics, ctx.parent.span);
   pushArrayValue(obj, 'creation', value);
-  return true;
 }
 
 function normalizeTagMapField(
@@ -12806,7 +12815,7 @@ function addRelationshipEntryDsl(
   rawValue: Value | Record<string, unknown>,
   obj: Record<string, unknown>,
   ctx: GeneratorContext
-): boolean {
+): void {
   const [kind, src, dst] = labels;
   if (!kind || !src || !dst) {
     ctx.diagnostics.push({
@@ -12814,17 +12823,17 @@ function addRelationshipEntryDsl(
       message: 'relationship requires labels: <kind> <src> <dst>',
       span: ctx.parent.span
     });
-    return true;
+    return;
   }
 
   const value = isRecord(rawValue)
     ? rawValue
-    : parseInlineKeyValuePairs(rawValue as Value, ctx.diagnostics, ctx.parent, 'relationship');
-  if (!value) return true;
+    : parseInlineKeyValuePairs(rawValue, ctx.diagnostics, ctx.parent, 'relationship');
+  if (!value) return;
 
   const normalizedSrc = resolveRequiredRefName(src, ctx, ctx.parent.span, 'src');
   const normalizedDst = resolveRequiredRefName(dst, ctx, ctx.parent.span, 'dst');
-  if (!normalizedSrc || !normalizedDst) return true;
+  if (!normalizedSrc || !normalizedDst) return;
 
   value.kind = kind;
   value.src = normalizedSrc;
@@ -12839,7 +12848,6 @@ function addRelationshipEntryDsl(
 
   normalizeRefsInObject(value, ctx);
   pushArrayValue(obj, 'relationships', value);
-  return true;
 }
 
 function addVariableEntryDsl(
@@ -12848,7 +12856,7 @@ function addVariableEntryDsl(
   obj: Record<string, unknown>,
   ctx: GeneratorContext,
   options: { useBareKey?: boolean } = {}
-): boolean {
+): void {
   const varName = labels[0];
   if (!varName) {
     ctx.diagnostics.push({
@@ -12856,18 +12864,18 @@ function addVariableEntryDsl(
       message: 'let requires a variable name label',
       span: ctx.parent.span
     });
-    return true;
+    return;
   }
 
   const normalizedName = normalizeDeclaredBinding(varName, ctx);
-  if (!normalizedName) return true;
+  if (!normalizedName) return;
   const shouldStrip = options.useBareKey && !varName.startsWith('$');
   const storageName = shouldStrip ? normalizedName.replace(/^\$/, '') : normalizedName;
 
   const value = isRecord(rawValue)
     ? rawValue
-    : parseInlineKeyValuePairs(rawValue as Value, ctx.diagnostics, ctx.parent, 'variable');
-  if (!value) return true;
+    : parseInlineKeyValuePairs(rawValue, ctx.diagnostics, ctx.parent, 'variable');
+  if (!value) return;
 
   normalizeRefsInObject(value, ctx);
 
@@ -12884,7 +12892,7 @@ function addVariableEntryDsl(
       message: 'variables must be an object',
       span: ctx.parent.span
     });
-    return true;
+    return;
   }
 
   if (Object.prototype.hasOwnProperty.call(variables, storageName)) {
@@ -12893,11 +12901,10 @@ function addVariableEntryDsl(
       message: `Duplicate variable "${storageName}"`,
       span: ctx.parent.span
     });
-    return true;
+    return;
   }
 
   variables[storageName] = value;
-  return true;
 }
 
 function addMutationEntryDsl(
@@ -13118,16 +13125,20 @@ function applyLabeledAttribute(
   if (labels.length === 0) return false;
 
   if (key === 'create') {
-    return addCreationEntry(labels, stmt.value, obj, diagnostics, parent);
+    addCreationEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
   if (key === 'relationship' || key === 'rel') {
-    return addRelationshipEntry(labels, stmt.value, obj, diagnostics, parent);
+    addRelationshipEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
   if (key === 'var' || key === 'variable' || key === 'let') {
-    return addVariableEntry(labels, stmt.value, obj, diagnostics, parent);
+    addVariableEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
   if (key === 'applicability') {
-    return addApplicabilityEntry(labels, stmt.value, obj, diagnostics, parent);
+    addApplicabilityEntry(labels, stmt.value, obj, diagnostics, parent);
+    return true;
   }
 
   return false;
@@ -13140,19 +13151,24 @@ function applySpecialBlock(
 ): boolean {
   const key = stmt.name;
   if (SET_FIELD_KEYS.has(key)) {
-    return applySetFieldBlock(stmt, obj, diagnostics);
+    applySetFieldBlock(stmt, obj, diagnostics);
+    return true;
   }
   if (key === 'create') {
-    return addCreationEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addCreationEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   if (key === 'relationship' || key === 'rel') {
-    return addRelationshipEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addRelationshipEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   if (key === 'var' || key === 'variable' || key === 'let') {
-    return addVariableEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addVariableEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   if (key === 'applicability') {
-    return addApplicabilityEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    addApplicabilityEntry(stmt.labels, buildObjectFromStatements(stmt.body, diagnostics, stmt), obj, diagnostics, stmt);
+    return true;
   }
   return false;
 }
@@ -13275,42 +13291,41 @@ function mergeListFieldValue(
   parsed: { items: string[]; none: boolean },
   diagnostics: Diagnostic[],
   span: BlockNode['span']
-): boolean {
+): void {
   const existing = obj[key];
   if (parsed.none) {
     if (existing === undefined) {
       obj[key] = [];
-      return true;
+      return;
     }
     if (Array.isArray(existing) && existing.length === 0) {
-      return true;
+      return;
     }
     diagnostics.push({
       severity: 'error',
       message: `${key} cannot combine none with other values`,
       span
     });
-    return true;
+    return;
   }
 
   if (existing === undefined) {
     obj[key] = [...parsed.items];
-    return true;
+    return;
   }
   if (Array.isArray(existing)) {
     existing.push(...parsed.items);
-    return true;
+    return;
   }
   if (typeof existing === 'string') {
     obj[key] = [existing, ...parsed.items];
-    return true;
+    return;
   }
   diagnostics.push({
     severity: 'error',
     message: `${key} only supports identifiers or strings`,
     span
   });
-  return true;
 }
 
 function resolveSetIncludes(
@@ -13366,7 +13381,7 @@ function normalizeExistingSetValue(
       });
       return null;
     }
-    return value as string[];
+    return value;
   }
   diagnostics.push({
     severity: 'error',
@@ -13382,19 +13397,19 @@ function mergeSetFieldValue(
   parsed: { items: string[]; includes: string[]; none: boolean },
   diagnostics: Diagnostic[],
   span: BlockNode['span']
-): boolean {
+): void {
   const existing = obj[key];
   if (parsed.none) {
     if (existing === undefined || existing === 'none') {
       obj[key] = [];
-      return true;
+      return;
     }
     diagnostics.push({
       severity: 'error',
       message: 'none cannot be combined with other set items',
       span
     });
-    return true;
+    return;
   }
 
   if (existing === 'none') {
@@ -13403,14 +13418,14 @@ function mergeSetFieldValue(
       message: 'none cannot be combined with other set items',
       span
     });
-    return true;
+    return;
   }
 
   const resolvedIncludes = resolveSetIncludes(parsed.includes, diagnostics, span);
-  if (!resolvedIncludes) return true;
+  if (!resolvedIncludes) return;
 
   const existingItems = normalizeExistingSetValue(existing, diagnostics, span);
-  if (!existingItems) return true;
+  if (!existingItems) return;
   const merged = [...existingItems];
   const seen = new Set(merged);
   for (const item of [...resolvedIncludes, ...parsed.items]) {
@@ -13419,7 +13434,6 @@ function mergeSetFieldValue(
     merged.push(item);
   }
   obj[key] = merged;
-  return true;
 }
 
 function applySetFieldAttribute(
@@ -13450,17 +13464,18 @@ function applySetFieldAttribute(
   }
   const parsed = parseSetTokens(tokens, diagnostics, stmt.span);
   if (!parsed) return true;
-  return mergeSetFieldValue(obj, key, parsed, diagnostics, stmt.span);
+  mergeSetFieldValue(obj, key, parsed, diagnostics, stmt.span);
+  return true;
 }
 
 function applySetFieldBlock(
   stmt: BlockNode,
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[]
-): boolean {
+): void {
   const parsed = parseSetBlockItems(stmt.body, diagnostics, stmt);
-  if (!parsed) return true;
-  return mergeSetFieldValue(obj, stmt.name, parsed, diagnostics, stmt.span);
+  if (!parsed) return;
+  mergeSetFieldValue(obj, stmt.name, parsed, diagnostics, stmt.span);
 }
 
 function parseInlineKeyValuePairs(
@@ -13529,7 +13544,7 @@ function addCreationEntry(
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[],
   parent: BlockNode
-): boolean {
+): void {
   const entityRef = labels[0];
   if (!entityRef) {
     diagnostics.push({
@@ -13537,13 +13552,13 @@ function addCreationEntry(
       message: 'create requires an entityRef label',
       span: parent.span
     });
-    return true;
+    return;
   }
 
   const value = isRecord(rawValue)
     ? rawValue
-    : parseInlineKeyValuePairs(rawValue as Value, diagnostics, parent, 'create');
-  if (!value) return true;
+    : parseInlineKeyValuePairs(rawValue, diagnostics, parent, 'create');
+  if (!value) return;
 
   const existingRef = value.entityRef;
   if (existingRef !== undefined) {
@@ -13553,7 +13568,7 @@ function addCreationEntry(
         message: 'create entityRef must be a string',
         span: parent.span
       });
-      return true;
+      return;
     }
     if (existingRef !== entityRef) {
       diagnostics.push({
@@ -13561,7 +13576,7 @@ function addCreationEntry(
         message: `create entityRef mismatch: label "${entityRef}" vs value "${existingRef}"`,
         span: parent.span
       });
-      return true;
+      return;
     }
   } else {
     value.entityRef = entityRef;
@@ -13569,7 +13584,6 @@ function addCreationEntry(
 
   normalizeTagMapField(value, 'tags', diagnostics, parent.span);
   pushArrayValue(obj, 'creation', value);
-  return true;
 }
 
 function addRelationshipEntry(
@@ -13578,7 +13592,7 @@ function addRelationshipEntry(
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[],
   parent: BlockNode
-): boolean {
+): void {
   const [kind, src, dst] = labels;
   if (!kind || !src || !dst) {
     diagnostics.push({
@@ -13586,20 +13600,19 @@ function addRelationshipEntry(
       message: 'relationship requires labels: <kind> <src> <dst>',
       span: parent.span
     });
-    return true;
+    return;
   }
 
   const value = isRecord(rawValue)
     ? rawValue
-    : parseInlineKeyValuePairs(rawValue as Value, diagnostics, parent, 'relationship');
-  if (!value) return true;
+    : parseInlineKeyValuePairs(rawValue, diagnostics, parent, 'relationship');
+  if (!value) return;
 
-  if (!applyLabelField(value, 'kind', kind, diagnostics, parent)) return true;
-  if (!applyLabelField(value, 'src', src, diagnostics, parent)) return true;
-  if (!applyLabelField(value, 'dst', dst, diagnostics, parent)) return true;
+  if (!applyLabelField(value, 'kind', kind, diagnostics, parent)) return;
+  if (!applyLabelField(value, 'src', src, diagnostics, parent)) return;
+  if (!applyLabelField(value, 'dst', dst, diagnostics, parent)) return;
 
   pushArrayValue(obj, 'relationships', value);
-  return true;
 }
 
 function addVariableEntry(
@@ -13608,7 +13621,7 @@ function addVariableEntry(
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[],
   parent: BlockNode
-): boolean {
+): void {
   const varName = labels[0];
   if (!varName) {
     diagnostics.push({
@@ -13616,13 +13629,13 @@ function addVariableEntry(
       message: 'var requires a variable name label',
       span: parent.span
     });
-    return true;
+    return;
   }
 
   const value = isRecord(rawValue)
     ? rawValue
-    : parseInlineKeyValuePairs(rawValue as Value, diagnostics, parent, 'variable');
-  if (!value) return true;
+    : parseInlineKeyValuePairs(rawValue, diagnostics, parent, 'variable');
+  if (!value) return;
 
   if (!isRecord(value.select)) {
     const select: Record<string, unknown> = {};
@@ -13710,7 +13723,7 @@ function addVariableEntry(
       message: 'variables must be an object',
       span: parent.span
     });
-    return true;
+    return;
   }
 
   if (Object.prototype.hasOwnProperty.call(variables, varName)) {
@@ -13719,11 +13732,10 @@ function addVariableEntry(
       message: `Duplicate variable "${varName}"`,
       span: parent.span
     });
-    return true;
+    return;
   }
 
   variables[varName] = value;
-  return true;
 }
 
 function addApplicabilityEntry(
@@ -13732,7 +13744,7 @@ function addApplicabilityEntry(
   obj: Record<string, unknown>,
   diagnostics: Diagnostic[],
   parent: BlockNode
-): boolean {
+): void {
   const typeLabel = labels[0];
   if (!typeLabel) {
     diagnostics.push({
@@ -13740,18 +13752,17 @@ function addApplicabilityEntry(
       message: 'applicability requires a type label',
       span: parent.span
     });
-    return true;
+    return;
   }
 
   const value = isRecord(rawValue)
     ? rawValue
-    : parseInlineKeyValuePairs(rawValue as Value, diagnostics, parent, 'applicability');
-  if (!value) return true;
+    : parseInlineKeyValuePairs(rawValue, diagnostics, parent, 'applicability');
+  if (!value) return;
 
-  if (!applyLabelField(value, 'type', typeLabel, diagnostics, parent)) return true;
+  if (!applyLabelField(value, 'type', typeLabel, diagnostics, parent)) return;
 
   pushArrayValue(obj, 'applicability', value);
-  return true;
 }
 
 function applyLabelField(
@@ -13915,6 +13926,7 @@ function parseResourceReferenceString(
   return resolved;
 }
 
+// eslint-disable-next-line sonarjs/function-return-type -- union return by design: single string, array of strings, or null on error
 function parseResourceReferenceValue(
   value: Value,
   diagnostics: Diagnostic[],
@@ -14094,7 +14106,7 @@ function evaluateCallExpression(
       });
       return null;
     }
-    return value;
+    return value as unknown[];
   };
 
   const ensureObject = (value: unknown, index: number): Record<string, unknown> | null => {
@@ -14240,7 +14252,7 @@ function evaluateCallExpression(
       });
       return null;
     }
-    return (list as string[]).join(separator);
+    return (list).join(separator);
   }
 
   if (name === 'upper' || name === 'lower') {

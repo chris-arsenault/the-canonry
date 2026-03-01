@@ -1,0 +1,194 @@
+/**
+ * Shared CSS for cosmographer editor components.
+ *
+ * Canonical source for modal, form, button, and empty-state patterns
+ * used across AxisRegistry, RelationshipEditor, and similar editors.
+ * See docs/patterns/cosmographer-editor-css.md for usage.
+ */
+
+/* --- Modal overlay --- */
+.cosmo-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.cosmo-modal-content {
+  background-color: #0c1f2e;
+  padding: 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.cosmo-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #93c5fd;
+}
+
+.cosmo-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+/* --- Form elements --- */
+.cosmo-form-group {
+  margin-bottom: 14px;
+}
+
+.cosmo-label {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.cosmo-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  background-color: #0a1929;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  color: #eee;
+  box-sizing: border-box;
+}
+
+.cosmo-select {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  background-color: #0a1929;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  color: #eee;
+}
+
+.cosmo-hint {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}
+
+/* --- Buttons --- */
+.cosmo-add-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  background-color: #60a5fa;
+  color: #0a1929;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cosmo-cancel-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  background-color: rgba(96, 165, 250, 0.1);
+  color: #93c5fd;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cosmo-save-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  background-color: #60a5fa;
+  color: #0a1929;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cosmo-delete-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  background-color: transparent;
+  color: #f87171;
+  border: 1px solid #f87171;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.cosmo-edit-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  background-color: rgba(96, 165, 250, 0.2);
+  color: #93c5fd;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* --- Empty state --- */
+.cosmo-empty-state {
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* --- Layout --- */
+.cosmo-editor-container {
+  max-width: 1000px;
+}
+
+.cosmo-editor-header {
+  margin-bottom: 16px;
+}
+
+.cosmo-editor-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.cosmo-editor-subtitle {
+  color: #888;
+  font-size: 13px;
+}
+
+.cosmo-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cosmo-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.cosmo-count {
+  color: #888;
+  font-size: 13px;
+}
+
+.cosmo-arrow {
+  color: #60a5fa;
+  font-size: 14px;
+}
+
+/* --- Input row layout (side-by-side fields) --- */
+.cosmo-input-row {
+  display: flex;
+  gap: 12px;
+}
+
+.cosmo-input-half {
+  flex: 1;
+}

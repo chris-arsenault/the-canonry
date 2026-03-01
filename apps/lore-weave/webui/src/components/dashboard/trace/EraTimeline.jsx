@@ -5,14 +5,15 @@
  * transition markers as first-class visual elements.
  */
 
-import React from 'react';
+import React from "react";
+import PropTypes from "prop-types";
 
 const ERA_COLORS = [
-  { bg: 'rgba(59, 130, 246, 0.25)', border: 'rgba(59, 130, 246, 0.6)', text: '#93c5fd' },
-  { bg: 'rgba(168, 85, 247, 0.25)', border: 'rgba(168, 85, 247, 0.6)', text: '#c4b5fd' },
-  { bg: 'rgba(236, 72, 153, 0.25)', border: 'rgba(236, 72, 153, 0.6)', text: '#f9a8d4' },
-  { bg: 'rgba(34, 197, 94, 0.25)', border: 'rgba(34, 197, 94, 0.6)', text: '#86efac' },
-  { bg: 'rgba(249, 115, 22, 0.25)', border: 'rgba(249, 115, 22, 0.6)', text: '#fdba74' },
+  { bg: "rgba(59, 130, 246, 0.25)", border: "rgba(59, 130, 246, 0.6)", text: "#93c5fd" },
+  { bg: "rgba(168, 85, 247, 0.25)", border: "rgba(168, 85, 247, 0.6)", text: "#c4b5fd" },
+  { bg: "rgba(236, 72, 153, 0.25)", border: "rgba(236, 72, 153, 0.6)", text: "#f9a8d4" },
+  { bg: "rgba(34, 197, 94, 0.25)", border: "rgba(34, 197, 94, 0.6)", text: "#86efac" },
+  { bg: "rgba(249, 115, 22, 0.25)", border: "rgba(249, 115, 22, 0.6)", text: "#fdba74" },
 ];
 
 /**
@@ -48,7 +49,7 @@ function TransitionMarker({ x, y, height }) {
 /**
  * Single era segment
  */
-function EraSegment({ era, index, xScale, y, height, isFirst, isLast }) {
+function EraSegment({ era, index, xScale, y, height, isFirst: _isFirst, isLast: _isLast }) {
   const colors = ERA_COLORS[index % ERA_COLORS.length];
   const x1 = xScale(era.startTick);
   const x2 = xScale(era.endTick);
@@ -64,9 +65,7 @@ function EraSegment({ era, index, xScale, y, height, isFirst, isLast }) {
 
   // Truncate era name if segment is too narrow
   const minWidthForFullName = 80;
-  const displayName = width < minWidthForFullName
-    ? era.era.slice(0, 3) + '...'
-    : era.era;
+  const displayName = width < minWidthForFullName ? era.era.slice(0, 3) + "..." : era.era;
 
   return (
     <g>
@@ -111,15 +110,7 @@ function EraSegment({ era, index, xScale, y, height, isFirst, isLast }) {
       {/* Epoch badge */}
       {width > 50 && (
         <g>
-          <rect
-            x={x1 + 4}
-            y={y + 4}
-            width={20}
-            height={14}
-            fill="rgba(0,0,0,0.3)"
-            rx={3}
-            ry={3}
-          />
+          <rect x={x1 + 4} y={y + 4} width={20} height={14} fill="rgba(0,0,0,0.3)" rx={3} ry={3} />
           <text
             x={x1 + 14}
             y={y + 11}
@@ -140,14 +131,7 @@ function EraSegment({ era, index, xScale, y, height, isFirst, isLast }) {
 /**
  * Main era timeline component
  */
-export default function EraTimeline({
-  eraBoundaries,
-  xScale,
-  y,
-  height,
-  width,
-  margin,
-}) {
+export default function EraTimeline({ eraBoundaries, xScale, y, height, width, margin }) {
   if (!eraBoundaries?.length) {
     return null;
   }
@@ -180,12 +164,7 @@ export default function EraTimeline({
 
       {/* Transition markers between eras */}
       {eraBoundaries.slice(1).map((era, i) => (
-        <TransitionMarker
-          key={`transition-${i}`}
-          x={xScale(era.startTick)}
-          y={y}
-          height={height}
-        />
+        <TransitionMarker key={`transition-${i}`} x={xScale(era.startTick)} y={y} height={height} />
       ))}
 
       {/* Timeline label */}
@@ -203,3 +182,28 @@ export default function EraTimeline({
     </g>
   );
 }
+
+TransitionMarker.propTypes = {
+  x: PropTypes.number,
+  y: PropTypes.number,
+  height: PropTypes.number,
+};
+
+EraSegment.propTypes = {
+  era: PropTypes.object,
+  index: PropTypes.number,
+  xScale: PropTypes.func,
+  y: PropTypes.number,
+  height: PropTypes.number,
+  isFirst: PropTypes.bool,
+  isLast: PropTypes.bool,
+};
+
+EraTimeline.propTypes = {
+  eraBoundaries: PropTypes.array,
+  xScale: PropTypes.func,
+  y: PropTypes.number,
+  height: PropTypes.number,
+  width: PropTypes.number,
+  margin: PropTypes.object,
+};

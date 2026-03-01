@@ -9,15 +9,15 @@
  * No review workflow — writes directly like summary generation.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
-import type { HistorianConfig, HistorianTone } from '../../lib/historianTypes';
-import { isNoteActive } from '../../lib/historianTypes';
-import { getChronicle, updateChronicleHistorianPrep } from '../../lib/db/chronicleRepository';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
+import type { HistorianConfig, HistorianTone } from "../../lib/historianTypes";
+import { isNoteActive } from "../../lib/historianTypes";
+import { getChronicle, updateChronicleHistorianPrep } from "../../lib/db/chronicleRepository";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
 
 // ============================================================================
 // Tone Descriptions (duplicated — locality over DRY, matches other historian tasks)
@@ -54,20 +54,22 @@ ${TONE_DESCRIPTIONS[tone]}
 
 ${historianConfig.background}
 
-**Personality:** ${historianConfig.personalityTraits.join(', ')}
-**Known biases:** ${historianConfig.biases.join(', ')}
+**Personality:** ${historianConfig.personalityTraits.join(", ")}
+**Known biases:** ${historianConfig.biases.join(", ")}
 **Your stance toward this material:** ${historianConfig.stance}`);
 
   if (historianConfig.privateFacts.length > 0) {
+    const prepPrivateFactsList = historianConfig.privateFacts.map((f) => `- ${f}`).join("\n");
     sections.push(`## Private Knowledge (things you know that the texts don't always reflect)
 
-${historianConfig.privateFacts.map((f) => `- ${f}`).join('\n')}`);
+${prepPrivateFactsList}`);
   }
 
   if (historianConfig.runningGags.length > 0) {
+    const prepGagsList = historianConfig.runningGags.map((g) => `- ${g}`).join("\n");
     sections.push(`## Recurring Preoccupations
 
-${historianConfig.runningGags.map((g) => `- ${g}`).join('\n')}`);
+${prepGagsList}`);
   }
 
   sections.push(`## Your Task
@@ -91,7 +93,7 @@ Write private reading notes for the chronicle below. These are the jottings you 
 
 **Stay in character.** You are a historian reviewing primary sources. Never break the fourth wall.`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
@@ -105,15 +107,22 @@ function buildUserPrompt(chronicle: {
   eraYear?: number;
   content: string;
   summary?: string;
-  roleAssignments: Array<{ entityName: string; isPrimary: boolean; roleName?: string; entityKind?: string }>;
+  roleAssignments: Array<{
+    entityName: string;
+    isPrimary: boolean;
+    roleName?: string;
+    entityKind?: string;
+  }>;
   historianNotes?: Array<{ text: string; enabled?: boolean; resolvedAt?: number }>;
 }): string {
   const sections: string[] = [];
 
   // Chronicle identity
-  const eraInfo = chronicle.focalEraName
-    ? ` | Era: ${chronicle.focalEraName}${chronicle.eraYear ? ` (Year ${chronicle.eraYear})` : ''}`
-    : '';
+  let eraInfo = "";
+  if (chronicle.focalEraName) {
+    const yearSuffix = chronicle.eraYear ? ` (Year ${chronicle.eraYear})` : "";
+    eraInfo = ` | Era: ${chronicle.focalEraName}${yearSuffix}`;
+  }
   sections.push(`=== CHRONICLE ===
 Title: "${chronicle.title}"
 Format: ${chronicle.format}${eraInfo}`);
@@ -121,10 +130,11 @@ Format: ${chronicle.format}${eraInfo}`);
   // Cast
   if (chronicle.roleAssignments.length > 0) {
     const castLines = chronicle.roleAssignments.map((r) => {
-      const role = r.roleName || (r.isPrimary ? 'primary' : 'supporting');
-      return `- ${r.entityName} (${role}${r.entityKind ? `, ${r.entityKind}` : ''})`;
+      const role = r.roleName || (r.isPrimary ? "primary" : "supporting");
+      const kindSuffix = r.entityKind ? `, ${r.entityKind}` : "";
+      return `- ${r.entityName} (${role}${kindSuffix})`;
     });
-    sections.push(`=== CAST ===\n${castLines.join('\n')}`);
+    sections.push(`=== CAST ===\n${castLines.join("\n")}`);
   }
 
   // Summary
@@ -137,21 +147,24 @@ Format: ${chronicle.format}${eraInfo}`);
   const words = chronicle.content.split(/\s+/);
   const truncated = words.length > maxContentWords;
   const contentText = truncated
-    ? words.slice(0, maxContentWords).join(' ') + '\n\n[... remainder truncated for brevity ...]'
+    ? words.slice(0, maxContentWords).join(" ") + "\n\n[... remainder truncated for brevity ...]"
     : chronicle.content;
-  sections.push(`=== CHRONICLE TEXT${truncated ? ` (first ~${maxContentWords} words of ${words.length})` : ''} ===\n${contentText}`);
+  const truncationNote = truncated ? ` (first ~${maxContentWords} words of ${words.length})` : "";
+  sections.push(
+    `=== CHRONICLE TEXT${truncationNote} ===\n${contentText}`
+  );
 
   // Historian notes (if any accepted ones exist)
   const activeNotes = (chronicle.historianNotes || []).filter(isNoteActive);
   if (activeNotes.length > 0) {
     const noteLines = activeNotes.map((n) => `- ${n.text}`);
-    sections.push(`=== YOUR PREVIOUS MARGIN NOTES ON THIS CHRONICLE ===\n${noteLines.join('\n')}`);
+    sections.push(`=== YOUR PREVIOUS MARGIN NOTES ON THIS CHRONICLE ===\n${noteLines.join("\n")}`);
   }
 
   sections.push(`=== YOUR TASK ===
 Write your private reading notes for this chronicle. 300-500 words.`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
@@ -165,12 +178,12 @@ async function executeHistorianPrepTask(
   const { config, llmClient, isAborted } = context;
 
   if (!llmClient.isEnabled()) {
-    return { success: false, error: 'Text generation not configured - missing Anthropic API key' };
+    return { success: false, error: "Text generation not configured - missing Anthropic API key" };
   }
 
   const chronicleId = task.chronicleId;
   if (!chronicleId) {
-    return { success: false, error: 'chronicleId required for historian prep task' };
+    return { success: false, error: "chronicleId required for historian prep task" };
   }
 
   // Read chronicle record
@@ -179,9 +192,9 @@ async function executeHistorianPrepTask(
     return { success: false, error: `Chronicle ${chronicleId} not found` };
   }
 
-  const content = chronicle.finalContent || chronicle.assembledContent || '';
+  const content = chronicle.finalContent || chronicle.assembledContent || "";
   if (!content) {
-    return { success: false, error: 'Chronicle has no content to prep' };
+    return { success: false, error: "Chronicle has no content to prep" };
   }
 
   // Parse historian config from task prompt (JSON-encoded)
@@ -190,12 +203,12 @@ async function executeHistorianPrepTask(
   try {
     const prepConfig = JSON.parse(task.prompt);
     historianConfig = prepConfig.historianConfig;
-    tone = prepConfig.tone || 'weary';
+    tone = prepConfig.tone || "weary";
   } catch {
-    return { success: false, error: 'Failed to parse historian prep config from task prompt' };
+    return { success: false, error: "Failed to parse historian prep config from task prompt" };
   }
 
-  const callType = 'historian.prep' as const;
+  const callType = "historian.prep" as const;
   const callConfig = getCallConfig(config, callType);
 
   const systemPrompt = buildSystemPrompt(historianConfig, tone);
@@ -221,12 +234,15 @@ async function executeHistorianPrepTask(
     });
 
     if (isAborted()) {
-      return { success: false, error: 'Task aborted' };
+      return { success: false, error: "Task aborted" };
     }
 
     const resultText = callResult.result.text?.trim();
     if (callResult.result.error || !resultText) {
-      return { success: false, error: `LLM call failed: ${callResult.result.error || 'No text returned'}` };
+      return {
+        success: false,
+        error: `LLM call failed: ${callResult.result.error || "No text returned"}`,
+      };
     }
 
     // Write directly to chronicle record
@@ -237,7 +253,7 @@ async function executeHistorianPrepTask(
       projectId: task.projectId,
       simulationRunId: task.simulationRunId,
       chronicleId,
-      type: 'historianPrep' as CostType,
+      type: "historianPrep" as CostType,
       model: callConfig.model,
       estimatedCost: callResult.estimate.estimatedCost,
       actualCost: callResult.usage.actualCost,
@@ -263,6 +279,6 @@ async function executeHistorianPrepTask(
 }
 
 export const historianPrepTask = {
-  type: 'historianPrep' as const,
+  type: "historianPrep" as const,
   execute: executeHistorianPrepTask,
 };

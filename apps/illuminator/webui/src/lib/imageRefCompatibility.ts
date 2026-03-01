@@ -10,13 +10,13 @@ import type {
   ImageRefCompatibility,
   ImageRefCompatibilityAnalysis,
   ImageRefSelection,
-} from './chronicleTypes';
+} from "./chronicleTypes";
 
 /**
  * Normalize text for comparison (lowercase, collapse whitespace).
  */
 function normalizeText(text: string): string {
-  return text.toLowerCase().replace(/\s+/g, ' ').trim();
+  return text.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -80,7 +80,7 @@ function analyzeImageRef(
       refId: ref.refId,
       anchorFound: false,
       contextSimilarity: 0,
-      recommendation: 'regenerate',
+      recommendation: "regenerate",
       reason: `Anchor text "${ref.anchorText.slice(0, 50)}..." not found in new content`,
     };
   }
@@ -94,8 +94,8 @@ function analyzeImageRef(
       refId: ref.refId,
       anchorFound: true,
       contextSimilarity: 0.5,
-      recommendation: 'manual_review',
-      reason: 'Anchor found but unable to extract context for comparison',
+      recommendation: "manual_review",
+      reason: "Anchor found but unable to extract context for comparison",
     };
   }
 
@@ -107,7 +107,7 @@ function analyzeImageRef(
       refId: ref.refId,
       anchorFound: true,
       contextSimilarity,
-      recommendation: 'reuse',
+      recommendation: "reuse",
       reason: `Context is ${Math.round(contextSimilarity * 100)}% similar - safe to reuse`,
     };
   }
@@ -118,7 +118,7 @@ function analyzeImageRef(
       refId: ref.refId,
       anchorFound: true,
       contextSimilarity,
-      recommendation: 'manual_review',
+      recommendation: "manual_review",
       reason: `Context is ${Math.round(contextSimilarity * 100)}% similar - review recommended`,
     };
   }
@@ -128,7 +128,7 @@ function analyzeImageRef(
     refId: ref.refId,
     anchorFound: true,
     contextSimilarity,
-    recommendation: 'regenerate',
+    recommendation: "regenerate",
     reason: `Context changed significantly (${Math.round(contextSimilarity * 100)}% similar)`,
   };
 }
@@ -143,14 +143,12 @@ export function analyzeImageRefCompatibility(
   sourceVersionId: string,
   targetVersionId: string
 ): ImageRefCompatibilityAnalysis {
-  const refResults = imageRefs.refs.map((ref) =>
-    analyzeImageRef(ref, oldContent, newContent)
-  );
+  const refResults = imageRefs.refs.map((ref) => analyzeImageRef(ref, oldContent, newContent));
 
   const summary = {
-    reusable: refResults.filter((r) => r.recommendation === 'reuse').length,
-    needsRegeneration: refResults.filter((r) => r.recommendation === 'regenerate').length,
-    needsReview: refResults.filter((r) => r.recommendation === 'manual_review').length,
+    reusable: refResults.filter((r) => r.recommendation === "reuse").length,
+    needsRegeneration: refResults.filter((r) => r.recommendation === "regenerate").length,
+    needsReview: refResults.filter((r) => r.recommendation === "manual_review").length,
   };
 
   return {
@@ -169,6 +167,6 @@ export function createDefaultSelections(
 ): ImageRefSelection[] {
   return analysis.refs.map((ref) => ({
     refId: ref.refId,
-    action: ref.recommendation === 'regenerate' ? 'regenerate' : 'reuse',
+    action: ref.recommendation === "regenerate" ? "regenerate" : "reuse",
   }));
 }

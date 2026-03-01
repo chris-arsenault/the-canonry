@@ -8,22 +8,26 @@
  * editor recognize what's intentional so it doesn't cut characterizing material.
  */
 
-import type { NarrativeStyle, StoryNarrativeStyle, DocumentNarrativeStyle } from '@canonry/world-schema';
+import type {
+  NarrativeStyle,
+} from "@canonry/world-schema";
 
 // =============================================================================
 // Word count extraction (handles story vs document format)
 // =============================================================================
 
 function getWordCountRange(style: NarrativeStyle): { min: number; max: number } {
-  if (style.format === 'story') {
-    return (style as StoryNarrativeStyle).pacing.totalWordCount;
+  if (style.format === "story") {
+    return (style).pacing.totalWordCount;
   }
-  const docStyle = style as DocumentNarrativeStyle;
+  const docStyle = style;
   if (docStyle.pacing?.wordCount) {
     return docStyle.pacing.wordCount;
   }
   // Legacy format fallback
-  const legacy = docStyle as unknown as { documentConfig?: { wordCount?: { min: number; max: number } } };
+  const legacy = docStyle as unknown as {
+    documentConfig?: { wordCount?: { min: number; max: number } };
+  };
   if (legacy.documentConfig?.wordCount) {
     return legacy.documentConfig.wordCount;
   }
@@ -38,8 +42,8 @@ function countWords(text: string): number {
 // System prompt
 // =============================================================================
 
-export function buildCopyEditSystemPrompt(format: 'story' | 'document'): string {
-  if (format === 'document') {
+export function buildCopyEditSystemPrompt(format: "story" | "document"): string {
+  if (format === "document") {
     return `You are a senior editor doing a final polish on an in-universe document that was assembled from multiple drafts. Your job is to burnish it — make it cleaner, tighter, more convincing as an artifact — not to rewrite it.
 
 What you must preserve:
@@ -106,18 +110,21 @@ export function buildCopyEditUserPrompt(
   voiceContext?: {
     narrativeVoice?: Record<string, string>;
     motifs?: string[];
-  },
+  }
 ): string {
   const target = getWordCountRange(style);
   const currentWords = countWords(text);
   const styleName = style.name;
-  const craftPosture = 'craftPosture' in style ? (style.craftPosture as string | undefined) : undefined;
+  const craftPosture =
+    "craftPosture" in style ? (style.craftPosture) : undefined;
 
   const parts: string[] = [];
 
   parts.push(`## Format\n${styleName}`);
 
-  parts.push(`## Length\nThe piece is ${currentWords} words. The natural range for this format is ${target.min}–${target.max}. Use this as context for what length feels natural, but your job is to improve the prose, not to hit a number. If the piece needs to be shorter, cut what doesn't work. If it needs room, let it breathe.`);
+  parts.push(
+    `## Length\nThe piece is ${currentWords} words. The natural range for this format is ${target.min}–${target.max}. Use this as context for what length feels natural, but your job is to improve the prose, not to hit a number. If the piece needs to be shorter, cut what doesn't work. If it needs room, let it breathe.`
+  );
 
   if (craftPosture) {
     parts.push(`## Craft Posture\n${craftPosture}`);
@@ -128,18 +135,20 @@ export function buildCopyEditUserPrompt(
   if (nv && Object.keys(nv).length > 0) {
     const voiceLines = Object.entries(nv)
       .map(([key, value]) => `**${key}**: ${value}`)
-      .join('\n');
+      .join("\n");
     parts.push(`## Voice Textures (preserve these — they are intentional)\n${voiceLines}`);
   }
 
   // Motifs help the editor recognize structural repetition vs draft artifacts
   const motifs = voiceContext?.motifs;
   if (motifs && motifs.length > 0) {
-    const motifLines = motifs.map(m => `- "${m}"`).join('\n');
-    parts.push(`## Recurring Motifs (these are structural — do not cut or collapse)\n${motifLines}`);
+    const motifLines = motifs.map((m) => `- "${m}"`).join("\n");
+    parts.push(
+      `## Recurring Motifs (these are structural — do not cut or collapse)\n${motifLines}`
+    );
   }
 
   parts.push(`## Text\n\n${text}`);
 
-  return parts.join('\n\n');
+  return parts.join("\n\n");
 }

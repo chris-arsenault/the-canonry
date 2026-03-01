@@ -1,4 +1,4 @@
-import { SimulationSystem, SystemResult, ComponentPurpose } from '../engine/types';
+import { SimulationSystem, SystemResult } from '../engine/types';
 import { HardState, Relationship } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { rollProbability, hasTag } from '../utils';
@@ -346,6 +346,218 @@ export function createGraphContagionSystem(
   };
 }
 
+
+// =============================================================================
+// SINGLE-SOURCE CONTAGION HELPERS
+// =============================================================================
+
+function categorizeContagionEntities(
+  entities: HardState[],
+  config: GraphContagionConfig,
+  graphView: WorldRuntime
+): { infected: HardState[]; susceptible: HardState[]; immune: HardState[] } {
+  const infected: HardState[] = [];
+  const susceptible: HardState[] = [];
+  const immune: HardState[] = [];
+  for (const entity of entities) {
+    if (isInfected(entity, config.contagion, graphView)) {
+      infected.push(entity);
+    } else if (config.recovery?.immunityTag && isImmune(entity, config.recovery.immunityTag)) {
+      immune.push(entity);
+    } else {
+      susceptible.push(entity);
+    }
+  }
+  return { infected, susceptible, immune };
+}
+
+function isRelationshipExcluded(
+  entityId: string,
+  sourceId: string,
+  excludeRelationships: string[],
+  graphView: WorldRuntime
+): boolean {
+  for (const excludeKind of excludeRelationships) {
+    if (graphView.hasRelationship(entityId, sourceId, excludeKind) ||
+        graphView.hasRelationship(sourceId, entityId, excludeKind)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function generateNarration(
+  config: GraphContagionConfig,
+  entity: HardState,
+  source: HardState,
+  contagionSource: HardState | undefined,
+  narrationsByGroup: Record<string, string>
+): void {
+  if (!config.narrationTemplate) return;
+  const narrationCtx = createSystemRuleContext({
+    self: entity,
+    variables: { source, contagion_source: contagionSource },
+  });
+  const narrationResult = interpolate(config.narrationTemplate, narrationCtx);
+  if (narrationResult.complete) {
+    narrationsByGroup[entity.id] = narrationResult.text;
+  }
+}
+
+function processTransmissionForEntity(
+  entity: HardState,
+  config: GraphContagionConfig,
+  graphView: WorldRuntime,
+  modifier: number,
+  baseCtx: ReturnType<typeof createSystemContext>,
+  contagionSource: HardState | undefined,
+  modifications: EntityModification[],
+  relationships: Relationship[],
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number }>,
+  pressureChanges: Record<string, number>,
+  newInfections: string[],
+  narrationsByGroup: Record<string, string>
+): void {
+  const contacts = getContacts(entity, config.vectors, graphView);
+  const infectedContacts = contacts.filter(c => isInfected(c, config.contagion, graphView));
+  if (infectedContacts.length === 0) return;
+  const susceptibilityMod = calculateSusceptibility(entity, config.susceptibilityModifiers);
+  const baseProb = config.transmission.baseRate +
+    (infectedContacts.length * config.transmission.contactMultiplier);
+  const modifiedProb = baseProb * (1 - susceptibilityMod);
+  const maxProb = config.transmission.maxProbability ?? 0.95;
+  const infectionProb = Math.min(maxProb, Math.max(0, modifiedProb));
+  if (!rollProbability(infectionProb, modifier)) return;
+  if (config.infectionAction.type === 'create_relationship' && config.cooldown) {
+    if (!graphView.canFormRelationship(entity.id, config.infectionAction.kind, config.cooldown)) return;
+  }
+  // eslint-disable-next-line sonarjs/pseudo-random -- simulation random source selection
+  const source = infectedContacts[Math.floor(Math.random() * infectedContacts.length)];
+  if (config.excludeRelationships?.length &&
+      isRelationshipExcluded(entity.id, source.id, config.excludeRelationships, graphView)) {
+    return;
+  }
+  const infectionCtx = {
+    ...baseCtx,
+    self: entity,
+    entities: {
+      ...(baseCtx.entities ?? {}),
+      source,
+      contagion_source: contagionSource,
+    },
+  };
+  const action = config.infectionAction;
+  const result = prepareMutation(action, infectionCtx);
+  mergeMutationResult(
+    result, modifications, relationships, relationshipsAdjusted, pressureChanges,
+    action.type === 'create_relationship' ? source.id : undefined
+  );
+  if (action.type === 'create_relationship' && result.applied && result.relationshipsCreated.length > 0) {
+    graphView.recordRelationshipFormation(entity.id, action.kind);
+  }
+  if (result.applied) {
+    newInfections.push(entity.id);
+    generateNarration(config, entity, source, contagionSource, narrationsByGroup);
+  }
+}
+
+function computeEntityRecoveryProb(
+  entity: HardState,
+  recovery: NonNullable<GraphContagionConfig['recovery']>
+): number {
+  let prob = recovery.baseRate;
+  if (recovery.recoveryBonusTraits) {
+    for (const trait of recovery.recoveryBonusTraits) {
+      if (hasTag(entity.tags, trait.tag)) prob += trait.bonus;
+    }
+  }
+  return Math.min(0.95, Math.max(0, prob));
+}
+
+function applyImmunityTags(
+  entity: HardState,
+  recovery: NonNullable<GraphContagionConfig['recovery']>,
+  contagion: GraphContagionConfig['contagion'],
+  modifications: EntityModification[]
+): void {
+  if (!recovery.immunityTag) return;
+  const newTags = { ...entity.tags };
+  newTags[recovery.immunityTag] = true;
+  if (contagion.type === 'tag' && contagion.tagPattern) {
+    delete newTags[contagion.tagPattern];
+  }
+  modifications.push({ id: entity.id, changes: { tags: buildTagPatch(entity.tags, newTags) } });
+}
+
+function processRecoveryPhase(
+  infected: HardState[],
+  config: GraphContagionConfig,
+  modifier: number,
+  modifications: EntityModification[]
+): void {
+  if (!config.recovery) return;
+  for (const entity of infected) {
+    const recoveryProb = computeEntityRecoveryProb(entity, config.recovery);
+    if (rollProbability(recoveryProb, modifier)) {
+      applyImmunityTags(entity, config.recovery, config.contagion, modifications);
+    }
+  }
+}
+
+function processPhaseTransitions(
+  entities: HardState[],
+  infected: HardState[],
+  config: GraphContagionConfig,
+  baseCtx: ReturnType<typeof createSystemContext>,
+  modifications: EntityModification[]
+): void {
+  if (!config.phaseTransitions) return;
+  const adoptionRate = infected.length / entities.length;
+  for (const transition of config.phaseTransitions) {
+    if (adoptionRate < transition.adoptionThreshold) continue;
+    const candidates = selectEntities(transition.selection, baseCtx);
+    for (const candidate of candidates) {
+      const changes: Partial<HardState> = { status: transition.toStatus };
+      if (transition.descriptionSuffix) {
+        const baseNarrative = candidate.narrativeHint ?? candidate.summary ?? candidate.description ?? '';
+        changes.narrativeHint = `${baseNarrative} ${transition.descriptionSuffix}`;
+      }
+      modifications.push({ id: candidate.id, changes });
+    }
+  }
+}
+
+function collectContagionVectorEdges(
+  config: GraphContagionConfig,
+  graphView: WorldRuntime,
+  entityIds: Set<string>
+): Array<{ source: string; target: string; kind: string; strength: number }> {
+  const allRelationships = graphView.getAllRelationships();
+  const vectorEdges: Array<{ source: string; target: string; kind: string; strength: number }> = [];
+  for (const vector of config.vectors) {
+    for (const rel of allRelationships) {
+      if (rel.kind !== vector.relationshipKind) continue;
+      const minStrength = vector.minStrength ?? 0;
+      const strength = rel.strength ?? 0;
+      if (strength < minStrength) continue;
+      if (entityIds.has(rel.src) && entityIds.has(rel.dst)) {
+        vectorEdges.push({ source: rel.src, target: rel.dst, kind: rel.kind, strength });
+      }
+    }
+  }
+  return vectorEdges;
+}
+
+function getContagionNodeState(
+  e: HardState,
+  infected: HardState[],
+  immune: HardState[]
+): 'infected' | 'recovered' | 'susceptible' {
+  if (infected.some(i => i.id === e.id)) return 'infected';
+  if (immune.some(i => i.id === e.id)) return 'recovered';
+  return 'susceptible';
+}
+
 /**
  * Single-source contagion: original behavior where one marker indicates infection
  */
@@ -357,7 +569,7 @@ function applySingleSourceContagion(
   const modifications: EntityModification[] = [];
   const relationships: Relationship[] = [];
   const relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number }> = [];
-  const newInfections: string[] = []; // Track newly infected entities for visualization
+  const newInfections: string[] = [];
   const pressureChanges: Record<string, number> = {};
   const narrationsByGroup: Record<string, string> = {};
   const baseCtx = createSystemContext(graphView);
@@ -366,25 +578,9 @@ function applySingleSourceContagion(
       ? graphView.getEntity(config.contagion.targetEntityId)
       : undefined;
 
-  // Find entities to evaluate
   const entities = selectEntities(config.selection, baseCtx);
+  const { infected, susceptible, immune } = categorizeContagionEntities(entities, config, graphView);
 
-  // Categorize entities: infected, susceptible, immune
-  const infected: HardState[] = [];
-  const susceptible: HardState[] = [];
-  const immune: HardState[] = [];
-
-  for (const entity of entities) {
-    if (isInfected(entity, config.contagion, graphView)) {
-      infected.push(entity);
-    } else if (config.recovery?.immunityTag && isImmune(entity, config.recovery.immunityTag)) {
-      immune.push(entity);
-    } else {
-      susceptible.push(entity);
-    }
-  }
-
-  // If no infected entities, nothing to spread
   if (infected.length === 0) {
     return {
       relationshipsAdded: [],
@@ -394,201 +590,47 @@ function applySingleSourceContagion(
     };
   }
 
-  // === TRANSMISSION PHASE ===
   for (const entity of susceptible) {
-    const contacts = getContacts(entity, config.vectors, graphView);
-    const infectedContacts = contacts.filter(c => isInfected(c, config.contagion, graphView));
-
-    if (infectedContacts.length === 0) continue;
-
-    // Calculate susceptibility modifier
-    const susceptibilityMod = calculateSusceptibility(entity, config.susceptibilityModifiers);
-
-    // Calculate infection probability
-    const baseProb = config.transmission.baseRate +
-      (infectedContacts.length * config.transmission.contactMultiplier);
-    const modifiedProb = baseProb * (1 - susceptibilityMod);
-    const maxProb = config.transmission.maxProbability ?? 0.95;
-    const infectionProb = Math.min(maxProb, Math.max(0, modifiedProb));
-
-    if (rollProbability(infectionProb, modifier)) {
-      if (config.infectionAction.type === 'create_relationship' && config.cooldown) {
-        if (!graphView.canFormRelationship(entity.id, config.infectionAction.kind, config.cooldown)) {
-          continue;
-        }
-      }
-
-      const source = infectedContacts[Math.floor(Math.random() * infectedContacts.length)];
-
-      // Check excluded relationships (e.g., don't spread war between allies)
-      if (config.excludeRelationships?.length) {
-        let excluded = false;
-        for (const excludeKind of config.excludeRelationships) {
-          if (graphView.hasRelationship(entity.id, source.id, excludeKind) ||
-              graphView.hasRelationship(source.id, entity.id, excludeKind)) {
-            excluded = true;
-            break;
-          }
-        }
-        if (excluded) continue;
-      }
-
-      const infectionCtx = {
-        ...baseCtx,
-        self: entity,
-        entities: {
-          ...(baseCtx.entities ?? {}),
-          source,
-          contagion_source: contagionSource,
-        },
-      };
-
-      const action = config.infectionAction;
-      const result = prepareMutation(action, infectionCtx);
-      mergeMutationResult(
-        result,
-        modifications,
-        relationships,
-        relationshipsAdjusted,
-        pressureChanges,
-        action.type === 'create_relationship' ? source.id : undefined
-      );
-
-      if (action.type === 'create_relationship' && result.applied && result.relationshipsCreated.length > 0) {
-        graphView.recordRelationshipFormation(entity.id, action.kind);
-      }
-
-      if (result.applied) {
-        newInfections.push(entity.id);
-        // Generate narration if template provided, keyed by entity.id
-        if (config.narrationTemplate) {
-          const narrationCtx = createSystemRuleContext({
-            self: entity,
-            variables: { source, contagion_source: contagionSource },
-          });
-          const narrationResult = interpolate(config.narrationTemplate, narrationCtx);
-          if (narrationResult.complete) {
-            narrationsByGroup[entity.id] = narrationResult.text;
-          }
-        }
-      }
-    }
+    processTransmissionForEntity(
+      entity, config, graphView, modifier, baseCtx, contagionSource,
+      modifications, relationships, relationshipsAdjusted, pressureChanges,
+      newInfections, narrationsByGroup
+    );
   }
 
-  // === RECOVERY PHASE ===
-  if (config.recovery) {
-    for (const entity of infected) {
-      // Calculate recovery probability with trait bonuses
-      let recoveryProb = config.recovery.baseRate;
-      if (config.recovery.recoveryBonusTraits) {
-        for (const trait of config.recovery.recoveryBonusTraits) {
-          if (hasTag(entity.tags, trait.tag)) {
-            recoveryProb += trait.bonus;
-          }
-        }
-      }
-      recoveryProb = Math.min(0.95, Math.max(0, recoveryProb));
-
-      if (rollProbability(recoveryProb, modifier)) {
-        // Add immunity tag if configured
-        if (config.recovery.immunityTag) {
-          const newTags = { ...entity.tags };
-          newTags[config.recovery.immunityTag] = true;
-
-          // Remove infection tag if using tag-based contagion
-          if (config.contagion.type === 'tag' && config.contagion.tagPattern) {
-            delete newTags[config.contagion.tagPattern];
-          }
-
-          modifications.push({
-            id: entity.id,
-            changes: { tags: buildTagPatch(entity.tags, newTags) }
-          });
-        }
-      }
-    }
-  }
-
-  // === PHASE TRANSITIONS ===
-  if (config.phaseTransitions) {
-    const adoptionRate = infected.length / entities.length;
-
-    for (const transition of config.phaseTransitions) {
-      if (adoptionRate >= transition.adoptionThreshold) {
-        const candidates = selectEntities(transition.selection, baseCtx);
-
-        for (const candidate of candidates) {
-          const changes: Partial<HardState> = { status: transition.toStatus };
-          if (transition.descriptionSuffix) {
-            const baseNarrative = candidate.narrativeHint ?? candidate.summary ?? candidate.description ?? '';
-            changes.narrativeHint = `${baseNarrative} ${transition.descriptionSuffix}`;
-          }
-          modifications.push({
-            id: candidate.id,
-            changes
-          });
-        }
-      }
-    }
-  }
+  processRecoveryPhase(infected, config, modifier, modifications);
+  processPhaseTransitions(entities, infected, config, baseCtx, modifications);
 
   const hadChanges =
     relationships.length > 0 || modifications.length > 0 || Object.keys(pressureChanges).length > 0;
-
   if (hadChanges && config.pressureChanges) {
     for (const [pressureId, delta] of Object.entries(config.pressureChanges)) {
       pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
     }
   }
 
-  // Collect vector edges for visualization (relationships that enable transmission)
   const entityIds = new Set(entities.map(e => e.id));
-  const allRelationships = graphView.getAllRelationships();
-  const vectorEdges: Array<{ source: string; target: string; kind: string; strength: number }> = [];
+  const vectorEdges = collectContagionVectorEdges(config, graphView, entityIds);
 
-  for (const vector of config.vectors) {
-    for (const rel of allRelationships) {
-      if (rel.kind !== vector.relationshipKind) continue;
-      const minStrength = vector.minStrength ?? 0;
-      const strength = rel.strength ?? 0;
-      if (strength < minStrength) continue;
-
-      // Only include edges between entities in our population
-      if (entityIds.has(rel.src) && entityIds.has(rel.dst)) {
-        vectorEdges.push({
-          source: rel.src,
-          target: rel.dst,
-          kind: rel.kind,
-          strength,
-        });
-      }
-    }
-  }
-
-  // Build visualization snapshot for trace viewer
   const visualizationSnapshot = {
-    // Nodes with SIR state and coordinates
     nodes: entities.map(e => ({
       id: e.id,
       name: e.name,
+      /* eslint-disable sonarjs/pseudo-random -- fallback coordinates for visualization */
       x: e.coordinates?.x ?? Math.random() * 100,
       y: e.coordinates?.y ?? Math.random() * 100,
-      state: infected.some(i => i.id === e.id) ? 'infected' :
-             immune.some(i => i.id === e.id) ? 'recovered' : 'susceptible',
+      /* eslint-enable sonarjs/pseudo-random */
+      state: getContagionNodeState(e, infected, immune),
       prominence: e.prominence,
     })),
-    // Edges (transmission vectors)
     edges: vectorEdges,
-    // New infections this tick
     newInfections,
-    // Summary counts
     counts: {
       susceptible: susceptible.length,
       infected: infected.length,
       recovered: immune.length,
       total: entities.length,
     },
-    // Adoption rate
     adoptionRate: entities.length > 0 ? infected.length / entities.length : 0,
   };
 
@@ -609,6 +651,236 @@ function applySingleSourceContagion(
  * Multi-source contagion: each source entity spreads independently
  * Example: Multiple ideologies spreading through a population
  */
+// =============================================================================
+// MULTI-SOURCE CONTAGION HELPERS
+// =============================================================================
+
+function categorizeMSEntitiesForSource(
+  entities: HardState[],
+  source: HardState,
+  config: GraphContagionConfig,
+  multiSource: NonNullable<GraphContagionConfig['multiSource']>,
+  graphView: WorldRuntime
+): { infected: HardState[]; susceptible: HardState[] } {
+  const infected: HardState[] = [];
+  const susceptible: HardState[] = [];
+  for (const entity of entities) {
+    const isInfectedWithSource = isInfectedWith(entity, config.contagion, source.id, graphView);
+    const isImmuneToSource = multiSource.immunityTagPrefix
+      ? hasTag(entity.tags, `${multiSource.immunityTagPrefix}:${source.id}`)
+      : false;
+    if (isInfectedWithSource) {
+      infected.push(entity);
+    } else if (!isImmuneToSource) {
+      susceptible.push(entity);
+    }
+  }
+  return { infected, susceptible };
+}
+
+function initializeInfectedBySource(
+  infected: HardState[],
+  sourceId: string,
+  infectedBySource: Map<string, Set<string>>
+): void {
+  for (const entity of infected) {
+    if (!infectedBySource.has(sourceId)) infectedBySource.set(sourceId, new Set());
+    infectedBySource.get(sourceId)!.add(entity.id);
+  }
+}
+
+function applySetTagInfection(
+  entity: HardState,
+  source: HardState,
+  action: SetTagMutation,
+  infectionCtx: ReturnType<typeof createSystemContext>,
+  modifiedTags: Map<string, Record<string, boolean | string>>
+): boolean {
+  const tagAction: SetTagMutation = { ...action, tag: `${action.tag}:${source.id}` };
+  const result = prepareMutation(tagAction, infectionCtx);
+  if (!result.applied) return false;
+  for (const mod of result.entityModifications) {
+    let currentTags = modifiedTags.get(mod.id) || { ...entity.tags };
+    if (mod.changes.tags) currentTags = applyTagPatch(currentTags, mod.changes.tags);
+    modifiedTags.set(mod.id, currentTags);
+  }
+  return true;
+}
+
+function processMultiSourceTransmissionForEntity(
+  entity: HardState,
+  source: HardState,
+  config: GraphContagionConfig,
+  graphView: WorldRuntime,
+  modifier: number,
+  baseCtx: ReturnType<typeof createSystemContext>,
+  modifications: EntityModification[],
+  relationships: Relationship[],
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number }>,
+  pressureChanges: Record<string, number>,
+  modifiedTags: Map<string, Record<string, boolean | string>>,
+  newInfections: string[],
+  infectedBySource: Map<string, Set<string>>,
+  narrationsByGroup: Record<string, string>
+): void {
+  const contacts = getContacts(entity, config.vectors, graphView);
+  const infectedContacts = contacts.filter(c =>
+    isInfectedWith(c, config.contagion, source.id, graphView)
+  );
+  if (infectedContacts.length === 0) return;
+  const susceptibilityMod = calculateSusceptibility(entity, config.susceptibilityModifiers);
+  const baseProb = config.transmission.baseRate +
+    (infectedContacts.length * config.transmission.contactMultiplier);
+  const modifiedProb = baseProb * (1 - susceptibilityMod);
+  const maxProb = config.transmission.maxProbability ?? 0.95;
+  const infectionProb = Math.min(maxProb, Math.max(0, modifiedProb));
+  if (!rollProbability(infectionProb, modifier)) return;
+  const infectionCtx = {
+    ...baseCtx,
+    self: entity,
+    entities: { ...(baseCtx.entities ?? {}), source, contagion_source: source },
+  };
+  const action = config.infectionAction;
+  let actionApplied = false;
+  if (action.type === 'set_tag') {
+    actionApplied = applySetTagInfection(entity, source, action as SetTagMutation, infectionCtx, modifiedTags);
+  } else {
+    const result = prepareMutation(action, infectionCtx);
+    mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, pressureChanges);
+    actionApplied = result.applied;
+  }
+  if (actionApplied) {
+    newInfections.push(entity.id);
+    if (!infectedBySource.has(source.id)) infectedBySource.set(source.id, new Set());
+    infectedBySource.get(source.id)!.add(entity.id);
+    generateNarration(config, entity, source, source, narrationsByGroup);
+  }
+}
+
+function processMultiSourceRecoveryForEntity(
+  entity: HardState,
+  source: HardState,
+  config: GraphContagionConfig,
+  multiSource: NonNullable<GraphContagionConfig['multiSource']>,
+  modifier: number,
+  modifiedTags: Map<string, Record<string, boolean | string>>,
+  narrationsByGroup: Record<string, string>
+): void {
+  if (!config.recovery) return;
+  const recoveryProb = computeEntityRecoveryProb(entity, config.recovery);
+  if (!rollProbability(recoveryProb, modifier)) return;
+  if (!multiSource.immunityTagPrefix) return;
+  const currentTags = modifiedTags.get(entity.id) || { ...entity.tags };
+  currentTags[`${multiSource.immunityTagPrefix}:${source.id}`] = true;
+  modifiedTags.set(entity.id, currentTags);
+  if (!multiSource.immunityNarrationTemplate) return;
+  const narrationCtx = createSystemRuleContext({ self: entity, variables: { source } });
+  const narrationResult = interpolate(multiSource.immunityNarrationTemplate, narrationCtx);
+  if (narrationResult.complete) {
+    narrationsByGroup[`${entity.id}:immunity:${source.id}`] = narrationResult.text;
+  }
+}
+
+function processMultiSourcePhaseTransitionsForSource(
+  entities: HardState[],
+  infected: HardState[],
+  source: HardState,
+  config: GraphContagionConfig,
+  multiSource: NonNullable<GraphContagionConfig['multiSource']>,
+  baseCtx: ReturnType<typeof createSystemContext>,
+  modifications: EntityModification[]
+): void {
+  if (!config.phaseTransitions || entities.length === 0) return;
+  const adoptionRate = infected.length / entities.length;
+  for (const transition of config.phaseTransitions) {
+    if (adoptionRate < transition.adoptionThreshold) continue;
+    const candidates = selectEntities(transition.selection, baseCtx);
+    if (!candidates.some(candidate => candidate.id === source.id)) continue;
+    const changes: Partial<HardState> = { status: transition.toStatus };
+    if (transition.descriptionSuffix) {
+      const baseNarrative = source.narrativeHint ?? source.summary ?? source.description ?? '';
+      changes.narrativeHint = `${baseNarrative} ${transition.descriptionSuffix}`;
+    }
+    modifications.push({ id: source.id, changes });
+  }
+  if (multiSource.lowAdoptionThreshold !== undefined &&
+      adoptionRate < multiSource.lowAdoptionThreshold) {
+    modifications.push({
+      id: source.id,
+      changes: { status: multiSource.lowAdoptionStatus || 'forgotten' }
+    });
+  }
+}
+
+function trimExcessTags(
+  tags: Record<string, boolean | string>,
+  maxCount: number
+): void {
+  const tagKeys = Object.keys(tags);
+  if (tagKeys.length <= maxCount) return;
+  const excessCount = tagKeys.length - maxCount;
+  const frameworkTags: Set<string> = new Set(FRAMEWORK_TAG_VALUES);
+  const removable = tagKeys.filter(tag => !frameworkTags.has(tag));
+  const protectedTags = tagKeys.filter(tag => frameworkTags.has(tag));
+  const removalOrder = removable.length >= excessCount ? removable : removable.concat(protectedTags);
+  for (let i = 0; i < excessCount; i++) {
+    delete tags[removalOrder[i]];
+  }
+}
+
+function flushTagModificationsToEntityMods(
+  modifiedTags: Map<string, Record<string, boolean | string>>,
+  graphView: WorldRuntime,
+  modifications: EntityModification[]
+): void {
+  for (const [entityId, tags] of modifiedTags) {
+    trimExcessTags(tags, 10);
+    modifications.push({
+      id: entityId,
+      changes: { tags: buildTagPatch(graphView.getEntity(entityId)?.tags, tags) }
+    });
+  }
+}
+
+function buildMultiSourceVizSnapshot(
+  entities: HardState[],
+  allInfected: Set<string>,
+  infectedBySource: Map<string, Set<string>>,
+  vectorEdges: Array<{ source: string; target: string; kind: string; strength: number }>,
+  sources: HardState[],
+  newInfections: string[]
+): object {
+  return {
+    nodes: entities.map(e => ({
+      id: e.id,
+      name: e.name,
+      /* eslint-disable sonarjs/pseudo-random -- fallback coordinates for visualization */
+      x: e.coordinates?.x ?? Math.random() * 100,
+      y: e.coordinates?.y ?? Math.random() * 100,
+      /* eslint-enable sonarjs/pseudo-random */
+      state: allInfected.has(e.id) ? 'infected' : 'susceptible',
+      prominence: e.prominence,
+      infectedWith: Array.from(infectedBySource.entries())
+        .filter(([, ids]) => ids.has(e.id))
+        .map(([sourceId]) => sourceId),
+    })),
+    edges: vectorEdges,
+    newInfections,
+    sourceStats: sources.map(s => ({
+      id: s.id,
+      name: s.name,
+      infectedCount: infectedBySource.get(s.id)?.size ?? 0,
+      adoptionRate: entities.length > 0 ? (infectedBySource.get(s.id)?.size ?? 0) / entities.length : 0,
+    })),
+    counts: {
+      susceptible: entities.length - allInfected.size,
+      infected: allInfected.size,
+      total: entities.length,
+      sources: sources.length,
+    },
+  };
+}
+
 function applyMultiSourceContagion(
   config: GraphContagionConfig,
   graphView: WorldRuntime,
@@ -622,15 +894,10 @@ function applyMultiSourceContagion(
   const pressureChanges: Record<string, number> = {};
   const narrationsByGroup: Record<string, string> = {};
   const baseCtx = createSystemContext(graphView);
-
-  // Tracking for visualization
   const newInfections: string[] = [];
-  const infectedBySource = new Map<string, Set<string>>(); // sourceId -> Set of infected entityIds
+  const infectedBySource = new Map<string, Set<string>>();
 
-  // Find all contagion sources (e.g., proposed rules)
   const sources = selectEntities(multiSource.sourceSelection, baseCtx);
-
-  // Natural throttling: if no sources, nothing to spread
   if (sources.length === 0) {
     return {
       relationshipsAdded: [],
@@ -640,273 +907,54 @@ function applyMultiSourceContagion(
     };
   }
 
-  // Find entities to evaluate (the population)
   const entities = selectEntities(config.selection, baseCtx);
 
-  // Process each source independently
   for (const source of sources) {
-    // Categorize entities for this specific source
-    const infected: HardState[] = [];
-    const susceptible: HardState[] = [];
+    const { infected, susceptible } = categorizeMSEntitiesForSource(
+      entities, source, config, multiSource, graphView
+    );
+    initializeInfectedBySource(infected, source.id, infectedBySource);
 
-    for (const entity of entities) {
-      const isInfectedWithSource = isInfectedWith(entity, config.contagion, source.id, graphView);
-      const isImmuneToSource = multiSource.immunityTagPrefix
-        ? hasTag(entity.tags, `${multiSource.immunityTagPrefix}:${source.id}`)
-        : false;
-
-      if (isInfectedWithSource) {
-        infected.push(entity);
-        // Track for visualization
-        if (!infectedBySource.has(source.id)) {
-          infectedBySource.set(source.id, new Set());
-        }
-        infectedBySource.get(source.id)!.add(entity.id);
-      } else if (!isImmuneToSource) {
-        susceptible.push(entity);
-      }
-    }
-
-    // === TRANSMISSION PHASE for this source ===
     for (const entity of susceptible) {
-      const contacts = getContacts(entity, config.vectors, graphView);
-      const infectedContacts = contacts.filter(c =>
-        isInfectedWith(c, config.contagion, source.id, graphView)
+      processMultiSourceTransmissionForEntity(
+        entity, source, config, graphView, modifier, baseCtx,
+        modifications, relationships, relationshipsAdjusted, pressureChanges,
+        modifiedTags, newInfections, infectedBySource, narrationsByGroup
       );
-
-      if (infectedContacts.length === 0) continue;
-
-      // Calculate susceptibility modifier
-      const susceptibilityMod = calculateSusceptibility(entity, config.susceptibilityModifiers);
-
-      // Calculate infection probability
-      const baseProb = config.transmission.baseRate +
-        (infectedContacts.length * config.transmission.contactMultiplier);
-      const modifiedProb = baseProb * (1 - susceptibilityMod);
-      const maxProb = config.transmission.maxProbability ?? 0.95;
-      const infectionProb = Math.min(maxProb, Math.max(0, modifiedProb));
-
-      if (rollProbability(infectionProb, modifier)) {
-        const infectionCtx = {
-          ...baseCtx,
-          self: entity,
-          entities: {
-            ...(baseCtx.entities ?? {}),
-            source,
-            contagion_source: source,
-          },
-        };
-
-        const action = config.infectionAction;
-        let actionApplied = false;
-
-        if (action.type === 'set_tag') {
-          const tagAction: SetTagMutation = {
-            ...action,
-            tag: `${action.tag}:${source.id}`,
-          };
-          const result = prepareMutation(tagAction, infectionCtx);
-          if (result.applied) {
-            actionApplied = true;
-            for (const mod of result.entityModifications) {
-              let currentTags = modifiedTags.get(mod.id) || { ...entity.tags };
-              if (mod.changes.tags) {
-                currentTags = applyTagPatch(currentTags, mod.changes.tags);
-              }
-              modifiedTags.set(mod.id, currentTags);
-            }
-          }
-        } else {
-          const result = prepareMutation(action, infectionCtx);
-          mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, pressureChanges);
-          actionApplied = result.applied;
-        }
-
-        if (actionApplied) {
-          newInfections.push(entity.id);
-          if (!infectedBySource.has(source.id)) {
-            infectedBySource.set(source.id, new Set());
-          }
-          infectedBySource.get(source.id)!.add(entity.id);
-          // Generate narration if template provided, keyed by entity.id
-          if (config.narrationTemplate) {
-            const narrationCtx = createSystemRuleContext({
-              self: entity,
-              variables: { source, contagion_source: source },
-            });
-            const narrationResult = interpolate(config.narrationTemplate, narrationCtx);
-            if (narrationResult.complete) {
-              narrationsByGroup[entity.id] = narrationResult.text;
-            }
-          }
-        }
-      }
     }
 
-    // === RECOVERY PHASE for this source ===
-    if (config.recovery) {
-      for (const entity of infected) {
-        let recoveryProb = config.recovery.baseRate;
-        if (config.recovery.recoveryBonusTraits) {
-          for (const trait of config.recovery.recoveryBonusTraits) {
-            if (hasTag(entity.tags, trait.tag)) {
-              recoveryProb += trait.bonus;
-            }
-          }
-        }
-        recoveryProb = Math.min(0.95, Math.max(0, recoveryProb));
-
-        if (rollProbability(recoveryProb, modifier)) {
-          // Add source-specific immunity tag
-          if (multiSource.immunityTagPrefix) {
-            const currentTags = modifiedTags.get(entity.id) || { ...entity.tags };
-            currentTags[`${multiSource.immunityTagPrefix}:${source.id}`] = true;
-            modifiedTags.set(entity.id, currentTags);
-
-            // Generate immunity narration if template provided
-            if (multiSource.immunityNarrationTemplate) {
-              const narrationCtx = createSystemRuleContext({
-                self: entity,
-                variables: { source },
-              });
-              const narrationResult = interpolate(multiSource.immunityNarrationTemplate, narrationCtx);
-              if (narrationResult.complete) {
-                narrationsByGroup[`${entity.id}:immunity:${source.id}`] = narrationResult.text;
-              }
-            }
-          }
-        }
-      }
+    for (const entity of infected) {
+      processMultiSourceRecoveryForEntity(
+        entity, source, config, multiSource, modifier, modifiedTags, narrationsByGroup
+      );
     }
 
-    // === PHASE TRANSITIONS for this source ===
-    if (config.phaseTransitions && entities.length > 0) {
-      const adoptionRate = infected.length / entities.length;
-
-      for (const transition of config.phaseTransitions) {
-        if (adoptionRate < transition.adoptionThreshold) continue;
-        const candidates = selectEntities(transition.selection, baseCtx);
-        const matchesSource = candidates.some((candidate) => candidate.id === source.id);
-        if (!matchesSource) continue;
-
-        const changes: Partial<HardState> = { status: transition.toStatus };
-        if (transition.descriptionSuffix) {
-          const baseNarrative = source.narrativeHint ?? source.summary ?? source.description ?? '';
-          changes.narrativeHint = `${baseNarrative} ${transition.descriptionSuffix}`;
-        }
-        modifications.push({
-          id: source.id,
-          changes
-        });
-      }
-
-      // Handle low adoption threshold (source fades away)
-      if (multiSource.lowAdoptionThreshold !== undefined &&
-          adoptionRate < multiSource.lowAdoptionThreshold) {
-        modifications.push({
-          id: source.id,
-          changes: {
-            status: multiSource.lowAdoptionStatus || 'forgotten'
-          }
-        });
-      }
-    }
+    processMultiSourcePhaseTransitionsForSource(
+      entities, infected, source, config, multiSource, baseCtx, modifications
+    );
   }
 
-  // Convert tag modifications to entity modifications
-  for (const [entityId, tags] of modifiedTags) {
-    // Keep only the most recent tags (limit to 10), but preserve framework tags if possible
-    const tagKeys = Object.keys(tags);
-    if (tagKeys.length > 10) {
-      const excessCount = tagKeys.length - 10;
-      const frameworkTags: Set<string> = new Set(FRAMEWORK_TAG_VALUES);
-      const removable = tagKeys.filter(tag => !frameworkTags.has(tag));
-      const protectedTags = tagKeys.filter(tag => frameworkTags.has(tag));
-      const removalOrder = removable.length >= excessCount
-        ? removable
-        : removable.concat(protectedTags);
-      for (let i = 0; i < excessCount; i++) {
-        delete tags[removalOrder[i]];
-      }
-    }
-    modifications.push({
-      id: entityId,
-      changes: { tags: buildTagPatch(graphView.getEntity(entityId)?.tags, tags) }
-    });
-  }
+  flushTagModificationsToEntityMods(modifiedTags, graphView, modifications);
 
   const hadChanges =
     relationships.length > 0 || modifications.length > 0 || Object.keys(pressureChanges).length > 0;
-
   if (hadChanges && config.pressureChanges) {
     for (const [pressureId, delta] of Object.entries(config.pressureChanges)) {
       pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
     }
   }
 
-  // Collect vector edges for visualization
   const entityIds = new Set(entities.map(e => e.id));
-  const allRelationships = graphView.getAllRelationships();
-  const vectorEdges: Array<{ source: string; target: string; kind: string; strength: number }> = [];
+  const vectorEdges = collectContagionVectorEdges(config, graphView, entityIds);
 
-  for (const vector of config.vectors) {
-    for (const rel of allRelationships) {
-      if (rel.kind !== vector.relationshipKind) continue;
-      const minStrength = vector.minStrength ?? 0;
-      const strength = rel.strength ?? 0;
-      if (strength < minStrength) continue;
-
-      if (entityIds.has(rel.src) && entityIds.has(rel.dst)) {
-        vectorEdges.push({
-          source: rel.src,
-          target: rel.dst,
-          kind: rel.kind,
-          strength,
-        });
-      }
-    }
-  }
-
-  // Compute aggregate SIR state for each entity
   const allInfected = new Set<string>();
   for (const [, infected] of infectedBySource) {
     infected.forEach(id => allInfected.add(id));
   }
 
-  // Build visualization snapshot for trace viewer
-  const visualizationSnapshot = {
-    // Nodes with aggregate SIR state and coordinates
-    nodes: entities.map(e => ({
-      id: e.id,
-      name: e.name,
-      x: e.coordinates?.x ?? Math.random() * 100,
-      y: e.coordinates?.y ?? Math.random() * 100,
-      state: allInfected.has(e.id) ? 'infected' : 'susceptible',
-      prominence: e.prominence,
-      // Which sources this entity is infected with
-      infectedWith: Array.from(infectedBySource.entries())
-        .filter(([, ids]) => ids.has(e.id))
-        .map(([sourceId]) => sourceId),
-    })),
-    // Edges (transmission vectors)
-    edges: vectorEdges,
-    // New infections this tick
-    newInfections,
-    // Per-source infection counts
-    sourceStats: sources.map(s => ({
-      id: s.id,
-      name: s.name,
-      infectedCount: infectedBySource.get(s.id)?.size ?? 0,
-      adoptionRate: entities.length > 0 ? (infectedBySource.get(s.id)?.size ?? 0) / entities.length : 0,
-    })),
-    // Summary counts
-    counts: {
-      susceptible: entities.length - allInfected.size,
-      infected: allInfected.size,
-      total: entities.length,
-      sources: sources.length,
-    },
-  };
+  const visualizationSnapshot = buildMultiSourceVizSnapshot(
+    entities, allInfected, infectedBySource, vectorEdges, sources, newInfections
+  );
 
   return {
     relationshipsAdded: relationships,

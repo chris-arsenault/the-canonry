@@ -4,29 +4,29 @@
  * IndexedDB persistence for simulation run slots, keyed by projectId + slotIndex.
  */
 
-const DB_NAME = 'canonry-runs';
+const DB_NAME = "canonry-runs";
 const DB_VERSION = 1;
-const STORE_NAME = 'runs';
+const STORE_NAME = "runs";
 
 let dbPromise = null;
 
 function openDb() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
-      reject(new Error('IndexedDB unavailable'));
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("IndexedDB unavailable"));
       return;
     }
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: ['projectId', 'slotIndex'] });
-        store.createIndex('projectId', 'projectId', { unique: false });
+        const store = db.createObjectStore(STORE_NAME, { keyPath: ["projectId", "slotIndex"] });
+        store.createIndex("projectId", "projectId", { unique: false });
       }
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error('Failed to open IndexedDB'));
+    request.onerror = () => reject(request.error || new Error("Failed to open IndexedDB"));
   });
   return dbPromise;
 }
@@ -34,32 +34,32 @@ function openDb() {
 async function idbGetByProject(projectId) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
+    const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
-    const index = store.index('projectId');
+    const index = store.index("projectId");
     const request = index.getAll(projectId);
     request.onsuccess = () => resolve(request.result || []);
-    request.onerror = () => reject(request.error || new Error('IDB read failed'));
+    request.onerror = () => reject(request.error || new Error("IDB read failed"));
   });
 }
 
 async function idbGet(projectId, slotIndex) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
+    const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
     const request = store.get([projectId, slotIndex]);
     request.onsuccess = () => resolve(request.result || null);
-    request.onerror = () => reject(request.error || new Error('IDB read failed'));
+    request.onerror = () => reject(request.error || new Error("IDB read failed"));
   });
 }
 
 async function idbSet(record) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const tx = db.transaction(STORE_NAME, "readwrite");
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('IDB write failed'));
+    tx.onerror = () => reject(tx.error || new Error("IDB write failed"));
     tx.objectStore(STORE_NAME).put(record);
   });
 }
@@ -67,9 +67,9 @@ async function idbSet(record) {
 async function idbDelete(projectId, slotIndex) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const tx = db.transaction(STORE_NAME, "readwrite");
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('IDB delete failed'));
+    tx.onerror = () => reject(tx.error || new Error("IDB delete failed"));
     tx.objectStore(STORE_NAME).delete([projectId, slotIndex]);
   });
 }
@@ -77,9 +77,9 @@ async function idbDelete(projectId, slotIndex) {
 async function idbDeleteProject(projectId) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    const index = store.index('projectId');
+    const index = store.index("projectId");
     const request = index.openCursor(IDBKeyRange.only(projectId));
     request.onsuccess = () => {
       const cursor = request.result;
@@ -89,7 +89,7 @@ async function idbDeleteProject(projectId) {
       }
     };
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('IDB delete failed'));
+    tx.onerror = () => reject(tx.error || new Error("IDB delete failed"));
   });
 }
 
@@ -125,7 +125,7 @@ export async function saveRunSlot(projectId, slotIndex, slotData) {
   const record = {
     projectId,
     slotIndex: normalized,
-    ...slotData
+    ...slotData,
   };
   await idbSet(record);
 }

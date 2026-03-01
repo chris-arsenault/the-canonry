@@ -13,10 +13,10 @@
  * See the clearing effect in ChroniclePanel.jsx for an example of this pitfall.
  */
 
-import { useMemo, useEffect } from 'react';
-import { useChronicleStore } from './chronicleStore';
-import type { ChronicleRecord } from './chronicleRepository';
-import type { ChronicleNavItem } from './chronicleNav';
+import { useMemo, useEffect } from "react";
+import { useChronicleStore } from "./chronicleStore";
+import type { ChronicleRecord } from "./chronicleRepository";
+import type { ChronicleNavItem } from "./chronicleNav";
 
 // ============================================================================
 // Nav item type — lightweight projection for the chronicle list sidebar
@@ -32,15 +32,13 @@ import type { ChronicleNavItem } from './chronicleNav';
  * derives lightweight nav items in a useMemo.
  */
 export function useChronicleNavItems(
-  getEffectiveStatus?: (chronicleId: string, baseStatus: string) => string,
+  getEffectiveStatus?: (chronicleId: string, baseStatus: string) => string
 ): ChronicleNavItem[] {
   const navItems = useChronicleStore((state) => state.navItems);
   const navOrder = useChronicleStore((state) => state.navOrder);
 
   return useMemo(() => {
-    const items = navOrder
-      .map((id) => navItems[id])
-      .filter(Boolean) as ChronicleNavItem[];
+    const items = navOrder.map((id) => navItems[id]).filter(Boolean);
     if (!getEffectiveStatus) return items;
     return items.map((item) => ({
       ...item,
@@ -54,14 +52,14 @@ export function useChronicleNavItems(
  * Only re-renders when this specific chronicle's record reference changes.
  */
 export function useSelectedChronicle(chronicleId: string | null): ChronicleRecord | undefined {
-  const record = useChronicleStore((state) => (
+  const record = useChronicleStore((state) =>
     chronicleId ? state.cache.get(chronicleId) : undefined
-  ));
+  );
   const loadChronicle = useChronicleStore((state) => state.loadChronicle);
 
   useEffect(() => {
     if (chronicleId) {
-      loadChronicle(chronicleId);
+      void loadChronicle(chronicleId);
     }
   }, [chronicleId, loadChronicle]);
 

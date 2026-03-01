@@ -1,4 +1,4 @@
-# main.tf - S3 bucket and CloudFront distribution for penguin-tales viewer
+# main.tf - S3 bucket and CloudFront distribution for the-canonry viewer
 
 data "aws_caller_identity" "current" {}
 

@@ -72,7 +72,7 @@ async function loadFromNode(modelId: string): Promise<MarkovModel | null> {
     // Dynamic import - only happens in Node.js
     // Using variable to prevent Vite from analyzing this import
     const modulePath = "./markov-loader-node.js";
-    nodeLoader = await import(/* @vite-ignore */ modulePath);
+    nodeLoader = await import(/* @vite-ignore */ modulePath) as typeof nodeLoader;
   }
   return nodeLoader!.loadModelFromFilesystem(modelId);
 }

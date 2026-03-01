@@ -2,8 +2,9 @@
  * OverviewTab - Basic info, summary stats, and danger zone actions
  */
 
-import React, { useMemo } from 'react';
-import { EnableToggle, useLocalInputState, LocalTextArea } from '../../shared';
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
+import { EnableToggle, useLocalInputState, LocalTextArea } from "../../shared";
 
 /**
  * @param {Object} props
@@ -17,13 +18,11 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
     onChange({ ...generator, [field]: value });
   };
 
-  const [localId, setLocalId, handleIdBlur] = useLocalInputState(
-    generator.id,
-    (value) => updateField('id', value)
+  const [localId, setLocalId, handleIdBlur] = useLocalInputState(generator.id, (value) =>
+    updateField("id", value)
   );
-  const [localName, setLocalName, handleNameBlur] = useLocalInputState(
-    generator.name,
-    (value) => updateField('name', value)
+  const [localName, setLocalName, handleNameBlur] = useLocalInputState(generator.name, (value) =>
+    updateField("name", value)
   );
 
   const summary = useMemo(() => {
@@ -42,8 +41,8 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
         <div className="section-title">Basic Information</div>
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Generator ID</label>
-            <input
+            <label htmlFor="generator-id" className="label">Generator ID</label>
+            <input id="generator-id"
               type="text"
               value={localId}
               onChange={(e) => setLocalId(e.target.value)}
@@ -52,8 +51,8 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
             />
           </div>
           <div className="form-group">
-            <label className="label">Display Name</label>
-            <input
+            <label htmlFor="display-name" className="label">Display Name</label>
+            <input id="display-name"
               type="text"
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
@@ -64,23 +63,25 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
           </div>
         </div>
 
-        <div style={{ marginTop: '16px' }}>
-          <label className="label">Enabled</label>
+        <div className="mt-xl">
+          <label className="label">Enabled
           <EnableToggle
             enabled={generator.enabled !== false}
-            onChange={(enabled) => updateField('enabled', enabled)}
-            label={generator.enabled !== false ? 'Generator is active' : 'Generator is disabled'}
+            onChange={(enabled) => updateField("enabled", enabled)}
+            label={generator.enabled !== false ? "Generator is active" : "Generator is disabled"}
           />
+          </label>
         </div>
 
-        <div style={{ marginTop: '16px' }}>
-          <label className="label">Narration Template</label>
-          <div className="section-desc" style={{ marginBottom: '8px' }}>
-            Syntax: {'{$target.field}'}, {'{$var.field}'}, {'{count:kind}'}, {'{list:created}'}, {'{field|fallback}'}.
+        <div className="mt-xl">
+          <span className="label">Narration Template</span>
+          <div className="section-desc mb-md">
+            Syntax: {"{$target.field}"}, {"{$var.field}"}, {"{count:kind}"}, {"{list:created}"},{" "}
+            {"{field|fallback}"}.
           </div>
           <LocalTextArea
-            value={generator.narrationTemplate || ''}
-            onChange={(value) => updateField('narrationTemplate', value || undefined)}
+            value={generator.narrationTemplate || ""}
+            onChange={(value) => updateField("narrationTemplate", value || undefined)}
             placeholder="e.g., From {$target.name}, {count:npc} new souls emerged to shape the realm."
             rows={2}
           />
@@ -91,11 +92,11 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
         <div className="section-title">Summary</div>
         <div className="summary-stats-grid">
           {[
-            { label: 'Rules', value: summary.rules, icon: '✓' },
-            { label: 'Variables', value: summary.variables, icon: '📦' },
-            { label: 'Creates', value: summary.creates, icon: '✨' },
-            { label: 'Connects', value: summary.relationships, icon: '🔗' },
-            { label: 'Effects', value: summary.effects, icon: '⚡' },
+            { label: "Rules", value: summary.rules, icon: "✓" },
+            { label: "Variables", value: summary.variables, icon: "📦" },
+            { label: "Creates", value: summary.creates, icon: "✨" },
+            { label: "Connects", value: summary.relationships, icon: "🔗" },
+            { label: "Effects", value: summary.effects, icon: "⚡" },
           ].map((stat) => (
             <div key={stat.label} className="summary-stat">
               <div className="summary-stat-icon">{stat.icon}</div>
@@ -117,5 +118,12 @@ export function OverviewTab({ generator, onChange, onDelete, onDuplicate }) {
     </div>
   );
 }
+
+OverviewTab.propTypes = {
+  generator: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  onDuplicate: PropTypes.func,
+};
 
 export default OverviewTab;

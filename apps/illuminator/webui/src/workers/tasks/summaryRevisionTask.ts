@@ -9,17 +9,17 @@
  * after the user reviews the current one.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
 import type {
   SummaryRevisionLLMResponse,
   RevisionEntityContext,
-} from '../../lib/summaryRevisionTypes';
-import { getRevisionRun, updateRevisionRun } from '../../lib/db/summaryRevisionRepository';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { saveCostRecordWithDefaults, type CostType } from '../../lib/db/costRepository';
+} from "../../lib/summaryRevisionTypes";
+import { getRevisionRun, updateRevisionRun } from "../../lib/db/summaryRevisionRepository";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
 
 // ============================================================================
 // System Prompt
@@ -100,7 +100,7 @@ function buildUserPrompt(
   staticPagesContext: string,
   schemaContext: string,
   revisionGuidance: string,
-  culture: string,
+  culture: string
 ): string {
   const sections: string[] = [];
 
@@ -128,7 +128,8 @@ function buildUserPrompt(
   const entityLines: string[] = [];
   for (const e of entities) {
     const parts: string[] = [];
-    parts.push(`### ${e.name} (${e.kind}${e.subtype ? ` / ${e.subtype}` : ''})`);
+    const summaryKindLabel = e.subtype ? `${e.kind} / ${e.subtype}` : e.kind;
+    parts.push(`### ${e.name} (${summaryKindLabel})`);
     parts.push(`ID: ${e.id}`);
     parts.push(`Prominence: ${e.prominence} | Culture: ${e.culture} | Status: ${e.status}`);
 
@@ -140,16 +141,18 @@ function buildUserPrompt(
       const relLines = e.relationships.map(
         (r) => `  - ${r.kind} → ${r.targetName} (${r.targetKind})`
       );
-      parts.push(`Relationships:\n${relLines.join('\n')}`);
+      parts.push(`Relationships:\n${relLines.join("\n")}`);
     }
 
     parts.push(`Summary: ${e.summary}`);
     parts.push(`Description: ${e.description}`);
 
-    entityLines.push(parts.join('\n'));
+    entityLines.push(parts.join("\n"));
   }
 
-  sections.push(`=== BATCH: ${culture} (${entities.length} entities) ===\n\n${entityLines.join('\n\n---\n\n')}`);
+  sections.push(
+    `=== BATCH: ${culture} (${entities.length} entities) ===\n\n${entityLines.join("\n\n---\n\n")}`
+  );
 
   // Task instruction
   sections.push(`=== YOUR TASK ===
@@ -159,12 +162,21 @@ For each entity: read the current text to understand the entity's identity, role
 
 Rewrite every entity. Preserve visual thesis. Output complete rewritten text for both fields.`);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ============================================================================
 // Task Execution
 // ============================================================================
+
+function parseSummaryRevisionResponse(resultText: string): SummaryRevisionLLMResponse {
+  // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text
+  const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("No JSON object found");
+  const parsed = JSON.parse(jsonMatch[0]) as SummaryRevisionLLMResponse;
+  if (!Array.isArray(parsed.patches)) throw new Error("Missing patches array");
+  return parsed;
+}
 
 async function executeSummaryRevisionTask(
   task: WorkerTask,
@@ -173,12 +185,12 @@ async function executeSummaryRevisionTask(
   const { config, llmClient, isAborted } = context;
 
   if (!llmClient.isEnabled()) {
-    return { success: false, error: 'Text generation not configured - missing Anthropic API key' };
+    return { success: false, error: "Text generation not configured - missing Anthropic API key" };
   }
 
   const runId = task.chronicleId; // Repurposing chronicleId field for runId
   if (!runId) {
-    return { success: false, error: 'runId (chronicleId) required for summary revision' };
+    return { success: false, error: "runId (chronicleId) required for summary revision" };
   }
 
   // Read current run state
@@ -190,40 +202,40 @@ async function executeSummaryRevisionTask(
   // Find the current batch
   const batchIndex = run.currentBatchIndex;
   const batch = run.batches[batchIndex];
-  if (!batch || batch.status !== 'pending') {
+  if (!batch || batch.status !== "pending") {
     return { success: false, error: `No pending batch at index ${batchIndex}` };
   }
 
   // Mark batch as generating
   const updatedBatches = [...run.batches];
-  updatedBatches[batchIndex] = { ...batch, status: 'generating' };
-  await updateRevisionRun(runId, { status: 'generating', batches: updatedBatches });
+  updatedBatches[batchIndex] = { ...batch, status: "generating" };
+  await updateRevisionRun(runId, { status: "generating", batches: updatedBatches });
 
   // Entity data is passed via the task prompt field as JSON
   let entities: RevisionEntityContext[];
   try {
     entities = JSON.parse(task.prompt);
   } catch {
-    const errorMsg = 'Failed to parse entity context from task prompt';
-    updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-    await updateRevisionRun(runId, { status: 'batch_reviewing', batches: updatedBatches });
+    const errorMsg = "Failed to parse entity context from task prompt";
+    updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+    await updateRevisionRun(runId, { status: "batch_reviewing", batches: updatedBatches });
     return { success: false, error: errorMsg };
   }
 
-  const callConfig = getCallConfig(config, 'revision.summary');
+  const callConfig = getCallConfig(config, "revision.summary");
   const userPrompt = buildUserPrompt(
     entities,
     run.worldDynamicsContext,
     run.staticPagesContext,
     run.schemaContext,
     run.revisionGuidance,
-    batch.culture,
+    batch.culture
   );
 
   try {
     const callResult = await runTextCall({
       llmClient,
-      callType: 'revision.summary',
+      callType: "revision.summary",
       callConfig,
       systemPrompt: SYSTEM_PROMPT,
       prompt: userPrompt,
@@ -231,37 +243,34 @@ async function executeSummaryRevisionTask(
     });
 
     if (isAborted()) {
-      updatedBatches[batchIndex] = { ...batch, status: 'failed', error: 'Task aborted' };
-      await updateRevisionRun(runId, { status: 'failed', batches: updatedBatches });
-      return { success: false, error: 'Task aborted' };
+      updatedBatches[batchIndex] = { ...batch, status: "failed", error: "Task aborted" };
+      await updateRevisionRun(runId, { status: "failed", batches: updatedBatches });
+      return { success: false, error: "Task aborted" };
     }
 
     const resultText = callResult.result.text?.trim();
     if (callResult.result.error || !resultText) {
-      const errorMsg = `LLM call failed: ${callResult.result.error || 'No text returned'}`;
-      updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-      await updateRevisionRun(runId, { status: 'batch_reviewing', batches: updatedBatches });
+      const errorMsg = `LLM call failed: ${callResult.result.error || "No text returned"}`;
+      updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+      await updateRevisionRun(runId, { status: "batch_reviewing", batches: updatedBatches });
       return { success: false, error: errorMsg };
     }
 
     // Parse LLM response
     let parsed: SummaryRevisionLLMResponse;
     try {
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON object found');
-      parsed = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed.patches)) throw new Error('Missing patches array');
+      parsed = parseSummaryRevisionResponse(resultText);
     } catch (err) {
       const errorMsg = `Failed to parse LLM response: ${err instanceof Error ? err.message : String(err)}`;
-      updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-      await updateRevisionRun(runId, { status: 'batch_reviewing', batches: updatedBatches });
+      updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+      await updateRevisionRun(runId, { status: "batch_reviewing", batches: updatedBatches });
       return { success: false, error: errorMsg };
     }
 
     // Update batch with patches
     updatedBatches[batchIndex] = {
       ...batch,
-      status: 'complete',
+      status: "complete",
       patches: parsed.patches,
       inputTokens: callResult.usage.inputTokens,
       outputTokens: callResult.usage.outputTokens,
@@ -270,11 +279,11 @@ async function executeSummaryRevisionTask(
 
     // Check if all batches are complete
     const allComplete = updatedBatches.every(
-      (b) => b.status === 'complete' || b.status === 'failed'
+      (b) => b.status === "complete" || b.status === "failed"
     );
 
     await updateRevisionRun(runId, {
-      status: allComplete ? 'run_reviewing' : 'batch_reviewing',
+      status: allComplete ? "run_reviewing" : "batch_reviewing",
       batches: updatedBatches,
       totalInputTokens: run.totalInputTokens + callResult.usage.inputTokens,
       totalOutputTokens: run.totalOutputTokens + callResult.usage.outputTokens,
@@ -288,7 +297,7 @@ async function executeSummaryRevisionTask(
       entityId: task.entityId,
       entityName: task.entityName,
       entityKind: task.entityKind,
-      type: 'summaryRevision' as CostType,
+      type: "summaryRevision" as CostType,
       model: callConfig.model,
       estimatedCost: callResult.estimate.estimatedCost,
       actualCost: callResult.usage.actualCost,
@@ -309,13 +318,13 @@ async function executeSummaryRevisionTask(
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    updatedBatches[batchIndex] = { ...batch, status: 'failed', error: errorMsg };
-    await updateRevisionRun(runId, { status: 'batch_reviewing', batches: updatedBatches });
+    updatedBatches[batchIndex] = { ...batch, status: "failed", error: errorMsg };
+    await updateRevisionRun(runId, { status: "batch_reviewing", batches: updatedBatches });
     return { success: false, error: `Summary revision failed: ${errorMsg}` };
   }
 }
 
 export const summaryRevisionTask = {
-  type: 'summaryRevision' as const,
+  type: "summaryRevision" as const,
   execute: executeSummaryRevisionTask,
 };

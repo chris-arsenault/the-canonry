@@ -1,5 +1,5 @@
 /**
- * Re-exports from @penguin-tales/shared-components
+ * Re-exports from @the-canonry/shared-components
  *
  * Use this index to import shared components in Name Forge.
  * This provides a consistent import path and makes it easy to swap
@@ -56,4 +56,4 @@ export {
   computeTagUsage,
   getEntityKindUsageSummary,
   getRelationshipKindUsageSummary,
-} from '@penguin-tales/shared-components';
+} from "@the-canonry/shared-components";

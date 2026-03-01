@@ -7,27 +7,27 @@
  * The manifest is read but never written back.
  */
 
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { loadImageManifest } from './awsS3';
-import { openIlluminatorDb } from '../lib/illuminatorDbReader';
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { loadImageManifest } from "./awsS3";
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
 async function readBodyAsBlob(body, mimeType) {
-  if (typeof body.arrayBuffer === 'function') {
+  if (typeof body.arrayBuffer === "function") {
     const buffer = await body.arrayBuffer();
-    return new Blob([buffer], { type: mimeType || 'application/octet-stream' });
+    return new Blob([buffer], { type: mimeType || "application/octet-stream" });
   }
-  if (typeof body[Symbol.asyncIterator] === 'function') {
+  if (typeof body[Symbol.asyncIterator] === "function") {
     const chunks = [];
     for await (const chunk of body) chunks.push(chunk);
-    return new Blob(chunks, { type: mimeType || 'application/octet-stream' });
+    return new Blob(chunks, { type: mimeType || "application/octet-stream" });
   }
-  throw new Error('Cannot read S3 body as binary');
+  throw new Error("Cannot read S3 body as binary");
 }
 
 function getLocalBlobIds(db) {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction('imageBlobs', 'readonly');
-    const request = tx.objectStore('imageBlobs').getAllKeys();
+    const tx = db.transaction("imageBlobs", "readonly");
+    const request = tx.objectStore("imageBlobs").getAllKeys();
     request.onsuccess = () => resolve(new Set(request.result || []));
     request.onerror = () => reject(request.error);
   });
@@ -35,8 +35,8 @@ function getLocalBlobIds(db) {
 
 function getLocalImageIds(db) {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction('images', 'readonly');
-    const request = tx.objectStore('images').getAllKeys();
+    const tx = db.transaction("images", "readonly");
+    const request = tx.objectStore("images").getAllKeys();
     request.onsuccess = () => resolve(new Set(request.result || []));
     request.onerror = () => reject(request.error);
   });
@@ -44,13 +44,11 @@ function getLocalImageIds(db) {
 
 function writeImageToDb(db, imageId, blob, metadataRecord) {
   return new Promise((resolve, reject) => {
-    const storeNames = metadataRecord
-      ? ['imageBlobs', 'images']
-      : ['imageBlobs'];
-    const tx = db.transaction(storeNames, 'readwrite');
-    tx.objectStore('imageBlobs').put({ imageId, blob });
+    const storeNames = metadataRecord ? ["imageBlobs", "images"] : ["imageBlobs"];
+    const tx = db.transaction(storeNames, "readwrite");
+    tx.objectStore("imageBlobs").put({ imageId, blob });
     if (metadataRecord) {
-      tx.objectStore('images').put(metadataRecord);
+      tx.objectStore("images").put(metadataRecord);
     }
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
@@ -64,10 +62,10 @@ function manifestEntryToMetadata(entry) {
     entityId: entry.entityId || null,
     entityName: entry.entityName || null,
     entityKind: entry.entityKind || null,
-    imageType: entry.imageType || 'entity',
+    imageType: entry.imageType || "entity",
     chronicleId: entry.chronicleId || null,
     imageRefId: entry.imageRefId || null,
-    mimeType: entry.mimeType || 'application/octet-stream',
+    mimeType: entry.mimeType || "application/octet-stream",
     size: entry.size || null,
     model: entry.model || null,
     generatedAt: entry.generatedAt || Date.now(),
@@ -76,10 +74,10 @@ function manifestEntryToMetadata(entry) {
 }
 
 export async function pullImagesFromS3({ s3, config, projectId, onProgress }) {
-  if (!s3) throw new Error('Missing S3 client');
+  if (!s3) throw new Error("Missing S3 client");
   const bucket = config?.imageBucket?.trim();
-  if (!bucket) throw new Error('Missing image bucket');
-  const basePrefix = config?.imagePrefix?.trim() || '';
+  if (!bucket) throw new Error("Missing image bucket");
+  const basePrefix = config?.imagePrefix?.trim() || "";
 
   const report = (detail) => {
     console.log(`[s3-pull] ${detail}`);
@@ -87,7 +85,7 @@ export async function pullImagesFromS3({ s3, config, projectId, onProgress }) {
   };
 
   // 1. Load manifest (read-only — never written back)
-  report('Loading image manifest from S3...');
+  report("Loading image manifest from S3...");
   const manifest = await loadImageManifest(s3, { bucket, basePrefix });
   if (!manifest || !manifest.images) {
     throw new Error('No image manifest found in S3. Push images first with "Sync Images to S3".');
@@ -95,11 +93,12 @@ export async function pullImagesFromS3({ s3, config, projectId, onProgress }) {
 
   const allEntries = Object.values(manifest.images);
   // Filter to requested project if provided
-  const entries = projectId
-    ? allEntries.filter((e) => e.projectId === projectId)
-    : allEntries;
+  const entries = projectId ? allEntries.filter((e) => e.projectId === projectId) : allEntries;
 
-  report(`Manifest has ${entries.length} images${projectId ? ` for project ${projectId}` : ' (all projects)'}. Checking local state...`);
+  const projectScope = projectId ? ` for project ${projectId}` : " (all projects)";
+  report(
+    `Manifest has ${entries.length} images${projectScope}. Checking local state...`
+  );
 
   // 2. Check what exists locally
   const db = await openIlluminatorDb();
@@ -138,10 +137,12 @@ export async function pullImagesFromS3({ s3, config, projectId, onProgress }) {
     }
 
     try {
-      const response = await s3.send(new GetObjectCommand({
-        Bucket: bucket,
-        Key: entry.rawKey,
-      }));
+      const response = await s3.send(
+        new GetObjectCommand({
+          Bucket: bucket,
+          Key: entry.rawKey,
+        })
+      );
 
       const blob = await readBodyAsBlob(response.Body, entry.mimeType);
 
@@ -153,7 +154,10 @@ export async function pullImagesFromS3({ s3, config, projectId, onProgress }) {
       downloaded++;
     } catch (err) {
       errors++;
-      console.error(`[s3-pull] Failed to download "${entry.imageId}" (key=${entry.rawKey}):`, err.message);
+      console.error(
+        `[s3-pull] Failed to download "${entry.imageId}" (key=${entry.rawKey}):`,
+        err.message
+      );
     }
   }
 

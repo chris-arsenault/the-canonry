@@ -1,5 +1,5 @@
 {
-  "name": "@penguin-tales/world-store",
+  "name": "@the-canonry/world-store",
   "version": "1.0.0",
   "description": "Shared read access to the Canonry world Dexie store",
   "type": "module",
@@ -8,6 +8,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@canonry/world-schema": "file:../world-schema"
+    "@canonry/world-schema": "workspace:*"
   }
 }

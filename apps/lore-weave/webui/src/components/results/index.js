@@ -1,2 +1,2 @@
-export { default } from './ResultsViewer';
-export { default as ResultsViewer } from './ResultsViewer';
+export { default } from "./ResultsViewer";
+export { default as ResultsViewer } from "./ResultsViewer";

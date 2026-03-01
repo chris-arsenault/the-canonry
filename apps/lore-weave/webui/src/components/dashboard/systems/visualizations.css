@@ -210,10 +210,21 @@
 }
 
 /* SIR state colors */
-.state-susceptible { fill: #22c55e; }
-.state-infected { fill: #ef4444; }
-.state-recovered { fill: #64748b; }
-.state-immune { fill: #8b5cf6; }
+.state-susceptible {
+  fill: #22c55e;
+}
+
+.state-infected {
+  fill: #ef4444;
+}
+
+.state-recovered {
+  fill: #64748b;
+}
+
+.state-immune {
+  fill: #8b5cf6;
+}
 
 /* Tick controls */
 .vis-tick-controls {
@@ -268,4 +279,52 @@
   background: rgb(239 68 68 / 20%);
   border-color: rgb(239 68 68 / 40%);
   color: #fca5a5;
+}
+
+/* Dynamic tooltip positioning */
+.vis-tooltip-dynamic {
+  left: var(--vis-tooltip-left);
+  top: var(--vis-tooltip-top);
+}
+
+/* Inline style extraction helpers */
+.vis-legend-swatch-dynamic {
+  background-color: var(--vis-swatch-color);
+}
+
+.vis-tooltip-value-dynamic {
+  color: var(--vis-tooltip-value-color);
+}
+
+.vis-container-body-full {
+  height: calc(100% - 40px);
+}
+
+.vis-subtitle {
+  color: #64748b;
+  margin-left: 8px;
+}
+
+.vis-info-text {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.vis-info-hint {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.vis-info-danger {
+  font-size: 11px;
+  color: #ef4444;
+}
+
+.vis-info-stats {
+  margin-left: 12px;
+}
+
+.vis-legend-gradient-bar-dynamic {
+  background: var(--vis-gradient-bg);
 }

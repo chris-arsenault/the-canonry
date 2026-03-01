@@ -1,19 +1,22 @@
-import { useState } from 'react';
-import { DomainTab, LexemesTab, GrammarsTab, ProfileTab } from './tabs';
+import React from "react";
+import PropTypes from "prop-types";
+import { ErrorMessage } from "@the-canonry/shared-components";
+import { useAsyncAction } from "../../hooks/useAsyncAction";
+import { DomainTab, LexemesTab, GrammarsTab, ProfileTab } from "./tabs";
 
 function EntityWorkspace({
   worldSchema,
   cultureId,
   cultureConfig,
   allCultures,
-  activeTab = 'domain',
+  activeTab = "domain",
   onTabChange,
   onCultureChange,
   onAddTag,
   apiKey,
-  generators = []
+  generators = [],
 }) {
-  const [error, setError] = useState(null);
+  const { error, setError } = useAsyncAction();
 
   // Use prop or fallback to local handling
   const setActiveTab = onTabChange || (() => {});
@@ -85,21 +88,21 @@ function EntityWorkspace({
   const getCompletionBadge = (key) => {
     const naming = cultureConfig?.naming || {};
     // Compute counts from culture-level data
-    if (key === 'domain') {
+    if (key === "domain") {
       const count = naming.domains?.length || 0;
-      return count > 0 ? `(${count})` : '';
-    } else if (key === 'lexemes') {
+      return count > 0 ? `(${count})` : "";
+    } else if (key === "lexemes") {
       const count = Object.keys(naming.lexemeLists || {}).length;
-      return count > 0 ? `(${count})` : '';
-    } else if (key === 'grammars') {
+      return count > 0 ? `(${count})` : "";
+    } else if (key === "grammars") {
       const count = naming.grammars?.length || 0;
-      return count > 0 ? `(${count})` : '';
-    } else if (key === 'profiles') {
+      return count > 0 ? `(${count})` : "";
+    } else if (key === "profiles") {
       const count = naming.profiles?.length || 0;
-      return count > 0 ? `(${count})` : '';
+      return count > 0 ? `(${count})` : "";
     }
 
-    return '';
+    return "";
   };
 
   return (
@@ -109,9 +112,7 @@ function EntityWorkspace({
         <div className="workspace-header-row">
           <div>
             <h3 className="workspace-title">
-              <span className="workspace-title-name">
-                {cultureConfig?.name || cultureId}
-              </span>
+              <span className="workspace-title-name">{cultureConfig?.name || cultureId}</span>
               <span className="workspace-title-label">Culture</span>
             </h3>
           </div>
@@ -119,8 +120,8 @@ function EntityWorkspace({
         </div>
 
         {error && (
-          <div className="error mt-sm">
-            {error}
+          <div className="flex items-center mt-sm">
+            <ErrorMessage message={error} />
             <button className="secondary ml-sm" onClick={() => setError(null)}>
               Dismiss
             </button>
@@ -130,11 +131,11 @@ function EntityWorkspace({
 
       {/* Tabs */}
       <div className="workspace-tabs">
-        {['domain', 'lexemes', 'grammars', 'profiles'].map((tab) => (
+        {["domain", "lexemes", "grammars", "profiles"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`workspace-tab ${activeTab === tab ? 'active' : ''}`}
+            className={`workspace-tab ${activeTab === tab ? "active" : ""}`}
           >
             {tab} {getCompletionBadge(tab)}
           </button>
@@ -143,7 +144,7 @@ function EntityWorkspace({
 
       {/* Content */}
       <div className="workspace-content">
-        {activeTab === 'domain' && (
+        {activeTab === "domain" && (
           <DomainTab
             key={cultureId}
             cultureId={cultureId}
@@ -153,7 +154,7 @@ function EntityWorkspace({
           />
         )}
 
-        {activeTab === 'lexemes' && (
+        {activeTab === "lexemes" && (
           <LexemesTab
             key={cultureId}
             cultureId={cultureId}
@@ -164,7 +165,7 @@ function EntityWorkspace({
           />
         )}
 
-        {activeTab === 'grammars' && (
+        {activeTab === "grammars" && (
           <GrammarsTab
             key={cultureId}
             cultureId={cultureId}
@@ -175,7 +176,7 @@ function EntityWorkspace({
           />
         )}
 
-        {activeTab === 'profiles' && (
+        {activeTab === "profiles" && (
           <ProfileTab
             key={cultureId}
             cultureId={cultureId}
@@ -190,5 +191,18 @@ function EntityWorkspace({
     </div>
   );
 }
+
+EntityWorkspace.propTypes = {
+  worldSchema: PropTypes.object,
+  cultureId: PropTypes.string,
+  cultureConfig: PropTypes.object,
+  allCultures: PropTypes.object,
+  activeTab: PropTypes.string,
+  onTabChange: PropTypes.func,
+  onCultureChange: PropTypes.func,
+  onAddTag: PropTypes.func,
+  apiKey: PropTypes.string,
+  generators: PropTypes.array,
+};
 
 export default EntityWorkspace;

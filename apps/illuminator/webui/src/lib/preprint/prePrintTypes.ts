@@ -5,9 +5,9 @@
  * stats dashboard, content ordering tree, and markdown export.
  */
 
-import type { HistorianNoteType } from '../historianTypes';
-import type { ChronicleImageSize } from '../chronicleTypes';
-import type { ImageAspect, ImageType } from '../imageTypes';
+import type { HistorianNoteType } from "../historianTypes";
+import type { ChronicleImageSize } from "../chronicleTypes";
+import type { ImageAspect, ImageType } from "../imageTypes";
 
 // =============================================================================
 // Stats Dashboard
@@ -41,7 +41,7 @@ export interface ImageStats {
   total: number;
   totalStorageBytes: number;
   byAspect: Record<ImageAspect, number>;
-  byType: Record<ImageType | 'cover', number>;
+  byType: Record<ImageType | "cover", number>;
   bySize: Record<ChronicleImageSize, number>;
   dimensionRange: {
     minWidth: number;
@@ -90,7 +90,7 @@ export interface PrePrintStats {
 // Content Ordering Tree
 // =============================================================================
 
-export type ContentNodeType = 'folder' | 'entity' | 'chronicle' | 'static_page' | 'era_narrative';
+export type ContentNodeType = "folder" | "entity" | "chronicle" | "static_page" | "era_narrative";
 
 export interface ContentTreeNode {
   /** Unique ID for this node */
@@ -122,7 +122,7 @@ export interface ExportImageEntry {
   width?: number;
   height?: number;
   aspect?: ImageAspect;
-  imageType: ImageType | 'cover';
+  imageType: ImageType | "cover";
   entityId?: string;
   entityName?: string;
   chronicleId?: string;
@@ -162,7 +162,7 @@ export interface S3ExportConfig {
   region: string;
 }
 
-export type ExportFormat = 'markdown' | 'indesign';
+export type ExportFormat = "markdown" | "indesign";
 
 // =============================================================================
 // IDML Layout Options
@@ -186,35 +186,38 @@ export interface IdmlLayoutOptions {
 }
 
 export const IDML_PAGE_PRESETS: Record<string, IdmlPagePreset> = {
-  'trade-6x9': {
-    label: '6\u00d79\u2033 Trade Paperback',
-    widthIn: 6, heightIn: 9,
+  "trade-6x9": {
+    label: "6\u00d79\u2033 Trade Paperback",
+    widthIn: 6,
+    heightIn: 9,
     margins: { top: 0.75, bottom: 0.75, inside: 0.875, outside: 0.625 },
   },
-  'coffee-10x10': {
-    label: '10\u00d710\u2033 Coffee Table',
-    widthIn: 10, heightIn: 10,
+  "coffee-10x10": {
+    label: "10\u00d710\u2033 Coffee Table",
+    widthIn: 10,
+    heightIn: 10,
     margins: { top: 1.0, bottom: 1.0, inside: 1.0, outside: 1.0 },
   },
-  'coffee-9x12': {
-    label: '9\u00d712\u2033 Coffee Table',
-    widthIn: 9, heightIn: 12,
+  "coffee-9x12": {
+    label: "9\u00d712\u2033 Coffee Table",
+    widthIn: 9,
+    heightIn: 12,
     margins: { top: 1.0, bottom: 1.0, inside: 1.125, outside: 0.875 },
   },
 };
 
 export const IDML_FONT_PRESETS = [
-  'Junicode',
-  'Adobe Garamond Pro',
-  'Adobe Caslon Pro',
-  'Baskerville',
-  'Palatino',
-  'Minion Pro',
+  "Junicode",
+  "Adobe Garamond Pro",
+  "Adobe Caslon Pro",
+  "Baskerville",
+  "Palatino",
+  "Minion Pro",
 ] as const;
 
 export const DEFAULT_IDML_LAYOUT: IdmlLayoutOptions = {
-  pagePreset: 'trade-6x9',
-  fontFamily: 'Junicode',
+  pagePreset: "trade-6x9",
+  fontFamily: "Junicode",
   bodySize: 11,
   bodyLeading: 14,
   columnCount: 1,
@@ -226,12 +229,12 @@ export const DEFAULT_IDML_LAYOUT: IdmlLayoutOptions = {
 // Page Layout Overrides
 // =============================================================================
 
-export type LayoutMode = 'flow' | 'margin' | 'centered';
-export type AnnotationDisplay = 'full' | 'popout' | 'disabled';
-export type AnnotationPosition = 'sidenote' | 'inline' | 'footnote';
-export type ImageLayout = 'float' | 'margin' | 'block' | 'hidden';
-export type ContentWidth = 'narrow' | 'standard' | 'wide';
-export type TextAlign = 'left' | 'center' | 'justify';
+export type LayoutMode = "flow" | "margin" | "centered";
+export type AnnotationDisplay = "full" | "popout" | "disabled";
+export type AnnotationPosition = "sidenote" | "inline" | "footnote";
+export type ImageLayout = "float" | "margin" | "block" | "hidden";
+export type ContentWidth = "narrow" | "standard" | "wide";
+export type TextAlign = "left" | "center" | "justify";
 
 /**
  * Per-page layout overrides stored separately from content.

@@ -38,7 +38,7 @@ export function createEraEntity(
   status: string,
   previousEra?: HardState,
   id?: string
-): { entity: HardState; relationship?: any } {
+): { entity: HardState } {
   // Use config ID as entity ID - this must match the era field in history events
   const resolvedId = id ?? configEra.id;
   const eraEntity: HardState = {
@@ -102,7 +102,7 @@ export function createEraSpawnerSystem(config: EraSpawnerConfig): SimulationSyst
     id: config.id || 'era_spawner',
     name: config.name || 'Era Initialization',
 
-    apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
+    apply: (graphView: WorldRuntime, _modifier: number = 1.0): SystemResult => {
       // Check if any era entities already exist
       const existingEras = graphView.findEntities({ kind: FRAMEWORK_ENTITY_KINDS.ERA });
 

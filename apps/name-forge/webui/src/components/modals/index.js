@@ -1,1 +1,1 @@
-export { default as ConditionsModal } from './ConditionsModal';
+export { default as ConditionsModal } from "./ConditionsModal";

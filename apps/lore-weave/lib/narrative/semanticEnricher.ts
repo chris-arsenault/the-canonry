@@ -16,12 +16,9 @@
 import type {
   NarrativeEvent,
   NarrativeEventKind,
-  ParticipantEffect,
-  EntityEffect,
   SemanticEffectKind,
 } from '@canonry/world-schema';
 import type { HardState } from '../core/worldTypes.js';
-import type { Graph } from '../engine/types.js';
 
 /**
  * Context needed for semantic enrichment
@@ -79,7 +76,7 @@ export class SemanticEnricher {
   /**
    * Enrich a single event based on its effects
    */
-  private enrichEvent(event: NarrativeEvent, allEvents: NarrativeEvent[]): NarrativeEvent {
+  private enrichEvent(event: NarrativeEvent, _allEvents: NarrativeEvent[]): NarrativeEvent {
     if (!event.participantEffects || event.participantEffects.length === 0) {
       return event;
     }
@@ -245,165 +242,166 @@ export class SemanticEnricher {
    * Detect war patterns: connected components of negative relationships
    */
   private detectWarPatterns(events: NarrativeEvent[]): NarrativeEvent[] {
-    // Collect all rivalry effects from this tick
-    const rivalryPairs: Array<{ src: string; dst: string }> = [];
-
-    for (const event of events) {
-      if (!event.participantEffects) continue;
-      for (const participant of event.participantEffects) {
-        for (const effect of participant.effects) {
-          if (effect.semanticKind === 'rivalry' && effect.relatedEntity) {
-            rivalryPairs.push({
-              src: participant.entity.id,
-              dst: effect.relatedEntity.id,
-            });
-          }
-        }
-      }
-    }
-
-    // Find connected components of 3+ entities
+    const rivalryPairs = this.collectRivalryPairs(events);
     if (rivalryPairs.length < 2) return [];
 
     const components = this.findConnectedComponents(rivalryPairs);
     const warEvents: NarrativeEvent[] = [];
 
     for (const component of components) {
-      if (component.size >= 3) {
-        // Generate a war_started event
-        const participants = [...component].map(id => {
-          const entity = this.context.getEntity(id);
-          return entity ? {
-            id: entity.id,
-            name: entity.name,
-            kind: entity.kind,
-            subtype: entity.subtype,
-          } : null;
-        }).filter(Boolean);
-
-        if (participants.length >= 3) {
-          const firstEvent = events[0];
-          warEvents.push({
-            id: `war-${firstEvent.tick}-${Math.random().toString(36).substr(2, 9)}`,
-            tick: firstEvent.tick,
-            era: firstEvent.era,
-            eventKind: 'war_started',
-            significance: 0.8 + Math.min(0.2, participants.length * 0.02),
-            subject: participants[0]!,
-            action: 'war_started',
-            participantEffects: participants.map(p => ({
-              entity: p!,
-              effects: [{ type: 'relationship_formed' as const, semanticKind: 'rivalry' as const, description: 'entered conflict' }],
-            })),
-            description: `War erupts between ${participants.slice(0, 3).map(p => p!.name).join(', ')}${participants.length > 3 ? ` and ${participants.length - 3} others` : ''}`,
-            narrativeTags: ['war', 'conflict', 'multi-entity'],
-          });
-        }
-      }
+      if (component.size < 3) continue;
+      const warEvent = this.buildWarEvent(component, events);
+      if (warEvent) warEvents.push(warEvent);
     }
 
     return warEvents;
+  }
+
+  private collectRivalryPairs(events: NarrativeEvent[]): Array<{ src: string; dst: string }> {
+    const pairs: Array<{ src: string; dst: string }> = [];
+    for (const event of events) {
+      if (!event.participantEffects) continue;
+      for (const participant of event.participantEffects) {
+        for (const effect of participant.effects) {
+          if (effect.semanticKind === 'rivalry' && effect.relatedEntity) {
+            pairs.push({ src: participant.entity.id, dst: effect.relatedEntity.id });
+          }
+        }
+      }
+    }
+    return pairs;
+  }
+
+  private buildWarEvent(component: Set<string>, events: NarrativeEvent[]): NarrativeEvent | null {
+    const participants = [...component].map(id => {
+      const entity = this.context.getEntity(id);
+      return entity ? { id: entity.id, name: entity.name, kind: entity.kind, subtype: entity.subtype } : null;
+    }).filter(Boolean);
+
+    if (participants.length < 3) return null;
+
+    const firstEvent = events[0];
+    return {
+      id: `war-${firstEvent.tick}-${crypto.randomUUID().slice(0, 11)}`,
+      tick: firstEvent.tick,
+      era: firstEvent.era,
+      eventKind: 'war_started',
+      significance: 0.8 + Math.min(0.2, participants.length * 0.02),
+      subject: participants[0]!,
+      action: 'war_started',
+      participantEffects: participants.map(p => ({
+        entity: p!,
+        effects: [{ type: 'relationship_formed' as const, semanticKind: 'rivalry' as const, description: 'entered conflict' }],
+      })),
+      description: `War erupts between ${participants.slice(0, 3).map(p => p!.name).join(', ')}${participants.length > 3 ? ' and ' + (participants.length - 3) + ' others' : ''}`,
+      narrativeTags: ['war', 'conflict', 'multi-entity'],
+    };
   }
 
   /**
    * Detect coalescence: multiple entities joining same container
    */
   private detectCoalescencePatterns(events: NarrativeEvent[]): NarrativeEvent[] {
-    // Collect all part_of formations grouped by target
-    const partOfByTarget = new Map<string, Array<{ srcId: string; srcName: string }>>();
-
-    for (const event of events) {
-      if (!event.participantEffects) continue;
-      for (const participant of event.participantEffects) {
-        for (const effect of participant.effects) {
-          if (effect.type === 'relationship_formed' &&
-              effect.relationshipKind === 'part_of' &&
-              effect.relatedEntity) {
-            const targetId = effect.relatedEntity.id;
-            if (!partOfByTarget.has(targetId)) {
-              partOfByTarget.set(targetId, []);
-            }
-            partOfByTarget.get(targetId)!.push({
-              srcId: participant.entity.id,
-              srcName: participant.entity.name,
-            });
-          }
-        }
-      }
-    }
-
+    const partOfByTarget = this.collectPartOfFormations(events);
     const coalescenceEvents: NarrativeEvent[] = [];
 
     for (const [targetId, members] of partOfByTarget) {
-      if (members.length >= 2) {
-        const target = this.context.getEntity(targetId);
-        if (!target) continue;
-
-        const firstEvent = events[0];
-        coalescenceEvents.push({
-          id: `coal-${firstEvent.tick}-${Math.random().toString(36).substr(2, 9)}`,
-          tick: firstEvent.tick,
-          era: firstEvent.era,
-          eventKind: 'coalescence',
-          significance: 0.6 + Math.min(0.3, members.length * 0.05),
-          subject: {
-            id: target.id,
-            name: target.name,
-            kind: target.kind,
-            subtype: target.subtype,
-          },
-          action: 'coalescence',
-          participantEffects: [{
-            entity: { id: target.id, name: target.name, kind: target.kind, subtype: target.subtype },
-            effects: [{ type: 'relationship_formed' as const, description: `received ${members.length} new members` }],
-          }, ...members.map(m => ({
-            entity: { id: m.srcId, name: m.srcName, kind: 'unknown', subtype: 'unknown' },
-            effects: [{ type: 'relationship_formed' as const, relationshipKind: 'part_of', description: `joined ${target.name}` }],
-          }))],
-          description: `${members.map(m => m.srcName).slice(0, 3).join(', ')}${members.length > 3 ? ` and ${members.length - 3} others` : ''} united under ${target.name}`,
-          narrativeTags: ['coalescence', 'unification', 'multi-entity'],
-        });
-      }
+      if (members.length < 2) continue;
+      const coalEvent = this.buildCoalescenceEvent(targetId, members, events);
+      if (coalEvent) coalescenceEvents.push(coalEvent);
     }
 
     return coalescenceEvents;
+  }
+
+  private addPartOfEffectsFromParticipant(
+    partOfByTarget: Map<string, Array<{ srcId: string; srcName: string }>>,
+    participant: NonNullable<NarrativeEvent['participantEffects']>[number]
+  ): void {
+    for (const effect of participant.effects) {
+      if (effect.type !== 'relationship_formed' || effect.relationshipKind !== 'part_of' || !effect.relatedEntity) continue;
+      const targetId = effect.relatedEntity.id;
+      if (!partOfByTarget.has(targetId)) partOfByTarget.set(targetId, []);
+      partOfByTarget.get(targetId)!.push({ srcId: participant.entity.id, srcName: participant.entity.name });
+    }
+  }
+
+  private collectPartOfFormations(events: NarrativeEvent[]): Map<string, Array<{ srcId: string; srcName: string }>> {
+    const partOfByTarget = new Map<string, Array<{ srcId: string; srcName: string }>>();
+    for (const event of events) {
+      if (!event.participantEffects) continue;
+      for (const participant of event.participantEffects) {
+        this.addPartOfEffectsFromParticipant(partOfByTarget, participant);
+      }
+    }
+    return partOfByTarget;
+  }
+
+  private buildCoalescenceEvent(
+    targetId: string,
+    members: Array<{ srcId: string; srcName: string }>,
+    events: NarrativeEvent[]
+  ): NarrativeEvent | null {
+    const target = this.context.getEntity(targetId);
+    if (!target) return null;
+
+    const firstEvent = events[0];
+    return {
+      id: `coal-${firstEvent.tick}-${crypto.randomUUID().slice(0, 11)}`,
+      tick: firstEvent.tick,
+      era: firstEvent.era,
+      eventKind: 'coalescence',
+      significance: 0.6 + Math.min(0.3, members.length * 0.05),
+      subject: { id: target.id, name: target.name, kind: target.kind, subtype: target.subtype },
+      action: 'coalescence',
+      participantEffects: [{
+        entity: { id: target.id, name: target.name, kind: target.kind, subtype: target.subtype },
+        effects: [{ type: 'relationship_formed' as const, description: `received ${members.length} new members` }],
+      }, ...members.map(m => ({
+        entity: { id: m.srcId, name: m.srcName, kind: 'unknown', subtype: 'unknown' },
+        effects: [{ type: 'relationship_formed' as const, relationshipKind: 'part_of', description: `joined ${target.name}` }],
+      }))],
+      description: `${members.map(m => m.srcName).slice(0, 3).join(', ')}${members.length > 3 ? ' and ' + (members.length - 3) + ' others' : ''} united under ${target.name}`,
+      narrativeTags: ['coalescence', 'unification', 'multi-entity'],
+    };
   }
 
   /**
    * Find connected components in a graph of pairs
    */
   private findConnectedComponents(pairs: Array<{ src: string; dst: string }>): Set<string>[] {
-    const adjacency = new Map<string, Set<string>>();
+    const adjacency = this.buildAdjacencyFromPairs(pairs);
+    return this.extractComponents(adjacency);
+  }
 
+  private buildAdjacencyFromPairs(pairs: Array<{ src: string; dst: string }>): Map<string, Set<string>> {
+    const adjacency = new Map<string, Set<string>>();
     for (const { src, dst } of pairs) {
       if (!adjacency.has(src)) adjacency.set(src, new Set());
       if (!adjacency.has(dst)) adjacency.set(dst, new Set());
       adjacency.get(src)!.add(dst);
       adjacency.get(dst)!.add(src);
     }
+    return adjacency;
+  }
 
+  private extractComponents(adjacency: Map<string, Set<string>>): Set<string>[] {
     const visited = new Set<string>();
     const components: Set<string>[] = [];
 
     for (const node of adjacency.keys()) {
       if (visited.has(node)) continue;
-
       const component = new Set<string>();
       const queue = [node];
-
       while (queue.length > 0) {
         const current = queue.shift()!;
         if (visited.has(current)) continue;
         visited.add(current);
         component.add(current);
-
         for (const neighbor of adjacency.get(current) || []) {
-          if (!visited.has(neighbor)) {
-            queue.push(neighbor);
-          }
+          if (!visited.has(neighbor)) queue.push(neighbor);
         }
       }
-
       components.push(component);
     }
 

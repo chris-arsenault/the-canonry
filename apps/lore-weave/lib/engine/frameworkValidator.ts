@@ -7,7 +7,8 @@
  * Runs at startup to catch configuration errors before generation begins.
  */
 
-import { EngineConfig, Pressure, EntityOperatorRegistry, SimulationSystem } from '../engine/types';
+import { EngineConfig, EntityOperatorRegistry, SimulationSystem } from '../engine/types';
+import { DeclarativePressure } from './declarativePressureTypes';
 import { DeclarativeSystem } from './systemInterpreter';
 
 export interface ValidationResult {
@@ -60,70 +61,90 @@ export class FrameworkValidator {
    * - All referenced components exist
    */
   private validateCoverage(errors: string[], warnings: string[]): void {
-    // Check entity registries exist
     if (!this.config.entityRegistries || this.config.entityRegistries.length === 0) {
       warnings.push('No entity registries defined - lineage enforcement disabled');
       return;
     }
 
-    // Validate each entity kind has creators
     for (const registry of this.config.entityRegistries) {
-      if (registry.creators.length === 0) {
-        errors.push(`Entity kind '${registry.kind}' has no creators`);
-      }
+      this.validateRegistryCoverage(registry, errors);
+    }
 
-      // Validate creators exist in templates
-      for (const creator of registry.creators) {
-        const template = this.config.templates.find(t => t.id === creator.templateId);
-        if (!template) {
-          errors.push(`Entity kind '${registry.kind}' references non-existent template: ${creator.templateId}`);
-        }
-      }
+    for (const pressure of this.config.pressures) {
+      this.validatePressureCoverage(pressure, errors, warnings);
+    }
+  }
 
-      // Validate modifiers exist in systems
-      for (const modifier of registry.modifiers) {
-        const system = this.config.systems.find(s => getSystemId(s) === modifier.systemId);
-        if (!system) {
-          errors.push(`Entity kind '${registry.kind}' references non-existent system: ${modifier.systemId}`);
-        }
+  private validateRegistryCoverage(
+    registry: EntityOperatorRegistry,
+    errors: string[]
+  ): void {
+    if (registry.creators.length === 0) {
+      errors.push(`Entity kind '${registry.kind}' has no creators`);
+    }
+
+    for (const creator of registry.creators) {
+      const template = this.config.templates.find(t => t.id === creator.templateId);
+      if (!template) {
+        errors.push(`Entity kind '${registry.kind}' references non-existent template: ${creator.templateId}`);
       }
     }
 
-    // Validate pressures have sources and sinks
-    for (const pressure of this.config.pressures) {
-      if (!pressure.contract) {
-        warnings.push(`Pressure '${pressure.name}' has no contract - validation skipped`);
-        continue;
+    for (const modifier of registry.modifiers) {
+      const system = this.config.systems.find(s => getSystemId(s) === modifier.systemId);
+      if (!system) {
+        errors.push(`Entity kind '${registry.kind}' references non-existent system: ${modifier.systemId}`);
       }
+    }
+  }
 
-      if (pressure.contract.sources.length === 0) {
-        errors.push(`Pressure '${pressure.name}' has no sources`);
-      }
+  private validatePressureCoverage(
+    pressure: DeclarativePressure,
+    errors: string[],
+    warnings: string[]
+  ): void {
+    if (!pressure.contract) {
+      warnings.push(`Pressure '${pressure.name}' has no contract - validation skipped`);
+      return;
+    }
 
-      if (pressure.contract.sinks.length === 0) {
-        errors.push(`Pressure '${pressure.name}' has no sinks - will saturate at 100!`);
-      }
+    if (pressure.contract.sources.length === 0) {
+      errors.push(`Pressure '${pressure.name}' has no sources`);
+    }
 
-      // Validate component references
-      for (const source of pressure.contract.sources) {
-        if (!this.componentExists(source.component)) {
-          errors.push(`Pressure '${pressure.name}' references non-existent source: ${source.component}`);
-        }
-      }
+    if (pressure.contract.sinks.length === 0) {
+      errors.push(`Pressure '${pressure.name}' has no sinks - will saturate at 100!`);
+    }
 
-      for (const sink of pressure.contract.sinks) {
-        if (!this.componentExists(sink.component)) {
-          errors.push(`Pressure '${pressure.name}' references non-existent sink: ${sink.component}`);
-        }
-      }
+    this.validateComponentRefs(
+      pressure.contract.sources.map(s => s.component),
+      `Pressure '${pressure.name}' references non-existent source`,
+      errors
+    );
 
-      // Validate affects references
-      if (pressure.contract.affects) {
-        for (const affected of pressure.contract.affects) {
-          if (!this.componentExists(affected.component)) {
-            errors.push(`Pressure '${pressure.name}' references non-existent affected component: ${affected.component}`);
-          }
-        }
+    this.validateComponentRefs(
+      pressure.contract.sinks.map(s => s.component),
+      `Pressure '${pressure.name}' references non-existent sink`,
+      errors
+    );
+
+    if (pressure.contract.affects) {
+      this.validateComponentRefs(
+        pressure.contract.affects.map(a => a.component),
+        `Pressure '${pressure.name}' references non-existent affected component`,
+        errors
+      );
+    }
+  }
+
+  private validateComponentRefs(
+    components: string[],
+    errorPrefix: string,
+    errors: string[]
+  ): void {
+    for (const component of components) {
+      if (!this.componentExists(component)) {
+        errors.push(`${errorPrefix}: ${component}`);
       }
     }
   }
@@ -134,7 +155,7 @@ export class FrameworkValidator {
    * For each pressure, calculates predicted equilibrium and compares to declared range.
    * This helps catch configuration errors where pressures won't reach expected values.
    */
-  private validateEquilibrium(errors: string[], warnings: string[]): void {
+  private validateEquilibrium(errors: string[], _warnings: string[]): void {
     for (const pressure of this.config.pressures) {
       if (!pressure.contract) {
         continue; // Skip pressures without contracts
@@ -206,7 +227,7 @@ export class FrameworkValidator {
    * Note: Contract validation removed. Contracts are now empty.
    * Lineage attribution is handled by the mutation tracker; no contract validation needed.
    */
-  private validateContracts(errors: string[], warnings: string[]): void {
+  private validateContracts(_errors: string[], _warnings: string[]): void {
     // Contracts are now empty - no validation needed
   }
 

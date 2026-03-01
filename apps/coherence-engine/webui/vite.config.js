@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { federation } from '@module-federation/vite';
+import { federationOnWarn, sharedDeps } from '../../../config/federation.js';
 
 // Coherence Engine is an MFE remote for The Canonry shell.
 // To use Coherence Engine, run The Canonry (apps/canonry/webui).
@@ -15,10 +16,7 @@ export default defineConfig({
       exposes: {
         './CoherenceEngineRemote': './src/CoherenceEngineRemote.jsx',
       },
-      shared: {
-        react: { singleton: true, requiredVersion: '^19.0.0' },
-        'react-dom': { singleton: true, requiredVersion: '^19.0.0' },
-      },
+      shared: sharedDeps(),
     }),
   ],
   // Base path - use /coherence-engine/ in dev (via proxy) and production
@@ -27,16 +25,7 @@ export default defineConfig({
     target: 'esnext',
     minify: false,
     rollupOptions: {
-      onwarn(warning, warn) {
-        const isModuleFederationEval =
-          warning.code === 'EVAL' &&
-          (warning.id?.includes('@module-federation/sdk') ||
-            warning.message.includes('@module-federation/sdk'));
-        if (isModuleFederationEval) {
-          return;
-        }
-        warn(warning);
-      },
+      onwarn: federationOnWarn,
     },
   },
   server: {

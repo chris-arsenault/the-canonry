@@ -4,9 +4,9 @@
  * Writes merged event records to the `narrativeEvents` store via raw IndexedDB.
  */
 
-import { openIlluminatorDb } from '../lib/illuminatorDbReader';
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
-const EVENTS_STORE_NAME = 'narrativeEvents';
+const EVENTS_STORE_NAME = "narrativeEvents";
 
 function mergeDefined(target, source) {
   const merged = { ...target };
@@ -28,11 +28,11 @@ export async function importNarrativeEvents(simulationRunId, events) {
 
   try {
     if (!db.objectStoreNames.contains(EVENTS_STORE_NAME)) {
-      throw new Error('Illuminator narrativeEvents store is unavailable.');
+      throw new Error("Illuminator narrativeEvents store is unavailable.");
     }
 
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(EVENTS_STORE_NAME, 'readwrite');
+      const tx = db.transaction(EVENTS_STORE_NAME, "readwrite");
       const store = tx.objectStore(EVENTS_STORE_NAME);
 
       for (const event of events) {
@@ -51,7 +51,8 @@ export async function importNarrativeEvents(simulationRunId, events) {
           const existing = req.result || {};
           if (req.result) overwritten += 1;
           const merged = mergeDefined(existing, incoming);
-          merged.simulationRunId = incoming.simulationRunId || existing.simulationRunId || simulationRunId;
+          merged.simulationRunId =
+            incoming.simulationRunId || existing.simulationRunId || simulationRunId;
           store.put(merged);
           imported += 1;
         };
@@ -61,7 +62,7 @@ export async function importNarrativeEvents(simulationRunId, events) {
       }
 
       tx.oncomplete = () => resolve({ imported, overwritten, skipped });
-      tx.onerror = () => reject(tx.error || new Error('Failed to import narrative events'));
+      tx.onerror = () => reject(tx.error || new Error("Failed to import narrative events"));
     });
   } finally {
     db.close();
@@ -73,12 +74,13 @@ export async function getNarrativeEventCountForRun(simulationRunId) {
   const db = await openIlluminatorDb();
   try {
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(EVENTS_STORE_NAME, 'readonly');
+      const tx = db.transaction(EVENTS_STORE_NAME, "readonly");
       const store = tx.objectStore(EVENTS_STORE_NAME);
-      const index = store.index('simulationRunId');
+      const index = store.index("simulationRunId");
       const request = index.count(simulationRunId);
       request.onsuccess = () => resolve(request.result || 0);
-      request.onerror = () => reject(request.error || new Error('Failed to count narrative events'));
+      request.onerror = () =>
+        reject(request.error || new Error("Failed to count narrative events"));
     });
   } finally {
     db.close();

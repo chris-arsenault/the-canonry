@@ -9,67 +9,53 @@
  * See CHRONICLE_DESIGN.md for architecture documentation.
  */
 
-import { useMemo } from 'react';
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
+import "./ChroniclePlanEditor.css";
 
 function resolveName(map, id) {
-  if (!id) return '';
+  if (!id) return "";
   return map?.get(id)?.name || id;
 }
 
 function resolveEvent(map, id) {
-  if (!id) return '';
+  if (!id) return "";
   return map?.get(id)?.headline || id;
 }
 
 function PlanHeader({ plan }) {
-  const outline = plan.format === 'document' ? plan.documentOutline : plan.storyOutline;
+  const outline = plan.format === "document" ? plan.documentOutline : plan.storyOutline;
   const summaryItems = [];
-  if (plan.format === 'document' && outline?.purpose) {
-    summaryItems.push({ label: 'Purpose', value: outline.purpose });
+  if (plan.format === "document" && outline?.purpose) {
+    summaryItems.push({ label: "Purpose", value: outline.purpose });
   }
-  if (plan.format === 'story' && outline?.theme) {
-    summaryItems.push({ label: 'Theme', value: outline.theme });
+  if (plan.format === "story" && outline?.theme) {
+    summaryItems.push({ label: "Theme", value: outline.theme });
   }
   if (outline?.tone) {
-    summaryItems.push({ label: 'Tone', value: outline.tone });
+    summaryItems.push({ label: "Tone", value: outline.tone });
   }
   if (outline?.era) {
-    summaryItems.push({ label: 'Era', value: outline.era });
+    summaryItems.push({ label: "Era", value: outline.era });
   }
 
   return (
-    <div
-      style={{
-        padding: '16px',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-        border: '1px solid var(--border-color)',
-        marginBottom: '16px',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div className="cpe-card">
+      <div className="cpe-header-row">
         <div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>Plan Title</div>
-          <div style={{ fontSize: '18px', fontWeight: 600 }}>{plan.title}</div>
+          <div className="cpe-plan-title-label">Plan Title</div>
+          <div className="cpe-plan-title">{plan.title}</div>
         </div>
         <span
-          style={{
-            fontSize: '10px',
-            padding: '4px 8px',
-            background: plan.format === 'document' ? '#059669' : 'var(--accent-primary)',
-            color: 'white',
-            borderRadius: '4px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-          }}
+          className={`cpe-format-badge ${plan.format === "document" ? "cpe-format-badge-document" : "cpe-format-badge-story"}`}
         >
           {plan.format}
         </span>
       </div>
       {summaryItems.length > 0 && (
-        <div style={{ display: 'flex', gap: '12px', marginTop: '12px', flexWrap: 'wrap' }}>
+        <div className="cpe-summary-row">
           {summaryItems.map((item) => (
-            <span key={item.label} style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <span key={item.label} className="cpe-summary-item">
               <strong>{item.label}:</strong> {item.value}
             </span>
           ))}
@@ -80,10 +66,10 @@ function PlanHeader({ plan }) {
 }
 
 function formatEntityList(ids, entityMap, limit = 6) {
-  if (!ids || ids.length === 0) return '(none)';
+  if (!ids || ids.length === 0) return "(none)";
   const names = ids.map((id) => resolveName(entityMap, id));
-  if (names.length <= limit) return names.join(', ');
-  return `${names.slice(0, limit).join(', ')} +${names.length - limit} more`;
+  if (names.length <= limit) return names.join(", ");
+  return `${names.slice(0, limit).join(", ")} +${names.length - limit} more`;
 }
 
 function FocusSummary({ plan, entityMap }) {
@@ -91,143 +77,122 @@ function FocusSummary({ plan, entityMap }) {
   if (!focus) return null;
 
   return (
-    <div
-      style={{
-        padding: '16px',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-        border: '1px solid var(--border-color)',
-        marginBottom: '16px',
-      }}
-    >
-      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Focus</div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+    <div className="cpe-card">
+      <div className="cpe-section-title">Focus</div>
+      <div className="cpe-info-line">
         <strong>Mode:</strong> {focus.mode}
       </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+      <div className="cpe-info-line">
         <strong>Entrypoint:</strong> {resolveName(entityMap, focus.entrypointId)}
       </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+      <div className="cpe-info-line">
         <strong>Primary Entities:</strong> {formatEntityList(focus.primaryEntityIds, entityMap)}
       </div>
       {focus.supportingEntityIds?.length > 0 && (
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-          <strong>Supporting Entities:</strong> {formatEntityList(focus.supportingEntityIds, entityMap)}
+        <div className="cpe-info-line">
+          <strong>Supporting Entities:</strong>{" "}
+          {formatEntityList(focus.supportingEntityIds, entityMap)}
         </div>
       )}
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-        <strong>Selected Cast:</strong> {focus.selectedEntityIds.length} entities • {focus.selectedEventIds.length} events
+      <div className="cpe-info-line cpe-info-line-last">
+        <strong>Selected Cast:</strong> {focus.selectedEntityIds.length} entities •{" "}
+        {focus.selectedEventIds.length} events
       </div>
     </div>
   );
 }
 
-function OutlineSummary({ plan }) {
-  if (plan.format === 'document') {
-    const outline = plan.documentOutline;
-    if (!outline) return null;
-
-    const optionalMeta = [
-      outline.veracity ? `Veracity: ${outline.veracity}` : '',
-      outline.legitimacy ? `Legitimacy: ${outline.legitimacy}` : '',
-      outline.audience ? `Audience: ${outline.audience}` : '',
-      outline.authorProvenance ? `Provenance: ${outline.authorProvenance}` : '',
-      outline.biasAgenda ? `Bias/Agenda: ${outline.biasAgenda}` : '',
-      outline.intendedOutcome ? `Intended Outcome: ${outline.intendedOutcome}` : '',
-    ].filter(Boolean);
-
-    return (
-      <div
-        style={{
-          padding: '16px',
-          background: 'var(--bg-secondary)',
-          borderRadius: '8px',
-          border: '1px solid var(--border-color)',
-          marginBottom: '16px',
-        }}
-      >
-        <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Document Outline</div>
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-          <strong>Purpose:</strong> {outline.purpose}
-        </div>
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-          <strong>Era:</strong> {outline.era}
-        </div>
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-          <strong>Tone:</strong> {outline.tone}
-        </div>
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-          <strong>Key Points:</strong>
-          <ul style={{ margin: '6px 0 0 16px', fontSize: '12px' }}>
-            {outline.keyPoints.map((point, idx) => (
-              <li key={`${point}-${idx}`}>{point}</li>
-            ))}
-          </ul>
-        </div>
-        {optionalMeta.length > 0 && (
-          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-            <strong>Optional:</strong> {optionalMeta.join(' • ')}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const outline = plan.storyOutline;
+function DocumentOutlineSummary({ outline }) {
   if (!outline) return null;
-
   const optionalMeta = [
-    outline.stakes ? `Stakes: ${outline.stakes}` : '',
-    outline.transformation ? `Transformation: ${outline.transformation}` : '',
-    outline.intendedImpact ? `Intended Impact: ${outline.intendedImpact}` : '',
+    outline.veracity ? `Veracity: ${outline.veracity}` : "",
+    outline.legitimacy ? `Legitimacy: ${outline.legitimacy}` : "",
+    outline.audience ? `Audience: ${outline.audience}` : "",
+    outline.authorProvenance ? `Provenance: ${outline.authorProvenance}` : "",
+    outline.biasAgenda ? `Bias/Agenda: ${outline.biasAgenda}` : "",
+    outline.intendedOutcome ? `Intended Outcome: ${outline.intendedOutcome}` : "",
   ].filter(Boolean);
-
   return (
-    <div
-      style={{
-        padding: '16px',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-        border: '1px solid var(--border-color)',
-        marginBottom: '16px',
-      }}
-    >
-      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Story Outline</div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+    <div className="cpe-card">
+      <div className="cpe-section-title">Document Outline</div>
+      <div className="cpe-info-line">
         <strong>Purpose:</strong> {outline.purpose}
       </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-        <strong>Theme:</strong> {outline.theme}
-      </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+      <div className="cpe-info-line">
         <strong>Era:</strong> {outline.era}
       </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+      <div className="cpe-info-line">
         <strong>Tone:</strong> {outline.tone}
       </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+      <div className="cpe-info-line">
         <strong>Key Points:</strong>
-        <ul style={{ margin: '6px 0 0 16px', fontSize: '12px' }}>
+        <ul className="cpe-list">
           {outline.keyPoints.map((point, idx) => (
             <li key={`${point}-${idx}`}>{point}</li>
           ))}
         </ul>
       </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+      {optionalMeta.length > 0 && (
+        <div className="cpe-info-line cpe-info-line-last">
+          <strong>Optional:</strong> {optionalMeta.join(" • ")}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StoryOutlineSummary({ outline }) {
+  if (!outline) return null;
+  const optionalMeta = [
+    outline.stakes ? `Stakes: ${outline.stakes}` : "",
+    outline.transformation ? `Transformation: ${outline.transformation}` : "",
+    outline.intendedImpact ? `Intended Impact: ${outline.intendedImpact}` : "",
+  ].filter(Boolean);
+  return (
+    <div className="cpe-card">
+      <div className="cpe-section-title">Story Outline</div>
+      <div className="cpe-info-line">
+        <strong>Purpose:</strong> {outline.purpose}
+      </div>
+      <div className="cpe-info-line">
+        <strong>Theme:</strong> {outline.theme}
+      </div>
+      <div className="cpe-info-line">
+        <strong>Era:</strong> {outline.era}
+      </div>
+      <div className="cpe-info-line">
+        <strong>Tone:</strong> {outline.tone}
+      </div>
+      <div className="cpe-info-line">
+        <strong>Key Points:</strong>
+        <ul className="cpe-list">
+          {outline.keyPoints.map((point, idx) => (
+            <li key={`${point}-${idx}`}>{point}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="cpe-info-line">
         <strong>Emotional Beats:</strong>
-        <ul style={{ margin: '6px 0 0 16px', fontSize: '12px' }}>
+        <ul className="cpe-list">
           {outline.emotionalBeats.map((beat, idx) => (
             <li key={`${beat}-${idx}`}>{beat}</li>
           ))}
         </ul>
       </div>
       {optionalMeta.length > 0 && (
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-          <strong>Optional:</strong> {optionalMeta.join(' • ')}
+        <div className="cpe-info-line cpe-info-line-last">
+          <strong>Optional:</strong> {optionalMeta.join(" • ")}
         </div>
       )}
     </div>
   );
+}
+
+function OutlineSummary({ plan }) {
+  if (plan.format === "document") {
+    return <DocumentOutlineSummary outline={plan.documentOutline} />;
+  }
+  return <StoryOutlineSummary outline={plan.storyOutline} />;
 }
 
 function PlotSummary({ plan }) {
@@ -236,22 +201,12 @@ function PlotSummary({ plan }) {
 
   const beats = plot.normalizedBeats || [];
   return (
-    <div
-      style={{
-        padding: '16px',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-        border: '1px solid var(--border-color)',
-        marginBottom: '16px',
-      }}
-    >
-      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
-        Structure ({plot.type})
-      </div>
+    <div className="cpe-card">
+      <div className="cpe-section-title">Structure ({plot.type})</div>
       {beats.length === 0 ? (
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No structure beats defined.</div>
+        <div className="cpe-empty-msg">No structure beats defined.</div>
       ) : (
-        <ol style={{ margin: '0 0 0 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+        <ol className="cpe-ordered-list">
           {beats.map((beat, idx) => (
             <li key={`${beat.description}-${idx}`}>{beat.description}</li>
           ))}
@@ -265,34 +220,15 @@ function EntityRoleList({ plan, entityMap }) {
   if (!plan.entityRoles || plan.entityRoles.length === 0) return null;
 
   return (
-    <div
-      style={{
-        padding: '16px',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-        border: '1px solid var(--border-color)',
-        marginBottom: '16px',
-      }}
-    >
-      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Entities</div>
+    <div className="cpe-card">
+      <div className="cpe-section-title">Entities</div>
       {plan.entityRoles.map((role) => (
-        <div
-          key={role.entityId}
-          style={{
-            padding: '10px 12px',
-            borderRadius: '6px',
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border-color)',
-            marginBottom: '8px',
-          }}
-        >
-          <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
-            {resolveName(entityMap, role.entityId)}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+        <div key={role.entityId} className="cpe-entity-card">
+          <div className="cpe-entity-name">{resolveName(entityMap, role.entityId)}</div>
+          <div className="cpe-entity-info">
             <strong>Role:</strong> {role.role}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+          <div className="cpe-entity-info">
             <strong>Contribution:</strong> {role.contribution}
           </div>
         </div>
@@ -306,71 +242,51 @@ function SectionCard({ section, index, format, entityMap, eventMap }) {
   const events = section.eventIds?.map((id) => resolveEvent(eventMap, id)) || [];
 
   return (
-    <div
-      style={{
-        padding: '16px',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-        border: '1px solid var(--border-color)',
-        marginBottom: '12px',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: '14px', fontWeight: 600 }}>
+    <div className="cpe-section-card">
+      <div className="cpe-section-header">
+        <div className="cpe-section-name">
           Section {index + 1}: {section.name}
         </div>
-        {section.optional && (
-          <span
-            style={{
-              fontSize: '10px',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              background: 'var(--bg-tertiary)',
-              color: 'var(--text-muted)',
-            }}
-          >
-            optional
-          </span>
-        )}
+        {section.optional && <span className="cpe-optional-badge">optional</span>}
       </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+      <div className="cpe-section-detail">
         <strong>Purpose:</strong> {section.purpose}
       </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+      <div className="cpe-section-detail cpe-section-detail-sm">
         <strong>Goal:</strong> {section.goal}
       </div>
       {section.wordCountTarget && (
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+        <div className="cpe-section-detail cpe-section-detail-sm">
           <strong>Word Target:</strong> {section.wordCountTarget}
         </div>
       )}
-      {format === 'story' && (
+      {format === "story" && (
         <>
           {section.emotionalArc && (
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            <div className="cpe-section-detail cpe-section-detail-sm">
               <strong>Emotional Arc:</strong> {section.emotionalArc}
             </div>
           )}
           {section.requiredElements && section.requiredElements.length > 0 && (
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-              <strong>Required Elements:</strong> {section.requiredElements.join(', ')}
+            <div className="cpe-section-detail cpe-section-detail-md">
+              <strong>Required Elements:</strong> {section.requiredElements.join(", ")}
             </div>
           )}
         </>
       )}
-      {format === 'document' && section.contentGuidance && (
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+      {format === "document" && section.contentGuidance && (
+        <div className="cpe-section-detail cpe-section-detail-md">
           <strong>Content Guidance:</strong> {section.contentGuidance}
         </div>
       )}
       {entities.length > 0 && (
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-          <strong>Entities:</strong> {entities.join(', ')}
+        <div className="cpe-section-detail cpe-section-detail-md">
+          <strong>Entities:</strong> {entities.join(", ")}
         </div>
       )}
       {events.length > 0 && (
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-          <strong>Events:</strong> {events.join(', ')}
+        <div className="cpe-section-detail cpe-section-detail-md">
+          <strong>Events:</strong> {events.join(", ")}
         </div>
       )}
     </div>
@@ -382,7 +298,7 @@ function SectionsList({ plan, entityMap, eventMap }) {
 
   return (
     <div>
-      <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Sections</div>
+      <div className="cpe-sections-heading">Sections</div>
       {plan.sections.map((section, index) => (
         <SectionCard
           key={section.id}
@@ -416,80 +332,36 @@ export default function ChroniclePlanEditor({
   }, [plan.sections]);
 
   return (
-    <div style={{ maxWidth: '900px' }}>
+    <div className="cpe-root">
       <PlanHeader plan={plan} />
       <OutlineSummary plan={plan} />
       <FocusSummary plan={plan} entityMap={entityMap} />
       <PlotSummary plan={plan} />
       <EntityRoleList plan={plan} entityMap={entityMap} />
 
-      <div
-        style={{
-          display: 'flex',
-          gap: '16px',
-          marginBottom: '16px',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div
-          style={{
-            padding: '12px 16px',
-            background: 'var(--bg-secondary)',
-            borderRadius: '8px',
-            border: '1px solid var(--border-color)',
-            fontSize: '12px',
-            color: 'var(--text-secondary)',
-          }}
-        >
+      <div className="cpe-stats-row">
+        <div className="cpe-stat-box">
           <strong>Sections:</strong> {sectionCount}
         </div>
-        <div
-          style={{
-            padding: '12px 16px',
-            background: 'var(--bg-secondary)',
-            borderRadius: '8px',
-            border: '1px solid var(--border-color)',
-            fontSize: '12px',
-            color: 'var(--text-secondary)',
-          }}
-        >
+        <div className="cpe-stat-box">
           <strong>Referenced Events:</strong> {eventStats}
         </div>
       </div>
 
       <SectionsList plan={plan} entityMap={entityMap} eventMap={eventMap} />
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '12px',
-          marginTop: '24px',
-        }}
-      >
+      <div className="cpe-action-bar">
         <button
           onClick={onRegenerate}
           disabled={isGenerating}
-          className="illuminator-button"
-          style={{
-            padding: '10px 18px',
-            fontSize: '13px',
-            opacity: isGenerating ? 0.6 : 1,
-            cursor: isGenerating ? 'not-allowed' : 'pointer',
-          }}
+          className={`illuminator-button cpe-btn ${isGenerating ? "cpe-btn-disabled" : ""}`}
         >
           Regenerate Plan
         </button>
         <button
           onClick={onApprove}
           disabled={isGenerating}
-          className="illuminator-button illuminator-button-primary"
-          style={{
-            padding: '10px 18px',
-            fontSize: '13px',
-            opacity: isGenerating ? 0.6 : 1,
-            cursor: isGenerating ? 'not-allowed' : 'pointer',
-          }}
+          className={`illuminator-button illuminator-button-primary cpe-btn ${isGenerating ? "cpe-btn-disabled" : ""}`}
         >
           Approve Plan
         </button>
@@ -497,3 +369,48 @@ export default function ChroniclePlanEditor({
     </div>
   );
 }
+
+PlanHeader.propTypes = {
+  plan: PropTypes.object.isRequired,
+};
+
+FocusSummary.propTypes = {
+  plan: PropTypes.object.isRequired,
+  entityMap: PropTypes.object,
+};
+
+OutlineSummary.propTypes = {
+  plan: PropTypes.object.isRequired,
+};
+
+PlotSummary.propTypes = {
+  plan: PropTypes.object.isRequired,
+};
+
+EntityRoleList.propTypes = {
+  plan: PropTypes.object.isRequired,
+  entityMap: PropTypes.object,
+};
+
+SectionCard.propTypes = {
+  section: PropTypes.object.isRequired,
+  index: PropTypes.number.isRequired,
+  format: PropTypes.string,
+  entityMap: PropTypes.object,
+  eventMap: PropTypes.object,
+};
+
+SectionsList.propTypes = {
+  plan: PropTypes.object.isRequired,
+  entityMap: PropTypes.object,
+  eventMap: PropTypes.object,
+};
+
+ChroniclePlanEditor.propTypes = {
+  plan: PropTypes.object.isRequired,
+  entityMap: PropTypes.object,
+  eventMap: PropTypes.object,
+  onRegenerate: PropTypes.func.isRequired,
+  onApprove: PropTypes.func.isRequired,
+  isGenerating: PropTypes.bool,
+};

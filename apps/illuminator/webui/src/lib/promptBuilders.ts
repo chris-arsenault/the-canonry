@@ -62,7 +62,7 @@ export interface ToneFragments {
 export interface CanonFactWithMetadata {
   id: string;
   text: string;
-  type?: 'world_truth' | 'generation_constraint';
+  type?: "world_truth" | "generation_constraint";
   required?: boolean;
 }
 
@@ -70,37 +70,37 @@ export interface CanonFactWithMetadata {
  * World-level context - structured for perspective synthesis
  */
 export interface WorldContext {
-  name: string;                              // World name
-  description: string;                       // Genre/setting brief (1-2 sentences)
-  toneFragments: ToneFragments;              // Composable tone guidance
-  canonFactsWithMetadata: CanonFactWithMetadata[];  // Facts for perspective synthesis
-  speciesConstraint?: string;                // Species rule for image generation
+  name: string; // World name
+  description: string; // Genre/setting brief (1-2 sentences)
+  toneFragments: ToneFragments; // Composable tone guidance
+  canonFactsWithMetadata: CanonFactWithMetadata[]; // Facts for perspective synthesis
+  speciesConstraint?: string; // Species rule for image generation
 }
 
 /**
  * Get flat tone string from structured context
  */
 export function getTone(ctx: WorldContext): string {
-  return ctx.toneFragments?.core || '';
+  return ctx.toneFragments?.core || "";
 }
 
 /**
  * Get flat canon facts array from structured context
  */
 export function getCanonFacts(ctx: WorldContext): string[] {
-  return (ctx.canonFactsWithMetadata || []).map(f => f.text);
+  return (ctx.canonFactsWithMetadata || []).map((f) => f.text);
 }
 
 /**
  * Resolved relationship with target entity info
  */
 export interface ResolvedRelationship {
-  kind: string;                 // "allies_with", "member_of", "rivals"
-  targetName: string;           // Resolved entity name
-  targetKind: string;           // "faction", "npc", "location"
-  targetSubtype?: string;       // "guild", "hero", "fortress"
-  strength?: number;            // 0-1 relationship strength
-  mutual?: boolean;             // Is this bidirectional?
+  kind: string; // "allies_with", "member_of", "rivals"
+  targetName: string; // Resolved entity name
+  targetKind: string; // "faction", "npc", "location"
+  targetSubtype?: string; // "guild", "hero", "fortress"
+  strength?: number; // 0-1 relationship strength
+  mutual?: boolean; // Is this bidirectional?
 }
 
 /**
@@ -135,12 +135,12 @@ export interface EntityContext {
     name: string;
     description?: string;
   };
-  entityAge: 'ancient' | 'established' | 'mature' | 'recent' | 'new';
+  entityAge: "ancient" | "established" | "mature" | "recent" | "new";
 
   // Related entities (names, not IDs)
-  culturalPeers?: string[];     // Other notable entities of same culture
-  factionMembers?: string[];    // If entity belongs to a faction
-  locationEntities?: string[];  // Entities at same location (if applicable)
+  culturalPeers?: string[]; // Other notable entities of same culture
+  factionMembers?: string[]; // If entity belongs to a faction
+  locationEntities?: string[]; // Entities at same location (if applicable)
 
   // Narrative events involving this entity
   events?: Array<{
@@ -334,10 +334,7 @@ export function getFilteredDescriptiveIdentity(
  * Build prose hints for chronicle generation
  * Aggregates proseHint from all involved entity kinds
  */
-export function buildProseHints(
-  entityGuidance: EntityGuidance,
-  involvedKinds: string[]
-): string {
+export function buildProseHints(entityGuidance: EntityGuidance, involvedKinds: string[]): string {
   const uniqueKinds = [...new Set(involvedKinds)];
   const hints: string[] = [];
 
@@ -348,7 +345,7 @@ export function buildProseHints(
     }
   }
 
-  return hints.length > 0 ? hints.join('\n') : '';
+  return hints.length > 0 ? hints.join("\n") : "";
 }
 
 /**
@@ -357,20 +354,20 @@ export function buildProseHints(
 function getDefaultKindGuidance(kind: string): KindGuidance {
   return {
     focus: `Describe this ${kind} with vivid, specific details.`,
-    relationshipUse: 'Reference relevant relationships to ground the description.',
+    relationshipUse: "Reference relevant relationships to ground the description.",
     proseHint: `Show this ${kind} through specific details.`,
     visualThesis: {
       domain: `You design ${kind}s for a fantasy world.`,
-      focus: 'Focus on distinctive visual elements.',
+      focus: "Focus on distinctive visual elements.",
       framing: `This is a ${kind.toUpperCase()}.`,
     },
     visualTraits: {
       domain: `You're completing a ${kind} design brief.`,
-      focus: 'Add supporting visual details.',
+      focus: "Add supporting visual details.",
       framing: `This is a ${kind.toUpperCase()}.`,
     },
     imageInstructions: `Create concept art for this ${kind}.`,
-    imageAvoid: 'Text, labels, watermarks.',
+    imageAvoid: "Text, labels, watermarks.",
   };
 }
 
@@ -397,85 +394,113 @@ export function buildDescriptionPromptFromGuidance(
   const visualIdentity = getFilteredVisualIdentity(cultureIdentities, e.culture, kind);
 
   // Format sections
-  const tagsSection = e.tags && Object.keys(e.tags).length > 0
-    ? `TAGS:\n${Object.entries(e.tags).map(([k, v]) => `- ${k}: ${v}`).join('\n')}`
-    : '';
+  const tagsSection =
+    e.tags && Object.keys(e.tags).length > 0
+      ? `TAGS:\n${Object.entries(e.tags)
+          .map(([k, v]) => `- ${k}: ${v}`)
+          .join("\n")}`
+      : "";
 
-  const descriptiveSection = Object.keys(descriptiveIdentity).length > 0
-    ? `CULTURAL IDENTITY (${e.culture}):\n${Object.entries(descriptiveIdentity).map(([k, v]) => `- ${k}: ${v}`).join('\n')}`
-    : '';
+  const descriptiveSection =
+    Object.keys(descriptiveIdentity).length > 0
+      ? `CULTURAL IDENTITY (${e.culture}):\n${Object.entries(descriptiveIdentity)
+          .map(([k, v]) => `- ${k}: ${v}`)
+          .join("\n")}`
+      : "";
 
-  const visualSection = Object.keys(visualIdentity).length > 0
-    ? `CULTURAL VISUAL IDENTITY (${e.culture}):\n${Object.entries(visualIdentity).map(([k, v]) => `- ${k}: ${v}`).join('\n')}`
-    : '';
+  const visualSection =
+    Object.keys(visualIdentity).length > 0
+      ? `CULTURAL VISUAL IDENTITY (${e.culture}):\n${Object.entries(visualIdentity)
+          .map(([k, v]) => `- ${k}: ${v}`)
+          .join("\n")}`
+      : "";
 
-  const relationshipsSection = entityContext.relationships.length > 0
-    ? entityContext.relationships.slice(0, 8).map(r => {
-        let line = `- ${r.kind}: ${r.targetName} (${r.targetKind}`;
-        if (r.targetSubtype) line += `/${r.targetSubtype}`;
-        line += ')';
-        const strength = r.strength ?? 0.5;
-        const label = strength >= 0.7 ? 'strong' : strength >= 0.4 ? 'moderate' : 'weak';
-        line += ` [${label}]`;
-        return line;
-      }).join('\n')
-    : '(No established relationships)';
+  const relationshipsSection =
+    entityContext.relationships.length > 0
+      ? entityContext.relationships
+          .slice(0, 8)
+          .map((r) => {
+            let line = `- ${r.kind}: ${r.targetName} (${r.targetKind}`;
+            if (r.targetSubtype) line += `/${r.targetSubtype}`;
+            line += ")";
+            const strength = r.strength ?? 0.5;
+            let label: string;
+            if (strength >= 0.7) label = "strong";
+            else if (strength >= 0.4) label = "moderate";
+            else label = "weak";
+            line += ` [${label}]`;
+            return line;
+          })
+          .join("\n")
+      : "(No established relationships)";
 
   const parts = [
     `Write a description for ${e.name}, a ${e.subtype} ${kind} in ${worldContext.name}.`,
-    '',
+    "",
     `WORLD: ${worldContext.description}`,
-    '',
-    'TONE & STYLE:',
+    "",
+    "TONE & STYLE:",
     getTone(worldContext),
-    '',
-    'CANON FACTS (never contradict):',
-    getCanonFacts(worldContext).map(f => `- ${f}`).join('\n'),
-    '',
-    '---',
-    '',
-    'ENTITY:',
+    "",
+    "CANON FACTS (never contradict):",
+    getCanonFacts(worldContext)
+      .map((f) => `- ${f}`)
+      .join("\n"),
+    "",
+    "---",
+    "",
+    "ENTITY:",
     `- Kind: ${kind}`,
     `- Subtype: ${e.subtype}`,
     `- Prominence: ${e.prominence}`,
     `- Status: ${e.status}`,
-    `- Culture: ${e.culture || 'unaffiliated'}`,
+    `- Culture: ${e.culture || "unaffiliated"}`,
     `- Age in world: ${entityContext.entityAge}`,
-    '',
+    "",
     tagsSection,
     descriptiveSection,
     visualSection,
-    '',
-    'RELATIONSHIPS:',
+    "",
+    "RELATIONSHIPS:",
     relationshipsSection,
-    '',
-    entityContext.culturalPeers?.length ? `CULTURAL PEERS: ${entityContext.culturalPeers.join(', ')}` : '',
-    entityContext.factionMembers?.length ? `FACTION MEMBERS: ${entityContext.factionMembers.join(', ')}` : '',
-    '',
+    "",
+    entityContext.culturalPeers?.length
+      ? `CULTURAL PEERS: ${entityContext.culturalPeers.join(", ")}`
+      : "",
+    entityContext.factionMembers?.length
+      ? `FACTION MEMBERS: ${entityContext.factionMembers.join(", ")}`
+      : "",
+    "",
     // Add events section if entity has narrative history
-    entityContext.events?.length ? `HISTORY FRAGMENTS (mine for flavor, don't enumerate):\n${entityContext.events.map(ev =>
-      `- [${ev.era}] ${ev.description}`
-    ).join('\n')}` : '',
-    '',
-    `ERA: ${entityContext.era.name}${entityContext.era.description ? ` - ${entityContext.era.description}` : ''}`,
-    '',
-    '---',
-    '',
+    entityContext.events?.length
+      ? `HISTORY FRAGMENTS (mine for flavor, don't enumerate):\n${entityContext.events
+          .map((ev) => `- [${ev.era}] ${ev.description}`)
+          .join("\n")}`
+      : "",
+    "",
+    `ERA: ${entityContext.era.name}${entityContext.era.description ? " - " + entityContext.era.description : ""}`,
+    "",
+    "---",
+    "",
     `FOCUS FOR ${kind.toUpperCase()}:`,
     guidance.focus,
-    '',
-    'RELATIONSHIP GUIDANCE:',
+    "",
+    "RELATIONSHIP GUIDANCE:",
     guidance.relationshipUse,
-    '',
-    '---',
-    '',
-    'OUTPUT: Return JSON with keys: summary, description, aliases',
-    '- description: 2-4 sentences, vivid and specific',
-    '- summary: 1-2 sentences, compressed and faithful to description',
-    '- aliases: array of alternate names (can be empty)',
+    "",
+    "---",
+    "",
+    "OUTPUT: Return JSON with keys: summary, description, aliases",
+    "- description: 2-4 sentences, vivid and specific",
+    "- summary: 1-2 sentences, compressed and faithful to description",
+    "- aliases: array of alternate names (can be empty)",
   ];
 
-  return parts.filter(Boolean).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return parts
+    .filter(Boolean)
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 /**
@@ -494,66 +519,77 @@ export function buildImagePromptFromGuidance(
   const guidance = entityGuidance[kind] || getDefaultKindGuidance(kind);
 
   // Use summary for image prompts (concise text for visual generation)
-  const summaryText = e.summary || '';
+  const summaryText = e.summary || "";
 
   // Visual thesis - THE primary visual signal
   const visualThesisSection = e.visualThesis
     ? `VISUAL THESIS (PRIMARY - this is the dominant visual signal):\n${e.visualThesis}`
-    : '';
+    : "";
 
   // Supporting traits
-  const supportingTraitsSection = e.visualTraits?.length
-    ? `SUPPORTING TRAITS (reinforce the thesis):\n${e.visualTraits.map(t => `- ${t}`).join('\n')}`
-    : '';
+  const traitsBody = e.visualTraits?.length
+    ? e.visualTraits.map((t) => `- ${t}`).join("\n")
+    : "";
+  const supportingTraitsSection = traitsBody
+    ? `SUPPORTING TRAITS (reinforce the thesis):\n${traitsBody}`
+    : "";
 
   // Cultural visual identity
   const visualIdentity = getFilteredVisualIdentity(cultureIdentities, e.culture, kind);
-  const visualIdentitySection = Object.keys(visualIdentity).length > 0
-    ? `CULTURAL VISUAL IDENTITY (${e.culture}):\n${Object.entries(visualIdentity).map(([k, v]) => `- ${k}: ${v}`).join('\n')}`
-    : '';
+  const visualIdentitySection =
+    Object.keys(visualIdentity).length > 0
+      ? `CULTURAL VISUAL IDENTITY (${e.culture}):\n${Object.entries(visualIdentity)
+          .map(([k, v]) => `- ${k}: ${v}`)
+          .join("\n")}`
+      : "";
 
   // Style sections
   const styleSection = styleInfo?.artisticPromptFragment
     ? `STYLE: ${styleInfo.artisticPromptFragment}`
-    : '';
+    : "";
 
-  const colorPaletteSection = styleInfo?.colorPalettePromptFragment
-    ? (styleInfo.colorPalettePromptFragment.startsWith('COLOR PALETTE')
-        ? styleInfo.colorPalettePromptFragment
-        : `COLOR PALETTE: ${styleInfo.colorPalettePromptFragment}`)
-    : '';
+  let colorPaletteSection = "";
+  if (styleInfo?.colorPalettePromptFragment) {
+    colorPaletteSection = styleInfo.colorPalettePromptFragment.startsWith("COLOR PALETTE")
+      ? styleInfo.colorPalettePromptFragment
+      : `COLOR PALETTE: ${styleInfo.colorPalettePromptFragment}`;
+  }
 
   const compositionSection = styleInfo?.compositionPromptFragment
     ? `COMPOSITION: ${styleInfo.compositionPromptFragment}`
-    : '';
+    : "";
 
   // Species constraint section - placed prominently after IMAGE INSTRUCTIONS
   const speciesSection = worldContext.speciesConstraint
     ? `SPECIES REQUIREMENT: ${worldContext.speciesConstraint}`
-    : '';
+    : "";
 
   const parts = [
     `IMAGE INSTRUCTIONS: ${guidance.imageInstructions}`,
     speciesSection,
-    '',
+    "",
     `SUBJECT: ${e.name}, a ${e.subtype} ${kind}`,
-    summaryText ? `CONTEXT: ${summaryText}` : '',
-    '',
+    summaryText ? `CONTEXT: ${summaryText}` : "",
+    "",
     visualThesisSection,
     supportingTraitsSection,
     visualIdentitySection,
-    '',
+    "",
     styleSection,
     colorPaletteSection,
     compositionSection,
-    'RENDER: Favor stylized exaggeration over anatomical realism. Push proportions to emphasize the thesis.',
-    '',
+    "RENDER: Favor stylized exaggeration over anatomical realism. Push proportions to emphasize the thesis.",
+    "",
     `SETTING: ${worldContext.name}`,
-    '',
+    "",
     `AVOID: ${guidance.imageAvoid}`,
   ];
 
-  return parts.filter(Boolean).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return parts
+    .filter(Boolean)
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 /**
@@ -598,8 +634,6 @@ export function createDefaultCultureIdentities(): CultureIdentities {
   };
 }
 
-
-
 // =============================================================================
 // Chronicle Image Prompts
 // =============================================================================
@@ -608,10 +642,10 @@ export function createDefaultCultureIdentities(): CultureIdentities {
  * Chronicle image size to composition hint mapping
  */
 const SIZE_COMPOSITION_HINTS: Record<string, string> = {
-  small: 'compact vignette, focused detail shot, thumbnail-friendly',
-  medium: 'balanced composition, scene establishing shot',
-  large: 'dramatic wide shot, environmental storytelling',
-  'full-width': 'panoramic vista, epic landscape, sweeping scene',
+  small: "compact vignette, focused detail shot, thumbnail-friendly",
+  medium: "balanced composition, scene establishing shot",
+  large: "dramatic wide shot, environmental storytelling",
+  "full-width": "panoramic vista, epic landscape, sweeping scene",
 };
 
 /**
@@ -621,7 +655,7 @@ export interface ChronicleSceneContext {
   /** LLM-generated scene description */
   sceneDescription: string;
   /** Size hint for composition */
-  size: 'small' | 'medium' | 'large' | 'full-width';
+  size: "small" | "medium" | "large" | "full-width";
   /** Chronicle title for context */
   chronicleTitle?: string;
   /** World context */
@@ -646,13 +680,14 @@ export function buildChronicleScenePrompt(
   // Rendering directives first — these are the primary visual authority
   const styleSection = styleInfo?.artisticPromptFragment
     ? `STYLE: ${styleInfo.artisticPromptFragment}`
-    : '';
+    : "";
 
-  const colorPaletteSection = styleInfo?.colorPalettePromptFragment
-    ? (styleInfo.colorPalettePromptFragment.startsWith('COLOR PALETTE')
-        ? styleInfo.colorPalettePromptFragment
-        : `COLOR PALETTE: ${styleInfo.colorPalettePromptFragment}`)
-    : '';
+  let colorPaletteSection = "";
+  if (styleInfo?.colorPalettePromptFragment) {
+    colorPaletteSection = styleInfo.colorPalettePromptFragment.startsWith("COLOR PALETTE")
+      ? styleInfo.colorPalettePromptFragment
+      : `COLOR PALETTE: ${styleInfo.colorPalettePromptFragment}`;
+  }
 
   const compositionHint = SIZE_COMPOSITION_HINTS[size] || SIZE_COMPOSITION_HINTS.medium;
   const compositionSection = styleInfo?.compositionPromptFragment
@@ -662,28 +697,33 @@ export function buildChronicleScenePrompt(
   const sizeHint = `SIZE HINT: ${compositionHint}`;
 
   // Scene content
+  const worldDescSuffix = world?.description ? ` - ${world.description}` : "";
   const worldSection = world
-    ? `WORLD: ${world.name}${world.description ? ` - ${world.description}` : ''}`
-    : '';
+    ? `WORLD: ${world.name}${worldDescSuffix}`
+    : "";
 
   const speciesSection = world?.speciesConstraint
     ? `SPECIES REQUIREMENT: ${world.speciesConstraint}`
-    : '';
+    : "";
 
   const parts = [
     styleSection,
     colorPaletteSection,
     compositionSection,
     sizeHint,
-    '',
+    "",
     `SCENE: ${sceneDescription}`,
-    chronicleTitle ? `FROM: "${chronicleTitle}"` : '',
-    '',
+    chronicleTitle ? `FROM: "${chronicleTitle}"` : "",
+    "",
     worldSection,
     speciesSection,
-    '',
-    'AVOID: Human figures, humanoid hands or fingers, human body proportions. Modern elements, anachronistic technology, text overlays, watermarks',
+    "",
+    "AVOID: Human figures, humanoid hands or fingers, human body proportions. Modern elements, anachronistic technology, text overlays, watermarks",
   ];
 
-  return parts.filter(Boolean).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return parts
+    .filter(Boolean)
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }

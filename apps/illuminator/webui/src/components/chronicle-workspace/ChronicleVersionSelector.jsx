@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
+import "./ChronicleVersionSelector.css";
 
 export default function ChronicleVersionSelector({
   versions,
@@ -34,7 +36,7 @@ export default function ChronicleVersionSelector({
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+    <div className="cvs-container">
       <select
         value={selectedVersionId}
         onChange={(e) => {
@@ -42,53 +44,37 @@ export default function ChronicleVersionSelector({
           setConfirmingDeleteId(null);
         }}
         disabled={disabled}
-        className="illuminator-select"
-        style={{ width: 'auto', minWidth: '240px', fontSize: '12px', padding: '4px 6px' }}
+        className="illuminator-select ilu-compact-select cvs-select-version"
       >
         {versions.map((version) => (
-          <option key={version.id} value={version.id}>{version.label}</option>
+          <option key={version.id} value={version.id}>
+            {version.label}
+          </option>
         ))}
       </select>
       <select
         value={compareToVersionId}
         onChange={(e) => onSelectCompareVersion(e.target.value)}
         disabled={disabled}
-        className="illuminator-select"
-        style={{ width: 'auto', minWidth: '160px', fontSize: '12px', padding: '4px 6px' }}
+        className="illuminator-select ilu-compact-select cvs-select-compare"
         title="Select a version to diff against"
       >
         <option value="">Compare to...</option>
-        {versions.filter(v => v.id !== selectedVersionId).map((version) => (
-          <option key={version.id} value={version.id}>{version.shortLabel || version.label}</option>
-        ))}
+        {versions
+          .filter((v) => v.id !== selectedVersionId)
+          .map((version) => (
+            <option key={version.id} value={version.id}>
+              {version.shortLabel || version.label}
+            </option>
+          ))}
       </select>
       {isActive ? (
-        <span
-          style={{
-            fontSize: '11px',
-            padding: '2px 8px',
-            background: 'rgba(16, 185, 129, 0.15)',
-            color: '#10b981',
-            borderRadius: '999px',
-            fontWeight: 500,
-          }}
-        >
-          Active
-        </span>
+        <span className="ilu-active-badge">Active</span>
       ) : (
         <button
           onClick={() => onSetActiveVersion?.(selectedVersionId)}
           disabled={disabled || !onSetActiveVersion}
-          style={{
-            padding: '6px 12px',
-            fontSize: '11px',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '6px',
-            color: 'var(--text-secondary)',
-            cursor: disabled || !onSetActiveVersion ? 'not-allowed' : 'pointer',
-            opacity: disabled || !onSetActiveVersion ? 0.6 : 1,
-          }}
+          className="ilu-action-btn-sm"
         >
           Make Active
         </button>
@@ -98,22 +84,24 @@ export default function ChronicleVersionSelector({
           onClick={handleDeleteClick}
           onBlur={() => setConfirmingDeleteId(null)}
           disabled={disabled}
-          title={confirmingDelete ? 'Click again to confirm deletion' : 'Delete this version'}
-          style={{
-            padding: '6px 12px',
-            fontSize: '11px',
-            background: confirmingDelete ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary)',
-            border: `1px solid ${confirmingDelete ? 'var(--error-color, #ef4444)' : 'var(--border-color)'}`,
-            borderRadius: '6px',
-            color: confirmingDelete ? '#fff' : 'var(--text-muted)',
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            opacity: disabled ? 0.6 : 1,
-            transition: 'background 0.15s, color 0.15s, border-color 0.15s',
-          }}
+          title={confirmingDelete ? "Click again to confirm deletion" : "Delete this version"}
+          className={`ilu-action-btn-sm cvs-btn-delete${confirmingDelete ? " cvs-btn-delete-confirming" : ""}`}
         >
-          {confirmingDelete ? 'Confirm Delete' : 'Delete'}
+          {confirmingDelete ? "Confirm Delete" : "Delete"}
         </button>
       )}
     </div>
   );
 }
+
+ChronicleVersionSelector.propTypes = {
+  versions: PropTypes.array,
+  selectedVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  activeVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  compareToVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSelectVersion: PropTypes.func,
+  onSelectCompareVersion: PropTypes.func,
+  onSetActiveVersion: PropTypes.func,
+  onDeleteVersion: PropTypes.func,
+  disabled: PropTypes.bool,
+};

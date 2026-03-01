@@ -1,0 +1,9 @@
+/* CoherenceEngineRemote — app-specific overrides for the shared remote shell */
+
+/* Amber accent for active nav buttons and hover */
+.cer-shell {
+  --rs-active-from: #f59e0b;
+  --rs-active-to: #fbbf24;
+  --rs-hover-bg: rgba(245, 158, 11, 0.15);
+  --rs-hover-color: #f59e0b;
+}

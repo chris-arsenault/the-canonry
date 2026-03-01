@@ -1,33 +1,13 @@
-/* DiscoveryStory Component Styles */
+/* DiscoveryStory Component Styles
+ * Structural base: archivist-section.css */
 
 .discovery-story {
-  margin-top: var(--spacing-xl);
-  border: 2px solid var(--color-bg-orange-border);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, rgb(217 119 6 / 5%) 0%, rgb(180 83 9 / 5%) 100%);
-  overflow: hidden;
-}
-
-.discovery-story-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, rgb(217 119 6 / 15%) 0%, rgb(180 83 9 / 15%) 100%);
-  border-bottom: 1px solid rgb(217 119 6 / 20%);
-}
-
-.discovery-story-icon {
-  font-size: var(--font-size-lg);
-  line-height: 1;
-}
-
-.discovery-story-title {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-orange-300);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  --_section-border: var(--color-bg-orange-border);
+  --_section-bg: linear-gradient(135deg, rgb(217 119 6 / 5%) 0%, rgb(180 83 9 / 5%) 100%);
+  --_section-header-bg: linear-gradient(135deg, rgb(217 119 6 / 15%) 0%, rgb(180 83 9 / 15%) 100%);
+  --_section-separator: rgb(217 119 6 / 20%);
+  --_section-accent: var(--color-orange-300);
+  --_section-text: var(--color-orange-200);
 }
 
 .discovery-story-meta {
@@ -47,10 +27,6 @@
 }
 
 .discovery-story-meta-label {
-  color: var(--color-orange-300);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   min-width: 100px;
 }
 
@@ -97,15 +73,15 @@
   color: var(--color-purple-300);
 }
 
-.discovery-story-section {
+.ds-block {
   border-bottom: 1px solid rgb(217 119 6 / 15%);
 }
 
-.discovery-story-section:last-child {
+.ds-block:last-child {
   border-bottom: none;
 }
 
-.discovery-story-section-header {
+.ds-block-hdr {
   width: 100%;
   display: flex;
   align-items: center;
@@ -118,45 +94,28 @@
   text-align: left;
 }
 
-.discovery-story-section-header:hover {
+.ds-block-hdr:hover {
   background: rgb(217 119 6 / 10%);
 }
 
-.discovery-story-section-icon {
+.ds-block-icon {
   color: var(--color-orange-300);
   font-size: var(--font-size-2xs);
   width: 12px;
   font-weight: var(--font-weight-bold);
 }
 
-.discovery-story-section-title {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-orange-300);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.discovery-story-section-content {
+.ds-block-body {
   padding: var(--spacing-lg);
-  font-family: var(--font-serif);
   font-size: var(--font-size-base);
   line-height: var(--line-height-loose);
-  color: var(--color-orange-200);
-  font-style: italic;
   background: var(--color-bg-deep-80);
 }
 
 /* Modal Mode */
 .discovery-story-overlay {
-  position: fixed;
-  inset: 0;
   background: rgb(0 0 0 / 75%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: var(--z-modal-overlay);
-  padding: var(--spacing-2xl);
 }
 
 .discovery-story-modal-content {
@@ -169,32 +128,18 @@
 }
 
 .discovery-story-footer {
-  display: flex;
-  align-items: center;
   justify-content: flex-end;
   padding: var(--spacing-xl) var(--spacing-lg);
-  border-top: 1px solid rgb(217 119 6 / 20%);
   background: rgb(217 119 6 / 5%);
 }
 
 .discovery-story-close {
-  padding: var(--spacing-md) var(--spacing-3xl);
   background: linear-gradient(135deg, rgb(217 119 6 / 30%) 0%, rgb(180 83 9 / 30%) 100%);
   border: 1px solid rgb(217 119 6 / 50%);
-  border-radius: var(--radius-md);
   color: var(--color-orange-300);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: all var(--transition-normal);
 }
 
 .discovery-story-close:hover {
   background: linear-gradient(135deg, rgb(217 119 6 / 40%) 0%, rgb(180 83 9 / 40%) 100%);
   border-color: rgb(217 119 6 / 70%);
-  color: var(--color-text-primary);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
 }

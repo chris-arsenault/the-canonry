@@ -5,254 +5,198 @@
  * with filtering by era, kind, significance, and tags.
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from "react";
+import PropTypes from "prop-types";
+import "./EventsPanel.css";
 
 // Display limit for performance - loading 7000+ events causes UI freeze
+
 const DEFAULT_DISPLAY_LIMIT = 500;
 const LOAD_MORE_INCREMENT = 250;
 
 // Event kind colors
 const EVENT_KIND_COLORS = {
-  state_change: { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6' },
-  relationship_change: { bg: 'rgba(168, 85, 247, 0.15)', text: '#a855f7' },
-  entity_lifecycle: { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444' },
-  era_transition: { bg: 'rgba(236, 72, 153, 0.15)', text: '#ec4899' },
-  conflict: { bg: 'rgba(249, 115, 22, 0.15)', text: '#f97316' },
-  alliance: { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e' },
-  discovery: { bg: 'rgba(14, 165, 233, 0.15)', text: '#0ea5e9' },
-  achievement: { bg: 'rgba(234, 179, 8, 0.15)', text: '#eab308' },
+  state_change: {
+    bg: "rgba(59, 130, 246, 0.15)",
+    text: "#3b82f6"
+  },
+  relationship_change: {
+    bg: "rgba(168, 85, 247, 0.15)",
+    text: "#a855f7"
+  },
+  entity_lifecycle: {
+    bg: "rgba(239, 68, 68, 0.15)",
+    text: "#ef4444"
+  },
+  era_transition: {
+    bg: "rgba(236, 72, 153, 0.15)",
+    text: "#ec4899"
+  },
+  conflict: {
+    bg: "rgba(249, 115, 22, 0.15)",
+    text: "#f97316"
+  },
+  alliance: {
+    bg: "rgba(34, 197, 94, 0.15)",
+    text: "#22c55e"
+  },
+  discovery: {
+    bg: "rgba(14, 165, 233, 0.15)",
+    text: "#0ea5e9"
+  },
+  achievement: {
+    bg: "rgba(234, 179, 8, 0.15)",
+    text: "#eab308"
+  }
 };
-
-function EventKindBadge({ kind }) {
-  const colors = EVENT_KIND_COLORS[kind] || { bg: 'rgba(107, 114, 128, 0.15)', text: '#6b7280' };
-  return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '2px 8px',
-        fontSize: '11px',
-        fontWeight: 500,
-        background: colors.bg,
-        color: colors.text,
-        borderRadius: '4px',
-      }}
-    >
-      {kind.replace(/_/g, ' ')}
-    </span>
-  );
+function EventKindBadge({
+  kind
+}) {
+  const colors = EVENT_KIND_COLORS[kind] || {
+    bg: "rgba(107, 114, 128, 0.15)",
+    text: "#6b7280"
+  };
+  return <span className="events-panel-kind-badge" style={{
+    "--badge-bg": colors.bg,
+    "--badge-text": colors.text
+  }}>
+      {kind.replace(/_/g, " ")}
+    </span>;
 }
-
-function SignificanceBar({ value }) {
+EventKindBadge.propTypes = {
+  kind: PropTypes.string
+};
+function SignificanceBar({
+  value
+}) {
   const percentage = Math.round(value * 100);
-  const color = value >= 0.8 ? '#ef4444' : value >= 0.5 ? '#f59e0b' : '#22c55e';
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div
-        style={{
-          width: '60px',
-          height: '6px',
-          background: 'var(--bg-tertiary)',
-          borderRadius: '3px',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            width: `${percentage}%`,
-            height: '100%',
-            background: color,
-            borderRadius: '3px',
-          }}
-        />
+  let color;
+  if (value >= 0.8) color = "#ef4444";else if (value >= 0.5) color = "#f59e0b";else color = "#22c55e";
+  return <div className="events-panel-significance-row">
+      <div className="events-panel-significance-track">
+        <div className="events-panel-significance-fill" style={{
+        "--sig-width": `${percentage}%`,
+        "--sig-color": color
+      }} />
       </div>
-      <span style={{ fontSize: '11px', color: 'var(--text-muted)', minWidth: '32px' }}>
-        {percentage}%
-      </span>
-    </div>
-  );
+      <span className="events-panel-significance-label">{percentage}%</span>
+    </div>;
 }
-
-function NarrativeTag({ tag }) {
-  return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '2px 6px',
-        fontSize: '10px',
-        background: 'var(--bg-tertiary)',
-        color: 'var(--text-muted)',
-        borderRadius: '3px',
-      }}
-    >
-      {tag}
-    </span>
-  );
+SignificanceBar.propTypes = {
+  value: PropTypes.any
+};
+function NarrativeTag({
+  tag
+}) {
+  return <span className="events-panel-narrative-tag">{tag}</span>;
 }
-
-function StateChangeItem({ change }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        fontSize: '12px',
-        color: 'var(--text-secondary)',
-        padding: '4px 0',
-      }}
-    >
-      <span style={{ color: 'var(--text-muted)' }}>{change.entityName}</span>
-      <span style={{ fontFamily: 'monospace' }}>{change.field}:</span>
-      <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)' }}>
-        {String(change.previousValue)}
-      </span>
-      <span style={{ color: 'var(--text-muted)' }}>&rarr;</span>
-      <span style={{ fontWeight: 500 }}>{String(change.newValue)}</span>
-    </div>
-  );
+NarrativeTag.propTypes = {
+  tag: PropTypes.any
+};
+function StateChangeItem({
+  change
+}) {
+  return <div className="events-panel-state-change">
+      <span className="events-panel-state-entity-name">{change.entityName}</span>
+      <span className="events-panel-state-field">{change.field}:</span>
+      <span className="events-panel-state-old-value">{String(change.previousValue)}</span>
+      <span className="events-panel-state-arrow">&rarr;</span>
+      <span className="events-panel-state-new-value">{String(change.newValue)}</span>
+    </div>;
 }
-
-function EventCard({ event, entityMap, expanded, onToggle }) {
-  const subjectEntity = entityMap?.get(event.subject?.id);
-  const objectEntity = event.object ? entityMap?.get(event.object.id) : null;
-
-  return (
-    <div
-      style={{
-        padding: '16px',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '8px',
-        marginBottom: '12px',
-      }}
-    >
+StateChangeItem.propTypes = {
+  change: PropTypes.object
+};
+function EventCard({
+  event,
+  entityMap: _entityMap,
+  expanded,
+  onToggle
+}) {
+  return <div className="events-panel-card">
       {/* Header row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+      <div className="events-panel-card-header">
+        <div className="events-panel-card-header-left">
+          <div className="events-panel-card-meta-row">
             <EventKindBadge kind={event.eventKind} />
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              tick {event.tick}
-            </span>
+            <span className="events-panel-card-tick">tick {event.tick}</span>
           </div>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: '15px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-            onClick={onToggle}
-          >
+          <button type="button" className="events-panel-card-headline" onClick={onToggle}>
             {event.headline}
-          </h3>
+          </button>
         </div>
         <SignificanceBar value={event.significance} />
       </div>
 
       {/* Subject/Object */}
-      <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-        <span style={{ fontWeight: 500 }}>{event.subject?.name || 'Unknown'}</span>
-        {event.subject?.kind && (
-          <span style={{ color: 'var(--text-muted)', marginLeft: '4px' }}>
-            ({event.subject.kind})
-          </span>
-        )}
-        {event.object && (
-          <>
-            <span style={{ color: 'var(--text-muted)', margin: '0 8px' }}>&rarr;</span>
-            <span style={{ fontWeight: 500 }}>{event.object.name}</span>
-            <span style={{ color: 'var(--text-muted)', marginLeft: '4px' }}>
-              ({event.object.kind})
-            </span>
-          </>
-        )}
+      <div className="events-panel-card-subject">
+        <span className="events-panel-card-entity-name">{event.subject?.name || "Unknown"}</span>
+        {event.subject?.kind && <span className="events-panel-card-entity-kind">({event.subject.kind})</span>}
+        {event.object && <>
+            <span className="events-panel-card-arrow">&rarr;</span>
+            <span className="events-panel-card-entity-name">{event.object.name}</span>
+            <span className="events-panel-card-entity-kind">({event.object.kind})</span>
+          </>}
       </div>
 
       {/* Tags */}
-      {event.narrativeTags && event.narrativeTags.length > 0 && (
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '10px' }}>
-          {event.narrativeTags.map((tag) => (
-            <NarrativeTag key={tag} tag={tag} />
-          ))}
-        </div>
-      )}
+      {event.narrativeTags && event.narrativeTags.length > 0 && <div className="events-panel-card-tags">
+          {event.narrativeTags.map(tag => <NarrativeTag key={tag} tag={tag} />)}
+        </div>}
 
       {/* Expanded content */}
-      {expanded && (
-        <div
-          style={{
-            marginTop: '12px',
-            paddingTop: '12px',
-            borderTop: '1px solid var(--border-color)',
-          }}
-        >
+      {expanded && <div className="events-panel-card-expanded">
           {/* Description */}
-          {event.description && (
-            <p style={{ margin: '0 0 12px 0', fontSize: '13px', lineHeight: 1.5 }}>
-              {event.description}
-            </p>
-          )}
+          {event.description && <p className="events-panel-card-description">{event.description}</p>}
 
           {/* State changes */}
-          {event.stateChanges && event.stateChanges.length > 0 && (
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '6px', color: 'var(--text-muted)' }}>
-                State Changes
-              </div>
-              {event.stateChanges.map((change, i) => (
-                <StateChangeItem key={i} change={change} />
-              ))}
-            </div>
-          )}
+          {event.stateChanges && event.stateChanges.length > 0 && <div className="events-panel-card-state-changes">
+              <div className="events-panel-card-state-changes-label">State Changes</div>
+              {event.stateChanges.map((change, i) => <StateChangeItem key={i} change={change} />)}
+            </div>}
 
           {/* Causality */}
-          {event.causedBy && (
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              <span style={{ fontWeight: 500 }}>Caused by:</span>{' '}
-              {event.causedBy.actionType || event.causedBy.eventId || 'Unknown'}
+          {event.causedBy && <div className="events-panel-card-causality">
+              <span className="events-panel-card-causality-label">Caused by:</span>{" "}
+              {event.causedBy.actionType || event.causedBy.eventId || "Unknown"}
               {event.causedBy.entityId && ` (${event.causedBy.entityId})`}
-            </div>
-          )}
-        </div>
-      )}
+            </div>}
+        </div>}
 
       {/* Toggle button */}
-      <button
-        onClick={onToggle}
-        style={{
-          marginTop: '8px',
-          padding: '4px 8px',
-          fontSize: '11px',
-          background: 'none',
-          border: 'none',
-          color: 'var(--text-muted)',
-          cursor: 'pointer',
-        }}
-      >
-        {expanded ? 'Show less' : 'Show more'}
+      <button onClick={onToggle} className="events-panel-card-toggle">
+        {expanded ? "Show less" : "Show more"}
       </button>
-    </div>
-  );
+    </div>;
 }
-
-export default function EventsPanel({ narrativeEvents = [], simulationRunId, entityMap }) {
+EventCard.propTypes = {
+  event: PropTypes.object,
+  entityMap: PropTypes.object,
+  expanded: PropTypes.bool,
+  onToggle: PropTypes.func
+};
+export default function EventsPanel({
+  narrativeEvents = [],
+  simulationRunId,
+  entityMap
+}) {
   const [significanceFilter, setSignificanceFilter] = useState(0);
-  const [kindFilter, setKindFilter] = useState('all');
-  const [eraFilter, setEraFilter] = useState('all');
-  const [tagFilter, setTagFilter] = useState('');
+  const [kindFilter, setKindFilter] = useState("all");
+  const [eraFilter, setEraFilter] = useState("all");
+  const [tagFilter, setTagFilter] = useState("");
   const [expandedEvents, setExpandedEvents] = useState(new Set());
   const [displayLimit, setDisplayLimit] = useState(DEFAULT_DISPLAY_LIMIT);
-
   const events = narrativeEvents || [];
 
   // Get unique values for filters
-  const { uniqueKinds, uniqueEras, uniqueTags } = useMemo(() => {
+  const {
+    uniqueKinds,
+    uniqueEras,
+    uniqueTags
+  } = useMemo(() => {
     const kinds = new Set();
     const eras = new Set();
     const tags = new Set();
-
     for (const event of events) {
       kinds.add(event.eventKind);
       if (event.era) eras.add(event.era);
@@ -260,20 +204,19 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
         tags.add(tag);
       }
     }
-
     return {
       uniqueKinds: Array.from(kinds).sort(),
       uniqueEras: Array.from(eras).sort(),
-      uniqueTags: Array.from(tags).sort(),
+      uniqueTags: Array.from(tags).sort()
     };
   }, [events]);
 
   // Filter events
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
+    return events.filter(event => {
       if (event.significance < significanceFilter) return false;
-      if (kindFilter !== 'all' && event.eventKind !== kindFilter) return false;
-      if (eraFilter !== 'all' && event.era !== eraFilter) return false;
+      if (kindFilter !== "all" && event.eventKind !== kindFilter) return false;
+      if (eraFilter !== "all" && event.era !== eraFilter) return false;
       if (tagFilter && !event.narrativeTags?.includes(tagFilter)) return false;
       return true;
     });
@@ -288,20 +231,17 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
   const displayedEvents = useMemo(() => {
     return sortedEvents.slice(0, displayLimit);
   }, [sortedEvents, displayLimit]);
-
   const hasMoreEvents = sortedEvents.length > displayLimit;
-
   const handleLoadMore = () => {
-    setDisplayLimit((prev) => prev + LOAD_MORE_INCREMENT);
+    setDisplayLimit(prev => prev + LOAD_MORE_INCREMENT);
   };
 
   // Reset display limit when filters change
   useEffect(() => {
     setDisplayLimit(DEFAULT_DISPLAY_LIMIT);
   }, [significanceFilter, kindFilter, eraFilter, tagFilter]);
-
-  const toggleExpanded = (eventId) => {
-    setExpandedEvents((prev) => {
+  const toggleExpanded = eventId => {
+    setExpandedEvents(prev => {
       const next = new Set(prev);
       if (next.has(eventId)) {
         next.delete(eventId);
@@ -311,14 +251,15 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
       return next;
     });
   };
-
   const handleExportEvents = () => {
     if (events.length === 0) return;
     const json = JSON.stringify(events, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
+    const blob = new Blob([json], {
+      type: "application/json"
+    });
     const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    const safeRunId = simulationRunId ? simulationRunId.replace(/[^a-zA-Z0-9_-]+/g, '_') : 'all';
+    const anchor = document.createElement("a");
+    const safeRunId = simulationRunId ? simulationRunId.replace(/[^a-zA-Z0-9_-]+/g, "_") : "all";
     anchor.href = url;
     anchor.download = `narrative-events-${safeRunId}.json`;
     document.body.appendChild(anchor);
@@ -326,233 +267,110 @@ export default function EventsPanel({ narrativeEvents = [], simulationRunId, ent
     anchor.remove();
     URL.revokeObjectURL(url);
   };
-
   if (events.length === 0) {
-    return (
-      <div style={{ padding: '48px', textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>
-          <span role="img" aria-label="events">&#x1F4DC;</span>
+    return <div className="events-panel-empty">
+        <div className="events-panel-empty-icon">
+          <span role="img" aria-label="events">
+            &#x1F4DC;
+          </span>
         </div>
-        <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>No Narrative Events</h3>
-        <p style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto', lineHeight: 1.6 }}>
-          Narrative events are captured during simulation when "Enable event tracking" is turned on
+        <h3 className="events-panel-empty-title">No Narrative Events</h3>
+        <p className="events-panel-empty-text">
+          Narrative events are captured during simulation when &quot;Enable event tracking&quot; is turned on
           in the Lore Weave simulation parameters.
         </p>
-        <div
-          style={{
-            marginTop: '24px',
-            padding: '16px',
-            background: 'var(--bg-secondary)',
-            borderRadius: '8px',
-            maxWidth: '400px',
-            margin: '24px auto 0',
-            textAlign: 'left',
-          }}
-        >
-          <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '8px' }}>
-            To enable event tracking:
-          </div>
-          <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+        <div className="events-panel-empty-instructions">
+          <div className="events-panel-empty-instructions-title">To enable event tracking:</div>
+          <ol className="events-panel-empty-instructions-list">
             <li>Go to the Lore Weave tab</li>
-            <li>Open "Run Simulation"</li>
-            <li>Enable "Narrative Events" in parameters</li>
+            <li>Open &quot;Run Simulation&quot;</li>
+            <li>Enable &quot;Narrative Events&quot; in parameters</li>
             <li>Run a new simulation</li>
           </ol>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+  return <div className="events-panel-root">
       {/* Filter bar */}
-      <div
-        style={{
-          padding: '16px',
-          borderBottom: '1px solid var(--border-color)',
-          background: 'var(--bg-secondary)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 500 }}>
-            {displayedEvents.length === filteredEvents.length
-              ? `${filteredEvents.length} of ${events.length} events`
-              : `Showing ${displayedEvents.length} of ${filteredEvents.length} filtered (${events.length} total)`}
+      <div className="events-panel-filter-bar">
+        <div className="events-panel-filter-header">
+          <div className="events-panel-filter-count">
+            {displayedEvents.length === filteredEvents.length ? `${filteredEvents.length} of ${events.length} events` : `Showing ${displayedEvents.length} of ${filteredEvents.length} filtered (${events.length} total)`}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Sorted by significance
-            </div>
-            <button
-              onClick={handleExportEvents}
-              disabled={events.length === 0}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '4px',
-                cursor: events.length === 0 ? 'not-allowed' : 'pointer',
-                color: 'var(--text-secondary)',
-                opacity: events.length === 0 ? 0.6 : 1,
-              }}
-            >
+          <div className="events-panel-filter-actions">
+            <div className="events-panel-filter-sort-label">Sorted by significance</div>
+            <button onClick={handleExportEvents} disabled={events.length === 0} className="ilu-action-btn-sm events-panel-export-btn">
               Export JSON
             </button>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="events-panel-filters-row">
           {/* Significance slider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Min significance:</label>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.1}
-              value={significanceFilter}
-              onChange={(e) => setSignificanceFilter(parseFloat(e.target.value))}
-              style={{ width: '100px' }}
-            />
-            <span style={{ fontSize: '12px', fontFamily: 'monospace', minWidth: '32px' }}>
+          <div className="events-panel-significance-filter">
+            <label htmlFor="min-significance" className="events-panel-filter-label">Min significance:</label>
+            <input id="min-significance" type="range" min={0} max={1} step={0.1} value={significanceFilter} onChange={e => setSignificanceFilter(parseFloat(e.target.value))} className="events-panel-significance-slider" />
+            <span className="events-panel-significance-value">
               {Math.round(significanceFilter * 100)}%
             </span>
           </div>
 
           {/* Kind filter */}
-          <select
-            value={kindFilter}
-            onChange={(e) => setKindFilter(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              fontSize: '12px',
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '4px',
-              color: 'var(--text-primary)',
-            }}
-          >
+          <select value={kindFilter} onChange={e => setKindFilter(e.target.value)} className="events-panel-filter-select">
             <option value="all">All kinds</option>
-            {uniqueKinds.map((kind) => (
-              <option key={kind} value={kind}>
-                {kind.replace(/_/g, ' ')}
-              </option>
-            ))}
+            {uniqueKinds.map(kind => <option key={kind} value={kind}>
+                {kind.replace(/_/g, " ")}
+              </option>)}
           </select>
 
           {/* Era filter */}
-          <select
-            value={eraFilter}
-            onChange={(e) => setEraFilter(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              fontSize: '12px',
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '4px',
-              color: 'var(--text-primary)',
-            }}
-          >
+          <select value={eraFilter} onChange={e => setEraFilter(e.target.value)} className="events-panel-filter-select">
             <option value="all">All eras</option>
-            {uniqueEras.map((era) => (
-              <option key={era} value={era}>
+            {uniqueEras.map(era => <option key={era} value={era}>
                 {entityMap?.get(era)?.name || era}
-              </option>
-            ))}
+              </option>)}
           </select>
 
           {/* Tag filter */}
-          {uniqueTags.length > 0 && (
-            <select
-              value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value)}
-              style={{
-                padding: '6px 10px',
-                fontSize: '12px',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-              }}
-            >
+          {uniqueTags.length > 0 && <select value={tagFilter} onChange={e => setTagFilter(e.target.value)} className="events-panel-filter-select">
               <option value="">All tags</option>
-              {uniqueTags.map((tag) => (
-                <option key={tag} value={tag}>
+              {uniqueTags.map(tag => <option key={tag} value={tag}>
                   {tag}
-                </option>
-              ))}
-            </select>
-          )}
+                </option>)}
+            </select>}
 
           {/* Clear filters */}
-          {(significanceFilter > 0 || kindFilter !== 'all' || eraFilter !== 'all' || tagFilter) && (
-            <button
-              onClick={() => {
-                setSignificanceFilter(0);
-                setKindFilter('all');
-                setEraFilter('all');
-                setTagFilter('');
-              }}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: 'var(--text-secondary)',
-              }}
-            >
+          {(significanceFilter > 0 || kindFilter !== "all" || eraFilter !== "all" || tagFilter) && <button onClick={() => {
+          setSignificanceFilter(0);
+          setKindFilter("all");
+          setEraFilter("all");
+          setTagFilter("");
+        }} className="ilu-action-btn-sm events-panel-clear-filters-btn">
               Clear filters
-            </button>
-          )}
+            </button>}
         </div>
       </div>
 
       {/* Events list */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-        {sortedEvents.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-            No events match the current filters
-          </div>
-        ) : (
-          <>
-            {displayedEvents.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                entityMap={entityMap}
-                expanded={expandedEvents.has(event.id)}
-                onToggle={() => toggleExpanded(event.id)}
-              />
-            ))}
+      <div className="events-panel-list">
+        {sortedEvents.length === 0 ? <div className="events-panel-no-match">No events match the current filters</div> : <>
+            {displayedEvents.map(event => <EventCard key={event.id} event={event} entityMap={entityMap} expanded={expandedEvents.has(event.id)} onToggle={() => toggleExpanded(event.id)} />)}
 
             {/* Load more button */}
-            {hasMoreEvents && (
-              <div style={{ textAlign: 'center', padding: '16px' }}>
-                <button
-                  onClick={handleLoadMore}
-                  style={{
-                    padding: '10px 24px',
-                    fontSize: '13px',
-                    background: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)',
-                  }}
-                >
+            {hasMoreEvents && <div className="events-panel-load-more-row">
+                <button onClick={handleLoadMore} className="events-panel-load-more-btn">
                   Load {Math.min(LOAD_MORE_INCREMENT, sortedEvents.length - displayLimit)} more
-                  <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                  <span className="events-panel-load-more-remaining">
                     ({sortedEvents.length - displayLimit} remaining)
                   </span>
                 </button>
-              </div>
-            )}
-          </>
-        )}
+              </div>}
+          </>}
       </div>
-    </div>
-  );
+    </div>;
 }
+EventsPanel.propTypes = {
+  narrativeEvents: PropTypes.array,
+  simulationRunId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  entityMap: PropTypes.object
+};

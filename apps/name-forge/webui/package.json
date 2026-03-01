@@ -10,28 +10,23 @@
     "build": "npm run clean && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "static": "npm run build && npx serve dist -p 3000",
-    "serve": "npx serve dist -p 3000"
+    "static": "pnpm run build && pnpm exec serve dist -p 3000",
+    "serve": "pnpm exec serve dist -p 3000"
   },
   "dependencies": {
-    "@canonry/world-schema": "file:../../../packages/world-schema",
-    "@penguin-tales/shared-components": "file:../../../packages/shared-components",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "@canonry/world-schema": "workspace:*",
+    "@the-canonry/shared-components": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "seedrandom": "^3.0.5",
     "serve": "^14.2.5",
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@module-federation/vite": "^1.1.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.5.0",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "vite": "^6.4.1"
+    "@module-federation/vite": "^1.3.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "vite": "^7.2.4"
   }
 }

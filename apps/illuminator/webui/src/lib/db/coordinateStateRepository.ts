@@ -1,15 +1,15 @@
-import { db, type CoordinateStateRecord } from './illuminatorDb';
-import type { CoordinateState } from '@canonry/world-schema';
+import { db, type CoordinateStateRecord } from "./illuminatorDb";
+import type { CoordinateState } from "@canonry/world-schema";
 
 export async function getCoordinateState(
-  simulationRunId: string,
+  simulationRunId: string
 ): Promise<CoordinateStateRecord | undefined> {
   return db.coordinateStates.get(simulationRunId);
 }
 
 export async function upsertCoordinateState(
   simulationRunId: string,
-  coordinateState: CoordinateState,
+  coordinateState: CoordinateState
 ): Promise<void> {
   await db.coordinateStates.put({
     simulationRunId,

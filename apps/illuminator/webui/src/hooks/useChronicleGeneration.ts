@@ -11,25 +11,25 @@
  *   - useChronicleQueueWatcher.ts — Bridges queue completions to store refreshes
  */
 
-import type { ChronicleRecord } from '../lib/db/chronicleRepository';
+import type { ChronicleRecord } from "../lib/db/chronicleRepository";
 
 /**
  * Derive status from what's present in the record.
  * This eliminates status synchronization issues.
  */
 export function deriveStatus(record: ChronicleRecord | undefined): string {
-  if (!record) return 'not_started';
+  if (!record) return "not_started";
 
-  if (record.status === 'failed') return 'failed';
+  if (record.status === "failed") return "failed";
 
   // Check for in-progress states (worker is running)
-  if (record.status === 'generating') {
+  if (record.status === "generating") {
     return record.status;
   }
 
   // Derive from data presence (completed states)
-  if (record.finalContent || record.status === 'complete') return 'complete';
-  if (record.assembledContent) return 'assembly_ready';
+  if (record.finalContent || record.status === "complete") return "complete";
+  if (record.assembledContent) return "assembly_ready";
 
-  return 'not_started';
+  return "not_started";
 }

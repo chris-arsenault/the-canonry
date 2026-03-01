@@ -9,35 +9,35 @@
  * Each step pauses for review before advancing.
  */
 
-import type { EraNarrativeWeight } from '@canonry/world-schema';
+import type { EraNarrativeWeight } from "@canonry/world-schema";
 
 // =============================================================================
 // Era Narrative Tones (distinct from annotation tones — tuned for long-form)
 // =============================================================================
 
 export type EraNarrativeTone =
-  | 'witty'          // Sly, dry, finds the dark genuinely comic
-  | 'cantankerous'   // Irritable energy, exasperated by the material
-  | 'bemused'        // Puzzled and delighted, naturalist observing absurdity
-  | 'defiant'        // Angry on behalf of builders, pride in what was attempted
-  | 'sardonic'       // Sharp irony, names the pattern without flinching
-  | 'tender'         // Cares about the people, lingers on what survived
-  | 'hopeful'        // Reads the record for what was seeded, not just what was spent
-  | 'enthusiastic';  // Thrilled by scale and ambition, infectious energy
+  | "witty" // Sly, dry, finds the dark genuinely comic
+  | "cantankerous" // Irritable energy, exasperated by the material
+  | "bemused" // Puzzled and delighted, naturalist observing absurdity
+  | "defiant" // Angry on behalf of builders, pride in what was attempted
+  | "sardonic" // Sharp irony, names the pattern without flinching
+  | "tender" // Cares about the people, lingers on what survived
+  | "hopeful" // Reads the record for what was seeded, not just what was spent
+  | "enthusiastic"; // Thrilled by scale and ambition, infectious energy
 
 // =============================================================================
 // Steps & Status
 // =============================================================================
 
-export type EraNarrativeStep = 'threads' | 'generate' | 'edit';
+export type EraNarrativeStep = "threads" | "generate" | "edit";
 
 export type EraNarrativeStatus =
-  | 'pending'
-  | 'generating'
-  | 'step_complete'
-  | 'complete'
-  | 'cancelled'
-  | 'failed';
+  | "pending"
+  | "generating"
+  | "step_complete"
+  | "complete"
+  | "cancelled"
+  | "failed";
 
 // =============================================================================
 // Thread Synthesis Output
@@ -46,46 +46,46 @@ export type EraNarrativeStatus =
 export interface EraNarrativeThread {
   threadId: string;
   name: string;
-  culturalActors: string[];  // Culture/faction names — the world-level actors in this thread
+  culturalActors: string[]; // Culture/faction names — the world-level actors in this thread
   description: string;
   chronicleIds: string[];
-  arc: string;               // Cultural state at era start → cultural state at era end
-  register?: string;         // 3-word emotional label for how this thread feels
-  material?: string;         // Curated narrative facts: characters, events, mechanisms, imagery. Analytical voice — not chronicle prose.
+  arc: string; // Cultural state at era start → cultural state at era end
+  register?: string; // 3-word emotional label for how this thread feels
+  material?: string; // Curated narrative facts: characters, events, mechanisms, imagery. Analytical voice — not chronicle prose.
 }
 
 /** In-world text that exists as cultural artifact — quotable as primary source */
 export interface EraNarrativeQuote {
-  text: string;              // The in-world text verbatim
-  origin: string;            // What kind of artifact and where it comes from
-  context: string;           // Significance and where it appears in source material
+  text: string; // The in-world text verbatim
+  origin: string; // What kind of artifact and where it comes from
+  context: string; // Significance and where it appears in source material
 }
 
 /** Strategic interaction between cultures — inferred by the historian from the broader archive */
 export interface EraNarrativeStrategicDynamic {
-  interaction: string;       // Brief label: "Aurora-Nightshelf dependency spiral"
-  actors: string[];          // The cultures/factions involved
-  dynamic: string;           // The historian's reconstruction of the strategic interaction
+  interaction: string; // Brief label: "Aurora-Nightshelf dependency spiral"
+  actors: string[]; // The cultures/factions involved
+  dynamic: string; // The historian's reconstruction of the strategic interaction
 }
 
 export interface EraNarrativeMovementPlan {
   movementIndex: number;
   yearRange: [number, number];
-  worldState: string;           // State of the world at this movement's opening
-  threadFocus: string[];        // 1-3 thread IDs
-  beats: string;                // Key moments — as cultural events, not character events
+  worldState: string; // State of the world at this movement's opening
+  threadFocus: string[]; // 1-3 thread IDs
+  beats: string; // Key moments — as cultural events, not character events
 }
 
 export interface EraNarrativeThreadSynthesis {
   threads: EraNarrativeThread[];
   thesis: string;
-  counterweight?: string;                  // What persisted, what was built, what survived
-  quotes?: EraNarrativeQuote[];            // In-world text quotable as cultural artifact
-  strategicDynamics?: EraNarrativeStrategicDynamic[];  // Inter-cultural strategic interactions inferred by the historian
-  movements?: EraNarrativeMovementPlan[];  // optional — no longer produced
-  motifs?: string[];                       // optional — no longer produced
-  openingImage?: string;                   // optional — no longer produced
-  closingImage?: string;                   // optional — no longer produced
+  counterweight?: string; // What persisted, what was built, what survived
+  quotes?: EraNarrativeQuote[]; // In-world text quotable as cultural artifact
+  strategicDynamics?: EraNarrativeStrategicDynamic[]; // Inter-cultural strategic interactions inferred by the historian
+  movements?: EraNarrativeMovementPlan[]; // optional — no longer produced
+  motifs?: string[]; // optional — no longer produced
+  openingImage?: string; // optional — no longer produced
+  closingImage?: string; // optional — no longer produced
   generatedAt: number;
   model: string;
   systemPrompt: string;
@@ -127,7 +127,7 @@ export interface EraNarrativeContentVersion {
   versionId: string;
   content: string;
   wordCount: number;
-  step: 'generate' | 'edit';
+  step: "generate" | "edit";
   generatedAt: number;
   model: string;
   systemPrompt: string;
@@ -143,7 +143,7 @@ export interface EraNarrativeContentVersion {
 
 export interface EraNarrativeCoverImage {
   sceneDescription: string;
-  status: 'pending' | 'generating' | 'complete' | 'failed';
+  status: "pending" | "generating" | "complete" | "failed";
   generatedImageId?: string;
   error?: string;
 }
@@ -152,32 +152,32 @@ export interface EraNarrativeCoverImage {
 // Image Refs (inline images referencing chronicle images or new scenes)
 // =============================================================================
 
-export type EraNarrativeImageSize = 'small' | 'medium' | 'large' | 'full-width';
+export type EraNarrativeImageSize = "small" | "medium" | "large" | "full-width";
 
 interface BaseEraNarrativeImageRef {
   refId: string;
   anchorText: string;
   anchorIndex?: number;
   size: EraNarrativeImageSize;
-  justification?: 'left' | 'right';
+  justification?: "left" | "right";
   caption?: string;
 }
 
 /** Reference to a chronicle image (cover or scene image from an era's chronicle) */
 export interface ChronicleImageRef extends BaseEraNarrativeImageRef {
-  type: 'chronicle_ref';
+  type: "chronicle_ref";
   chronicleId: string;
   chronicleTitle: string;
-  imageSource: 'cover' | 'image_ref';
+  imageSource: "cover" | "image_ref";
   imageRefId?: string;
   imageId: string;
 }
 
 /** New scene image generated for the era narrative */
 export interface EraNarrativePromptRequestRef extends BaseEraNarrativeImageRef {
-  type: 'prompt_request';
+  type: "prompt_request";
   sceneDescription: string;
-  status: 'pending' | 'generating' | 'complete' | 'failed';
+  status: "pending" | "generating" | "complete" | "failed";
   generatedImageId?: string;
   error?: string;
 }

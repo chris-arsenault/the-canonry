@@ -5,20 +5,22 @@
  * each event type gets its own horizontal lane for better clarity.
  */
 
-import React from 'react';
-import { SWIMLANE_CONFIG } from './scales';
-import { EVENT_COLORS } from './SimulationTraceVisx';
+import React from "react";
+import PropTypes from "prop-types";
+import "./EventSwimlanes.css";
+import { SWIMLANE_CONFIG } from "./scales";
+import { EVENT_COLORS } from "./traceConstants";
 
 const LANE_LABELS = {
-  template: 'Templates',
-  system: 'Systems',
-  action: 'Actions',
+  template: "Templates",
+  system: "Systems",
+  action: "Actions",
 };
 
 const LANE_SYMBOLS = {
-  template: 'triangle',
-  system: 'diamond',
-  action: 'circle',
+  template: "triangle",
+  system: "diamond",
+  action: "circle",
 };
 
 /**
@@ -26,7 +28,7 @@ const LANE_SYMBOLS = {
  */
 function MarkerShape({ type, cx, cy, size, fill, stroke, strokeWidth, opacity }) {
   switch (type) {
-    case 'triangle':
+    case "triangle":
       // Upward pointing triangle
       const h = size * 0.866; // height for equilateral
       return (
@@ -38,7 +40,7 @@ function MarkerShape({ type, cx, cy, size, fill, stroke, strokeWidth, opacity })
           strokeWidth={strokeWidth}
         />
       );
-    case 'diamond':
+    case "diamond":
       return (
         <polygon
           points={`${cx},${cy - size * 0.7} ${cx + size * 0.5},${cy} ${cx},${cy + size * 0.7} ${cx - size * 0.5},${cy}`}
@@ -48,7 +50,7 @@ function MarkerShape({ type, cx, cy, size, fill, stroke, strokeWidth, opacity })
           strokeWidth={strokeWidth}
         />
       );
-    case 'circle':
+    case "circle":
     default:
       return (
         <circle
@@ -127,18 +129,23 @@ function Swimlane({
           const isSelected = event.uniqueId === selectedEventId;
 
           // Stack horizontally if multiple events at same tick
-          const offsetX = tickEvents.length > 1
-            ? (stackIndex - (tickEvents.length - 1) / 2) * 12
-            : 0;
+          const offsetX =
+            tickEvents.length > 1 ? (stackIndex - (tickEvents.length - 1) / 2) * 12 : 0;
 
           const cx = baseX + offsetX;
-          const size = isSelected ? 12 : isHovered ? 11 : 9;
-          const opacity = isSelected ? 1 : isHovered ? 0.9 : 0.7;
+          let size;
+          if (isSelected) size = 12;
+          else if (isHovered) size = 11;
+          else size = 9;
+          let opacity;
+          if (isSelected) opacity = 1;
+          else if (isHovered) opacity = 0.9;
+          else opacity = 0.7;
 
           return (
             <g
               key={event.uniqueId}
-              style={{ cursor: 'pointer' }}
+              className="es-marker"
               onMouseEnter={() => onEventHover(event.uniqueId)}
               onMouseLeave={() => onEventHover(null)}
               onClick={(e) => {
@@ -152,7 +159,7 @@ function Swimlane({
                 cy={centerY}
                 size={size}
                 fill={color}
-                stroke={isSelected ? '#fff' : isHovered ? color : 'none'}
+                stroke={isSelected ? "#fff" : (isHovered ? color : "none")}
                 strokeWidth={isSelected ? 2 : 1}
                 opacity={opacity}
               />
@@ -236,3 +243,39 @@ export default function EventSwimlanes({
     </g>
   );
 }
+
+MarkerShape.propTypes = {
+  type: PropTypes.string,
+  cx: PropTypes.number,
+  cy: PropTypes.number,
+  size: PropTypes.number,
+  fill: PropTypes.string,
+  stroke: PropTypes.string,
+  strokeWidth: PropTypes.number,
+  opacity: PropTypes.number,
+};
+
+Swimlane.propTypes = {
+  type: PropTypes.string,
+  events: PropTypes.array,
+  xScale: PropTypes.func,
+  y: PropTypes.number,
+  height: PropTypes.number,
+  margin: PropTypes.object,
+  hoveredEventId: PropTypes.string,
+  selectedEventId: PropTypes.string,
+  onEventHover: PropTypes.func,
+  onEventClick: PropTypes.func,
+};
+
+EventSwimlanes.propTypes = {
+  events: PropTypes.object,
+  xScale: PropTypes.func,
+  y: PropTypes.number,
+  width: PropTypes.number,
+  margin: PropTypes.object,
+  hoveredEventId: PropTypes.string,
+  selectedEventId: PropTypes.string,
+  onEventHover: PropTypes.func,
+  onEventClick: PropTypes.func,
+};

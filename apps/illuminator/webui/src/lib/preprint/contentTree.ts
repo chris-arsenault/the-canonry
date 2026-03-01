@@ -5,7 +5,7 @@
  * All operations return a new ContentTreeState (immutable updates).
  */
 
-import type { ContentTreeNode, ContentTreeState, ContentNodeType } from './prePrintTypes';
+import type { ContentTreeNode, ContentTreeState, ContentNodeType } from "./prePrintTypes";
 
 let nextId = 1;
 function generateId(): string {
@@ -23,29 +23,29 @@ export function createScaffold(projectId: string, simulationRunId: string): Cont
     nodes: [
       {
         id: generateId(),
-        name: 'Front Matter',
-        type: 'folder',
+        name: "Front Matter",
+        type: "folder",
         children: [
-          { id: generateId(), name: 'Title Page', type: 'folder', children: [] },
-          { id: generateId(), name: 'Copyright', type: 'folder', children: [] },
-          { id: generateId(), name: 'Table of Contents', type: 'folder', children: [] },
+          { id: generateId(), name: "Title Page", type: "folder", children: [] },
+          { id: generateId(), name: "Copyright", type: "folder", children: [] },
+          { id: generateId(), name: "Table of Contents", type: "folder", children: [] },
         ],
       },
       {
         id: generateId(),
-        name: 'Body',
-        type: 'folder',
+        name: "Body",
+        type: "folder",
         children: [],
       },
       {
         id: generateId(),
-        name: 'Back Matter',
-        type: 'folder',
+        name: "Back Matter",
+        type: "folder",
         children: [
-          { id: generateId(), name: 'Appendix', type: 'folder', children: [] },
-          { id: generateId(), name: 'Glossary', type: 'folder', children: [] },
-          { id: generateId(), name: 'Index', type: 'folder', children: [] },
-          { id: generateId(), name: 'Colophon', type: 'folder', children: [] },
+          { id: generateId(), name: "Appendix", type: "folder", children: [] },
+          { id: generateId(), name: "Glossary", type: "folder", children: [] },
+          { id: generateId(), name: "Index", type: "folder", children: [] },
+          { id: generateId(), name: "Colophon", type: "folder", children: [] },
         ],
       },
     ],
@@ -123,7 +123,7 @@ export function addFolder(
   const newFolder: ContentTreeNode = {
     id: generateId(),
     name,
-    type: 'folder',
+    type: "folder",
     children: [],
   };
 
@@ -141,17 +141,12 @@ export function renameNode(
 ): ContentTreeState {
   return {
     ...state,
-    nodes: mapNodes(state.nodes, (node) =>
-      node.id === nodeId ? { ...node, name } : { ...node }
-    ),
+    nodes: mapNodes(state.nodes, (node) => (node.id === nodeId ? { ...node, name } : { ...node })),
     updatedAt: Date.now(),
   };
 }
 
-export function deleteNode(
-  state: ContentTreeState,
-  nodeId: string
-): ContentTreeState {
+export function deleteNode(state: ContentTreeState, nodeId: string): ContentTreeState {
   return {
     ...state,
     nodes: removeNode(state.nodes, nodeId),
@@ -211,8 +206,8 @@ export interface FlattenedNode {
 function slugify(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 export function flattenForExport(state: ContentTreeState): FlattenedNode[] {
@@ -220,7 +215,7 @@ export function flattenForExport(state: ContentTreeState): FlattenedNode[] {
 
   function walk(nodes: ContentTreeNode[], parentPath: string, depth: number) {
     nodes.forEach((node, index) => {
-      const prefix = String(index + 1).padStart(2, '0');
+      const prefix = String(index + 1).padStart(2, "0");
       const segment = `${prefix}-${slugify(node.name)}`;
       const path = parentPath ? `${parentPath}/${segment}` : segment;
       result.push({ path, node, depth, index });
@@ -230,7 +225,7 @@ export function flattenForExport(state: ContentTreeState): FlattenedNode[] {
     });
   }
 
-  walk(state.nodes, '', 0);
+  walk(state.nodes, "", 0);
   return result;
 }
 
@@ -257,7 +252,7 @@ export function getAllContentIds(state: ContentTreeState): Set<string> {
 export function toArboristData(nodes: ContentTreeNode[]): ContentTreeNode[] {
   return nodes.map((node) => ({
     ...node,
-    children: node.type === 'folder' ? toArboristData(node.children || []) : undefined,
+    children: node.type === "folder" ? toArboristData(node.children || []) : undefined,
   }));
 }
 
@@ -311,7 +306,7 @@ export interface AutoPopulateInput {
  * e.g. "Cultures:Aurora Stack" → { namespace: "Cultures", baseName: "Aurora Stack" }
  */
 function parseNamespace(title: string): { namespace?: string; baseName: string } {
-  const colonIndex = title.indexOf(':');
+  const colonIndex = title.indexOf(":");
   if (colonIndex > 0 && colonIndex < title.length - 1) {
     return {
       namespace: title.slice(0, colonIndex),
@@ -333,10 +328,12 @@ export function autoPopulateBody(
   state: ContentTreeState,
   input: AutoPopulateInput
 ): ContentTreeState {
-  const bodyIndex = state.nodes.findIndex((n) => n.name === 'Body' && n.type === 'folder');
+  const bodyIndex = state.nodes.findIndex((n) => n.name === "Body" && n.type === "folder");
   if (bodyIndex < 0) return state;
 
-  const backMatterIndex = state.nodes.findIndex((n) => n.name === 'Back Matter' && n.type === 'folder');
+  const backMatterIndex = state.nodes.findIndex(
+    (n) => n.name === "Back Matter" && n.type === "folder"
+  );
 
   // Collect existing content IDs to avoid duplicates
   const existingIds = getAllContentIds(state);
@@ -346,11 +343,13 @@ export function autoPopulateBody(
   // =========================================================================
 
   const publishedChronicles = input.chronicles.filter(
-    (c) => (c.status === 'complete' || c.status === 'assembly_ready') && !existingIds.has(c.chronicleId)
+    (c) =>
+      (c.status === "complete" || c.status === "assembly_ready") && !existingIds.has(c.chronicleId)
   );
 
   const completedNarratives = input.eraNarratives.filter(
-    (n) => (n.status === 'complete' || n.status === 'step_complete') && !existingIds.has(n.narrativeId)
+    (n) =>
+      (n.status === "complete" || n.status === "step_complete") && !existingIds.has(n.narrativeId)
   );
 
   // Collect all era IDs from chronicles and narratives
@@ -372,14 +371,14 @@ export function autoPopulateBody(
 
   for (const eraId of sortedEraIds) {
     const eraName =
-      completedNarratives.find((n) => n.eraId === eraId)?.eraName
-      || publishedChronicles.find((c) => c.focalEraId === eraId)?.focalEraName
-      || eraId;
+      completedNarratives.find((n) => n.eraId === eraId)?.eraName ||
+      publishedChronicles.find((c) => c.focalEraId === eraId)?.focalEraName ||
+      eraId;
 
     const eraFolder: ContentTreeNode = {
       id: generateId(),
       name: eraName,
-      type: 'folder',
+      type: "folder",
       children: [],
     };
 
@@ -388,10 +387,10 @@ export function autoPopulateBody(
       .filter((n) => n.eraId === eraId)
       .sort((a, b) => (b as any).updatedAt - (a as any).updatedAt)[0];
     if (narrative) {
-      eraFolder.children!.push({
+      eraFolder.children.push({
         id: generateId(),
         name: `${eraName} — Era Narrative`,
-        type: 'era_narrative',
+        type: "era_narrative",
         contentId: narrative.narrativeId,
       });
     }
@@ -407,15 +406,15 @@ export function autoPopulateBody(
       });
 
     for (const c of eraChronicles) {
-      eraFolder.children!.push({
+      eraFolder.children.push({
         id: generateId(),
-        name: c.title || 'Untitled Chronicle',
-        type: 'chronicle',
+        name: c.title || "Untitled Chronicle",
+        type: "chronicle",
         contentId: c.chronicleId,
       });
     }
 
-    if (eraFolder.children!.length > 0) {
+    if (eraFolder.children.length > 0) {
       bodyChildren.push(eraFolder);
     }
   }
@@ -427,12 +426,12 @@ export function autoPopulateBody(
   if (unassigned.length > 0) {
     const unassignedFolder: ContentTreeNode = {
       id: generateId(),
-      name: 'Unassigned Era',
-      type: 'folder',
+      name: "Unassigned Era",
+      type: "folder",
       children: unassigned.map((c) => ({
         id: generateId(),
-        name: c.title || 'Untitled Chronicle',
-        type: 'chronicle' as const,
+        name: c.title || "Untitled Chronicle",
+        type: "chronicle" as const,
         contentId: c.chronicleId,
       })),
     };
@@ -444,7 +443,7 @@ export function autoPopulateBody(
   // =========================================================================
 
   const eligibleEntities = input.entities.filter(
-    (e) => e.description && e.kind !== 'era' && !existingIds.has(e.id)
+    (e) => e.description && e.kind !== "era" && !existingIds.has(e.id)
   );
 
   // Build culture → entity grouping
@@ -462,13 +461,13 @@ export function autoPopulateBody(
 
   // Build culture name → static page mapping
   const publishedPages = input.staticPages.filter(
-    (p) => p.status === 'published' && !existingIds.has(p.pageId)
+    (p) => p.status === "published" && !existingIds.has(p.pageId)
   );
-  const culturePageMap = new Map<string, typeof publishedPages[number]>();
+  const culturePageMap = new Map<string, (typeof publishedPages)[number]>();
   const nonCulturePages: typeof publishedPages = [];
   for (const p of publishedPages) {
     const { namespace, baseName } = parseNamespace(p.title);
-    if (namespace === 'Cultures') {
+    if (namespace === "Cultures") {
       culturePageMap.set(baseName.toLowerCase(), p);
     } else {
       nonCulturePages.push(p);
@@ -478,29 +477,29 @@ export function autoPopulateBody(
   const encyclopediaChildren: ContentTreeNode[] = [];
   const usedPageIds = new Set<string>();
 
-  const sortedCultures = [...byCulture.keys()].sort();
+  const sortedCultures = [...byCulture.keys()].sort((a, b) => a.localeCompare(b));
   for (const cultureName of sortedCultures) {
     const cultureFolder: ContentTreeNode = {
       id: generateId(),
       name: cultureName,
-      type: 'folder',
+      type: "folder",
       children: [],
     };
 
     // Culture static page at top
     const culturePage = culturePageMap.get(cultureName.toLowerCase());
     if (culturePage) {
-      cultureFolder.children!.push({
+      cultureFolder.children.push({
         id: generateId(),
         name: culturePage.title,
-        type: 'static_page',
+        type: "static_page",
         contentId: culturePage.pageId,
       });
       usedPageIds.add(culturePage.pageId);
     }
 
     // Group entities by kind
-    const cultureEntities = byCulture.get(cultureName)!;
+    const cultureEntities = byCulture.get(cultureName);
     const byKind = new Map<string, typeof cultureEntities>();
     for (const e of cultureEntities) {
       const kind = e.kind;
@@ -509,24 +508,24 @@ export function autoPopulateBody(
       byKind.set(kind, list);
     }
 
-    const sortedKinds = [...byKind.keys()].sort();
+    const sortedKinds = [...byKind.keys()].sort((a, b) => a.localeCompare(b));
     for (const kind of sortedKinds) {
-      const kindEntities = byKind.get(kind)!.sort((a, b) => a.name.localeCompare(b.name));
+      const kindEntities = byKind.get(kind).sort((a, b) => a.name.localeCompare(b.name));
       const kindFolder: ContentTreeNode = {
         id: generateId(),
-        name: kind.charAt(0).toUpperCase() + kind.slice(1) + 's',
-        type: 'folder',
+        name: kind.charAt(0).toUpperCase() + kind.slice(1) + "s",
+        type: "folder",
         children: kindEntities.map((e) => ({
           id: generateId(),
           name: e.name,
-          type: 'entity' as const,
+          type: "entity" as const,
           contentId: e.id,
         })),
       };
-      cultureFolder.children!.push(kindFolder);
+      cultureFolder.children.push(kindFolder);
     }
 
-    if (cultureFolder.children!.length > 0) {
+    if (cultureFolder.children.length > 0) {
       encyclopediaChildren.push(cultureFolder);
     }
   }
@@ -542,29 +541,29 @@ export function autoPopulateBody(
 
     const unculturedFolder: ContentTreeNode = {
       id: generateId(),
-      name: 'Uncategorized',
-      type: 'folder',
+      name: "Uncategorized",
+      type: "folder",
       children: [],
     };
 
-    const sortedKinds = [...byKind.keys()].sort();
+    const sortedKinds = [...byKind.keys()].sort((a, b) => a.localeCompare(b));
     for (const kind of sortedKinds) {
-      const kindEntities = byKind.get(kind)!.sort((a, b) => a.name.localeCompare(b.name));
+      const kindEntities = byKind.get(kind).sort((a, b) => a.name.localeCompare(b.name));
       const kindFolder: ContentTreeNode = {
         id: generateId(),
-        name: kind.charAt(0).toUpperCase() + kind.slice(1) + 's',
-        type: 'folder',
+        name: kind.charAt(0).toUpperCase() + kind.slice(1) + "s",
+        type: "folder",
         children: kindEntities.map((e) => ({
           id: generateId(),
           name: e.name,
-          type: 'entity' as const,
+          type: "entity" as const,
           contentId: e.id,
         })),
       };
-      unculturedFolder.children!.push(kindFolder);
+      unculturedFolder.children.push(kindFolder);
     }
 
-    if (unculturedFolder.children!.length > 0) {
+    if (unculturedFolder.children.length > 0) {
       encyclopediaChildren.push(unculturedFolder);
     }
   }
@@ -589,8 +588,8 @@ export function autoPopulateBody(
     if (encyclopediaChildren.length > 0) {
       const encyclopediaFolder: ContentTreeNode = {
         id: generateId(),
-        name: 'Encyclopedia',
-        type: 'folder',
+        name: "Encyclopedia",
+        type: "folder",
         children: encyclopediaChildren,
       };
       existingBackMatterChildren.unshift(encyclopediaFolder);
@@ -602,7 +601,7 @@ export function autoPopulateBody(
       existingBackMatterChildren.push({
         id: generateId(),
         name: p.title,
-        type: 'static_page',
+        type: "static_page",
         contentId: p.pageId,
       });
     }

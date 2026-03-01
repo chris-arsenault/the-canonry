@@ -9,23 +9,23 @@
  * 5. Apply accepted notes to entity enrichment or chronicle record
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import type { EnrichmentType } from '../lib/enrichmentTypes';
-import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { EnrichmentType } from "../lib/enrichmentTypes";
+import { getEnqueue } from "../lib/db/enrichmentQueueBridge";
 import type {
   HistorianRun,
   HistorianNote,
   HistorianConfig,
   HistorianTargetType,
   HistorianTone,
-} from '../lib/historianTypes';
+} from "../lib/historianTypes";
 import {
   createHistorianRun,
   getHistorianRun,
   updateHistorianRun,
   deleteHistorianRun,
   generateHistorianRunId,
-} from '../lib/db/historianRepository';
+} from "../lib/db/historianRepository";
 
 // ============================================================================
 // Types
@@ -54,9 +54,9 @@ export interface UseHistorianReviewReturn {
   /** Whether a historian review session is active */
   isActive: boolean;
   /** Start a new historian review session */
-  startReview: (config: HistorianReviewConfig) => void;
+  startReview: (config: HistorianReviewConfig) => Promise<void>;
   /** Toggle accept/reject for a note */
-  toggleNoteDecision: (noteId: string, accepted: boolean) => void;
+  toggleNoteDecision: (noteId: string, accepted: boolean) => Promise<void>;
   /** Apply accepted notes and close the session */
   applyAccepted: () => HistorianNote[];
   /** Cancel the current session */
@@ -92,93 +92,106 @@ export function useHistorianReview(): UseHistorianReviewReturn {
   // Dispatch a worker task
   const dispatchTask = useCallback((runId: string) => {
     const sentinelEntity = {
-      id: '__historian_review__',
-      name: 'Historian Review',
-      kind: 'system',
-      subtype: '',
-      prominence: '',
-      culture: '',
-      status: 'active',
-      description: '',
+      id: "__historian_review__",
+      name: "Historian Review",
+      kind: "system",
+      subtype: "",
+      prominence: "",
+      culture: "",
+      status: "active",
+      description: "",
       tags: {},
     };
 
-    getEnqueue()([{
-      entity: sentinelEntity,
-      type: 'historianReview' as EnrichmentType,
-      prompt: '', // All data is in IndexedDB run context
-      chronicleId: runId, // Repurpose chronicleId field for runId
-    }]);
+    getEnqueue()([
+      {
+        entity: sentinelEntity,
+        type: "historianReview" as EnrichmentType,
+        prompt: "", // All data is in IndexedDB run context
+        chronicleId: runId, // Repurpose chronicleId field for runId
+      },
+    ]);
   }, []);
 
   // Poll IndexedDB for run state changes
-  const startPolling = useCallback((runId: string) => {
-    stopPolling();
-    pollRef.current = setInterval(async () => {
-      const updated = await getHistorianRun(runId);
-      if (!updated) return;
+  const startPolling = useCallback(
+    (runId: string) => {
+      stopPolling();
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getHistorianRun(runId);
+          if (!updated) return;
 
-      setRun(updated);
+          setRun(updated);
 
-      // Stop polling on review/terminal states
-      if (
-        updated.status === 'reviewing' ||
-        updated.status === 'complete' ||
-        updated.status === 'failed' ||
-        updated.status === 'cancelled'
-      ) {
-        stopPolling();
-      }
-    }, POLL_INTERVAL_MS);
-  }, [stopPolling]);
+          // Stop polling on review/terminal states
+          if (
+            updated.status === "reviewing" ||
+            updated.status === "complete" ||
+            updated.status === "failed" ||
+            updated.status === "cancelled"
+          ) {
+            stopPolling();
+          }
+        })();
+      }, POLL_INTERVAL_MS);
+    },
+    [stopPolling]
+  );
 
   // Start a new historian review session
-  const startReview = useCallback(async (config: HistorianReviewConfig) => {
-    const runId = generateHistorianRunId();
-    const now = Date.now();
+  const startReview = useCallback(
+    async (config: HistorianReviewConfig) => {
+      const runId = generateHistorianRunId();
+      const now = Date.now();
 
-    const newRun: HistorianRun = {
-      runId,
-      projectId: config.projectId,
-      simulationRunId: config.simulationRunId,
-      status: 'pending',
-      tone: config.tone,
-      targetType: config.targetType,
-      targetId: config.targetId,
-      targetName: config.targetName,
-      sourceText: config.sourceText,
-      notes: [],
-      noteDecisions: {},
-      contextJson: config.contextJson,
-      previousNotesJson: config.previousNotesJson,
-      historianConfigJson: JSON.stringify(config.historianConfig),
-      inputTokens: 0,
-      outputTokens: 0,
-      actualCost: 0,
-      createdAt: now,
-      updatedAt: now,
-    };
+      const newRun: HistorianRun = {
+        runId,
+        projectId: config.projectId,
+        simulationRunId: config.simulationRunId,
+        status: "pending",
+        tone: config.tone,
+        targetType: config.targetType,
+        targetId: config.targetId,
+        targetName: config.targetName,
+        sourceText: config.sourceText,
+        notes: [],
+        noteDecisions: {},
+        contextJson: config.contextJson,
+        previousNotesJson: config.previousNotesJson,
+        historianConfigJson: JSON.stringify(config.historianConfig),
+        inputTokens: 0,
+        outputTokens: 0,
+        actualCost: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    await createHistorianRun(newRun);
-    setRun(newRun);
-    setIsActive(true);
+      await createHistorianRun(newRun);
+      setRun(newRun);
+      setIsActive(true);
 
-    // Dispatch the worker task
-    dispatchTask(runId);
+      // Dispatch the worker task
+      dispatchTask(runId);
 
-    // Start polling
-    startPolling(runId);
-  }, [dispatchTask, startPolling]);
+      // Start polling
+      startPolling(runId);
+    },
+    [dispatchTask, startPolling]
+  );
 
   // Toggle accept/reject for a note
-  const toggleNoteDecision = useCallback(async (noteId: string, accepted: boolean) => {
-    if (!run) return;
+  const toggleNoteDecision = useCallback(
+    async (noteId: string, accepted: boolean) => {
+      if (!run) return;
 
-    const newDecisions = { ...run.noteDecisions, [noteId]: accepted };
-    await updateHistorianRun(run.runId, { noteDecisions: newDecisions });
+      const newDecisions = { ...run.noteDecisions, [noteId]: accepted };
+      await updateHistorianRun(run.runId, { noteDecisions: newDecisions });
 
-    setRun((prev) => prev ? { ...prev, noteDecisions: newDecisions } : null);
-  }, [run]);
+      setRun((prev) => (prev ? { ...prev, noteDecisions: newDecisions } : null));
+    },
+    [run]
+  );
 
   // Apply accepted notes and return them
   const applyAccepted = useCallback((): HistorianNote[] => {

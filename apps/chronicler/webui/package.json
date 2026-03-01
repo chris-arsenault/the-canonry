@@ -10,32 +10,33 @@
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@canonry/world-schema": "file:../../../packages/world-schema",
+    "@canonry/world-schema": "workspace:*",
+    "@the-canonry/shared-components": "workspace:*",
     "@uiw/react-md-editor": "^4.0.11",
     "fuse.js": "^7.1.0",
-    "@penguin-tales/image-store": "file:../../../packages/image-store",
-    "@penguin-tales/narrative-store": "file:../../../packages/narrative-store",
-    "@penguin-tales/world-store": "file:../../../packages/world-store",
+    "@the-canonry/image-store": "workspace:*",
+    "@the-canonry/narrative-store": "workspace:*",
+    "@the-canonry/world-store": "workspace:*",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
     "@module-federation/vite": "^1.3.1",
-    "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^4.0.13",
     "@vitejs/plugin-react": "^5.1.1",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
+    "jsdom": "^26.1.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^4.0.13"
   }
 }

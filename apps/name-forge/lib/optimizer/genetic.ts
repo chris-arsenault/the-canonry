@@ -225,6 +225,58 @@ function getPrimaryGoal(weights: FitnessWeights): keyof typeof MUTATION_WEIGHTS 
   return goals[0].goal;
 }
 
+/** Optionally mutate a child genome based on mutation rate. */
+function maybeApplyMutation(
+  child: NamingDomain,
+  mutationRate: number,
+  mutationsPerIndividual: number,
+  primaryGoal: keyof typeof MUTATION_WEIGHTS,
+  rng: () => number
+): NamingDomain {
+  if (rng() >= mutationRate) return child;
+  let result = child;
+  for (let m = 0; m < mutationsPerIndividual; m++) {
+    result = applyWeightedMutation(result, primaryGoal, rng);
+  }
+  return result;
+}
+
+/** Generate child genomes from a population via selection, crossover, and mutation. */
+function generateChildren(
+  population: Individual[],
+  gaSettings: GASettings,
+  primaryGoal: keyof typeof MUTATION_WEIGHTS,
+  rng: () => number,
+  targetCount: number
+): NamingDomain[] {
+  const childGenomes: NamingDomain[] = [];
+
+  while (childGenomes.length < targetCount) {
+    const parent1 = tournamentSelect(population, gaSettings.tournamentSize, rng);
+    const parent2 = tournamentSelect(population, gaSettings.tournamentSize, rng);
+
+    let child1: NamingDomain;
+    let child2: NamingDomain;
+
+    if (rng() < gaSettings.crossoverRate) {
+      [child1, child2] = crossover(parent1.genome, parent2.genome, rng);
+    } else {
+      child1 = { ...parent1.genome };
+      child2 = { ...parent2.genome };
+    }
+
+    child1 = maybeApplyMutation(child1, gaSettings.mutationRate, gaSettings.mutationsPerIndividual, primaryGoal, rng);
+    child2 = maybeApplyMutation(child2, gaSettings.mutationRate, gaSettings.mutationsPerIndividual, primaryGoal, rng);
+
+    childGenomes.push(child1);
+    if (childGenomes.length < targetCount) {
+      childGenomes.push(child2);
+    }
+  }
+
+  return childGenomes;
+}
+
 /**
  * Run genetic algorithm optimization
  */
@@ -250,7 +302,8 @@ export async function geneticAlgorithm(
   console.log(`\n=== Genetic Algorithm ===`);
   console.log(`Population: ${gaSettings.populationSize}, Generations: ${generations}`);
   console.log(`Primary goal: ${primaryGoal}`);
-  console.log(`Separation: ${useSeparation ? `yes (${siblingDomains.length} siblings)` : "no"}`);
+  const geneticSeparationLabel = useSeparation ? `yes (${siblingDomains.length} siblings)` : "no";
+  console.log(`Separation: ${geneticSeparationLabel}`);
 
   // Initialize population with mutations of initial domain
   console.log("\nInitializing population...");
@@ -303,41 +356,10 @@ export async function geneticAlgorithm(
     }
 
     // Generate children through selection, crossover, mutation
-    const childGenomes: NamingDomain[] = [];
-
-    while (newPopulation.length + childGenomes.length < gaSettings.populationSize) {
-      // Selection
-      const parent1 = tournamentSelect(population, gaSettings.tournamentSize, rng);
-      const parent2 = tournamentSelect(population, gaSettings.tournamentSize, rng);
-
-      let child1: NamingDomain;
-      let child2: NamingDomain;
-
-      // Crossover
-      if (rng() < gaSettings.crossoverRate) {
-        [child1, child2] = crossover(parent1.genome, parent2.genome, rng);
-      } else {
-        child1 = { ...parent1.genome };
-        child2 = { ...parent2.genome };
-      }
-
-      // Mutation
-      if (rng() < gaSettings.mutationRate) {
-        for (let m = 0; m < gaSettings.mutationsPerIndividual; m++) {
-          child1 = applyWeightedMutation(child1, primaryGoal, rng);
-        }
-      }
-      if (rng() < gaSettings.mutationRate) {
-        for (let m = 0; m < gaSettings.mutationsPerIndividual; m++) {
-          child2 = applyWeightedMutation(child2, primaryGoal, rng);
-        }
-      }
-
-      childGenomes.push(child1);
-      if (newPopulation.length + childGenomes.length < gaSettings.populationSize) {
-        childGenomes.push(child2);
-      }
-    }
+    const childGenomes = generateChildren(
+      population, gaSettings, primaryGoal, rng,
+      gaSettings.populationSize - newPopulation.length
+    );
 
     // Evaluate all children in parallel
     const childEvaluations = await evaluateBatch(

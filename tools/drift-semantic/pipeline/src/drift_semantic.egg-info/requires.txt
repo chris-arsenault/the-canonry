@@ -1,0 +1,7 @@
+numpy
+scipy
+click
+networkx
+
+[ollama]
+httpx

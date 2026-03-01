@@ -5,7 +5,7 @@
  * These replace console.log calls and enable real-time UI updates via web worker.
  */
 
-import { HardState, Relationship } from '../core/worldTypes';
+import { HardState } from '../core/worldTypes';
 import type { EpochEraSummary } from '../engine/types';
 import type { WorldOutput } from '@canonry/world-schema';
 
@@ -520,4 +520,5 @@ export type WorkerInboundMessage =
 /**
  * Messages sent from worker to main thread
  */
+// eslint-disable-next-line sonarjs/redundant-type-aliases -- Public API alias provides semantic meaning for worker message protocol
 export type WorkerOutboundMessage = SimulationEvent;

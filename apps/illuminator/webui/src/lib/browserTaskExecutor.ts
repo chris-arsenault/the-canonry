@@ -13,11 +13,11 @@
  * - Work does not survive page navigation/reload
  */
 
-import type { WorkerTask, EnrichmentResult } from './enrichmentTypes';
-import type { WorkerConfig, TaskResult } from '../workers/types';
-import { createClients } from '../workers/clients';
-import { executeTask } from '../workers/tasks';
-import * as entityRepo from './db/entityRepository';
+import type { WorkerTask, EnrichmentResult } from "./enrichmentTypes";
+import type { WorkerConfig, TaskResult } from "../workers/types";
+import { createClients } from "../workers/clients";
+import { executeTask } from "../workers/tasks";
+import * as entityRepo from "./db/entityRepository";
 
 export interface BrowserTaskCallbacks {
   onThinkingDelta?: (taskId: string, delta: string) => void;
@@ -31,23 +31,28 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
   if (!result || !task.entityId) return;
 
   try {
-    if (task.type === 'description' && result.description) {
-      await entityRepo.applyDescriptionResult(task.entityId, {
-        text: {
-          aliases: result.aliases || [],
-          visualThesis: result.visualThesis,
-          visualTraits: result.visualTraits || [],
-          generatedAt: result.generatedAt,
-          model: result.model,
-          estimatedCost: result.estimatedCost,
-          actualCost: result.actualCost,
-          inputTokens: result.inputTokens,
-          outputTokens: result.outputTokens,
-          debug: result.debug,
-          chainDebug: result.chainDebug,
+    if (task.type === "description" && result.description) {
+      await entityRepo.applyDescriptionResult(
+        task.entityId,
+        {
+          text: {
+            aliases: result.aliases || [],
+            visualThesis: result.visualThesis,
+            visualTraits: result.visualTraits || [],
+            generatedAt: result.generatedAt,
+            model: result.model,
+            estimatedCost: result.estimatedCost,
+            actualCost: result.actualCost,
+            inputTokens: result.inputTokens,
+            outputTokens: result.outputTokens,
+            debug: result.debug,
+            chainDebug: result.chainDebug,
+          },
         },
-      }, result.summary, result.description);
-    } else if (task.type === 'image' && result.imageId && task.imageType !== 'chronicle') {
+        result.summary,
+        result.description
+      );
+    } else if (task.type === "image" && result.imageId && task.imageType !== "chronicle") {
       await entityRepo.applyImageResult(task.entityId, {
         imageId: result.imageId,
         generatedAt: result.generatedAt,
@@ -61,7 +66,7 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
         height: result.height,
         aspect: result.aspect,
       });
-    } else if (task.type === 'entityChronicle' && result.chronicleId) {
+    } else if (task.type === "entityChronicle" && result.chronicleId) {
       await entityRepo.applyEntityChronicleResult(task.entityId, {
         chronicleId: result.chronicleId,
         generatedAt: result.generatedAt,
@@ -73,7 +78,7 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
       });
     }
   } catch (err) {
-    console.error('[BrowserTask] Persist to IndexedDB failed', {
+    console.error("[BrowserTask] Persist to IndexedDB failed", {
       taskId: task.id,
       error: err instanceof Error ? err.message : String(err),
     });
@@ -88,7 +93,7 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
 export async function executeBrowserTask(
   task: WorkerTask,
   config: WorkerConfig,
-  callbacks?: BrowserTaskCallbacks,
+  callbacks?: BrowserTaskCallbacks
 ): Promise<TaskResult> {
   // Merge task-level llmCallSettings with global config
   const taskConfig = task.llmCallSettings
@@ -97,7 +102,7 @@ export async function executeBrowserTask(
 
   const { llmClient, imageClient } = createClients(taskConfig);
 
-  console.log('[BrowserTask] Started', { taskId: task.id, type: task.type });
+  console.log("[BrowserTask] Started", { taskId: task.id, type: task.type });
 
   try {
     const result = await executeTask(task, {
@@ -106,24 +111,24 @@ export async function executeBrowserTask(
       imageClient,
       isAborted: () => false,
       onThinkingDelta: callbacks?.onThinkingDelta
-        ? (delta) => callbacks.onThinkingDelta!(task.id, delta)
+        ? (delta) => callbacks.onThinkingDelta(task.id, delta)
         : undefined,
       onTextDelta: callbacks?.onTextDelta
-        ? (delta) => callbacks.onTextDelta!(task.id, delta)
+        ? (delta) => callbacks.onTextDelta(task.id, delta)
         : undefined,
     });
 
     if (result.success) {
       await persistResult(task, result.result);
-      console.log('[BrowserTask] Complete', { taskId: task.id, type: task.type });
+      console.log("[BrowserTask] Complete", { taskId: task.id, type: task.type });
     } else {
-      console.warn('[BrowserTask] Failed', { taskId: task.id, error: result.error });
+      console.warn("[BrowserTask] Failed", { taskId: task.id, error: result.error });
     }
 
     return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error('[BrowserTask] Threw', { taskId: task.id, error: message });
+    console.error("[BrowserTask] Threw", { taskId: task.id, error: message });
     return { success: false, error: message };
   }
 }

@@ -1,0 +1,250 @@
+/* StoragePanel.css — co-located styles for StoragePanel.jsx */
+
+/* ─── Loading state ─── */
+.storage-panel-loading {
+  padding: 40px;
+}
+
+/* ─── Header actions ─── */
+.storage-panel-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.storage-panel-compact-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+/* ─── Stats grid ───
+ * Base: ilu-stats-grid, ilu-stat-card, ilu-stat-value, ilu-stat-label
+ * from panel-utilities.css. Overrides below for slightly larger sizing. */
+.storage-panel-stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.storage-panel-stat-card {
+  padding: 12px;
+}
+
+.storage-panel-stat-value {
+  font-size: 24px;
+}
+
+.storage-panel-stat-label {
+  font-size: 12px;
+}
+
+/* ─── Per-project breakdown ─── */
+.storage-panel-project-breakdown {
+  margin-top: 12px;
+}
+
+.storage-panel-project-breakdown-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.storage-panel-project-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.storage-panel-project-item {
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.storage-panel-project-name {
+  font-weight: 500;
+}
+
+.storage-panel-project-stats {
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
+/* ─── Browse header ─── */
+.storage-panel-browse-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Filters row ─── */
+.storage-panel-filters-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.storage-panel-filter-select {
+  width: auto;
+  min-width: 150px;
+}
+
+.storage-panel-page-size-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.storage-panel-page-size-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.storage-panel-page-size-select {
+  width: auto;
+  min-width: 80px;
+}
+
+/* ─── Selection actions ─── */
+.storage-panel-selection-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.storage-panel-selected-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.storage-panel-delete-selected-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.storage-panel-clear-btn {
+  font-size: 11px;
+}
+
+/* ─── Select all row ─── */
+.storage-panel-select-all-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 12px;
+}
+
+.storage-panel-checkbox {
+  cursor: pointer;
+}
+
+.storage-panel-select-all-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Pagination ─── */
+.storage-panel-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  margin-bottom: 12px;
+}
+
+.storage-panel-page-info {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.storage-panel-page-btns {
+  display: flex;
+  gap: 6px;
+}
+
+/* ─── Empty / no images ─── */
+.storage-panel-empty {
+  padding: 40px;
+}
+
+/* ─── Image grid ─── */
+.storage-panel-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.storage-panel-image-card {
+  position: relative;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.storage-panel-image-card[data-selected="true"] {
+  border-color: var(--accent-color);
+}
+
+/* Checkbox overlay */
+.storage-panel-card-checkbox {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 1;
+}
+
+/* Thumbnail container */
+.storage-panel-thumbnail-container {
+  width: 100%;
+  padding-top: 100%;
+  position: relative;
+  cursor: pointer;
+}
+
+/* Info section */
+.storage-panel-card-info {
+  padding: 8px;
+}
+
+.storage-panel-card-name {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.storage-panel-card-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Actions */
+.storage-panel-card-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.storage-panel-download-btn {
+  flex: 1;
+  padding: 4px;
+  font-size: 10px;
+}
+
+.storage-panel-delete-btn {
+  padding: 4px 8px;
+  font-size: 10px;
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  border-radius: 4px;
+  cursor: pointer;
+}

@@ -1,0 +1,158 @@
+/* BulkBackportModal — content-specific styles (prefix: bbm-)
+ * Overlay, header, footer, pill, terminal, and cost styles are in BulkOperationShell.css */
+
+/* --- Confirmation screen: entity list --- */
+
+.bbm-entity-section {
+  margin-bottom: 12px;
+}
+
+.bbm-entity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.bbm-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.bbm-section-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bbm-entity-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bbm-entity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.bbm-entity-row-bordered {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.bbm-entity-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.bbm-entity-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bbm-entity-kind {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.bbm-entity-chr {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* --- Processing screen: custom progress and chronicle detail --- */
+
+.bbm-progress-section {
+  margin-bottom: 20px;
+}
+
+.bbm-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.bbm-progress-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bbm-progress-percent {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.bbm-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.bbm-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  width: var(--bbm-progress-width);
+}
+
+.bbm-progress-fill-failed {
+  background: #ef4444;
+}
+
+.bbm-progress-fill-cancelled {
+  background: #f59e0b;
+}
+
+.bbm-progress-fill-ok {
+  background: #10b981;
+}
+
+.bbm-progress-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bbm-chronicle-detail {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  margin-bottom: 16px;
+}
+
+.bbm-chronicle-title {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bbm-chronicle-batch-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.bbm-chronicle-entity-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}

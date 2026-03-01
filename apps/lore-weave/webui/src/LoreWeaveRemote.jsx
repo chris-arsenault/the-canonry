@@ -15,21 +15,22 @@
  * and simulation systems in alternating phases across multiple eras.
  */
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import './App.css';
-import ConfigurationSummary from './components/config';
-import { DistributionTargetsEditor } from './components/targets';
-import ValidationPanel from './components/validation/ValidationPanel';
-import { SimulationRunner } from './components/runner';
-import ResultsViewer from './components/results';
-import { useSimulationWorker } from './hooks/useSimulationWorker';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
+import "./App.css";
+import ConfigurationSummary from "./components/config";
+import { DistributionTargetsEditor } from "./components/targets";
+import ValidationPanel from "./components/validation/ValidationPanel";
+import { SimulationRunner } from "./components/runner";
+import ResultsViewer from "./components/results";
+import { useSimulationWorker } from "./hooks/useSimulationWorker";
 
 const TABS = [
-  { id: 'configure', label: 'Configure' },
-  { id: 'targets', label: 'Targets' },
-  { id: 'validate', label: 'Validate' },
-  { id: 'run', label: 'Run' },
-  { id: 'results', label: 'Results' },
+  { id: "configure", label: "Configure" },
+  { id: "targets", label: "Targets" },
+  { id: "validate", label: "Validate" },
+  { id: "run", label: "Run" },
+  { id: "results", label: "Results" },
 ];
 
 export default function LoreWeaveRemote({
@@ -53,12 +54,13 @@ export default function LoreWeaveRemote({
   onSearchRunScored,
 }) {
   // Use passed-in section or default to 'configure'
-  const activeTab = activeSection || 'configure';
+  const activeTab = activeSection || "configure";
   const setActiveTab = onSectionChange || (() => {});
 
   // Simulation state - use external state if provided, otherwise use local state
   const [localSimulationResults, setLocalSimulationResults] = useState(null);
-  const simulationResults = externalSimulationResults !== undefined ? externalSimulationResults : localSimulationResults;
+  const simulationResults =
+    externalSimulationResults !== undefined ? externalSimulationResults : localSimulationResults;
   const setSimulationResults = onSimulationResultsChange || setLocalSimulationResults;
   const [isRunning, setIsRunning] = useState(false);
 
@@ -82,31 +84,31 @@ export default function LoreWeaveRemote({
 
     // Required elements
     if (schema.entityKinds.length === 0) {
-      issues.push('No entity kinds defined');
+      issues.push("No entity kinds defined");
     }
     if (schema.relationshipKinds.length === 0) {
-      issues.push('No relationship kinds defined');
+      issues.push("No relationship kinds defined");
     }
     if (schema.cultures.length === 0) {
-      issues.push('No cultures defined');
+      issues.push("No cultures defined");
     }
     if (eras.length === 0) {
-      issues.push('No eras defined');
+      issues.push("No eras defined");
     }
     if (generators.length === 0) {
-      issues.push('No generators (growth templates) defined');
+      issues.push("No generators (growth templates) defined");
     }
 
     // Warnings
     if (pressures.length === 0) {
-      warnings.push('No pressures defined - simulation will have no dynamic feedback');
+      warnings.push("No pressures defined - simulation will have no dynamic feedback");
     }
     if (seedEntities.length === 0) {
-      warnings.push('No seed entities - world will start empty');
+      warnings.push("No seed entities - world will start empty");
     }
-    const hasNamingProfiles = schema.cultures.some(c => c.naming?.profiles?.length);
+    const hasNamingProfiles = schema.cultures.some((c) => c.naming?.profiles?.length);
     if (!hasNamingProfiles) {
-      warnings.push('No naming data - entities will need explicit names');
+      warnings.push("No naming data - entities will need explicit names");
     }
 
     return {
@@ -135,7 +137,7 @@ export default function LoreWeaveRemote({
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'configure':
+      case "configure":
         return (
           <ConfigurationSummary
             schema={schema}
@@ -145,10 +147,10 @@ export default function LoreWeaveRemote({
             seedEntities={seedEntities}
             seedRelationships={seedRelationships}
             validation={configValidation}
-            onNavigateToRun={() => setActiveTab('run')}
+            onNavigateToRun={() => setActiveTab("run")}
           />
         );
-      case 'targets':
+      case "targets":
         return (
           <DistributionTargetsEditor
             distributionTargets={distributionTargets}
@@ -156,7 +158,7 @@ export default function LoreWeaveRemote({
             onDistributionTargetsChange={onDistributionTargetsChange}
           />
         );
-      case 'validate':
+      case "validate":
         return (
           <ValidationPanel
             schema={schema}
@@ -168,7 +170,7 @@ export default function LoreWeaveRemote({
             seedEntities={seedEntities}
           />
         );
-      case 'run':
+      case "run":
         return (
           <SimulationRunner
             projectId={projectId}
@@ -185,19 +187,19 @@ export default function LoreWeaveRemote({
             isRunning={isRunning}
             setIsRunning={setIsRunning}
             onComplete={handleSimulationComplete}
-            onViewResults={() => setActiveTab('results')}
+            onViewResults={() => setActiveTab("results")}
             externalSimulationState={externalSimulationState}
             onSimulationStateChange={onSimulationStateChange}
             onSearchRunScored={onSearchRunScored}
             simulationWorker={simulationWorker}
           />
         );
-      case 'results':
+      case "results":
         return (
           <ResultsViewer
             results={simulationResults}
             schema={schema}
-            onNewRun={() => setActiveTab('run')}
+            onNewRun={() => setActiveTab("run")}
           />
         );
       default:
@@ -214,13 +216,11 @@ export default function LoreWeaveRemote({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`lw-nav-button ${activeTab === tab.id ? 'active' : ''}`}
+              className={`lw-nav-button ${activeTab === tab.id ? "active" : ""}`}
             >
               {tab.label}
-              {tab.id === 'results' && simulationResults && (
-                <span className="lw-nav-badge">
-                  {simulationResults.metadata?.entityCount || 0}
-                </span>
+              {tab.id === "results" && simulationResults && (
+                <span className="lw-nav-badge">{simulationResults.metadata?.entityCount || 0}</span>
               )}
             </button>
           ))}
@@ -229,10 +229,29 @@ export default function LoreWeaveRemote({
 
       {/* Main content area */}
       <div className="lw-main-area">
-        <div className="lw-content-area">
-          {renderContent()}
-        </div>
+        <div className="lw-content-area">{renderContent()}</div>
       </div>
     </div>
   );
 }
+
+LoreWeaveRemote.propTypes = {
+  projectId: PropTypes.string,
+  schema: PropTypes.object,
+  eras: PropTypes.array,
+  pressures: PropTypes.array,
+  generators: PropTypes.array,
+  systems: PropTypes.array,
+  actions: PropTypes.array,
+  seedEntities: PropTypes.array,
+  seedRelationships: PropTypes.array,
+  distributionTargets: PropTypes.object,
+  onDistributionTargetsChange: PropTypes.func,
+  activeSection: PropTypes.string,
+  onSectionChange: PropTypes.func,
+  simulationResults: PropTypes.object,
+  onSimulationResultsChange: PropTypes.func,
+  simulationState: PropTypes.object,
+  onSimulationStateChange: PropTypes.func,
+  onSearchRunScored: PropTypes.func,
+};

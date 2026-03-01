@@ -9,8 +9,8 @@
  * runtime against the style/composition libraries.
  */
 
-import type { ArtisticStyle, ArtisticStyleCategory } from './artisticStyles.js';
-import type { CompositionStyle, CompositionCategory } from './compositionStyles.js';
+import type { ArtisticStyle } from './artisticStyles.js';
+import type { CompositionStyle } from './compositionStyles.js';
 
 /**
  * A rule that excludes certain style+composition pairings from random selection.

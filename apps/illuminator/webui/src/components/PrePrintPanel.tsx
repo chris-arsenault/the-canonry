@@ -5,34 +5,35 @@
  * Loads all data on mount for the sub-views to use.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useEntityNavList } from '../lib/db/entitySelectors';
-import type { PersistedEntity } from '../lib/db/illuminatorDb';
-import type { ChronicleRecord } from '../lib/chronicleTypes';
-import type { ImageMetadataRecord } from '../lib/preprint/prePrintStats';
-import type { StaticPage } from '../lib/staticPageTypes';
-import type { EraNarrativeRecord } from '../lib/eraNarrativeTypes';
-import type { ContentTreeState } from '../lib/preprint/prePrintTypes';
-import { getChroniclesForSimulation } from '../lib/db/chronicleRepository';
-import { getAllImages } from '../lib/db/imageRepository';
-import { getStaticPagesForProject } from '../lib/db/staticPageRepository';
-import { loadTree, saveTree } from '../lib/db/contentTreeRepository';
-import { getEntitiesForRun } from '../lib/db/entityRepository';
-import { getEraNarrativesForSimulation } from '../lib/db/eraNarrativeRepository';
-import StatsView from './preprint/StatsView';
-import ContentTreeView from './preprint/ContentTreeView';
-import ExportView from './preprint/ExportView';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useEntityNavList } from "../lib/db/entitySelectors";
+import type { PersistedEntity } from "../lib/db/illuminatorDb";
+import type { ChronicleRecord } from "../lib/chronicleTypes";
+import type { ImageMetadataRecord } from "../lib/preprint/prePrintStats";
+import type { StaticPage } from "../lib/staticPageTypes";
+import type { EraNarrativeRecord } from "../lib/eraNarrativeTypes";
+import type { ContentTreeState } from "../lib/preprint/prePrintTypes";
+import { getChroniclesForSimulation } from "../lib/db/chronicleRepository";
+import { getAllImages } from "../lib/db/imageRepository";
+import { getStaticPagesForProject } from "../lib/db/staticPageRepository";
+import { loadTree, saveTree } from "../lib/db/contentTreeRepository";
+import { getEntitiesForRun } from "../lib/db/entityRepository";
+import { getEraNarrativesForSimulation } from "../lib/db/eraNarrativeRepository";
+import StatsView from "./preprint/StatsView";
+import ContentTreeView from "./preprint/ContentTreeView";
+import ExportView from "./preprint/ExportView";
+import "./PrePrintPanel.css";
 
-type SubTab = 'stats' | 'tree' | 'export';
+type SubTab = "stats" | "tree" | "export";
 
 interface PrePrintPanelProps {
   projectId: string;
   simulationRunId: string;
 }
 
-export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPanelProps) {
+export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<PrePrintPanelProps>) {
   const navEntities = useEntityNavList();
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>('stats');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>("stats");
   const [fullEntities, setFullEntities] = useState<PersistedEntity[]>([]);
   const [chronicles, setChronicles] = useState<ChronicleRecord[]>([]);
   const [allImages, setAllImages] = useState<ImageMetadataRecord[]>([]);
@@ -49,7 +50,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
 
     let cancelled = false;
 
-    Promise.all([
+    void Promise.all([
       getChroniclesForSimulation(simulationRunId),
       getAllImages(),
       getStaticPagesForProject(projectId),
@@ -68,20 +69,19 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
       setLoading(false);
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [projectId, simulationRunId]);
 
-  const handleTreeChange = useCallback(
-    (newTree: ContentTreeState) => {
-      setTreeState(newTree);
-      saveTree(newTree);
-    },
-    []
-  );
+  const handleTreeChange = useCallback((newTree: ContentTreeState) => {
+    setTreeState(newTree);
+    void saveTree(newTree);
+  }, []);
 
   // Era order map: eraId → sort index (by startTick)
   const eraOrderMap = useMemo(() => {
-    const eraEntities = fullEntities.filter((e) => e.kind === 'era' && (e as any).temporal);
+    const eraEntities = fullEntities.filter((e) => e.kind === "era" && (e as any).temporal);
     const sorted = [...eraEntities].sort(
       (a, b) => ((a as any).temporal.startTick || 0) - ((b as any).temporal.startTick || 0)
     );
@@ -103,18 +103,18 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
     }
 
     const publishableChronicles = chronicles.filter(
-      (c) => c.status === 'complete' || c.status === 'assembly_ready'
+      (c) => c.status === "complete" || c.status === "assembly_ready"
     );
 
     for (const chronicle of publishableChronicles) {
       const coverId = chronicle.coverImage?.generatedImageId;
-      if (coverId && chronicle.coverImage?.status === 'complete') {
+      if (coverId && chronicle.coverImage?.status === "complete") {
         referencedIds.add(coverId);
       }
 
       if (chronicle.imageRefs?.refs) {
         for (const ref of chronicle.imageRefs.refs) {
-          if (ref.type === 'prompt_request' && ref.status === 'complete' && ref.generatedImageId) {
+          if (ref.type === "prompt_request" && ref.status === "complete" && ref.generatedImageId) {
             referencedIds.add(ref.generatedImageId);
           }
         }
@@ -123,14 +123,18 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
 
     // Era narrative images
     for (const narr of eraNarratives) {
-      if (narr.coverImage?.status === 'complete' && narr.coverImage.generatedImageId) {
+      if (narr.coverImage?.status === "complete" && narr.coverImage.generatedImageId) {
         referencedIds.add(narr.coverImage.generatedImageId);
       }
       if (narr.imageRefs?.refs) {
         for (const ref of narr.imageRefs.refs) {
-          if (ref.type === 'chronicle_ref') {
+          if (ref.type === "chronicle_ref") {
             referencedIds.add(ref.imageId);
-          } else if (ref.type === 'prompt_request' && ref.status === 'complete' && ref.generatedImageId) {
+          } else if (
+            ref.type === "prompt_request" &&
+            ref.status === "complete" &&
+            ref.generatedImageId
+          ) {
             referencedIds.add(ref.generatedImageId);
           }
         }
@@ -143,7 +147,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
 
   if (loading) {
     return (
-      <div style={{ padding: 'var(--space-lg)', color: 'var(--text-secondary)' }}>
+      <div className="ppp-empty-state">
         Loading pre-print data...
       </div>
     );
@@ -151,16 +155,16 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
 
   if (!projectId || !simulationRunId) {
     return (
-      <div style={{ padding: 'var(--space-lg)', color: 'var(--text-secondary)' }}>
+      <div className="ppp-empty-state">
         No active project. Load a simulation run to use pre-print features.
       </div>
     );
   }
 
   const subTabs: { id: SubTab; label: string }[] = [
-    { id: 'stats', label: 'Stats' },
-    { id: 'tree', label: 'Content Tree' },
-    { id: 'export', label: 'Export' },
+    { id: "stats", label: "Stats" },
+    { id: "tree", label: "Content Tree" },
+    { id: "export", label: "Export" },
   ];
 
   return (
@@ -170,7 +174,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
           <button
             key={tab.id}
             onClick={() => setActiveSubTab(tab.id)}
-            className={`preprint-subtab ${activeSubTab === tab.id ? 'active' : ''}`}
+            className={`preprint-subtab ${activeSubTab === tab.id ? "active" : ""}`}
           >
             {tab.label}
           </button>
@@ -178,7 +182,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
       </div>
 
       <div className="preprint-content">
-        {activeSubTab === 'stats' && (
+        {activeSubTab === "stats" && (
           <StatsView
             entities={fullEntities}
             chronicles={chronicles}
@@ -188,7 +192,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
           />
         )}
 
-        {activeSubTab === 'tree' && (
+        {activeSubTab === "tree" && (
           <ContentTreeView
             entities={fullEntities}
             chronicles={chronicles}
@@ -202,7 +206,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: PrePrintPa
           />
         )}
 
-        {activeSubTab === 'export' && (
+        {activeSubTab === "export" && (
           <ExportView
             entities={fullEntities}
             chronicles={chronicles}

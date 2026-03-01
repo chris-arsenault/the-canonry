@@ -7,447 +7,280 @@
  * - Recent completed/errored tasks
  */
 
-import { useMemo, useState, useRef, useCallback } from 'react';
-import { useThinkingStore } from '../lib/db/thinkingStore';
-
+import React, { useMemo, useState, useRef, useCallback } from "react";
+import PropTypes from "prop-types";
+import { useThinkingStore } from "../lib/db/thinkingStore";
+import { ErrorMessage } from "@the-canonry/shared-components";
+import "./ActivityPanel.css";
 function formatDuration(ms) {
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
 }
-
 function formatTime(timestamp) {
   return new Date(timestamp).toLocaleTimeString();
 }
-
 function extractAnthropicErrorMessage(debug) {
   if (!debug?.response) return null;
-  if (debug?.meta?.provider && debug.meta.provider !== 'anthropic') return null;
-
+  if (debug?.meta?.provider && debug.meta.provider !== "anthropic") return null;
   try {
     const data = JSON.parse(debug.response);
     const error = data?.error;
-    const message = typeof error?.message === 'string' ? error.message.trim() : '';
-    const type = typeof error?.type === 'string' ? error.type.trim() : '';
-    const topLevelMessage = typeof data?.message === 'string' ? data.message.trim() : '';
-
+    const message = typeof error?.message === "string" ? error.message.trim() : "";
+    const type = typeof error?.type === "string" ? error.type.trim() : "";
+    const topLevelMessage = typeof data?.message === "string" ? data.message.trim() : "";
     if (message && type) return `${type}: ${message}`;
     return message || topLevelMessage || type || null;
   } catch {
     return null;
   }
 }
-
 function formatActivityError(item) {
-  const baseError = item.error || '';
+  const baseError = item.error || "";
   const providerError = extractAnthropicErrorMessage(item.debug);
-
   if (!providerError) {
     return baseError;
   }
-
   if (!baseError) {
     return providerError;
   }
-
   if (baseError.includes(providerError)) {
     return baseError;
   }
-
   return `${baseError} (Anthropic: ${providerError})`;
 }
-
-function TaskRow({ item, onCancel, onRetry, onViewDebug }) {
-  const streamEntry = useThinkingStore((s) => s.entries.get(item.id));
+const TASK_STATUS_COLORS = {
+  queued: "var(--text-muted)",
+  running: "#f59e0b",
+  complete: "#10b981",
+  error: "#ef4444"
+};
+const TASK_STATUS_ICONS = {
+  queued: "◷",
+  running: "◐",
+  complete: "✓",
+  error: "✗"
+};
+function TaskRow({
+  item,
+  onCancel,
+  onRetry,
+  onViewDebug
+}) {
+  const streamEntry = useThinkingStore(s => s.entries.get(item.id));
   const hasStream = Boolean(streamEntry);
-  const openThinking = useThinkingStore((s) => s.openViewer);
-
-  const duration = item.startedAt
-    ? item.completedAt
-      ? item.completedAt - item.startedAt
-      : Date.now() - item.startedAt
-    : null;
-
-  const statusStyles = {
-    queued: { color: 'var(--text-muted)' },
-    running: { color: '#f59e0b' },
-    complete: { color: '#10b981' },
-    error: { color: '#ef4444' },
-  };
-
-  const statusIcons = {
-    queued: '◷',
-    running: '◐',
-    complete: '✓',
-    error: '✗',
-  };
+  const openThinking = useThinkingStore(s => s.openViewer);
+  let duration = null;
+  if (item.startedAt) {
+    duration = item.completedAt ? item.completedAt - item.startedAt : Date.now() - item.startedAt;
+  }
+  const statusIcons = TASK_STATUS_ICONS;
   const hasDebug = Boolean(item.debug && (item.debug.request || item.debug.response));
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '10px 12px',
-        borderBottom: '1px solid var(--border-color)',
-      }}
-    >
-      <span style={{ fontSize: '16px', ...statusStyles[item.status] }}>
+  return <div className="ap-task-row">
+      <span className="ap-task-status-icon"
+    style={{
+      "--ap-status-color": TASK_STATUS_COLORS[item.status]
+    }}>
         {statusIcons[item.status]}
       </span>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 500, fontSize: '13px' }}>{item.entityName}</div>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-          {item.type === 'description' ? 'Description' : item.type === 'image' ? 'Image' : 'Chronicle'}
+      <div className="ap-task-info">
+        <div className="ap-task-name">{item.entityName}</div>
+        <div className="ap-task-type">
+          {(() => {
+          if (item.type === "description") return "Description";
+          if (item.type === "image") return "Image";
+          return "Chronicle";
+        })()}
           {item.entityKind && ` · ${item.entityKind}`}
         </div>
       </div>
 
-      {duration !== null && (
-        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-          {formatDuration(duration)}
-        </span>
-      )}
+      {duration !== null && <span className="ap-task-duration">{formatDuration(duration)}</span>}
 
-      {item.status === 'queued' && onCancel && (
-        <button
-          onClick={() => onCancel(item.id)}
-          className="illuminator-button-link"
-          style={{ fontSize: '11px' }}
-        >
+      {item.status === "queued" && onCancel && <button onClick={() => onCancel(item.id)} className="illuminator-button-link ap-task-action">
           Cancel
-        </button>
-      )}
+        </button>}
 
-      {item.status === 'running' && onCancel && (
-        <button
-          onClick={() => onCancel(item.id)}
-          className="illuminator-button-link"
-          style={{ fontSize: '11px' }}
-        >
+      {item.status === "running" && onCancel && <button onClick={() => onCancel(item.id)} className="illuminator-button-link ap-task-action">
           Cancel
-        </button>
-      )}
+        </button>}
 
-      {item.status === 'error' && onRetry && (
-        <button
-          onClick={() => onRetry(item.id)}
-          className="illuminator-button-link"
-          style={{ fontSize: '11px' }}
-        >
+      {item.status === "error" && onRetry && <button onClick={() => onRetry(item.id)} className="illuminator-button-link ap-task-action">
           Retry
-        </button>
-      )}
+        </button>}
 
-      {hasStream && (
-        <button
-          onClick={() => openThinking(item.id)}
-          className="illuminator-button-link"
-          style={{ fontSize: '11px' }}
-          title="View LLM stream (thinking + response)"
-        >
-          {streamEntry.isActive
-            ? streamEntry.text.length > 0
-              ? `${Math.round(streamEntry.text.length / 1000)}K`
-              : streamEntry.thinking.length > 0
-                ? 'Thinking'
-                : '...'
-            : 'Stream'}
-        </button>
-      )}
+      {hasStream && <button onClick={() => openThinking(item.id)} className="illuminator-button-link ap-task-action" title="View LLM stream (thinking + response)">
+          {(() => {
+        if (!streamEntry.isActive) return "Stream";
+        if (streamEntry.text.length > 0) return `${Math.round(streamEntry.text.length / 1000)}K`;
+        if (streamEntry.thinking.length > 0) return "Thinking";
+        return "...";
+      })()}
+        </button>}
 
-      {hasDebug && onViewDebug && (
-        <button
-          onClick={() => onViewDebug(item)}
-          className="illuminator-button-link"
-          style={{ fontSize: '11px' }}
-        >
+      {hasDebug && onViewDebug && <button onClick={() => onViewDebug(item)} className="illuminator-button-link ap-task-action">
           View Debug
-        </button>
-      )}
-    </div>
-  );
+        </button>}
+    </div>;
 }
-
+TaskRow.propTypes = {
+  item: PropTypes.object,
+  onCancel: PropTypes.func,
+  onRetry: PropTypes.func,
+  onViewDebug: PropTypes.func
+};
 export default function ActivityPanel({
   queue,
   stats,
   onCancel,
   onRetry,
   onCancelAll,
-  onClearCompleted,
+  onClearCompleted
 }) {
   const [debugItem, setDebugItem] = useState(null);
   const mouseDownOnOverlay = useRef(false);
-
-  const handleOverlayMouseDown = useCallback((e) => {
+  const handleOverlayMouseDown = useCallback(e => {
     mouseDownOnOverlay.current = e.target === e.currentTarget;
   }, []);
-
-  const handleOverlayClick = useCallback((e) => {
+  const handleOverlayClick = useCallback(e => {
     if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
       setDebugItem(null);
     }
   }, []);
 
   // Split queue into categories
-  const { running, queued, completed, errored } = useMemo(() => {
-    const running = queue.filter((item) => item.status === 'running');
-    const queued = queue.filter((item) => item.status === 'queued');
-    const completed = queue
-      .filter((item) => item.status === 'complete')
-      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
-      .slice(0, 20);
-    const errored = queue.filter((item) => item.status === 'error');
-
-    return { running, queued, completed, errored };
+  const {
+    running,
+    queued,
+    completed,
+    errored
+  } = useMemo(() => {
+    const running = queue.filter(item => item.status === "running");
+    const queued = queue.filter(item => item.status === "queued");
+    const completed = queue.filter(item => item.status === "complete").sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0)).slice(0, 20);
+    const errored = queue.filter(item => item.status === "error");
+    return {
+      running,
+      queued,
+      completed,
+      errored
+    };
   }, [queue]);
-  const debugRequest = debugItem?.debug?.request || '';
-  const debugResponse = debugItem?.debug?.response || '';
-
-  return (
-    <div>
+  const debugRequest = debugItem?.debug?.request || "";
+  const debugResponse = debugItem?.debug?.response || "";
+  return <div>
       {/* Stats header */}
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Activity</h2>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {queue.length > 0 && (
-              <button
-                onClick={onCancelAll}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '6px 12px', fontSize: '12px' }}
-              >
+          <div className="ap-header-actions">
+            {queue.length > 0 && <button onClick={onCancelAll} className="illuminator-button illuminator-button-secondary ap-header-btn">
                 Cancel All
-              </button>
-            )}
-            {stats.completed > 0 && (
-              <button
-                onClick={onClearCompleted}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '6px 12px', fontSize: '12px' }}
-              >
+              </button>}
+            {stats.completed > 0 && <button onClick={onClearCompleted} className="illuminator-button illuminator-button-secondary ap-header-btn">
                 Clear Completed
-              </button>
-            )}
+              </button>}
           </div>
         </div>
 
         {/* Stats */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '24px',
-            padding: '12px',
-            background: 'var(--bg-tertiary)',
-            borderRadius: '4px',
-          }}
-        >
+        <div className="ap-stats-row">
           <div>
-            <span style={{ fontSize: '20px', fontWeight: 600 }}>{stats.queued}</span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>
-              queued
-            </span>
+            <span className="ap-stat-value">{stats.queued}</span>
+            <span className="ap-stat-label">queued</span>
           </div>
           <div>
-            <span style={{ fontSize: '20px', fontWeight: 600, color: '#f59e0b' }}>
-              {stats.running}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>
-              running
-            </span>
+            <span className="ap-stat-value ap-stat-value-running">{stats.running}</span>
+            <span className="ap-stat-label">running</span>
           </div>
           <div>
-            <span style={{ fontSize: '20px', fontWeight: 600, color: '#10b981' }}>
-              {stats.completed}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>
-              completed
-            </span>
+            <span className="ap-stat-value ap-stat-value-completed">{stats.completed}</span>
+            <span className="ap-stat-label">completed</span>
           </div>
           <div>
-            <span style={{ fontSize: '20px', fontWeight: 600, color: '#ef4444' }}>
-              {stats.errored}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>
-              errors
-            </span>
+            <span className="ap-stat-value ap-stat-value-errors">{stats.errored}</span>
+            <span className="ap-stat-label">errors</span>
           </div>
         </div>
       </div>
 
       {/* Currently Running */}
-      {running.length > 0 && (
-        <div className="illuminator-card" style={{ padding: 0 }}>
-          <div
-            style={{
-              padding: '12px',
-              borderBottom: '1px solid var(--border-color)',
-              fontWeight: 500,
-              fontSize: '13px',
-              background: 'var(--bg-tertiary)',
-            }}
-          >
-            Currently Running
-          </div>
-          {running.map((item) => (
-            <TaskRow key={item.id} item={item} onCancel={onCancel} onViewDebug={setDebugItem} />
-          ))}
-        </div>
-      )}
+      {running.length > 0 && <div className="illuminator-card ap-section-card">
+          <div className="ap-section-header">Currently Running</div>
+          {running.map(item => <TaskRow key={item.id} item={item} onCancel={onCancel} onViewDebug={setDebugItem} />)}
+        </div>}
 
       {/* Queued */}
-      {queued.length > 0 && (
-        <div className="illuminator-card" style={{ padding: 0 }}>
-          <div
-            style={{
-              padding: '12px',
-              borderBottom: '1px solid var(--border-color)',
-              fontWeight: 500,
-              fontSize: '13px',
-              background: 'var(--bg-tertiary)',
-            }}
-          >
-            Queued ({queued.length})
-          </div>
-          {queued.slice(0, 10).map((item) => (
-            <TaskRow key={item.id} item={item} onCancel={onCancel} onViewDebug={setDebugItem} />
-          ))}
-          {queued.length > 10 && (
-            <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
-              ... and {queued.length - 10} more
-            </div>
-          )}
-        </div>
-      )}
+      {queued.length > 0 && <div className="illuminator-card ap-section-card">
+          <div className="ap-section-header">Queued ({queued.length})</div>
+          {queued.slice(0, 10).map(item => <TaskRow key={item.id} item={item} onCancel={onCancel} onViewDebug={setDebugItem} />)}
+          {queued.length > 10 && <div className="ap-more-indicator">... and {queued.length - 10} more</div>}
+        </div>}
 
       {/* Errors */}
-      {errored.length > 0 && (
-        <div className="illuminator-card" style={{ padding: 0 }}>
-          <div
-            style={{
-              padding: '12px',
-              borderBottom: '1px solid var(--border-color)',
-              fontWeight: 500,
-              fontSize: '13px',
-              background: 'var(--bg-tertiary)',
-              color: '#ef4444',
-            }}
-          >
+      {errored.length > 0 && <div className="illuminator-card ap-section-card">
+          <div className="ap-section-header ap-section-header-errors">
             Errors ({errored.length})
           </div>
-          {errored.map((item) => {
-            const activityError = formatActivityError(item);
-            return (
-              <div key={item.id}>
+          {errored.map(item => {
+        const activityError = formatActivityError(item);
+        return <div key={item.id}>
                 <TaskRow item={item} onRetry={onRetry} onViewDebug={setDebugItem} />
-                {activityError && (
-                  <div
-                    style={{
-                      padding: '8px 12px 12px 40px',
-                      fontSize: '11px',
-                      color: '#ef4444',
-                      background: 'rgba(239, 68, 68, 0.1)',
-                    }}
-                  >
-                    {activityError}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                {activityError && <ErrorMessage message={activityError} className="ap-error-detail" />}
+              </div>;
+      })}
+        </div>}
 
       {/* Recent Completed */}
-      {completed.length > 0 && (
-        <div className="illuminator-card" style={{ padding: 0 }}>
-          <div
-            style={{
-              padding: '12px',
-              borderBottom: '1px solid var(--border-color)',
-              fontWeight: 500,
-              fontSize: '13px',
-              background: 'var(--bg-tertiary)',
-            }}
-          >
-            Recent Completed
-          </div>
-          {completed.map((item) => (
-            <TaskRow key={item.id} item={item} onViewDebug={setDebugItem} />
-          ))}
-        </div>
-      )}
+      {completed.length > 0 && <div className="illuminator-card ap-section-card">
+          <div className="ap-section-header">Recent Completed</div>
+          {completed.map(item => <TaskRow key={item.id} item={item} onViewDebug={setDebugItem} />)}
+        </div>}
 
       {/* Empty state */}
-      {queue.length === 0 && (
-        <div className="illuminator-card">
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+      {queue.length === 0 && <div className="illuminator-card">
+          <div className="ap-empty-state">
             No activity yet. Queue some enrichment tasks from the Entities tab.
           </div>
-        </div>
-      )}
+        </div>}
 
-      {debugItem && (
-        <div className="illuminator-modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
-          <div
-            className="illuminator-modal"
-            style={{ maxWidth: '900px', width: '90%', maxHeight: '85vh' }}
-          >
+      {debugItem && <div className="illuminator-modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick} role="button" tabIndex={0} onKeyDown={e => {
+      if (e.key === "Enter" || e.key === " ") handleOverlayClick(e);
+    }}>
+          <div className="illuminator-modal ap-debug-modal">
             <div className="illuminator-modal-header">
               <h3>Network Debug</h3>
-              <button onClick={() => setDebugItem(null)} className="illuminator-modal-close">&times;</button>
+              <button onClick={() => setDebugItem(null)} className="illuminator-modal-close">
+                &times;
+              </button>
             </div>
-            <div className="illuminator-modal-body" style={{ display: 'grid', gap: '12px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            <div className="illuminator-modal-body ap-debug-body">
+              <div className="ap-debug-entity-info">
                 {debugItem.entityName}
-                {debugItem.type === 'description'
-                  ? ' · Description'
-                  : debugItem.type === 'image'
-                    ? ' · Image'
-                    : ' · Chronicle'}
+                {(() => {
+              if (debugItem.type === "description") return " · Description";
+              if (debugItem.type === "image") return " · Image";
+              return " · Chronicle";
+            })()}
               </div>
               <div>
-                <label
-                  style={{
-                    fontSize: '11px',
-                    color: 'var(--text-muted)',
-                    display: 'block',
-                    marginBottom: '6px',
-                  }}
-                >
-                  Request (raw)
-                </label>
-                <textarea
-                  className="illuminator-textarea"
-                  value={debugRequest}
-                  readOnly
-                  style={{ minHeight: '140px' }}
-                />
+                <label htmlFor="request-raw" className="ap-debug-label">Request (raw)</label>
+                <textarea id="request-raw" className="illuminator-textarea ap-debug-request-textarea" value={debugRequest} readOnly />
               </div>
               <div>
-                <label
-                  style={{
-                    fontSize: '11px',
-                    color: 'var(--text-muted)',
-                    display: 'block',
-                    marginBottom: '6px',
-                  }}
-                >
-                  Response (raw)
-                </label>
-                <textarea
-                  className="illuminator-textarea"
-                  value={debugResponse}
-                  readOnly
-                  style={{ minHeight: '160px' }}
-                />
+                <label htmlFor="response-raw" className="ap-debug-label">Response (raw)</label>
+                <textarea id="response-raw" className="illuminator-textarea ap-debug-response-textarea" value={debugResponse} readOnly />
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        </div>}
+    </div>;
 }
+ActivityPanel.propTypes = {
+  queue: PropTypes.array,
+  stats: PropTypes.object,
+  onCancel: PropTypes.func,
+  onRetry: PropTypes.func,
+  onCancelAll: PropTypes.func,
+  onClearCompleted: PropTypes.func
+};

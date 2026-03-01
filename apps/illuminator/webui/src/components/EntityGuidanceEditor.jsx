@@ -12,64 +12,106 @@
  * - Visual Thesis/Traits configuration (collapsible)
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { LocalTextArea } from '@penguin-tales/shared-components';
-import { useEntityNavList, useEntityNavItems } from '../lib/db/entitySelectors';
-import { useEntityStore } from '../lib/db/entityStore';
-import { useRelationshipsByEntity } from '../lib/db/relationshipSelectors';
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import PropTypes from "prop-types";
+import { LocalTextArea } from "@the-canonry/shared-components";
+import { useEntityNavList, useEntityNavItems } from "../lib/db/entitySelectors";
+import { useEntityStore } from "../lib/db/entityStore";
+import { useRelationshipsByEntity } from "../lib/db/relationshipSelectors";
 import {
   buildDescriptionPromptFromGuidance,
   buildImagePromptFromGuidance,
   createDefaultEntityGuidance,
   createDefaultCultureIdentities,
-} from '../lib/promptBuilders';
-import {
-  prominenceLabelFromScale,
-  prominenceThresholdFromScale,
-} from '@canonry/world-schema';
-import { useProminenceScale } from '../lib/db/indexSelectors';
+} from "../lib/promptBuilders";
+import { prominenceLabelFromScale, prominenceThresholdFromScale } from "@canonry/world-schema";
+import { useProminenceScale } from "../lib/db/indexSelectors";
+import "./EntityGuidanceEditor.css";
 
 const TASK_TYPES = [
-  { id: 'description', label: 'Description', icon: '📝' },
-  { id: 'image', label: 'Image', icon: '🖼️' },
+  { id: "description", label: "Description", icon: "\uD83D\uDCDD" },
+  { id: "image", label: "Image", icon: "\uD83D\uDDBC\uFE0F" },
 ];
 
 // Description sections (maps to KindGuidance fields)
 const DESCRIPTION_SECTIONS = [
   {
-    key: 'focus',
-    label: 'Focus',
-    description: 'What to emphasize when describing this entity kind. The world tone (style guidance) is automatically included.',
+    key: "focus",
+    label: "Focus",
+    description:
+      "What to emphasize when describing this entity kind. The world tone (style guidance) is automatically included.",
     rows: 6,
   },
   {
-    key: 'relationshipUse',
-    label: 'Relationship Guidance',
-    description: 'How to use relationships when describing this kind (e.g., "ONE [strong] relationship as anchor")',
+    key: "relationshipUse",
+    label: "Relationship Guidance",
+    description:
+      'How to use relationships when describing this kind (e.g., "ONE [strong] relationship as anchor")',
     rows: 2,
   },
   {
-    key: 'proseHint',
-    label: 'Chronicle Prose Hint',
-    description: 'Brief guidance for portraying this kind in chronicle prose',
+    key: "proseHint",
+    label: "Chronicle Prose Hint",
+    description: "Brief guidance for portraying this kind in chronicle prose",
     rows: 2,
   },
 ];
 
 // Image sections (maps to KindGuidance fields)
 const IMAGE_SECTIONS = [
-  { key: 'imageInstructions', label: 'Image Instructions', description: 'How to interpret this entity type for image generation', rows: 3 },
-  { key: 'imageAvoid', label: 'Avoid', description: 'What NOT to include in generated images', rows: 2 },
+  {
+    key: "imageInstructions",
+    label: "Image Instructions",
+    description: "How to interpret this entity type for image generation",
+    rows: 3,
+  },
+  {
+    key: "imageAvoid",
+    label: "Avoid",
+    description: "What NOT to include in generated images",
+    rows: 2,
+  },
 ];
 
 // Visual generation step overrides (maps to KindGuidance.visualThesis/visualTraits)
 const VISUAL_STEP_SECTIONS = [
-  { key: 'visualThesis.domain', label: 'Visual Thesis Domain', description: 'Domain context for thesis generation (e.g., "You design characters for a fighting game roster...")', rows: 3 },
-  { key: 'visualThesis.focus', label: 'Visual Thesis Focus', description: 'What to focus on for thesis (e.g., "Structural gear, profile extensions")', rows: 2 },
-  { key: 'visualThesis.framing', label: 'Visual Thesis Framing', description: 'Context prepended to thesis prompt (e.g., "This is a CHARACTER - describe...")', rows: 2 },
-  { key: 'visualTraits.domain', label: 'Visual Traits Domain', description: 'Domain context for traits generation', rows: 3 },
-  { key: 'visualTraits.focus', label: 'Visual Traits Focus', description: 'What to focus on for traits', rows: 2 },
-  { key: 'visualTraits.framing', label: 'Visual Traits Framing', description: 'Context prepended to traits prompt', rows: 2 },
+  {
+    key: "visualThesis.domain",
+    label: "Visual Thesis Domain",
+    description:
+      'Domain context for thesis generation (e.g., "You design characters for a fighting game roster...")',
+    rows: 3,
+  },
+  {
+    key: "visualThesis.focus",
+    label: "Visual Thesis Focus",
+    description: 'What to focus on for thesis (e.g., "Structural gear, profile extensions")',
+    rows: 2,
+  },
+  {
+    key: "visualThesis.framing",
+    label: "Visual Thesis Framing",
+    description: 'Context prepended to thesis prompt (e.g., "This is a CHARACTER - describe...")',
+    rows: 2,
+  },
+  {
+    key: "visualTraits.domain",
+    label: "Visual Traits Domain",
+    description: "Domain context for traits generation",
+    rows: 3,
+  },
+  {
+    key: "visualTraits.focus",
+    label: "Visual Traits Focus",
+    description: "What to focus on for traits",
+    rows: 2,
+  },
+  {
+    key: "visualTraits.framing",
+    label: "Visual Traits Framing",
+    description: "Context prepended to traits prompt",
+    rows: 2,
+  },
 ];
 
 function calculateEntityAge(entity, simulationMetadata) {
@@ -77,11 +119,11 @@ function calculateEntityAge(entity, simulationMetadata) {
   const age = currentTick - (entity?.createdAt || 0);
   const ageRatio = age / Math.max(currentTick, 1);
 
-  if (ageRatio > 0.8) return 'ancient';
-  if (ageRatio > 0.6) return 'established';
-  if (ageRatio > 0.3) return 'mature';
-  if (ageRatio > 0.1) return 'recent';
-  return 'new';
+  if (ageRatio > 0.8) return "ancient";
+  if (ageRatio > 0.6) return "established";
+  if (ageRatio > 0.3) return "mature";
+  if (ageRatio > 0.1) return "recent";
+  return "new";
 }
 
 function resolveRelationships(entity, entityNavMap, relationshipsByEntity) {
@@ -117,11 +159,11 @@ function findCulturalPeers(entity, prominentByCulture) {
 }
 
 function findFactionMembers(entity, entityNavMap, relationshipsByEntity, renownedThreshold) {
-  if (entity?.kind !== 'faction') return [];
+  if (entity?.kind !== "faction") return [];
   const members = [];
   const links = relationshipsByEntity.get(entity.id) || [];
   for (const link of links) {
-    if (link.kind !== 'member_of' || link.dst !== entity.id) continue;
+    if (link.kind !== "member_of" || link.dst !== entity.id) continue;
     const member = entityNavMap.get(link.src);
     if (member && member.prominence >= renownedThreshold) {
       members.push(member.name);
@@ -140,26 +182,31 @@ function buildEntityContext(
 ) {
   const relationships = resolveRelationships(entity, entityNavMap, relationshipsByEntity);
   const culturalPeers = findCulturalPeers(entity, prominentByCulture);
-  const factionMembers = findFactionMembers(entity, entityNavMap, relationshipsByEntity, renownedThreshold);
+  const factionMembers = findFactionMembers(
+    entity,
+    entityNavMap,
+    relationshipsByEntity,
+    renownedThreshold
+  );
 
   return {
     entity: {
-      id: entity?.id || '',
-      name: entity?.name || '[Entity Name]',
-      kind: entity?.kind || '[kind]',
-      subtype: entity?.subtype || '[subtype]',
+      id: entity?.id || "",
+      name: entity?.name || "[Entity Name]",
+      kind: entity?.kind || "[kind]",
+      subtype: entity?.subtype || "[subtype]",
       prominence: entity?.prominence ?? 2.0,
-      culture: entity?.culture || '',
-      status: entity?.status || 'active',
-      summary: entity?.summary || '',
-      description: entity?.description || '',
+      culture: entity?.culture || "",
+      status: entity?.status || "active",
+      summary: entity?.summary || "",
+      description: entity?.description || "",
       tags: entity?.tags || {},
-      visualThesis: entity?.enrichment?.text?.visualThesis || '',
+      visualThesis: entity?.enrichment?.text?.visualThesis || "",
       visualTraits: entity?.enrichment?.text?.visualTraits || [],
     },
     relationships,
     era: {
-      name: simulationMetadata?.currentEra?.name || '',
+      name: simulationMetadata?.currentEra?.name || "",
       description: simulationMetadata?.currentEra?.description,
     },
     entityAge: calculateEntityAge(entity, simulationMetadata),
@@ -170,7 +217,7 @@ function buildEntityContext(
 
 // Get nested value from object using dot notation
 function getNestedValue(obj, path) {
-  const parts = path.split('.');
+  const parts = path.split(".");
   let value = obj;
   for (const part of parts) {
     if (value == null) return undefined;
@@ -181,7 +228,7 @@ function getNestedValue(obj, path) {
 
 // Set nested value in object using dot notation
 function setNestedValue(obj, path, value) {
-  const parts = path.split('.');
+  const parts = path.split(".");
   const result = { ...obj };
   let current = result;
 
@@ -199,12 +246,12 @@ function TemplateSection({ section, value, onChange, disabled }) {
   return (
     <div className="illuminator-template-section">
       <div className="illuminator-template-section-header">
-        <label className="illuminator-label">{section.label}</label>
+        <span className="illuminator-label">{section.label}</span>
         <span className="illuminator-template-section-hint">{section.description}</span>
       </div>
       <LocalTextArea
         className="illuminator-template-textarea"
-        value={value || ''}
+        value={value || ""}
         onChange={(v) => onChange(section.key, v)}
         disabled={disabled}
         rows={section.rows || 3}
@@ -213,6 +260,13 @@ function TemplateSection({ section, value, onChange, disabled }) {
   );
 }
 
+TemplateSection.propTypes = {
+  section: PropTypes.object,
+  value: PropTypes.any,
+  onChange: PropTypes.func,
+  disabled: PropTypes.bool,
+};
+
 function KindSelector({ kinds, selectedKind, onSelectKind }) {
   return (
     <div className="illuminator-kind-selector">
@@ -220,7 +274,7 @@ function KindSelector({ kinds, selectedKind, onSelectKind }) {
         <button
           key={kind.kind}
           onClick={() => onSelectKind(kind.kind)}
-          className={`illuminator-kind-button ${selectedKind === kind.kind ? 'active' : ''}`}
+          className={`illuminator-kind-button ${selectedKind === kind.kind ? "active" : ""}`}
         >
           {kind.description || kind.kind}
         </button>
@@ -229,27 +283,32 @@ function KindSelector({ kinds, selectedKind, onSelectKind }) {
   );
 }
 
+KindSelector.propTypes = {
+  kinds: PropTypes.array,
+  selectedKind: PropTypes.string,
+  onSelectKind: PropTypes.func,
+};
+
 // Default guidance for a kind that doesn't exist yet
 function getDefaultKindGuidance(kind) {
   return {
     focus: `Describe this ${kind} with vivid, specific details.`,
-    relationshipUse: 'Reference relevant relationships to ground the description.',
+    relationshipUse: "Reference relevant relationships to ground the description.",
     proseHint: `Show this ${kind} through specific details.`,
     visualThesis: {
       domain: `You design ${kind}s for a fantasy world.`,
-      focus: 'Focus on distinctive visual elements.',
+      focus: "Focus on distinctive visual elements.",
       framing: `This is a ${kind.toUpperCase()}.`,
     },
     visualTraits: {
       domain: `You're completing a ${kind} design brief.`,
-      focus: 'Add supporting visual details.',
+      focus: "Add supporting visual details.",
       framing: `This is a ${kind.toUpperCase()}.`,
     },
     imageInstructions: `Create concept art for this ${kind}.`,
-    imageAvoid: 'Text, labels, watermarks.',
+    imageAvoid: "Text, labels, watermarks.",
   };
 }
-
 
 export default function EntityGuidanceEditor({
   entityGuidance: externalEntityGuidance,
@@ -260,9 +319,9 @@ export default function EntityGuidanceEditor({
 }) {
   const entities = useEntityNavList();
   const entityNavItems = useEntityNavItems();
-  const [selectedType, setSelectedType] = useState('description');
-  const [selectedKind, setSelectedKind] = useState('npc');
-  const [selectedEntityId, setSelectedEntityId] = useState('');
+  const [selectedType, setSelectedType] = useState("description");
+  const [selectedKind, setSelectedKind] = useState("npc");
+  const [selectedEntityId, setSelectedEntityId] = useState("");
   const [showVisualSteps, setShowVisualSteps] = useState(false);
   const [selectedFullEntity, setSelectedFullEntity] = useState(null);
 
@@ -289,11 +348,11 @@ export default function EntityGuidanceEditor({
 
   const prominenceScale = useProminenceScale();
   const notableThreshold = useMemo(
-    () => prominenceThresholdFromScale('recognized', prominenceScale),
+    () => prominenceThresholdFromScale("recognized", prominenceScale),
     [prominenceScale]
   );
   const renownedThreshold = useMemo(
-    () => prominenceThresholdFromScale('renowned', prominenceScale),
+    () => prominenceThresholdFromScale("renowned", prominenceScale),
     [prominenceScale]
   );
   const relationshipsByEntity = useRelationshipsByEntity();
@@ -316,9 +375,7 @@ export default function EntityGuidanceEditor({
   // Get example entities for preview, filtered by selected kind
   const exampleEntities = useMemo(() => {
     if (!entities || entities.length === 0) return [];
-    return entities
-      .filter((e) => e.kind === selectedKind)
-      .slice(0, 10);
+    return entities.filter((e) => e.kind === selectedKind).slice(0, 10);
   }, [entities, selectedKind]);
 
   const selectedNavEntity = useMemo(() => {
@@ -353,9 +410,9 @@ export default function EntityGuidanceEditor({
   const preview = useMemo(() => {
     // Derive flat values from structured fields for entity description prompts
     const wc = {
-      name: worldContext?.name || '[World Name]',
-      description: worldContext?.description || '[World description not set]',
-      toneFragments: worldContext?.toneFragments || { core: '' },
+      name: worldContext?.name || "[World Name]",
+      description: worldContext?.description || "[World description not set]",
+      toneFragments: worldContext?.toneFragments || { core: "" },
       canonFactsWithMetadata: worldContext?.canonFactsWithMetadata || [],
     };
 
@@ -368,7 +425,7 @@ export default function EntityGuidanceEditor({
       renownedThreshold
     );
 
-    if (selectedType === 'description') {
+    if (selectedType === "description") {
       return buildDescriptionPromptFromGuidance(
         entityGuidance,
         cultureIdentities,
@@ -404,7 +461,8 @@ export default function EntityGuidanceEditor({
       if (!onEntityGuidanceChange) return;
 
       // Get current guidance or create default
-      const currentKindGuidance = entityGuidance[selectedKind] || getDefaultKindGuidance(selectedKind);
+      const currentKindGuidance =
+        entityGuidance[selectedKind] || getDefaultKindGuidance(selectedKind);
 
       // Update the specific field (handles nested paths like 'visualThesis.domain')
       const updatedKindGuidance = setNestedValue(currentKindGuidance, sectionKey, value);
@@ -423,7 +481,7 @@ export default function EntityGuidanceEditor({
   // Reset when switching kinds - use entity of that kind for preview
   const handleKindSelect = useCallback((kind) => {
     setSelectedKind(kind);
-    setSelectedEntityId(''); // Reset to first entity of new kind
+    setSelectedEntityId(""); // Reset to first entity of new kind
   }, []);
 
   return (
@@ -443,7 +501,7 @@ export default function EntityGuidanceEditor({
             <button
               key={type.id}
               onClick={() => setSelectedType(type.id)}
-              className={`illuminator-prompt-tab ${selectedType === type.id ? 'active' : ''}`}
+              className={`illuminator-prompt-tab ${selectedType === type.id ? "active" : ""}`}
             >
               <span>{type.icon}</span>
               <span>{type.label}</span>
@@ -455,7 +513,7 @@ export default function EntityGuidanceEditor({
         {entityKinds.length > 0 && (
           <div className="illuminator-template-kind-section">
             <div className="illuminator-template-kind-header">
-              <label className="illuminator-label">Entity Kind</label>
+              <span className="illuminator-label">Entity Kind</span>
             </div>
             <KindSelector
               kinds={entityKinds}
@@ -470,11 +528,11 @@ export default function EntityGuidanceEditor({
       <div className="illuminator-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">
-            {selectedKind} {selectedType === 'description' ? 'Description' : 'Image'} Settings
+            {selectedKind} {selectedType === "description" ? "Description" : "Image"} Settings
           </h2>
         </div>
 
-        {selectedType === 'description' ? (
+        {selectedType === "description" ? (
           // Description editing - Focus + Relationship Guidance + Prose Hint
           <div className="illuminator-template-sections">
             {DESCRIPTION_SECTIONS.map((section) => (
@@ -488,8 +546,9 @@ export default function EntityGuidanceEditor({
 
             {/* Info about world tone */}
             <div className="illuminator-template-info-box">
-              <strong>Note:</strong> The world's tone and style guidance from the Context tab is automatically included in all description prompts.
-              The Focus field above should contain only entity-specific instructions.
+              <strong>Note:</strong> The world&apos;s tone and style guidance from the Context tab is
+              automatically included in all description prompts. The Focus field above should
+              contain only entity-specific instructions.
             </div>
           </div>
         ) : (
@@ -510,7 +569,7 @@ export default function EntityGuidanceEditor({
                 className="illuminator-template-visual-steps-toggle"
                 onClick={() => setShowVisualSteps(!showVisualSteps)}
               >
-                <span>{showVisualSteps ? '▼' : '▶'}</span>
+                <span>{showVisualSteps ? "\u25BC" : "\u25B6"}</span>
                 <span>Visual Generation Steps</span>
                 <span className="illuminator-template-visual-steps-hint">
                   Configure thesis/traits prompts for this kind
@@ -527,9 +586,9 @@ export default function EntityGuidanceEditor({
                     />
                   ))}
                   <div className="illuminator-template-visual-steps-info">
-                    These prompts control the 3-step visual generation chain:
-                    Description → Visual Thesis → Visual Traits.
-                    The thesis provides the primary silhouette feature; traits add supporting details.
+                    These prompts control the 3-step visual generation chain: Description → Visual
+                    Thesis → Visual Traits. The thesis provides the primary silhouette feature;
+                    traits add supporting details.
                   </div>
                 </div>
               )}
@@ -546,11 +605,10 @@ export default function EntityGuidanceEditor({
             <select
               value={selectedEntityId}
               onChange={(e) => setSelectedEntityId(e.target.value)}
-              className="illuminator-select"
-              style={{ width: 'auto', minWidth: '200px' }}
+              className="illuminator-select ege-preview-select"
             >
               <option value="">
-                {exampleEntities[0]?.name || 'Example'} ({exampleEntities[0]?.subtype})
+                {exampleEntities[0]?.name || "Example"} ({exampleEntities[0]?.subtype})
               </option>
               {exampleEntities.slice(1).map((entity) => (
                 <option key={entity.id} value={entity.id}>
@@ -561,47 +619,40 @@ export default function EntityGuidanceEditor({
           )}
         </div>
 
-        <pre className="illuminator-prompt-preview illuminator-prompt-preview-large">
-          {preview}
-        </pre>
+        <pre className="illuminator-prompt-preview illuminator-prompt-preview-large">{preview}</pre>
 
         {selectedEntity && (
           <>
             <div className="illuminator-preview-entity-info">
-              <span className="illuminator-preview-entity-badge">{selectedEntity.kind}/{selectedEntity.subtype}</span>
+              <span className="illuminator-preview-entity-badge">
+                {selectedEntity.kind}/{selectedEntity.subtype}
+              </span>
               <span className="illuminator-preview-entity-badge">
                 {prominenceLabelFromScale(selectedEntity.prominence, prominenceScale)}
               </span>
-              <span className="illuminator-preview-entity-badge">{selectedEntity.culture || 'no culture'}</span>
-              <span className="illuminator-preview-entity-badge">{calculateEntityAge(selectedEntity, simulationMetadata)}</span>
+              <span className="illuminator-preview-entity-badge">
+                {selectedEntity.culture || "no culture"}
+              </span>
+              <span className="illuminator-preview-entity-badge">
+                {calculateEntityAge(selectedEntity, simulationMetadata)}
+              </span>
             </div>
 
             {selectedRelationships.length > 0 && (
-              <div style={{
-                marginTop: '12px',
-                padding: '10px',
-                background: 'var(--bg-tertiary)',
-                borderRadius: '4px',
-                fontSize: '11px',
-              }}>
-                <div style={{ fontWeight: 500, marginBottom: '6px', color: 'var(--text-muted)' }}>
+              <div className="ege-relationships-box">
+                <div className="ege-relationships-heading">
                   Auto-detected relationships ({selectedRelationships.length}):
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                <div className="ege-relationships-list">
                   {selectedRelationships.slice(0, 6).map((rel, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        padding: '2px 6px',
-                        background: 'var(--bg-secondary)',
-                        borderRadius: '3px',
-                      }}
-                    >
+                    <span key={i} className="ege-relationship-badge">
                       {rel.kind}: {rel.targetName}
                     </span>
                   ))}
                   {selectedRelationships.length > 6 && (
-                    <span style={{ opacity: 0.6 }}>+{selectedRelationships.length - 6} more</span>
+                    <span className="ege-relationships-more">
+                      +{selectedRelationships.length - 6} more
+                    </span>
                   )}
                 </div>
               </div>
@@ -612,3 +663,11 @@ export default function EntityGuidanceEditor({
     </div>
   );
 }
+
+EntityGuidanceEditor.propTypes = {
+  entityGuidance: PropTypes.object,
+  onEntityGuidanceChange: PropTypes.func,
+  worldContext: PropTypes.object,
+  worldSchema: PropTypes.object,
+  simulationMetadata: PropTypes.object,
+};

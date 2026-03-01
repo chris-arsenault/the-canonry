@@ -17,17 +17,17 @@
  * estimated per-entry with a 30% buffer — overallocation is preferred.
  */
 
-import JSZip from 'jszip';
-import type { PersistedEntity } from '../db/illuminatorDb';
-import type { ChronicleRecord } from '../chronicleTypes';
-import type { EraNarrativeRecord } from '../eraNarrativeTypes';
-import type { HistorianNote } from '../historianTypes';
-import { isNoteActive, noteDisplay } from '../historianTypes';
-import { resolveAnchorPhrase } from '../fuzzyAnchor';
-import type { ContentTreeState, ExportImageEntry, IdmlLayoutOptions } from './prePrintTypes';
-import { IDML_PAGE_PRESETS, DEFAULT_IDML_LAYOUT } from './prePrintTypes';
-import type { ImageMetadataRecord } from './prePrintStats';
-import { flattenForExport } from './contentTree';
+import JSZip from "jszip";
+import type { PersistedEntity } from "../db/illuminatorDb";
+import type { ChronicleRecord } from "../chronicleTypes";
+import type { EraNarrativeRecord } from "../eraNarrativeTypes";
+import type { HistorianNote } from "../historianTypes";
+import { isNoteActive, noteDisplay } from "../historianTypes";
+import { resolveAnchorPhrase } from "../fuzzyAnchor";
+import type { ContentTreeState, ExportImageEntry, IdmlLayoutOptions } from "./prePrintTypes";
+import { IDML_PAGE_PRESETS, DEFAULT_IDML_LAYOUT } from "./prePrintTypes";
+import type { ImageMetadataRecord } from "./prePrintStats";
+import { flattenForExport } from "./contentTree";
 import {
   escapeXml,
   renderParagraphs,
@@ -47,30 +47,70 @@ import {
   PS_HEADING2,
   CS_BOLD,
   CS_NONE,
-} from './icmlExport';
+} from "./icmlExport";
 import type {
   ContentMaps,
   ParagraphStyleDef,
   CharacterStyleDef,
   IcmlParagraph,
-} from './icmlExport';
+} from "./icmlExport";
 
 // =============================================================================
 // Constants
 // =============================================================================
 
-const DOM_VERSION = '8.0'; // CS4+ compatibility
+const DOM_VERSION = "8.0"; // CS4+ compatibility
 
 // Self IDs
-const ID_LAYER = 'uc5';
-const ID_SECTION = 'uc9';
+const ID_LAYER = "uc5";
+const ID_SECTION = "uc9";
 
 // Master spread IDs — one per content type
 const MASTERS = {
-  A: { spreadId: 'mA', leftPage: 'mA_L', rightPage: 'mA_R', leftFrame: 'mA_fL', rightFrame: 'mA_fR', storyId: 'mA_s', name: 'A-Story', prefix: 'A', base: 'Story' },
-  B: { spreadId: 'mB', leftPage: 'mB_L', rightPage: 'mB_R', leftFrame: 'mB_fL', rightFrame: 'mB_fR', storyId: 'mB_s', name: 'B-Document', prefix: 'B', base: 'Document' },
-  C: { spreadId: 'mC', leftPage: 'mC_L', rightPage: 'mC_R', leftFrame: 'mC_fL', rightFrame: 'mC_fR', storyId: 'mC_s', name: 'C-Narrative', prefix: 'C', base: 'Narrative' },
-  D: { spreadId: 'mD', leftPage: 'mD_L', rightPage: 'mD_R', leftFrame: 'mD_fL', rightFrame: 'mD_fR', storyId: 'mD_s', name: 'D-Encyclopedia', prefix: 'D', base: 'Encyclopedia' },
+  A: {
+    spreadId: "mA",
+    leftPage: "mA_L",
+    rightPage: "mA_R",
+    leftFrame: "mA_fL",
+    rightFrame: "mA_fR",
+    storyId: "mA_s",
+    name: "A-Story",
+    prefix: "A",
+    base: "Story",
+  },
+  B: {
+    spreadId: "mB",
+    leftPage: "mB_L",
+    rightPage: "mB_R",
+    leftFrame: "mB_fL",
+    rightFrame: "mB_fR",
+    storyId: "mB_s",
+    name: "B-Document",
+    prefix: "B",
+    base: "Document",
+  },
+  C: {
+    spreadId: "mC",
+    leftPage: "mC_L",
+    rightPage: "mC_R",
+    leftFrame: "mC_fL",
+    rightFrame: "mC_fR",
+    storyId: "mC_s",
+    name: "C-Narrative",
+    prefix: "C",
+    base: "Narrative",
+  },
+  D: {
+    spreadId: "mD",
+    leftPage: "mD_L",
+    rightPage: "mD_R",
+    leftFrame: "mD_fL",
+    rightFrame: "mD_fR",
+    storyId: "mD_s",
+    name: "D-Encyclopedia",
+    prefix: "D",
+    base: "Encyclopedia",
+  },
 } as const;
 
 type MasterKey = keyof typeof MASTERS;
@@ -102,7 +142,7 @@ interface ResolvedLayout {
 
 function resolveLayout(options?: IdmlLayoutOptions): ResolvedLayout {
   const opts = options ?? DEFAULT_IDML_LAYOUT;
-  const preset = IDML_PAGE_PRESETS[opts.pagePreset] ?? IDML_PAGE_PRESETS['trade-6x9'];
+  const preset = IDML_PAGE_PRESETS[opts.pagePreset] ?? IDML_PAGE_PRESETS["trade-6x9"];
 
   const pageWidth = preset.widthIn * 72;
   const pageHeight = preset.heightIn * 72;
@@ -167,7 +207,11 @@ interface ImagePlacement {
 // Page Count Estimation (per entry)
 // =============================================================================
 
-function estimateEntryPages(paragraphs: IcmlParagraph[], imageCount: number, linesPerPage: number): number {
+function estimateEntryPages(
+  paragraphs: IcmlParagraph[],
+  imageCount: number,
+  linesPerPage: number
+): number {
   let totalLines = 0;
 
   for (const para of paragraphs) {
@@ -177,28 +221,28 @@ function estimateEntryPages(paragraphs: IcmlParagraph[], imageCount: number, lin
     let charsPerLine: number;
     let extraLines: number;
 
-    if (style === 'SectionHeading') {
+    if (style === "SectionHeading") {
       charsPerLine = 18;
       extraLines = 5;
-    } else if (style === 'EraHeading') {
+    } else if (style === "EraHeading") {
       charsPerLine = 22;
       extraLines = 3;
-    } else if (style === 'ItemTitle') {
+    } else if (style === "ItemTitle") {
       charsPerLine = 28;
       extraLines = 2;
-    } else if (style === 'ItemSubtitle') {
+    } else if (style === "ItemSubtitle") {
       charsPerLine = 38;
       extraLines = 1;
-    } else if (style === 'ItemSeparator') {
+    } else if (style === "ItemSeparator") {
       charsPerLine = 50;
       extraLines = 3;
-    } else if (style === 'Blockquote' || style === 'HistorianNote') {
+    } else if (style === "Blockquote" || style === "HistorianNote") {
       charsPerLine = 42;
       extraLines = 0.8;
-    } else if (style === 'Heading1') {
+    } else if (style === "Heading1") {
       charsPerLine = 30;
       extraLines = 2;
-    } else if (style === 'Heading2' || style === 'Heading3') {
+    } else if (style === "Heading2" || style === "Heading3") {
       charsPerLine = 35;
       extraLines = 1.5;
     } else {
@@ -222,7 +266,7 @@ function estimateEntryPages(paragraphs: IcmlParagraph[], imageCount: number, lin
 // File: mimetype
 // =============================================================================
 
-const MIMETYPE = 'application/vnd.adobe.indesign-idml-package';
+const MIMETYPE = "application/vnd.adobe.indesign-idml-package";
 
 // =============================================================================
 // File: META-INF/container.xml
@@ -246,29 +290,22 @@ function buildDesignmap(
   spreads: SpreadFile[],
   stories: StoryFile[],
   masterStoryIds: string[],
-  totalPageCount: number,
+  totalPageCount: number
 ): string {
   const masterRefs = masterSpreads
     .map((ms) => `  <idPkg:MasterSpread src="${ms.filename}" />`)
-    .join('\n');
+    .join("\n");
 
-  const spreadRefs = spreads
-    .map((s) => `  <idPkg:Spread src="${s.filename}" />`)
-    .join('\n');
+  const spreadRefs = spreads.map((s) => `  <idPkg:Spread src="${s.filename}" />`).join("\n");
 
   // All stories: entry stories + callout stories + master stories
-  const allStoryIds = [
-    ...stories.map((s) => s.storyId),
-    ...masterStoryIds,
-  ];
-  const storyRefs = stories
-    .map((s) => `  <idPkg:Story src="${s.filename}" />`)
-    .join('\n');
+  const allStoryIds = [...stories.map((s) => s.storyId), ...masterStoryIds];
+  const storyRefs = stories.map((s) => `  <idPkg:Story src="${s.filename}" />`).join("\n");
   const masterStoryRefs = masterStoryIds
     .map((id) => `  <idPkg:Story src="Stories/Story_${id}.xml" />`)
-    .join('\n');
+    .join("\n");
 
-  const storyListStr = allStoryIds.join(' ');
+  const storyListStr = allStoryIds.join(" ");
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <?aid style="50" type="document" readerVersion="6.0" featureSet="257" product="8.0(370)" ?>
@@ -342,7 +379,7 @@ function buildIdmlParagraphStyle(def: ParagraphStyleDef): string {
         FirstLineIndent="${def.firstLineIndent}"
         LeftIndent="${def.leftIndent}" RightIndent="${def.rightIndent}"
         SpaceBefore="${def.spaceBefore}" SpaceAfter="${def.spaceAfter}"
-        Hyphenation="${def.justification.includes('Justified') ? 'true' : 'false'}">
+        Hyphenation="${def.justification.includes("Justified") ? "true" : "false"}">
       <Properties>
         <BasedOn type="string">$ID/NormalParagraphStyle</BasedOn>
         <AppliedFont type="string">${def.appliedFont}</AppliedFont>
@@ -359,7 +396,7 @@ function scaleParaStyles(defs: ParagraphStyleDef[], layout: ResolvedLayout): Par
 
   return defs.map((def) => {
     // Don't override Courier New / Segoe UI Symbol styles
-    const font = def.appliedFont === 'Courier New' ? 'Courier New' : layout.fontFamily;
+    const font = def.appliedFont === "Courier New" ? "Courier New" : layout.fontFamily;
     return {
       ...def,
       pointSize: Math.round(def.pointSize * sizeScale * 10) / 10,
@@ -383,7 +420,7 @@ function buildStylesXml(layout: ResolvedLayout): string {
   <RootCharacterStyleGroup Self="u79">
     <CharacterStyle Self="CharacterStyle/$ID/[No character style]"
         Name="[No character style]" />
-${charStyles.join('\n')}
+${charStyles.join("\n")}
   </RootCharacterStyleGroup>
 
   <RootParagraphStyleGroup Self="u78">
@@ -398,7 +435,7 @@ ${charStyles.join('\n')}
         <Leading type="unit">14.4</Leading>
       </Properties>
     </ParagraphStyle>
-${paraStyles.join('\n')}
+${paraStyles.join("\n")}
   </RootParagraphStyleGroup>
 
   <RootObjectStyleGroup Self="u93">
@@ -430,9 +467,10 @@ ${paraStyles.join('\n')}
 // =============================================================================
 
 function buildPreferencesXml(layout: ResolvedLayout): string {
-  const colPositions = layout.columnCount === 1
-    ? `0 ${layout.textWidth}`
-    : `0 ${(layout.textWidth - layout.columnGutter) / 2} ${(layout.textWidth + layout.columnGutter) / 2} ${layout.textWidth}`;
+  const colPositions =
+    layout.columnCount === 1
+      ? `0 ${layout.textWidth}`
+      : `0 ${(layout.textWidth - layout.columnGutter) / 2} ${(layout.textWidth + layout.columnGutter) / 2} ${layout.textWidth}`;
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <idPkg:Preferences xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"
@@ -565,7 +603,7 @@ function buildGraphicXml(): string {
 
 function buildFontsXml(fontFamily: string): string {
   // Generate a safe XML ID from the font name
-  const fontId = 'di4a';
+  const fontId = "di4a";
   const safeFont = escapeXml(fontFamily);
 
   // Build the primary font family declaration — InDesign resolves the actual
@@ -573,28 +611,28 @@ function buildFontsXml(fontFamily: string): string {
   const primaryFontFamily = `  <FontFamily Self="${fontId}" Name="${safeFont}">
     <Font Self="${fontId}FontnRegular"
         FontFamily="${safeFont}" Name="${safeFont}"
-        PostScriptName="${fontFamily.replace(/\s+/g, '-')}-Regular"
+        PostScriptName="${fontFamily.replace(/\s+/g, "-")}-Regular"
         FontStyleName="Regular" FontType="OpenTypeTrueType"
         WritingScript="0" FullName="${safeFont} Regular"
         FullNameNative="${safeFont} Regular"
         FontStyleNameNative="Regular" />
     <Font Self="${fontId}FontnBold"
         FontFamily="${safeFont}" Name="${safeFont} Bold"
-        PostScriptName="${fontFamily.replace(/\s+/g, '-')}-Bold"
+        PostScriptName="${fontFamily.replace(/\s+/g, "-")}-Bold"
         FontStyleName="Bold" FontType="OpenTypeTrueType"
         WritingScript="0" FullName="${safeFont} Bold"
         FullNameNative="${safeFont} Bold"
         FontStyleNameNative="Bold" />
     <Font Self="${fontId}FontnItalic"
         FontFamily="${safeFont}" Name="${safeFont} Italic"
-        PostScriptName="${fontFamily.replace(/\s+/g, '-')}-Italic"
+        PostScriptName="${fontFamily.replace(/\s+/g, "-")}-Italic"
         FontStyleName="Italic" FontType="OpenTypeTrueType"
         WritingScript="0" FullName="${safeFont} Italic"
         FullNameNative="${safeFont} Italic"
         FontStyleNameNative="Italic" />
     <Font Self="${fontId}FontnBoldItalic"
         FontFamily="${safeFont}" Name="${safeFont} Bold Italic"
-        PostScriptName="${fontFamily.replace(/\s+/g, '-')}-BoldItalic"
+        PostScriptName="${fontFamily.replace(/\s+/g, "-")}-BoldItalic"
         FontStyleName="Bold Italic" FontType="OpenTypeTrueType"
         WritingScript="0" FullName="${safeFont} Bold Italic"
         FullNameNative="${safeFont} Bold Italic"
@@ -653,10 +691,11 @@ function buildPathGeometry(width: number, height: number): string {
 // Master Spreads (4 masters: A through D)
 // =============================================================================
 
-function buildMasterSpreadXml(master: typeof MASTERS[MasterKey], layout: ResolvedLayout): string {
-  const colPositions = layout.columnCount === 1
-    ? `0 ${layout.textWidth}`
-    : `0 ${(layout.textWidth - layout.columnGutter) / 2} ${(layout.textWidth + layout.columnGutter) / 2} ${layout.textWidth}`;
+function buildMasterSpreadXml(master: (typeof MASTERS)[MasterKey], layout: ResolvedLayout): string {
+  const colPositions =
+    layout.columnCount === 1
+      ? `0 ${layout.textWidth}`
+      : `0 ${(layout.textWidth - layout.columnGutter) / 2} ${(layout.textWidth + layout.columnGutter) / 2} ${layout.textWidth}`;
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <idPkg:MasterSpread xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"
@@ -773,16 +812,14 @@ function buildFootnoteXml(noteType: string, noteText: string): string {
  */
 function renderParagraphsWithFootnotes(
   paras: IcmlParagraph[],
-  footnotes: FootnoteInsert[],
+  footnotes: FootnoteInsert[]
 ): string {
   if (footnotes.length === 0) {
     return renderParagraphs(paras);
   }
 
   // Build a map of full text per paragraph for anchor matching
-  const paraTexts = paras.map((p) =>
-    p.runs.map((r) => r.text).join('')
-  );
+  const paraTexts = paras.map((p) => p.runs.map((r) => r.text).join(""));
 
   // Track which footnotes have been placed
   const placed = new Set<number>();
@@ -797,7 +834,7 @@ function renderParagraphsWithFootnotes(
       if (resolved) {
         const insertAt = resolved.index + fn.anchorPhrase.length;
         if (!placements.has(pIdx)) placements.set(pIdx, []);
-        placements.get(pIdx)!.push({ charOffset: insertAt, fnIdx });
+        placements.get(pIdx).push({ charOffset: insertAt, fnIdx });
         placed.add(fnIdx);
         break;
       }
@@ -830,7 +867,9 @@ function renderParagraphsWithFootnotes(
     // Insert unplaced footnotes after the last paragraph
     // We create a "footnotes collector" paragraph
     const fnParaRuns: string[] = [];
-    fnParaRuns.push(`      <CharacterStyleRange AppliedCharacterStyle="CharacterStyle/$ID/[No character style]">`);
+    fnParaRuns.push(
+      `      <CharacterStyleRange AppliedCharacterStyle="CharacterStyle/$ID/[No character style]">`
+    );
     fnParaRuns.push(`        <Content> </Content>`);
     for (const fn of unplaced) {
       fnParaRuns.push(`        ${buildFootnoteXml(fn.noteType, fn.noteText)}`);
@@ -838,11 +877,11 @@ function renderParagraphsWithFootnotes(
     fnParaRuns.push(`      </CharacterStyleRange>`);
 
     renderedParas.push(`    <ParagraphStyleRange AppliedParagraphStyle="ParagraphStyle/Body">
-${fnParaRuns.join('\n')}
+${fnParaRuns.join("\n")}
     </ParagraphStyleRange>`);
   }
 
-  return renderedParas.join('\n    <Br/>\n');
+  return renderedParas.join("\n    <Br/>\n");
 }
 
 /**
@@ -852,13 +891,13 @@ function renderSingleParagraph(para: IcmlParagraph): string {
   const lines: string[] = [];
   lines.push(`    <ParagraphStyleRange AppliedParagraphStyle="ParagraphStyle/${para.paraStyle}">`);
   for (const run of para.runs) {
-    const csAttr = run.charStyle
-      ? `CharacterStyle/${run.charStyle}`
-      : `CharacterStyle/${CS_NONE}`;
-    lines.push(`      <CharacterStyleRange AppliedCharacterStyle="${csAttr}"><Content>${escapeXml(run.text)}</Content></CharacterStyleRange>`);
+    const csAttr = run.charStyle ? `CharacterStyle/${run.charStyle}` : `CharacterStyle/${CS_NONE}`;
+    lines.push(
+      `      <CharacterStyleRange AppliedCharacterStyle="${csAttr}"><Content>${escapeXml(run.text)}</Content></CharacterStyleRange>`
+    );
   }
-  lines.push('    </ParagraphStyleRange>');
-  return lines.join('\n');
+  lines.push("    </ParagraphStyleRange>");
+  return lines.join("\n");
 }
 
 /**
@@ -867,7 +906,7 @@ function renderSingleParagraph(para: IcmlParagraph): string {
 function renderParagraphWithFootnotes(
   para: IcmlParagraph,
   fnPlacements: { charOffset: number; fnIdx: number }[],
-  allFootnotes: FootnoteInsert[],
+  allFootnotes: FootnoteInsert[]
 ): string {
   const lines: string[] = [];
   lines.push(`    <ParagraphStyleRange AppliedParagraphStyle="ParagraphStyle/${para.paraStyle}">`);
@@ -877,15 +916,16 @@ function renderParagraphWithFootnotes(
   let fnPlacementIdx = 0;
 
   for (const run of para.runs) {
-    const csAttr = run.charStyle
-      ? `CharacterStyle/${run.charStyle}`
-      : `CharacterStyle/${CS_NONE}`;
+    const csAttr = run.charStyle ? `CharacterStyle/${run.charStyle}` : `CharacterStyle/${CS_NONE}`;
 
     const runEnd = globalCharPos + run.text.length;
 
     // Check if any footnotes fall within this run
     const fnInRun: { localOffset: number; fnIdx: number }[] = [];
-    while (fnPlacementIdx < fnPlacements.length && fnPlacements[fnPlacementIdx].charOffset <= runEnd) {
+    while (
+      fnPlacementIdx < fnPlacements.length &&
+      fnPlacements[fnPlacementIdx].charOffset <= runEnd
+    ) {
       fnInRun.push({
         localOffset: fnPlacements[fnPlacementIdx].charOffset - globalCharPos,
         fnIdx: fnPlacements[fnPlacementIdx].fnIdx,
@@ -895,7 +935,9 @@ function renderParagraphWithFootnotes(
 
     if (fnInRun.length === 0) {
       // No footnotes in this run — render normally
-      lines.push(`      <CharacterStyleRange AppliedCharacterStyle="${csAttr}"><Content>${escapeXml(run.text)}</Content></CharacterStyleRange>`);
+      lines.push(
+        `      <CharacterStyleRange AppliedCharacterStyle="${csAttr}"><Content>${escapeXml(run.text)}</Content></CharacterStyleRange>`
+      );
     } else {
       // Split run text at footnote positions
       let lastPos = 0;
@@ -920,15 +962,17 @@ function renderParagraphWithFootnotes(
       // Remaining text after last footnote
       const afterText = run.text.slice(lastPos);
       if (afterText) {
-        lines.push(`      <CharacterStyleRange AppliedCharacterStyle="${csAttr}"><Content>${escapeXml(afterText)}</Content></CharacterStyleRange>`);
+        lines.push(
+          `      <CharacterStyleRange AppliedCharacterStyle="${csAttr}"><Content>${escapeXml(afterText)}</Content></CharacterStyleRange>`
+        );
       }
     }
 
     globalCharPos = runEnd;
   }
 
-  lines.push('    </ParagraphStyleRange>');
-  return lines.join('\n');
+  lines.push("    </ParagraphStyleRange>");
+  return lines.join("\n");
 }
 
 /**
@@ -937,7 +981,7 @@ function renderParagraphWithFootnotes(
 function buildEntryStoryXml(
   storyId: string,
   paragraphs: IcmlParagraph[],
-  footnotes: FootnoteInsert[],
+  footnotes: FootnoteInsert[]
 ): string {
   const content = renderParagraphsWithFootnotes(paragraphs, footnotes);
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -968,7 +1012,12 @@ ${content}
 /**
  * Build a callout Story XML — a small story for a single major historian note.
  */
-function buildCalloutStoryXml(storyId: string, noteType: string, noteText: string, anchorPhrase: string): string {
+function buildCalloutStoryXml(
+  storyId: string,
+  noteType: string,
+  noteText: string,
+  anchorPhrase: string
+): string {
   const typeLabel = noteType.charAt(0).toUpperCase() + noteType.slice(1);
   const content = escapeXml(`[${typeLabel}] ${noteText}`);
   const anchor = escapeXml(`\u2014 \u201C${anchorPhrase}\u201D`);
@@ -1013,15 +1062,16 @@ function buildPage(
   pageNumber: number,
   isRecto: boolean,
   masterId: string,
-  layout: ResolvedLayout,
+  layout: ResolvedLayout
 ): string {
   const pageTx = isRecto ? 0 : -layout.pageWidth;
   const pageTy = -(layout.pageHeight / 2);
   const leftMargin = isRecto ? layout.marginInside : layout.marginOutside;
   const rightMargin = isRecto ? layout.marginOutside : layout.marginInside;
-  const colPositions = layout.columnCount === 1
-    ? `0 ${layout.textWidth}`
-    : `0 ${(layout.textWidth - layout.columnGutter) / 2} ${(layout.textWidth + layout.columnGutter) / 2} ${layout.textWidth}`;
+  const colPositions =
+    layout.columnCount === 1
+      ? `0 ${layout.textWidth}`
+      : `0 ${(layout.textWidth - layout.columnGutter) / 2} ${(layout.textWidth + layout.columnGutter) / 2} ${layout.textWidth}`;
 
   return `    <Page Self="${pageId}"
         GeometricBounds="0 0 ${layout.pageHeight} ${layout.pageWidth}"
@@ -1047,7 +1097,7 @@ function buildTextFrame(
   prevFrameId: string,
   nextFrameId: string,
   isRecto: boolean,
-  layout: ResolvedLayout,
+  layout: ResolvedLayout
 ): string {
   const tx = isRecto ? layout.rectoFrameTx : layout.versoFrameTx;
   return `    <TextFrame Self="${frameId}"
@@ -1066,7 +1116,12 @@ ${buildPathGeometry(layout.textWidth, layout.textHeight)}
 }
 
 /** Build an image Rectangle element with linked image. */
-function buildImageRectangle(imageId: string, filename: string, yOffset: number, layout: ResolvedLayout): string {
+function buildImageRectangle(
+  imageId: string,
+  filename: string,
+  yOffset: number,
+  layout: ResolvedLayout
+): string {
   const imgWidth = 200;
   const imgHeight = 200;
 
@@ -1089,7 +1144,12 @@ ${buildPathGeometry(imgWidth, imgHeight)}
 }
 
 /** Build a callout text frame linked to a callout story. */
-function buildCalloutFrame(frameId: string, calloutStoryId: string, yOffset: number, layout: ResolvedLayout): string {
+function buildCalloutFrame(
+  frameId: string,
+  calloutStoryId: string,
+  yOffset: number,
+  layout: ResolvedLayout
+): string {
   const calloutWidth = 200;
   const calloutHeight = 100;
 
@@ -1123,7 +1183,7 @@ function buildEntrySpreads(
   startPageNum: number,
   images: ImagePlacement[],
   calloutStories: { storyId: string }[],
-  layout: ResolvedLayout,
+  layout: ResolvedLayout
 ): { spreads: SpreadFile[]; pagesUsed: number } {
   const spreads: SpreadFile[] = [];
   const frameIds: string[] = [];
@@ -1141,19 +1201,18 @@ function buildEntrySpreads(
   while (pageIdx < pageCount) {
     const spreadId = `sp_${entryId}_${spreadNum}`;
     const isFirstSpread = spreadNum === 0;
-    const isLastSpread = pageIdx + 2 >= pageCount;
     const spreadPageCount = Math.min(2, pageCount - pageIdx);
 
-    let pagesXml = '';
-    let framesXml = '';
-    let extrasXml = '';
+    let pagesXml = "";
+    let framesXml = "";
+    let extrasXml = "";
 
     // Verso page (left)
     const versoPageNum = startPageNum + pageIdx;
     const versoPageId = `pg_${entryId}_${pageIdx}`;
     const versoFrameId = frameIds[pageIdx];
-    const versoPrev = pageIdx > 0 ? frameIds[pageIdx - 1] : 'n';
-    const versoNext = pageIdx + 1 < frameIds.length ? frameIds[pageIdx + 1] : 'n';
+    const versoPrev = pageIdx > 0 ? frameIds[pageIdx - 1] : "n";
+    const versoNext = pageIdx + 1 < frameIds.length ? frameIds[pageIdx + 1] : "n";
 
     pagesXml += buildPage(versoPageId, versoPageNum, false, masterId, layout);
     framesXml += buildTextFrame(versoFrameId, storyId, versoPrev, versoNext, false, layout);
@@ -1164,23 +1223,24 @@ function buildEntrySpreads(
       const rectoPageId = `pg_${entryId}_${pageIdx + 1}`;
       const rectoFrameId = frameIds[pageIdx + 1];
       const rectoPrev = versoFrameId;
-      const rectoNext = pageIdx + 2 < frameIds.length ? frameIds[pageIdx + 2] : 'n';
+      const rectoNext = pageIdx + 2 < frameIds.length ? frameIds[pageIdx + 2] : "n";
 
-      pagesXml += '\n\n' + buildPage(rectoPageId, rectoPageNum, true, masterId, layout);
-      framesXml += '\n\n' + buildTextFrame(rectoFrameId, storyId, rectoPrev, rectoNext, true, layout);
+      pagesXml += "\n\n" + buildPage(rectoPageId, rectoPageNum, true, masterId, layout);
+      framesXml +=
+        "\n\n" + buildTextFrame(rectoFrameId, storyId, rectoPrev, rectoNext, true, layout);
     }
 
     // Add image rectangles and callout frames to the FIRST spread only
     if (isFirstSpread) {
       let yOffset = 0;
       for (const img of images) {
-        extrasXml += '\n\n' + buildImageRectangle(img.imageId, img.filename, yOffset, layout);
+        extrasXml += "\n\n" + buildImageRectangle(img.imageId, img.filename, yOffset, layout);
         yOffset += 210; // Stack vertically with 10pt gap
       }
 
       for (let ci = 0; ci < calloutStories.length; ci++) {
         const cfId = `cf_${entryId}_${ci}`;
-        extrasXml += '\n\n' + buildCalloutFrame(cfId, calloutStories[ci].storyId, yOffset, layout);
+        extrasXml += "\n\n" + buildCalloutFrame(cfId, calloutStories[ci].storyId, yOffset, layout);
         yOffset += 110;
       }
     }
@@ -1267,10 +1327,11 @@ function buildTagsXml(): string {
 function stripHistorianNotes(paras: IcmlParagraph[]): IcmlParagraph[] {
   // Find the "Historian's Notes" heading (if any) and remove everything from there
   const headingIdx = paras.findIndex(
-    (p) => p.paraStyle === PS_HEADING2 &&
+    (p) =>
+      p.paraStyle === PS_HEADING2 &&
       p.runs.length > 0 &&
-      p.runs[0].text.includes('Historian') &&
-      p.runs[0].text.includes('Notes')
+      p.runs[0].text.includes("Historian") &&
+      p.runs[0].text.includes("Notes")
   );
 
   if (headingIdx < 0) {
@@ -1303,13 +1364,13 @@ function classifyHistorianNotes(notes: HistorianNote[] | undefined): {
     if (!isNoteActive(note)) continue;
     const display = noteDisplay(note);
 
-    if (display === 'popout') {
+    if (display === "popout") {
       footnotes.push({
         anchorPhrase: note.anchorPhrase,
         noteText: note.text,
         noteType: note.type,
       });
-    } else if (display === 'full') {
+    } else if (display === "full") {
       callouts.push({
         anchorPhrase: note.anchorPhrase,
         noteText: note.text,
@@ -1331,42 +1392,46 @@ function classifyHistorianNotes(notes: HistorianNote[] | undefined): {
  */
 function collectEntryImages(
   entry: PersistedEntity | ChronicleRecord | EraNarrativeRecord,
-  imageMap: Map<string, ImageMetadataRecord>,
+  imageMap: Map<string, ImageMetadataRecord>
 ): ImagePlacement[] {
   const placements: ImagePlacement[] = [];
 
   function getExt(img?: ImageMetadataRecord): string {
-    if (!img?.mimeType) return '.png';
-    if (img.mimeType.includes('png')) return '.png';
-    if (img.mimeType.includes('jpeg') || img.mimeType.includes('jpg')) return '.jpg';
-    if (img.mimeType.includes('webp')) return '.webp';
-    return '.png';
+    if (!img?.mimeType) return ".png";
+    if (img.mimeType.includes("png")) return ".png";
+    if (img.mimeType.includes("jpeg") || img.mimeType.includes("jpg")) return ".jpg";
+    if (img.mimeType.includes("webp")) return ".webp";
+    return ".png";
   }
 
   // Entity portrait
-  if ('enrichment' in entry && entry.enrichment?.image?.imageId) {
+  if ("enrichment" in entry && entry.enrichment?.image?.imageId) {
     const imgId = entry.enrichment.image.imageId;
     const ext = getExt(imageMap.get(imgId));
     placements.push({ imageId: imgId, filename: `${imgId}${ext}` });
   }
 
   // Chronicle cover image
-  if ('coverImage' in entry && entry.coverImage?.generatedImageId && entry.coverImage?.status === 'complete') {
+  if (
+    "coverImage" in entry &&
+    entry.coverImage?.generatedImageId &&
+    entry.coverImage?.status === "complete"
+  ) {
     const imgId = entry.coverImage.generatedImageId;
     const ext = getExt(imageMap.get(imgId));
     placements.push({ imageId: imgId, filename: `${imgId}${ext}` });
   }
 
   // Chronicle/narrative inline image refs
-  if ('imageRefs' in entry && entry.imageRefs?.refs) {
+  if ("imageRefs" in entry && entry.imageRefs?.refs) {
     for (const ref of entry.imageRefs.refs) {
-      if (ref.type === 'prompt_request' && ref.status === 'complete' && ref.generatedImageId) {
+      if (ref.type === "prompt_request" && ref.status === "complete" && ref.generatedImageId) {
         const imgId = ref.generatedImageId;
         if (!placements.some((p) => p.imageId === imgId)) {
           const ext = getExt(imageMap.get(imgId));
           placements.push({ imageId: imgId, filename: `${imgId}${ext}` });
         }
-      } else if (ref.type === 'chronicle_ref' && ref.imageId) {
+      } else if (ref.type === "chronicle_ref" && ref.imageId) {
         const imgId = ref.imageId;
         if (!placements.some((p) => p.imageId === imgId)) {
           const ext = getExt(imageMap.get(imgId));
@@ -1383,19 +1448,15 @@ function collectEntryImages(
 // Master Spread Selection
 // =============================================================================
 
-function selectMaster(
-  nodeType: string,
-  contentMaps: ContentMaps,
-  contentId?: string,
-): MasterKey {
-  if (nodeType === 'chronicle' && contentId) {
+function selectMaster(nodeType: string, contentMaps: ContentMaps, contentId?: string): MasterKey {
+  if (nodeType === "chronicle" && contentId) {
     const chronicle = contentMaps.chronicleMap.get(contentId);
-    if (chronicle?.format === 'document') return 'B';
-    return 'A';
+    if (chronicle?.format === "document") return "B";
+    return "A";
   }
-  if (nodeType === 'era_narrative') return 'C';
+  if (nodeType === "era_narrative") return "C";
   // entity, static_page, folder
-  return 'D';
+  return "D";
 }
 
 // =============================================================================
@@ -1413,7 +1474,7 @@ export async function buildIdmlPackage(
   contentMaps: ContentMaps,
   imageMap: Map<string, ImageMetadataRecord>,
   referencedImages: Map<string, ExportImageEntry>,
-  layoutOptions?: IdmlLayoutOptions,
+  layoutOptions?: IdmlLayoutOptions
 ): Promise<Blob> {
   const layout = resolveLayout(layoutOptions);
   const registerFn = createImageRegistrar(referencedImages, imageMap);
@@ -1428,7 +1489,7 @@ export async function buildIdmlPackage(
   for (const { node, depth } of flattened) {
     const entryId = `e${entryCounter++}`;
 
-    if (node.type === 'folder') {
+    if (node.type === "folder") {
       // Folder heading: simple story + 2-page spread
       const storyId = `story_${entryId}`;
       const headingStyle = depth <= 0 ? PS_SECTION_HEADING : PS_ERA_HEADING;
@@ -1443,7 +1504,14 @@ export async function buildIdmlPackage(
 
       const masterId = MASTERS.D.spreadId; // folders use D-Encyclopedia master
       const { spreads, pagesUsed } = buildEntrySpreads(
-        entryId, storyId, masterId, 2, currentPageNum, [], [], layout
+        entryId,
+        storyId,
+        masterId,
+        2,
+        currentPageNum,
+        [],
+        [],
+        layout
       );
       allSpreads.push(...spreads);
       currentPageNum += pagesUsed;
@@ -1459,7 +1527,7 @@ export async function buildIdmlPackage(
     let images: ImagePlacement[] = [];
     const masterKey = selectMaster(node.type, contentMaps, node.contentId);
 
-    if (node.type === 'entity') {
+    if (node.type === "entity") {
       const entity = contentMaps.entityMap.get(node.contentId);
       if (entity) {
         contentParas = entityToIcmlParagraphs(entity, imageMap, referencedImages, registerFn);
@@ -1468,7 +1536,7 @@ export async function buildIdmlPackage(
         callouts = notes.callouts;
         images = collectEntryImages(entity, imageMap);
       }
-    } else if (node.type === 'chronicle') {
+    } else if (node.type === "chronicle") {
       const chronicle = contentMaps.chronicleMap.get(node.contentId);
       if (chronicle) {
         contentParas = chronicleToIcmlParagraphs(chronicle, imageMap, referencedImages, registerFn);
@@ -1477,14 +1545,19 @@ export async function buildIdmlPackage(
         callouts = notes.callouts;
         images = collectEntryImages(chronicle, imageMap);
       }
-    } else if (node.type === 'era_narrative') {
+    } else if (node.type === "era_narrative") {
       const narrative = contentMaps.narrativeMap.get(node.contentId);
       if (narrative) {
-        contentParas = eraNarrativeToIcmlParagraphs(narrative, imageMap, referencedImages, registerFn);
+        contentParas = eraNarrativeToIcmlParagraphs(
+          narrative,
+          imageMap,
+          referencedImages,
+          registerFn
+        );
         // Era narratives don't have historian notes
         images = collectEntryImages(narrative, imageMap);
       }
-    } else if (node.type === 'static_page') {
+    } else if (node.type === "static_page") {
       const page = contentMaps.pageMap.get(node.contentId);
       if (page) {
         contentParas = staticPageToIcmlParagraphs(page);
@@ -1515,7 +1588,10 @@ export async function buildIdmlPackage(
       const callout = callouts[ci];
       const calloutStoryId = `story_${entryId}_co${ci}`;
       const calloutXml = buildCalloutStoryXml(
-        calloutStoryId, callout.noteType, callout.noteText, callout.anchorPhrase
+        calloutStoryId,
+        callout.noteType,
+        callout.noteText,
+        callout.anchorPhrase
       );
       allStories.push({
         filename: `Stories/Story_${calloutStoryId}.xml`,
@@ -1530,21 +1606,28 @@ export async function buildIdmlPackage(
     const masterId = MASTERS[masterKey].spreadId;
 
     const { spreads, pagesUsed } = buildEntrySpreads(
-      entryId, storyId, masterId, pageCount, currentPageNum, images, calloutStoryRefs, layout
+      entryId,
+      storyId,
+      masterId,
+      pageCount,
+      currentPageNum,
+      images,
+      calloutStoryRefs,
+      layout
     );
     allSpreads.push(...spreads);
     currentPageNum += pagesUsed;
   }
 
   // Build master spread files
-  const masterKeys: MasterKey[] = ['A', 'B', 'C', 'D'];
+  const masterKeys: MasterKey[] = ["A", "B", "C", "D"];
   const masterSpreadFiles: { spreadId: string; filename: string }[] = [];
   const masterStoryIds: string[] = [];
 
   const zip = new JSZip();
 
   // mimetype MUST be the first entry (uncompressed)
-  zip.file('mimetype', MIMETYPE);
+  zip.file("mimetype", MIMETYPE);
 
   for (const key of masterKeys) {
     const master = MASTERS[key];
@@ -1559,13 +1642,13 @@ export async function buildIdmlPackage(
   }
 
   // Structural files
-  zip.file('META-INF/container.xml', buildContainerXml());
+  zip.file("META-INF/container.xml", buildContainerXml());
 
   // Resources
-  zip.file('Resources/Graphic.xml', buildGraphicXml());
-  zip.file('Resources/Fonts.xml', buildFontsXml(layout.fontFamily));
-  zip.file('Resources/Styles.xml', buildStylesXml(layout));
-  zip.file('Resources/Preferences.xml', buildPreferencesXml(layout));
+  zip.file("Resources/Graphic.xml", buildGraphicXml());
+  zip.file("Resources/Fonts.xml", buildFontsXml(layout.fontFamily));
+  zip.file("Resources/Styles.xml", buildStylesXml(layout));
+  zip.file("Resources/Preferences.xml", buildPreferencesXml(layout));
 
   // Entry spreads
   for (const spread of allSpreads) {
@@ -1578,15 +1661,16 @@ export async function buildIdmlPackage(
   }
 
   // XML structure
-  zip.file('XML/BackingStory.xml', buildBackingStoryXml());
-  zip.file('XML/Tags.xml', buildTagsXml());
+  zip.file("XML/BackingStory.xml", buildBackingStoryXml());
+  zip.file("XML/Tags.xml", buildTagsXml());
 
   // Designmap (must reference everything)
   const totalPages = currentPageNum - 1;
-  zip.file('designmap.xml', buildDesignmap(
-    masterSpreadFiles, allSpreads, allStories, masterStoryIds, totalPages
-  ));
+  zip.file(
+    "designmap.xml",
+    buildDesignmap(masterSpreadFiles, allSpreads, allStories, masterStoryIds, totalPages)
+  );
 
   // Generate with STORE compression (standard for IDML)
-  return zip.generateAsync({ type: 'blob', compression: 'STORE' });
+  return zip.generateAsync({ type: "blob", compression: "STORE" });
 }

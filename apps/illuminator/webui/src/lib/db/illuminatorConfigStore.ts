@@ -21,9 +21,9 @@
  * different update cadences.
  */
 
-import { create } from 'zustand';
-import { DEFAULT_HISTORIAN_CONFIG } from '../historianTypes';
-import type { HistorianConfig } from '../historianTypes';
+import { create } from "zustand";
+import { DEFAULT_HISTORIAN_CONFIG } from "../historianTypes";
+import type { HistorianConfig } from "../historianTypes";
 
 export interface WorldContext {
   canonFactsWithMetadata?: Array<{ text: string; [key: string]: unknown }>;
@@ -44,9 +44,21 @@ interface IlluminatorConfigState {
   isHistorianActive: boolean;
 
   /** Called by IlluminatorRemote to sync config into the store */
-  setConfig: (config: Partial<Pick<IlluminatorConfigState,
-    'projectId' | 'simulationRunId' | 'worldContext' | 'historianConfig' | 'entityGuidance' | 'cultureIdentities' | 'isHistorianEditionActive' | 'isHistorianActive'
-  >>) => void;
+  setConfig: (
+    config: Partial<
+      Pick<
+        IlluminatorConfigState,
+        | "projectId"
+        | "simulationRunId"
+        | "worldContext"
+        | "historianConfig"
+        | "entityGuidance"
+        | "cultureIdentities"
+        | "isHistorianEditionActive"
+        | "isHistorianActive"
+      >
+    >
+  ) => void;
 }
 
 export const useIlluminatorConfigStore = create<IlluminatorConfigState>((set) => ({

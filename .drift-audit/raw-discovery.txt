@@ -1,0 +1,169 @@
+=== CODEBASE DISCOVERY ===
+Project root: /home/tsonu/src/the-canonry
+Source root: /home/tsonu/src/the-canonry
+Timestamp: 2026-02-28T17:07:37Z
+
+=== SECTION: FILE_INVENTORY ===
+## File counts by extension
+   2390 py
+   2383 pyc
+    479 json
+    358 ts
+    279 pyi
+    256 jsx
+    236 css
+    144 js
+    130 so
+    110 mat
+    106 txt
+    100 md
+     66 tsx
+     61 f90
+     47 sav
+     32 csv
+     31 h
+     26 dat
+     24 f
+     22 wav
+     22 png
+     22 npz
+     20 pxd
+     16 typed
+     16 arff
+     11 pyx
+     11 npy
+      9 html
+      8 tf
+      8 svg
+
+## Total source files (ts/tsx/js/jsx)
+824
+
+## Directory structure (depth 3)
+/home/tsonu/src/the-canonry
+/home/tsonu/src/the-canonry/.claude
+/home/tsonu/src/the-canonry/.claude/skills
+/home/tsonu/src/the-canonry/.claude/skills/drift
+/home/tsonu/src/the-canonry/.claude/skills/drift-audit
+/home/tsonu/src/the-canonry/.claude/skills/drift-audit-semantic
+/home/tsonu/src/the-canonry/.claude/skills/drift-audit-ux
+/home/tsonu/src/the-canonry/.claude/skills/drift-guard
+/home/tsonu/src/the-canonry/.claude/skills/drift-unify
+/home/tsonu/src/the-canonry/.claude/worktrees
+/home/tsonu/src/the-canonry/.drift-audit
+/home/tsonu/src/the-canonry/.drift-audit/semantic
+/home/tsonu/src/the-canonry/.drift-audit/semantic/batches
+/home/tsonu/src/the-canonry/.git
+/home/tsonu/src/the-canonry/.github
+/home/tsonu/src/the-canonry/.github/workflows
+/home/tsonu/src/the-canonry/.serena
+/home/tsonu/src/the-canonry/apps
+/home/tsonu/src/the-canonry/apps/archivist
+/home/tsonu/src/the-canonry/apps/archivist/webui
+/home/tsonu/src/the-canonry/apps/canonry
+/home/tsonu/src/the-canonry/apps/canonry/webui
+/home/tsonu/src/the-canonry/apps/chronicler
+/home/tsonu/src/the-canonry/apps/chronicler/webui
+/home/tsonu/src/the-canonry/apps/coherence-engine
+/home/tsonu/src/the-canonry/apps/coherence-engine/webui
+/home/tsonu/src/the-canonry/apps/cosmographer
+/home/tsonu/src/the-canonry/apps/cosmographer/cli
+/home/tsonu/src/the-canonry/apps/cosmographer/lib
+/home/tsonu/src/the-canonry/apps/cosmographer/node_modules
+/home/tsonu/src/the-canonry/apps/cosmographer/webui
+/home/tsonu/src/the-canonry/apps/illuminator
+/home/tsonu/src/the-canonry/apps/illuminator/docs
+/home/tsonu/src/the-canonry/apps/illuminator/webui
+/home/tsonu/src/the-canonry/apps/lore-weave
+/home/tsonu/src/the-canonry/apps/lore-weave/dist
+/home/tsonu/src/the-canonry/apps/lore-weave/lib
+/home/tsonu/src/the-canonry/apps/lore-weave/node_modules
+/home/tsonu/src/the-canonry/apps/lore-weave/scripts
+/home/tsonu/src/the-canonry/apps/lore-weave/webui
+/home/tsonu/src/the-canonry/apps/name-forge
+/home/tsonu/src/the-canonry/apps/name-forge/data
+/home/tsonu/src/the-canonry/apps/name-forge/dist
+/home/tsonu/src/the-canonry/apps/name-forge/docs
+/home/tsonu/src/the-canonry/apps/name-forge/lib
+/home/tsonu/src/the-canonry/apps/name-forge/node_modules
+/home/tsonu/src/the-canonry/apps/name-forge/scripts
+/home/tsonu/src/the-canonry/apps/name-forge/webui
+/home/tsonu/src/the-canonry/apps/viewer
+/home/tsonu/src/the-canonry/apps/viewer/webui
+/home/tsonu/src/the-canonry/config
+/home/tsonu/src/the-canonry/docs
+/home/tsonu/src/the-canonry/docs/adr
+/home/tsonu/src/the-canonry/docs/future-ideas
+/home/tsonu/src/the-canonry/docs/patterns
+/home/tsonu/src/the-canonry/eslint-rules
+/home/tsonu/src/the-canonry/infrastructure
+/home/tsonu/src/the-canonry/infrastructure/terraform
+/home/tsonu/src/the-canonry/infrastructure/terraform-viewer
+/home/tsonu/src/the-canonry/infrastructure/terraform-viewer/.terraform
+/home/tsonu/src/the-canonry/infrastructure/terraform/.terraform
+/home/tsonu/src/the-canonry/node_modules
+/home/tsonu/src/the-canonry/offline-review-docs
+/home/tsonu/src/the-canonry/packages
+/home/tsonu/src/the-canonry/packages/canonry-dsl
+/home/tsonu/src/the-canonry/packages/canonry-dsl-v2
+/home/tsonu/src/the-canonry/packages/canonry-dsl-v2/dist
+/home/tsonu/src/the-canonry/packages/canonry-dsl-v2/node_modules
+/home/tsonu/src/the-canonry/packages/canonry-dsl-v2/src
+/home/tsonu/src/the-canonry/packages/canonry-dsl/dist
+/home/tsonu/src/the-canonry/packages/canonry-dsl/node_modules
+/home/tsonu/src/the-canonry/packages/canonry-dsl/src
+/home/tsonu/src/the-canonry/packages/image-store
+/home/tsonu/src/the-canonry/packages/image-store/node_modules
+/home/tsonu/src/the-canonry/packages/image-store/src
+/home/tsonu/src/the-canonry/packages/narrative-store
+/home/tsonu/src/the-canonry/packages/narrative-store/node_modules
+/home/tsonu/src/the-canonry/packages/narrative-store/src
+/home/tsonu/src/the-canonry/packages/shared-components
+/home/tsonu/src/the-canonry/packages/shared-components/node_modules
+/home/tsonu/src/the-canonry/packages/shared-components/src
+/home/tsonu/src/the-canonry/packages/world-schema
+/home/tsonu/src/the-canonry/packages/world-schema/dist
+/home/tsonu/src/the-canonry/packages/world-schema/node_modules
+/home/tsonu/src/the-canonry/packages/world-schema/src
+/home/tsonu/src/the-canonry/packages/world-store
+/home/tsonu/src/the-canonry/packages/world-store/node_modules
+/home/tsonu/src/the-canonry/packages/world-store/src
+/home/tsonu/src/the-canonry/scripts
+/home/tsonu/src/the-canonry/tasks
+/home/tsonu/src/the-canonry/tools
+/home/tsonu/src/the-canonry/tools/drift-semantic
+/home/tsonu/src/the-canonry/tools/drift-semantic/ast-grep
+/home/tsonu/src/the-canonry/tools/drift-semantic/extractor
+/home/tsonu/src/the-canonry/tools/drift-semantic/pipeline
+
+## Largest files by line count (potential god files)
+ 264654 total
+  14434 /home/tsonu/src/the-canonry/packages/canonry-dsl-v2/src/compile.ts
+  12499 /home/tsonu/src/the-canonry/packages/canonry-dsl/src/compile.ts
+   6630 /home/tsonu/src/the-canonry/packages/canonry-dsl-v2/src/serialize.ts
+   6379 /home/tsonu/src/the-canonry/packages/canonry-dsl/src/serialize.ts
+   3362 /home/tsonu/src/the-canonry/apps/illuminator/webui/src/workers/tasks/chronicleTask.ts
+   2621 /home/tsonu/src/the-canonry/apps/illuminator/webui/src/components/ChroniclePanel.jsx
+   2612 /home/tsonu/src/the-canonry/apps/lore-weave/lib/engine/worldEngine.ts
+   2461 /home/tsonu/src/the-canonry/apps/canonry/webui/src/App.jsx
+   2351 /home/tsonu/src/the-canonry/apps/illuminator/webui/src/components/EntityCoveragePanel.jsx
+   2287 /home/tsonu/src/the-canonry/apps/lore-weave/webui/src/components/dashboard/trace/SimulationTraceVisx.jsx
+   2207 /home/tsonu/src/the-canonry/apps/chronicler/webui/src/components/WikiPage.tsx
+   2102 /home/tsonu/src/the-canonry/apps/chronicler/webui/src/lib/wikiBuilder.ts
+   1896 /home/tsonu/src/the-canonry/apps/lore-weave/lib/runtime/worldRuntime.ts
+   1817 /home/tsonu/src/the-canonry/apps/illuminator/webui/src/lib/db/chronicleRepository.ts
+   1771 /home/tsonu/src/the-canonry/packages/world-schema/src/narrativeStyles.ts
+   1755 /home/tsonu/src/the-canonry/apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx
+   1741 /home/tsonu/src/the-canonry/apps/illuminator/webui/src/components/EntityBrowser.jsx
+   1709 /home/tsonu/src/the-canonry/packages/shared-components/src/utils/schemaUsageMap.js
+   1676 /home/tsonu/src/the-canonry/apps/illuminator/webui/src/lib/preprint/idmlExport.ts
+   1595 /home/tsonu/src/the-canonry/apps/illuminator/webui/src/lib/entityRename.ts
+   1474 /home/tsonu/src/the-canonry/apps/illuminator/webui/src/workers/tasks/eraNarrativeTask.ts
+   1398 /home/tsonu/src/the-canonry/apps/illuminator/webui/src/components/CorpusFindReplace.tsx
+   1385 /home/tsonu/src/the-canonry/apps/chronicler/webui/src/components/WikiExplorer.tsx
+   1310 /home/tsonu/src/the-canonry/apps/lore-weave/lib/engine/templateInterpreter.ts
+   1307 /home/tsonu/src/the-canonry/apps/lore-weave/lib/narrative/stateChangeTracker.ts
+   1278 /home/tsonu/src/the-canonry/apps/illuminator/webui/src/lib/chronicle/v2/promptBuilder.ts
+   1277 /home/tsonu/src/the-canonry/apps/lore-weave/lib/coordinates/coordinateContext.ts
+   1245 /home/tsonu/src/the-canonry/apps/lore-weave/lib/engine/types.ts
+   1230 /home/tsonu/src/the-canonry/apps/lore-weave/lib/rules/metrics/index.ts

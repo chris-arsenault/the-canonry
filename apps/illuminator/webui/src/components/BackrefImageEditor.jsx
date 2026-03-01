@@ -7,9 +7,11 @@
  * - Alignment (left / right)
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useImageUrls } from '../hooks/useImageUrl';
-import { getChronicle } from '../lib/db/chronicleRepository';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
+import { useImageUrls } from "@the-canonry/image-store";
+import { getChronicle } from "../lib/db/chronicleRepository";
+import "./BackrefImageEditor.css";
 
 /**
  * Collect all displayable image IDs from a chronicle record.
@@ -19,22 +21,22 @@ function collectChronicleImages(chronicle) {
   const images = [];
 
   // Cover image
-  if (chronicle.coverImage?.status === 'complete' && chronicle.coverImage.generatedImageId) {
+  if (chronicle.coverImage?.status === "complete" && chronicle.coverImage.generatedImageId) {
     images.push({
       imageId: chronicle.coverImage.generatedImageId,
-      label: 'Cover image',
-      source: { source: 'cover' },
+      label: "Cover image",
+      source: { source: "cover" },
     });
   }
 
   // Scene images from imageRefs
   if (chronicle.imageRefs?.refs) {
     for (const ref of chronicle.imageRefs.refs) {
-      if (ref.type === 'prompt_request' && ref.status === 'complete' && ref.generatedImageId) {
+      if (ref.type === "prompt_request" && ref.status === "complete" && ref.generatedImageId) {
         images.push({
           imageId: ref.generatedImageId,
-          label: ref.caption || ref.anchorText || 'Scene image',
-          source: { source: 'image_ref', refId: ref.refId },
+          label: ref.caption || ref.anchorText || "Scene image",
+          source: { source: "image_ref", refId: ref.refId },
         });
       }
     }
@@ -60,7 +62,7 @@ function collectEntityImages(chronicle, entities) {
       images.push({
         imageId: entity.enrichment.image.imageId,
         label: `${entity.name} (portrait)`,
-        source: { source: 'entity', entityId: entity.id },
+        source: { source: "entity", entityId: entity.id },
       });
     }
   }
@@ -74,21 +76,21 @@ function collectEntityImages(chronicle, entities) {
 function resolveImageId(imageSource, chronicle, entities) {
   if (!imageSource) return null;
 
-  if (imageSource.source === 'cover') {
+  if (imageSource.source === "cover") {
     return chronicle?.coverImage?.generatedImageId || null;
   }
 
-  if (imageSource.source === 'image_ref') {
+  if (imageSource.source === "image_ref") {
     const ref = chronicle?.imageRefs?.refs?.find((r) => r.refId === imageSource.refId);
-    if (ref?.type === 'prompt_request' && ref.generatedImageId) return ref.generatedImageId;
-    if (ref?.type === 'entity_ref') {
+    if (ref?.type === "prompt_request" && ref.generatedImageId) return ref.generatedImageId;
+    if (ref?.type === "entity_ref") {
       const entity = entities.find((e) => e.id === ref.entityId);
       return entity?.enrichment?.image?.imageId || null;
     }
     return null;
   }
 
-  if (imageSource.source === 'entity') {
+  if (imageSource.source === "entity") {
     const entity = entities.find((e) => e.id === imageSource.entityId);
     return entity?.enrichment?.image?.imageId || null;
   }
@@ -97,43 +99,18 @@ function resolveImageId(imageSource, chronicle, entities) {
 }
 
 function ImageThumbnail({ imageId, imageUrls, selected, onClick, label }) {
-  const result = imageUrls.get(imageId);
-  const url = result?.url;
+  const url = imageUrls.get(imageId) ?? null;
 
   return (
     <button
       onClick={onClick}
       title={label}
-      style={{
-        width: '60px',
-        height: '60px',
-        border: selected ? '2px solid #3b82f6' : '2px solid rgba(255,255,255,0.2)',
-        borderRadius: '6px',
-        padding: 0,
-        cursor: 'pointer',
-        overflow: 'hidden',
-        background: url ? 'transparent' : 'rgba(255,255,255,0.05)',
-        flexShrink: 0,
-      }}
+      className={`bie-thumbnail ${selected ? "bie-thumbnail-selected" : "bie-thumbnail-unselected"} ${url ? "bie-thumbnail-has-image" : "bie-thumbnail-placeholder"}`}
     >
       {url ? (
-        <img
-          src={url}
-          alt={label}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
+        <img src={url} alt={label} className="bie-thumbnail-img" />
       ) : (
-        <div style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '10px',
-          color: 'rgba(255,255,255,0.4)',
-        }}>
-          ...
-        </div>
+        <div className="bie-thumbnail-placeholder">...</div>
       )}
     </button>
   );
@@ -158,23 +135,29 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
   // Determine current selection
   const isNone = backref.imageSource === null;
   const isLegacy = backref.imageSource === undefined;
-  const currentImageId = backref.imageSource
-    ? resolveImageId(backref.imageSource, chronicle, entities)
-    : isLegacy
-      ? (chronicle?.coverImage?.generatedImageId || null)
-      : null;
+  let currentImageId;
+  if (backref.imageSource) {
+    currentImageId = resolveImageId(backref.imageSource, chronicle, entities);
+  } else if (isLegacy) {
+    currentImageId = chronicle?.coverImage?.generatedImageId || null;
+  } else {
+    currentImageId = null;
+  }
 
-  const currentSize = backref.imageSize || 'medium';
-  const currentAlignment = backref.imageAlignment || 'left';
+  const currentSize = backref.imageSize || "medium";
+  const currentAlignment = backref.imageAlignment || "left";
 
-  const handleSelectImage = useCallback((source) => {
-    onChange({
-      ...backref,
-      imageSource: source,
-      imageSize: backref.imageSize || 'medium',
-      imageAlignment: backref.imageAlignment || 'left',
-    });
-  }, [backref, onChange]);
+  const handleSelectImage = useCallback(
+    (source) => {
+      onChange({
+        ...backref,
+        imageSource: source,
+        imageSize: backref.imageSize || "medium",
+        imageAlignment: backref.imageAlignment || "left",
+      });
+    },
+    [backref, onChange]
+  );
 
   const handleSelectNone = useCallback(() => {
     onChange({
@@ -185,75 +168,52 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
     });
   }, [backref, onChange]);
 
-  const handleSizeChange = useCallback((e) => {
-    onChange({ ...backref, imageSize: e.target.value });
-  }, [backref, onChange]);
+  const handleSizeChange = useCallback(
+    (e) => {
+      onChange({ ...backref, imageSize: e.target.value });
+    },
+    [backref, onChange]
+  );
 
-  const handleAlignmentChange = useCallback((alignment) => {
-    onChange({ ...backref, imageAlignment: alignment });
-  }, [backref, onChange]);
+  const handleAlignmentChange = useCallback(
+    (alignment) => {
+      onChange({ ...backref, imageAlignment: alignment });
+    },
+    [backref, onChange]
+  );
 
   if (!chronicle) {
     return (
-      <div style={{ padding: '8px', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontStyle: 'italic' }}>
+      <div className="bie-row-missing">
         Chronicle not found: {backref.chronicleId.slice(0, 8)}...
       </div>
     );
   }
 
   return (
-    <div style={{
-      padding: '12px',
-      background: 'rgba(255,255,255,0.03)',
-      borderRadius: '6px',
-      marginBottom: '8px',
-    }}>
+    <div className="bie-row">
       {/* Chronicle title + anchor */}
-      <div style={{ marginBottom: '8px' }}>
-        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
-          {chronicle.title}
-        </div>
-        <div style={{
-          fontSize: '11px',
-          color: 'rgba(255,255,255,0.5)',
-          marginTop: '2px',
-          fontStyle: 'italic',
-        }}>
-          &ldquo;{backref.anchorPhrase.length > 80
-            ? backref.anchorPhrase.slice(0, 80) + '...'
-            : backref.anchorPhrase}&rdquo;
+      <div className="bie-row-header">
+        <div className="bie-row-title">{chronicle.title}</div>
+        <div className="bie-row-anchor">
+          &ldquo;
+          {backref.anchorPhrase.length > 80
+            ? backref.anchorPhrase.slice(0, 80) + "..."
+            : backref.anchorPhrase}
+          &rdquo;
         </div>
       </div>
 
       {/* Image picker */}
       {allImages.length > 0 && (
-        <div style={{ marginBottom: '8px' }}>
-          <div style={{
-            fontSize: '10px',
-            color: 'rgba(255,255,255,0.5)',
-            marginBottom: '4px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}>
-            Image
-          </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="bie-picker">
+          <div className="bie-section-label">Image</div>
+          <div className="bie-picker-grid">
             {/* None button */}
             <button
               onClick={handleSelectNone}
               title="No image"
-              style={{
-                width: '60px',
-                height: '60px',
-                border: isNone ? '2px solid #3b82f6' : '2px solid rgba(255,255,255,0.2)',
-                borderRadius: '6px',
-                padding: 0,
-                cursor: 'pointer',
-                background: 'rgba(255,255,255,0.05)',
-                color: isNone ? '#3b82f6' : 'rgba(255,255,255,0.4)',
-                fontSize: '10px',
-                flexShrink: 0,
-              }}
+              className={`bie-none-btn ${isNone ? "bie-none-btn-selected" : "bie-none-btn-unselected"}`}
             >
               None
             </button>
@@ -278,30 +238,11 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
 
       {/* Size + Alignment controls (visible when image source is set, even while loading) */}
       {!isNone && (
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div className="bie-controls">
           {/* Size */}
           <div>
-            <label style={{
-              fontSize: '10px',
-              color: 'rgba(255,255,255,0.5)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              marginRight: '6px',
-            }}>
-              Size
-            </label>
-            <select
-              value={currentSize}
-              onChange={handleSizeChange}
-              style={{
-                background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '4px',
-                color: 'rgba(255,255,255,0.9)',
-                padding: '4px 8px',
-                fontSize: '12px',
-              }}
-            >
+            <label htmlFor="size" className="bie-control-label">Size</label>
+            <select id="size" value={currentSize} onChange={handleSizeChange} className="bie-size-select">
               <option value="small">Small</option>
               <option value="medium">Medium</option>
               <option value="large">Large</option>
@@ -311,40 +252,16 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
 
           {/* Alignment */}
           <div>
-            <label style={{
-              fontSize: '10px',
-              color: 'rgba(255,255,255,0.5)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              marginRight: '6px',
-            }}>
-              Align
-            </label>
+            <span className="bie-control-label">Align</span>
             <button
-              onClick={() => handleAlignmentChange('left')}
-              style={{
-                background: currentAlignment === 'left' ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.1)',
-                border: currentAlignment === 'left' ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '4px 0 0 4px',
-                color: 'rgba(255,255,255,0.9)',
-                padding: '4px 10px',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
+              onClick={() => handleAlignmentChange("left")}
+              className={`bie-align-btn bie-align-btn-left ${currentAlignment === "left" ? "bie-align-btn-active" : "bie-align-btn-inactive"}`}
             >
               Left
             </button>
             <button
-              onClick={() => handleAlignmentChange('right')}
-              style={{
-                background: currentAlignment === 'right' ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.1)',
-                border: currentAlignment === 'right' ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '0 4px 4px 0',
-                color: 'rgba(255,255,255,0.9)',
-                padding: '4px 10px',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
+              onClick={() => handleAlignmentChange("right")}
+              className={`bie-align-btn bie-align-btn-right ${currentAlignment === "right" ? "bie-align-btn-active" : "bie-align-btn-inactive"}`}
             >
               Right
             </button>
@@ -354,12 +271,35 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
 
       {/* Legacy indicator */}
       {isLegacy && allImages.length > 0 && (
-        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '4px', fontStyle: 'italic' }}>
-          Using default (cover image, medium, left)
-        </div>
+        <div className="bie-legacy-hint">Using default (cover image, medium, left)</div>
       )}
     </div>
   );
+}
+
+/**
+/**
+ * Gather all image IDs needed for display from a single chronicle record.
+ */
+function gatherChronicleImageIds(chronicle, entities) {
+  const ids = [];
+  if (chronicle.coverImage?.generatedImageId) {
+    ids.push(chronicle.coverImage.generatedImageId);
+  }
+  if (chronicle.imageRefs?.refs) {
+    for (const ref of chronicle.imageRefs.refs) {
+      if (ref.type === "prompt_request" && ref.generatedImageId) {
+        ids.push(ref.generatedImageId);
+      }
+    }
+  }
+  for (const role of chronicle.roleAssignments || []) {
+    const ent = entities.find((e) => e.id === role.entityId);
+    if (ent?.enrichment?.image?.imageId) {
+      ids.push(ent.enrichment.image.imageId);
+    }
+  }
+  return ids;
 }
 
 /**
@@ -370,10 +310,24 @@ function BackrefRow({ backref, chronicle, entities, imageUrls, onChange }) {
  * - entities: All entities (for resolving entity portraits)
  * - onUpdateBackrefs: (entityId, updatedBackrefs) => void
  */
-export default function BackrefImageEditor({ entity, entities, onUpdateBackrefs, alwaysExpanded = false }) {
+export default function BackrefImageEditor({
+  entity,
+  entities,
+  onUpdateBackrefs,
+  alwaysExpanded = false,
+}) {
   const [chronicles, setChronicles] = useState(new Map());
   const [expanded, setExpanded] = useState(alwaysExpanded);
-  const backrefs = entity?.enrichment?.chronicleBackrefs || [];
+  const backrefs = useMemo(
+    () => entity?.enrichment?.chronicleBackrefs || [],
+    [entity?.enrichment?.chronicleBackrefs]
+  );
+
+  // Stable key for chronicle IDs to use as dependency
+  const backrefChronicleKey = useMemo(
+    () => backrefs.map((b) => b.chronicleId).join(","),
+    [backrefs]
+  );
 
   // Load chronicle records for all backrefs
   useEffect(() => {
@@ -391,52 +345,42 @@ export default function BackrefImageEditor({ entity, entities, onUpdateBackrefs,
       setChronicles(map);
     });
 
-    return () => { cancelled = true; };
-  }, [backrefs.map((b) => b.chronicleId).join(',')]);
+    return () => {
+      cancelled = true;
+    };
+  }, [backrefs, backrefChronicleKey]);
 
   // Collect all image IDs we need to load
   const allImageIds = useMemo(() => {
     const ids = [];
     for (const chronicle of chronicles.values()) {
-      // Cover image
-      if (chronicle.coverImage?.generatedImageId) {
-        ids.push(chronicle.coverImage.generatedImageId);
-      }
-      // Scene images
-      if (chronicle.imageRefs?.refs) {
-        for (const ref of chronicle.imageRefs.refs) {
-          if (ref.type === 'prompt_request' && ref.generatedImageId) {
-            ids.push(ref.generatedImageId);
-          }
-        }
-      }
-      // Entity portraits from cast
-      for (const role of chronicle.roleAssignments || []) {
-        const ent = entities.find((e) => e.id === role.entityId);
-        if (ent?.enrichment?.image?.imageId) {
-          ids.push(ent.enrichment.image.imageId);
-        }
-      }
+      ids.push(...gatherChronicleImageIds(chronicle, entities));
     }
     return [...new Set(ids)];
   }, [chronicles, entities]);
 
   // Only load blobs when the editor is visible (expanded or alwaysExpanded)
-  const imageUrls = useImageUrls(expanded ? allImageIds : []);
+  const { urls: imageUrls } = useImageUrls(expanded ? allImageIds : []);
 
-  const handleBackrefChange = useCallback((updatedBackref) => {
-    const updated = backrefs.map((b) =>
-      b.chronicleId === updatedBackref.chronicleId && b.anchorPhrase === updatedBackref.anchorPhrase
-        ? updatedBackref
-        : b
-    );
-    onUpdateBackrefs(entity.id, updated);
-  }, [backrefs, entity.id, onUpdateBackrefs]);
+  const handleBackrefChange = useCallback(
+    (updatedBackref) => {
+      const updated = backrefs.map((b) =>
+        b.chronicleId === updatedBackref.chronicleId &&
+        b.anchorPhrase === updatedBackref.anchorPhrase
+          ? updatedBackref
+          : b
+      );
+      onUpdateBackrefs(entity.id, updated);
+    },
+    [backrefs, entity.id, onUpdateBackrefs]
+  );
 
   if (backrefs.length === 0) return null;
 
   const rowsContent = (
-    <div style={{ marginTop: alwaysExpanded ? 0 : '8px' }}>
+    <div
+      className={alwaysExpanded ? "bie-rows-container-expanded" : "bie-rows-container-collapsed"}
+    >
       {backrefs.map((backref, i) => (
         <BackrefRow
           key={`${backref.chronicleId}-${i}`}
@@ -452,44 +396,47 @@ export default function BackrefImageEditor({ entity, entities, onUpdateBackrefs,
 
   if (alwaysExpanded) {
     return (
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Chronicle Images ({backrefs.length})
-        </div>
+      <div className="bie-wrapper">
+        <div className="bie-heading">Chronicle Images ({backrefs.length})</div>
         {rowsContent}
       </div>
     );
   }
 
   return (
-    <div style={{ marginBottom: '16px' }}>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          width: '100%',
-          background: 'rgba(255, 255, 255, 0.05)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '4px',
-          padding: '8px 10px',
-          color: 'rgba(255, 255, 255, 0.8)',
-          fontSize: '12px',
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
-      >
-        <span style={{
-          fontSize: '10px',
-          transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-          transition: 'transform 0.2s ease',
-        }}>
+    <div className="bie-wrapper">
+      <button onClick={() => setExpanded(!expanded)} className="bie-toggle-btn">
+        <span
+          className={`bie-toggle-arrow ${expanded ? "bie-toggle-arrow-expanded" : "bie-toggle-arrow-collapsed"}`}
+        >
           ▶
         </span>
-        <span style={{ flex: 1 }}>Chronicle Images ({backrefs.length})</span>
+        <span className="bie-toggle-label">Chronicle Images ({backrefs.length})</span>
       </button>
       {expanded && rowsContent}
     </div>
   );
 }
+
+ImageThumbnail.propTypes = {
+  imageId: PropTypes.string.isRequired,
+  imageUrls: PropTypes.object.isRequired,
+  selected: PropTypes.bool,
+  onClick: PropTypes.func,
+  label: PropTypes.string,
+};
+
+BackrefRow.propTypes = {
+  backref: PropTypes.object.isRequired,
+  chronicle: PropTypes.object,
+  entities: PropTypes.array.isRequired,
+  imageUrls: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
+
+BackrefImageEditor.propTypes = {
+  entity: PropTypes.object,
+  entities: PropTypes.array.isRequired,
+  onUpdateBackrefs: PropTypes.func.isRequired,
+  alwaysExpanded: PropTypes.bool,
+};

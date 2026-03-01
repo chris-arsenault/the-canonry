@@ -9,8 +9,9 @@
  * Edit mode is only available for manually-created entities (id starts with manual_).
  */
 
-import { useState, useMemo, useCallback } from 'react';
-import type { WorldEntity, EntityKindDefinition, CultureDefinition } from '@canonry/world-schema';
+import React, { useState, useMemo, useCallback } from "react";
+import type { WorldEntity, EntityKindDefinition, CultureDefinition } from "@canonry/world-schema";
+import "./CreateEntityModal.css";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,16 +44,16 @@ interface CreateEntityModalProps {
   editEntity?: WorldEntity;
   /** Pre-populate fields in create mode (ignored when editEntity is set). */
   defaults?: CreateEntityDefaults;
-  onSubmit: (entity: Omit<WorldEntity, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSubmit: (entity: Omit<WorldEntity, "id" | "createdAt" | "updatedAt">) => void;
   onClose: () => void;
 }
 
 const PROMINENCE_OPTIONS = [
-  { value: 0, label: 'Forgotten' },
-  { value: 1, label: 'Marginal' },
-  { value: 2, label: 'Recognized' },
-  { value: 3, label: 'Renowned' },
-  { value: 4, label: 'Mythic' },
+  { value: 0, label: "Forgotten" },
+  { value: 1, label: "Marginal" },
+  { value: 2, label: "Recognized" },
+  { value: 3, label: "Renowned" },
+  { value: 4, label: "Mythic" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -60,7 +61,9 @@ const PROMINENCE_OPTIONS = [
 // ---------------------------------------------------------------------------
 
 /** Convert EntityTags (string | boolean values) to Record<string, string> for the form. */
-function tagsToStringRecord(tags: Record<string, string | boolean> | undefined): Record<string, string> {
+function tagsToStringRecord(
+  tags: Record<string, string | boolean> | undefined
+): Record<string, string> {
   if (!tags) return {};
   const result: Record<string, string> = {};
   for (const [k, v] of Object.entries(tags)) {
@@ -73,45 +76,57 @@ function tagsToStringRecord(tags: Record<string, string | boolean> | undefined):
 // Component
 // ---------------------------------------------------------------------------
 
-export default function CreateEntityModal({ worldSchema, eras, editEntity, defaults, onSubmit, onClose }: CreateEntityModalProps) {
+export default function CreateEntityModal({
+  worldSchema,
+  eras,
+  editEntity,
+  defaults,
+  onSubmit,
+  onClose,
+}: Readonly<CreateEntityModalProps>) {
   const isEdit = Boolean(editEntity);
   const entityKinds = useMemo(
     () => (worldSchema.entityKinds || []).filter((k) => !k.isFramework),
-    [worldSchema.entityKinds],
+    [worldSchema.entityKinds]
   );
   const cultures = worldSchema.cultures || [];
   const d = isEdit ? undefined : defaults; // ignore defaults in edit mode
 
   // Form state — initialized from editEntity (edit mode) or defaults (create mode)
-  const [kind, setKind] = useState(() => editEntity?.kind || d?.kind || entityKinds[0]?.kind || '');
-  const [name] = useState(() => editEntity?.name || '');
-  const [nameInput, setNameInput] = useState(() => editEntity?.name || d?.name || '');
-  const [culture, setCulture] = useState(() => editEntity?.culture || d?.culture || cultures[0]?.id || '');
+  const [kind, setKind] = useState(() => editEntity?.kind || d?.kind || entityKinds[0]?.kind || "");
+  const [name] = useState(() => editEntity?.name || "");
+  const [nameInput, setNameInput] = useState(() => editEntity?.name || d?.name || "");
+  const [culture, setCulture] = useState(
+    () => editEntity?.culture || d?.culture || cultures[0]?.id || ""
+  );
   const [prominence, setProminence] = useState(() => editEntity?.prominence ?? 1);
-  const [description, setDescription] = useState(() => editEntity?.description || '');
-  const [eraId, setEraId] = useState(() => editEntity?.eraId || d?.eraId || '');
-  const [startTick, setStartTick] = useState(() =>
-    editEntity?.temporal?.startTick != null ? String(editEntity.temporal.startTick)
-      : d?.startTick != null ? String(d.startTick) : '',
+  const [description, setDescription] = useState(() => editEntity?.description || "");
+  const [eraId, setEraId] = useState(() => editEntity?.eraId || d?.eraId || "");
+  const [startTick, setStartTick] = useState(() => {
+    if (editEntity?.temporal?.startTick != null) return String(editEntity.temporal.startTick);
+    if (d?.startTick != null) return String(d.startTick);
+    return "";
+  });
+  const [endTick, setEndTick] = useState(() => {
+    if (editEntity?.temporal?.endTick != null) return String(editEntity.temporal.endTick);
+    if (d?.endTick != null) return String(d.endTick);
+    return "";
+  });
+  const [tags, setTags] = useState<Record<string, string>>(() =>
+    tagsToStringRecord(editEntity?.tags)
   );
-  const [endTick, setEndTick] = useState(() =>
-    editEntity?.temporal?.endTick != null ? String(editEntity.temporal.endTick)
-      : d?.endTick != null ? String(d.endTick) : '',
-  );
-  const [tags, setTags] = useState<Record<string, string>>(() => tagsToStringRecord(editEntity?.tags));
-  const [tagKey, setTagKey] = useState('');
-  const [tagValue, setTagValue] = useState('');
+  const [tagKey, setTagKey] = useState("");
+  const [tagValue, setTagValue] = useState("");
 
   // Derived from selected kind
-  const kindDef = useMemo(
-    () => entityKinds.find((k) => k.kind === kind),
-    [entityKinds, kind],
-  );
+  const kindDef = useMemo(() => entityKinds.find((k) => k.kind === kind), [entityKinds, kind]);
   const subtypes = kindDef?.subtypes || [];
   const statuses = kindDef?.statuses || [];
-  const defaultStatus = kindDef?.defaultStatus || statuses[0]?.id || 'active';
+  const defaultStatus = kindDef?.defaultStatus || statuses[0]?.id || "active";
 
-  const [subtype, setSubtype] = useState(() => editEntity?.subtype || d?.subtype || subtypes[0]?.id || '');
+  const [subtype, setSubtype] = useState(
+    () => editEntity?.subtype || d?.subtype || subtypes[0]?.id || ""
+  );
   const [status, setStatus] = useState(() => editEntity?.status || defaultStatus);
 
   // Cascade subtype and status when kind changes (only in create mode or explicit change)
@@ -119,10 +134,10 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
     (newKind: string) => {
       setKind(newKind);
       const def = entityKinds.find((k) => k.kind === newKind);
-      setSubtype(def?.subtypes[0]?.id || '');
-      setStatus(def?.defaultStatus || def?.statuses[0]?.id || 'active');
+      setSubtype(def?.subtypes[0]?.id || "");
+      setStatus(def?.defaultStatus || def?.statuses[0]?.id || "active");
     },
-    [entityKinds],
+    [entityKinds]
   );
 
   // Tag management
@@ -130,8 +145,8 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
     const k = tagKey.trim();
     if (!k) return;
     setTags((prev) => ({ ...prev, [k]: tagValue }));
-    setTagKey('');
-    setTagValue('');
+    setTagKey("");
+    setTagValue("");
   }, [tagKey, tagValue]);
 
   const removeTag = useCallback((key: string) => {
@@ -148,7 +163,7 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
 
   const handleSubmit = useCallback(() => {
     if (!canSubmit) return;
-    const entity: Omit<WorldEntity, 'id' | 'createdAt' | 'updatedAt'> = {
+    const entity: Omit<WorldEntity, "id" | "createdAt" | "updatedAt"> = {
       kind,
       subtype,
       name: effectiveName.trim(),
@@ -166,22 +181,37 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
       entity.temporal = { startTick: parsedStart, endTick: parsedEnd };
     }
     onSubmit(entity);
-  }, [canSubmit, kind, subtype, effectiveName, culture, status, prominence, description, tags, eraId, startTick, endTick, editEntity, onSubmit]);
+  }, [
+    canSubmit,
+    kind,
+    subtype,
+    effectiveName,
+    culture,
+    status,
+    prominence,
+    description,
+    tags,
+    eraId,
+    startTick,
+    endTick,
+    editEntity,
+    onSubmit,
+  ]);
 
-  const title = isEdit ? 'Edit Entity' : 'Create Entity';
-  const submitLabel = isEdit ? 'Save Changes' : 'Create Entity';
+  const title = isEdit ? "Edit Entity" : "Create Entity";
+  const submitLabel = isEdit ? "Save Changes" : "Create Entity";
 
   if (entityKinds.length === 0) {
     return (
-      <div style={backdropStyle}>
-        <div style={cardStyle}>
-          <div style={headerStyle}>
-            <h2 style={{ margin: 0, fontSize: '16px' }}>{title}</h2>
+      <div className="cem-backdrop">
+        <div className="cem-card">
+          <div className="cem-header">
+            <h2 className="cem-title">{title}</h2>
           </div>
-          <div style={{ padding: '20px', fontSize: '13px', color: 'var(--text-muted)' }}>
+          <div className="cem-empty-body">
             No entity kinds available in the schema.
           </div>
-          <div style={footerStyle}>
+          <div className="cem-footer">
             <button onClick={onClose} className="illuminator-button illuminator-button-secondary">
               Close
             </button>
@@ -192,29 +222,30 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
   }
 
   return (
-    <div style={backdropStyle}>
-      <div style={cardStyle}>
+    <div className="cem-backdrop">
+      <div className="cem-card">
         {/* Header */}
-        <div style={headerStyle}>
-          <h2 style={{ margin: 0, fontSize: '16px' }}>{title}</h2>
+        <div className="cem-header">
+          <h2 className="cem-title">{title}</h2>
           {isEdit && (
-            <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+            <p className="cem-edit-subtitle">
               {name}
             </p>
           )}
         </div>
 
         {/* Body */}
-        <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+        <div className="cem-body">
           {/* Kind + Subtype row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+          <div
+            className="cem-two-column-grid"
+          >
             <div>
-              <label style={labelStyle}>Kind</label>
-              <select
+              <label htmlFor="kind" className="cem-label">Kind</label>
+              <select id="kind"
                 value={kind}
                 onChange={(e) => handleKindChange(e.target.value)}
-                className="illuminator-select"
-                style={{ width: '100%' }}
+                className="illuminator-select cem-full-width"
               >
                 {entityKinds.map((k) => (
                   <option key={k.kind} value={k.kind}>
@@ -224,12 +255,11 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Subtype</label>
-              <select
+              <label htmlFor="subtype" className="cem-label">Subtype</label>
+              <select id="subtype"
                 value={subtype}
                 onChange={(e) => setSubtype(e.target.value)}
-                className="illuminator-select"
-                style={{ width: '100%' }}
+                className="illuminator-select cem-full-width"
                 disabled={subtypes.length === 0}
               >
                 {subtypes.map((s) => (
@@ -244,29 +274,30 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
 
           {/* Name — only editable in create mode */}
           {!isEdit && (
-            <div style={{ marginBottom: '12px' }}>
-              <label style={labelStyle}>Name *</label>
-              <input
+            <div className="cem-field-group">
+              <label htmlFor="name" className="cem-label">Name *</label>
+              <input id="name"
                 type="text"
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Entity name"
-                className="illuminator-select"
-                style={{ width: '100%', boxSizing: 'border-box' }}
+                className="illuminator-select cem-full-width-box"
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
               />
             </div>
           )}
 
           {/* Culture + Status row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+          <div
+            className="cem-two-column-grid"
+          >
             <div>
-              <label style={labelStyle}>Culture</label>
-              <select
+              <label htmlFor="culture" className="cem-label">Culture</label>
+              <select id="culture"
                 value={culture}
                 onChange={(e) => setCulture(e.target.value)}
-                className="illuminator-select"
-                style={{ width: '100%' }}
+                className="illuminator-select cem-full-width"
               >
                 {cultures.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -276,12 +307,11 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Status</label>
-              <select
+              <label htmlFor="status" className="cem-label">Status</label>
+              <select id="status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="illuminator-select"
-                style={{ width: '100%' }}
+                className="illuminator-select cem-full-width"
               >
                 {statuses.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -293,13 +323,12 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
           </div>
 
           {/* Prominence */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={labelStyle}>Prominence</label>
-            <select
+          <div className="cem-field-group">
+            <label htmlFor="prominence" className="cem-label">Prominence</label>
+            <select id="prominence"
               value={prominence}
               onChange={(e) => setProminence(Number(e.target.value))}
-              className="illuminator-select"
-              style={{ width: '100%' }}
+              className="illuminator-select cem-full-width"
             >
               {PROMINENCE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -311,13 +340,12 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
 
           {/* Era */}
           {eras.length > 0 && (
-            <div style={{ marginBottom: '12px' }}>
-              <label style={labelStyle}>Era</label>
-              <select
+            <div className="cem-field-group">
+              <label htmlFor="era" className="cem-label">Era</label>
+              <select id="era"
                 value={eraId}
                 onChange={(e) => setEraId(e.target.value)}
-                className="illuminator-select"
-                style={{ width: '100%' }}
+                className="illuminator-select cem-full-width"
               >
                 <option value="">None</option>
                 {eras.map((era) => (
@@ -330,72 +358,58 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
           )}
 
           {/* Temporal */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+          <div
+            className="cem-two-column-grid"
+          >
             <div>
-              <label style={labelStyle}>Start Tick</label>
-              <input
+              <label htmlFor="start-tick" className="cem-label">Start Tick</label>
+              <input id="start-tick"
                 type="number"
                 value={startTick}
                 onChange={(e) => setStartTick(e.target.value)}
                 placeholder="Optional"
-                className="illuminator-select"
-                style={{ width: '100%', boxSizing: 'border-box' }}
+                className="illuminator-select cem-full-width-box"
               />
             </div>
             <div>
-              <label style={labelStyle}>End Tick</label>
-              <input
+              <label htmlFor="end-tick" className="cem-label">End Tick</label>
+              <input id="end-tick"
                 type="number"
                 value={endTick}
                 onChange={(e) => setEndTick(e.target.value)}
                 placeholder="Ongoing"
-                className="illuminator-select"
-                style={{ width: '100%', boxSizing: 'border-box' }}
+                className="illuminator-select cem-full-width-box"
               />
             </div>
           </div>
 
           {/* Description */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={labelStyle}>Description</label>
-            <textarea
+          <div className="cem-field-group">
+            <label htmlFor="description" className="cem-label">Description</label>
+            <textarea id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
               rows={3}
-              className="illuminator-select"
-              style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
+              className="illuminator-select cem-textarea"
             />
           </div>
 
           {/* Tags */}
           <div>
-            <label style={labelStyle}>Tags</label>
+            <span className="cem-label">Tags</span>
             {Object.entries(tags).length > 0 && (
-              <div style={{ marginBottom: '8px' }}>
+              <div className="cem-tags-container">
                 {Object.entries(tags).map(([k, v]) => (
                   <div
                     key={k}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '3px 0',
-                      fontSize: '12px',
-                    }}
+                    className="cem-tag-row"
                   >
-                    <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{k}:</span>
-                    <span style={{ flex: 1, color: 'var(--text-primary)' }}>{v}</span>
+                    <span className="cem-tag-key">{k}:</span>
+                    <span className="cem-tag-value">{v}</span>
                     <button
                       onClick={() => removeTag(k)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-muted)',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        padding: '0 4px',
-                      }}
+                      className="cem-remove-tag-btn"
                       title="Remove tag"
                     >
                       x
@@ -404,16 +418,15 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
                 ))}
               </div>
             )}
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <div className="cem-tag-input-row">
               <input
                 type="text"
                 value={tagKey}
                 onChange={(e) => setTagKey(e.target.value)}
                 placeholder="key"
-                className="illuminator-select"
-                style={{ flex: 1, boxSizing: 'border-box', fontSize: '12px' }}
+                className="illuminator-select cem-tag-input"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     e.preventDefault();
                     addTag();
                   }
@@ -424,10 +437,9 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
                 value={tagValue}
                 onChange={(e) => setTagValue(e.target.value)}
                 placeholder="value"
-                className="illuminator-select"
-                style={{ flex: 1, boxSizing: 'border-box', fontSize: '12px' }}
+                className="illuminator-select cem-tag-input"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     e.preventDefault();
                     addTag();
                   }
@@ -436,8 +448,7 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
               <button
                 onClick={addTag}
                 disabled={!tagKey.trim()}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '4px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                className="illuminator-button illuminator-button-secondary cem-add-tag-btn"
               >
                 Add
               </button>
@@ -446,7 +457,7 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
         </div>
 
         {/* Footer */}
-        <div style={footerStyle}>
+        <div className="cem-footer">
           <button onClick={onClose} className="illuminator-button illuminator-button-secondary">
             Cancel
           </button>
@@ -454,7 +465,6 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
             onClick={handleSubmit}
             disabled={!canSubmit}
             className="illuminator-button"
-            style={{ opacity: canSubmit ? 1 : 0.5 }}
           >
             {submitLabel}
           </button>
@@ -464,52 +474,3 @@ export default function CreateEntityModal({ worldSchema, eras, editEntity, defau
   );
 }
 
-// ---------------------------------------------------------------------------
-// Shared styles
-// ---------------------------------------------------------------------------
-
-const backdropStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  zIndex: 1000,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: 'rgba(0, 0, 0, 0.6)',
-};
-
-const cardStyle: React.CSSProperties = {
-  background: 'var(--bg-primary)',
-  borderRadius: '12px',
-  border: '1px solid var(--border-color)',
-  width: '500px',
-  maxWidth: '95vw',
-  maxHeight: '85vh',
-  display: 'flex',
-  flexDirection: 'column',
-  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-};
-
-const headerStyle: React.CSSProperties = {
-  padding: '16px 20px',
-  borderBottom: '1px solid var(--border-color)',
-  flexShrink: 0,
-};
-
-const footerStyle: React.CSSProperties = {
-  padding: '12px 20px',
-  borderTop: '1px solid var(--border-color)',
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: '8px',
-  flexShrink: 0,
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '11px',
-  color: 'var(--text-muted)',
-  textTransform: 'uppercase',
-  fontWeight: 600,
-  marginBottom: '4px',
-};

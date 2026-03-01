@@ -1,2 +1,2 @@
-export { default as EntityWorkspace } from './EntityWorkspace';
-export * from './tabs';
+export { default as EntityWorkspace } from "./EntityWorkspace";
+export * from "./tabs";

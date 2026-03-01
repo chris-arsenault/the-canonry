@@ -4,18 +4,22 @@
  * Shows a grid of available narrative styles with role previews.
  */
 
-import { useState, useMemo, useEffect } from 'react';
-import type { NarrativeStyle, StoryNarrativeStyle, DocumentNarrativeStyle, RoleDefinition } from '@canonry/world-schema';
-import { useWizard } from '../WizardContext';
-import { getNarrativeStyleUsageStats } from '../../../lib/db/chronicleRepository';
+import React, { useState, useMemo, useEffect } from "react";
+import type {
+  NarrativeStyle,
+  RoleDefinition,
+} from "@canonry/world-schema";
+import { useWizard } from "../WizardContext";
+import { getNarrativeStyleUsageStats } from "../../../lib/db/chronicleRepository";
+import "./StyleStep.css";
 
 /** Get roles from either story or document style */
 function getRoles(style: NarrativeStyle): RoleDefinition[] {
-  if (style.format === 'story') {
-    return (style as StoryNarrativeStyle).roles || [];
+  if (style.format === "story") {
+    return (style).roles || [];
   }
   // Document styles have roles directly on the style object
-  const docStyle = style as DocumentNarrativeStyle;
+  const docStyle = style;
   return docStyle.roles || [];
 }
 
@@ -23,19 +27,24 @@ interface StyleStepProps {
   styles: NarrativeStyle[];
 }
 
-export default function StyleStep({ styles }: StyleStepProps) {
+export default function StyleStep({ styles }: Readonly<StyleStepProps>) {
   const { state, selectStyle, setAcceptDefaults, simulationRunId } = useWizard();
-  const [searchText, setSearchText] = useState('');
-  const [formatFilter, setFormatFilter] = useState<'all' | 'story' | 'document'>('all');
+  const [searchText, setSearchText] = useState("");
+  const [formatFilter, setFormatFilter] = useState<"all" | "story" | "document">("all");
   const [styleUsage, setStyleUsage] = useState<Map<string, { usageCount: number }>>(new Map());
   const [usageLoading, setUsageLoading] = useState(false);
 
+  // Clear usage when no simulationRunId
   useEffect(() => {
-    if (!simulationRunId) {
-      setStyleUsage(new Map());
-      setUsageLoading(false);
-      return;
-    }
+    if (simulationRunId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
+    setStyleUsage(new Map());
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
+    setUsageLoading(false);
+  }, [simulationRunId]);
+
+  useEffect(() => {
+    if (!simulationRunId) return;
 
     let isActive = true;
     setUsageLoading(true);
@@ -45,7 +54,7 @@ export default function StyleStep({ styles }: StyleStepProps) {
         if (isActive) setStyleUsage(stats);
       })
       .catch((err) => {
-        console.error('[Chronicle Wizard] Failed to load narrative style usage stats:', err);
+        console.error("[Chronicle Wizard] Failed to load narrative style usage stats:", err);
         if (isActive) setStyleUsage(new Map());
       })
       .finally(() => {
@@ -59,9 +68,9 @@ export default function StyleStep({ styles }: StyleStepProps) {
 
   // Filter styles
   const filteredStyles = useMemo(() => {
-    return styles.filter(style => {
+    return styles.filter((style) => {
       // Format filter
-      if (formatFilter !== 'all' && style.format !== formatFilter) {
+      if (formatFilter !== "all" && style.format !== formatFilter) {
         return false;
       }
       // Search filter
@@ -70,7 +79,7 @@ export default function StyleStep({ styles }: StyleStepProps) {
         return (
           style.name.toLowerCase().includes(search) ||
           style.description.toLowerCase().includes(search) ||
-          style.tags?.some(tag => tag.toLowerCase().includes(search))
+          style.tags?.some((tag) => tag.toLowerCase().includes(search))
         );
       }
       return true;
@@ -78,32 +87,31 @@ export default function StyleStep({ styles }: StyleStepProps) {
   }, [styles, formatFilter, searchText]);
 
   // Group by format
-  const storyStyles = filteredStyles.filter(s => s.format === 'story');
-  const documentStyles = filteredStyles.filter(s => s.format === 'document');
+  const storyStyles = filteredStyles.filter((s) => s.format === "story");
+  const documentStyles = filteredStyles.filter((s) => s.format === "document");
 
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <h4 style={{ margin: '0 0 8px 0' }}>Select Narrative Style</h4>
-        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
+      <div className="sstep-header">
+        <h4 className="sstep-title">Select Narrative Style</h4>
+        <p className="sstep-subtitle">
           Choose a style that defines the structure and roles for your chronicle.
         </p>
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+      <div className="sstep-filters">
         <input
           type="text"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           placeholder="Search styles..."
-          className="illuminator-input"
-          style={{ width: '200px' }}
+          className="illuminator-input sstep-search"
         />
         <select
           value={formatFilter}
-          onChange={(e) => setFormatFilter(e.target.value as 'all' | 'story' | 'document')}
+          onChange={(e) => setFormatFilter(e.target.value as "all" | "story" | "document")}
           className="illuminator-select"
         >
           <option value="all">All Formats</option>
@@ -112,14 +120,7 @@ export default function StyleStep({ styles }: StyleStepProps) {
         </select>
 
         {/* Accept Defaults Checkbox */}
-        <label style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginLeft: 'auto',
-          fontSize: '13px',
-          cursor: 'pointer',
-        }}>
+        <label className="sstep-defaults-label">
           <input
             type="checkbox"
             checked={state.acceptDefaults}
@@ -130,21 +131,16 @@ export default function StyleStep({ styles }: StyleStepProps) {
       </div>
 
       {/* Styles Grid */}
-      <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-        {formatFilter === 'all' || formatFilter === 'story' ? (
+      <div className="sstep-scroll">
+        {formatFilter === "all" || formatFilter === "story" ? (
           <>
-            {storyStyles.length > 0 && formatFilter === 'all' && (
-              <h5 style={{ margin: '0 0 12px 0', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>
+            {storyStyles.length > 0 && formatFilter === "all" && (
+              <h5 className="sstep-group-heading">
                 Story Styles ({storyStyles.length})
               </h5>
             )}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-              gap: '12px',
-              marginBottom: '20px',
-            }}>
-              {storyStyles.map(style => (
+            <div className="sstep-grid sstep-grid-mb">
+              {storyStyles.map((style) => (
                 <StyleCard
                   key={style.id}
                   style={style}
@@ -158,19 +154,15 @@ export default function StyleStep({ styles }: StyleStepProps) {
           </>
         ) : null}
 
-        {formatFilter === 'all' || formatFilter === 'document' ? (
+        {formatFilter === "all" || formatFilter === "document" ? (
           <>
-            {documentStyles.length > 0 && formatFilter === 'all' && (
-              <h5 style={{ margin: '0 0 12px 0', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>
+            {documentStyles.length > 0 && formatFilter === "all" && (
+              <h5 className="sstep-group-heading">
                 Document Styles ({documentStyles.length})
               </h5>
             )}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-              gap: '12px',
-            }}>
-              {documentStyles.map(style => (
+            <div className="sstep-grid">
+              {documentStyles.map((style) => (
                 <StyleCard
                   key={style.id}
                   style={style}
@@ -185,7 +177,7 @@ export default function StyleStep({ styles }: StyleStepProps) {
         ) : null}
 
         {filteredStyles.length === 0 && (
-          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div className="ilu-empty sstep-empty">
             No styles match your search.
           </div>
         )}
@@ -193,53 +185,38 @@ export default function StyleStep({ styles }: StyleStepProps) {
 
       {/* Selected Style Details */}
       {state.narrativeStyle && (
-        <div style={{
-          marginTop: '20px',
-          padding: '16px',
-          background: 'var(--bg-tertiary)',
-          borderRadius: '8px',
-          border: '1px solid var(--accent-color)',
-        }}>
-          <h5 style={{ margin: '0 0 8px 0' }}>
+        <div className="sstep-selected-detail">
+          <h5 className="sstep-selected-name">
             {state.narrativeStyle.name}
-            <span style={{
-              marginLeft: '8px',
-              padding: '2px 6px',
-              background: state.narrativeStyle.format === 'story' ? 'var(--accent-color)' : 'var(--warning)',
-              color: 'white',
-              borderRadius: '4px',
-              fontSize: '10px',
-              textTransform: 'uppercase',
-            }}>
+            <span
+              className={`sstep-format-badge ${state.narrativeStyle.format === "story" ? "sstep-format-badge-story" : "sstep-format-badge-document"}`}
+            >
               {state.narrativeStyle.format}
             </span>
           </h5>
-          <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+          <p className="sstep-selected-desc">
             {state.narrativeStyle.description}
           </p>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-            {usageLoading ? 'Usage in this run: …' : `Usage in this run: ${styleUsage.get(state.narrativeStyle.id)?.usageCount ?? 0}x`}
+          <div className="sstep-usage-info">
+            {usageLoading
+              ? "Usage in this run: …"
+              : `Usage in this run: ${styleUsage.get(state.narrativeStyle.id)?.usageCount ?? 0}x`}
           </div>
 
           {/* Role Requirements */}
           <div>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            <span className="sstep-roles-label">
               Required Roles:
             </span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-              {getRoles(state.narrativeStyle).map(role => (
+            <div className="sstep-roles-list">
+              {getRoles(state.narrativeStyle).map((role) => (
                 <span
                   key={role.role}
-                  style={{
-                    padding: '4px 8px',
-                    background: 'var(--bg-secondary)',
-                    borderRadius: '4px',
-                    fontSize: '11px',
-                  }}
+                  className="sstep-role-chip"
                   title={role.description}
                 >
                   {role.role}
-                  <span style={{ color: 'var(--text-muted)', marginLeft: '4px' }}>
+                  <span className="sstep-role-count">
                     ({role.count.min}-{role.count.max})
                   </span>
                 </span>
@@ -264,79 +241,49 @@ interface StyleCardProps {
   onSelect: () => void;
 }
 
-function StyleCard({ style, isSelected, usageCount, usageLoading, onSelect }: StyleCardProps) {
+function StyleCard({ style, isSelected, usageCount, usageLoading, onSelect }: Readonly<StyleCardProps>) {
   const roles = getRoles(style);
   const roleCount = roles.length;
-  const requiredCount = roles.filter(r => r.count.min > 0).length;
+  const requiredCount = roles.filter((r) => r.count.min > 0).length;
 
   return (
     <div
       onClick={onSelect}
-      style={{
-        padding: '12px',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-        border: isSelected ? '2px solid var(--accent-color)' : '2px solid transparent',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-      }}
+      className={`sstep-card ${isSelected ? "sstep-card-selected" : ""}`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(e); }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
-        <span style={{ fontWeight: 500, fontSize: '13px', flex: 1 }}>{style.name}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div className="sstep-card-header">
+        <span className="sstep-card-name">{style.name}</span>
+        <div className="sstep-card-badges">
           <span
+            className="sstep-card-usage-badge"
             style={{
-              fontSize: '9px',
-              color: usageCount > 0 ? 'var(--text-secondary)' : 'var(--text-muted)',
-              padding: '2px 6px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '4px',
-              textTransform: 'uppercase',
-            }}
+              '--sstep-usage-color': usageCount > 0 ? "var(--text-secondary)" : "var(--text-muted)",
+            } as React.CSSProperties}
             title="Times this style has been used in the current run"
           >
-            {usageLoading ? '…' : `${usageCount}x used`}
+            {usageLoading ? "…" : `${usageCount}x used`}
           </span>
-          <span style={{
-            padding: '2px 6px',
-            background: style.format === 'story' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-            color: style.format === 'story' ? 'var(--accent-color)' : 'var(--warning)',
-            borderRadius: '4px',
-            fontSize: '9px',
-            textTransform: 'uppercase',
-          }}>
+          <span
+            className={`sstep-card-format-badge ${style.format === "story" ? "sstep-card-format-story" : "sstep-card-format-document"}`}
+          >
             {style.format}
           </span>
         </div>
       </div>
 
-      <p style={{
-        margin: '0 0 8px 0',
-        fontSize: '11px',
-        color: 'var(--text-muted)',
-        display: '-webkit-box',
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden',
-      }}>
+      <p className="sstep-card-desc">
         {style.description}
       </p>
 
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+      <div className="sstep-card-footer">
+        <span className="sstep-card-role-count">
           {roleCount} roles ({requiredCount} required)
         </span>
-        {style.tags?.slice(0, 3).map(tag => (
-          <span
-            key={tag}
-            style={{
-              padding: '1px 4px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '3px',
-              fontSize: '9px',
-              color: 'var(--text-muted)',
-            }}
-          >
+        {style.tags?.slice(0, 3).map((tag) => (
+          <span key={tag} className="sstep-card-tag">
             {tag}
           </span>
         ))}

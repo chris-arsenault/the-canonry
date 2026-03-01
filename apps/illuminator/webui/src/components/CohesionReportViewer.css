@@ -1,0 +1,557 @@
+/* CohesionReportViewer.css - Extracted from inline styles */
+/* Shared: panel-utilities.css provides .ilu-section, .ilu-container */
+
+/* ==========================================================================
+   ScoreGauge
+   ========================================================================== */
+
+.crv-gauge {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.crv-gauge-progress {
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.crv-gauge-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.crv-gauge-score {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.crv-gauge-score-excellent {
+  color: #10b981;
+}
+
+.crv-gauge-score-good {
+  color: #3b82f6;
+}
+
+.crv-gauge-score-acceptable {
+  color: #f59e0b;
+}
+
+.crv-gauge-score-needs-revision {
+  color: #ef4444;
+}
+
+.crv-gauge-max {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   CheckItem
+   ========================================================================== */
+
+.crv-check {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.crv-check-fail {
+  background: rgb(239 68 68 / 5%);
+}
+
+.crv-check-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.crv-check-header-clickable {
+  cursor: pointer;
+}
+
+.crv-check-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.crv-check-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.crv-check-icon-pass {
+  background: #10b98120;
+  color: #10b981;
+}
+
+.crv-check-icon-fail {
+  background: #ef444420;
+  color: #ef4444;
+}
+
+.crv-check-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.crv-check-label-section {
+  font-weight: 400;
+}
+
+.crv-check-toggle {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.crv-check-notes {
+  margin-top: 8px;
+  margin-left: 30px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   IssueCard
+   ========================================================================== */
+
+.crv-issue {
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: var(--bg-primary);
+}
+
+.crv-issue-critical {
+  background: rgb(239 68 68 / 8%);
+  border-color: #ef444440;
+}
+
+.crv-issue-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.crv-issue-severity {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 4px;
+  color: white;
+}
+
+.crv-issue-severity-critical {
+  background: #ef4444;
+}
+
+.crv-issue-severity-minor {
+  background: #f59e0b;
+}
+
+.crv-issue-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.crv-issue-description {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.crv-issue-suggestion {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  border-left: 3px solid var(--accent-primary);
+}
+
+/* ==========================================================================
+   Main component - CohesionReportViewer
+   ========================================================================== */
+
+.crv {
+  max-width: 900px;
+}
+
+.crv-empty {
+  padding: 48px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* Header */
+.crv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.crv-header-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.crv-status-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.crv-status-badge-excellent {
+  background: #10b98120;
+  color: #10b981;
+}
+
+.crv-status-badge-good {
+  background: #3b82f620;
+  color: #3b82f6;
+}
+
+.crv-status-badge-acceptable {
+  background: #f59e0b20;
+  color: #f59e0b;
+}
+
+.crv-status-badge-needs_revision {
+  background: #ef444420;
+  color: #ef4444;
+}
+
+.crv-issue-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.crv-edit-version {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.crv-missed-checks {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 4px;
+}
+
+.crv-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Shared button styles */
+.crv-btn {
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.crv-btn-secondary {
+  padding: 10px 20px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.crv-btn-primary {
+  padding: 10px 20px;
+  border: none;
+  color: white;
+  font-weight: 500;
+}
+
+.crv-btn-accept-ready {
+  background: var(--accent-primary);
+}
+
+.crv-btn-accept-warning {
+  background: #f59e0b;
+}
+
+.crv-btn-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.crv-btn-small {
+  padding: 8px 14px;
+  font-size: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.crv-btn-generate {
+  padding: 8px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  height: 32px;
+  align-self: center;
+}
+
+/* Stale warning */
+.crv-stale-warning {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: rgb(245 158 11 / 8%);
+  border: 1px solid rgb(245 158 11 / 40%);
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.crv-stale-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Refinements panel */
+/* Shared: compose with .ilu-section */
+.crv-refinements {
+  margin-bottom: 24px;
+}
+
+.crv-refinements-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.crv-refinements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crv-refinement-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.crv-refinement-content {
+  flex: 1;
+}
+
+.crv-refinement-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.crv-refinement-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.crv-refinement-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.crv-refinement-status-tight {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.crv-image-panel-wrap {
+  margin-top: 4px;
+}
+
+/* Tabs */
+.crv-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.crv-tab {
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  text-transform: capitalize;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.crv-tab-active {
+  border-bottom-color: var(--accent-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.crv-tab-badge {
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  color: white;
+}
+
+.crv-tab-badge-critical {
+  background: #ef4444;
+}
+
+.crv-tab-badge-minor {
+  background: #f59e0b;
+}
+
+/* Summary tab */
+.crv-panel {
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.crv-panel-title {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.crv-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.crv-summary-card {
+  padding: 16px;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.crv-summary-card-icon {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.crv-summary-card-icon-pass {
+  color: #10b981;
+}
+
+.crv-summary-card-icon-fail {
+  color: #ef4444;
+}
+
+.crv-summary-card-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.crv-notes-section {
+  margin-bottom: 16px;
+}
+
+.crv-notes-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.crv-notes-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Checks tab */
+/* Shared: compose with .ilu-container */
+.crv-checks-panel {
+  /* base: .ilu-container */
+}
+
+.crv-section-goals-header {
+  padding: 12px;
+  background: var(--bg-tertiary);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.crv-section-goal-row {
+  display: flex;
+  align-items: center;
+}
+
+.crv-section-goal-check {
+  flex: 1;
+}
+
+.crv-section-goal-label {
+  margin-right: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Issues tab */
+.crv-no-issues {
+  padding: 48px;
+  text-align: center;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.crv-no-issues-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.crv-no-issues-text {
+  color: var(--text-muted);
+}
+
+.crv-issues-group {
+  margin-bottom: 16px;
+}
+
+.crv-issues-heading {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.crv-issues-heading-critical {
+  color: #ef4444;
+}
+
+.crv-issues-heading-minor {
+  color: #f59e0b;
+}

@@ -8,10 +8,10 @@
  */
 
 // Import the remote component so Vite includes it in the build
-import './CosmographerRemote.jsx';
+import "./CosmographerRemote.jsx";
 
 // Show a message if someone tries to run this standalone
-const root = document.getElementById('root');
+const root = document.getElementById("root");
 if (root) {
   root.innerHTML = `
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #1e1e2e; color: #e0e0e0; font-family: system-ui, sans-serif; text-align: center; padding: 40px;">

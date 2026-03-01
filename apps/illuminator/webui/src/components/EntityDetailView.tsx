@@ -5,23 +5,30 @@
  * Rendered inside EntityBrowser, replacing the entity list when an entity is selected.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import type { NetworkDebugInfo, DescriptionChainDebug, ChronicleBackref } from '../lib/enrichmentTypes';
-import HistorianMarginNotes from './HistorianMarginNotes';
-import HistorianToneSelector from './HistorianToneSelector';
-import HistorianEditionComparison from './HistorianEditionComparison';
-import {
-  prominenceLabelFromScale,
-} from '@canonry/world-schema';
-import { useProminenceScale } from '../lib/db/indexSelectors';
-import { useEntityCrud } from '../hooks/useEntityCrud';
-import { useHistorianActions } from '../hooks/useHistorianActions';
-import { useIlluminatorModals } from '../lib/db/modalStore';
-import { useEnrichmentQueueStore } from '../lib/db/enrichmentQueueStore';
-import HistoryCompressionPreviewModal from './HistoryCompressionPreviewModal';
-import BackrefImageEditor from './BackrefImageEditor';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import type {
+  NetworkDebugInfo,
+  DescriptionChainDebug,
+  ChronicleBackref,
+} from "../lib/enrichmentTypes";
+import HistorianMarginNotes from "./HistorianMarginNotes";
+import HistorianToneSelector from "./HistorianToneSelector";
+import HistorianEditionComparison from "./HistorianEditionComparison";
+import { prominenceLabelFromScale } from "@canonry/world-schema";
+import { useProminenceScale } from "../lib/db/indexSelectors";
+import { useEntityCrud } from "../hooks/useEntityCrud";
+import { useHistorianActions } from "../hooks/useHistorianActions";
+import { useIlluminatorModals } from "../lib/db/modalStore";
+import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
+import { useExpandBoolean } from "@canonry/shared-components";
+import HistoryCompressionPreviewModal from "./HistoryCompressionPreviewModal";
+import BackrefImageEditor from "./BackrefImageEditor";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import EntityDetailSidebar from "./EntityDetailSidebar";
+import "./EntityDetailView.css";
+
+// ─── Types ───────────────────────────────────────────────────────────────
 
 interface EntityEnrichment {
   text?: {
@@ -42,7 +49,7 @@ interface EntityEnrichment {
     generatedAt: number;
     model: string;
   };
-  historianNotes?: import('../lib/historianTypes').HistorianNote[];
+  historianNotes?: import("../lib/historianTypes").HistorianNote[];
   chronicleBackrefs?: ChronicleBackref[];
   descriptionHistory?: Array<{
     description: string;
@@ -51,7 +58,7 @@ interface EntityEnrichment {
   }>;
 }
 
-interface Entity {
+export interface Entity {
   id: string;
   name: string;
   kind: string;
@@ -72,110 +79,16 @@ interface EntityDetailViewProps {
   onBack: () => void;
 }
 
-function formatDate(timestamp: number | undefined): string {
-  if (!timestamp) return 'Unknown';
-  return new Date(timestamp).toLocaleString();
-}
+// ─── Sub-components ──────────────────────────────────────────────────────
 
-function formatCost(cost: number | undefined): string {
-  if (!cost) return 'N/A';
-  return `$${cost.toFixed(4)}`;
-}
-
-// ---------------------------------------------------------------------------
-// Sidebar sub-components
-// ---------------------------------------------------------------------------
-
-function MetadataRow({ label, value }: { label: string; value: string | undefined | null }) {
-  if (!value) return null;
-  return (
-    <div style={{ marginBottom: '10px' }}>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '13px', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function ExpandableSection({ title, content, charCount }: { title: string; content: string | undefined; charCount?: number }) {
-  const [expanded, setExpanded] = useState(false);
-  if (!content) return null;
-
-  return (
-    <div style={{ marginBottom: '8px' }}>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          width: '100%',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '4px',
-          padding: '6px 10px',
-          color: 'var(--text-secondary)',
-          fontSize: '12px',
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
-      >
-        <span style={{ fontSize: '10px', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-          ▶
-        </span>
-        <span style={{ flex: 1 }}>{title}</span>
-        {charCount !== undefined && (
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{charCount} chars</span>
-        )}
-      </button>
-      {expanded && (
-        <div style={{
-          marginTop: '6px',
-          padding: '10px',
-          background: 'var(--bg-primary)',
-          borderRadius: '4px',
-          fontSize: '12px',
-          color: 'var(--text-secondary)',
-          lineHeight: '1.5',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          maxHeight: '300px',
-          overflowY: 'auto',
-        }}>
-          {content}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Main content sub-components
-// ---------------------------------------------------------------------------
-
-function VisualTraitsList({ traits }: { traits: string[] }) {
+function VisualTraitsList({ traits }: Readonly<{ traits: string[] }>) {
   if (!traits || traits.length === 0) return null;
   return (
-    <div style={{ marginBottom: '16px' }}>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-        Visual Traits
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+    <div className="edv-traits">
+      <div className="ilu-hint-sm edv-traits-label">Visual Traits</div>
+      <div className="edv-traits-list">
         {traits.map((trait, i) => (
-          <span
-            key={i}
-            style={{
-              padding: '4px 10px',
-              background: 'rgba(59, 130, 246, 0.15)',
-              border: '1px solid rgba(59, 130, 246, 0.25)',
-              borderRadius: '12px',
-              fontSize: '12px',
-              color: 'var(--text-primary)',
-            }}
-          >
+          <span key={i} className="edv-traits-tag">
             {trait}
           </span>
         ))}
@@ -184,25 +97,71 @@ function VisualTraitsList({ traits }: { traits: string[] }) {
   );
 }
 
-function AliasesList({ aliases, onUpdate }: { aliases: string[]; onUpdate?: (aliases: string[]) => void }) {
+function AliasEditInput({
+  value,
+  onChange,
+  onSave,
+  onCancel,
+  placeholder,
+}: Readonly<{
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  placeholder?: string;
+}>) {
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") onSave();
+      if (e.key === "Escape") onCancel();
+    },
+    [onSave, onCancel]
+  );
+
+  const handleBlur = useCallback(() => {
+    if (value.trim()) onSave();
+    else onCancel();
+  }, [value, onSave, onCancel]);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+    [onChange]
+  );
+
+  return (
+    <span className="edv-aliases-edit-wrap">
+      <input
+        // eslint-disable-next-line jsx-a11y/no-autofocus
+        autoFocus
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        className="edv-aliases-edit-input edv-aliases-edit-input-dynamic"
+      />
+    </span>
+  );
+}
+
+function AliasesList({
+  aliases,
+  onUpdate,
+}: Readonly<{
+  aliases: string[];
+  onUpdate?: (aliases: string[]) => void;
+}>) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState("");
   const [adding, setAdding] = useState(false);
-  const [addValue, setAddValue] = useState('');
+  const [addValue, setAddValue] = useState("");
 
   const editable = !!onUpdate;
 
-  const handleStartEdit = (i: number) => {
-    if (!editable) return;
-    setEditingIndex(i);
-    setEditValue(aliases[i]);
-  };
-
-  const handleSaveEdit = () => {
+  const handleSaveEdit = useCallback(() => {
     if (editingIndex === null || !onUpdate) return;
     const trimmed = editValue.trim();
     if (!trimmed) {
-      // Empty = delete
       onUpdate(aliases.filter((_, i) => i !== editingIndex));
     } else {
       const updated = [...aliases];
@@ -210,161 +169,161 @@ function AliasesList({ aliases, onUpdate }: { aliases: string[]; onUpdate?: (ali
       onUpdate(updated);
     }
     setEditingIndex(null);
-    setEditValue('');
-  };
+    setEditValue("");
+  }, [editingIndex, editValue, aliases, onUpdate]);
 
-  const handleRemove = (i: number) => {
-    if (!onUpdate) return;
-    onUpdate(aliases.filter((_, idx) => idx !== i));
-  };
+  const handleCancelEdit = useCallback(() => {
+    setEditingIndex(null);
+    setEditValue("");
+  }, []);
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     const trimmed = addValue.trim();
     if (!trimmed || !onUpdate) return;
     onUpdate([...aliases, trimmed]);
-    setAddValue('');
+    setAddValue("");
     setAdding(false);
-  };
+  }, [addValue, aliases, onUpdate]);
+
+  const handleCancelAdd = useCallback(() => {
+    setAdding(false);
+    setAddValue("");
+  }, []);
+
+  const handleStartAdding = useCallback(() => setAdding(true), []);
 
   if ((!aliases || aliases.length === 0) && !editable) return null;
 
   return (
-    <div style={{ marginBottom: '16px' }}>
-      <div style={{
-        fontSize: '11px',
-        color: 'var(--text-muted)',
-        marginBottom: '8px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-      }}>
+    <div className="edv-aliases">
+      <div className="ilu-hint-sm edv-aliases-label">
         Aliases
         {editable && !adding && (
-          <button
-            onClick={() => setAdding(true)}
-            style={{
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-secondary)',
-              fontSize: '10px',
-              padding: '1px 6px',
-              borderRadius: '3px',
-              cursor: 'pointer',
-              textTransform: 'none',
-              letterSpacing: 'normal',
-            }}
-          >
+          <button onClick={handleStartAdding} className="edv-aliases-add-btn">
             + Add
           </button>
         )}
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-        {aliases.map((alias, i) => (
+      <div className="edv-aliases-list">
+        {aliases.map((alias, i) =>
           editingIndex === i ? (
-            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-              <input
-                autoFocus
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveEdit();
-                  if (e.key === 'Escape') { setEditingIndex(null); setEditValue(''); }
-                }}
-                onBlur={handleSaveEdit}
-                style={{
-                  padding: '3px 8px',
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--accent-color)',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  color: 'var(--text-primary)',
-                  outline: 'none',
-                  width: `${Math.max(editValue.length, 4) * 7.5 + 20}px`,
-                }}
-              />
-            </span>
-          ) : (
-            <span
+            <AliasEditInput
               key={i}
-              style={{
-                padding: '4px 10px',
-                background: 'var(--bg-tertiary)',
-                borderRadius: '12px',
-                fontSize: '12px',
-                color: 'var(--text-secondary)',
-                cursor: editable ? 'pointer' : 'default',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-              onClick={() => handleStartEdit(i)}
-              title={editable ? 'Click to edit' : undefined}
-            >
-              {alias}
-              {editable && (
-                <span
-                  onClick={(e) => { e.stopPropagation(); handleRemove(i); }}
-                  style={{
-                    cursor: 'pointer',
-                    color: 'var(--text-muted)',
-                    fontSize: '10px',
-                    marginLeft: '2px',
-                    lineHeight: 1,
-                  }}
-                  title="Remove alias"
-                >
-                  ×
-                </span>
-              )}
-            </span>
-          )
-        ))}
-        {adding && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-            <input
-              autoFocus
-              value={addValue}
-              onChange={(e) => setAddValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAdd();
-                if (e.key === 'Escape') { setAdding(false); setAddValue(''); }
-              }}
-              onBlur={() => { if (addValue.trim()) handleAdd(); else setAdding(false); }}
-              placeholder="New alias"
-              style={{
-                padding: '3px 8px',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--accent-color)',
-                borderRadius: '12px',
-                fontSize: '12px',
-                color: 'var(--text-primary)',
-                outline: 'none',
-                width: `${Math.max(addValue.length, 8) * 7.5 + 20}px`,
-              }}
+              value={editValue}
+              onChange={setEditValue}
+              onSave={handleSaveEdit}
+              onCancel={handleCancelEdit}
             />
-          </span>
+          ) : (
+            <AliasTag
+              key={i}
+              alias={alias}
+              index={i}
+              editable={editable}
+              onStartEdit={(idx) => {
+                setEditingIndex(idx);
+                setEditValue(aliases[idx]);
+              }}
+              onRemove={onUpdate ? (idx) => onUpdate(aliases.filter((_, j) => j !== idx)) : undefined}
+            />
+          )
+        )}
+        {adding && (
+          <AliasEditInput
+            value={addValue}
+            onChange={setAddValue}
+            onSave={handleAdd}
+            onCancel={handleCancelAdd}
+            placeholder="New alias"
+          />
         )}
       </div>
       {aliases.length === 0 && !adding && editable && (
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-          No aliases
-        </div>
+        <div className="ilu-hint edv-aliases-empty">No aliases</div>
       )}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// EntityDetailView
-// ---------------------------------------------------------------------------
+function AliasTag({
+  alias,
+  index,
+  editable,
+  onStartEdit,
+  onRemove,
+}: Readonly<{
+  alias: string;
+  index: number;
+  editable: boolean;
+  onStartEdit: (i: number) => void;
+  onRemove?: (i: number) => void;
+}>) {
+  const handleClick = useCallback(() => {
+    if (editable) onStartEdit(index);
+  }, [editable, onStartEdit, index]);
 
-export default function EntityDetailView({
-  entity,
-  entities,
-  onBack,
-}: EntityDetailViewProps) {
+  const handleRemoveClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onRemove?.(index);
+    },
+    [onRemove, index]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
+    },
+    []
+  );
+
+  return (
+    <span
+      className={`edv-aliases-tag ${editable ? "edv-aliases-tag-editable" : ""}`}
+      onClick={handleClick}
+      title={editable ? "Click to edit" : undefined}
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
+      {alias}
+      {editable && onRemove && (
+        <span
+          onClick={handleRemoveClick}
+          className="edv-aliases-remove"
+          title="Remove alias"
+          role="button"
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+        >
+          x
+        </span>
+      )}
+    </span>
+  );
+}
+
+// ─── Markdown components (stable reference) ──────────────────────────────
+
+const markdownComponents = {
+  h2: ({ children }: { children: React.ReactNode }) => <h2 className="edv-md-h2">{children}</h2>,
+  h3: ({ children }: { children: React.ReactNode }) => <h3 className="edv-md-h3">{children}</h3>,
+  p: ({ children }: { children: React.ReactNode }) => <p className="edv-md-p">{children}</p>,
+  ul: ({ children }: { children: React.ReactNode }) => <ul className="edv-md-ul">{children}</ul>,
+  ol: ({ children }: { children: React.ReactNode }) => <ol className="edv-md-ol">{children}</ol>,
+  li: ({ children }: { children: React.ReactNode }) => <li className="edv-md-li">{children}</li>,
+  table: ({ children }: { children: React.ReactNode }) => (
+    <table className="edv-md-table">{children}</table>
+  ),
+  th: ({ children }: { children: React.ReactNode }) => <th className="edv-md-th">{children}</th>,
+  td: ({ children }: { children: React.ReactNode }) => <td className="edv-md-td">{children}</td>,
+};
+
+const remarkPlugins = [remarkGfm];
+
+// ─── Main component ──────────────────────────────────────────────────────
+
+export default function EntityDetailView({ entity, entities, onBack }: Readonly<EntityDetailViewProps>) {
   const prominenceScale = useProminenceScale();
   const queue = useEnrichmentQueueStore((s) => s.queue);
   const {
@@ -394,588 +353,410 @@ export default function EntityDetailView({
 
   // Inline editing state
   const [editingSummary, setEditingSummary] = useState(false);
-  const [summaryDraft, setSummaryDraft] = useState('');
+  const [summaryDraft, setSummaryDraft] = useState("");
   const [editingDescription, setEditingDescription] = useState(false);
-  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [descriptionDraft, setDescriptionDraft] = useState("");
 
   const startEditSummary = useCallback(() => {
-    setSummaryDraft(entity.summary || '');
+    setSummaryDraft(entity.summary || "");
     setEditingSummary(true);
   }, [entity.summary]);
 
   const saveSummary = useCallback(() => {
     const trimmed = summaryDraft.trim();
     if (trimmed && trimmed !== entity.summary) {
-      handleUpdateSummary(entity.id, trimmed);
+      void handleUpdateSummary(entity.id, trimmed);
     }
     setEditingSummary(false);
   }, [handleUpdateSummary, summaryDraft, entity.summary, entity.id]);
 
   const cancelSummary = useCallback(() => {
     setEditingSummary(false);
-    setSummaryDraft('');
+    setSummaryDraft("");
   }, []);
 
   const startEditDescription = useCallback(() => {
-    setDescriptionDraft(entity.description || '');
+    setDescriptionDraft(entity.description || "");
     setEditingDescription(true);
   }, [entity.description]);
 
   const saveDescription = useCallback(() => {
     const trimmed = descriptionDraft.trim();
     if (trimmed && trimmed !== entity.description) {
-      handleUpdateDescription(entity.id, trimmed);
+      void handleUpdateDescription(entity.id, trimmed);
     }
     setEditingDescription(false);
   }, [handleUpdateDescription, descriptionDraft, entity.description, entity.id]);
 
   const cancelDescription = useCallback(() => {
     setEditingDescription(false);
-    setDescriptionDraft('');
+    setDescriptionDraft("");
   }, []);
 
   // Chain debug (narrative -> thesis -> traits)
   const chainDebug: DescriptionChainDebug | undefined = textEnrichment?.chainDebug;
 
   // Legacy single debug
-  let legacyDebug: NetworkDebugInfo | undefined = textEnrichment?.debug;
-  if (!legacyDebug && !chainDebug) {
+  const legacyDebug: NetworkDebugInfo | undefined = useMemo(() => {
+    if (textEnrichment?.debug) return textEnrichment.debug;
+    if (chainDebug) return undefined;
     const descriptionQueueItem = queue.find(
-      (item) => item.entityId === entity.id && item.type === 'description' && item.debug
+      (item) => item.entityId === entity.id && item.type === "description" && item.debug
     );
-    legacyDebug = descriptionQueueItem?.debug;
-  }
+    return descriptionQueueItem?.debug;
+  }, [textEnrichment?.debug, chainDebug, queue, entity.id]);
 
   // Escape key goes back (unless editing inline)
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !editingSummary && !editingDescription) onBack();
+      if (e.key === "Escape" && !editingSummary && !editingDescription) onBack();
     },
     [onBack, editingSummary, editingDescription]
   );
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
   // Description history
   const historyLen = enrichment?.descriptionHistory?.length || 0;
-  const lastEntry = historyLen > 0 ? enrichment!.descriptionHistory![historyLen - 1] : null;
+  const lastEntry = historyLen > 0 ? enrichment?.descriptionHistory?.[historyLen - 1] ?? null : null;
+
+  // Stable callbacks for historian actions
+  const handleHistorianEditionCb = useCallback(
+    (tone: string) => void handleHistorianEdition(entity.id, tone),
+    [handleHistorianEdition, entity.id]
+  );
+  const handleHistorianReEditCb = useCallback(
+    (tone: string) => void handleHistorianEdition(entity.id, tone, true),
+    [handleHistorianEdition, entity.id]
+  );
+  const handleHistorianReviewCb = useCallback(
+    (tone: string) => void handleHistorianReview(entity.id, tone),
+    [handleHistorianReview, entity.id]
+  );
+  const handleClearNotesCb = useCallback(
+    () => void handleClearNotes(entity.id),
+    [handleClearNotes, entity.id]
+  );
+
+  const handleRestoreVersionCb = useCallback(
+    (entityId: string, historyIndex: number) => void handleRestoreDescription(entityId, historyIndex),
+    [handleRestoreDescription]
+  );
+
+  const handleUpdateNotesCb = useCallback(
+    (noteId: string, updates: Record<string, unknown>) =>
+      void handleUpdateHistorianNote("entity", entity.id, noteId, updates),
+    [handleUpdateHistorianNote, entity.id]
+  );
+
+  const handleUndoDescriptionCb = useCallback(
+    () => void handleUndoDescription(entity.id),
+    [handleUndoDescription, entity.id]
+  );
+  const handleOpenRenameCb = useCallback(
+    () => openRename(entity.id),
+    [openRename, entity.id]
+  );
+  const handleOpenPatchEventsCb = useCallback(
+    () => openPatchEvents(entity.id),
+    [openPatchEvents, entity.id]
+  );
+
+  const handleSummaryDraftChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => setSummaryDraft(e.target.value),
+    []
+  );
+  const handleSummaryKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        saveSummary();
+      }
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        cancelSummary();
+      }
+    },
+    [saveSummary, cancelSummary]
+  );
+  const handleDescDraftChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => setDescriptionDraft(e.target.value),
+    []
+  );
+  const handleDescKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        saveDescription();
+      }
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        cancelDescription();
+      }
+    },
+    [saveDescription, cancelDescription]
+  );
+
+  const handleUpdateAliasesCb = useCallback(
+    (aliases: string[]) => void handleUpdateAliases(entity.id, aliases),
+    [handleUpdateAliases, entity.id]
+  );
+
+  const handleUpdateBackrefsCb = useCallback(
+    (entityId: string, updatedBackrefs: Parameters<typeof handleUpdateBackrefs>[1]) =>
+      void handleUpdateBackrefs(entityId, updatedBackrefs),
+    [handleUpdateBackrefs]
+  );
+
+  const visualTraits = textEnrichment?.visualTraits || emptyStringArray;
+  const aliases = textEnrichment?.aliases || emptyStringArray;
+
+  const hasEdition = enrichment?.descriptionHistory?.some(
+    (h: { source?: string }) => h.source === "historian-edition"
+  );
+  const hasEditionOrLegacy = enrichment?.descriptionHistory?.some(
+    (h: { source?: string }) =>
+      h.source === "historian-edition" || h.source === "legacy-copy-edit"
+  );
+  const hasNotes = enrichment?.historianNotes != null && enrichment.historianNotes.length > 0;
 
   return (
-  <>
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      {/* Header bar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          padding: '12px 16px',
-          background: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border-color)',
-          flexShrink: 0,
-        }}
-      >
-        <button
-          onClick={onBack}
-          style={{
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '4px',
-            color: 'var(--text-secondary)',
-            padding: '6px 12px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
-        >
-          ← Back
-        </button>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-            {entity.name}
+    <>
+      <div className="edv">
+        {/* Header bar */}
+        <div className="edv-header">
+          <button onClick={onBack} className="edv-back-btn">
+            &larr; Back
+          </button>
+          <div className="edv-header-info">
+            <div className="edv-entity-name">{entity.name}</div>
+            <div className="edv-entity-meta">
+              {entity.kind}/{entity.subtype} &middot;{" "}
+              {prominenceLabelFromScale(entity.prominence, prominenceScale)}
+              {entity.culture && ` \u00b7 ${entity.culture}`}
+            </div>
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-            {entity.kind}/{entity.subtype} · {prominenceLabelFromScale(entity.prominence, prominenceScale)}
-            {entity.culture && ` · ${entity.culture}`}
-          </div>
+          <div className="ilu-hint-sm edv-esc-hint">Esc to go back</div>
         </div>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-          Esc to go back
-        </div>
-      </div>
 
-      {/* Two-column body */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Main content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', minWidth: 0 }}>
-          {/* Summary */}
-          {(entity.summary || handleUpdateSummary) && (
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{
-                fontSize: '11px',
-                color: 'var(--text-muted)',
-                marginBottom: '6px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}>
-                Summary
-                {handleUpdateSummary && !editingSummary && (
-                  <button
-                    onClick={startEditSummary}
-                    title="Edit summary"
-                    style={{
-                      background: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-secondary)',
-                      fontSize: '10px',
-                      padding: '1px 6px',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      textTransform: 'none',
-                      letterSpacing: 'normal',
-                    }}
-                  >
-                    Edit
-                  </button>
+        {/* Two-column body */}
+        <div className="edv-body">
+          {/* Main content */}
+          <div className="edv-main">
+            {/* Summary */}
+            {(entity.summary || handleUpdateSummary) && (
+              <div className="edv-section-block">
+                <div className="ilu-hint-sm edv-section-label">
+                  Summary
+                  {handleUpdateSummary && !editingSummary && (
+                    <button onClick={startEditSummary} title="Edit summary" className="edv-inline-btn">
+                      Edit
+                    </button>
+                  )}
+                </div>
+                {editingSummary ? (
+                  <textarea
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
+                    autoFocus
+                    value={summaryDraft}
+                    onChange={handleSummaryDraftChange}
+                    onKeyDown={handleSummaryKeyDown}
+                    onBlur={saveSummary}
+                    className="edv-summary-textarea"
+                  />
+                ) : (
+                  <p className="edv-summary-text">
+                    {entity.summary || <span className="edv-placeholder">No summary</span>}
+                  </p>
                 )}
               </div>
-              {editingSummary ? (
-                <textarea
-                  autoFocus
-                  value={summaryDraft}
-                  onChange={(e) => setSummaryDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveSummary(); }
-                    if (e.key === 'Escape') { e.stopPropagation(); cancelSummary(); }
-                  }}
-                  onBlur={saveSummary}
-                  style={{
-                    width: '100%',
-                    minHeight: '80px',
-                    fontSize: '15px',
-                    color: 'var(--text-primary)',
-                    lineHeight: '1.6',
-                    margin: 0,
-                    padding: '8px',
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--accent-color)',
-                    borderRadius: '4px',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              ) : (
-                <p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.6', margin: 0 }}>
-                  {entity.summary || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>No summary</span>}
-                </p>
-              )}
-            </div>
-          )}
+            )}
 
-          {/* Visual Thesis */}
-          {textEnrichment?.visualThesis && (
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '11px', color: 'rgba(139, 92, 246, 0.8)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Visual Thesis
+            {/* Visual Thesis */}
+            {textEnrichment?.visualThesis && (
+              <div className="edv-section-block">
+                <div className="ilu-hint-sm edv-section-label edv-section-label-visual-thesis">
+                  Visual Thesis
+                </div>
+                <p className="edv-visual-thesis">{textEnrichment.visualThesis}</p>
               </div>
-              <p style={{
-                fontSize: '14px',
-                color: 'var(--text-primary)',
-                lineHeight: '1.6',
-                margin: 0,
-                padding: '12px 16px',
-                background: 'rgba(139, 92, 246, 0.08)',
-                border: '1px solid rgba(139, 92, 246, 0.2)',
-                borderRadius: '8px',
-                fontStyle: 'italic',
-              }}>
-                {textEnrichment.visualThesis}
-              </p>
-            </div>
-          )}
+            )}
 
-          {/* Full Description */}
-          {(entity.description || handleUpdateDescription) && (
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{
-                fontSize: '11px',
-                color: 'var(--text-muted)',
-                marginBottom: '6px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                flexWrap: 'wrap',
-              }}>
-                Full Description
-                {historyLen > 0 && (
-                  <span style={{ textTransform: 'none', letterSpacing: 'normal', fontSize: '10px', opacity: 0.7 }}>
-                    v{historyLen + 1} ({historyLen} previous)
-                  </span>
-                )}
-                {historyLen > 0 && handleUndoDescription && (
+            {/* Full Description */}
+            {(entity.description || handleUpdateDescription) && (
+              <div className="edv-section-block">
+                <div className="ilu-hint-sm edv-section-label edv-section-label-wrap">
+                  Full Description
+                  {historyLen > 0 && (
+                    <span className="edv-version-hint">
+                      v{historyLen + 1} ({historyLen} previous)
+                    </span>
+                  )}
+                  {historyLen > 0 && handleUndoDescription && (
+                    <button
+                      onClick={handleUndoDescriptionCb}
+                      title={`Revert to previous version (from ${lastEntry?.source || "unknown"}, ${lastEntry?.replacedAt ? new Date(lastEntry.replacedAt).toLocaleDateString() : "unknown"})`}
+                      className="edv-inline-btn"
+                    >
+                      &larr; Undo
+                    </button>
+                  )}
+                  {handleUpdateDescription && !editingDescription && (
+                    <button onClick={startEditDescription} title="Edit description" className="edv-inline-btn">
+                      Edit
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleUndoDescription(entity.id)}
-                    title={`Revert to previous version (from ${lastEntry?.source || 'unknown'}, ${lastEntry?.replacedAt ? new Date(lastEntry.replacedAt).toLocaleDateString() : 'unknown'})`}
-                    style={{
-                      background: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-secondary)',
-                      fontSize: '10px',
-                      padding: '1px 6px',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      textTransform: 'none',
-                      letterSpacing: 'normal',
-                    }}
-                  >
-                    ↩ Undo
-                  </button>
-                )}
-                {handleUpdateDescription && !editingDescription && (
-                  <button
-                    onClick={startEditDescription}
-                    title="Edit description"
-                    style={{
-                      background: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-secondary)',
-                      fontSize: '10px',
-                      padding: '1px 6px',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      textTransform: 'none',
-                      letterSpacing: 'normal',
-                    }}
-                  >
-                    Edit
-                  </button>
-                )}
-                <button
-                    onClick={() => openRename(entity.id)}
+                    onClick={handleOpenRenameCb}
                     title="Rename this entity with full propagation across all references"
-                    style={{
-                      background: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-secondary)',
-                      fontSize: '10px',
-                      padding: '1px 6px',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      textTransform: 'none',
-                      letterSpacing: 'normal',
-                    }}
+                    className="edv-inline-btn"
                   >
                     Rename
                   </button>
-                <button
-                    onClick={() => openPatchEvents(entity.id)}
+                  <button
+                    onClick={handleOpenPatchEventsCb}
                     title="Repair stale names in narrative event history for this entity"
-                    style={{
-                      background: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-secondary)',
-                      fontSize: '10px',
-                      padding: '1px 6px',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      textTransform: 'none',
-                      letterSpacing: 'normal',
-                    }}
+                    className="edv-inline-btn"
                   >
                     Patch Events
                   </button>
-              </div>
-              {historianConfigured && (
-                <>
-                  <div style={{
-                    fontSize: '11px',
-                    color: 'var(--text-muted)',
-                    marginBottom: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                  }}>
-                    Historian
-                    <HistorianToneSelector
-                      onSelect={(tone: string) => handleHistorianEdition(entity.id, tone)}
-                      disabled={isHistorianEditionActive}
-                      label="Copy Edit"
-                      hasNotes={false}
-                      style={{ display: 'inline-block' }}
-                    />
-                    {enrichment?.descriptionHistory?.some((h: { source?: string }) => h.source === 'historian-edition') && (
+                </div>
+                {historianConfigured && (
+                  <>
+                    <div className="ilu-hint-sm edv-section-label">
+                      Historian
                       <HistorianToneSelector
-                        onSelect={(tone: string) => handleHistorianEdition(entity.id, tone, true)}
+                        onSelect={handleHistorianEditionCb}
                         disabled={isHistorianEditionActive}
-                        label="Re-Edit"
+                        label="Copy Edit"
                         hasNotes={false}
-                        style={{ display: 'inline-block' }}
+                      />
+                      {hasEdition && (
+                        <HistorianToneSelector
+                          onSelect={handleHistorianReEditCb}
+                          disabled={isHistorianEditionActive}
+                          label="Re-Edit"
+                          hasNotes={false}
+                        />
+                      )}
+                      <HistorianToneSelector
+                        onSelect={handleHistorianReviewCb}
+                        disabled={isHistorianActive}
+                        label="Annotate"
+                        hasNotes={hasNotes}
+                      />
+                      {handleClearNotes && hasNotes && (
+                        <button
+                          onClick={handleClearNotesCb}
+                          title="Remove all annotations from this entity"
+                          className="edv-inline-btn-ghost"
+                        >
+                          Clear Notes
+                        </button>
+                      )}
+                    </div>
+                    {hasEditionOrLegacy && entity.description && (
+                      <HistorianEditionComparison
+                        entityId={entity.id}
+                        currentDescription={entity.description}
+                        descriptionHistory={enrichment?.descriptionHistory}
+                        historianNotes={enrichment?.historianNotes}
+                        onRestoreVersion={handleRestoreVersionCb}
                       />
                     )}
-                    <HistorianToneSelector
-                      onSelect={(tone: string) => handleHistorianReview(entity.id, tone)}
-                      disabled={isHistorianActive}
-                      label="Annotate"
-                      hasNotes={enrichment?.historianNotes && enrichment.historianNotes.length > 0}
-                      style={{ display: 'inline-block' }}
-                    />
-                    {handleClearNotes && enrichment?.historianNotes && enrichment.historianNotes.length > 0 && (
-                      <button
-                        onClick={() => handleClearNotes(entity.id)}
-                        title="Remove all annotations from this entity"
-                        style={{
-                          background: 'none',
-                          border: '1px solid var(--border-color)',
-                          color: 'var(--text-muted)',
-                          fontSize: '10px',
-                          padding: '1px 6px',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          textTransform: 'none',
-                          letterSpacing: 'normal',
-                        }}
-                      >
-                        Clear Notes
-                      </button>
+                  </>
+                )}
+                {editingDescription ? (
+                  <textarea
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
+                    autoFocus
+                    value={descriptionDraft}
+                    onChange={handleDescDraftChange}
+                    onKeyDown={handleDescKeyDown}
+                    onBlur={saveDescription}
+                    className="edv-desc-textarea"
+                  />
+                ) : (
+                  <>
+                    {entity.description ? (
+                      <div className="edv-description entity-description-md">
+                        <ReactMarkdown
+                          remarkPlugins={remarkPlugins}
+                          components={markdownComponents}
+                        >
+                          {entity.description}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="edv-no-desc">No description</p>
                     )}
-                  </div>
-                  {enrichment?.descriptionHistory?.some((h: { source?: string }) => h.source === 'historian-edition' || h.source === 'legacy-copy-edit') && entity.description && (
-                    <HistorianEditionComparison
-                      entityId={entity.id}
-                      currentDescription={entity.description}
-                      descriptionHistory={enrichment.descriptionHistory}
-                      historianNotes={enrichment.historianNotes}
-                      onRestoreVersion={handleRestoreDescription}
-                    />
-                  )}
-                </>
-              )}
-              {editingDescription ? (
-                <textarea
-                  autoFocus
-                  value={descriptionDraft}
-                  onChange={(e) => setDescriptionDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveDescription(); }
-                    if (e.key === 'Escape') { e.stopPropagation(); cancelDescription(); }
-                  }}
-                  onBlur={saveDescription}
-                  style={{
-                    width: '100%',
-                    minHeight: '200px',
-                    fontSize: '14px',
-                    color: 'var(--text-secondary)',
-                    lineHeight: '1.7',
-                    margin: 0,
-                    padding: '8px',
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--accent-color)',
-                    borderRadius: '4px',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
-                    whiteSpace: 'pre-wrap',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
+                    {hasNotes && (
+                      <HistorianMarginNotes
+                        notes={enrichment?.historianNotes}
+                        sourceText={entity.description}
+                        className="edv-margin-notes-spaced"
+                        onUpdateNote={handleUpdateNotesCb}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Visual Traits */}
+            <VisualTraitsList traits={visualTraits} />
+
+            {/* Aliases */}
+            <AliasesList
+              aliases={aliases}
+              onUpdate={handleUpdateAliasesCb}
+            />
+
+            {/* Chronicle Images */}
+            {enrichment?.chronicleBackrefs && enrichment.chronicleBackrefs.length > 0 && (
+              <>
+                <div className="edv-separator" />
+                <BackrefImageEditor
+                  entity={entity}
+                  entities={entities}
+                  onUpdateBackrefs={handleUpdateBackrefsCb}
+                  alwaysExpanded
                 />
-              ) : (
-                <>
-                  {entity.description ? (
-                    <div style={{
-                      fontSize: '14px',
-                      color: 'var(--text-secondary)',
-                      lineHeight: '1.7',
-                    }} className="entity-description-md">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          h2: ({ children }) => <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: '16px 0 6px', borderBottom: '1px solid var(--border-color)', paddingBottom: '3px' }}>{children}</h2>,
-                          h3: ({ children }) => <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: '12px 0 4px' }}>{children}</h3>,
-                          p: ({ children }) => <p style={{ margin: '0 0 8px' }}>{children}</p>,
-                          ul: ({ children }) => <ul style={{ margin: '4px 0 8px', paddingLeft: '20px' }}>{children}</ul>,
-                          ol: ({ children }) => <ol style={{ margin: '4px 0 8px', paddingLeft: '20px' }}>{children}</ol>,
-                          li: ({ children }) => <li style={{ marginBottom: '2px' }}>{children}</li>,
-                          table: ({ children }) => <table style={{ borderCollapse: 'collapse', margin: '8px 0', fontSize: '13px', width: '100%' }}>{children}</table>,
-                          th: ({ children }) => <th style={{ border: '1px solid var(--border-color)', padding: '4px 8px', textAlign: 'left', fontWeight: 600, background: 'var(--bg-tertiary)' }}>{children}</th>,
-                          td: ({ children }) => <td style={{ border: '1px solid var(--border-color)', padding: '4px 8px' }}>{children}</td>,
-                        }}
-                      >
-                        {entity.description}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', margin: 0 }}>
-                      No description
-                    </p>
-                  )}
-                  {enrichment?.historianNotes && enrichment.historianNotes.length > 0 && (
-                    <HistorianMarginNotes
-                      notes={enrichment.historianNotes}
-                      sourceText={entity.description}
-                      style={{ marginTop: '12px' }}
-                      onUpdateNote={(noteId: string, updates: Record<string, unknown>) => handleUpdateHistorianNote('entity', entity.id, noteId, updates)}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-          )}
+              </>
+            )}
 
-          {/* Visual Traits */}
-          <VisualTraitsList traits={textEnrichment?.visualTraits || []} />
+            {/* No enrichment fallback */}
+            {!(entity.summary || entity.description) && (
+              <div className="ilu-empty edv-no-enrichment">
+                No description enrichment available. Queue a description task for this entity.
+              </div>
+            )}
+          </div>
 
-          {/* Aliases */}
-          <AliasesList
-            aliases={textEnrichment?.aliases || []}
-            onUpdate={(aliases) => handleUpdateAliases(entity.id, aliases)}
+          {/* Sidebar */}
+          <EntityDetailSidebar
+            entity={entity}
+            textEnrichment={textEnrichment}
+            chainDebug={chainDebug}
+            legacyDebug={legacyDebug}
           />
-
-          {/* Chronicle Images */}
-          {enrichment?.chronicleBackrefs && enrichment.chronicleBackrefs.length > 0 && (
-            <>
-              <div style={{
-                borderTop: '1px solid var(--border-color)',
-                margin: '8px 0 16px 0',
-              }} />
-              <BackrefImageEditor
-                entity={entity}
-                entities={entities}
-                onUpdateBackrefs={handleUpdateBackrefs}
-                alwaysExpanded
-              />
-            </>
-          )}
-
-          {/* No enrichment fallback */}
-          {!(entity.summary || entity.description) && (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No description enrichment available. Queue a description task for this entity.
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div
-          style={{
-            width: '320px',
-            flexShrink: 0,
-            borderLeft: '1px solid var(--border-color)',
-            overflowY: 'auto',
-            padding: '20px 16px',
-            background: 'var(--bg-secondary)',
-          }}
-        >
-          <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-            Entity Metadata
-          </h4>
-
-          {/* Basic info */}
-          <MetadataRow label="Entity ID" value={entity.id} />
-          <MetadataRow label="Status" value={entity.status} />
-          <MetadataRow label="Created" value={formatDate(entity.createdAt)} />
-          <MetadataRow label="Updated" value={formatDate(entity.updatedAt)} />
-
-          {/* Description generation info */}
-          {textEnrichment && (
-            <>
-              <div style={{ borderTop: '1px solid var(--border-color)', margin: '12px 0' }} />
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Description Generation
-              </div>
-              <MetadataRow label="Model" value={textEnrichment.model} />
-              <MetadataRow label="Generated" value={formatDate(textEnrichment.generatedAt)} />
-              <MetadataRow label="Estimated Cost" value={formatCost(textEnrichment.estimatedCost)} />
-              <MetadataRow label="Actual Cost" value={formatCost(textEnrichment.actualCost)} />
-              {textEnrichment.inputTokens !== undefined && (
-                <MetadataRow
-                  label="Tokens"
-                  value={`${textEnrichment.inputTokens} in / ${textEnrichment.outputTokens || 0} out`}
-                />
-              )}
-            </>
-          )}
-
-          {/* Debug Info */}
-          {(chainDebug || legacyDebug) && (
-            <>
-              <div style={{ borderTop: '1px solid var(--border-color)', margin: '12px 0' }} />
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Debug Info
-              </div>
-
-              {chainDebug && (
-                <>
-                  {chainDebug.narrative && (
-                    <div style={{ marginBottom: '8px' }}>
-                      <div style={{ fontSize: '10px', color: 'rgba(59, 130, 246, 0.8)', marginBottom: '4px', fontWeight: 500 }}>
-                        Step 1: Narrative
-                      </div>
-                      <ExpandableSection title="Request" content={chainDebug.narrative.request} charCount={chainDebug.narrative.request?.length} />
-                      <ExpandableSection title="Response" content={chainDebug.narrative.response} charCount={chainDebug.narrative.response?.length} />
-                    </div>
-                  )}
-                  {chainDebug.thesis && (
-                    <div style={{ marginBottom: '8px' }}>
-                      <div style={{ fontSize: '10px', color: 'rgba(139, 92, 246, 0.8)', marginBottom: '4px', fontWeight: 500 }}>
-                        Step 2: Visual Thesis
-                      </div>
-                      <ExpandableSection title="Request" content={chainDebug.thesis.request} charCount={chainDebug.thesis.request?.length} />
-                      <ExpandableSection title="Response" content={chainDebug.thesis.response} charCount={chainDebug.thesis.response?.length} />
-                    </div>
-                  )}
-                  {chainDebug.traits && (
-                    <div style={{ marginBottom: '8px' }}>
-                      <div style={{ fontSize: '10px', color: 'rgba(34, 197, 94, 0.8)', marginBottom: '4px', fontWeight: 500 }}>
-                        Step 3: Visual Traits
-                      </div>
-                      <ExpandableSection title="Request" content={chainDebug.traits.request} charCount={chainDebug.traits.request?.length} />
-                      <ExpandableSection title="Response" content={chainDebug.traits.response} charCount={chainDebug.traits.response?.length} />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {!chainDebug && legacyDebug && (
-                <>
-                  <ExpandableSection title="Request" content={legacyDebug.request} charCount={legacyDebug.request?.length} />
-                  <ExpandableSection title="Response" content={legacyDebug.response} charCount={legacyDebug.response?.length} />
-                </>
-              )}
-            </>
-          )}
-
-          {!chainDebug && !legacyDebug && textEnrichment && (
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '12px' }}>
-              Debug info not available. This entity may have been enriched before debug persistence was added.
-            </div>
-          )}
         </div>
       </div>
-    </div>
 
-    {editionPreview && (
-      <HistoryCompressionPreviewModal
-        entityName={editionPreview.entityName}
-        originalCount={editionPreview.originalCount}
-        compressed={editionPreview.compressed}
-        onProceed={handleEditionPreviewProceed}
-        onCancel={handleEditionPreviewCancel}
-      />
-    )}
-  </>
+      {editionPreview && (
+        <HistoryCompressionPreviewModal
+          entityName={editionPreview.entityName}
+          originalCount={editionPreview.originalCount}
+          compressed={editionPreview.compressed}
+          onProceed={handleEditionPreviewProceed}
+          onCancel={handleEditionPreviewCancel}
+        />
+      )}
+    </>
   );
 }
+
+const emptyStringArray: string[] = [];

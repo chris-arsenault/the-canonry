@@ -5,10 +5,12 @@
  * Each pill shows status and can be clicked to re-expand the modal.
  */
 
-import { useFloatingPillStore, type FloatingPill } from '../lib/db/floatingPillStore';
-import { useThinkingStore } from '../lib/db/thinkingStore';
+import { useFloatingPillStore, type FloatingPill } from "../lib/db/floatingPillStore";
+import { useThinkingStore } from "../lib/db/thinkingStore";
+import React from "react";
+import "./FloatingPills.css";
 
-function Pill({ pill, onNavigate }: { pill: FloatingPill; onNavigate?: (tabId: string) => void }) {
+function Pill({ pill, onNavigate }: Readonly<{ pill: FloatingPill; onNavigate?: (tabId: string) => void }>) {
   const expand = useFloatingPillStore((s) => s.expand);
   const hasThinking = useThinkingStore((s) => {
     if (!pill.taskId) return false;
@@ -18,57 +20,38 @@ function Pill({ pill, onNavigate }: { pill: FloatingPill; onNavigate?: (tabId: s
 
   return (
     <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '6px 12px',
-        background: 'var(--bg-primary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '20px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-        cursor: 'pointer',
-        fontSize: '12px',
-        minWidth: '160px',
-        transition: 'box-shadow 0.15s',
-      }}
+      className="fp-pill"
       onClick={() => {
         if (pill.tabId && onNavigate) onNavigate(pill.tabId);
         expand(pill.id);
       }}
       title="Click to expand"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
     >
       {/* Status dot */}
-      <span style={{
-        width: '8px',
-        height: '8px',
-        borderRadius: '50%',
-        background: pill.statusColor,
-        flexShrink: 0,
-      }} />
+      <span
+        className="fp-status-dot"
+        style={{ "--fp-dot-color": pill.statusColor } as React.CSSProperties}
+      />
 
       {/* Label + status */}
-      <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-        {pill.label}
-      </span>
-      <span style={{ color: 'var(--text-muted)', marginLeft: 'auto' }}>
-        {pill.statusText}
-      </span>
+      <span className="fp-label">{pill.label}</span>
+      <span className="fp-status-text">{pill.statusText}</span>
 
       {/* Thinking icon */}
       {hasThinking && (
         <span
           onClick={(e) => {
             e.stopPropagation();
-            useThinkingStore.getState().openViewer(pill.taskId!);
+            useThinkingStore.getState().openViewer(pill.taskId);
           }}
           title="View thinking"
-          style={{
-            cursor: 'pointer',
-            fontSize: '13px',
-            opacity: 0.7,
-            marginLeft: '4px',
-          }}
+          className="fp-thinking-icon"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
           ✦
         </span>
@@ -77,22 +60,13 @@ function Pill({ pill, onNavigate }: { pill: FloatingPill; onNavigate?: (tabId: s
   );
 }
 
-export function FloatingPills({ onNavigate }: { onNavigate?: (tabId: string) => void }) {
+export function FloatingPills({ onNavigate }: Readonly<{ onNavigate?: (tabId: string) => void }>) {
   const pills = useFloatingPillStore((s) => s.pills);
 
   if (pills.size === 0) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: '16px',
-      right: '16px',
-      zIndex: 9999,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-      alignItems: 'flex-end',
-    }}>
+    <div className="fp-container">
       {Array.from(pills.values()).map((pill) => (
         <Pill key={pill.id} pill={pill} onNavigate={onNavigate} />
       ))}

@@ -53,7 +53,7 @@ export function createEraTransitionSystem(config: EraTransitionConfig): Simulati
     id: config.id || 'era_transition',
     name: config.name || 'Era Progression',
 
-    apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
+    apply: (graphView: WorldRuntime, _modifier: number = 1.0): SystemResult => {
       // Find current era entity
       const currentEraEntity = graphView.findEntities({
         kind: FRAMEWORK_ENTITY_KINDS.ERA,
@@ -83,7 +83,7 @@ export function createEraTransitionSystem(config: EraTransitionConfig): Simulati
       const timeSinceStart = graphView.tick - currentEraEntity.temporal.startTick;
 
       // Get era config for current era
-      const currentEraConfig = graphView.config.eras.find(e => e.id === currentEraEntity.subtype) as Era | undefined;
+      const currentEraConfig = graphView.config.eras.find(e => e.id === currentEraEntity.subtype);
 
       if (!currentEraConfig) {
         graphView.log('warn',
@@ -165,7 +165,7 @@ export function createEraTransitionSystem(config: EraTransitionConfig): Simulati
 
       // Update current era to historical
       currentEraEntity.status = FRAMEWORK_STATUS.HISTORICAL;
-      currentEraEntity.temporal!.endTick = graphView.tick;
+      currentEraEntity.temporal.endTick = graphView.tick;
       currentEraEntity.updatedAt = graphView.tick;
 
       // Update graph's currentEra reference
@@ -200,7 +200,7 @@ export function createEraTransitionSystem(config: EraTransitionConfig): Simulati
       }
 
       // Create supersedes relationship
-      const relationshipsAdded: any[] = [{
+      const relationshipsAdded: SystemResult['relationshipsAdded'] = [{
         kind: FRAMEWORK_RELATIONSHIP_KINDS.SUPERSEDES,
         src: nextEraEntity.id,
         dst: currentEraEntity.id,
@@ -359,7 +359,7 @@ export interface TransitionCheckResult {
 
 function collectEffectPressureChanges(
   graphView: WorldRuntime,
-  effects: Era['entryEffects'] | Era['exitEffects'],
+  effects: Era['entryEffects']  ,
   self: HardState
 ): Record<string, number> {
   const mutations = effects?.mutations || [];

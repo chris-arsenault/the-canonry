@@ -38,17 +38,17 @@ export function describeSelectionFilter(filter: SelectionFilter): string {
     case 'exclude':
       return `exclude [${filter.entities.join(', ')}]`;
     case 'has_relationship':
-      return `has_relationship '${filter.kind}'${filter.with ? ` with ${filter.with}` : ''}`;
+      return `has_relationship '${filter.kind}'${filter.with ? ' with ' + filter.with : ''}`;
     case 'lacks_relationship':
-      return `lacks_relationship '${filter.kind}'${filter.with ? ` with ${filter.with}` : ''}`;
+      return `lacks_relationship '${filter.kind}'${filter.with ? ' with ' + filter.with : ''}`;
     case 'has_tag':
-      return `has_tag '${filter.tag}'${filter.value !== undefined ? ` = ${filter.value}` : ''}`;
+      return `has_tag '${filter.tag}'${filter.value !== undefined ? ' = ' + filter.value : ''}`;
     case 'has_tags':
       return `has_tags [${filter.tags.join(', ')}]`;
     case 'has_any_tag':
       return `has_any_tag [${filter.tags.join(', ')}]`;
     case 'lacks_tag':
-      return `lacks_tag '${filter.tag}'${filter.value !== undefined ? ` = ${filter.value}` : ''}`;
+      return `lacks_tag '${filter.tag}'${filter.value !== undefined ? ' = ' + filter.value : ''}`;
     case 'lacks_any_tag':
       return `lacks_any_tag [${filter.tags.join(', ')}]`;
     case 'has_culture':
@@ -151,6 +151,7 @@ function sampleRandom(entities: HardState[], count: number): HardState[] {
   if (count <= 0 || entities.length === 0) return [];
   const pool = entities.slice();
   for (let i = pool.length - 1; i > 0; i--) {
+    // eslint-disable-next-line sonarjs/pseudo-random -- simulation shuffle for entity selection
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
@@ -166,6 +167,7 @@ function pickWeighted(entities: HardState[]): HardState | undefined {
   if (entities.length === 0) return undefined;
   const weights = entities.map(getProminenceWeight);
   const total = weights.reduce((sum, w) => sum + w, 0);
+  // eslint-disable-next-line sonarjs/pseudo-random -- simulation weighted random pick
   let roll = Math.random() * total;
   for (let i = 0; i < entities.length; i++) {
     roll -= weights[i];
@@ -241,6 +243,7 @@ function sampleWeightedByScore(
       const remaining = pool.map(item => item.entity);
       return picks.concat(sampleRandom(remaining, limit - picks.length));
     }
+    // eslint-disable-next-line sonarjs/pseudo-random -- simulation weighted random selection
     let roll = Math.random() * total;
     let pickedIndex = -1;
     for (let idx = 0; idx < pool.length; idx++) {
@@ -285,20 +288,31 @@ function applyPickStrategyWithBias(
   return sampleWeightedByScore(entities, weights, count);
 }
 
+function computePickLimit(maxResults: number | undefined, entitiesLength: number): number | undefined {
+  return maxResults && maxResults > 0 ? Math.min(maxResults, entitiesLength) : undefined;
+}
+
+function pickSingleRandom(entities: HardState[]): HardState[] {
+  return entities.length > 0 ? [pickRandom(entities)] : [];
+}
+
+function pickSingleWeighted(entities: HardState[]): HardState[] {
+  const picked = pickWeighted(entities);
+  return picked ? [picked] : [];
+}
+
 export function applyPickStrategy(
   entities: HardState[],
-  pickStrategy: SelectionRule['pickStrategy'] | VariableSelectionRule['pickStrategy'] | undefined,
+  pickStrategy: SelectionRule['pickStrategy'] | undefined,
   maxResults?: number
 ): HardState[] {
-  const limit = maxResults && maxResults > 0 ? Math.min(maxResults, entities.length) : undefined;
+  const limit = computePickLimit(maxResults, entities.length);
 
   switch (pickStrategy) {
     case 'random':
-      return limit ? sampleRandom(entities, limit) : (entities.length > 0 ? [pickRandom(entities)] : []);
+      return limit ? sampleRandom(entities, limit) : pickSingleRandom(entities);
     case 'weighted':
-      if (limit) return sampleWeighted(entities, limit);
-      const picked = pickWeighted(entities);
-      return picked ? [picked] : [];
+      return limit ? sampleWeighted(entities, limit) : pickSingleWeighted(entities);
     case 'first':
       return limit ? entities.slice(0, limit) : entities.slice(0, 1);
     case 'all':
@@ -306,6 +320,28 @@ export function applyPickStrategy(
     default:
       return limit ? entities.slice(0, limit) : entities;
   }
+}
+
+function buildConnectedEntitySet(entity: HardState, limit: SaturationLimit, ctx: RuleContext): Set<string> {
+  const relationships = ctx.graph.getRelationships(entity.id, limit.relationshipKind);
+  const connectedEntities = new Set<string>();
+  for (const rel of relationships) {
+    const otherId = rel.src === entity.id ? rel.dst : rel.src;
+    if (limit.fromKind) {
+      const otherEntity = ctx.graph.getEntity(otherId);
+      if (!otherEntity || otherEntity.kind !== limit.fromKind) continue;
+      if (limit.fromSubtype && otherEntity.subtype !== limit.fromSubtype) continue;
+    }
+    connectedEntities.add(otherId);
+  }
+  return connectedEntities;
+}
+
+function entityPassesSaturationLimits(entity: HardState, limits: SaturationLimit[], ctx: RuleContext): boolean {
+  for (const limit of limits) {
+    if (buildConnectedEntitySet(entity, limit, ctx).size >= limit.maxCount) return false;
+  }
+  return true;
 }
 
 /**
@@ -319,32 +355,74 @@ export function applySaturationLimits(
   ctx: RuleContext
 ): HardState[] {
   if (!limits || limits.length === 0) return entities;
+  return entities.filter((entity) => entityPassesSaturationLimits(entity, limits, ctx));
+}
 
-  return entities.filter((entity) => {
-    for (const limit of limits) {
-      const relationships = ctx.graph.getRelationships(entity.id, limit.relationshipKind);
+function getKindCandidates(
+  graphView: RuleContext['graph'],
+  kinds: string[],
+  needsHistorical: boolean,
+  rule: SelectionRule
+): HardState[] {
+  if (kinds.length === 0 || kinds.includes('any')) {
+    return graphView.getEntities({ includeHistorical: needsHistorical });
+  }
+  if (kinds.length === 1 && rule.kind && (!rule.kinds || rule.kinds.length === 0)) {
+    return graphView.findEntities({ kind: rule.kind, includeHistorical: needsHistorical });
+  }
+  return graphView.getEntities({ includeHistorical: needsHistorical }).filter((e) => kinds.includes(e.kind));
+}
 
-      // Use a Set to count unique connected entities, not raw relationships
-      // This correctly handles bidirectional relationships stored as two records
-      const connectedEntities = new Set<string>();
+function selectByPreferenceOrder(
+  allEntities: HardState[],
+  rule: SelectionRule,
+  kindLabel: string,
+  trace: SelectionTrace | undefined
+): HardState[] {
+  let result: HardState[] = [];
+  for (const subtype of rule.subtypePreferences || []) {
+    const matches = allEntities.filter((e) => e.subtype === subtype);
+    if (matches.length > 0) { result = matches; break; }
+  }
+  if (result.length === 0) result = allEntities;
+  pushTrace(trace, `preference_order=${kindLabel}`, result.length);
+  return result;
+}
 
-      for (const rel of relationships) {
-        const otherId = rel.src === entity.id ? rel.dst : rel.src;
-        if (limit.fromKind) {
-          const otherEntity = ctx.graph.getEntity(otherId);
-          if (!otherEntity || otherEntity.kind !== limit.fromKind) continue;
-          if (limit.fromSubtype && otherEntity.subtype !== limit.fromSubtype) continue;
-        }
-        connectedEntities.add(otherId);
-      }
-
-      if (connectedEntities.size >= limit.maxCount) {
-        return false;
-      }
+function applyEntitySelectionFilters(
+  entities: HardState[],
+  rule: SelectionRule,
+  ctx: RuleContext,
+  trace: SelectionTrace | undefined
+): HardState[] {
+  let result = entities;
+  if (rule.subtypes && rule.subtypes.length > 0) {
+    result = result.filter((e) => rule.subtypes!.includes(e.subtype));
+    pushTrace(trace, `subtype in [${rule.subtypes.join(', ')}]`, result.length);
+  }
+  if (rule.excludeSubtypes && rule.excludeSubtypes.length > 0) {
+    result = result.filter((e) => !rule.excludeSubtypes!.includes(e.subtype));
+    pushTrace(trace, `subtype not in [${rule.excludeSubtypes.join(', ')}]`, result.length);
+  }
+  if (rule.status) {
+    result = result.filter((e) => e.status === rule.status);
+    pushTrace(trace, `status=${rule.status}`, result.length);
+  }
+  if (rule.statuses && rule.statuses.length > 0) {
+    result = result.filter((e) => rule.statuses!.includes(e.status));
+    pushTrace(trace, `status in [${rule.statuses.join(', ')}]`, result.length);
+  }
+  if (rule.notStatus) {
+    result = result.filter((e) => e.status !== rule.notStatus);
+    pushTrace(trace, `status!=${rule.notStatus}`, result.length);
+  }
+  if (rule.filters && rule.filters.length > 0) {
+    for (const filter of rule.filters) {
+      result = applySelectionFilters(result, [filter], ctx.resolver);
+      pushTrace(trace, describeSelectionFilter(filter), result.length);
     }
-
-    return true;
-  });
+  }
+  return applySaturationLimits(result, rule.saturationLimits, ctx);
 }
 
 /**
@@ -357,51 +435,24 @@ export function selectEntities(
 ): HardState[] {
   const graphView = ctx.graph;
   let entities: HardState[];
-  const kinds = rule.kinds && rule.kinds.length > 0 ? rule.kinds : (rule.kind ? [rule.kind] : []);
+  const kinds = rule.kinds && rule.kinds.length > 0 ? rule.kinds : rule.kind ? [rule.kind] : [];
   const kindLabel = kinds.length > 0 ? kinds.join('|') : 'any';
-
-  // Include historical entities if the rule explicitly asks for them
   const needsHistorical = rule.status === 'historical' || rule.statuses?.includes('historical');
-
-  const getCandidatesByKind = (): HardState[] => {
-    if (kinds.length === 0 || kinds.includes('any')) {
-      return graphView.getEntities({ includeHistorical: needsHistorical });
-    }
-    if (kinds.length === 1 && rule.kind && (!rule.kinds || rule.kinds.length === 0)) {
-      return graphView.findEntities({ kind: rule.kind, includeHistorical: needsHistorical });
-    }
-    return graphView.getEntities({ includeHistorical: needsHistorical }).filter((e) => kinds.includes(e.kind));
-  };
+  const getCandidates = () => getKindCandidates(graphView, kinds, needsHistorical, rule);
 
   switch (rule.strategy) {
     case 'by_kind': {
-      entities = getCandidatesByKind();
+      entities = getCandidates();
       pushTrace(trace, `kind=${kindLabel}`, entities.length);
       break;
     }
-
-    case 'by_preference_order': {
-      entities = [];
-      const allEntities = getCandidatesByKind();
-      for (const subtype of rule.subtypePreferences || []) {
-        const matches = allEntities.filter((e) => e.subtype === subtype);
-        if (matches.length > 0) {
-          entities = matches;
-          break;
-        }
-      }
-      if (entities.length === 0) {
-        entities = allEntities;
-      }
-      pushTrace(trace, `preference_order=${kindLabel}`, entities.length);
+    case 'by_preference_order':
+      entities = selectByPreferenceOrder(getCandidates(), rule, kindLabel, trace);
       break;
-    }
-
     case 'by_relationship': {
-      const allEntities = getCandidatesByKind();
       const direction = normalizeDirection(rule.direction);
       const mustHave = rule.mustHave === true;
-      entities = allEntities.filter((entity) => {
+      entities = getCandidates().filter((entity) => {
         const relationships = ctx.graph.getRelationships(entity.id, rule.relationshipKind);
         const hasRel = relationships.some((link) => {
           if (direction === 'src') return link.src === entity.id;
@@ -413,7 +464,6 @@ export function selectEntities(
       pushTrace(trace, `relationship=${rule.relationshipKind ?? 'any'}`, entities.length);
       break;
     }
-
     case 'by_proximity': {
       const refEntity = ctx.resolver.resolveEntity(rule.referenceEntity || '$target');
       if (!refEntity?.coordinates) {
@@ -422,74 +472,42 @@ export function selectEntities(
         break;
       }
       const maxDist = rule.maxDistance || 50;
-      entities = getCandidatesByKind().filter((e) => {
+      entities = getCandidates().filter((e) => {
         if (!e.coordinates) return false;
-        const dx = e.coordinates.x - refEntity.coordinates!.x;
-        const dy = e.coordinates.y - refEntity.coordinates!.y;
-        const dz = e.coordinates.z - refEntity.coordinates!.z;
+        const dx = e.coordinates.x - refEntity.coordinates.x;
+        const dy = e.coordinates.y - refEntity.coordinates.y;
+        const dz = e.coordinates.z - refEntity.coordinates.z;
         return Math.sqrt(dx * dx + dy * dy + dz * dz) <= maxDist;
       });
       pushTrace(trace, `proximity<=${maxDist}`, entities.length);
       break;
     }
-
     case 'by_prominence': {
       const minLabel = (rule.minProminence || 'marginal') as ProminenceLabel;
-      const minThreshold = prominenceThreshold(minLabel);
-      entities = getCandidatesByKind().filter((e) => {
-        return e.prominence >= minThreshold;
-      });
+      entities = getCandidates().filter((e) => e.prominence >= prominenceThreshold(minLabel));
       pushTrace(trace, `prominence>=${rule.minProminence ?? 'marginal'}`, entities.length);
       break;
     }
-
     default:
       entities = [];
       pushTrace(trace, 'unknown strategy', 0);
   }
 
-  if (rule.subtypes && rule.subtypes.length > 0) {
-    entities = entities.filter((e) => rule.subtypes!.includes(e.subtype));
-    pushTrace(trace, `subtype in [${rule.subtypes.join(', ')}]`, entities.length);
-  }
-
-  if (rule.excludeSubtypes && rule.excludeSubtypes.length > 0) {
-    entities = entities.filter((e) => !rule.excludeSubtypes!.includes(e.subtype));
-    pushTrace(trace, `subtype not in [${rule.excludeSubtypes.join(', ')}]`, entities.length);
-  }
-
-  if (rule.status) {
-    entities = entities.filter((e) => e.status === rule.status);
-    pushTrace(trace, `status=${rule.status}`, entities.length);
-  }
-
-  if (rule.statuses && rule.statuses.length > 0) {
-    entities = entities.filter((e) => rule.statuses!.includes(e.status));
-    pushTrace(trace, `status in [${rule.statuses.join(', ')}]`, entities.length);
-  }
-
-  if (rule.notStatus) {
-    entities = entities.filter((e) => e.status !== rule.notStatus);
-    pushTrace(trace, `status!=${rule.notStatus}`, entities.length);
-  }
-
-  if (rule.filters && rule.filters.length > 0) {
-    for (const filter of rule.filters) {
-      entities = applySelectionFilters(entities, [filter], ctx.resolver);
-      pushTrace(trace, describeSelectionFilter(filter), entities.length);
-    }
-  }
-
-  entities = applySaturationLimits(entities, rule.saturationLimits, ctx);
-
-  return applyPickStrategyWithBias(entities, rule, ctx);
+  return applyPickStrategyWithBias(applyEntitySelectionFilters(entities, rule, ctx, trace), rule, ctx);
 }
 
 /**
  * Type guard to check if a from spec is a path-based spec.
  */
 function isPathBasedSpec(from: VariableSelectionRule['from']): from is PathBasedSpec {
-  return typeof from === 'object' && from !== null && 'path' in from;
+  return typeof from === 'object' && from != null && 'path' in from;
+}
+
+function passesStepFilters(r: HardState, step: PathTraversalStep): boolean {
+  if (step.targetKind && step.targetKind !== 'any' && r.kind !== step.targetKind) return false;
+  if (step.targetSubtype && step.targetSubtype !== 'any' && r.subtype !== step.targetSubtype) return false;
+  if (step.targetStatus && step.targetStatus !== 'any' && r.status !== step.targetStatus) return false;
+  return true;
 }
 
 /**
@@ -510,13 +528,7 @@ function traversePath(
 
     for (const entity of currentEntities) {
       const related = graphView.getConnectedEntities(entity.id, step.via, direction);
-      for (const r of related) {
-        // Apply step filters
-        if (step.targetKind && step.targetKind !== 'any' && r.kind !== step.targetKind) continue;
-        if (step.targetSubtype && step.targetSubtype !== 'any' && r.subtype !== step.targetSubtype) continue;
-        if (step.targetStatus && step.targetStatus !== 'any' && r.status !== step.targetStatus) continue;
-        nextEntities.push(r);
-      }
+      nextEntities.push(...related.filter((r) => passesStepFilters(r, step)));
     }
 
     pushTrace(trace, `via ${step.via}: ${currentEntities.length} -> ${nextEntities.length}`, nextEntities.length);
@@ -533,111 +545,109 @@ function traversePath(
 /**
  * Select candidates for a variable selection rule.
  */
+function resolveFromEntities(
+  select: VariableSelectionRule,
+  ctx: RuleContext,
+  graphView: RuleContext['graph'],
+  needsHistorical: boolean,
+  trace: SelectionTrace | undefined
+): HardState[] {
+  if (isPathBasedSpec(select.from!)) {
+    const steps = (select.from as PathBasedSpec).path;
+    if (steps.length === 0) { pushTrace(trace, 'empty path', 0); return []; }
+    const firstStep = steps[0];
+    let startEntities: HardState[];
+    if (firstStep.from) {
+      const startEntity = ctx.resolver.resolveEntity(firstStep.from);
+      if (!startEntity) { pushTrace(trace, `path start ${firstStep.from} (not found)`, 0); return []; }
+      startEntities = [startEntity];
+      pushTrace(trace, `path start: ${startEntity.name || startEntity.id}`, 1);
+    } else {
+      startEntities = graphView.getEntities({ includeHistorical: needsHistorical });
+      pushTrace(trace, 'path start: all entities', startEntities.length);
+    }
+    return traversePath(startEntities, steps, ctx, trace);
+  }
+  const fromSpec = select.from as { relatedTo: string; relationshipKind: string; direction?: string };
+  const relatedTo = ctx.resolver.resolveEntity(fromSpec.relatedTo);
+  if (!relatedTo) { pushTrace(trace, `related to ${fromSpec.relatedTo} (not found)`, 0); return []; }
+  const direction = normalizeDirection(fromSpec.direction);
+  const result = graphView.getConnectedEntities(relatedTo.id, fromSpec.relationshipKind, direction);
+  pushTrace(trace, `via ${fromSpec.relationshipKind} from ${relatedTo.name || relatedTo.id}`, result.length);
+  return result;
+}
+
+function resolveByKindEntities(
+  select: VariableSelectionRule,
+  graphView: RuleContext['graph'],
+  needsHistorical: boolean,
+  trace: SelectionTrace | undefined
+): HardState[] {
+  if (select.kinds && select.kinds.length > 0) {
+    const result = graphView.getEntities({ includeHistorical: needsHistorical }).filter((e) => select.kinds!.includes(e.kind));
+    pushTrace(trace, `${select.kinds.join('|')} entities`, result.length);
+    return result;
+  }
+  if (select.kind) {
+    const result = graphView.findEntities({ kind: select.kind, includeHistorical: needsHistorical });
+    pushTrace(trace, `${select.kind} entities`, result.length);
+    return result;
+  }
+  const result = graphView.getEntities({ includeHistorical: needsHistorical });
+  pushTrace(trace, 'all entities', result.length);
+  return result;
+}
+
+function applyVariableEntityFilters(
+  entities: HardState[],
+  select: VariableSelectionRule,
+  ctx: RuleContext,
+  trace: SelectionTrace | undefined
+): HardState[] {
+  let result = entities;
+  if (select.kinds && select.kinds.length > 0) {
+    result = result.filter((e) => select.kinds!.includes(e.kind));
+    pushTrace(trace, `kind in [${select.kinds.join(', ')}]`, result.length);
+  } else if (select.kind) {
+    result = result.filter((e) => e.kind === select.kind);
+    pushTrace(trace, `kind=${select.kind}`, result.length);
+  }
+  if (select.subtypes && select.subtypes.length > 0) {
+    result = result.filter((e) => select.subtypes!.includes(e.subtype));
+    pushTrace(trace, `subtype in [${select.subtypes.join(', ')}]`, result.length);
+  }
+  if (select.status) {
+    result = result.filter((e) => e.status === select.status);
+    pushTrace(trace, `status=${select.status}`, result.length);
+  }
+  if (select.statuses && select.statuses.length > 0) {
+    result = result.filter((e) => select.statuses!.includes(e.status));
+    pushTrace(trace, `status in [${select.statuses.join(', ')}]`, result.length);
+  }
+  if (select.notStatus) {
+    result = result.filter((e) => e.status !== select.notStatus);
+    pushTrace(trace, `status!=${select.notStatus}`, result.length);
+  }
+  if (select.filters && select.filters.length > 0) {
+    for (const filter of select.filters) {
+      result = applySelectionFilters(result, [filter], ctx.resolver);
+      pushTrace(trace, describeSelectionFilter(filter), result.length);
+    }
+  }
+  return result;
+}
+
 export function selectVariableEntities(
   select: VariableSelectionRule,
   ctx: RuleContext,
   trace?: SelectionTrace
 ): HardState[] {
   const graphView = ctx.graph;
-  let entities: HardState[];
-
-  // Include historical entities if the rule explicitly asks for them
   const needsHistorical = select.status === 'historical' || select.statuses?.includes('historical');
-
-  if (select.from && select.from !== 'graph') {
-    // Check if this is a path-based traversal
-    if (isPathBasedSpec(select.from)) {
-      // Path-based traversal: follow multiple hops
-      const steps = select.from.path;
-      if (steps.length === 0) {
-        pushTrace(trace, 'empty path', 0);
-        return [];
-      }
-
-      // Get starting entities from first step's 'from' field
-      const firstStep = steps[0];
-      let startEntities: HardState[];
-
-      if (firstStep.from) {
-        const startEntity = ctx.resolver.resolveEntity(firstStep.from);
-        if (!startEntity) {
-          pushTrace(trace, `path start ${firstStep.from} (not found)`, 0);
-          return [];
-        }
-        startEntities = [startEntity];
-        pushTrace(trace, `path start: ${startEntity.name || startEntity.id}`, 1);
-      } else {
-        // No 'from' on first step - use all entities matching kind filters
-        startEntities = graphView.getEntities({ includeHistorical: needsHistorical });
-        pushTrace(trace, 'path start: all entities', startEntities.length);
-      }
-
-      // Traverse the path
-      entities = traversePath(startEntities, steps, ctx, trace);
-    } else {
-      // Single-hop related entities (legacy format)
-      const relatedTo = ctx.resolver.resolveEntity(select.from.relatedTo);
-      if (!relatedTo) {
-        pushTrace(trace, `related to ${select.from.relatedTo} (not found)`, 0);
-        return [];
-      }
-      const direction = normalizeDirection(select.from.direction);
-      entities = graphView.getConnectedEntities(
-        relatedTo.id,
-        select.from.relationshipKind,
-        direction
-      );
-      pushTrace(trace, `via ${select.from.relationshipKind} from ${relatedTo.name || relatedTo.id}`, entities.length);
-    }
-  } else {
-    if (select.kinds && select.kinds.length > 0) {
-      entities = graphView.getEntities({ includeHistorical: needsHistorical }).filter((e) => select.kinds!.includes(e.kind));
-      pushTrace(trace, `${select.kinds.join('|')} entities`, entities.length);
-    } else if (select.kind) {
-      entities = graphView.findEntities({ kind: select.kind, includeHistorical: needsHistorical });
-      pushTrace(trace, `${select.kind} entities`, entities.length);
-    } else {
-      entities = graphView.getEntities({ includeHistorical: needsHistorical });
-      pushTrace(trace, 'all entities', entities.length);
-    }
-  }
-
-  if (select.kinds && select.kinds.length > 0) {
-    entities = entities.filter((e) => select.kinds!.includes(e.kind));
-    pushTrace(trace, `kind in [${select.kinds.join(', ')}]`, entities.length);
-  } else if (select.kind) {
-    entities = entities.filter((e) => e.kind === select.kind);
-    pushTrace(trace, `kind=${select.kind}`, entities.length);
-  }
-
-  if (select.subtypes && select.subtypes.length > 0) {
-    entities = entities.filter((e) => select.subtypes!.includes(e.subtype));
-    pushTrace(trace, `subtype in [${select.subtypes.join(', ')}]`, entities.length);
-  }
-
-  if (select.status) {
-    entities = entities.filter((e) => e.status === select.status);
-    pushTrace(trace, `status=${select.status}`, entities.length);
-  }
-
-  if (select.statuses && select.statuses.length > 0) {
-    entities = entities.filter((e) => select.statuses!.includes(e.status));
-    pushTrace(trace, `status in [${select.statuses.join(', ')}]`, entities.length);
-  }
-
-  if (select.notStatus) {
-    entities = entities.filter((e) => e.status !== select.notStatus);
-    pushTrace(trace, `status!=${select.notStatus}`, entities.length);
-  }
-
-  if (select.filters && select.filters.length > 0) {
-    for (const filter of select.filters) {
-      entities = applySelectionFilters(entities, [filter], ctx.resolver);
-      pushTrace(trace, describeSelectionFilter(filter), entities.length);
-    }
-  }
-
-  return applyPreferFilters(entities, select.preferFilters, ctx, trace);
+  const entities = (select.from && select.from !== 'graph')
+    ? resolveFromEntities(select, ctx, graphView, needsHistorical, trace)
+    : resolveByKindEntities(select, graphView, needsHistorical, trace);
+  return applyPreferFilters(applyVariableEntityFilters(entities, select, ctx, trace), select.preferFilters, ctx, trace);
 }
 
 /**

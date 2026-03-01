@@ -6,34 +6,34 @@
  * Includes enrichment settings (moved from ConfigPanel).
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { useEntityNavList } from '../lib/db/entitySelectors';
-import { useEntityStore } from '../lib/db/entityStore';
-import { useProminenceScale } from '../lib/db/indexSelectors';
-import { useEntityCrud, reloadEntities } from '../hooks/useEntityCrud';
-import { useHistorianActions } from '../hooks/useHistorianActions';
-import { convertLongEditionsToLegacy } from '../lib/db/entityRepository';
-import { useIlluminatorModals } from '../lib/db/modalStore';
-import { getEnqueue, getCancel } from '../lib/db/enrichmentQueueBridge';
-import { useEnrichmentQueueStore } from '../lib/db/enrichmentQueueStore';
-import DescriptionMotifWeaver from './DescriptionMotifWeaver';
-import ImageModal from './ImageModal';
-import ImagePickerModal from './ImagePickerModal';
-import EntityDetailView from './EntityDetailView';
-import { ImageSettingsSummary } from './ImageSettingsDrawer';
-import { useImageUrl } from '../hooks/useImageUrl';
-import { formatCost } from '../lib/costEstimation';
-import {
-  prominenceLabelFromScale,
-  prominenceThresholdFromScale,
-} from '@canonry/world-schema';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import PropTypes from "prop-types";
+import { useEntityNavList } from "../lib/db/entitySelectors";
+import { useEntityStore } from "../lib/db/entityStore";
+import { useProminenceScale } from "../lib/db/indexSelectors";
+import { useEntityCrud, reloadEntities } from "../hooks/useEntityCrud";
+import { useHistorianActions } from "../hooks/useHistorianActions";
+import { convertLongEditionsToLegacy } from "../lib/db/entityRepository";
+import { useIlluminatorModals } from "../lib/db/modalStore";
+import { getEnqueue, getCancel } from "../lib/db/enrichmentQueueBridge";
+import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
+import DescriptionMotifWeaver from "./DescriptionMotifWeaver";
+import ImageModal from "./ImageModal";
+import ImagePickerModal from "./ImagePickerModal";
+import EntityDetailView from "./EntityDetailView";
+import { ImageSettingsSummary } from "./ImageSettingsDrawer";
+import { useImageUrl } from "@the-canonry/image-store";
+import { formatCost } from "../lib/costEstimation";
+import { prominenceLabelFromScale, prominenceThresholdFromScale } from "@canonry/world-schema";
+import "./EntityBrowser.css";
 // imageSettings imports removed - size/quality now in ImageSettingsDrawer
 
 // Highlight matching substring within text for search results
 function HighlightMatch({ text, query, truncate = 0, matchIndex }) {
   if (!query || !text) return text;
   const idx = matchIndex != null ? matchIndex : text.toLowerCase().indexOf(query.toLowerCase());
-  if (idx === -1) return truncate > 0 && text.length > truncate ? text.slice(0, truncate) + '\u2026' : text;
+  if (idx === -1)
+    return truncate > 0 && text.length > truncate ? text.slice(0, truncate) + "\u2026" : text;
 
   let displayText = text;
   let displayIdx = idx;
@@ -43,7 +43,10 @@ function HighlightMatch({ text, query, truncate = 0, matchIndex }) {
     const contextRadius = Math.floor(truncate / 2);
     const winStart = Math.max(0, idx - contextRadius);
     const winEnd = Math.min(text.length, idx + query.length + contextRadius);
-    displayText = (winStart > 0 ? '\u2026' : '') + text.slice(winStart, winEnd) + (winEnd < text.length ? '\u2026' : '');
+    displayText =
+      (winStart > 0 ? "\u2026" : "") +
+      text.slice(winStart, winEnd) +
+      (winEnd < text.length ? "\u2026" : "");
     displayIdx = idx - winStart + (winStart > 0 ? 1 : 0);
   }
 
@@ -54,9 +57,7 @@ function HighlightMatch({ text, query, truncate = 0, matchIndex }) {
   return (
     <>
       {before}
-      <span style={{ background: 'rgba(245, 158, 11, 0.25)', color: 'var(--text-primary)', fontWeight: 600, borderRadius: '2px', padding: '0 1px' }}>
-        {match}
-      </span>
+      <span className="eb-highlight">{match}</span>
       {after}
     </>
   );
@@ -76,7 +77,7 @@ function ImageThumbnail({ imageId, alt, onClick }) {
           observer.disconnect();
         }
       },
-      { threshold: 0.1 },
+      { threshold: 0.1 }
     );
     observer.observe(containerRef.current);
     return () => observer.disconnect();
@@ -86,59 +87,36 @@ function ImageThumbnail({ imageId, alt, onClick }) {
   const { url, loading, error } = useImageUrl(visible ? imageId : null);
 
   const placeholder = (text, title) => (
-    <div
-      ref={containerRef}
-      style={{
-        width: '80px',
-        height: '80px',
-        borderRadius: '4px',
-        background: 'var(--bg-tertiary)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--text-muted)',
-        fontSize: '10px',
-      }}
-      title={title}
-    >
+    <div ref={containerRef} className="eb-thumb" title={title}>
       {text}
     </div>
   );
 
-  if (!visible || loading) return placeholder('Loading...');
-  if (error || !url) return placeholder('No image', error || 'Image not found');
+  if (!visible || loading) return placeholder("Loading...");
+  if (error || !url) return placeholder("No image", error || "Image not found");
 
   return (
-    <div ref={containerRef} style={{ cursor: 'pointer' }} onClick={() => onClick(imageId, alt)}>
-      <img
-        src={url}
-        alt={alt}
-        style={{
-          width: '80px',
-          height: '80px',
-          objectFit: 'cover',
-          borderRadius: '4px',
-        }}
-      />
+    <div ref={containerRef} className="eb-thumb-clickable" onClick={() => onClick(imageId, alt)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+      <img src={url} alt={alt} className="eb-thumb-img" />
     </div>
   );
 }
 
-const PROMINENCE_ORDER = ['mythic', 'renowned', 'recognized', 'marginal', 'forgotten'];
+const PROMINENCE_ORDER = ["mythic", "renowned", "recognized", "marginal", "forgotten"];
 
 const PROMINENCE_OPTIONS = [
-  { value: 'mythic', label: 'Mythic' },
-  { value: 'renowned', label: 'Renowned' },
-  { value: 'recognized', label: 'Recognized' },
-  { value: 'marginal', label: 'Marginal' },
-  { value: 'forgotten', label: 'Forgotten' },
+  { value: "mythic", label: "Mythic" },
+  { value: "renowned", label: "Renowned" },
+  { value: "recognized", label: "Recognized" },
+  { value: "marginal", label: "Marginal" },
+  { value: "forgotten", label: "Forgotten" },
 ];
 
 function prominenceAtLeast(prominence, minProminence, scale) {
-  if (typeof prominence === 'number' && Number.isFinite(prominence)) {
+  if (typeof prominence === "number" && Number.isFinite(prominence)) {
     return prominence >= prominenceThresholdFromScale(minProminence, scale);
   }
-  if (typeof prominence === 'string') {
+  if (typeof prominence === "string") {
     const prominenceIndex = scale.labels.indexOf(prominence);
     const minIndex = scale.labels.indexOf(minProminence);
     return prominenceIndex >= 0 && minIndex >= 0 && prominenceIndex >= minIndex;
@@ -147,42 +125,20 @@ function prominenceAtLeast(prominence, minProminence, scale) {
 }
 
 function EnrichmentStatusBadge({ status, label, cost }) {
-  const styles = {
-    missing: { background: 'var(--bg-tertiary)', color: 'var(--text-muted)' },
-    queued: { background: '#3b82f6', color: 'white' },
-    running: { background: '#f59e0b', color: 'white' },
-    complete: { background: '#10b981', color: 'white' },
-    error: { background: '#ef4444', color: 'white' },
-    disabled: { background: 'var(--bg-tertiary)', color: 'var(--text-muted)', opacity: 0.5 },
-  };
-
   const icons = {
-    missing: '○',
-    queued: '◷',
-    running: '◐',
-    complete: '✓',
-    error: '✗',
-    disabled: '─',
+    missing: "○",
+    queued: "◷",
+    running: "◐",
+    complete: "✓",
+    error: "✗",
+    disabled: "─",
   };
 
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '2px 8px',
-        borderRadius: '4px',
-        fontSize: '11px',
-        fontWeight: 500,
-        ...styles[status],
-      }}
-    >
+    <span className={`eb-badge eb-badge--${status}`}>
       <span>{icons[status]}</span>
       <span>{label}</span>
-      {cost !== undefined && (
-        <span style={{ opacity: 0.8, marginLeft: '2px' }}>{cost}</span>
-      )}
+      {cost !== undefined && <span className="eb-badge-cost">{cost}</span>}
     </span>
   );
 }
@@ -212,61 +168,43 @@ function EntityRow({
   prominenceScale,
 }) {
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '32px 1fr auto',
-        gap: '12px',
-        padding: '12px',
-        borderBottom: '1px solid var(--border-color)',
-        alignItems: 'start',
-      }}
-    >
+    <div className="eb-row">
       {/* Checkbox */}
-      <div style={{ paddingTop: '2px' }}>
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onToggleSelect}
-          style={{ cursor: 'pointer' }}
-        />
+      <div className="eb-row-checkbox">
+        <input type="checkbox" checked={selected} onChange={onToggleSelect} />
       </div>
 
       {/* Entity info */}
       <div>
-        <div
-          style={{
-            fontWeight: 500,
-            marginBottom: '4px',
-            cursor: 'pointer',
-            color: 'var(--accent-color)',
-          }}
-          onClick={onEntityClick}
-          title="Click to view entity details"
-        >
+        <div className="eb-row-name" onClick={onEntityClick} title="Click to view entity details" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onEntityClick(e); }} >
           {entity.name}
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="eb-row-meta">
           <span>
-            {entity.kind}/{entity.subtype} · {prominenceLabelFromScale(entity.prominence, prominenceScale)}
+            {entity.kind}/{entity.subtype} ·{" "}
+            {prominenceLabelFromScale(entity.prominence, prominenceScale)}
             {entity.culture && ` · ${entity.culture}`}
           </span>
           {entity.historianEditionCount > 0 && (
             <span
-              title={`${entity.historianEditionCount} historian edition${entity.historianEditionCount !== 1 ? 's' : ''}`}
-              style={{
-                color: entity.historianEditionCount >= 2 ? '#10b981' : '#f59e0b',
-                fontSize: '10px',
-              }}
+              title={`${entity.historianEditionCount} historian edition${entity.historianEditionCount !== 1 ? "s" : ""}`}
+              className={
+                entity.historianEditionCount >= 2
+                  ? "eb-row-edition-count eb-row-edition-count-many"
+                  : "eb-row-edition-count eb-row-edition-count-few"
+              }
             >
-              {'\u270E'}{entity.historianEditionCount}
+              {"\u270E"}
+              {entity.historianEditionCount}
             </span>
           )}
           {onEditEntity && entity.isManual && (
             <button
-              onClick={(e) => { e.stopPropagation(); onEditEntity(entity); }}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: '2px 8px', fontSize: '10px' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditEntity(entity);
+              }}
+              className="illuminator-button illuminator-button-secondary eb-row-btn-sm"
               title="Edit entity attributes"
             >
               Edit
@@ -274,9 +212,11 @@ function EntityRow({
           )}
           {onDeleteEntity && entity.isManual && (
             <button
-              onClick={(e) => { e.stopPropagation(); onDeleteEntity(entity); }}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: '2px 8px', fontSize: '10px', color: '#ef4444' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteEntity(entity);
+              }}
+              className="illuminator-button illuminator-button-secondary eb-row-btn-sm eb-row-btn-sm-danger"
               title="Delete this manually-created entity"
             >
               Delete
@@ -285,23 +225,16 @@ function EntityRow({
         </div>
 
         {/* Content row: description and image side by side */}
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="eb-row-content">
           {/* Description preview if exists */}
           {entity.summary && (
             <div
-              style={{
-                flex: 1,
-                fontSize: '12px',
-                color: 'var(--text-secondary)',
-                padding: '8px',
-                background: 'var(--bg-tertiary)',
-                borderRadius: '4px',
-                maxHeight: '80px',
-                overflow: 'hidden',
-                cursor: 'pointer',
-              }}
+              className="eb-row-summary"
               onClick={onEntityClick}
               title="Click to view entity details"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onEntityClick(e); }}
             >
               {entity.summary}
             </div>
@@ -309,52 +242,44 @@ function EntityRow({
 
           {/* Image preview if exists */}
           {entity.imageId && (
-            <ImageThumbnail
-              imageId={entity.imageId}
-              alt={entity.name}
-              onClick={onImageClick}
-            />
+            <ImageThumbnail imageId={entity.imageId} alt={entity.name} onClick={onImageClick} />
           )}
         </div>
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
+      <div className="eb-row-actions">
         {/* Description status and action */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="eb-row-action-group">
           <EnrichmentStatusBadge status={descStatus} label="Desc" cost={descCost} />
-          {descStatus === 'missing' && (
+          {descStatus === "missing" && (
             <button
               onClick={onQueueDesc}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: '4px 8px', fontSize: '11px' }}
+              className="illuminator-button illuminator-button-secondary eb-row-action-btn"
             >
               Queue
             </button>
           )}
-          {(descStatus === 'queued' || descStatus === 'running') && (
+          {(descStatus === "queued" || descStatus === "running") && (
             <button
               onClick={onCancelDesc}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: '4px 8px', fontSize: '11px' }}
+              className="illuminator-button illuminator-button-secondary eb-row-action-btn"
             >
               Cancel
             </button>
           )}
-          {descStatus === 'error' && (
+          {descStatus === "error" && (
             <button
               onClick={onQueueDesc}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: '4px 8px', fontSize: '11px' }}
+              className="illuminator-button illuminator-button-secondary eb-row-action-btn"
             >
               Retry
             </button>
           )}
-          {descStatus === 'complete' && (
+          {descStatus === "complete" && (
             <button
               onClick={onQueueDesc}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: '4px 8px', fontSize: '11px' }}
+              className="illuminator-button illuminator-button-secondary eb-row-action-btn"
               title="Regenerate description"
             >
               Regen
@@ -363,33 +288,34 @@ function EntityRow({
         </div>
 
         {/* Visual thesis status and action — only show when description exists */}
-        {descStatus === 'complete' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {descStatus === "complete" && (
+          <div className="eb-row-action-group">
             <EnrichmentStatusBadge status={thesisStatus} label="Thesis" />
-            {(thesisStatus === 'missing' || thesisStatus === 'complete') && (
+            {(thesisStatus === "missing" || thesisStatus === "complete") && (
               <button
                 onClick={onQueueThesis}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
-                title={thesisStatus === 'complete' ? 'Regenerate visual thesis & traits' : 'Generate visual thesis & traits'}
+                className="illuminator-button illuminator-button-secondary eb-row-action-btn"
+                title={
+                  thesisStatus === "complete"
+                    ? "Regenerate visual thesis & traits"
+                    : "Generate visual thesis & traits"
+                }
               >
-                {thesisStatus === 'complete' ? 'Regen' : 'Queue'}
+                {thesisStatus === "complete" ? "Regen" : "Queue"}
               </button>
             )}
-            {(thesisStatus === 'queued' || thesisStatus === 'running') && (
+            {(thesisStatus === "queued" || thesisStatus === "running") && (
               <button
                 onClick={onCancelThesis}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
+                className="illuminator-button illuminator-button-secondary eb-row-action-btn"
               >
                 Cancel
               </button>
             )}
-            {thesisStatus === 'error' && (
+            {thesisStatus === "error" && (
               <button
                 onClick={onQueueThesis}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
+                className="illuminator-button illuminator-button-secondary eb-row-action-btn"
               >
                 Retry
               </button>
@@ -398,74 +324,67 @@ function EntityRow({
         )}
 
         {/* Image status and action */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <EnrichmentStatusBadge status={canQueueImage ? imgStatus : 'disabled'} label="Image" cost={canQueueImage ? imgCost : undefined} />
-          {needsDescription && (
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-              Needs desc first
-            </span>
-          )}
-          {canQueueImage && imgStatus === 'missing' && (
+        <div className="eb-row-action-group eb-row-action-group-wrap">
+          <EnrichmentStatusBadge
+            status={canQueueImage ? imgStatus : "disabled"}
+            label="Image"
+            cost={canQueueImage ? imgCost : undefined}
+          />
+          {needsDescription && <span className="eb-row-needs-desc">Needs desc first</span>}
+          {canQueueImage && imgStatus === "missing" && (
             <>
               <button
                 onClick={onQueueImg}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
+                className="illuminator-button illuminator-button-secondary eb-row-action-btn"
               >
                 Queue
               </button>
               <button
                 onClick={onAssignImage}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
+                className="illuminator-button illuminator-button-secondary eb-row-action-btn"
                 title="Assign existing image from library"
               >
                 Assign
               </button>
             </>
           )}
-          {canQueueImage && (imgStatus === 'queued' || imgStatus === 'running') && (
+          {canQueueImage && (imgStatus === "queued" || imgStatus === "running") && (
             <button
               onClick={onCancelImg}
-              className="illuminator-button illuminator-button-secondary"
-              style={{ padding: '4px 8px', fontSize: '11px' }}
+              className="illuminator-button illuminator-button-secondary eb-row-action-btn"
             >
               Cancel
             </button>
           )}
-          {canQueueImage && imgStatus === 'error' && (
+          {canQueueImage && imgStatus === "error" && (
             <>
               <button
                 onClick={onQueueImg}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
+                className="illuminator-button illuminator-button-secondary eb-row-action-btn"
               >
                 Retry
               </button>
               <button
                 onClick={onAssignImage}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
+                className="illuminator-button illuminator-button-secondary eb-row-action-btn"
                 title="Assign existing image from library"
               >
                 Assign
               </button>
             </>
           )}
-          {canQueueImage && imgStatus === 'complete' && (
+          {canQueueImage && imgStatus === "complete" && (
             <>
               <button
                 onClick={onQueueImg}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
+                className="illuminator-button illuminator-button-secondary eb-row-action-btn"
                 title="Regenerate image"
               >
                 Regen
               </button>
               <button
                 onClick={onAssignImage}
-                className="illuminator-button illuminator-button-secondary"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
+                className="illuminator-button illuminator-button-secondary eb-row-action-btn"
                 title="Assign different image from library"
               >
                 Assign
@@ -480,18 +399,62 @@ function EntityRow({
 
 // Helper to get cost display for a nav item
 function getNavItemCostDisplay(navItem, type, status) {
-  if (status !== 'complete') return undefined;
-  if (type === 'description' && navItem.descriptionCost) {
+  if (status !== "complete") return undefined;
+  if (type === "description" && navItem.descriptionCost) {
     return formatCost(navItem.descriptionCost);
   }
-  if (type === 'image' && navItem.imageCost) {
+  if (type === "image" && navItem.imageCost) {
     return formatCost(navItem.imageCost);
   }
   return undefined;
 }
 
+HighlightMatch.propTypes = {
+  text: PropTypes.string,
+  query: PropTypes.string,
+  truncate: PropTypes.number,
+  matchIndex: PropTypes.number,
+};
+
+ImageThumbnail.propTypes = {
+  imageId: PropTypes.string,
+  alt: PropTypes.string,
+  onClick: PropTypes.func,
+};
+
+EnrichmentStatusBadge.propTypes = {
+  status: PropTypes.string,
+  label: PropTypes.string,
+  cost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};
+
+EntityRow.propTypes = {
+  entity: PropTypes.object,
+  descStatus: PropTypes.string,
+  imgStatus: PropTypes.string,
+  thesisStatus: PropTypes.string,
+  selected: PropTypes.bool,
+  onToggleSelect: PropTypes.func,
+  onQueueDesc: PropTypes.func,
+  onQueueThesis: PropTypes.func,
+  onQueueImg: PropTypes.func,
+  onCancelDesc: PropTypes.func,
+  onCancelThesis: PropTypes.func,
+  onCancelImg: PropTypes.func,
+  onAssignImage: PropTypes.func,
+  canQueueImage: PropTypes.bool,
+  needsDescription: PropTypes.bool,
+  onImageClick: PropTypes.func,
+  onEntityClick: PropTypes.func,
+  onEditEntity: PropTypes.func,
+  onDeleteEntity: PropTypes.func,
+  descCost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  imgCost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  prominenceScale: PropTypes.object,
+};
+
 export default function EntityBrowser({
-  worldSchema,
+  worldSchema: _worldSchema,
   config,
   onConfigChange,
   buildPrompt,
@@ -507,34 +470,29 @@ export default function EntityBrowser({
   onNavigateToTab,
 }) {
   const navEntities = useEntityNavList();
-  const {
-    handleAssignImage,
-    handleDeleteEntity,
-    handleClearNotes,
-  } = useEntityCrud();
+  const { handleAssignImage, handleDeleteEntity } = useEntityCrud();
   const { historianConfigured } = useHistorianActions();
-  const { openRename, openPatchEvents, openCreateEntity, openEditEntity, openImageSettings } = useIlluminatorModals();
+  const { openCreateEntity, openEditEntity, openImageSettings } =
+    useIlluminatorModals();
   const queue = useEnrichmentQueueStore((s) => s.queue);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState(false);
   const searchInputRef = useRef(null);
   const [filters, setFilters] = useState({
-    kind: 'all',
-    prominence: 'all',
-    status: 'all',
-    culture: 'all',
-    chronicleImage: 'all',
+    kind: "all",
+    prominence: "all",
+    status: "all",
+    culture: "all",
+    chronicleImage: "all",
   });
   const prominenceScale = useProminenceScale();
   const [hideCompleted, setHideCompleted] = useState(false);
-  const [imageModal, setImageModal] = useState({ open: false, imageId: '', title: '' });
+  const [imageModal, setImageModal] = useState({ open: false, imageId: "", title: "" });
   const [selectedEntityId, setSelectedEntityId] = useState(null);
   const [imagePickerEntity, setImagePickerEntity] = useState(null);
   const [showMotifWeaver, setShowMotifWeaver] = useState(false);
-  const imageModel = config.imageModel || 'dall-e-3';
-
   // Get unique values for filters
   const filterOptions = useMemo(() => {
     const kinds = new Set();
@@ -561,29 +519,29 @@ export default function EntityBrowser({
       // Name match
       const nameIdx = entity.name.toLowerCase().indexOf(q);
       if (nameIdx !== -1) {
-        matches.push({ field: 'name', value: entity.name, matchIndex: nameIdx });
+        matches.push({ field: "name", value: entity.name, matchIndex: nameIdx });
       }
       // Alias matches
       for (const alias of entity.aliases) {
-        if (typeof alias !== 'string') continue;
+        if (typeof alias !== "string") continue;
         const aliasIdx = alias.toLowerCase().indexOf(q);
         if (aliasIdx !== -1) {
-          matches.push({ field: 'alias', value: alias, matchIndex: aliasIdx });
+          matches.push({ field: "alias", value: alias, matchIndex: aliasIdx });
         }
       }
       // Slug alias matches
       for (const slug of entity.slugAliases) {
-        if (typeof slug !== 'string') continue;
+        if (typeof slug !== "string") continue;
         const slugIdx = slug.toLowerCase().indexOf(q);
         if (slugIdx !== -1) {
-          matches.push({ field: 'slug alias', value: slug, matchIndex: slugIdx });
+          matches.push({ field: "slug alias", value: slug, matchIndex: slugIdx });
         }
       }
       // Summary text matches (only when searchText enabled)
       if (searchText && entity.summary) {
         const sumIdx = entity.summary.toLowerCase().indexOf(q);
         if (sumIdx !== -1) {
-          matches.push({ field: 'summary', value: entity.summary, matchIndex: sumIdx });
+          matches.push({ field: "summary", value: entity.summary, matchIndex: sumIdx });
         }
       }
       if (matches.length > 0) {
@@ -592,8 +550,8 @@ export default function EntityBrowser({
     }
     // Sort: name matches first, then by name alphabetically
     results.sort((a, b) => {
-      const aHasName = a.matches.some(m => m.field === 'name') ? 0 : 1;
-      const bHasName = b.matches.some(m => m.field === 'name') ? 0 : 1;
+      const aHasName = a.matches.some((m) => m.field === "name") ? 0 : 1;
+      const bHasName = b.matches.some((m) => m.field === "name") ? 0 : 1;
       if (aHasName !== bHasName) return aHasName - bHasName;
       return a.entity.name.localeCompare(b.entity.name);
     });
@@ -603,26 +561,24 @@ export default function EntityBrowser({
   const handleSearchSelect = useCallback((entityId) => {
     setSelectedEntityId(entityId);
     setSearchOpen(false);
-    setSearchQuery('');
+    setSearchQuery("");
   }, []);
 
   // Get enrichment status for a nav item
   const getStatus = useCallback(
     (nav, type) => {
       // Check queue first
-      const queueItem = queue.find(
-        (item) => item.entityId === nav.id && item.type === type
-      );
+      const queueItem = queue.find((item) => item.entityId === nav.id && item.type === type);
       if (queueItem) {
         return queueItem.status;
       }
 
       // Check nav item flags
-      if (type === 'description' && nav.hasDescription) return 'complete';
-      if (type === 'visualThesis' && nav.hasVisualThesis) return 'complete';
-      if (type === 'image' && nav.imageId) return 'complete';
+      if (type === "description" && nav.hasDescription) return "complete";
+      if (type === "visualThesis" && nav.hasVisualThesis) return "complete";
+      if (type === "image" && nav.imageId) return "complete";
 
-      return 'missing';
+      return "missing";
     },
     [queue]
   );
@@ -630,49 +586,49 @@ export default function EntityBrowser({
   // Filter entities via nav items
   const filteredNavItems = useMemo(() => {
     return navEntities.filter((nav) => {
-      if (filters.kind !== 'all' && nav.kind !== filters.kind) return false;
+      if (filters.kind !== "all" && nav.kind !== filters.kind) return false;
       if (
-        filters.prominence !== 'all' &&
+        filters.prominence !== "all" &&
         prominenceLabelFromScale(nav.prominence, prominenceScale) !== filters.prominence
       ) {
         return false;
       }
-      if (filters.culture !== 'all' && nav.culture !== filters.culture) return false;
+      if (filters.culture !== "all" && nav.culture !== filters.culture) return false;
 
-      const descStatus = getStatus(nav, 'description');
-      const imgStatus = getStatus(nav, 'image');
+      const descStatus = getStatus(nav, "description");
+      const imgStatus = getStatus(nav, "image");
 
       // Hide completed filter
-      if (hideCompleted && descStatus === 'complete' && imgStatus === 'complete') {
+      if (hideCompleted && descStatus === "complete" && imgStatus === "complete") {
         return false;
       }
 
-      if (filters.status !== 'all') {
-        if (filters.status === 'missing' && descStatus !== 'missing' && imgStatus !== 'missing') {
+      if (filters.status !== "all") {
+        if (filters.status === "missing" && descStatus !== "missing" && imgStatus !== "missing") {
           return false;
         }
-        if (filters.status === 'complete' && descStatus !== 'complete') {
+        if (filters.status === "complete" && descStatus !== "complete") {
           return false;
         }
-        if (filters.status === 'queued' && descStatus !== 'queued' && imgStatus !== 'queued') {
+        if (filters.status === "queued" && descStatus !== "queued" && imgStatus !== "queued") {
           return false;
         }
-        if (filters.status === 'running' && descStatus !== 'running' && imgStatus !== 'running') {
+        if (filters.status === "running" && descStatus !== "running" && imgStatus !== "running") {
           return false;
         }
-        if (filters.status === 'error' && descStatus !== 'error' && imgStatus !== 'error') {
+        if (filters.status === "error" && descStatus !== "error" && imgStatus !== "error") {
           return false;
         }
       }
 
       // Chronicle image filter
-      if (filters.chronicleImage !== 'all') {
-        if (filters.chronicleImage === 'none' && nav.backrefCount > 0) return false;
-        if (filters.chronicleImage === 'unconfigured') {
+      if (filters.chronicleImage !== "all") {
+        if (filters.chronicleImage === "none" && nav.backrefCount > 0) return false;
+        if (filters.chronicleImage === "unconfigured") {
           if (nav.backrefCount === 0) return false;
           if (nav.unconfiguredBackrefCount === 0) return false;
         }
-        if (filters.chronicleImage === 'configured') {
+        if (filters.chronicleImage === "configured") {
           if (nav.backrefCount === 0) return false;
           if (nav.unconfiguredBackrefCount > 0) return false;
         }
@@ -710,11 +666,15 @@ export default function EntityBrowser({
     async (entityId, type) => {
       const entity = await useEntityStore.getState().loadEntity(entityId);
       if (!entity) return;
-      const prompt = buildPrompt(entity, type === 'visualThesis' ? 'description' : type);
-      const visualConfig = (type === 'description' || type === 'visualThesis') && getVisualConfig ? getVisualConfig(entity) : {};
-      const imageOverrides = type === 'image'
-        ? { imageSize: imageGenSettings.imageSize, imageQuality: imageGenSettings.imageQuality }
-        : {};
+      const prompt = buildPrompt(entity, type === "visualThesis" ? "description" : type);
+      const visualConfig =
+        (type === "description" || type === "visualThesis") && getVisualConfig
+          ? getVisualConfig(entity)
+          : {};
+      const imageOverrides =
+        type === "image"
+          ? { imageSize: imageGenSettings.imageSize, imageQuality: imageGenSettings.imageQuality }
+          : {};
       getEnqueue()([{ entity, type, prompt, ...visualConfig, ...imageOverrides }]);
     },
     [buildPrompt, getVisualConfig, imageGenSettings.imageSize, imageGenSettings.imageQuality]
@@ -723,9 +683,7 @@ export default function EntityBrowser({
   // Cancel single item
   const cancelItem = useCallback(
     (entityId, type) => {
-      const queueItem = queue.find(
-        (item) => item.entityId === entityId && item.type === type
-      );
+      const queueItem = queue.find((item) => item.entityId === entityId && item.type === type);
       if (queueItem) {
         getCancel()(queueItem.id);
       }
@@ -738,7 +696,7 @@ export default function EntityBrowser({
     const missingIds = [];
     for (const entityId of selectedIds) {
       const nav = navEntities.find((e) => e.id === entityId);
-      if (nav && getStatus(nav, 'description') === 'missing') {
+      if (nav && getStatus(nav, "description") === "missing") {
         missingIds.push(entityId);
       }
     }
@@ -746,7 +704,12 @@ export default function EntityBrowser({
     const fullEntities = await useEntityStore.getState().loadEntities(missingIds);
     const items = fullEntities.map((entity) => {
       const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
-      return { entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig };
+      return {
+        entity,
+        type: "description",
+        prompt: buildPrompt(entity, "description"),
+        ...visualConfig,
+      };
     });
     if (items.length > 0) getEnqueue()(items);
   }, [selectedIds, navEntities, getStatus, buildPrompt, getVisualConfig]);
@@ -759,7 +722,7 @@ export default function EntityBrowser({
       if (
         nav &&
         prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
-        getStatus(nav, 'image') === 'missing' &&
+        getStatus(nav, "image") === "missing" &&
         (!config.requireDescription || nav.hasDescription)
       ) {
         eligibleIds.push(entityId);
@@ -769,8 +732,8 @@ export default function EntityBrowser({
     const fullEntities = await useEntityStore.getState().loadEntities(eligibleIds);
     const items = fullEntities.map((entity) => ({
       entity,
-      type: 'image',
-      prompt: buildPrompt(entity, 'image'),
+      type: "image",
+      prompt: buildPrompt(entity, "image"),
       imageSize: imageGenSettings.imageSize,
       imageQuality: imageGenSettings.imageQuality,
     }));
@@ -792,7 +755,7 @@ export default function EntityBrowser({
     const completeIds = [];
     for (const entityId of selectedIds) {
       const nav = navEntities.find((e) => e.id === entityId);
-      if (nav && getStatus(nav, 'description') === 'complete') {
+      if (nav && getStatus(nav, "description") === "complete") {
         completeIds.push(entityId);
       }
     }
@@ -800,7 +763,12 @@ export default function EntityBrowser({
     const fullEntities = await useEntityStore.getState().loadEntities(completeIds);
     const items = fullEntities.map((entity) => {
       const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
-      return { entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig };
+      return {
+        entity,
+        type: "description",
+        prompt: buildPrompt(entity, "description"),
+        ...visualConfig,
+      };
     });
     if (items.length > 0) getEnqueue()(items);
   }, [selectedIds, navEntities, getStatus, buildPrompt, getVisualConfig]);
@@ -813,7 +781,7 @@ export default function EntityBrowser({
       if (
         nav &&
         prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
-        getStatus(nav, 'image') === 'complete'
+        getStatus(nav, "image") === "complete"
       ) {
         completeIds.push(entityId);
       }
@@ -822,8 +790,8 @@ export default function EntityBrowser({
     const fullEntities = await useEntityStore.getState().loadEntities(completeIds);
     const items = fullEntities.map((entity) => ({
       entity,
-      type: 'image',
-      prompt: buildPrompt(entity, 'image'),
+      type: "image",
+      prompt: buildPrompt(entity, "image"),
       imageSize: imageGenSettings.imageSize,
       imageQuality: imageGenSettings.imageQuality,
     }));
@@ -842,25 +810,33 @@ export default function EntityBrowser({
   // Quick action: queue all missing descriptions — filter on nav, load full for prompt
   const queueAllMissingDescriptions = useCallback(async () => {
     const missingIds = filteredNavItems
-      .filter((nav) => getStatus(nav, 'description') === 'missing')
+      .filter((nav) => getStatus(nav, "description") === "missing")
       .map((nav) => nav.id);
     if (missingIds.length === 0) return;
     const fullEntities = await useEntityStore.getState().loadEntities(missingIds);
     const items = fullEntities.map((entity) => {
       const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
-      return { entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig };
+      return {
+        entity,
+        type: "description",
+        prompt: buildPrompt(entity, "description"),
+        ...visualConfig,
+      };
     });
     if (items.length > 0) getEnqueue()(items);
   }, [filteredNavItems, getStatus, buildPrompt, getVisualConfig]);
 
   // Quick action: queue all missing images (and dependent descriptions if required)
   const queueAllMissingImages = useCallback(async () => {
-    const eligibleNavs = filteredNavItems.filter((nav) =>
-      prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
-      getStatus(nav, 'image') === 'missing'
+    const eligibleNavs = filteredNavItems.filter(
+      (nav) =>
+        prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
+        getStatus(nav, "image") === "missing"
     );
     if (eligibleNavs.length === 0) return;
-    const fullEntities = await useEntityStore.getState().loadEntities(eligibleNavs.map((n) => n.id));
+    const fullEntities = await useEntityStore
+      .getState()
+      .loadEntities(eligibleNavs.map((n) => n.id));
     const entityMap = new Map(fullEntities.map((e) => [e.id, e]));
     const items = [];
     for (const nav of eligibleNavs) {
@@ -869,15 +845,20 @@ export default function EntityBrowser({
       if (
         config.requireDescription &&
         !nav.hasDescription &&
-        getStatus(nav, 'description') === 'missing'
+        getStatus(nav, "description") === "missing"
       ) {
         const visualConfig = getVisualConfig ? getVisualConfig(entity) : {};
-        items.push({ entity, type: 'description', prompt: buildPrompt(entity, 'description'), ...visualConfig });
+        items.push({
+          entity,
+          type: "description",
+          prompt: buildPrompt(entity, "description"),
+          ...visualConfig,
+        });
       }
       items.push({
         entity,
-        type: 'image',
-        prompt: buildPrompt(entity, 'image'),
+        type: "image",
+        prompt: buildPrompt(entity, "image"),
         imageSize: imageGenSettings.imageSize,
         imageQuality: imageGenSettings.imageQuality,
       });
@@ -901,43 +882,57 @@ export default function EntityBrowser({
     let imgCount = 0;
     let depDescCount = 0;
     for (const nav of filteredNavItems) {
-      if (getStatus(nav, 'description') === 'missing') descCount++;
+      if (getStatus(nav, "description") === "missing") descCount++;
       if (
         prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
-        getStatus(nav, 'image') === 'missing'
+        getStatus(nav, "image") === "missing"
       ) {
         imgCount++;
-        if (config.requireDescription && !nav.hasDescription && getStatus(nav, 'description') === 'missing') {
+        if (
+          config.requireDescription &&
+          !nav.hasDescription &&
+          getStatus(nav, "description") === "missing"
+        ) {
           depDescCount++;
         }
       }
     }
-    return { missingDescCount: descCount, missingImgCount: imgCount, dependentDescCount: depDescCount };
-  }, [filteredNavItems, getStatus, config.minProminenceForImage, config.requireDescription, prominenceScale]);
+    return {
+      missingDescCount: descCount,
+      missingImgCount: imgCount,
+      dependentDescCount: depDescCount,
+    };
+  }, [
+    filteredNavItems,
+    getStatus,
+    config.minProminenceForImage,
+    config.requireDescription,
+    prominenceScale,
+  ]);
 
   // Count entities eligible for bulk historian operations
-  const annotationEligibleCount = useMemo(() =>
-    filteredNavItems.filter(nav => nav.hasDescription && !nav.hasHistorianNotes).length,
+  const annotationEligibleCount = useMemo(
+    () => filteredNavItems.filter((nav) => nav.hasDescription && !nav.hasHistorianNotes).length,
     [filteredNavItems]
   );
 
-  const copyEditEligibleCount = useMemo(() =>
-    filteredNavItems.filter(nav => nav.hasDescription && !nav.hasHistorianEdition).length,
+  const copyEditEligibleCount = useMemo(
+    () => filteredNavItems.filter((nav) => nav.hasDescription && !nav.hasHistorianEdition).length,
     [filteredNavItems]
   );
 
-  const reEditionEligibleCount = useMemo(() =>
-    filteredNavItems.filter(nav => nav.hasDescription && nav.hasHistorianEdition).length,
+  const reEditionEligibleCount = useMemo(
+    () => filteredNavItems.filter((nav) => nav.hasDescription && nav.hasHistorianEdition).length,
     [filteredNavItems]
   );
 
-  const legacyConvertEligibleCount = useMemo(() =>
-    filteredNavItems.filter(nav => nav.hasHistorianEdition).length,
+  const legacyConvertEligibleCount = useMemo(
+    () => filteredNavItems.filter((nav) => nav.hasHistorianEdition).length,
     [filteredNavItems]
   );
 
-  const annotatedCount = useMemo(() =>
-    filteredNavItems.filter(nav => nav.hasHistorianNotes).length,
+  const annotatedCount = useMemo(
+    () => filteredNavItems.filter((nav) => nav.hasHistorianNotes).length,
     [filteredNavItems]
   );
 
@@ -971,7 +966,7 @@ export default function EntityBrowser({
 
       if (!chainDebug && !legacyDebug) {
         const qItem = queue.find(
-          (item) => item.entityId === entity.id && item.type === 'description' && item.debug
+          (item) => item.entityId === entity.id && item.type === "description" && item.debug
         );
         if (qItem?.debug) {
           legacyDebug = qItem.debug;
@@ -998,16 +993,16 @@ export default function EntityBrowser({
     }
 
     if (debugData.length === 0) {
-      alert('No debug data available for selected entities.');
+      alert("No debug data available for selected entities.");
       return;
     }
 
     const json = JSON.stringify(debugData, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `entity-debug-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `entity-debug-${new Date().toISOString().split("T")[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1018,7 +1013,7 @@ export default function EntityBrowser({
   const downloadSelectedEditions = useCallback(async () => {
     const ids = Array.from(selectedIds);
     const fullEntities = await useEntityStore.getState().loadEntities(ids);
-    const editionSources = new Set(['historian-edition', 'legacy-copy-edit']);
+    const editionSources = new Set(["historian-edition", "legacy-copy-edit"]);
     const exportEntries = [];
 
     for (const entity of fullEntities) {
@@ -1027,7 +1022,7 @@ export default function EntityBrowser({
 
       const historianEntries = history
         .map((entry, index) => ({ ...entry, historyIndex: index }))
-        .filter((entry) => editionSources.has(entry.source || ''));
+        .filter((entry) => editionSources.has(entry.source || ""));
 
       if (historianEntries.length === 0) continue;
 
@@ -1038,19 +1033,20 @@ export default function EntityBrowser({
         prominence: entity.prominence,
         updatedAt: entity.updatedAt,
         preHistorian: historianEntries[0].description,
-        legacyCopyEdit: historianEntries.length > 1
-          ? historianEntries[historianEntries.length - 1].description
-          : null,
+        legacyCopyEdit:
+          historianEntries.length > 1
+            ? historianEntries[historianEntries.length - 1].description
+            : null,
         active: entity.description,
       };
 
       const activeNotes = entity.enrichment?.historianNotes?.filter(
-        (n) => n.display !== 'disabled'
+        (n) => n.display !== "disabled"
       );
       if (activeNotes && activeNotes.length > 0) {
         entry.annotations = activeNotes.map((n) => ({
           type: n.type,
-          display: n.display || 'full',
+          display: n.display || "full",
           anchorPhrase: n.anchorPhrase,
           text: n.text,
         }));
@@ -1060,16 +1056,16 @@ export default function EntityBrowser({
     }
 
     if (exportEntries.length === 0) {
-      alert('No edition history available for selected entities.');
+      alert("No edition history available for selected entities.");
       return;
     }
 
     const json = JSON.stringify(exportEntries, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `edition-export-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`;
+    a.download = `edition-export-${new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1084,7 +1080,7 @@ export default function EntityBrowser({
 
     for (const entity of fullEntities) {
       const activeNotes = entity.enrichment?.historianNotes?.filter(
-        (n) => n.display !== 'disabled'
+        (n) => n.display !== "disabled"
       );
       if (!activeNotes || activeNotes.length === 0) continue;
 
@@ -1096,7 +1092,7 @@ export default function EntityBrowser({
         noteCount: activeNotes.length,
         annotations: activeNotes.map((n) => ({
           type: n.type,
-          display: n.display || 'full',
+          display: n.display || "full",
           anchorPhrase: n.anchorPhrase,
           text: n.text,
         })),
@@ -1104,7 +1100,7 @@ export default function EntityBrowser({
     }
 
     if (rows.length === 0) {
-      alert('No annotations found for selected entities.');
+      alert("No annotations found for selected entities.");
       return;
     }
 
@@ -1116,9 +1112,9 @@ export default function EntityBrowser({
     };
 
     const json = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `entity-annotation-review-${Date.now()}.json`;
     document.body.appendChild(a);
@@ -1140,7 +1136,9 @@ export default function EntityBrowser({
 
   // Load full entity for detail view (on demand from bounded cache)
   // Subscribe to store cache so updates (e.g. historian note display toggle) propagate reactively
-  const cachedEntity = useEntityStore((s) => selectedEntityId ? s.cache.get(selectedEntityId) : undefined);
+  const cachedEntity = useEntityStore((s) =>
+    selectedEntityId ? s.cache.get(selectedEntityId) : undefined
+  );
   const [selectedEntity, setSelectedEntity] = useState(null);
   useEffect(() => {
     if (selectedEntityId) {
@@ -1156,16 +1154,18 @@ export default function EntityBrowser({
   }, [selectedEntityId, cachedEntity]);
 
   // Handle edit — load full entity from store before opening edit modal
-  const handleEditEntity = useCallback(async (navItem) => {
-    const fullEntity = await useEntityStore.getState().loadEntity(navItem.id);
-    if (fullEntity) openEditEntity(fullEntity);
-  }, [openEditEntity]);
+  const handleEditEntity = useCallback(
+    async (navItem) => {
+      const fullEntity = await useEntityStore.getState().loadEntity(navItem.id);
+      if (fullEntity) openEditEntity(fullEntity);
+    },
+    [openEditEntity]
+  );
 
   // Progressive rendering — only render visible rows, load more on scroll
   const ENTITY_PAGE_SIZE = 20;
   const [visibleCount, setVisibleCount] = useState(ENTITY_PAGE_SIZE);
   const entityListRef = useRef(null);
-
 
   // Reset visible count when filters/search change
   useEffect(() => {
@@ -1184,31 +1184,30 @@ export default function EntityBrowser({
       }
     };
 
-    container.addEventListener('scroll', checkScrollPosition, { passive: true });
+    container.addEventListener("scroll", checkScrollPosition, { passive: true });
     // Check after paint — if content doesn't fill the container, load more immediately
     requestAnimationFrame(checkScrollPosition);
 
-    return () => container.removeEventListener('scroll', checkScrollPosition);
+    return () => container.removeEventListener("scroll", checkScrollPosition);
   }, [visibleCount, filteredNavItems.length]);
 
   const visibleNavItems = useMemo(
     () => filteredNavItems.slice(0, visibleCount),
-    [filteredNavItems, visibleCount],
+    [filteredNavItems, visibleCount]
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="eb">
       {/* Filters and Settings Card - fixed header */}
-      <div className="illuminator-card" style={{ flexShrink: 0 }}>
+      <div className="illuminator-card eb-settings-card">
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Entities</h2>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          <span className="eb-entity-count">
             {filteredNavItems.length} of {navEntities.length} entities
           </span>
           <button
             onClick={openCreateEntity}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '4px 10px', fontSize: '11px', marginLeft: '8px' }}
+            className="illuminator-button illuminator-button-secondary eb-add-entity-btn"
             title="Create a new entity manually"
           >
             + Add Entity
@@ -1216,8 +1215,8 @@ export default function EntityBrowser({
         </div>
 
         {/* Entity search bar */}
-        <div style={{ position: 'relative', marginBottom: '10px' }}>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div className="eb-search-wrap">
+          <div className="eb-search-row">
             <input
               ref={searchInputRef}
               type="text"
@@ -1226,21 +1225,26 @@ export default function EntityBrowser({
                 setSearchQuery(e.target.value);
                 if (e.target.value.trim().length >= 2) setSearchOpen(true);
               }}
-              onFocus={() => { if (searchQuery.trim().length >= 2) setSearchOpen(true); }}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); e.target.blur(); }
-                if (e.key === 'Enter' && searchResults.length > 0) handleSearchSelect(searchResults[0].entity.id);
+              onFocus={() => {
+                if (searchQuery.trim().length >= 2) setSearchOpen(true);
               }}
-              placeholder={searchText ? 'Search names, aliases, summaries, descriptions\u2026' : 'Search names, aliases\u2026'}
-              className="illuminator-select"
-              style={{
-                flex: 1,
-                padding: '6px 10px',
-              fontSize: '12px',
-              boxSizing: 'border-box',
-            }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                  e.target.blur();
+                }
+                if (e.key === "Enter" && searchResults.length > 0)
+                  handleSearchSelect(searchResults[0].entity.id);
+              }}
+              placeholder={
+                searchText
+                  ? "Search names, aliases, summaries, descriptions\u2026"
+                  : "Search names, aliases\u2026"
+              }
+              className="illuminator-select eb-search-input"
             />
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <label className="eb-search-text-label">
               <input
                 type="checkbox"
                 checked={searchText}
@@ -1250,30 +1254,13 @@ export default function EntityBrowser({
             </label>
           </div>
           {searchOpen && searchQuery.trim().length >= 2 && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                marginTop: '4px',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                zIndex: 200,
-                maxHeight: '400px',
-                overflowY: 'auto',
-              }}
-            >
+            <div className="eb-search-dropdown">
               {searchResults.length === 0 ? (
-                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
-                  No matches
-                </div>
+                <div className="eb-search-empty">No matches</div>
               ) : (
                 <>
-                  <div style={{ padding: '6px 12px', fontSize: '10px', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>
-                    {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+                  <div className="eb-search-count">
+                    {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
                   </div>
                   {searchResults.map(({ entity, matches }) => {
                     const q = searchQuery.trim().toLowerCase();
@@ -1281,28 +1268,33 @@ export default function EntityBrowser({
                       <div
                         key={entity.id}
                         onClick={() => handleSearchSelect(entity.id)}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          borderBottom: '1px solid var(--border-color)',
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        className="eb-search-result"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                       >
-                        <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                        <div className="eb-search-result-name">
                           <HighlightMatch text={entity.name} query={q} />
-                          <span style={{ marginLeft: '6px', fontSize: '10px', color: 'var(--text-muted)' }}>
-                            {entity.kind}{entity.subtype ? `/${entity.subtype}` : ''}
+                          <span className="eb-search-result-kind">
+                            {entity.kind}
+                            {entity.subtype ? `/${entity.subtype}` : ""}
                           </span>
                         </div>
-                        {matches.filter(m => m.field !== 'name').map((m, i) => (
-                          <div key={i} style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                            <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: '6px', color: 'var(--text-muted)', opacity: 0.7 }}>
-                              {m.field}
-                            </span>
-                            <HighlightMatch text={m.value} query={q} truncate={m.field === 'summary' || m.field === 'description' ? 120 : 0} matchIndex={m.matchIndex} />
-                          </div>
-                        ))}
+                        {matches
+                          .filter((m) => m.field !== "name")
+                          .map((m, i) => (
+                            <div key={i} className="eb-search-match-row">
+                              <span className="eb-search-match-field">{m.field}</span>
+                              <HighlightMatch
+                                text={m.value}
+                                query={q}
+                                truncate={
+                                  m.field === "summary" || m.field === "description" ? 120 : 0
+                                }
+                                matchIndex={m.matchIndex}
+                              />
+                            </div>
+                          ))}
                       </div>
                     );
                   })}
@@ -1312,21 +1304,19 @@ export default function EntityBrowser({
           )}
           {searchOpen && (
             <div
-              style={{ position: 'fixed', inset: 0, zIndex: 199 }}
-              onClick={() => { setSearchOpen(false); }}
+              className="eb-search-backdrop"
+              onClick={() => {
+                setSearchOpen(false);
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
             />
           )}
         </div>
 
         {/* Compact filters grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-            gap: '8px',
-            marginBottom: '12px',
-          }}
-        >
+        <div className="eb-filters">
           <select
             value={filters.kind}
             onChange={(e) => setFilters((prev) => ({ ...prev, kind: e.target.value }))}
@@ -1392,16 +1382,7 @@ export default function EntityBrowser({
             <option value="configured">Configured</option>
           </select>
 
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12px',
-              cursor: 'pointer',
-              padding: '6px 8px',
-            }}
-          >
+          <label className="eb-hide-completed-label">
             <input
               type="checkbox"
               checked={hideCompleted}
@@ -1412,24 +1393,12 @@ export default function EntityBrowser({
         </div>
 
         {/* Enrichment Settings - inline */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            padding: '8px 12px',
-            background: 'var(--bg-tertiary)',
-            borderRadius: '4px',
-            marginBottom: '12px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Image threshold:</span>
+        <div className="eb-enrichment-settings">
+          <span className="eb-enrichment-label">Image threshold:</span>
           <select
             value={config.minProminenceForImage}
             onChange={(e) => onConfigChange({ minProminenceForImage: e.target.value })}
-            className="illuminator-select"
-            style={{ width: 'auto', minWidth: '100px' }}
+            className="illuminator-select eb-enrichment-select"
           >
             {PROMINENCE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -1437,7 +1406,7 @@ export default function EntityBrowser({
               </option>
             ))}
           </select>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+          <span className="eb-enrichment-hint">
             Only entities at or above this prominence can have images generated
           </span>
         </div>
@@ -1450,51 +1419,36 @@ export default function EntityBrowser({
         />
 
         {/* Min Event Significance for Descriptions */}
-        <div style={{ marginBottom: '12px' }}>
-          <label
-            style={{
-              display: 'block',
-              marginBottom: '4px',
-              fontSize: '12px',
-              color: 'var(--text-secondary)',
-            }}
-          >
+        <div className="eb-event-significance">
+          <label htmlFor="min-event-importance-for-descriptions" className="eb-event-significance-label">
             Min Event Importance (for descriptions)
           </label>
-          <select
+          <select id="min-event-importance-for-descriptions"
             value={config.minEventSignificance ?? 0.25}
             onChange={(e) => onConfigChange({ minEventSignificance: parseFloat(e.target.value) })}
-            style={{
-              width: '100%',
-              padding: '6px 8px',
-              borderRadius: '4px',
-              border: '1px solid var(--border-color)',
-              background: 'var(--bg-primary)',
-              color: 'var(--text-primary)',
-              fontSize: '13px',
-            }}
+            className="eb-event-significance-select"
           >
             <option value={0}>All (&gt;0%)</option>
             <option value={0.25}>Low (&gt;25%)</option>
             <option value={0.5}>Medium (&gt;50%)</option>
             <option value={0.75}>High (&gt;75%)</option>
           </select>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+          <span className="eb-event-significance-hint">
             Include events above this significance in description prompts
           </span>
         </div>
 
         {/* Quick actions */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="eb-quick-actions">
           <button
-            onClick={queueAllMissingDescriptions}
+            onClick={() => void queueAllMissingDescriptions()}
             className="illuminator-button illuminator-button-secondary"
             disabled={missingDescCount === 0}
           >
             Queue All Descriptions ({missingDescCount})
           </button>
           <button
-            onClick={queueAllMissingImages}
+            onClick={() => void queueAllMissingImages()}
             className="illuminator-button illuminator-button-secondary"
             disabled={missingImgCount === 0}
           >
@@ -1508,52 +1462,58 @@ export default function EntityBrowser({
               disabled={isRevising}
               className="illuminator-button illuminator-button-secondary"
             >
-              {isRevising ? 'Revising...' : 'Revise Summaries'}
+              {isRevising ? "Revising..." : "Revise Summaries"}
             </button>
           )}
           {historianConfigured && onBulkHistorianReview && (
             <button
               onClick={() => {
-                const ids = filteredNavItems.filter(n => n.hasDescription && !n.hasHistorianNotes).map(n => n.id);
+                const ids = filteredNavItems
+                  .filter((n) => n.hasDescription && !n.hasHistorianNotes)
+                  .map((n) => n.id);
                 onBulkHistorianReview(ids);
               }}
               disabled={isBulkHistorianActive || annotationEligibleCount === 0}
               className="illuminator-button illuminator-button-secondary"
             >
-              {isBulkHistorianActive ? 'Running...' : `Annotate All (${annotationEligibleCount})`}
+              {isBulkHistorianActive ? "Running..." : `Annotate All (${annotationEligibleCount})`}
             </button>
           )}
           {historianConfigured && onBulkHistorianEdition && (
             <button
               onClick={() => {
-                const ids = filteredNavItems.filter(n => n.hasDescription && !n.hasHistorianEdition).map(n => n.id);
+                const ids = filteredNavItems
+                  .filter((n) => n.hasDescription && !n.hasHistorianEdition)
+                  .map((n) => n.id);
                 onBulkHistorianEdition(ids);
               }}
               disabled={isBulkHistorianActive || copyEditEligibleCount === 0}
               className="illuminator-button illuminator-button-secondary"
             >
-              {isBulkHistorianActive ? 'Running...' : `Copy Edit All (${copyEditEligibleCount})`}
+              {isBulkHistorianActive ? "Running..." : `Copy Edit All (${copyEditEligibleCount})`}
             </button>
           )}
           {historianConfigured && onBulkHistorianEdition && reEditionEligibleCount > 0 && (
             <button
               onClick={() => {
-                const ids = filteredNavItems.filter(n => n.hasDescription && n.hasHistorianEdition).map(n => n.id);
+                const ids = filteredNavItems
+                  .filter((n) => n.hasDescription && n.hasHistorianEdition)
+                  .map((n) => n.id);
                 onBulkHistorianEdition(ids, true);
               }}
               disabled={isBulkHistorianActive}
               className="illuminator-button illuminator-button-secondary"
             >
-              {isBulkHistorianActive ? 'Running...' : `Re-Edit All (${reEditionEligibleCount})`}
+              {isBulkHistorianActive ? "Running..." : `Re-Edit All (${reEditionEligibleCount})`}
             </button>
           )}
           {historianConfigured && legacyConvertEligibleCount > 0 && (
             <button
-              onClick={async () => {
-                const ids = filteredNavItems.filter(n => n.hasHistorianEdition).map(n => n.id);
+              onClick={() => { void (async () => {
+                const ids = filteredNavItems.filter((n) => n.hasHistorianEdition).map((n) => n.id);
                 const count = await convertLongEditionsToLegacy(ids);
                 if (count > 0) await reloadEntities(ids);
-              }}
+              })(); }}
               disabled={isBulkHistorianActive}
               className="illuminator-button illuminator-button-secondary"
               title="Relabel all historian-edition entries as legacy copy edits"
@@ -1564,7 +1524,7 @@ export default function EntityBrowser({
           {historianConfigured && annotatedCount > 0 && onBulkHistorianClear && (
             <button
               onClick={() => {
-                const ids = filteredNavItems.filter(n => n.hasHistorianNotes).map(n => n.id);
+                const ids = filteredNavItems.filter((n) => n.hasHistorianNotes).map((n) => n.id);
                 onBulkHistorianClear(ids);
               }}
               disabled={isBulkHistorianActive}
@@ -1576,7 +1536,7 @@ export default function EntityBrowser({
           )}
           {historianConfigured && annotatedCount > 0 && onNavigateToTab && (
             <button
-              onClick={() => onNavigateToTab('finaledit')}
+              onClick={() => onNavigateToTab("finaledit")}
               disabled={isBulkHistorianActive}
               className="illuminator-button illuminator-button-secondary"
               title="Find and replace across corpus (Final Edit tab)"
@@ -1599,84 +1559,58 @@ export default function EntityBrowser({
 
       {/* Selection actions - fixed */}
       {selectedIds.size > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '12px 16px',
-            marginBottom: '16px',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--accent-color)',
-            borderRadius: '6px',
-            flexWrap: 'wrap',
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: '13px' }}>
-            {selectedIds.size} selected
-          </span>
+        <div className="ilu-selection-bar eb-selection-bar">
+          <span className="eb-selection-count">{selectedIds.size} selected</span>
           <button
-            onClick={queueSelectedDescriptions}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '6px 12px', fontSize: '12px' }}
+            onClick={() => void queueSelectedDescriptions()}
+            className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Queue missing descriptions"
           >
             Queue Desc
           </button>
           <button
-            onClick={queueSelectedImages}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '6px 12px', fontSize: '12px' }}
+            onClick={() => void queueSelectedImages()}
+            className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Queue missing images"
           >
             Queue Img
           </button>
           <button
-            onClick={regenSelectedDescriptions}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '6px 12px', fontSize: '12px' }}
+            onClick={() => void regenSelectedDescriptions()}
+            className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Regenerate existing descriptions"
           >
             Regen Desc
           </button>
           <button
-            onClick={regenSelectedImages}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '6px 12px', fontSize: '12px' }}
+            onClick={() => void regenSelectedImages()}
+            className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Regenerate existing images"
           >
             Regen Img
           </button>
           <button
-            onClick={downloadSelectedDebug}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '6px 12px', fontSize: '12px' }}
+            onClick={() => void downloadSelectedDebug()}
+            className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Download debug request/response data for selected entities"
           >
             Download Debug
           </button>
           <button
-            onClick={downloadSelectedEditions}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '6px 12px', fontSize: '12px' }}
+            onClick={() => void downloadSelectedEditions()}
+            className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Export pre-historian, legacy, and active description versions + annotations for selected entities"
           >
             Export Editions
           </button>
           <button
-            onClick={downloadSelectedAnnotations}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '6px 12px', fontSize: '12px' }}
+            onClick={() => void downloadSelectedAnnotations()}
+            className="illuminator-button illuminator-button-secondary eb-selection-btn"
             title="Export historian annotations for selected entities (name, kind, prominence)"
           >
             Export Annotations
           </button>
-          <button
-            onClick={clearSelection}
-            className="illuminator-button-link"
-            style={{ marginLeft: 'auto' }}
-          >
+          <button onClick={clearSelection} className="illuminator-button-link eb-selection-clear">
             Clear
           </button>
         </div>
@@ -1690,42 +1624,27 @@ export default function EntityBrowser({
           onBack={() => setSelectedEntityId(null)}
         />
       ) : (
-        <div className="illuminator-card" style={{ padding: 0, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div className="illuminator-card eb-list-card">
           {/* Header row - sticky */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '8px 12px',
-              borderBottom: '1px solid var(--border-color)',
-              background: 'var(--bg-tertiary)',
-              flexShrink: 0,
-            }}
-          >
+          <div className="eb-list-header">
             <input
               type="checkbox"
               checked={selectedIds.size === filteredNavItems.length && filteredNavItems.length > 0}
               onChange={(e) => (e.target.checked ? selectAll() : clearSelection())}
-              style={{ cursor: 'pointer' }}
             />
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Select all
-            </span>
+            <span className="eb-list-header-label">Select all</span>
           </div>
 
           {/* Entity rows - scrollable container with progressive rendering */}
-          <div ref={entityListRef} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          <div ref={entityListRef} className="eb-list-scroll">
             {filteredNavItems.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                No entities match the current filters.
-              </div>
+              <div className="ilu-empty eb-list-empty">No entities match the current filters.</div>
             ) : (
               <>
                 {visibleNavItems.map((nav) => {
-                  const descStatus = getStatus(nav, 'description');
-                  const imgStatus = getStatus(nav, 'image');
-                  const thesisStatus = getStatus(nav, 'visualThesis');
+                  const descStatus = getStatus(nav, "description");
+                  const imgStatus = getStatus(nav, "image");
+                  const thesisStatus = getStatus(nav, "visualThesis");
                   return (
                     <EntityRow
                       key={nav.id}
@@ -1735,19 +1654,27 @@ export default function EntityBrowser({
                       thesisStatus={thesisStatus}
                       selected={selectedIds.has(nav.id)}
                       onToggleSelect={() => toggleSelect(nav.id)}
-                      onQueueDesc={() => queueItem(nav.id, 'description')}
-                      onQueueThesis={() => queueItem(nav.id, 'visualThesis')}
-                      onQueueImg={() => queueItem(nav.id, 'image')}
-                      onCancelDesc={() => cancelItem(nav.id, 'description')}
-                      onCancelThesis={() => cancelItem(nav.id, 'visualThesis')}
-                      onCancelImg={() => cancelItem(nav.id, 'image')}
+                      onQueueDesc={() => queueItem(nav.id, "description")}
+                      onQueueThesis={() => queueItem(nav.id, "visualThesis")}
+                      onQueueImg={() => queueItem(nav.id, "image")}
+                      onCancelDesc={() => cancelItem(nav.id, "description")}
+                      onCancelThesis={() => cancelItem(nav.id, "visualThesis")}
+                      onCancelImg={() => cancelItem(nav.id, "image")}
                       onAssignImage={() => openImagePicker(nav)}
                       canQueueImage={
-                        prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
+                        prominenceAtLeast(
+                          nav.prominence,
+                          config.minProminenceForImage,
+                          prominenceScale
+                        ) &&
                         (!config.requireDescription || nav.hasDescription)
                       }
                       needsDescription={
-                        prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
+                        prominenceAtLeast(
+                          nav.prominence,
+                          config.minProminenceForImage,
+                          prominenceScale
+                        ) &&
                         config.requireDescription &&
                         !nav.hasDescription
                       }
@@ -1755,16 +1682,14 @@ export default function EntityBrowser({
                       onEntityClick={() => openEntityModal(nav)}
                       onEditEntity={handleEditEntity}
                       onDeleteEntity={handleDeleteEntity}
-                      descCost={getNavItemCostDisplay(nav, 'description', descStatus)}
-                      imgCost={getNavItemCostDisplay(nav, 'image', imgStatus)}
+                      descCost={getNavItemCostDisplay(nav, "description", descStatus)}
+                      imgCost={getNavItemCostDisplay(nav, "image", imgStatus)}
                       prominenceScale={prominenceScale}
                     />
                   );
                 })}
                 {visibleCount < filteredNavItems.length && (
-                  <div
-                    style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}
-                  >
+                  <div className="ilu-empty eb-list-loading">
                     Loading more... ({visibleCount} of {filteredNavItems.length})
                   </div>
                 )}
@@ -1779,7 +1704,7 @@ export default function EntityBrowser({
         isOpen={imageModal.open}
         imageId={imageModal.imageId}
         title={imageModal.title}
-        onClose={() => setImageModal({ open: false, imageId: '', title: '' })}
+        onClose={() => setImageModal({ open: false, imageId: "", title: "" })}
       />
 
       {/* Image Picker Modal */}
@@ -1793,9 +1718,24 @@ export default function EntityBrowser({
       />
 
       {/* Description Motif Weaver */}
-      {showMotifWeaver && (
-        <DescriptionMotifWeaver onClose={() => setShowMotifWeaver(false)} />
-      )}
+      {showMotifWeaver && <DescriptionMotifWeaver onClose={() => setShowMotifWeaver(false)} />}
     </div>
   );
 }
+
+EntityBrowser.propTypes = {
+  worldSchema: PropTypes.object,
+  config: PropTypes.object,
+  onConfigChange: PropTypes.func,
+  buildPrompt: PropTypes.func,
+  getVisualConfig: PropTypes.func,
+  styleLibrary: PropTypes.object,
+  imageGenSettings: PropTypes.object,
+  onStartRevision: PropTypes.func,
+  isRevising: PropTypes.bool,
+  onBulkHistorianReview: PropTypes.func,
+  onBulkHistorianEdition: PropTypes.func,
+  onBulkHistorianClear: PropTypes.func,
+  isBulkHistorianActive: PropTypes.bool,
+  onNavigateToTab: PropTypes.func,
+};

@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/pseudo-random -- simulation probability rolls throughout, not security */
 import { SimulationSystem, SystemResult } from '../engine/types';
 import { FRAMEWORK_TAGS } from '@canonry/world-schema';
 import { HardState, Relationship } from '../core/worldTypes';
@@ -82,6 +83,254 @@ interface ExtendedActionOutcome {
 /**
  * Create a Universal Catalyst system with the given configuration.
  */
+
+// =============================================================================
+// CATALYST ACCUMULATOR TYPES
+// =============================================================================
+
+interface AgentActionContext {
+  source: 'action';
+  sourceId: string;
+  success: boolean;
+}
+
+type EntityMod = { id: string; changes: Partial<HardState>; actionContext?: AgentActionContext };
+type RelAdded = Relationship & { actionContext?: AgentActionContext };
+type RelAdjusted = { kind: string; src: string; dst: string; delta: number; actionContext?: AgentActionContext };
+type RelArchive = { kind: string; src: string; dst: string; actionContext?: AgentActionContext };
+type ProminenceChange = { entityId: string; entityName: string; direction: 'up' | 'down' };
+
+interface CatalystAccumulator {
+  relationshipsAdded: RelAdded[];
+  relationshipsAdjusted: RelAdjusted[];
+  relationshipsToArchive: RelArchive[];
+  entitiesModified: EntityMod[];
+  pressureChanges: Record<string, number>;
+  actionNarrations: Map<string, string>;
+}
+
+interface AgentCounters { actionsAttempted: number; actionsSucceeded: number; }
+
+// =============================================================================
+// CATALYST HELPERS
+// =============================================================================
+
+function collectOutcomeResults(
+  agent: HardState,
+  outcome: ExtendedActionOutcome,
+  actionContext: AgentActionContext,
+  graphView: WorldRuntime,
+  acc: CatalystAccumulator
+): void {
+  if (outcome.narration) acc.actionNarrations.set(actionContext.sourceId, outcome.narration);
+  for (const mod of outcome.entitiesModified ?? []) acc.entitiesModified.push({ ...mod, actionContext });
+  for (const adj of outcome.relationshipsAdjusted ?? []) acc.relationshipsAdjusted.push({ ...adj, actionContext });
+  for (const arch of outcome.relationshipsToArchive ?? []) acc.relationshipsToArchive.push({ ...arch, actionContext });
+  if (outcome.pressureChanges) {
+    for (const [k, v] of Object.entries(outcome.pressureChanges)) {
+      acc.pressureChanges[k] = (acc.pressureChanges[k] ?? 0) + v;
+    }
+  }
+  for (const rel of outcome.relationships) {
+    rel.catalyzedBy = agent.id;
+    rel.createdAt = graphView.tick;
+    acc.relationshipsAdded.push({ ...rel, actionContext });
+  }
+}
+
+function applySuccessProminenceChanges(
+  agent: HardState,
+  selectedAction: ExecutableAction,
+  outcome: ExtendedActionOutcome,
+  actionContext: AgentActionContext,
+  graphView: WorldRuntime,
+  prominenceUpChance: number,
+  acc: CatalystAccumulator
+): ProminenceChange[] {
+  const changes: ProminenceChange[] = [];
+  const successDelta = selectedAction.actorProminenceDelta.onSuccess;
+  if (successDelta > 0 && Math.random() < prominenceUpChance && !hasTag(agent.tags, FRAMEWORK_TAGS.PROMINENCE_LOCKED)) {
+    acc.entitiesModified.push({ id: agent.id, changes: { prominence: clampProminence(agent.prominence + successDelta) }, actionContext });
+    changes.push({ entityId: agent.id, entityName: agent.name, direction: 'up' });
+  }
+  const targetDelta = selectedAction.targetProminenceDelta.onSuccess;
+  if (targetDelta !== 0 && outcome.targetId) {
+    const target = graphView.getEntity(outcome.targetId);
+    if (target && !hasTag(target.tags, FRAMEWORK_TAGS.PROMINENCE_LOCKED)) {
+      acc.entitiesModified.push({ id: target.id, changes: { prominence: clampProminence(target.prominence + targetDelta) }, actionContext });
+      changes.push({ entityId: target.id, entityName: target.name, direction: targetDelta > 0 ? 'up' : 'down' });
+    }
+  }
+  return changes;
+}
+
+function updateActionTracker(
+  tracker: NonNullable<WorldRuntime['config']['actionUsageTracker']>,
+  payload: ActionApplicationPayload
+): void {
+  tracker.applications.push(payload);
+  tracker.countsByActionId.set(payload.actionId, (tracker.countsByActionId.get(payload.actionId) ?? 0) + 1);
+  const currentActor = tracker.countsByActorId.get(payload.actorId);
+  if (currentActor) {
+    tracker.countsByActorId.set(payload.actorId, { name: payload.actorName, kind: payload.actorKind, count: currentActor.count + 1 });
+  } else {
+    tracker.countsByActorId.set(payload.actorId, { name: payload.actorName, kind: payload.actorKind, count: 1 });
+  }
+}
+
+function emitAndTrackSuccess(
+  agent: HardState,
+  selectedAction: ExecutableAction,
+  outcome: ExtendedActionOutcome,
+  actionContext: AgentActionContext,
+  selectionContext: SelectionContext,
+  graphView: WorldRuntime,
+  prominenceChanges: ProminenceChange[]
+): void {
+  const ticksPerEpoch = graphView.config.ticksPerEpoch ?? 20;
+  const payload: ActionApplicationPayload = {
+    tick: graphView.tick,
+    epoch: Math.floor(graphView.tick / ticksPerEpoch),
+    actionId: selectedAction.type,
+    actionName: selectedAction.name,
+    actorId: agent.id,
+    actorName: agent.name,
+    actorKind: agent.kind,
+    actorProminence: prominenceLabel(agent.prominence),
+    instigatorId: outcome.instigatorId,
+    instigatorName: outcome.instigatorName,
+    targetId: outcome.targetId,
+    targetName: outcome.targetName,
+    targetKind: outcome.targetKind,
+    target2Id: outcome.target2Id,
+    target2Name: outcome.target2Name,
+    selectionContext: {
+      availableActionCount: selectionContext.availableActionCount,
+      selectedWeight: selectionContext.selectedWeight,
+      totalWeight: selectionContext.totalWeight,
+      pressureInfluences: selectionContext.pressureInfluences,
+      attemptChance: selectionContext.attemptChance,
+      prominenceBonus: selectionContext.prominenceBonus
+    },
+    outcome: {
+      status: outcome.status,
+      successChance: outcome.successChance,
+      prominenceMultiplier: outcome.prominenceMultiplier,
+      description: outcome.description,
+      narration: outcome.narration,
+      relationshipsCreated: outcome.relationships.map(rel => ({
+        kind: rel.kind, srcId: rel.src, dstId: rel.dst,
+        srcName: graphView.getEntity(rel.src)?.name ?? rel.src,
+        dstName: graphView.getEntity(rel.dst)?.name ?? rel.dst,
+        strength: rel.strength
+      })),
+      relationshipsStrengthened: (outcome.relationshipsAdjusted ?? []).map(rel => ({
+        kind: rel.kind, srcId: rel.src, dstId: rel.dst,
+        srcName: graphView.getEntity(rel.src)?.name ?? rel.src,
+        dstName: graphView.getEntity(rel.dst)?.name ?? rel.dst,
+        delta: rel.delta
+      })),
+      prominenceChanges
+    }
+  };
+  const emitter = graphView.config.emitter;
+  if (emitter) emitter.actionApplication(payload);
+  const tracker = graphView.config.actionUsageTracker;
+  if (tracker) updateActionTracker(tracker, payload);
+}
+
+function handleSuccessfulOutcome(
+  agent: HardState,
+  selectedAction: ExecutableAction,
+  outcome: ExtendedActionOutcome,
+  actionContext: AgentActionContext,
+  selectionContext: SelectionContext,
+  graphView: WorldRuntime,
+  prominenceUpChance: number,
+  acc: CatalystAccumulator
+): void {
+  collectOutcomeResults(agent, outcome, actionContext, graphView, acc);
+  acc.entitiesModified.push({ id: agent.id, changes: { catalyst: agent.catalyst, updatedAt: graphView.tick }, actionContext });
+  const prominenceChanges = applySuccessProminenceChanges(agent, selectedAction, outcome, actionContext, graphView, prominenceUpChance, acc);
+  emitAndTrackSuccess(agent, selectedAction, outcome, actionContext, selectionContext, graphView, prominenceChanges);
+}
+
+function handleFailedOutcome(
+  agent: HardState,
+  selectedAction: ExecutableAction,
+  outcome: ExtendedActionOutcome,
+  actionContext: AgentActionContext,
+  graphView: WorldRuntime,
+  prominenceDownChance: number,
+  acc: CatalystAccumulator
+): void {
+  const failureDelta = selectedAction.actorProminenceDelta.onFailure;
+  if (failureDelta !== 0 && Math.random() < prominenceDownChance && !hasTag(agent.tags, FRAMEWORK_TAGS.PROMINENCE_LOCKED)) {
+    acc.entitiesModified.push({ id: agent.id, changes: { prominence: clampProminence(agent.prominence + failureDelta) }, actionContext });
+  }
+  const targetFailureDelta = selectedAction.targetProminenceDelta.onFailure;
+  if (targetFailureDelta !== 0 && outcome.targetId) {
+    const target = graphView.getEntity(outcome.targetId);
+    if (target && !hasTag(target.tags, FRAMEWORK_TAGS.PROMINENCE_LOCKED)) {
+      acc.entitiesModified.push({ id: target.id, changes: { prominence: clampProminence(target.prominence + targetFailureDelta) }, actionContext });
+    }
+  }
+}
+
+function processAgentTick(
+  agent: HardState,
+  actions: ExecutableAction[],
+  actionAttemptRate: number,
+  pressureMultiplier: number,
+  prominenceUpChance: number,
+  prominenceDownChance: number,
+  modifier: number,
+  graphView: WorldRuntime,
+  counters: AgentCounters,
+  acc: CatalystAccumulator
+): void {
+  if (!agent.catalyst?.canAct) return;
+  const baseAttemptChance = calculateAttemptChance(agent, actionAttemptRate);
+  const availableActions = getAvailableActions(agent, actions, graphView);
+  const relevantPressures = getRelevantPressuresFromActions(graphView, availableActions);
+  const prominenceBonus = relevantPressures * (pressureMultiplier - 1.0);
+  const finalAttemptChance = Math.min(1.0, (baseAttemptChance + prominenceBonus) * modifier);
+  if (Math.random() > finalAttemptChance) return;
+  counters.actionsAttempted++;
+  const { action: selectedAction, context: selectionContext } = selectActionWithContext(agent, availableActions, graphView, finalAttemptChance, prominenceBonus);
+  if (!selectedAction) return;
+  const outcome = executeActionWithContext(agent, selectedAction, graphView);
+  const actionContext: AgentActionContext = { source: 'action', sourceId: `${selectedAction.type}:${agent.id}`, success: outcome.success };
+  if (outcome.success) {
+    counters.actionsSucceeded++;
+    handleSuccessfulOutcome(agent, selectedAction, outcome, actionContext, selectionContext, graphView, prominenceUpChance, acc);
+  } else {
+    handleFailedOutcome(agent, selectedAction, outcome, actionContext, graphView, prominenceDownChance, acc);
+  }
+}
+
+function resolveActionStatus(handlerResult: { success: boolean; failureReason?: string }): ActionOutcomeStatus {
+  if (handlerResult.success) return 'success';
+  switch (handlerResult.failureReason) {
+    case 'no_target': return 'failed_no_target';
+    case 'no_instigator': return 'failed_no_instigator';
+    default: return 'failed_roll';
+  }
+}
+
+function resolveTargetData(
+  handlerResult: { targetId?: string; target2Id?: string },
+  graphView: WorldRuntime
+): { targetId?: string; targetName?: string; targetKind?: string; target2Id?: string; target2Name?: string } {
+  const { targetId, target2Id } = handlerResult;
+  const targetEntity = targetId ? graphView.getEntity(targetId) : undefined;
+  const target2Entity = target2Id ? graphView.getEntity(target2Id) : undefined;
+  return {
+    targetId, targetName: targetEntity?.name, targetKind: targetEntity?.kind,
+    target2Id, target2Name: target2Entity?.name,
+  };
+}
+
 export function createUniversalCatalystSystem(config: UniversalCatalystConfig): SimulationSystem {
   // Extract config with defaults
   const actionAttemptRate = config.actionAttemptRate ?? 0.3;
@@ -109,73 +358,21 @@ export function createUniversalCatalystSystem(config: UniversalCatalystConfig): 
       // Find all agents (entities that can act)
       const allAgents = graphView.getEntities().filter(e => e.catalyst?.canAct === true);
 
-      const relationshipsAdded: Array<Relationship & { actionContext?: { source: 'action'; sourceId: string; success?: boolean } }> = [];
-      const relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; actionContext?: { source: 'action'; sourceId: string; success?: boolean } }> = [];
-      const relationshipsToArchive: Array<{ kind: string; src: string; dst: string; actionContext?: { source: 'action'; sourceId: string; success?: boolean } }> = [];
-      const entitiesModified: Array<{ id: string; changes: Partial<HardState>; actionContext?: { source: 'action'; sourceId: string; success?: boolean } }> = [];
-      const pressureChanges: Record<string, number> = {};
-      // Collect narrations per action for narrative event generation
-      const actionNarrations: Map<string, string> = new Map();
-      let actionsAttempted = 0;
-      let actionsSucceeded = 0;
+      const acc: CatalystAccumulator = {
+        relationshipsAdded: [],
+        relationshipsAdjusted: [],
+        relationshipsToArchive: [],
+        entitiesModified: [],
+        pressureChanges: {},
+        actionNarrations: new Map(),
+      };
+      const counters: AgentCounters = { actionsAttempted: 0, actionsSucceeded: 0 };
 
-      // Get emitter from graphView config if available
-      const emitter = graphView.config.emitter;
-
-      allAgents.forEach(agent => {
-        if (!agent.catalyst?.canAct) return;
-
-        // Calculate action attempt chance
-        const baseAttemptChance = calculateAttemptChance(agent, actionAttemptRate);
-
-        // Apply pressure multiplier based on available actions for this agent
-        const availableActions = getAvailableActions(agent, actions, graphView);
-        const relevantPressures = getRelevantPressuresFromActions(graphView, availableActions);
-        const prominenceBonus = relevantPressures * (pressureMultiplier - 1.0);
-        const finalAttemptChance = Math.min(1.0, (baseAttemptChance + prominenceBonus) * modifier);
-
-        if (Math.random() > finalAttemptChance) return;
-
-        actionsAttempted++;
-
-        // Select action from available actions with context
-        const { action: selectedAction, context: selectionContext } = selectActionWithContext(
-          agent,
-          availableActions,
-          graphView,
-          finalAttemptChance,
-          prominenceBonus
-        );
-        if (!selectedAction) return;
-
-        // Attempt to execute action with extended outcome
-        const outcome = executeActionWithContext(agent, selectedAction, graphView);
-
-        // Store action context for narrative attribution
-        // WorldEngine will use this to enter/exit contexts when applying modifications
-        // Include agent.id to make each action invocation a separate narrative event
-        // Include success flag so failed actions can be filtered in narrative views
-        const actionContext = {
-          source: 'action' as const,
-          sourceId: `${selectedAction.type}:${agent.id}`,
-          success: outcome.success,
-        };
-
-        // Track prominence changes for instrumentation
-        const prominenceChanges: Array<{ entityId: string; entityName: string; direction: 'up' | 'down' }> = [];
-
-        if (outcome.success) {
-          actionsSucceeded++;
-
-          // Collect narration for this action (keyed by action context sourceId)
-          if (outcome.narration) {
-            actionNarrations.set(actionContext.sourceId, outcome.narration);
-          }
-
-          if (outcome.entitiesModified && outcome.entitiesModified.length > 0) {
-            // Add action context to entity modifications for proper narrative attribution
-            for (const mod of outcome.entitiesModified) {
-              entitiesModified.push({ ...mod, actionContext });
+      allAgents.forEach(agent => processAgentTick(
+        agent, actions, actionAttemptRate, pressureMultiplier,
+        prominenceUpChance, prominenceDownChance, modifier,
+        graphView, counters, acc
+      ));
             }
           }
 
@@ -376,24 +573,21 @@ export function createUniversalCatalystSystem(config: UniversalCatalystConfig): 
         }
       });
 
-      // Convert action narrations to keyed object for proper per-action attribution
-      // Key format matches the action context sourceId (e.g., "action_id:agent_id")
-      const narrationsByGroup: Record<string, string> = {};
-      for (const [key, narration] of actionNarrations) {
-        narrationsByGroup[key] = narration;
-      }
+      const { actionsAttempted, actionsSucceeded } = counters;
+      const narrationsByGroup: Record<string, string> = Object.fromEntries(acc.actionNarrations);
+
+      let description: string;
+      if (actionsSucceeded > 0) description = `Agents shape the world (${actionsSucceeded}/${actionsAttempted} actions succeeded)`;
+      else if (actionsAttempted > 0) description = `Agents attempt to act (all ${actionsAttempted} failed)`;
+      else description = 'Agents dormant this cycle';
 
       return {
-        relationshipsAdded,
-        relationshipsAdjusted,
-        relationshipsToArchive,
-        entitiesModified,
-        pressureChanges,
-        description: actionsSucceeded > 0
-          ? `Agents shape the world (${actionsSucceeded}/${actionsAttempted} actions succeeded)`
-          : actionsAttempted > 0
-          ? `Agents attempt to act (all ${actionsAttempted} failed)`
-          : 'Agents dormant this cycle',
+        relationshipsAdded: acc.relationshipsAdded,
+        relationshipsAdjusted: acc.relationshipsAdjusted,
+        relationshipsToArchive: acc.relationshipsToArchive,
+        entitiesModified: acc.entitiesModified,
+        pressureChanges: acc.pressureChanges,
+        description,
         narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : undefined,
       };
     }
@@ -572,107 +766,38 @@ function executeActionWithContext(
   action: ExecutableAction,
   graphView: WorldRuntime
 ): ExtendedActionOutcome {
-  // Calculate success chance based on prominence
   const baseChance = action.baseSuccessChance || 0.5;
   const prominenceMultiplier = getProminenceMultiplierValue(agent.prominence, 'success_chance');
   const successChance = Math.min(0.95, baseChance * prominenceMultiplier);
 
-  // Action handler is created from declarative config
   if (!action.handler) {
-    return {
-      status: 'failed_roll',
-      success: false,
-      relationships: [],
-      description: 'Action has no handler',
-      entitiesCreated: [],
-      entitiesModified: [],
-      successChance,
-      prominenceMultiplier
-    };
+    return { status: 'failed_roll', success: false, relationships: [], description: 'Action has no handler', entitiesCreated: [], entitiesModified: [], successChance, prominenceMultiplier };
   }
 
-  const success = Math.random() < successChance;
-
-  if (success) {
-    // Execute declarative handler
-    const handlerResult = action.handler(graphView, agent);
-
-    // Determine status based on handler result
-    let status: ActionOutcomeStatus = 'success';
-    if (!handlerResult.success) {
-      switch (handlerResult.failureReason) {
-        case 'no_target':
-          status = 'failed_no_target';
-          break;
-        case 'no_instigator':
-          status = 'failed_no_instigator';
-          break;
-        default:
-          status = 'failed_roll';
-          break;
-      }
-    }
-
-    // Look up instigator name if present
-    let instigatorName: string | undefined;
-    if (handlerResult.instigatorId) {
-      const instigator = graphView.getEntity(handlerResult.instigatorId);
-      instigatorName = instigator?.name;
-    }
-
-    // Extract target info (prefer explicit IDs from handler result)
-    let targetId: string | undefined = handlerResult.targetId;
-    let targetName: string | undefined;
-    let targetKind: string | undefined;
-    let target2Id: string | undefined = handlerResult.target2Id;
-    let target2Name: string | undefined;
-
-    if (targetId) {
-      const target = graphView.getEntity(targetId);
-      if (target) {
-        targetName = target.name;
-        targetKind = target.kind;
-      }
-    }
-
-    if (target2Id) {
-      const target2 = graphView.getEntity(target2Id);
-      if (target2) {
-        target2Name = target2.name;
-      }
-    }
-
-    return {
-      status,
-      success: handlerResult.success,
-      relationships: handlerResult.relationships,
-      relationshipsAdjusted: handlerResult.relationshipsAdjusted,
-      relationshipsToArchive: handlerResult.relationshipsToArchive,
-      description: handlerResult.description,
-      narration: handlerResult.narration,
-      entitiesCreated: handlerResult.entitiesCreated,
-      entitiesModified: handlerResult.entitiesModified,
-      pressureChanges: handlerResult.pressureChanges,
-      instigatorId: handlerResult.instigatorId,
-      instigatorName,
-      targetId,
-      targetName,
-      targetKind,
-      target2Id,
-      target2Name,
-      successChance,
-      prominenceMultiplier
-    };
-  } else {
-    return {
-      status: 'failed_roll',
-      success: false,
-      relationships: [],
-      description: `failed to ${action.type}`,
-      entitiesCreated: [],
-      entitiesModified: [],
-      successChance,
-      prominenceMultiplier
-    };
+  if (!(Math.random() < successChance)) {
+    return { status: 'failed_roll', success: false, relationships: [], description: `failed to ${action.type}`, entitiesCreated: [], entitiesModified: [], successChance, prominenceMultiplier };
   }
+
+  const handlerResult = action.handler(graphView, agent);
+  const status = resolveActionStatus(handlerResult);
+  const instigatorName = handlerResult.instigatorId ? graphView.getEntity(handlerResult.instigatorId)?.name : undefined;
+  const { targetId, targetName, targetKind, target2Id, target2Name } = resolveTargetData(handlerResult, graphView);
+
+  return {
+    status,
+    success: handlerResult.success,
+    relationships: handlerResult.relationships,
+    relationshipsAdjusted: handlerResult.relationshipsAdjusted,
+    relationshipsToArchive: handlerResult.relationshipsToArchive,
+    description: handlerResult.description,
+    narration: handlerResult.narration,
+    entitiesCreated: handlerResult.entitiesCreated,
+    entitiesModified: handlerResult.entitiesModified,
+    pressureChanges: handlerResult.pressureChanges,
+    instigatorId: handlerResult.instigatorId,
+    instigatorName,
+    targetId, targetName, targetKind, target2Id, target2Name,
+    successChance,
+    prominenceMultiplier,
+  };
 }

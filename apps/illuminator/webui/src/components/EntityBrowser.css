@@ -1,0 +1,470 @@
+/* EntityBrowser.css - Extracted from inline styles */
+
+/* ==========================================================================
+   HighlightMatch
+   ========================================================================== */
+
+.eb-highlight {
+  background: rgb(245 158 11 / 25%);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ==========================================================================
+   ImageThumbnail
+   ========================================================================== */
+
+.eb-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.eb-thumb-clickable {
+  cursor: pointer;
+}
+
+.eb-thumb-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   EnrichmentStatusBadge
+   ========================================================================== */
+
+.eb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.eb-badge-missing {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.eb-badge-queued {
+  background: #3b82f6;
+  color: white;
+}
+
+.eb-badge-running {
+  background: #f59e0b;
+  color: white;
+}
+
+.eb-badge-complete {
+  background: #10b981;
+  color: white;
+}
+
+.eb-badge-error {
+  background: #ef4444;
+  color: white;
+}
+
+.eb-badge-disabled {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.eb-badge-cost {
+  opacity: 0.8;
+  margin-left: 2px;
+}
+
+/* ==========================================================================
+   EntityRow
+   ========================================================================== */
+
+.eb-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  align-items: start;
+}
+
+.eb-row-checkbox {
+  padding-top: 2px;
+}
+
+.eb-row-checkbox input {
+  cursor: pointer;
+}
+
+.eb-row-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+  cursor: pointer;
+  color: var(--accent-color);
+}
+
+.eb-row-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eb-row-edition-count {
+  font-size: 10px;
+}
+
+.eb-row-edition-count-many {
+  color: #10b981;
+}
+
+.eb-row-edition-count-few {
+  color: #f59e0b;
+}
+
+/* Inline action buttons that also use .illuminator-button get padding/font overrides */
+.eb-row-btn-sm {
+  padding: 2px 8px;
+  font-size: 10px;
+}
+
+.eb-row-btn-sm-danger {
+  color: #ef4444;
+}
+
+/* Content row: description and image side by side */
+.eb-row-content {
+  display: flex;
+  gap: 12px;
+}
+
+.eb-row-summary {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  max-height: 80px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Actions column */
+.eb-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.eb-row-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eb-row-action-group-wrap {
+  flex-wrap: wrap;
+}
+
+.eb-row-needs-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.eb-row-action-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   EntityBrowser - Main layout
+   ========================================================================== */
+
+.eb {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.eb-entity-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.eb-add-entity-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+/* Search bar */
+.eb-search-wrap {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.eb-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.eb-search-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.eb-search-text-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Search dropdown */
+.eb-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgb(0 0 0 / 30%);
+  z-index: 200;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.eb-search-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.eb-search-count {
+  padding: 6px 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.eb-search-result {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.eb-search-result:hover {
+  background: var(--bg-tertiary);
+}
+
+.eb-search-result-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.eb-search-result-kind {
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.eb-search-match-row {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.eb-search-match-field {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 6px;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.eb-search-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+}
+
+/* Filters grid */
+.eb-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.eb-hide-completed-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+
+/* Enrichment settings bar */
+.eb-enrichment-settings {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.eb-enrichment-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.eb-enrichment-select {
+  width: auto;
+  min-width: 100px;
+}
+
+/* Compose with .ilu-hint-sm for base font-size/color */
+.eb-enrichment-hint {
+  /* spacing only — font-size/color from .ilu-hint-sm */
+}
+
+/* Min Event Significance */
+.eb-event-significance {
+  margin-bottom: 12px;
+}
+
+.eb-event-significance-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.eb-event-significance-select {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+/* Compose with .ilu-hint-sm for base font-size/color */
+.eb-event-significance-hint {
+  /* font-size/color from .ilu-hint-sm */
+  display: block;
+  margin-top: 4px;
+}
+
+/* Quick actions */
+.eb-quick-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Selection actions bar */
+.eb-selection-bar {
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.eb-selection-count {
+  font-size: 13px;
+}
+
+.eb-selection-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.eb-selection-clear {
+  margin-left: auto;
+}
+
+/* Entity list card */
+.eb-list-card {
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header row */
+.eb-list-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.eb-list-header input {
+  cursor: pointer;
+}
+
+.eb-list-header-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Scrollable entity list */
+.eb-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.eb-list-empty {
+  padding: 40px;
+}
+
+.eb-list-loading {
+  padding: 16px;
+  font-size: 12px;
+}
+
+/* Settings card shrink */
+.eb-settings-card {
+  flex-shrink: 0;
+}

@@ -2,11 +2,13 @@
  * EpochTimeline - Shows recent epochs and pressure gauges with detailed breakdowns
  */
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import "./EpochTimeline.css";
 
 function formatEpochEra(era) {
-  if (!era) return 'Unknown era';
-  const startName = era.start?.name || 'Unknown era';
+  if (!era) return "Unknown era";
+  const startName = era.start?.name || "Unknown era";
   const endName = era.end?.name || startName;
   if (!era.transitions || era.transitions.length === 0 || startName === endName) {
     return endName;
@@ -22,7 +24,7 @@ function PressureTooltip({ detail, discreteModifications, tickCount }) {
   if (!detail) return null;
 
   const { breakdown } = detail;
-  const relevantMods = discreteModifications?.filter(m => m.pressureId === detail.id) || [];
+  const relevantMods = discreteModifications?.filter((m) => m.pressureId === detail.id) || [];
 
   // Group discrete modifications by source type
   const groupedMods = {};
@@ -35,7 +37,7 @@ function PressureTooltip({ detail, discreteModifications, tickCount }) {
   }
 
   // Format a number with sign
-  const fmt = (n) => n >= 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
+  const fmt = (n) => (n >= 0 ? `+${n.toFixed(2)}` : n.toFixed(2));
 
   // Calculate totals by source type
   const modTotals = {};
@@ -47,13 +49,11 @@ function PressureTooltip({ detail, discreteModifications, tickCount }) {
     <div className="lw-pressure-tooltip">
       <div className="lw-tooltip-header">
         <strong>{detail.name}</strong>
-        <span className="lw-tooltip-value">{detail.previousValue.toFixed(1)} → {detail.newValue.toFixed(1)}</span>
+        <span className="lw-tooltip-value">
+          {detail.previousValue.toFixed(1)} → {detail.newValue.toFixed(1)}
+        </span>
       </div>
-      {tickCount && (
-        <div className="lw-tooltip-epoch-info">
-          Cumulative over {tickCount} ticks
-        </div>
-      )}
+      {tickCount && <div className="lw-tooltip-epoch-info">Cumulative over {tickCount} ticks</div>}
 
       <div className="lw-tooltip-section">
         <div className="lw-tooltip-subtitle">Feedback (cumulative)</div>
@@ -64,13 +64,17 @@ function PressureTooltip({ detail, discreteModifications, tickCount }) {
         )}
         {breakdown.positiveFeedback.map((f, i) => (
           <div key={`pos-${i}`} className="lw-tooltip-row">
-            <span title={`${f.type}: avg raw=${f.rawValue.toFixed(2)}, coef=${f.coefficient}`}>↑ {f.label}</span>
+            <span title={`${f.type}: avg raw=${f.rawValue.toFixed(2)}, coef=${f.coefficient}`}>
+              ↑ {f.label}
+            </span>
             <span className="positive">{fmt(f.contribution)}</span>
           </div>
         ))}
         {breakdown.negativeFeedback.map((f, i) => (
           <div key={`neg-${i}`} className="lw-tooltip-row">
-            <span title={`${f.type}: avg raw=${f.rawValue.toFixed(2)}, coef=${f.coefficient}`}>↓ {f.label}</span>
+            <span title={`${f.type}: avg raw=${f.rawValue.toFixed(2)}, coef=${f.coefficient}`}>
+              ↓ {f.label}
+            </span>
             <span className="negative">-{f.contribution.toFixed(2)}</span>
           </div>
         ))}
@@ -81,7 +85,9 @@ function PressureTooltip({ detail, discreteModifications, tickCount }) {
         {breakdown.homeostasis !== undefined && breakdown.homeostasis !== 0 && (
           <div className="lw-tooltip-row">
             <span>Homeostatic pull</span>
-            <span className={breakdown.homeostaticDelta >= 0 ? 'positive' : 'negative'}>{fmt(breakdown.homeostaticDelta)}</span>
+            <span className={breakdown.homeostaticDelta >= 0 ? "positive" : "negative"}>
+              {fmt(breakdown.homeostaticDelta)}
+            </span>
           </div>
         )}
       </div>
@@ -106,13 +112,19 @@ function PressureTooltip({ detail, discreteModifications, tickCount }) {
           {Object.entries(groupedMods).map(([type, mods]) => (
             <div key={type} className="lw-tooltip-mod-group">
               <div className="lw-tooltip-row lw-tooltip-mod-header">
-                <span>{type} ({mods.length})</span>
-                <span className={modTotals[type] >= 0 ? 'positive' : 'negative'}>{fmt(modTotals[type])}</span>
+                <span>
+                  {type} ({mods.length})
+                </span>
+                <span className={modTotals[type] >= 0 ? "positive" : "negative"}>
+                  {fmt(modTotals[type])}
+                </span>
               </div>
               {mods.slice(0, 3).map((mod, i) => (
                 <div key={i} className="lw-tooltip-row lw-tooltip-mod-detail">
-                  <span>{mod.source.templateId || mod.source.systemId || mod.source.eraId || 'unknown'}</span>
-                  <span className={mod.delta >= 0 ? 'positive' : 'negative'}>{fmt(mod.delta)}</span>
+                  <span>
+                    {mod.source.templateId || mod.source.systemId || mod.source.eraId || "unknown"}
+                  </span>
+                  <span className={mod.delta >= 0 ? "positive" : "negative"}>{fmt(mod.delta)}</span>
                 </div>
               ))}
               {mods.length > 3 && (
@@ -131,12 +143,16 @@ function PressureTooltip({ detail, discreteModifications, tickCount }) {
           <span>{fmt(breakdown.rawDelta)}</span>
         </div>
         <div className="lw-tooltip-row">
-          <span>Smoothed delta (max ±2/tick × {tickCount || '?'} ticks)</span>
-          <span className={breakdown.smoothedDelta >= 0 ? 'positive' : 'negative'}>{fmt(breakdown.smoothedDelta)}</span>
+          <span>Smoothed delta (max ±2/tick × {tickCount || "?"} ticks)</span>
+          <span className={breakdown.smoothedDelta >= 0 ? "positive" : "negative"}>
+            {fmt(breakdown.smoothedDelta)}
+          </span>
         </div>
         <div className="lw-tooltip-row lw-tooltip-actual-change">
           <span>Actual epoch change</span>
-          <span className={detail.delta >= 0 ? 'positive' : 'negative'}><strong>{fmt(detail.delta)}</strong></span>
+          <span className={detail.delta >= 0 ? "positive" : "negative"}>
+            <strong>{fmt(detail.delta)}</strong>
+          </span>
         </div>
       </div>
     </div>
@@ -151,37 +167,50 @@ function PressureGauge({ name, value, detail, discreteModifications, tickCount }
 
   return (
     <div
-      className="lw-pressure-gauge"
+      className="lw-pressure-gauge et-gauge-interactive"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
-      style={{ position: 'relative', cursor: 'pointer' }}
     >
       <span className="lw-pressure-name">{name}</span>
       <div className="lw-pressure-bar">
         <div
-          className="lw-pressure-fill"
+          className="lw-pressure-fill et-pressure-fill"
           style={{
-            width: `${Math.min(100, value)}%`,
-            backgroundColor: value > 70 ? 'var(--lw-danger)' : value > 40 ? 'var(--lw-warning)' : 'var(--lw-success)'
+            '--et-pressure-fill-width': `${Math.min(100, value)}%`,
+            '--et-pressure-fill-color': (() => {
+              if (value > 70) return "var(--lw-danger)";
+              if (value > 40) return "var(--lw-warning)";
+              return "var(--lw-success)";
+            })(),
           }}
         />
       </div>
       <span className="lw-pressure-value">
         {value.toFixed(0)}
         {detail && (
-          <span className={`lw-pressure-delta ${detail.delta >= 0 ? 'positive' : 'negative'}`}>
-            {detail.delta >= 0 ? '↑' : '↓'}
+          <span className={`lw-pressure-delta ${detail.delta >= 0 ? "positive" : "negative"}`}>
+            {detail.delta >= 0 ? "↑" : "↓"}
           </span>
         )}
       </span>
       {showTooltip && detail && (
-        <PressureTooltip detail={detail} discreteModifications={discreteModifications} tickCount={tickCount} />
+        <PressureTooltip
+          detail={detail}
+          discreteModifications={discreteModifications}
+          tickCount={tickCount}
+        />
       )}
     </div>
   );
 }
 
-export default function EpochTimeline({ epochStats, currentEpoch, pressures, pressureDetails, reachability }) {
+export default function EpochTimeline({
+  epochStats,
+  currentEpoch,
+  pressures,
+  pressureDetails,
+  reachability,
+}) {
   const recentEpochs = epochStats.slice(-5).reverse();
 
   // Build a map of pressure details by ID for easy lookup
@@ -194,25 +223,16 @@ export default function EpochTimeline({ epochStats, currentEpoch, pressures, pre
 
   const connectedComponents = reachability?.connectedComponents;
   const fullyConnectedTick = reachability?.fullyConnectedTick ?? null;
-  const disconnectedClustersValue = typeof connectedComponents === 'number'
-    ? connectedComponents.toLocaleString()
-    : '--';
-  const fullyConnectedValue = reachability
-    ? (fullyConnectedTick === null ? 'never' : fullyConnectedTick.toLocaleString())
-    : '--';
-  const metricRowStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    fontSize: '13px',
-    color: 'var(--lw-text-primary)'
-  };
-  const clusterValueStyle = {
-    fontWeight: 600,
-    color: typeof connectedComponents === 'number' && connectedComponents > 1
-      ? 'var(--lw-danger)'
-      : 'var(--lw-text-primary)'
-  };
+  const disconnectedClustersValue =
+    typeof connectedComponents === "number" ? connectedComponents.toLocaleString() : "--";
+  let fullyConnectedValue = "--";
+  if (reachability) {
+    fullyConnectedValue = fullyConnectedTick === null ? "never" : fullyConnectedTick.toLocaleString();
+  }
+  const clusterValueColor =
+    typeof connectedComponents === "number" && connectedComponents > 1
+      ? "var(--lw-danger)"
+      : undefined;
 
   return (
     <div className="lw-panel">
@@ -222,7 +242,7 @@ export default function EpochTimeline({ epochStats, currentEpoch, pressures, pre
           Epoch Timeline
         </div>
         {currentEpoch && (
-          <span style={{ fontSize: '12px', color: 'var(--lw-text-muted)' }}>
+          <span className="et-era-label">
             Era: {currentEpoch.era.name}
           </span>
         )}
@@ -239,12 +259,10 @@ export default function EpochTimeline({ epochStats, currentEpoch, pressures, pre
               {recentEpochs.map((epoch, i) => (
                 <div
                   key={epoch.epoch}
-                  className={`lw-timeline-item ${i === 0 ? 'active' : ''}`}
-                  style={{ opacity: i === 0 ? 1 : 0.7 }}
+                  className={`lw-timeline-item ${i === 0 ? "active" : ""} et-timeline-opacity`}
+                  style={{ '--et-timeline-opacity': i === 0 ? 1 : 0.7 }}
                 >
-                  <div className={`lw-timeline-icon ${i === 0 ? 'active' : ''}`}>
-                    {epoch.epoch}
-                  </div>
+                  <div className={`lw-timeline-icon ${i === 0 ? "active" : ""}`}>{epoch.epoch}</div>
                   <div className="lw-timeline-content">
                     <div className="lw-timeline-title">{formatEpochEra(epoch.era)}</div>
                     <div className="lw-timeline-subtitle">
@@ -257,12 +275,16 @@ export default function EpochTimeline({ epochStats, currentEpoch, pressures, pre
 
             {/* Pressure Gauges with hover details */}
             {pressures && Object.keys(pressures).length > 0 && (
-              <div style={{ marginTop: '16px' }}>
-                <div style={{ fontSize: '12px', color: 'var(--lw-text-muted)', marginBottom: '8px' }}>
+              <div className="lw-section-spacer">
+                <div className="lw-section-label">
                   Current Pressures
                   {pressureDetails && (
-                    <span style={{ marginLeft: '8px', opacity: 0.6 }}>
-                      (hover for epoch details{pressureDetails.ticksAggregated ? `, ${pressureDetails.ticksAggregated} ticks` : ''})
+                    <span className="lw-section-label-hint">
+                      (hover for epoch details
+                      {pressureDetails.ticksAggregated
+                        ? `, ${pressureDetails.ticksAggregated} ticks`
+                        : ""}
+                      )
                     </span>
                   )}
                 </div>
@@ -281,18 +303,18 @@ export default function EpochTimeline({ epochStats, currentEpoch, pressures, pre
               </div>
             )}
 
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--lw-text-muted)', marginBottom: '8px' }}>
+            <div className="lw-section-spacer">
+              <div className="lw-section-label">
                 Graph Connectivity
               </div>
               <div className="lw-flex-col lw-gap-sm">
-                <div style={metricRowStyle}>
+                <div className="et-metric-row">
                   <span>Disconnected clusters</span>
-                  <span style={clusterValueStyle}>{disconnectedClustersValue}</span>
+                  <span className="et-cluster-value" style={{ '--et-cluster-value-color': clusterValueColor }}>{disconnectedClustersValue}</span>
                 </div>
-                <div style={metricRowStyle}>
+                <div className="et-metric-row">
                   <span>Fully connected tick</span>
-                  <span style={{ fontWeight: 600 }}>{fullyConnectedValue}</span>
+                  <span className="et-connected-value">{fullyConnectedValue}</span>
                 </div>
               </div>
             </div>
@@ -302,3 +324,25 @@ export default function EpochTimeline({ epochStats, currentEpoch, pressures, pre
     </div>
   );
 }
+
+PressureTooltip.propTypes = {
+  detail: PropTypes.object,
+  discreteModifications: PropTypes.array,
+  tickCount: PropTypes.number,
+};
+
+PressureGauge.propTypes = {
+  name: PropTypes.string,
+  value: PropTypes.number,
+  detail: PropTypes.object,
+  discreteModifications: PropTypes.array,
+  tickCount: PropTypes.number,
+};
+
+EpochTimeline.propTypes = {
+  epochStats: PropTypes.array,
+  currentEpoch: PropTypes.object,
+  pressures: PropTypes.object,
+  pressureDetails: PropTypes.object,
+  reachability: PropTypes.object,
+};

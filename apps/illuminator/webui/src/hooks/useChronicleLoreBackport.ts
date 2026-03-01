@@ -9,21 +9,21 @@
  * 5. Apply accepted patches to entity state
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import type { EnrichmentType } from '../lib/enrichmentTypes';
-import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { EnrichmentType } from "../lib/enrichmentTypes";
+import { getEnqueue } from "../lib/db/enrichmentQueueBridge";
 import type {
   SummaryRevisionRun,
   SummaryRevisionPatch,
   RevisionEntityContext,
-} from '../lib/summaryRevisionTypes';
+} from "../lib/summaryRevisionTypes";
 import {
   createRevisionRun,
   getRevisionRun,
   updateRevisionRun,
   generateRevisionRunId,
   deleteRevisionRun,
-} from '../lib/db/summaryRevisionRepository';
+} from "../lib/db/summaryRevisionRepository";
 
 // ============================================================================
 // Types
@@ -52,11 +52,11 @@ export interface UseChronicleLoreBackportReturn {
   /** The chronicle ID being backported */
   chronicleId: string | null;
   /** Start a new backport session */
-  startBackport: (config: ChronicleLoreBackportConfig) => void;
+  startBackport: (config: ChronicleLoreBackportConfig) => Promise<void>;
   /** Toggle accept/reject for a specific entity patch */
-  togglePatchDecision: (entityId: string, accepted: boolean) => void;
+  togglePatchDecision: (entityId: string, accepted: boolean) => Promise<void>;
   /** Update the anchor phrase for a specific entity patch */
-  updateAnchorPhrase: (entityId: string, anchorPhrase: string) => void;
+  updateAnchorPhrase: (entityId: string, anchorPhrase: string) => Promise<void>;
   /** Apply all accepted patches and close the session */
   applyAccepted: () => SummaryRevisionPatch[];
   /** Cancel the current session */
@@ -74,7 +74,7 @@ const POLL_INTERVAL_MS = 1500;
 // ============================================================================
 
 export function useChronicleLoreBackport(
-  getEntityContexts: (entityIds: string[]) => RevisionEntityContext[],
+  getEntityContexts: (entityIds: string[]) => RevisionEntityContext[]
 ): UseChronicleLoreBackportReturn {
   const [run, setRun] = useState<SummaryRevisionRun | null>(null);
   const [isActive, setIsActive] = useState(false);
@@ -93,106 +93,131 @@ export function useChronicleLoreBackport(
   useEffect(() => stopPolling, [stopPolling]);
 
   // Dispatch a worker task for the single batch
-  const dispatchBatch = useCallback((runId: string, batchEntityContexts: RevisionEntityContext[]) => {
-    const sentinelEntity = {
-      id: '__chronicle_lore_backport__',
-      name: 'Chronicle Lore Backport',
-      kind: 'system',
-      subtype: '',
-      prominence: '',
-      culture: '',
-      status: 'active',
-      description: '',
-      tags: {},
-    };
+  const dispatchBatch = useCallback(
+    (runId: string, batchEntityContexts: RevisionEntityContext[]) => {
+      const sentinelEntity = {
+        id: "__chronicle_lore_backport__",
+        name: "Chronicle Lore Backport",
+        kind: "system",
+        subtype: "",
+        prominence: "",
+        culture: "",
+        status: "active",
+        description: "",
+        tags: {},
+      };
 
-    getEnqueue()([{
-      entity: sentinelEntity,
-      type: 'chronicleLoreBackport' as EnrichmentType,
-      prompt: JSON.stringify(batchEntityContexts),
-      chronicleId: runId,
-    }]);
-  }, []);
+      getEnqueue()([
+        {
+          entity: sentinelEntity,
+          type: "chronicleLoreBackport" as EnrichmentType,
+          prompt: JSON.stringify(batchEntityContexts),
+          chronicleId: runId,
+        },
+      ]);
+    },
+    []
+  );
 
   // Poll IndexedDB for run state changes
-  const startPolling = useCallback((runId: string) => {
-    stopPolling();
-    pollRef.current = setInterval(async () => {
-      const updated = await getRevisionRun(runId);
-      if (!updated) return;
+  const startPolling = useCallback(
+    (runId: string) => {
+      stopPolling();
+      pollRef.current = setInterval(() => {
+        void (async () => {
+          const updated = await getRevisionRun(runId);
+          if (!updated) return;
 
-      setRun(updated);
+          setRun(updated);
 
-      // Stop polling on review/terminal states
-      if (
-        updated.status === 'batch_reviewing' ||
-        updated.status === 'run_reviewing' ||
-        updated.status === 'complete' ||
-        updated.status === 'failed' ||
-        updated.status === 'cancelled'
-      ) {
-        stopPolling();
-      }
-    }, POLL_INTERVAL_MS);
-  }, [stopPolling]);
+          // Stop polling on review/terminal states
+          if (
+            updated.status === "batch_reviewing" ||
+            updated.status === "run_reviewing" ||
+            updated.status === "complete" ||
+            updated.status === "failed" ||
+            updated.status === "cancelled"
+          ) {
+            stopPolling();
+          }
+        })();
+      }, POLL_INTERVAL_MS);
+    },
+    [stopPolling]
+  );
 
   // Start a new backport session
-  const startBackport = useCallback(async (config: ChronicleLoreBackportConfig) => {
-    const runId = generateRevisionRunId();
+  const startBackport = useCallback(
+    async (config: ChronicleLoreBackportConfig) => {
+      const runId = generateRevisionRunId();
 
-    // Single batch with all cast entity IDs
-    const batches = [{
-      culture: 'cast',
-      entityIds: config.entities.map((e) => e.id),
-      status: 'pending' as const,
-      patches: [],
-    }];
+      // Single batch with all cast entity IDs
+      const batches = [
+        {
+          culture: "cast",
+          entityIds: config.entities.map((e) => e.id),
+          status: "pending" as const,
+          patches: [],
+        },
+      ];
 
-    // Create run in IndexedDB
-    // Repurpose context fields: worldDynamicsContext = chronicle text, staticPagesContext = perspective JSON
-    // revisionGuidance = custom user instructions for the backport
-    const newRun = await createRevisionRun(runId, config.projectId, config.simulationRunId, batches, {
-      worldDynamicsContext: config.chronicleText,
-      staticPagesContext: config.perspectiveSynthesisJson,
-      schemaContext: '',
-      revisionGuidance: config.customInstructions || '',
-    });
+      // Create run in IndexedDB
+      // Repurpose context fields: worldDynamicsContext = chronicle text, staticPagesContext = perspective JSON
+      // revisionGuidance = custom user instructions for the backport
+      const newRun = await createRevisionRun(
+        runId,
+        config.projectId,
+        config.simulationRunId,
+        batches,
+        {
+          worldDynamicsContext: config.chronicleText,
+          staticPagesContext: config.perspectiveSynthesisJson,
+          schemaContext: "",
+          revisionGuidance: config.customInstructions || "",
+        }
+      );
 
-    setRun(newRun);
-    setIsActive(true);
-    setChronicleId(config.chronicleId);
+      setRun(newRun);
+      setIsActive(true);
+      setChronicleId(config.chronicleId);
 
-    // Dispatch the single batch — use config.entities directly to preserve isLens flags
-    dispatchBatch(runId, config.entities);
+      // Dispatch the single batch — use config.entities directly to preserve isLens flags
+      dispatchBatch(runId, config.entities);
 
-    // Start polling
-    startPolling(runId);
-  }, [dispatchBatch, startPolling, getEntityContexts]);
+      // Start polling
+      startPolling(runId);
+    },
+    [dispatchBatch, startPolling, getEntityContexts]
+  );
 
   // Toggle accept/reject for a specific entity patch
-  const togglePatchDecision = useCallback(async (entityId: string, accepted: boolean) => {
-    if (!run) return;
+  const togglePatchDecision = useCallback(
+    async (entityId: string, accepted: boolean) => {
+      if (!run) return;
 
-    const newDecisions = { ...run.patchDecisions, [entityId]: accepted };
-    await updateRevisionRun(run.runId, { patchDecisions: newDecisions });
+      const newDecisions = { ...run.patchDecisions, [entityId]: accepted };
+      await updateRevisionRun(run.runId, { patchDecisions: newDecisions });
 
-    setRun((prev) => prev ? { ...prev, patchDecisions: newDecisions } : null);
-  }, [run]);
+      setRun((prev) => (prev ? { ...prev, patchDecisions: newDecisions } : null));
+    },
+    [run]
+  );
 
   // Update anchor phrase for a patch (user override)
-  const updateAnchorPhrase = useCallback(async (entityId: string, anchorPhrase: string) => {
-    if (!run) return;
+  const updateAnchorPhrase = useCallback(
+    async (entityId: string, anchorPhrase: string) => {
+      if (!run) return;
 
-    // Update the patch in the batch
-    const updatedBatches = run.batches.map((batch) => ({
-      ...batch,
-      patches: batch.patches.map((p) =>
-        p.entityId === entityId ? { ...p, anchorPhrase } : p
-      ),
-    }));
-    await updateRevisionRun(run.runId, { batches: updatedBatches });
-    setRun((prev) => prev ? { ...prev, batches: updatedBatches } : null);
-  }, [run]);
+      // Update the patch in the batch
+      const updatedBatches = run.batches.map((batch) => ({
+        ...batch,
+        patches: batch.patches.map((p) => (p.entityId === entityId ? { ...p, anchorPhrase } : p)),
+      }));
+      await updateRevisionRun(run.runId, { batches: updatedBatches });
+      setRun((prev) => (prev ? { ...prev, batches: updatedBatches } : null));
+    },
+    [run]
+  );
 
   // Apply all accepted patches and return them
   const applyAccepted = useCallback((): SummaryRevisionPatch[] => {

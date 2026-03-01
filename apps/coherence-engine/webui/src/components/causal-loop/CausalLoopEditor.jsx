@@ -5,29 +5,39 @@
  * Shows nodes (pressures/generators/systems/entity-kinds) and edges with polarity (+/-).
  */
 
-import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
-import ForceGraph2D from 'react-force-graph-2d';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from "react";
+import PropTypes from "prop-types";
+import ForceGraph2D from "react-force-graph-2d";
+import "./CausalLoopEditor.css";
 
 // Node type configurations
 const NODE_TYPES = {
-  pressure: { color: '#f59e0b', label: 'Pressure', abbrev: 'P', val: 5 },
-  generator: { color: '#22c55e', label: 'Generator', abbrev: 'G', val: 4 },
-  system: { color: '#8b5cf6', label: 'System', abbrev: 'S', val: 4 },
-  action: { color: '#06b6d4', label: 'Action', abbrev: 'A', val: 3 },
-  entityKind: { color: '#60a5fa', label: 'Entity Kind', abbrev: 'E', val: 3 },
+  pressure: { color: "#f59e0b", label: "Pressure", abbrev: "P", val: 5 },
+  generator: { color: "#22c55e", label: "Generator", abbrev: "G", val: 4 },
+  system: { color: "#8b5cf6", label: "System", abbrev: "S", val: 4 },
+  action: { color: "#06b6d4", label: "Action", abbrev: "A", val: 3 },
+  entityKind: { color: "#60a5fa", label: "Entity Kind", abbrev: "E", val: 3 },
 };
 
 const EDGE_COLORS = {
-  positive: '#22c55e',
-  negative: '#ef4444',
-  neutral: '#6b7280',
+  positive: "#22c55e",
+  negative: "#ef4444",
+  neutral: "#6b7280",
 };
 
 /**
  * Extract all causal nodes and edges from config data
  * Returns { nodes, links, warnings } where warnings contains any referential integrity issues
  */
-function extractCausalGraph(pressures, generators, systems, actions, schema, showDisabled = true, usageMap) {
+function extractCausalGraph(
+  pressures,
+  generators,
+  systems,
+  actions,
+  schema,
+  showDisabled = true,
+  usageMap
+) {
   const nodes = [];
   const pendingEdges = [];
   const nodeMap = new Map();
@@ -54,10 +64,10 @@ function extractCausalGraph(pressures, generators, systems, actions, schema, sho
     return nodeMap.get(id);
   };
 
-  const addPressureEdgesFromChangeMap = (sourceId, pressureChanges = {}, edgeType = 'direct') => {
+  const addPressureEdgesFromChangeMap = (sourceId, pressureChanges = {}, edgeType = "direct") => {
     Object.entries(pressureChanges || {}).forEach(([pressureId, delta]) => {
-      if (typeof delta !== 'number') return;
-      const polarity = delta >= 0 ? 'positive' : 'negative';
+      if (typeof delta !== "number") return;
+      const polarity = delta >= 0 ? "positive" : "negative";
       pendingEdges.push({
         source: sourceId,
         target: `pressure:${pressureId}`,
@@ -72,55 +82,55 @@ function extractCausalGraph(pressures, generators, systems, actions, schema, sho
     const stack = Array.isArray(mutations) ? [...mutations] : [mutations];
     while (stack.length > 0) {
       const mutation = stack.pop();
-      if (!mutation || typeof mutation !== 'object') continue;
-      if (mutation.type === 'modify_pressure' && mutation.pressureId) {
+      if (!mutation || typeof mutation !== "object") continue;
+      if (mutation.type === "modify_pressure" && mutation.pressureId) {
         const delta = Number(mutation.delta || 0);
-        const polarity = delta >= 0 ? 'positive' : 'negative';
+        const polarity = delta >= 0 ? "positive" : "negative";
         pendingEdges.push({
           source: sourceId,
           target: `pressure:${mutation.pressureId}`,
           polarity,
           label: delta > 0 ? `+${delta}` : `${delta}`,
-          edgeType: 'direct',
+          edgeType: "direct",
         });
       }
       Object.values(mutation).forEach((value) => {
         if (Array.isArray(value)) {
           value.forEach((entry) => stack.push(entry));
-        } else if (value && typeof value === 'object') {
+        } else if (value && typeof value === "object") {
           stack.push(value);
         }
       });
     }
   };
 
-  const addEntityKindEdge = (sourceId, kind, label = 'touches') => {
-    if (!kind || kind === 'any') return;
+  const addEntityKindEdge = (sourceId, kind, label = "touches") => {
+    if (!kind || kind === "any") return;
     const targetId = `entityKind:${kind}`;
-    addNode(targetId, 'entityKind', kind);
+    addNode(targetId, "entityKind", kind);
     const edgeKey = `${sourceId}|${targetId}`;
     if (touchEdgeKeys.has(edgeKey)) return;
     touchEdgeKeys.add(edgeKey);
     pendingEdges.push({
       source: sourceId,
       target: targetId,
-      polarity: 'neutral',
+      polarity: "neutral",
       label,
-      edgeType: 'touches',
+      edgeType: "touches",
     });
   };
 
   // 1. Add pressure nodes
-  pressures.forEach(p => {
-    addNode(`pressure:${p.id}`, 'pressure', p.name || p.id, { pressure: p });
+  pressures.forEach((p) => {
+    addNode(`pressure:${p.id}`, "pressure", p.name || p.id, { pressure: p });
   });
 
   // 2. Add generator nodes and their edges to pressures
-  generators.forEach(g => {
+  generators.forEach((g) => {
     const gId = g.id;
     const gName = g.name || gId;
     const isDisabled = g.enabled === false;
-    addNode(`generator:${gId}`, 'generator', gName, { generator: g }, isDisabled);
+    addNode(`generator:${gId}`, "generator", gName, { generator: g }, isDisabled);
 
     // Direct pressure modifications via stateUpdates
     addPressureEdgesFromMutations(`generator:${gId}`, g.stateUpdates || []);
@@ -128,49 +138,56 @@ function extractCausalGraph(pressures, generators, systems, actions, schema, sho
     // Generator creates entities - extract from creation array
     const creation = g.creation || [];
     const createdKinds = new Set();
-    creation.forEach(c => {
+    creation.forEach((c) => {
       // kind can be a string or an object with inherit
-      const kind = typeof c.kind === 'string' ? c.kind : null;
+      const kind = typeof c.kind === "string" ? c.kind : null;
       if (kind) {
         createdKinds.add(kind);
       }
     });
 
     // Create edges for each entity kind this generator produces
-    createdKinds.forEach(kind => {
-      addNode(`entityKind:${kind}`, 'entityKind', kind);
+    createdKinds.forEach((kind) => {
+      addNode(`entityKind:${kind}`, "entityKind", kind);
       pendingEdges.push({
         source: `generator:${gId}`,
         target: `entityKind:${kind}`,
-        polarity: 'positive',
-        label: 'creates',
-        edgeType: 'creates',
+        polarity: "positive",
+        label: "creates",
+        edgeType: "creates",
       });
     });
   });
 
   // 3. Add system nodes and their edges
-  systems.forEach(s => {
+  systems.forEach((s) => {
     const sId = s.config.id;
     const sName = s.config.name || sId;
     const isSystemDisabled = s.enabled === false || s.config.enabled === false;
-    addNode(`system:${sId}`, 'system', sName, { system: s }, isSystemDisabled);
+    addNode(`system:${sId}`, "system", sName, { system: s }, isSystemDisabled);
 
     const config = s.config;
 
     // Pressure changes from systems (mutation-based actions)
-    addPressureEdgesFromChangeMap(`system:${sId}`, config.pressureChanges, 'direct');
-    addPressureEdgesFromChangeMap(`system:${sId}`, config.postProcess?.pressureChanges, 'postProcess');
+    addPressureEdgesFromChangeMap(`system:${sId}`, config.pressureChanges, "direct");
+    addPressureEdgesFromChangeMap(
+      `system:${sId}`,
+      config.postProcess?.pressureChanges,
+      "postProcess"
+    );
 
     const divergencePressure = config.divergencePressure;
-    if (divergencePressure?.pressureName && typeof divergencePressure.delta === 'number') {
-      const polarity = divergencePressure.delta >= 0 ? 'positive' : 'negative';
+    if (divergencePressure?.pressureName && typeof divergencePressure.delta === "number") {
+      const polarity = divergencePressure.delta >= 0 ? "positive" : "negative";
       pendingEdges.push({
         source: `system:${sId}`,
         target: `pressure:${divergencePressure.pressureName}`,
         polarity,
-        label: divergencePressure.delta > 0 ? `+${divergencePressure.delta}` : `${divergencePressure.delta}`,
-        edgeType: 'divergence',
+        label:
+          divergencePressure.delta > 0
+            ? `+${divergencePressure.delta}`
+            : `${divergencePressure.delta}`,
+        edgeType: "divergence",
       });
     }
 
@@ -192,11 +209,11 @@ function extractCausalGraph(pressures, generators, systems, actions, schema, sho
   });
 
   // 4. Add action nodes
-  actions.forEach(a => {
+  actions.forEach((a) => {
     const aId = a.id;
     const aName = a.name || aId;
     const isActionDisabled = a.enabled === false;
-    addNode(`action:${aId}`, 'action', aName, { action: a }, isActionDisabled);
+    addNode(`action:${aId}`, "action", aName, { action: a }, isActionDisabled);
 
     // Action outcome pressure changes
     addPressureEdgesFromMutations(`action:${aId}`, a.outcome?.mutations || []);
@@ -209,9 +226,9 @@ function extractCausalGraph(pressures, generators, systems, actions, schema, sho
       pendingEdges.push({
         source: `pressure:${modifier.pressure}`,
         target: `action:${aId}`,
-        polarity: multiplier >= 0 ? 'positive' : 'negative',
+        polarity: multiplier >= 0 ? "positive" : "negative",
         label: `x${multiplier}`,
-        edgeType: 'modifier',
+        edgeType: "modifier",
       });
     });
 
@@ -237,42 +254,42 @@ function extractCausalGraph(pressures, generators, systems, actions, schema, sho
   }
 
   // 6. Pressure feedback loops - entity counts affect pressures
-  pressures.forEach(p => {
+  pressures.forEach((p) => {
     const growth = p.growth || {};
     const feedback = [
-      ...(growth.positiveFeedback || []).map(f => ({ ...f, polarity: 'positive' })),
-      ...(growth.negativeFeedback || []).map(f => ({ ...f, polarity: 'negative' })),
+      ...(growth.positiveFeedback || []).map((f) => ({ ...f, polarity: "positive" })),
+      ...(growth.negativeFeedback || []).map((f) => ({ ...f, polarity: "negative" })),
     ];
 
-    feedback.forEach(factor => {
-      if (factor.type === 'entity_count' && factor.kind) {
+    feedback.forEach((factor) => {
+      if (factor.type === "entity_count" && factor.kind) {
         const entityId = `entityKind:${factor.kind}`;
-        addNode(entityId, 'entityKind', factor.kind);
+        addNode(entityId, "entityKind", factor.kind);
         pendingEdges.push({
           source: entityId,
           target: `pressure:${p.id}`,
           polarity: factor.polarity,
-          label: factor.polarity === 'positive' ? '+' : '-',
-          edgeType: 'feedback',
+          label: factor.polarity === "positive" ? "+" : "-",
+          edgeType: "feedback",
         });
       }
     });
   });
 
   // 7. Pressure thresholds trigger generators/systems via era weights
-  pressures.forEach(p => {
+  pressures.forEach((p) => {
     const triggers = p.triggers || [];
-    triggers.forEach(trigger => {
+    triggers.forEach((trigger) => {
       if (trigger.activates) {
-        const targetId = trigger.activates.startsWith('generator:')
+        const targetId = trigger.activates.startsWith("generator:")
           ? trigger.activates
           : `generator:${trigger.activates}`;
         pendingEdges.push({
           source: `pressure:${p.id}`,
           target: targetId,
-          polarity: 'positive',
+          polarity: "positive",
           label: `>${trigger.threshold}`,
-          edgeType: 'trigger',
+          edgeType: "trigger",
         });
       }
     });
@@ -288,7 +305,7 @@ function extractCausalGraph(pressures, generators, systems, actions, schema, sho
       const missingNode = !sourceExists ? edge.source : edge.target;
       const referrer = !sourceExists ? edge.target : edge.source;
       warnings.push({
-        type: 'missing_reference',
+        type: "missing_reference",
         message: `Edge from "${referrer}" references missing node "${missingNode}"`,
         edge,
       });
@@ -298,18 +315,20 @@ function extractCausalGraph(pressures, generators, systems, actions, schema, sho
   }
 
   // 9. Filter disabled nodes if requested
-  const filteredNodes = showDisabled ? nodes : nodes.filter(n => !n.isDisabled);
-  const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
-  const filteredEdges = validEdges.filter(e => filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target));
+  const filteredNodes = showDisabled ? nodes : nodes.filter((n) => !n.isDisabled);
+  const filteredNodeIds = new Set(filteredNodes.map((n) => n.id));
+  const filteredEdges = validEdges.filter(
+    (e) => filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target)
+  );
 
   const connectedNodeIds = new Set();
   filteredEdges.forEach((edge) => {
-    const sourceId = typeof edge.source === 'object' ? edge.source.id : edge.source;
-    const targetId = typeof edge.target === 'object' ? edge.target.id : edge.target;
+    const sourceId = typeof edge.source === "object" ? edge.source.id : edge.source;
+    const targetId = typeof edge.target === "object" ? edge.target.id : edge.target;
     if (sourceId) connectedNodeIds.add(sourceId);
     if (targetId) connectedNodeIds.add(targetId);
   });
-  const connectedNodes = filteredNodes.filter(node => connectedNodeIds.has(node.id));
+  const connectedNodes = filteredNodes.filter((node) => connectedNodeIds.has(node.id));
 
   return { nodes: connectedNodes, links: filteredEdges, warnings };
 }
@@ -319,11 +338,11 @@ function extractCausalGraph(pressures, generators, systems, actions, schema, sho
  */
 function detectLoops(nodes, links) {
   const adjacency = new Map();
-  nodes.forEach(n => adjacency.set(n.id, []));
-  links.forEach(e => {
-    const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
+  nodes.forEach((n) => adjacency.set(n.id, []));
+  links.forEach((e) => {
+    const sourceId = typeof e.source === "object" ? e.source.id : e.source;
     const adj = adjacency.get(sourceId);
-    if (adj) adj.push({ target: typeof e.target === 'object' ? e.target.id : e.target, edge: e });
+    if (adj) adj.push({ target: typeof e.target === "object" ? e.target.id : e.target, edge: e });
   });
 
   const loops = [];
@@ -354,23 +373,23 @@ function detectLoops(nodes, links) {
     pathSet.delete(nodeId);
   }
 
-  nodes.forEach(n => {
+  nodes.forEach((n) => {
     if (!visited.has(n.id)) {
       dfs(n.id);
     }
   });
 
-  return loops.map(loop => {
+  return loops.map((loop) => {
     let negativeCount = 0;
     for (let i = 0; i < loop.length - 1; i++) {
-      const edge = links.find(e => {
-        const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
-        const targetId = typeof e.target === 'object' ? e.target.id : e.target;
+      const edge = links.find((e) => {
+        const sourceId = typeof e.source === "object" ? e.source.id : e.source;
+        const targetId = typeof e.target === "object" ? e.target.id : e.target;
         return sourceId === loop[i] && targetId === loop[i + 1];
       });
-      if (edge?.polarity === 'negative') negativeCount++;
+      if (edge?.polarity === "negative") negativeCount++;
     }
-    const type = negativeCount % 2 === 0 ? 'reinforcing' : 'balancing';
+    const type = negativeCount % 2 === 0 ? "reinforcing" : "balancing";
     return { nodes: loop, type };
   });
 }
@@ -406,78 +425,97 @@ export default function CausalLoopEditor({
     updateDimensions();
     const observer = new ResizeObserver(updateDimensions);
     observer.observe(containerRef.current);
-    window.addEventListener('resize', updateDimensions);
+    window.addEventListener("resize", updateDimensions);
 
     return () => {
       observer.disconnect();
-      window.removeEventListener('resize', updateDimensions);
+      window.removeEventListener("resize", updateDimensions);
     };
   }, []);
 
   // Extract graph data
-  const { nodes: graphNodes, links: graphLinks, warnings } = useMemo(
-    () => extractCausalGraph(pressures, generators, systems, actions, schema, showDisabled, usageMap),
+  const {
+    nodes: graphNodes,
+    links: graphLinks,
+    warnings,
+  } = useMemo(
+    () =>
+      extractCausalGraph(pressures, generators, systems, actions, schema, showDisabled, usageMap),
     [pressures, generators, systems, actions, schema, showDisabled, usageMap]
   );
-  const graphData = useMemo(() => ({ nodes: graphNodes, links: graphLinks }), [graphNodes, graphLinks]);
+  const graphData = useMemo(
+    () => ({ nodes: graphNodes, links: graphLinks }),
+    [graphNodes, graphLinks]
+  );
 
   // Count disabled nodes for UI
   const disabledCount = useMemo(() => {
-    const allNodes = extractCausalGraph(pressures, generators, systems, actions, schema, true, usageMap).nodes;
-    return allNodes.filter(n => n.isDisabled).length;
+    const allNodes = extractCausalGraph(
+      pressures,
+      generators,
+      systems,
+      actions,
+      schema,
+      true,
+      usageMap
+    ).nodes;
+    return allNodes.filter((n) => n.isDisabled).length;
   }, [pressures, generators, systems, actions, schema, usageMap]);
 
   // Detect loops
   const loops = useMemo(() => detectLoops(graphData.nodes, graphData.links), [graphData]);
 
-  const reinforcingLoops = loops.filter(l => l.type === 'reinforcing');
-  const balancingLoops = loops.filter(l => l.type === 'balancing');
+  const reinforcingLoops = loops.filter((l) => l.type === "reinforcing");
+  const balancingLoops = loops.filter((l) => l.type === "balancing");
 
   // Node styling
-  const nodeCanvasObject = useCallback((node, ctx, globalScale) => {
-    const label = node.label;
-    const fontSize = Math.max(10 / globalScale, 3);
-    const abbrevFontSize = Math.max(8 / globalScale, 3);
-    const nodeRadius = Math.sqrt(node.val) * 3;
-    const isDisabled = node.isDisabled;
+  const nodeCanvasObject = useCallback(
+    (node, ctx, globalScale) => {
+      const label = node.label;
+      const fontSize = Math.max(10 / globalScale, 3);
+      const abbrevFontSize = Math.max(8 / globalScale, 3);
+      const nodeRadius = Math.sqrt(node.val) * 3;
+      const isDisabled = node.isDisabled;
 
-    // Draw node circle with opacity for disabled
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI);
-    ctx.fillStyle = isDisabled ? `${node.color}60` : node.color;
-    ctx.fill();
+      // Draw node circle with opacity for disabled
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI);
+      ctx.fillStyle = isDisabled ? `${node.color}60` : node.color;
+      ctx.fill();
 
-    // Strikethrough pattern for disabled nodes
-    if (isDisabled) {
-      ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 1 / globalScale;
-      ctx.setLineDash([2 / globalScale, 2 / globalScale]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
+      // Strikethrough pattern for disabled nodes
+      if (isDisabled) {
+        ctx.strokeStyle = "#64748b";
+        ctx.lineWidth = 1 / globalScale;
+        ctx.setLineDash([2 / globalScale, 2 / globalScale]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
 
-    // Highlight selected/hovered
-    if (selectedNode === node.id || hoverNode === node.id) {
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2 / globalScale;
-      ctx.stroke();
-    }
+      // Highlight selected/hovered
+      if (selectedNode === node.id || hoverNode === node.id) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2 / globalScale;
+        ctx.stroke();
+      }
 
-    // Draw abbreviation inside node
-    ctx.font = `bold ${abbrevFontSize}px Sans-Serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = isDisabled ? '#64748b' : '#0a1929';
-    ctx.fillText(node.abbrev || '?', node.x, node.y);
+      // Draw abbreviation inside node
+      ctx.font = `bold ${abbrevFontSize}px Sans-Serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = isDisabled ? "#64748b" : "#0a1929";
+      ctx.fillText(node.abbrev || "?", node.x, node.y);
 
-    // Draw label below node
-    ctx.font = `${fontSize}px Sans-Serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = isDisabled ? '#64748b' : '#e2e8f0';
-    const displayLabel = label.length > 15 ? label.slice(0, 13) + '...' : label;
-    ctx.fillText(displayLabel, node.x, node.y + nodeRadius + 2);
-  }, [selectedNode, hoverNode]);
+      // Draw label below node
+      ctx.font = `${fontSize}px Sans-Serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = isDisabled ? "#64748b" : "#e2e8f0";
+      const displayLabel = label.length > 15 ? label.slice(0, 13) + "..." : label;
+      ctx.fillText(displayLabel, node.x, node.y + nodeRadius + 2);
+    },
+    [selectedNode, hoverNode]
+  );
 
   // Link styling
   const linkColor = useCallback((link) => {
@@ -485,17 +523,20 @@ export default function CausalLoopEditor({
   }, []);
 
   const linkWidth = useCallback((link) => {
-    return link.edgeType === 'feedback' ? 1 : 2;
+    return link.edgeType === "feedback" ? 1 : 2;
   }, []);
 
   const linkLineDash = useCallback((link) => {
-    return link.edgeType === 'feedback' ? [4, 4] : [];
+    return link.edgeType === "feedback" ? [4, 4] : [];
   }, []);
 
   // Handle node click
-  const handleNodeClick = useCallback((node) => {
-    setSelectedNode(selectedNode === node.id ? null : node.id);
-  }, [selectedNode]);
+  const handleNodeClick = useCallback(
+    (node) => {
+      setSelectedNode(selectedNode === node.id ? null : node.id);
+    },
+    [selectedNode]
+  );
 
   // Zoom to fit on load
   useEffect(() => {
@@ -506,20 +547,18 @@ export default function CausalLoopEditor({
     }
   }, [graphData.nodes.length]);
 
-  const selectedNodeData = selectedNode
-    ? graphData.nodes.find(n => n.id === selectedNode)
-    : null;
+  const selectedNodeData = selectedNode ? graphData.nodes.find((n) => n.id === selectedNode) : null;
 
   // Get edges for selected node
   const selectedNodeEdges = useMemo(() => {
     if (!selectedNode) return { incoming: [], outgoing: [] };
     return {
-      incoming: graphData.links.filter(l => {
-        const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+      incoming: graphData.links.filter((l) => {
+        const targetId = typeof l.target === "object" ? l.target.id : l.target;
         return targetId === selectedNode;
       }),
-      outgoing: graphData.links.filter(l => {
-        const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+      outgoing: graphData.links.filter((l) => {
+        const sourceId = typeof l.source === "object" ? l.source.id : l.source;
         return sourceId === selectedNode;
       }),
     };
@@ -532,67 +571,55 @@ export default function CausalLoopEditor({
         <p className="subtitle">
           Visualize feedback loops between pressures, generators, systems, and entity kinds.
           {loops.length > 0 && (
-            <span style={{ marginLeft: '8px' }}>
-              <span style={{ color: '#ef4444' }}>{reinforcingLoops.length} reinforcing</span>
-              {' / '}
-              <span style={{ color: '#3b82f6' }}>{balancingLoops.length} balancing</span>
-              {' loops detected'}
+            <span className="cl-loop-count">
+              <span className="cl-loop-reinforcing">{reinforcingLoops.length} reinforcing</span>
+              {" / "}
+              <span className="cl-loop-balancing">{balancingLoops.length} balancing</span>
+              {" loops detected"}
             </span>
           )}
         </p>
       </div>
 
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <button
-          className="button-secondary"
-          onClick={() => setShowLegend(!showLegend)}
-        >
-          {showLegend ? 'Hide' : 'Show'} Legend
+      <div className="cl-toolbar">
+        <button className="button-secondary" onClick={() => setShowLegend(!showLegend)}>
+          {showLegend ? "Hide" : "Show"} Legend
         </button>
         {disabledCount > 0 && (
           <button
             className="button-secondary"
             onClick={() => setShowDisabled(!showDisabled)}
+            // eslint-disable-next-line local/no-inline-styles -- dynamic opacity toggle
             style={{ opacity: showDisabled ? 1 : 0.7 }}
           >
-            {showDisabled ? 'Hide' : 'Show'} Disabled ({disabledCount})
+            {showDisabled ? "Hide" : "Show"} Disabled ({disabledCount})
           </button>
         )}
-        <button
-          className="button-secondary"
-          onClick={() => graphRef.current?.zoomToFit(400, 60)}
-        >
+        <button className="button-secondary" onClick={() => graphRef.current?.zoomToFit(400, 60)}>
           Fit to View
         </button>
-        <div style={{ color: '#93c5fd', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div className="cl-stats">
           <span>{graphData.nodes.length} nodes</span>
           <span>{graphData.links.length} edges</span>
           {warnings.length > 0 && (
-            <span style={{ color: '#f59e0b' }}>{warnings.length} warnings</span>
+            <span className="cl-stats-warning">{warnings.length} warnings</span>
           )}
-          <span style={{ color: '#6b7280' }}>Scroll to zoom, drag to pan</span>
+          <span className="cl-stats-hint">Scroll to zoom, drag to pan</span>
         </div>
       </div>
 
       {/* Warnings */}
       {warnings.length > 0 && (
-        <div style={{
-          padding: '8px 12px',
-          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-          border: '1px solid #f59e0b',
-          borderRadius: '6px',
-          marginBottom: '16px',
-          fontSize: '12px',
-        }}>
-          <div style={{ color: '#f59e0b', fontWeight: 600, marginBottom: '4px' }}>
+        <div className="cl-warnings-box">
+          <div className="cl-warnings-title">
             Referential Integrity Warnings
           </div>
-          <div style={{ color: '#fcd34d', maxHeight: '80px', overflowY: 'auto' }}>
+          <div className="cl-warnings-list">
             {warnings.slice(0, 5).map((w, i) => (
               <div key={i}>{w.message}</div>
             ))}
             {warnings.length > 5 && (
-              <div style={{ color: '#f59e0b', marginTop: '4px' }}>
+              <div className="cl-warnings-more">
                 ...and {warnings.length - 5} more warnings
               </div>
             )}
@@ -602,76 +629,46 @@ export default function CausalLoopEditor({
 
       {/* Legend */}
       {showLegend && (
-        <div style={{
-          display: 'flex',
-          gap: '24px',
-          padding: '12px 16px',
-          backgroundColor: 'rgba(15, 23, 42, 0.6)',
-          borderRadius: '8px',
-          marginBottom: '16px',
-          flexWrap: 'wrap',
-        }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <span style={{ color: '#93c5fd', fontSize: '12px', fontWeight: 500 }}>Nodes:</span>
+        <div className="cl-legend">
+          <div className="cl-legend-group">
+            <span className="cl-legend-label">Nodes:</span>
             {Object.entries(NODE_TYPES).map(([type, config]) => (
-              <span key={type} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
-                <span style={{
-                  width: '16px',
-                  height: '16px',
-                  backgroundColor: config.color,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '9px',
-                  fontWeight: 700,
-                  color: '#0a1929',
-                }}>
+              <span key={type} className="cl-legend-item">
+                <span
+                  className="cl-legend-node"
+                  // eslint-disable-next-line local/no-inline-styles -- dynamic color per node type
+                  style={{ '--cl-node-color': config.color, backgroundColor: 'var(--cl-node-color)' }}
+                >
                   {config.abbrev}
                 </span>
-                <span style={{ color: '#e2e8f0' }}>{config.label}</span>
+                <span className="cl-legend-node-label">{config.label}</span>
               </span>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <span style={{ color: '#93c5fd', fontSize: '12px', fontWeight: 500 }}>Edges:</span>
-            <span style={{ color: EDGE_COLORS.positive, fontSize: '11px' }}>+ Positive</span>
-            <span style={{ color: EDGE_COLORS.negative, fontSize: '11px' }}>- Negative</span>
+          <div className="cl-legend-group">
+            <span className="cl-legend-label">Edges:</span>
+            <span className="cl-legend-item cl-edge-positive">+ Positive</span>
+            <span className="cl-legend-item cl-edge-negative">- Negative</span>
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <span style={{ color: '#93c5fd', fontSize: '12px', fontWeight: 500 }}>Loops:</span>
-            <span style={{ color: '#ef4444', fontSize: '11px' }}>Reinforcing (unstable)</span>
-            <span style={{ color: '#3b82f6', fontSize: '11px' }}>Balancing (stable)</span>
+          <div className="cl-legend-group">
+            <span className="cl-legend-label">Loops:</span>
+            <span className="cl-legend-item cl-loop-reinforcing">Reinforcing (unstable)</span>
+            <span className="cl-legend-item cl-loop-balancing">Balancing (stable)</span>
           </div>
         </div>
       )}
 
       {/* Graph container */}
-      <div
-        ref={containerRef}
-        style={{
-          backgroundColor: '#0f172a',
-          borderRadius: '8px',
-          border: '1px solid rgba(59, 130, 246, 0.3)',
-          overflow: 'hidden',
-        }}
-      >
+      <div ref={containerRef} className="cl-graph-container">
         {graphData.nodes.length === 0 ? (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '400px',
-            color: '#93c5fd',
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>&#128260;</div>
-            <div style={{ fontSize: '16px', fontWeight: 500, color: '#fff', marginBottom: '8px' }}>
+          <div className="cl-empty-state">
+            <div className="cl-empty-icon">&#128260;</div>
+            <div className="cl-empty-title">
               No causal relationships found
             </div>
-            <div style={{ fontSize: '13px', maxWidth: '400px', textAlign: 'center' }}>
-              Add pressures with feedback factors, generators with state updates,
-              or systems with pressure changes to see the causal loop diagram.
+            <div className="cl-empty-desc">
+              Add pressures with feedback factors, generators with state updates, or systems with
+              pressure changes to see the causal loop diagram.
             </div>
           </div>
         ) : (
@@ -696,7 +693,7 @@ export default function CausalLoopEditor({
             linkDirectionalArrowRelPos={0.9}
             linkCurvature={0.2}
             onNodeClick={handleNodeClick}
-            onNodeHover={node => setHoverNode(node?.id || null)}
+            onNodeHover={(node) => setHoverNode(node?.id || null)}
             cooldownTicks={100}
             d3AlphaDecay={0.02}
             d3VelocityDecay={0.3}
@@ -708,10 +705,10 @@ export default function CausalLoopEditor({
             // Increase spacing between nodes
             linkDistance={120}
             d3Force={(forceName, force) => {
-              if (forceName === 'charge') {
+              if (forceName === "charge") {
                 force.strength(-300); // Stronger repulsion
               }
-              if (forceName === 'link') {
+              if (forceName === "link") {
                 force.distance(120); // Longer links
               }
             }}
@@ -721,85 +718,73 @@ export default function CausalLoopEditor({
 
       {/* Selected node details */}
       {selectedNodeData && (
-        <div style={{
-          marginTop: '16px',
-          padding: '16px',
-          backgroundColor: 'rgba(15, 23, 42, 0.8)',
-          borderRadius: '8px',
-          border: `2px solid ${selectedNodeData.color}`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <span style={{
-              padding: '2px 8px',
-              backgroundColor: selectedNodeData.color,
-              borderRadius: '4px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: '#0a1929',
-            }}>
+        <div
+          className="cl-details"
+          // eslint-disable-next-line local/no-inline-styles -- dynamic border color from selected node
+          style={{ '--cl-detail-color': selectedNodeData.color, borderColor: 'var(--cl-detail-color)' }}
+        >
+          <div className="cl-details-header">
+            <span
+              className="cl-details-type-badge"
+              // eslint-disable-next-line local/no-inline-styles -- dynamic bg color from node type
+              style={{ '--cl-badge-bg': selectedNodeData.color, backgroundColor: 'var(--cl-badge-bg)' }}
+            >
               {NODE_TYPES[selectedNodeData.type]?.label}
             </span>
-            <span style={{ color: '#fff', fontWeight: 500 }}>{selectedNodeData.label}</span>
+            <span className="cl-details-name">{selectedNodeData.label}</span>
             <button
               onClick={() => setSelectedNode(null)}
-              style={{
-                marginLeft: 'auto',
-                background: 'none',
-                border: 'none',
-                color: '#93c5fd',
-                cursor: 'pointer',
-                fontSize: '16px',
-              }}
+              className="cl-details-close"
             >
               ×
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: '24px' }}>
+          <div className="cl-details-edges">
             {/* Incoming edges */}
-            <div style={{ flex: 1 }}>
-              <span style={{ color: '#93c5fd', fontSize: '12px', fontWeight: 500 }}>
+            <div className="cl-edge-section">
+              <span className="cl-edge-label">
                 Incoming ({selectedNodeEdges.incoming.length})
               </span>
-              <div style={{ paddingLeft: '8px', fontSize: '12px', color: '#e2e8f0', marginTop: '4px' }}>
+              <div className="cl-edge-list">
                 {selectedNodeEdges.incoming.map((e, i) => {
-                  const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
-                  const sourceNode = graphData.nodes.find(n => n.id === sourceId);
+                  const sourceId = typeof e.source === "object" ? e.source.id : e.source;
+                  const sourceNode = graphData.nodes.find((n) => n.id === sourceId);
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                      <span style={{ color: EDGE_COLORS[e.polarity] }}>
-                        {e.polarity === 'positive' ? '+' : '-'}
+                    <div key={i} className="cl-edge-item">
+                      <span className={e.polarity === "positive" ? "cl-edge-positive" : "cl-edge-negative"}>
+                        {e.polarity === "positive" ? "+" : "-"}
                       </span>
                       <span>{sourceNode?.label || sourceId}</span>
                     </div>
                   );
                 })}
                 {selectedNodeEdges.incoming.length === 0 && (
-                  <span style={{ color: '#6b7280' }}>none</span>
+                  <span className="cl-edge-none">none</span>
                 )}
               </div>
             </div>
 
             {/* Outgoing edges */}
-            <div style={{ flex: 1 }}>
-              <span style={{ color: '#93c5fd', fontSize: '12px', fontWeight: 500 }}>
+            <div className="cl-edge-section">
+              <span className="cl-edge-label">
                 Outgoing ({selectedNodeEdges.outgoing.length})
               </span>
-              <div style={{ paddingLeft: '8px', fontSize: '12px', color: '#e2e8f0', marginTop: '4px' }}>
+              <div className="cl-edge-list">
                 {selectedNodeEdges.outgoing.map((e, i) => {
-                  const targetId = typeof e.target === 'object' ? e.target.id : e.target;
-                  const targetNode = graphData.nodes.find(n => n.id === targetId);
+                  const targetId = typeof e.target === "object" ? e.target.id : e.target;
+                  const targetNode = graphData.nodes.find((n) => n.id === targetId);
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                      <span style={{ color: EDGE_COLORS[e.polarity] }}>
-                        {e.polarity === 'positive' ? '+' : '-'}
+                    <div key={i} className="cl-edge-item">
+                      <span className={e.polarity === "positive" ? "cl-edge-positive" : "cl-edge-negative"}>
+                        {e.polarity === "positive" ? "+" : "-"}
                       </span>
                       <span>{targetNode?.label || targetId}</span>
                     </div>
                   );
                 })}
                 {selectedNodeEdges.outgoing.length === 0 && (
-                  <span style={{ color: '#6b7280' }}>none</span>
+                  <span className="cl-edge-none">none</span>
                 )}
               </div>
             </div>
@@ -809,37 +794,32 @@ export default function CausalLoopEditor({
 
       {/* Loop summary */}
       {loops.length > 0 && (
-        <div style={{ marginTop: '16px' }}>
-          <h3 style={{ color: '#fff', fontSize: '14px', marginBottom: '8px' }}>Detected Loops</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="cl-loops-section">
+          <h3 className="cl-loops-title">Detected Loops</h3>
+          <div className="cl-loops-list">
             {loops.slice(0, 5).map((loop, i) => (
               <div
                 key={i}
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: loop.type === 'reinforcing' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                  border: `1px solid ${loop.type === 'reinforcing' ? '#ef4444' : '#3b82f6'}`,
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                }}
+                className={`cl-loop-item ${loop.type === "reinforcing" ? "cl-loop-item-reinforcing" : "cl-loop-item-balancing"}`}
               >
-                <span style={{
-                  color: loop.type === 'reinforcing' ? '#ef4444' : '#3b82f6',
-                  fontWeight: 600,
-                  marginRight: '8px',
-                }}>
-                  {loop.type === 'reinforcing' ? '++ Reinforcing' : '+- Balancing'}
+                <span
+                  className={`cl-loop-type ${loop.type === "reinforcing" ? "cl-loop-type-reinforcing" : "cl-loop-type-balancing"}`}
+                >
+                  {loop.type === "reinforcing" ? "++ Reinforcing" : "+- Balancing"}
                 </span>
-                <span style={{ color: '#e2e8f0' }}>
-                  {loop.nodes.slice(0, -1).map(id => {
-                    const node = graphData.nodes.find(n => n.id === id);
-                    return node?.label || id.split(':')[1];
-                  }).join(' -> ')}
+                <span className="cl-loop-path">
+                  {loop.nodes
+                    .slice(0, -1)
+                    .map((id) => {
+                      const node = graphData.nodes.find((n) => n.id === id);
+                      return node?.label || id.split(":")[1];
+                    })
+                    .join(" -> ")}
                 </span>
               </div>
             ))}
             {loops.length > 5 && (
-              <div style={{ color: '#93c5fd', fontSize: '12px' }}>
+              <div className="cl-loops-more">
                 ...and {loops.length - 5} more loops
               </div>
             )}
@@ -849,5 +829,14 @@ export default function CausalLoopEditor({
     </div>
   );
 }
+
+CausalLoopEditor.propTypes = {
+  pressures: PropTypes.array,
+  generators: PropTypes.array,
+  systems: PropTypes.array,
+  actions: PropTypes.array,
+  schema: PropTypes.object,
+  usageMap: PropTypes.object,
+};
 
 export { CausalLoopEditor };

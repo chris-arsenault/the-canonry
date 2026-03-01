@@ -11,13 +11,13 @@
  * Payload is JSON-serialized in the prompt field: an array of chronicle entries.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
-import type { HistorianTone } from '../../lib/historianTypes';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { updateChronicleToneRanking } from '../../lib/db/chronicleRepository';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
+import type { HistorianTone } from "../../lib/historianTypes";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { updateChronicleToneRanking } from "../../lib/db/chronicleRepository";
 
 // ============================================================================
 // Payload type
@@ -32,7 +32,15 @@ interface BulkChronicleEntry {
   brief?: string;
 }
 
-const VALID_TONES = new Set<HistorianTone>(['witty', 'weary', 'elegiac', 'cantankerous', 'rueful', 'conspiratorial', 'bemused']);
+const VALID_TONES = new Set<HistorianTone>([
+  "witty",
+  "weary",
+  "elegiac",
+  "cantankerous",
+  "rueful",
+  "conspiratorial",
+  "bemused",
+]);
 
 const BATCH_TARGET_MIN = 35;
 const BATCH_TARGET_MAX = 45;
@@ -82,21 +90,22 @@ Respond with ONLY a JSON array, one object per chronicle in input order. Each ra
 Example rationale: "The Mask's bureaucratic sincerity treating body count as throughput"
 NOT: "The Mask is funnier than it realizes because its absolute bureaucratic sincerity — cross-referencing grief profiles, noting deaths as an incidental data point — makes the body count a quality-assurance outcome. The comedy peaks when..."`;
 
-
 function buildUserPrompt(entries: BulkChronicleEntry[]): string {
   const lines: string[] = [];
   lines.push(`${entries.length} chronicles:\n`);
   for (let i = 0; i < entries.length; i++) {
     const e = entries[i];
     lines.push(`--- Chronicle ${i + 1}: ${e.title} ---`);
-    lines.push(`Format: ${e.format}${e.narrativeStyleName ? ` | Style: ${e.narrativeStyleName}` : ''}`);
+    lines.push(
+      `Format: ${e.format}${e.narrativeStyleName ? " | Style: " + e.narrativeStyleName : ""}`
+    );
     lines.push(`Summary: ${e.summary}`);
     if (e.brief) {
       lines.push(`Brief: ${e.brief}`);
     }
-    lines.push('');
+    lines.push("");
   }
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /** Split an array into chunks of the given size */
@@ -112,16 +121,21 @@ function chunk<T>(arr: T[], size: number): T[][] {
 async function processBatchResponse(
   responseText: string,
   batchEntries: BulkChronicleEntry[],
-  costPerChronicle: number,
+  costPerChronicle: number
 ): Promise<{ successCount: number; failCount: number }> {
-  const jsonText = responseText.trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+  /* eslint-disable sonarjs/slow-regex -- bounded LLM response text, stripping code fences */
+  const jsonText = responseText
+    .trim()
+    .replace(/^```(?:json)?\s*/, "")
+    .replace(/\s*```$/, "");
+  /* eslint-enable sonarjs/slow-regex */
 
   let parsed: Array<{ id: number; ranking: string[]; rationales?: Record<string, string> }>;
   try {
     parsed = JSON.parse(jsonText);
-    if (!Array.isArray(parsed)) throw new Error('Expected array');
+    if (!Array.isArray(parsed)) throw new Error("Expected array");
   } catch {
-    console.error('[BulkToneRanking] Failed to parse batch response:', responseText.slice(0, 500));
+    console.error("[BulkToneRanking] Failed to parse batch response:", responseText.slice(0, 500));
     return { successCount: 0, failCount: batchEntries.length };
   }
 
@@ -144,10 +158,16 @@ async function processBatchResponse(
 
     const ranking = validRanking.slice(0, 3) as [string, string, string];
     const rationales = item.rationales || {};
-    const rationale = rationales[ranking[0]] || '';
+    const rationale = rationales[ranking[0]] || "";
 
     try {
-      await updateChronicleToneRanking(entry.chronicleId, ranking, rationale, costPerChronicle, rationales);
+      await updateChronicleToneRanking(
+        entry.chronicleId,
+        ranking,
+        rationale,
+        costPerChronicle,
+        rationales
+      );
       successCount++;
     } catch (err) {
       console.error(`[BulkToneRanking] Failed to write ${entry.chronicleId}:`, err);
@@ -163,19 +183,19 @@ async function processBatchResponse(
 // ============================================================================
 
 export const bulkToneRankingTask = {
-  type: 'bulkToneRanking' as const,
+  type: "bulkToneRanking" as const,
 
   async execute(task: WorkerTask, context: TaskContext): Promise<TaskResult> {
-    const callConfig = getCallConfig(context.config, 'chronicle.bulkToneRanking');
+    const callConfig = getCallConfig(context.config, "chronicle.bulkToneRanking");
 
     let entries: BulkChronicleEntry[];
     try {
       entries = JSON.parse(task.prompt);
       if (!Array.isArray(entries) || entries.length === 0) {
-        throw new Error('Expected non-empty array');
+        throw new Error("Expected non-empty array");
       }
     } catch {
-      return { success: false, error: 'Invalid bulk tone ranking payload' };
+      return { success: false, error: "Invalid bulk tone ranking payload" };
     }
 
     // Dynamic batch size: pick n batches so each has 35-45 entries
@@ -188,7 +208,9 @@ export const bulkToneRankingTask = {
     let totalOutputTokens = 0;
     let totalCost = 0;
 
-    console.log(`[BulkToneRanking] Processing ${entries.length} chronicles in ${batches.length} batch(es) of ~${batchSize}`);
+    console.log(
+      `[BulkToneRanking] Processing ${entries.length} chronicles in ${batches.length} batch(es) of ~${batchSize}`
+    );
 
     for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
       if (context.isAborted()) {
@@ -206,13 +228,15 @@ export const bulkToneRankingTask = {
       }
 
       const batch = batches[batchIdx];
-      console.log(`[BulkToneRanking] Batch ${batchIdx + 1}/${batches.length}: ${batch.length} chronicles`);
+      console.log(
+        `[BulkToneRanking] Batch ${batchIdx + 1}/${batches.length}: ${batch.length} chronicles`
+      );
 
       const userPrompt = buildUserPrompt(batch);
 
       const { result, usage } = await runTextCall({
         llmClient: context.llmClient,
-        callType: 'chronicle.bulkToneRanking',
+        callType: "chronicle.bulkToneRanking",
         callConfig,
         systemPrompt: SYSTEM_PROMPT,
         prompt: userPrompt,
@@ -228,7 +252,9 @@ export const bulkToneRankingTask = {
       totalSuccess += batchResult.successCount;
       totalFail += batchResult.failCount;
 
-      console.log(`[BulkToneRanking] Batch ${batchIdx + 1} done: ${batchResult.successCount} success, ${batchResult.failCount} failed`);
+      console.log(
+        `[BulkToneRanking] Batch ${batchIdx + 1} done: ${batchResult.successCount} success, ${batchResult.failCount} failed`
+      );
     }
 
     return {

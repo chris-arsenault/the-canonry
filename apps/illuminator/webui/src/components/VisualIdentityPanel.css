@@ -1,0 +1,40 @@
+.vip-kind-selector-spaced {
+  margin-bottom: 12px;
+}
+
+.vip-kind-selector-spaced .illuminator-kind-button {
+  border-left: 3px solid var(--vip-culture-color, var(--accent-color));
+}
+
+.vip-input-flex {
+  flex: 1;
+}
+
+.vip-cancel-button {
+  padding: 4px 6px;
+}
+
+.vip-delete-button {
+  color: var(--error-color);
+  padding: 4px 8px;
+}
+
+.vip-key-input {
+  width: 120px;
+  text-transform: uppercase;
+}
+
+.vip-hint-spaced {
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+.vip-kind-count {
+  margin-left: 4px;
+  opacity: 0.6;
+}
+
+.vip-key-button-uppercase {
+  text-transform: uppercase;
+  font-size: 11px;
+}

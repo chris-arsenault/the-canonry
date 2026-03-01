@@ -32,7 +32,28 @@ function openDb(onVersionChange?: () => void): Promise<IDBDatabase> {
 /**
  * Read a single record from an IDB object store by key.
  */
-function getRecord(db: IDBDatabase, storeName: string, key: string): Promise<any> {
+interface BlobRecord {
+  blob: Blob;
+}
+
+interface ImageRecord {
+  imageId: string;
+  entityId?: string;
+  entityName?: string;
+  entityKind?: string;
+  entityCulture?: string;
+  width?: number;
+  height?: number;
+  aspect?: 'portrait' | 'landscape' | 'square';
+  originalPrompt?: string;
+  finalPrompt?: string;
+  revisedPrompt?: string;
+  generatedAt?: number;
+  model?: string;
+  size?: number;
+}
+
+function getRecord<T>(db: IDBDatabase, storeName: string, key: string): Promise<T | null> {
   return new Promise((resolve, reject) => {
     if (!db.objectStoreNames.contains(storeName)) {
       resolve(null);
@@ -40,8 +61,8 @@ function getRecord(db: IDBDatabase, storeName: string, key: string): Promise<any
     }
     const tx = db.transaction(storeName, 'readonly');
     const request = tx.objectStore(storeName).get(key);
-    request.onsuccess = () => resolve(request.result ?? null);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve((request.result as T | undefined) ?? null);
+    request.onerror = () => reject(new Error(request.error?.message ?? 'IDB get failed'));
   });
 }
 
@@ -49,7 +70,7 @@ function getRecord(db: IDBDatabase, storeName: string, key: string): Promise<any
  * Read multiple records from an IDB object store by keys.
  * Returns results in the same order as keys (null for missing).
  */
-function getRecords(db: IDBDatabase, storeName: string, keys: string[]): Promise<any[]> {
+function getRecords<T>(db: IDBDatabase, storeName: string, keys: string[]): Promise<(T | null)[]> {
   return new Promise((resolve, reject) => {
     if (!db.objectStoreNames.contains(storeName)) {
       resolve(keys.map(() => null));
@@ -57,7 +78,7 @@ function getRecords(db: IDBDatabase, storeName: string, keys: string[]): Promise
     }
     const tx = db.transaction(storeName, 'readonly');
     const store = tx.objectStore(storeName);
-    const results: any[] = new Array(keys.length).fill(null);
+    const results: (T | null)[] = new Array<T | null>(keys.length).fill(null);
     let pending = keys.length;
 
     if (pending === 0) {
@@ -68,7 +89,7 @@ function getRecords(db: IDBDatabase, storeName: string, keys: string[]): Promise
     for (let i = 0; i < keys.length; i++) {
       const request = store.get(keys[i]);
       request.onsuccess = () => {
-        results[i] = request.result ?? null;
+        results[i] = (request.result as T | undefined) ?? null;
         if (--pending === 0) resolve(results);
       };
       request.onerror = () => {
@@ -76,7 +97,7 @@ function getRecords(db: IDBDatabase, storeName: string, keys: string[]): Promise
       };
     }
 
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => reject(new Error(tx.error?.message ?? 'IDB transaction failed'));
   });
 }
 
@@ -104,7 +125,7 @@ export class IndexedDBBackend implements ImageBackend {
   async getImageUrl(imageId: string, _size?: ImageSize): Promise<string | null> {
     if (!this.db) await this.initialize();
 
-    const record = await getRecord(this.db!, BLOBS_STORE, imageId);
+    const record = await getRecord<BlobRecord>(this.db!, BLOBS_STORE, imageId);
     if (!record?.blob) return null;
 
     const url = URL.createObjectURL(record.blob);
@@ -115,7 +136,7 @@ export class IndexedDBBackend implements ImageBackend {
   async getImageUrls(imageIds: string[], _size?: ImageSize): Promise<Map<string, string>> {
     if (!this.db) await this.initialize();
 
-    const records = await getRecords(this.db!, BLOBS_STORE, imageIds);
+    const records = await getRecords<BlobRecord>(this.db!, BLOBS_STORE, imageIds);
     const result = new Map<string, string>();
 
     for (let i = 0; i < imageIds.length; i++) {
@@ -133,7 +154,7 @@ export class IndexedDBBackend implements ImageBackend {
   async getMetadata(imageIds: string[]): Promise<Map<string, ImageEntryMetadata>> {
     if (!this.db) await this.initialize();
 
-    const records = await getRecords(this.db!, IMAGES_STORE, imageIds);
+    const records = await getRecords<ImageRecord>(this.db!, IMAGES_STORE, imageIds);
     const result = new Map<string, ImageEntryMetadata>();
 
     for (let i = 0; i < imageIds.length; i++) {
@@ -144,9 +165,16 @@ export class IndexedDBBackend implements ImageBackend {
           entityId: record.entityId,
           entityName: record.entityName,
           entityKind: record.entityKind,
+          entityCulture: record.entityCulture,
           width: record.width,
           height: record.height,
           aspect: record.aspect,
+          originalPrompt: record.originalPrompt,
+          finalPrompt: record.finalPrompt,
+          revisedPrompt: record.revisedPrompt,
+          generatedAt: record.generatedAt,
+          model: record.model,
+          size: record.size,
         });
       }
     }

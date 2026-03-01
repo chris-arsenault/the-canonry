@@ -7,9 +7,10 @@
  * ring color = era, red glow = overused.
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import type { EntityContext, RelationshipContext } from '../../../lib/chronicleTypes';
-import type { EntitySelectionMetrics } from '../../../lib/chronicle/selectionWizard';
+import React, { useState, useMemo, useCallback, useRef } from "react";
+import type { EntityContext, RelationshipContext } from "../../../lib/chronicleTypes";
+import type { EntitySelectionMetrics } from "../../../lib/chronicle/selectionWizard";
+import "./EnsembleConstellation.css";
 
 interface ConstellationNode {
   id: string;
@@ -48,20 +49,20 @@ interface EnsembleConstellationProps {
 
 // Color mapping for entity kinds
 const KIND_COLORS: Record<string, string> = {
-  person: '#6366f1',
-  faction: '#8b5cf6',
-  location: '#10b981',
-  artifact: '#f59e0b',
-  creature: '#ec4899',
-  event: '#06b6d4',
-  concept: '#84cc16',
-  organization: '#f97316',
+  person: "#6366f1",
+  faction: "#8b5cf6",
+  location: "#10b981",
+  artifact: "#f59e0b",
+  creature: "#ec4899",
+  event: "#06b6d4",
+  concept: "#84cc16",
+  organization: "#f97316",
 };
 
 /**
  * Simple force simulation - positions nodes in concentric circles by distance
  */
-type LayoutNode = Omit<ConstellationNode, 'isAssigned' | 'eraColor'>;
+type LayoutNode = Omit<ConstellationNode, "isAssigned" | "eraColor">;
 
 function computeLayout(
   entryPointId: string,
@@ -85,19 +86,19 @@ function computeLayout(
     const distance = metrics?.distance ?? 2;
 
     if (entity.id === entryPointId) {
-      byDistance.get(0)!.push(entity);
+      byDistance.get(0).push(entity);
     } else if (distance === 1) {
-      byDistance.get(1)!.push(entity);
+      byDistance.get(1).push(entity);
     } else {
-      byDistance.get(2)!.push(entity);
+      byDistance.get(2).push(entity);
     }
   }
 
   // Orbit radii
   const radii = {
-    0: 0,          // Entry point at center
-    1: Math.min(width, height) * 0.25,  // Direct connections
-    2: Math.min(width, height) * 0.42,  // 2-hop connections
+    0: 0, // Entry point at center
+    1: Math.min(width, height) * 0.25, // Direct connections
+    2: Math.min(width, height) * 0.42, // 2-hop connections
   };
 
   // Place nodes in circles
@@ -113,6 +114,7 @@ function computeLayout(
     entities.forEach((entity, i) => {
       const angle = startAngle + i * angleStep;
       // Add slight jitter for 2-hop to avoid exact circles
+      // eslint-disable-next-line sonarjs/pseudo-random -- visual jitter for constellation layout
       const jitter = distance === 2 ? (Math.random() - 0.5) * 15 : 0;
 
       nodes.push({
@@ -145,7 +147,7 @@ function computeEdges(
     if (!nodeIds.has(rel.src) || !nodeIds.has(rel.dst)) continue;
 
     // Deduplicate
-    const key = [rel.src, rel.dst].sort().join(':');
+    const key = [rel.src, rel.dst].sort((a, b) => a.localeCompare(b)).join(":");
     if (seen.has(key)) continue;
     seen.add(key);
 
@@ -160,6 +162,11 @@ function computeEdges(
   return edges;
 }
 
+function addBridgeLink(map: Map<string, Set<string>>, key: string, value: string): void {
+  if (!map.has(key)) map.set(key, new Set());
+  map.get(key)!.add(value);
+}
+
 export default function EnsembleConstellation({
   entryPointId,
   candidates,
@@ -171,32 +178,32 @@ export default function EnsembleConstellation({
   width = 400,
   height = 350,
   eraColorMap,
-}: EnsembleConstellationProps) {
+}: Readonly<EnsembleConstellationProps>) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
   // Compute layout
   const nodes = useMemo(() => {
     const layout = computeLayout(entryPointId, candidates, metricsMap, width, height);
-    const candidateMap = new Map(candidates.map(c => [c.id, c]));
-    return layout.map(node => {
+    const candidateMap = new Map(candidates.map((c) => [c.id, c]));
+    return layout.map((node) => {
       const candidate = candidateMap.get(node.id);
       const eraId = candidate?.eraId && candidate.eraId.length > 0 ? candidate.eraId : undefined;
       return {
         ...node,
         isAssigned: assignedEntityIds.has(node.id),
-        eraColor: eraId ? (eraColorMap?.get(eraId) ?? '#6b7280') : '#6b7280',
+        eraColor: eraId ? (eraColorMap?.get(eraId) ?? "#6b7280") : "#6b7280",
       };
     });
   }, [entryPointId, candidates, metricsMap, width, height, assignedEntityIds, eraColorMap]);
 
   const nodeMap = useMemo(() => {
-    return new Map(nodes.map(n => [n.id, n]));
+    return new Map(nodes.map((n) => [n.id, n]));
   }, [nodes]);
 
   // Compute edges
   const edges = useMemo(() => {
-    const nodeIds = new Set(nodes.map(n => n.id));
+    const nodeIds = new Set(nodes.map((n) => n.id));
     return computeEdges(relationships, nodeIds);
   }, [relationships, nodes]);
 
@@ -210,12 +217,10 @@ export default function EnsembleConstellation({
       const dstAssigned = assignedEntityIds.has(rel.dst);
 
       if (srcAssigned && !dstAssigned) {
-        if (!connectedToAssigned.has(rel.dst)) connectedToAssigned.set(rel.dst, new Set());
-        connectedToAssigned.get(rel.dst)!.add(rel.src);
+        addBridgeLink(connectedToAssigned, rel.dst, rel.src);
       }
       if (dstAssigned && !srcAssigned) {
-        if (!connectedToAssigned.has(rel.src)) connectedToAssigned.set(rel.src, new Set());
-        connectedToAssigned.get(rel.src)!.add(rel.dst);
+        addBridgeLink(connectedToAssigned, rel.src, rel.dst);
       }
     }
 
@@ -227,16 +232,19 @@ export default function EnsembleConstellation({
   }, [relationships, assignedEntityIds]);
 
   const getKindColor = (kind: string): string => {
-    return KIND_COLORS[kind.toLowerCase()] || 'var(--text-muted)';
+    return KIND_COLORS[kind.toLowerCase()] || "var(--text-muted)";
   };
 
-  const handleNodeClick = useCallback((nodeId: string) => {
-    if (selectedEntityId === nodeId) {
-      onSelectEntity(null);
-    } else {
-      onSelectEntity(nodeId);
-    }
-  }, [selectedEntityId, onSelectEntity]);
+  const handleNodeClick = useCallback(
+    (nodeId: string) => {
+      if (selectedEntityId === nodeId) {
+        onSelectEntity(null);
+      } else {
+        onSelectEntity(nodeId);
+      }
+    },
+    [selectedEntityId, onSelectEntity]
+  );
 
   // Determine node visual properties
   const getNodeStyle = (node: ConstellationNode) => {
@@ -259,11 +267,7 @@ export default function EnsembleConstellation({
       ref={svgRef}
       width={width}
       height={height}
-      style={{
-        display: 'block',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-      }}
+      className="viz-svg ec-svg"
     >
       {/* Orbit guides */}
       <circle
@@ -299,28 +303,28 @@ export default function EnsembleConstellation({
         const targetSelected = selectedEntityId === edge.target || hoveredNodeId === edge.target;
 
         // Determine edge color and style based on node states
-        let strokeColor = 'var(--border-color)';
+        let strokeColor = "var(--border-color)";
         let strokeOpacity = 0.2;
         let strokeWidth = 1 + edge.strength * 1.5;
 
         if (sourceAssigned && targetAssigned) {
           // Both assigned - green, prominent
-          strokeColor = 'var(--success)';
+          strokeColor = "var(--success)";
           strokeOpacity = 0.7;
           strokeWidth = 2 + edge.strength * 2;
         } else if ((sourceAssigned && targetSelected) || (targetAssigned && sourceSelected)) {
           // One assigned, one selected - orange/gold
-          strokeColor = 'var(--warning)';
+          strokeColor = "var(--warning)";
           strokeOpacity = 0.8;
           strokeWidth = 2 + edge.strength * 2;
         } else if (sourceSelected || targetSelected) {
           // One selected, neither assigned - purple
-          strokeColor = 'var(--accent-color)';
+          strokeColor = "var(--accent-color)";
           strokeOpacity = 0.8;
           strokeWidth = 2 + edge.strength * 2;
         } else if (sourceAssigned || targetAssigned) {
           // One assigned, not selected - cyan to show potential ensemble connections
-          strokeColor = '#06b6d4'; // cyan
+          strokeColor = "#06b6d4"; // cyan
           strokeOpacity = 0.5;
           strokeWidth = 1.5 + edge.strength * 1.5;
         }
@@ -340,14 +344,14 @@ export default function EnsembleConstellation({
       })}
 
       {/* Nodes */}
-      {nodes.map(node => {
+      {nodes.map((node) => {
         const style = getNodeStyle(node);
         const color = getKindColor(node.kind);
 
         return (
           <g
             key={node.id}
-            style={{ cursor: 'pointer' }}
+            className="viz-cursor-pointer"
             onClick={() => handleNodeClick(node.id)}
             onMouseEnter={() => setHoveredNodeId(node.id)}
             onMouseLeave={() => setHoveredNodeId(null)}
@@ -408,8 +412,8 @@ export default function EnsembleConstellation({
               cx={node.x}
               cy={node.y}
               r={style.radius}
-              fill={node.isEntryPoint ? 'var(--accent-color)' : color}
-              stroke={style.isHovered ? 'white' : node.eraColor}
+              fill={node.isEntryPoint ? "var(--accent-color)" : color}
+              stroke={style.isHovered ? "white" : node.eraColor}
               strokeWidth={2}
             />
 
@@ -423,7 +427,7 @@ export default function EnsembleConstellation({
                 fontSize="14"
                 fill="white"
                 fontWeight="bold"
-                style={{ pointerEvents: 'none' }}
+                className="viz-no-pointer"
               >
                 ★
               </text>
@@ -439,12 +443,11 @@ export default function EnsembleConstellation({
                 fontSize="9"
                 fill="white"
                 fontWeight="500"
-                style={{ pointerEvents: 'none' }}
+                className="viz-no-pointer"
               >
                 {node.kind.charAt(0).toUpperCase()}
               </text>
             )}
-
           </g>
         );
       })}
@@ -473,14 +476,20 @@ export default function EnsembleConstellation({
         if (usageCount > 0) {
           infoParts.push(`${usageCount}× used`);
         } else {
-          infoParts.push('unused');
+          infoParts.push("unused");
         }
         if (linksToEnsemble !== null) {
-          infoParts.push(linksToEnsemble > 0 ? `${linksToEnsemble} link${linksToEnsemble > 1 ? 's' : ''}` : 'no links');
+          infoParts.push(
+            (() => {
+              if (linksToEnsemble <= 0) return "no links";
+              const plural = linksToEnsemble > 1 ? "s" : "";
+              return `${linksToEnsemble} link${plural}`;
+            })()
+          );
         }
 
         return (
-          <g style={{ pointerEvents: 'none' }}>
+          <g className="viz-no-pointer">
             <rect
               x={tooltipNode.x - 52}
               y={tooltipNode.y + style.radius + 4}
@@ -499,7 +508,9 @@ export default function EnsembleConstellation({
               fill="#cdd6f4"
               fontWeight="500"
             >
-              {tooltipNode.name.length > 14 ? tooltipNode.name.slice(0, 14) + '…' : tooltipNode.name}
+              {tooltipNode.name.length > 14
+                ? tooltipNode.name.slice(0, 14) + "…"
+                : tooltipNode.name}
             </text>
             <text
               x={tooltipNode.x}
@@ -508,7 +519,7 @@ export default function EnsembleConstellation({
               fontSize="9"
               fill="#a6adc8"
             >
-              {infoParts.join(' · ')}
+              {infoParts.join(" · ")}
             </text>
           </g>
         );
@@ -519,11 +530,17 @@ export default function EnsembleConstellation({
         <text fontSize="9" fill="var(--text-muted)">
           <tspan fill="var(--success)">―</tspan>
           <tspan dx="2">ensemble</tspan>
-          <tspan dx="6" fill="#06b6d4">―</tspan>
+          <tspan dx="6" fill="#06b6d4">
+            ―
+          </tspan>
           <tspan dx="2">to ensemble</tspan>
-          <tspan dx="6" fill="#f59e0b">◌</tspan>
+          <tspan dx="6" fill="#f59e0b">
+            ◌
+          </tspan>
           <tspan dx="2">bridge</tspan>
-          <tspan dx="6" fill="var(--error)">◯</tspan>
+          <tspan dx="6" fill="var(--error)">
+            ◯
+          </tspan>
           <tspan dx="2">overused</tspan>
         </text>
       </g>

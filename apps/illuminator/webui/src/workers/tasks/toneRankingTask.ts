@@ -7,13 +7,13 @@
  * Payload is JSON-serialized in the prompt field.
  */
 
-import type { WorkerTask } from '../../lib/enrichmentTypes';
-import type { TaskContext } from './taskTypes';
-import type { TaskResult } from '../types';
-import type { HistorianTone } from '../../lib/historianTypes';
-import { runTextCall } from '../../lib/llmTextCall';
-import { getCallConfig } from './llmCallConfig';
-import { updateChronicleToneRanking } from '../../lib/db/chronicleRepository';
+import type { WorkerTask } from "../../lib/enrichmentTypes";
+import type { TaskContext } from "./taskTypes";
+import type { TaskResult } from "../types";
+import type { HistorianTone } from "../../lib/historianTypes";
+import { runTextCall } from "../../lib/llmTextCall";
+import { getCallConfig } from "./llmCallConfig";
+import { updateChronicleToneRanking } from "../../lib/db/chronicleRepository";
 
 // ============================================================================
 // Payload type (JSON in prompt field)
@@ -32,7 +32,15 @@ interface ToneRankingPayload {
 // Constants
 // ============================================================================
 
-const VALID_TONES = new Set<HistorianTone>(['witty', 'weary', 'elegiac', 'cantankerous', 'rueful', 'conspiratorial', 'bemused']);
+const VALID_TONES = new Set<HistorianTone>([
+  "witty",
+  "weary",
+  "elegiac",
+  "cantankerous",
+  "rueful",
+  "conspiratorial",
+  "bemused",
+]);
 
 // ============================================================================
 // Prompts
@@ -57,8 +65,8 @@ You must respond with ONLY a JSON object in this exact format, no other text:
 
 function buildUserPrompt(payload: ToneRankingPayload): string {
   const lines: string[] = [];
-  lines.push('Evaluate this chronicle:');
-  lines.push('');
+  lines.push("Evaluate this chronicle:");
+  lines.push("");
   lines.push(`Format: ${payload.format}`);
   if (payload.narrativeStyleName) {
     lines.push(`Style: ${payload.narrativeStyleName}`);
@@ -67,7 +75,7 @@ function buildUserPrompt(payload: ToneRankingPayload): string {
   if (payload.brief) {
     lines.push(`Perspective brief: ${payload.brief}`);
   }
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 // ============================================================================
@@ -75,27 +83,27 @@ function buildUserPrompt(payload: ToneRankingPayload): string {
 // ============================================================================
 
 export const toneRankingTask = {
-  type: 'toneRanking' as const,
+  type: "toneRanking" as const,
 
   async execute(task: WorkerTask, context: TaskContext): Promise<TaskResult> {
-    const callConfig = getCallConfig(context.config, 'chronicle.toneRanking');
+    const callConfig = getCallConfig(context.config, "chronicle.toneRanking");
 
     let payload: ToneRankingPayload;
     try {
       payload = JSON.parse(task.prompt);
     } catch {
-      return { success: false, error: 'Invalid tone ranking payload' };
+      return { success: false, error: "Invalid tone ranking payload" };
     }
 
     if (!payload.chronicleId || !payload.summary) {
-      return { success: false, error: 'Missing required fields in tone ranking payload' };
+      return { success: false, error: "Missing required fields in tone ranking payload" };
     }
 
     const userPrompt = buildUserPrompt(payload);
 
     const { result, usage } = await runTextCall({
       llmClient: context.llmClient,
-      callType: 'chronicle.toneRanking',
+      callType: "chronicle.toneRanking",
       callConfig,
       systemPrompt: SYSTEM_PROMPT,
       prompt: userPrompt,
@@ -103,29 +111,42 @@ export const toneRankingTask = {
 
     // Parse the JSON response
     const responseText = result.text.trim();
-    const jsonText = responseText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    // eslint-disable-next-line sonarjs/slow-regex -- bounded LLM response text, stripping code fences
+    const jsonText = responseText.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
 
     let parsed: { ranking: string[]; rationales?: Record<string, string>; rationale?: string };
     try {
       parsed = JSON.parse(jsonText);
-      if (!Array.isArray(parsed.ranking)) throw new Error('Expected ranking array');
+      if (!Array.isArray(parsed.ranking)) throw new Error("Expected ranking array");
     } catch {
-      return { success: false, error: `Failed to parse LLM response as JSON: ${responseText.slice(0, 200)}` };
+      return {
+        success: false,
+        error: `Failed to parse LLM response as JSON: ${responseText.slice(0, 200)}`,
+      };
     }
 
     // Validate exactly 3 valid tones
     const validRanking = parsed.ranking.filter((t) => VALID_TONES.has(t as HistorianTone));
     if (validRanking.length < 3) {
-      return { success: false, error: `Expected 3 valid tones, got ${validRanking.length}: ${parsed.ranking.join(', ')}` };
+      return {
+        success: false,
+        error: `Expected 3 valid tones, got ${validRanking.length}: ${parsed.ranking.join(", ")}`,
+      };
     }
 
     const ranking = validRanking.slice(0, 3) as [string, string, string];
     // Support both new per-tone rationales and legacy single rationale
     const rationales = parsed.rationales || {};
-    const rationale = parsed.rationale || rationales[ranking[0]] || '';
+    const rationale = parsed.rationale || rationales[ranking[0]] || "";
 
     // Write to chronicle record
-    await updateChronicleToneRanking(payload.chronicleId, ranking, rationale, usage.actualCost, rationales);
+    await updateChronicleToneRanking(
+      payload.chronicleId,
+      ranking,
+      rationale,
+      usage.actualCost,
+      rationales
+    );
 
     return {
       success: true,

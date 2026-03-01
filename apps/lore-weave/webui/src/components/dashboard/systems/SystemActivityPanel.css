@@ -60,6 +60,11 @@
   border-radius: 6px;
   padding: 10px 12px;
   border-left: 3px solid #64748b;
+  border-left-color: var(--sa-card-border-color, #64748b);
+}
+
+.sa-legend-line {
+  background-color: var(--sa-legend-line-color);
 }
 
 .system-card-header {

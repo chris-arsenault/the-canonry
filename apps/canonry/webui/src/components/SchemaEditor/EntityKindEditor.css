@@ -1,0 +1,60 @@
+.eke-container {
+  max-width: 900px;
+}
+
+.eke-status-name {
+  text-decoration: var(--eke-status-decoration);
+  opacity: var(--eke-status-opacity);
+  flex: 1;
+}
+
+.eke-color-missing {
+  font-size: 11px;
+  color: #fca5a5;
+  margin-top: 4px;
+}
+
+.eke-authority-badge {
+  margin-left: 4px;
+  font-size: 9px;
+}
+
+.eke-status-list {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.eke-status-chip {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 8px;
+}
+
+.eke-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eke-status-polarity {
+  padding: 2px 4px;
+  font-size: 10px;
+  width: 50px;
+}
+
+.eke-status-verb-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.eke-verb-label {
+  width: 40px;
+}
+
+.eke-verb-input {
+  flex: 1;
+  font-size: 11px;
+  padding: 2px 6px;
+}

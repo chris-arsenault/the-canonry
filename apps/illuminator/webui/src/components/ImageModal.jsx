@@ -6,14 +6,17 @@
  * Displays metadata in a collapsible sidebar with expandable prompt sections.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useImageUrl } from '../hooks/useImageUrl';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
+import { useImageUrl } from "@the-canonry/image-store";
+import { ErrorMessage } from "@the-canonry/shared-components";
+import "./ImageModal.css";
 
 /**
  * Format a date timestamp for display
  */
 function formatDate(timestamp) {
-  if (!timestamp) return 'Unknown';
+  if (!timestamp) return "Unknown";
   return new Date(timestamp).toLocaleString();
 }
 
@@ -21,7 +24,7 @@ function formatDate(timestamp) {
  * Format file size for display
  */
 function formatSize(bytes) {
-  if (!bytes) return 'Unknown';
+  if (!bytes) return "Unknown";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
@@ -34,23 +37,9 @@ function MetadataRow({ label, value }) {
   if (!value) return null;
 
   return (
-    <div style={{ marginBottom: '12px' }}>
-      <div style={{
-        fontSize: '11px',
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginBottom: '4px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-      }}>
-        {label}
-      </div>
-      <div style={{
-        fontSize: '13px',
-        color: 'rgba(255, 255, 255, 0.9)',
-        wordBreak: 'break-word',
-      }}>
-        {value}
-      </div>
+    <div className="imod-meta-row">
+      <div className="imod-meta-label">{label}</div>
+      <div className="imod-meta-value">{value}</div>
     </div>
   );
 }
@@ -64,56 +53,17 @@ function PromptSection({ title, content, defaultExpanded = false }) {
   if (!content) return null;
 
   return (
-    <div style={{ marginBottom: '12px' }}>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          width: '100%',
-          background: 'rgba(255, 255, 255, 0.05)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '4px',
-          padding: '8px 10px',
-          color: 'rgba(255, 255, 255, 0.8)',
-          fontSize: '12px',
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
-      >
-        <span style={{
-          fontSize: '10px',
-          transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-          transition: 'transform 0.2s ease',
-        }}>
+    <div className="imod-prompt-section">
+      <button onClick={() => setExpanded(!expanded)} className="imod-prompt-toggle">
+        <span
+          className={`imod-prompt-arrow ${expanded ? "imod-prompt-arrow-expanded" : "imod-prompt-arrow-collapsed"}`}
+        >
           ▶
         </span>
-        <span style={{ flex: 1 }}>{title}</span>
-        <span style={{
-          fontSize: '10px',
-          color: 'rgba(255, 255, 255, 0.4)',
-        }}>
-          {content.length} chars
-        </span>
+        <span className="imod-prompt-title">{title}</span>
+        <span className="imod-prompt-chars">{content.length} chars</span>
       </button>
-      {expanded && (
-        <div style={{
-          marginTop: '8px',
-          padding: '10px',
-          background: 'rgba(0, 0, 0, 0.3)',
-          borderRadius: '4px',
-          fontSize: '12px',
-          color: 'rgba(255, 255, 255, 0.85)',
-          lineHeight: '1.5',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          maxHeight: '200px',
-          overflowY: 'auto',
-        }}>
-          {content}
-        </div>
-      )}
+      {expanded && <div className="imod-prompt-content">{content}</div>}
     </div>
   );
 }
@@ -125,7 +75,9 @@ function MetadataSidebar({ metadata, isOpen, onToggle }) {
   if (!metadata) return null;
 
   // Check if Claude refinement was used (original and final prompts differ)
-  const wasRefined = metadata.originalPrompt && metadata.finalPrompt &&
+  const wasRefined =
+    metadata.originalPrompt &&
+    metadata.finalPrompt &&
     metadata.originalPrompt !== metadata.finalPrompt;
 
   return (
@@ -133,58 +85,22 @@ function MetadataSidebar({ metadata, isOpen, onToggle }) {
       {/* Toggle button */}
       <button
         onClick={onToggle}
-        style={{
-          position: 'absolute',
-          right: isOpen ? '320px' : '0',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          background: 'rgba(0, 0, 0, 0.7)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          borderRight: isOpen ? 'none' : '1px solid rgba(255, 255, 255, 0.2)',
-          borderRadius: '4px 0 0 4px',
-          color: 'white',
-          padding: '12px 8px',
-          cursor: 'pointer',
-          fontSize: '12px',
-          zIndex: 10,
-          transition: 'right 0.2s ease',
-        }}
-        title={isOpen ? 'Hide metadata' : 'Show metadata'}
+        className={`imod-sidebar-toggle ${isOpen ? "imod-sidebar-toggle-open" : "imod-sidebar-toggle-closed"}`}
+        title={isOpen ? "Hide metadata" : "Show metadata"}
       >
-        {isOpen ? '>' : '<'}
+        {isOpen ? ">" : "<"}
       </button>
 
       {/* Sidebar */}
       <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: isOpen ? '320px' : '0',
-          background: 'rgba(0, 0, 0, 0.85)',
-          borderLeft: isOpen ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-          overflow: 'hidden',
-          transition: 'width 0.2s ease',
-        }}
+        className={`imod-sidebar ${isOpen ? "imod-sidebar-open" : "imod-sidebar-closed"}`}
         onClick={(e) => e.stopPropagation()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
-        <div style={{
-          width: '320px',
-          height: '100%',
-          overflowY: 'auto',
-          padding: '60px 20px 20px 20px',
-        }}>
-          <h4 style={{
-            margin: '0 0 20px 0',
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: 500,
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            paddingBottom: '12px',
-          }}>
-            Image Metadata
-          </h4>
+        <div className="imod-sidebar-inner">
+          <h4 className="imod-sidebar-heading">Image Metadata</h4>
 
           {/* Basic info */}
           <MetadataRow label="Entity" value={metadata.entityName} />
@@ -197,19 +113,8 @@ function MetadataSidebar({ metadata, isOpen, onToggle }) {
           {/* Prompts section */}
           {(metadata.originalPrompt || metadata.finalPrompt || metadata.revisedPrompt) && (
             <>
-              <div style={{
-                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                margin: '16px 0',
-              }} />
-              <div style={{
-                fontSize: '11px',
-                color: 'rgba(255, 255, 255, 0.5)',
-                marginBottom: '12px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}>
-                Prompts
-              </div>
+              <div className="imod-sidebar-divider" />
+              <div className="imod-sidebar-section-label">Prompts</div>
 
               {wasRefined ? (
                 <>
@@ -265,7 +170,7 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
   // Close on escape key
   const handleKeyDown = useCallback(
     (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     },
@@ -274,115 +179,53 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
 
   useEffect(() => {
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener("keydown", handleKeyDown);
       // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
     };
   }, [isOpen, handleKeyDown]);
 
   if (!isOpen) return null;
 
+  const hasSidebar = sidebarOpen && metadata;
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.9)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-      }}
-      onMouseDown={handleOverlayMouseDown}
-      onClick={handleOverlayClick}
-    >
+    <div className="imod-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }} >
       {/* Header with title and close button */}
       <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: sidebarOpen && metadata ? '320px' : '0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '16px 24px',
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
-          transition: 'right 0.2s ease',
-        }}
+        className={`imod-header ${hasSidebar ? "imod-header-sidebar-open" : "imod-header-sidebar-closed"}`}
         onClick={(e) => e.stopPropagation()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
       >
-        <h3 style={{ margin: 0, color: 'white', fontSize: '16px' }}>{title}</h3>
-        <button
-          onClick={onClose}
-          style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '4px',
-            color: 'white',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            fontSize: '14px',
-          }}
-        >
+        <h3 className="imod-title">{title}</h3>
+        <button onClick={onClose} className="imod-close-btn">
           Close (Esc)
         </button>
       </div>
 
       {/* Image container - adjusted for sidebar */}
       <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flex: 1,
-          width: '100%',
-          padding: '60px 40px 60px 40px',
-          paddingRight: sidebarOpen && metadata ? '360px' : '40px',
-          transition: 'padding-right 0.2s ease',
-        }}
+        className={`imod-image-container ${hasSidebar ? "imod-image-container-sidebar-open" : "imod-image-container-sidebar-closed"}`}
+        onClick={(e) => e.stopPropagation()}
       >
-        {loading ? (
-          <div
-            style={{
-              color: 'rgba(255, 255, 255, 0.7)',
-              fontSize: '16px',
-            }}
-          >
-            Loading image...
-          </div>
-        ) : error || !imageUrl ? (
-          <div
-            style={{
-              color: 'rgba(255, 255, 255, 0.5)',
-              fontSize: '14px',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ marginBottom: '8px' }}>Image not available</div>
-            <div style={{ fontSize: '12px' }}>{error || 'Image not found in storage'}</div>
-          </div>
-        ) : (
+        {loading && (
+          <div className="imod-loading">Loading image...</div>
+        )}
+        {!loading && (error || !imageUrl) && (
+          <ErrorMessage title="Image not available" message={error || "Image not found in storage"} className="imod-error" />
+        )}
+        {!loading && !error && imageUrl && (
           <img
             src={imageUrl}
             alt={title}
-            style={{
-              maxWidth: '100%',
-              maxHeight: 'calc(100vh - 120px)',
-              objectFit: 'contain',
-              borderRadius: '8px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-            }}
-            onClick={(e) => e.stopPropagation()}
+            className="imod-full-image"
           />
         )}
       </div>
@@ -396,19 +239,34 @@ export default function ImageModal({ isOpen, imageId, title, onClose }) {
 
       {/* Hint at bottom */}
       <div
-        style={{
-          position: 'absolute',
-          bottom: 16,
-          left: 0,
-          right: sidebarOpen && metadata ? '320px' : '0',
-          textAlign: 'center',
-          color: 'rgba(255, 255, 255, 0.5)',
-          fontSize: '12px',
-          transition: 'right 0.2s ease',
-        }}
+        className={`imod-hint ${hasSidebar ? "imod-hint-sidebar-open" : "imod-hint-sidebar-closed"}`}
       >
         Click anywhere or press Escape to close
       </div>
     </div>
   );
 }
+
+MetadataRow.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string,
+};
+
+PromptSection.propTypes = {
+  title: PropTypes.string.isRequired,
+  content: PropTypes.string,
+  defaultExpanded: PropTypes.bool,
+};
+
+MetadataSidebar.propTypes = {
+  metadata: PropTypes.object,
+  isOpen: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+};
+
+ImageModal.propTypes = {
+  isOpen: PropTypes.bool,
+  imageId: PropTypes.string,
+  title: PropTypes.string,
+  onClose: PropTypes.func.isRequired,
+};

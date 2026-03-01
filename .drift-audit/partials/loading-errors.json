@@ -1,0 +1,972 @@
+[
+  {
+    "id": "loading-indicator-patterns",
+    "name": "Loading Indicator Inconsistency",
+    "type": "behavioral",
+    "domain": "Loading & Error State Patterns",
+    "description": "Loading states are communicated to users via at least 5 distinct visual patterns across apps: plain text, CSS-animated spinners, emoji icons with structured cards, Unicode symbols with animation, and Suspense fallback divs. There is no shared loading indicator component despite the shared-components package existing.",
+    "impact": "MEDIUM",
+    "total_files": 16,
+    "variants": [
+      {
+        "name": "suspense-text-fallback",
+        "description": "React Suspense with plain text 'Loading {ModuleName}...' in a styled div. Used consistently across all 7 MFE host wrappers in Canonry.",
+        "file_count": 8,
+        "files": [
+          "apps/canonry/webui/src/remotes/IlluminatorHost.jsx:33-35",
+          "apps/canonry/webui/src/remotes/ArchivistHost.jsx",
+          "apps/canonry/webui/src/remotes/ChroniclerHost.jsx",
+          "apps/canonry/webui/src/remotes/CoherenceEngineHost.jsx",
+          "apps/canonry/webui/src/remotes/CosmographerHost.jsx",
+          "apps/canonry/webui/src/remotes/LoreWeaveHost.jsx",
+          "apps/canonry/webui/src/remotes/NameForgeHost.jsx",
+          "apps/canonry/webui/src/components/TracePopover.jsx:43"
+        ],
+        "sample_file": "apps/canonry/webui/src/remotes/IlluminatorHost.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/remotes/IlluminatorHost.jsx",
+            "start_line": 18,
+            "end_line": 35,
+            "snippet": "const styles = {\n  loading: {\n    display: \"flex\",\n    alignItems: \"center\",\n    justifyContent: \"center\",\n    height: \"100%\",\n    color: colors.textMuted,\n    fontSize: typography.sizeLg,\n    fontFamily: typography.fontFamily\n  }\n};\nconst loadingFallback = React.createElement(\"div\", {\n  style: styles.loading\n}, \"Loading Illuminator...\");"
+          }
+        ],
+        "implementation_details": "Inline style object with flexbox centering. Each host duplicates identical style definition with only the module name changing. No spinner animation, just static text."
+      },
+      {
+        "name": "emoji-icon-structured-card",
+        "description": "Full-screen centered card with emoji icon + title + descriptive message. Used for data-loading states in Archivist and Chronicler.",
+        "file_count": 2,
+        "files": [
+          "apps/archivist/webui/src/ArchivistRemote.tsx:69-78",
+          "apps/chronicler/webui/src/components/ChroniclerStatusScreen.tsx:13-21"
+        ],
+        "sample_file": "apps/archivist/webui/src/ArchivistRemote.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/archivist/webui/src/ArchivistRemote.tsx",
+            "start_line": 69,
+            "end_line": 78,
+            "snippet": "if (effectiveLoading) {\n  return (\n    <div className=\"archivist-empty-state\">\n      <div className=\"archivist-state-content\">\n        <div className=\"archivist-state-icon\">\u231b</div>\n        <div className=\"archivist-state-title\">Loading World Data</div>\n        <div className=\"archivist-state-message\">Reading from local storage\u2026</div>\n      </div>\n    </div>\n  );\n}"
+          },
+          {
+            "file": "apps/chronicler/webui/src/components/ChroniclerStatusScreen.tsx",
+            "start_line": 13,
+            "end_line": 21,
+            "snippet": "if (loading) {\n  return (\n    <div className={styles.container}>\n      <div className={styles.content}>\n        <div className={styles.title}>Loading World Data</div>\n        <div className={styles.detail}>Reading from local storage...</div>\n      </div>\n    </div>\n  );\n}"
+          }
+        ],
+        "implementation_details": "Both display identical text ('Loading World Data' / 'Reading from local storage') but Archivist uses global CSS classes with emoji icon while Chronicler uses CSS modules without icon. Same user-facing purpose, different implementations."
+      },
+      {
+        "name": "css-animated-spinner",
+        "description": "CSS-only spinner via empty element with animation class. Used in Illuminator for inline operation feedback.",
+        "file_count": 3,
+        "files": [
+          "apps/illuminator/webui/src/components/chronicle-workspace/ChronicleWorkspace.jsx:731",
+          "apps/illuminator/webui/src/components/ChroniclePanel.jsx:2362",
+          "apps/canonry/webui/src/App.jsx:2204"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/chronicle-workspace/ChronicleWorkspace.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/chronicle-workspace/ChronicleWorkspace.jsx",
+            "start_line": 731,
+            "end_line": 732,
+            "snippet": "<span className=\"cw-spinner\" />\n\"Generating title candidates...\""
+          },
+          {
+            "file": "apps/canonry/webui/src/App.jsx",
+            "start_line": 2203,
+            "end_line": 2205,
+            "snippet": "<div className=\"modal-spinner\" aria-hidden=\"true\" />\n<div>\n  <div className=\"modal-status-title\">Building viewer bundle</div>"
+          }
+        ],
+        "implementation_details": "Each spinner uses a different CSS class name (cw-spinner, chron-detail-spinner, modal-spinner) with presumably similar CSS animation definitions. No shared spinner component."
+      },
+      {
+        "name": "unicode-symbol-spinner",
+        "description": "Unicode refresh symbol (\u21bb) with CSS rotation animation class for refresh operations.",
+        "file_count": 1,
+        "files": [
+          "apps/chronicler/webui/src/components/WikiNav.tsx:466"
+        ],
+        "sample_file": "apps/chronicler/webui/src/components/WikiNav.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/chronicler/webui/src/components/WikiNav.tsx",
+            "start_line": 466,
+            "end_line": 467,
+            "snippet": "<span className={styles.refreshSpinner}>\u21bb</span>\n\"Refreshing...\""
+          }
+        ],
+        "implementation_details": "Uses CSS module class with a unicode character rather than a CSS-only animation element. Different approach from the empty-element spinner used elsewhere."
+      },
+      {
+        "name": "plain-text-only",
+        "description": "Simple text like 'Loading...', 'Calculating...', or 'Loading pages...' with no visual indicator.",
+        "file_count": 5,
+        "files": [
+          "apps/canonry/webui/src/App.jsx:2174",
+          "apps/illuminator/webui/src/components/StaticPagesPanel.jsx:112",
+          "apps/illuminator/webui/src/components/preprint/StatsView.tsx:65",
+          "apps/illuminator/webui/src/components/EntityCoveragePanel.jsx:2168",
+          "apps/archivist/webui/src/components/WorldExplorer.tsx:124"
+        ],
+        "sample_file": "apps/canonry/webui/src/App.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/App.jsx",
+            "start_line": 2171,
+            "end_line": 2175,
+            "snippet": "if (loading) {\n  return <div className=\"canonry-app-loading\">\n    <div className=\"inline-extracted-3\">Loading...</div>\n  </div>;\n}"
+          },
+          {
+            "file": "apps/archivist/webui/src/components/WorldExplorer.tsx",
+            "start_line": 124,
+            "end_line": 124,
+            "snippet": "const loadingFallback = useMemo(() => <div className=\"world-loading\">Loading view\u2026</div>, []);"
+          }
+        ],
+        "implementation_details": "Bare text strings with varied wording and no spinner animation, icon, or structured card layout. Text varies: 'Loading...', 'Loading pages...', 'Loading view\u2026', 'Calculating...'. Button text changes used in StatsView and EntityCoveragePanel."
+      }
+    ],
+    "behavior_matrix": {
+      "Canonry MFE Hosts (7 files)": {
+        "technique": "Suspense fallback with inline-styled centered text",
+        "visual_indicator": "text only",
+        "animation": false,
+        "icon": false,
+        "structured_card": false,
+        "spinner_element": false
+      },
+      "Canonry App.jsx": {
+        "technique": "Conditional render with CSS class",
+        "visual_indicator": "text only ('Loading...')",
+        "animation": false,
+        "icon": false,
+        "structured_card": false,
+        "spinner_element": false
+      },
+      "Canonry Export Modal": {
+        "technique": "CSS-animated empty div spinner + status title + subtitle",
+        "visual_indicator": "CSS spinner + text",
+        "animation": true,
+        "icon": false,
+        "structured_card": true,
+        "spinner_element": true
+      },
+      "ArchivistRemote": {
+        "technique": "Conditional render with emoji icon + title + message card",
+        "visual_indicator": "emoji icon (\u231b) + structured text",
+        "animation": false,
+        "icon": true,
+        "structured_card": true,
+        "spinner_element": false
+      },
+      "ChroniclerStatusScreen": {
+        "technique": "Conditional render with CSS module title + detail (no icon for loading)",
+        "visual_indicator": "text only (title + detail)",
+        "animation": false,
+        "icon": false,
+        "structured_card": true,
+        "spinner_element": false
+      },
+      "Illuminator ChronicleWorkspace": {
+        "technique": "Inline CSS-animated spinner element + text",
+        "visual_indicator": "CSS spinner",
+        "animation": true,
+        "icon": false,
+        "structured_card": false,
+        "spinner_element": true
+      },
+      "Illuminator ChroniclePanel": {
+        "technique": "Inline CSS-animated spinner element",
+        "visual_indicator": "CSS spinner",
+        "animation": true,
+        "icon": false,
+        "structured_card": false,
+        "spinner_element": true
+      },
+      "Chronicler WikiNav": {
+        "technique": "Unicode symbol (\u21bb) with CSS rotation animation class",
+        "visual_indicator": "rotating unicode symbol + text",
+        "animation": true,
+        "icon": false,
+        "structured_card": false,
+        "spinner_element": false
+      },
+      "Archivist WorldExplorer": {
+        "technique": "Suspense fallback with simple text div",
+        "visual_indicator": "text only ('Loading view\u2026')",
+        "animation": false,
+        "icon": false,
+        "structured_card": false,
+        "spinner_element": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "shared_loading_component": "moderate \u2014 need a shared <LoadingIndicator /> that supports spinner, text-only, and full-screen card variants",
+      "consistent_spinner_animation": "trivial \u2014 extract shared CSS animation keyframes into shared-components"
+    },
+    "analysis": "This is genuine behavioral drift, not intentional variation. The MFE host loading pattern is consistent within its scope (all 7 hosts follow the same Suspense + text pattern), but the per-app data loading states have diverged significantly. Archivist and Chronicler both load world data from storage with identical user-facing text ('Loading World Data' / 'Reading from local storage') but use completely different implementations \u2014 one with emoji icons and global CSS, the other with CSS modules and no icon. The Illuminator uses CSS-animated spinner elements with component-specific class names (cw-spinner, chron-detail-spinner), each presumably defining their own @keyframes. The user-visible impact is moderate: users moving between apps experience different loading presentations for equivalent operations. A shared <LoadingIndicator variant='spinner|text|card' /> component in shared-components would unify these patterns while supporting the distinct use cases (inline spinner for operations, full-screen card for initial data loads).",
+    "recommendation": "Create a shared <LoadingIndicator> component in packages/shared-components with variants: 'spinner' (CSS-animated empty element), 'text' (simple loading text), and 'card' (icon + title + message). Extract the spinner CSS animation into shared-components. Adopt shared component across all apps.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "error-display-patterns",
+    "name": "Error Display Pattern Divergence",
+    "type": "behavioral",
+    "domain": "Loading & Error State Patterns",
+    "description": "Errors are displayed to users via at least 5 distinct presentation patterns: bare CSS class divs, component-prefixed error classes, full-screen state cards, toast notifications, and inline status text. No shared error display component exists despite 40+ files displaying errors.",
+    "impact": "HIGH",
+    "total_files": 42,
+    "variants": [
+      {
+        "name": "bare-css-class-error-div",
+        "description": "Simple <div className='error'>{error}</div> with optional utility margin classes. Used across Name Forge for all inline error display.",
+        "file_count": 8,
+        "files": [
+          "apps/name-forge/webui/src/components/generator/GenerateTab.jsx:369",
+          "apps/name-forge/webui/src/components/workspace/EntityWorkspace.jsx:121",
+          "apps/name-forge/webui/src/components/workspace/tabs/LexemesTab.jsx:236",
+          "apps/name-forge/webui/src/components/workspace/tabs/LexemesTab.jsx:428",
+          "apps/name-forge/webui/src/components/workspace/tabs/LexemesTab.jsx:625",
+          "apps/name-forge/webui/src/components/workspace/tabs/profile/TestPanel.jsx:34",
+          "apps/name-forge/webui/src/components/sidebar/CultureSidebar.jsx:98",
+          "apps/name-forge/webui/src/components/workspace/tabs/GrammarsTab.jsx:876-877"
+        ],
+        "sample_file": "apps/name-forge/webui/src/components/generator/GenerateTab.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/name-forge/webui/src/components/generator/GenerateTab.jsx",
+            "start_line": 369,
+            "end_line": 369,
+            "snippet": "{error && <div className=\"error mt-md\">{error}</div>}"
+          },
+          {
+            "file": "apps/name-forge/webui/src/components/workspace/tabs/profile/tabs/TestTab.jsx",
+            "start_line": 61,
+            "end_line": 61,
+            "snippet": "{testError && <div className=\"error-box\">{testError}</div>}"
+          }
+        ],
+        "implementation_details": "Uses generic 'error' CSS class with utility margins (mt-md, mb-md, text-small). One file in the same app uses a different 'error-box' class, showing intra-app drift. Error messages are raw strings set via setError(err.message) in catch blocks."
+      },
+      {
+        "name": "component-prefixed-error-class",
+        "description": "Each component defines its own prefixed error CSS class (e.g., imod-error, dgm-failed, hrm-failed-message, srm-error, cip-error-message). No shared pattern.",
+        "file_count": 18,
+        "files": [
+          "apps/illuminator/webui/src/components/ImageModal.jsx:220-222",
+          "apps/illuminator/webui/src/components/DynamicsGenerationModal.jsx:165",
+          "apps/illuminator/webui/src/components/HistorianReviewModal.jsx:245",
+          "apps/illuminator/webui/src/components/SummaryRevisionModal.jsx:402",
+          "apps/illuminator/webui/src/components/ChronicleImagePanel.tsx:700",
+          "apps/illuminator/webui/src/components/DescriptionMotifWeaver.tsx:729",
+          "apps/illuminator/webui/src/components/CoverImageControls.jsx:25",
+          "apps/illuminator/webui/src/components/CorpusFindReplace.tsx:1303",
+          "apps/illuminator/webui/src/components/CorpusFindReplace.tsx:1374",
+          "apps/illuminator/webui/src/components/ChronologyModal.jsx:296",
+          "apps/illuminator/webui/src/components/EraNarrativeModal.jsx:544",
+          "apps/illuminator/webui/src/components/ActivityPanel.jsx:228",
+          "apps/illuminator/webui/src/components/ProgressPanel.jsx:107-112",
+          "apps/illuminator/webui/src/components/TraitPaletteSection.tsx:403-407",
+          "apps/illuminator/webui/src/components/BulkOperationShell.jsx:174",
+          "apps/illuminator/webui/src/components/preprint/ExportView.tsx:463",
+          "apps/illuminator/webui/src/components/ChronicleWizard/steps/RoleAssignmentStep.tsx:307-309",
+          "apps/lore-weave/webui/src/components/validation/ValidationPanel.jsx:15"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ImageModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ImageModal.jsx",
+            "start_line": 220,
+            "end_line": 223,
+            "snippet": "<div className=\"imod-error\">\n  <div className=\"imod-error-title\">Image not available</div>\n  <div className=\"imod-error-detail\">{error || \"Image not found in storage\"}</div>\n</div>"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/DynamicsGenerationModal.jsx",
+            "start_line": 165,
+            "end_line": 165,
+            "snippet": "{isFailed && <div className=\"dgm-failed\">{run.error || \"Generation failed\"}</div>}"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/ProgressPanel.jsx",
+            "start_line": 107,
+            "end_line": 112,
+            "snippet": "<div className=\"pp-error-list\">\n  {errorTasks.map(task => <div key={task.id} className=\"pp-error-item\">\n    <div className=\"pp-error-item-name\">{task.entityName} - {task.type}</div>\n    <div className=\"pp-error-item-message\">{task.error || \"Unknown error\"}</div>\n  </div>)}\n</div>"
+          }
+        ],
+        "implementation_details": "Illuminator follows BEM-like naming with component prefix (imod-, dgm-, hrm-, srm-, cip-, pp-, ap-, etc.) but each component independently defines its error styling. Some use title+detail structure, others just show the error string. Error fallback text varies: 'Unknown error', 'Generation failed', 'Image not found in storage'. CorpusFindReplace even has two different error classes (cfr-error-banner and cfr-error-inline) within the same component for different positions."
+      },
+      {
+        "name": "full-screen-state-card",
+        "description": "Full-screen centered card with icon + title + error message, used for fatal/blocking errors during initial data load.",
+        "file_count": 3,
+        "files": [
+          "apps/viewer/webui/src/StatusScreen.jsx:17-43",
+          "apps/archivist/webui/src/ArchivistRemote.tsx:81-91",
+          "apps/chronicler/webui/src/components/ChroniclerStatusScreen.tsx:24-33"
+        ],
+        "sample_file": "apps/viewer/webui/src/StatusScreen.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/viewer/webui/src/StatusScreen.jsx",
+            "start_line": 17,
+            "end_line": 43,
+            "snippet": "if (status === \"error\") {\n  return (\n    <div className=\"app\">\n      <div className=\"state-screen\">\n        <div className=\"state-card\">\n          <div className=\"state-title state-error\">Bundle unavailable</div>\n          <div className=\"state-detail\">{error?.message || \"Failed to load the viewer bundle.\"}</div>\n          <div className=\"state-detail\">Expected at: {bundleRequestUrl}</div>\n          <div className=\"state-actions\">\n            <button className=\"button\" onClick={onRetry}>Retry</button>\n            <button className=\"button secondary\" onClick={() => window.location.reload()}>Reload page</button>\n          </div>\n        </div>\n      </div>\n    </div>\n  );\n}"
+          },
+          {
+            "file": "apps/archivist/webui/src/ArchivistRemote.tsx",
+            "start_line": 81,
+            "end_line": 91,
+            "snippet": "if (effectiveLoadError) {\n  return (\n    <div className=\"archivist-error-state\">\n      <div className=\"archivist-state-content\">\n        <div className=\"archivist-state-icon\">\u274c</div>\n        <div className=\"archivist-state-title\">World data unavailable</div>\n        <div className=\"archivist-state-message\">{effectiveLoadError}</div>\n      </div>\n    </div>\n  );\n}"
+          },
+          {
+            "file": "apps/chronicler/webui/src/components/ChroniclerStatusScreen.tsx",
+            "start_line": 24,
+            "end_line": 33,
+            "snippet": "if (loadError) {\n  return (\n    <div className={styles.container}>\n      <div className={styles.content}>\n        <div className={styles.icon}>&#x2756;</div>\n        <div className={styles.title}>World Data Unavailable</div>\n        <div className={styles.detail}>{loadError}</div>\n      </div>\n    </div>\n  );\n}"
+          }
+        ],
+        "implementation_details": "Three apps that load world data all show full-screen error cards but each uses different CSS classes (state-card vs archivist-error-state vs CSS modules), different icon approaches (none vs emoji vs HTML entity), and different title text ('Bundle unavailable' vs 'World data unavailable' vs 'World Data Unavailable'). Viewer includes retry actions, Archivist and Chronicler do not."
+      },
+      {
+        "name": "toast-notification-error",
+        "description": "Dismissable toast banner with conditional success/error styling based on result object.",
+        "file_count": 3,
+        "files": [
+          "apps/illuminator/webui/src/components/ChroniclePanel.jsx:2483-2497",
+          "apps/illuminator/webui/src/components/ChroniclePanel.jsx:2532-2544",
+          "apps/illuminator/webui/src/components/ChroniclePanel.jsx:2547-2558"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+            "start_line": 2483,
+            "end_line": 2497,
+            "snippet": "{eraSummaryRefreshResult && <div className={`chron-toast ${eraSummaryRefreshResult.success ? \"chron-toast-success\" : \"chron-toast-error\"}`} onClick={() => setEraSummaryRefreshResult(null)}>\n  {eraSummaryRefreshResult.success\n    ? (eraSummaryRefreshResult.error\n      ? `Error: ${eraSummaryRefreshResult.error}`\n      : `Updated ${eraSummaryRefreshResult.updated ?? 0} era summaries`)\n    : `Error: ${eraSummaryRefreshResult.error}`}\n</div>}"
+          }
+        ],
+        "implementation_details": "Ad-hoc toast pattern within ChroniclePanel only. Uses chron-toast / chron-toast-success / chron-toast-error classes. Three separate result state variables (eraSummaryRefreshResult, resetBackportResult, reconcileBackportResult) each rendered with identical toast markup. Dismissable via onClick. No shared toast component or notification system."
+      },
+      {
+        "name": "sync-status-inline",
+        "description": "Inline status message with conditional error/success CSS class, used for data synchronization feedback.",
+        "file_count": 1,
+        "files": [
+          "apps/illuminator/webui/src/components/IlluminatorTabContent.jsx:250-255"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/IlluminatorTabContent.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/IlluminatorTabContent.jsx",
+            "start_line": 250,
+            "end_line": 255,
+            "snippet": "{props.dataSyncStatus && (\n  <div className={`itc-sync-status ${props.dataSyncStatus.type === \"error\" ? \"itc-sync-status-error\" : \"itc-sync-status-success\"}`}>\n    {props.dataSyncStatus.message}\n  </div>\n)}"
+          }
+        ],
+        "implementation_details": "Conditional CSS class applied based on a dataSyncStatus.type field. This is a status object pattern { type: 'error' | 'success', message: string } unique to this component."
+      },
+      {
+        "name": "global-error-banner",
+        "description": "Global error banner rendered at the app root level showing any unhandled error state.",
+        "file_count": 1,
+        "files": [
+          "apps/canonry/webui/src/App.jsx:2187-2189"
+        ],
+        "sample_file": "apps/canonry/webui/src/App.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/App.jsx",
+            "start_line": 2187,
+            "end_line": 2189,
+            "snippet": "{error && <div className=\"inline-extracted-6\">\n  Error: {error}\n</div>}"
+          }
+        ],
+        "implementation_details": "Simple conditional render of error state variable at root level. Uses an extracted inline style class. No dismiss mechanism, no retry, just displays the raw error text prefixed with 'Error: '."
+      }
+    ],
+    "behavior_matrix": {
+      "Name Forge (8 files)": {
+        "display_pattern": "bare <div className='error'> with utility margins",
+        "error_structure": "raw string",
+        "dismiss_mechanism": false,
+        "retry_action": false,
+        "fallback_text": false,
+        "icon": false
+      },
+      "Illuminator modals (8 files)": {
+        "display_pattern": "component-prefixed error class (dgm-failed, hrm-failed-message, etc.)",
+        "error_structure": "raw string with || fallback",
+        "dismiss_mechanism": false,
+        "retry_action": "varies per component",
+        "fallback_text": "yes \u2014 'Generation failed', 'Unknown error', etc.",
+        "icon": false
+      },
+      "Illuminator lists (4 files)": {
+        "display_pattern": "component-prefixed error classes (pp-error-item, ap-error-detail)",
+        "error_structure": "per-task error in list",
+        "dismiss_mechanism": false,
+        "retry_action": "per-item retry",
+        "fallback_text": "yes \u2014 'Unknown error'",
+        "icon": "status icons (\u2717)"
+      },
+      "Illuminator toasts (3 instances)": {
+        "display_pattern": "chron-toast with success/error class variant",
+        "error_structure": "result object with .success and .error",
+        "dismiss_mechanism": "onClick dismisses",
+        "retry_action": false,
+        "fallback_text": false,
+        "icon": false
+      },
+      "Viewer StatusScreen": {
+        "display_pattern": "full-screen state-card with title + detail + actions",
+        "error_structure": "error?.message with fallback string",
+        "dismiss_mechanism": false,
+        "retry_action": "Retry + Reload page buttons",
+        "fallback_text": "yes \u2014 'Failed to load the viewer bundle.'",
+        "icon": false
+      },
+      "Archivist": {
+        "display_pattern": "full-screen card with emoji icon + title + message",
+        "error_structure": "string from catch block",
+        "dismiss_mechanism": false,
+        "retry_action": false,
+        "fallback_text": "yes \u2014 'Failed to load world data from Dexie.'",
+        "icon": "emoji (\u274c)"
+      },
+      "Chronicler": {
+        "display_pattern": "CSS module full-screen with HTML entity icon + title + detail",
+        "error_structure": "string prop",
+        "dismiss_mechanism": false,
+        "retry_action": false,
+        "fallback_text": false,
+        "icon": "HTML entity (\u2756)"
+      },
+      "Canonry App": {
+        "display_pattern": "global error banner at root",
+        "error_structure": "raw string prefixed with 'Error: '",
+        "dismiss_mechanism": false,
+        "retry_action": false,
+        "fallback_text": false,
+        "icon": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "shared_error_display_component": "moderate \u2014 need <ErrorDisplay variant='inline|banner|card|toast' /> supporting dismiss, retry, and icon options",
+      "consistent_error_fallback_text": "trivial \u2014 standardize fallback strings like 'An unexpected error occurred'",
+      "dismiss_mechanism_for_inline_errors": "trivial \u2014 add onClick dismiss or auto-clear timeout (~3 lines per component)"
+    },
+    "analysis": "This is the highest-impact behavioral drift finding. The same user-visible concern \u2014 'something went wrong, here's what' \u2014 is implemented 6 different ways. Name Forge uses bare CSS classes; Illuminator uses component-prefixed classes with varying structure; the data-loading apps (Viewer, Archivist, Chronicler) each independently implement full-screen error cards with different class naming, icon approaches, and retry capabilities. The ChroniclePanel invents an ad-hoc toast pattern for operation results. The user-visible impact is high: error presentation is visually inconsistent across apps, error recovery varies (some have retry buttons, most don't), and error fallback text is unstandardized. A shared <ErrorDisplay> component in shared-components with variants for inline, banner, card, and toast would eliminate most drift. The ErrorBoundary shared component already exists for render crashes \u2014 extending the shared component library with an ErrorDisplay for operational errors is a natural next step.",
+    "recommendation": "Create shared <ErrorDisplay variant='inline|banner|card|toast'> in packages/shared-components. Props: message (string), title (optional string), icon (optional), onRetry (optional callback), onDismiss (optional callback), fallbackMessage (default: 'An unexpected error occurred'). Migrate Name Forge's bare 'error' class usage first (most files, simplest migration), then Illuminator's component-prefixed patterns.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "empty-state-patterns",
+    "name": "Empty State Presentation Inconsistency",
+    "type": "behavioral",
+    "domain": "Loading & Error State Patterns",
+    "description": "Empty states are presented via at least 4 patterns: a structured CSS component (icon + title + desc + CTA) in Coherence Engine, app-prefixed structured cards in Archivist, simple text messages in Illuminator, and 'empty-state-compact' one-liners. Only Coherence Engine has a dedicated empty-state CSS file.",
+    "impact": "MEDIUM",
+    "total_files": 22,
+    "variants": [
+      {
+        "name": "structured-empty-state-component",
+        "description": "Dedicated empty-state CSS with icon + title + description + optional CTA button. Used consistently within Coherence Engine.",
+        "file_count": 9,
+        "files": [
+          "apps/coherence-engine/webui/src/components/pressures/PressuresEditor.jsx:84-99",
+          "apps/coherence-engine/webui/src/components/generators/tabs/VariablesTab.jsx:194-200",
+          "apps/coherence-engine/webui/src/components/generators/tabs/RelationshipsTab.jsx:380-384",
+          "apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx:1586-1590",
+          "apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx:1698-1702",
+          "apps/coherence-engine/webui/src/components/actions/tabs/VariablesTab.jsx:191-194",
+          "apps/coherence-engine/webui/src/styles/components/empty-state.css",
+          "apps/coherence-engine/webui/src/components/generators/applicability/ApplicabilityTab.jsx:31-36",
+          "apps/coherence-engine/webui/src/components/generators/filters/SelectionFiltersEditor.jsx:91-93"
+        ],
+        "sample_file": "apps/coherence-engine/webui/src/components/pressures/PressuresEditor.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/coherence-engine/webui/src/components/pressures/PressuresEditor.jsx",
+            "start_line": 84,
+            "end_line": 99,
+            "snippet": "<div className=\"empty-state\">\n  <div className=\"empty-state-icon\">\ud83c\udf21\ufe0f</div>\n  <div className=\"pe-empty-title\">No pressures defined</div>\n  <div className=\"pe-empty-desc\">Pressures respond to world state with feedback and a pull toward equilibrium, driving the narrative forward.</div>\n  <button className=\"btn btn-primary pe-create-btn\" onClick={handleAddPressure}>+ Create First Pressure</button>\n</div>"
+          },
+          {
+            "file": "apps/coherence-engine/webui/src/styles/components/empty-state.css",
+            "start_line": 5,
+            "end_line": 33,
+            "snippet": ".empty-state {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  padding: var(--spacing-4xl);\n  color: var(--color-text-dim);\n  text-align: center;\n}\n.empty-state-icon { font-size: 48px; margin-bottom: var(--spacing-xl); opacity: 0.5; }\n.empty-state-title { font-size: var(--font-size-2xl); font-weight: var(--font-weight-medium); margin-bottom: var(--spacing-md); color: var(--color-text); }\n.empty-state-desc { font-size: var(--font-size-lg); color: var(--color-text-muted); max-width: 400px; margin-bottom: var(--spacing-2xl); }"
+          }
+        ],
+        "implementation_details": "Coherence Engine has a dedicated empty-state.css with well-structured classes. Uses emoji icons (\ud83d\udce6, \ud83d\udd17, \u26a1, \u2728, \ud83c\udf21\ufe0f) with consistent structure. Some files use the shared empty-state-title/desc classes while others mix in component-prefixed classes (pe-empty-title). Also has 'empty-state-compact' variant for smaller inline contexts."
+      },
+      {
+        "name": "app-prefixed-state-card",
+        "description": "Full-screen centered card with app-specific CSS class prefix (archivist-empty-state, archivist-state-content, etc.).",
+        "file_count": 2,
+        "files": [
+          "apps/archivist/webui/src/ArchivistRemote.tsx:93-105",
+          "apps/archivist/webui/src/ArchivistRemote.tsx:69-78"
+        ],
+        "sample_file": "apps/archivist/webui/src/ArchivistRemote.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/archivist/webui/src/ArchivistRemote.tsx",
+            "start_line": 93,
+            "end_line": 105,
+            "snippet": "if (!effectiveWorldData) {\n  return (\n    <div className=\"archivist-empty-state\">\n      <div className=\"archivist-state-content\">\n        <div className=\"archivist-state-icon\">\ud83d\udcdc</div>\n        <div className=\"archivist-state-title\">No World Data</div>\n        <div className=\"archivist-state-message\">Run a simulation in Lore Weave and click \"View in Archivist\" to explore your world.</div>\n      </div>\n    </div>\n  );\n}"
+          }
+        ],
+        "implementation_details": "Same structural pattern as Coherence Engine (icon + title + message) but with entirely different CSS class names. Uses emoji icons but with app-specific class prefix 'archivist-'. Also uses archivist-empty-state for the loading state container, conflating loading and empty semantically."
+      },
+      {
+        "name": "simple-text-message",
+        "description": "Single text string in a component-prefixed div, with no icon, title structure, or CTA.",
+        "file_count": 8,
+        "files": [
+          "apps/illuminator/webui/src/components/ActivityPanel.jsx:240-244",
+          "apps/illuminator/webui/src/components/EnrichmentQueue.jsx:290-291",
+          "apps/illuminator/webui/src/components/QuickCheckModal.jsx:161",
+          "apps/illuminator/webui/src/components/QuickCheckModal.jsx:269",
+          "apps/illuminator/webui/src/components/SummaryRevisionModal.jsx:440",
+          "apps/cosmographer/webui/src/components/EntityEditor/index.jsx:176-178",
+          "apps/cosmographer/webui/src/components/CultureEditor/index.jsx:185-187",
+          "apps/cosmographer/webui/src/components/RelationshipEditor/index.jsx:114-116"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ActivityPanel.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ActivityPanel.jsx",
+            "start_line": 240,
+            "end_line": 244,
+            "snippet": "{queue.length === 0 && <div className=\"illuminator-card\">\n  <div className=\"ap-empty-state\">\n    No activity yet. Queue some enrichment tasks from the Entities tab.\n  </div>\n</div>}"
+          },
+          {
+            "file": "apps/cosmographer/webui/src/components/CultureEditor/index.jsx",
+            "start_line": 185,
+            "end_line": 187,
+            "snippet": "<div className=\"ce-placeholder\">\n  No cultures defined yet. Add cultures in the Enumerist tab first.\n</div>"
+          }
+        ],
+        "implementation_details": "Plain text message with guidance on what to do. Uses component-prefixed class names (ap-empty-state, eq-empty, ce-placeholder). No icon, no structural hierarchy, no CTA button. Cosmographer editors include cross-reference guidance ('Add cultures in the Enumerist tab first')."
+      },
+      {
+        "name": "remote-placeholder-component",
+        "description": "Dedicated RemotePlaceholder component shown when an MFE module is unavailable \u2014 effectively an empty/unavailable state for remote modules.",
+        "file_count": 7,
+        "files": [
+          "apps/canonry/webui/src/remotes/RemotePlaceholder.jsx",
+          "apps/canonry/webui/src/remotes/IlluminatorHost.jsx:15-17",
+          "apps/canonry/webui/src/remotes/ArchivistHost.jsx",
+          "apps/canonry/webui/src/remotes/ChroniclerHost.jsx",
+          "apps/canonry/webui/src/remotes/CoherenceEngineHost.jsx",
+          "apps/canonry/webui/src/remotes/CosmographerHost.jsx",
+          "apps/canonry/webui/src/remotes/LoreWeaveHost.jsx"
+        ],
+        "sample_file": "apps/canonry/webui/src/remotes/RemotePlaceholder.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/remotes/RemotePlaceholder.jsx",
+            "start_line": 9,
+            "end_line": 20,
+            "snippet": "export default function RemotePlaceholder({ name, instructions }) {\n  return (\n    <div className=\"rph-container\">\n      <div className=\"rph-icon\">\ud83d\udd0c</div>\n      <div className=\"rph-title\">{name} Not Connected</div>\n      <div className=\"rph-message\">The {name} module is not currently running. Start it to enable this feature.</div>\n      {instructions && <div className=\"rph-instructions\">{instructions}</div>}\n    </div>\n  );\n}"
+          }
+        ],
+        "implementation_details": "A reusable component but only used within MFE host wrappers. Same structural pattern as Coherence Engine empty states (icon + title + message) but with rph- prefix classes. This is the closest thing to a shared empty state component but it's purpose-specific to MFE unavailability."
+      }
+    ],
+    "behavior_matrix": {
+      "Coherence Engine (9 files)": {
+        "structure": "icon + title + desc + optional CTA",
+        "css_approach": "dedicated empty-state.css with shared classes",
+        "icon_type": "emoji (\ud83d\udce6, \ud83d\udd17, \u26a1, \u2728, \ud83c\udf21\ufe0f)",
+        "has_cta": "some (Create First Pressure, etc.)",
+        "compact_variant": "yes (empty-state-compact)"
+      },
+      "Archivist (2 files)": {
+        "structure": "icon + title + message",
+        "css_approach": "app-prefixed classes (archivist-empty-state)",
+        "icon_type": "emoji (\ud83d\udcdc)",
+        "has_cta": false,
+        "compact_variant": false
+      },
+      "Illuminator (5 files)": {
+        "structure": "text message only",
+        "css_approach": "component-prefixed classes (ap-empty-state)",
+        "icon_type": false,
+        "has_cta": false,
+        "compact_variant": false
+      },
+      "Cosmographer (3 files)": {
+        "structure": "text message with guidance",
+        "css_approach": "component-prefixed classes (ce-placeholder)",
+        "icon_type": false,
+        "has_cta": false,
+        "compact_variant": false
+      },
+      "Canonry Remotes (7 files)": {
+        "structure": "icon + title + message + optional instructions",
+        "css_approach": "rph- prefixed classes",
+        "icon_type": "emoji (\ud83d\udd0c)",
+        "has_cta": false,
+        "compact_variant": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "shared_empty_state_component": "moderate \u2014 extract Coherence Engine's empty-state CSS into shared-components and create <EmptyState icon title description cta /> component",
+      "consistent_empty_state_adoption": "trivial per file \u2014 replace text-only empty states with shared component calls (~3-5 lines each)"
+    },
+    "analysis": "This is behavioral drift with one app (Coherence Engine) having established a solid canonical pattern that other apps have not adopted. The Coherence Engine's empty-state.css is well-structured with icon + title + description + CTA and even has a compact variant \u2014 this is clearly the most mature implementation. Archivist independently arrived at the same structural pattern but with different class names. Illuminator and Cosmographer use simpler text-only approaches. The RemotePlaceholder component also follows the icon + title + message pattern but is isolated to MFE hosts. The user-visible impact is moderate: empty states look different across apps, some providing helpful guidance (Coherence Engine's CTA buttons, Cosmographer's cross-references) while others just show terse messages. The canonical pattern already exists in Coherence Engine \u2014 it just needs to be extracted to shared-components and adopted.",
+    "recommendation": "Extract Coherence Engine's empty-state.css and pattern into a shared <EmptyState icon? title description cta?> component in packages/shared-components. Support variants: 'full' (icon + title + desc + CTA) and 'compact' (inline text). Migrate Archivist and Illuminator to use the shared component.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "error-recovery-retry-patterns",
+    "name": "Inconsistent Error Recovery Mechanisms",
+    "type": "behavioral",
+    "domain": "Loading & Error State Patterns",
+    "description": "Error recovery ranges from comprehensive (Retry + Reload buttons in Viewer) to nonexistent (most error displays offer no recovery action). The shared ErrorBoundary has a retry mechanism, but operational errors in most components lack any recovery path.",
+    "impact": "MEDIUM",
+    "total_files": 12,
+    "variants": [
+      {
+        "name": "retry-plus-reload",
+        "description": "Dedicated Retry button plus Reload page button for fatal load errors.",
+        "file_count": 1,
+        "files": [
+          "apps/viewer/webui/src/StatusScreen.jsx:27-38"
+        ],
+        "sample_file": "apps/viewer/webui/src/StatusScreen.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/viewer/webui/src/StatusScreen.jsx",
+            "start_line": 27,
+            "end_line": 38,
+            "snippet": "<div className=\"state-actions\">\n  <button className=\"button\" onClick={onRetry} type=\"button\">Retry</button>\n  <button className=\"button secondary\" onClick={() => window.location.reload()} type=\"button\">Reload page</button>\n</div>"
+          }
+        ],
+        "implementation_details": "Two recovery options: a callback-based Retry (re-attempts the load) and a full page reload. Structured in a state-actions div. Only component offering both options."
+      },
+      {
+        "name": "per-task-retry-button",
+        "description": "Individual Retry button shown next to each failed task in a list, re-queuing that specific task.",
+        "file_count": 3,
+        "files": [
+          "apps/illuminator/webui/src/components/ActivityPanel.jsx:107-109",
+          "apps/illuminator/webui/src/components/EnrichmentQueue.jsx:89-91",
+          "apps/illuminator/webui/src/components/EntityBrowser.jsx:271-277"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ActivityPanel.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ActivityPanel.jsx",
+            "start_line": 107,
+            "end_line": 109,
+            "snippet": "{item.status === \"error\" && onRetry && <button onClick={() => onRetry(item.id)} className=\"illuminator-button-link ap-task-action\">Retry</button>}"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/EnrichmentQueue.jsx",
+            "start_line": 89,
+            "end_line": 92,
+            "snippet": "{(task.status === \"queued\" || task.status === \"error\") && (\n  <button onClick={() => onRunTask(task.id)} className=\"eq-task-run-btn\">\n    {task.status === \"error\" ? \"Retry\" : \"Run\"}\n  </button>\n)}"
+          }
+        ],
+        "implementation_details": "ActivityPanel uses onRetry callback prop with illuminator-button-link class. EnrichmentQueue uses conditional text ('Retry' vs 'Run') on the same button. EntityBrowser has separate retry buttons for each task type (description, thesis, image). All within Illuminator app only."
+      },
+      {
+        "name": "retry-with-feedback",
+        "description": "Retry button that includes user feedback text field, allowing the user to steer the retry attempt.",
+        "file_count": 1,
+        "files": [
+          "apps/illuminator/webui/src/components/DynamicsGenerationModal.jsx:196-203"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/DynamicsGenerationModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/DynamicsGenerationModal.jsx",
+            "start_line": 196,
+            "end_line": 203,
+            "snippet": "{(isReviewable || isFailed) && (\n  <button onClick={handleSubmitFeedback} disabled={!feedback.trim()} className=\"illuminator-button illuminator-button-secondary dgm-action-btn\">\n    {isFailed ? \"Retry with Feedback\" : \"Refine\"}\n  </button>\n)}"
+          }
+        ],
+        "implementation_details": "Unique LLM-oriented retry pattern: shows a textarea for feedback and a 'Retry with Feedback' button. This is intentionally different from simple retries as it supports iterative generation workflows."
+      },
+      {
+        "name": "error-boundary-retry",
+        "description": "Shared ErrorBoundary component resets error state to retry rendering.",
+        "file_count": 1,
+        "files": [
+          "packages/shared-components/src/components/ErrorBoundary.jsx:22-24"
+        ],
+        "sample_file": "packages/shared-components/src/components/ErrorBoundary.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/ErrorBoundary.jsx",
+            "start_line": 22,
+            "end_line": 42,
+            "snippet": "handleRetry = () => {\n  this.setState({ error: null });\n};\n...\n<button className=\"error-boundary-retry\" onClick={this.handleRetry}>Retry</button>"
+          }
+        ],
+        "implementation_details": "Resets component error state to null, causing React to re-render children. Simple but effective for render errors. Used in all 7 MFE host wrappers."
+      },
+      {
+        "name": "no-recovery-action",
+        "description": "Error is displayed but no retry, dismiss, or recovery mechanism is offered.",
+        "file_count": 30,
+        "files": [
+          "apps/name-forge/webui/src/components/generator/GenerateTab.jsx:369",
+          "apps/name-forge/webui/src/components/workspace/tabs/LexemesTab.jsx:236",
+          "apps/archivist/webui/src/ArchivistRemote.tsx:81-91",
+          "apps/chronicler/webui/src/components/ChroniclerStatusScreen.tsx:24-33",
+          "apps/illuminator/webui/src/components/ImageModal.jsx:220-222",
+          "apps/illuminator/webui/src/components/HistorianReviewModal.jsx:245",
+          "apps/illuminator/webui/src/components/ChronicleImagePanel.tsx:700",
+          "apps/illuminator/webui/src/components/DescriptionMotifWeaver.tsx:729",
+          "apps/illuminator/webui/src/components/CoverImageControls.jsx:25",
+          "apps/illuminator/webui/src/components/CorpusFindReplace.tsx:1303"
+        ],
+        "sample_file": "apps/name-forge/webui/src/components/generator/GenerateTab.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/name-forge/webui/src/components/generator/GenerateTab.jsx",
+            "start_line": 107,
+            "end_line": 110,
+            "snippet": "const handleGenerate = async () => {\n  setError(null);\n  setGenerating(true);\n  try { ... } catch (err) { setError(err.message); }"
+          },
+          {
+            "file": "apps/archivist/webui/src/ArchivistRemote.tsx",
+            "start_line": 81,
+            "end_line": 91,
+            "snippet": "if (effectiveLoadError) {\n  return (\n    <div className=\"archivist-error-state\">\n      <div className=\"archivist-state-content\">\n        <div className=\"archivist-state-icon\">\u274c</div>\n        <div className=\"archivist-state-title\">World data unavailable</div>\n        <div className=\"archivist-state-message\">{effectiveLoadError}</div>\n      </div>\n    </div>\n  );\n}"
+          }
+        ],
+        "implementation_details": "The majority pattern: errors are caught, stored in state, and displayed to the user, but with no mechanism to retry the failed operation. In Name Forge, the error clears on the next manual generate attempt. In Archivist and Chronicler, data load errors leave the user stranded with no recovery path \u2014 they must reload the page manually."
+      }
+    ],
+    "behavior_matrix": {
+      "Viewer StatusScreen": {
+        "retry_mechanism": "Retry callback + Reload page button",
+        "recovery_path": "two options: re-attempt or full reload",
+        "auto_clear": false
+      },
+      "shared ErrorBoundary": {
+        "retry_mechanism": "Reset error state to null, re-render children",
+        "recovery_path": "single Retry button",
+        "auto_clear": false
+      },
+      "Illuminator task lists": {
+        "retry_mechanism": "Per-task Retry button calls onRetry(taskId)",
+        "recovery_path": "re-queue individual failed task",
+        "auto_clear": false
+      },
+      "Illuminator DynamicsModal": {
+        "retry_mechanism": "Retry with Feedback textarea + button",
+        "recovery_path": "re-generate with user feedback",
+        "auto_clear": false
+      },
+      "Name Forge (all)": {
+        "retry_mechanism": "none \u2014 error clears on next manual action",
+        "recovery_path": "implicit via re-running the action",
+        "auto_clear": "on next action"
+      },
+      "Archivist error state": {
+        "retry_mechanism": "none",
+        "recovery_path": "none \u2014 user must reload page",
+        "auto_clear": false
+      },
+      "Chronicler error state": {
+        "retry_mechanism": "none",
+        "recovery_path": "none \u2014 user must reload page",
+        "auto_clear": false
+      },
+      "Illuminator modals (most)": {
+        "retry_mechanism": "none",
+        "recovery_path": "close and re-open modal",
+        "auto_clear": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "archivist_retry_button": "trivial \u2014 add onRetry callback to trigger re-load from storage (~5 lines)",
+      "chronicler_retry_button": "trivial \u2014 add onRetry callback to trigger re-load (~5 lines)",
+      "name_forge_retry_button": "trivial \u2014 add explicit Retry button next to error display (~3 lines)",
+      "illuminator_modal_retry": "moderate \u2014 most modals need to re-invoke the LLM operation, requiring stored parameters"
+    },
+    "analysis": "This drift represents a genuine gap in user experience. Data-loading apps (Archivist, Chronicler) display error cards that dead-end the user \u2014 the only recovery is a manual page reload, which isn't even suggested. Meanwhile, the Viewer StatusScreen provides both Retry and Reload buttons for the exact same type of operation (loading data from storage). The Illuminator's task-based retry is well-implemented but isolated to its queue system. Name Forge errors clear implicitly on the next action, which is a reasonable UX for form-based operations but still lacks an explicit 'try again' affordance. The shared ErrorBoundary already demonstrates the retry pattern \u2014 extending this principle to operational errors is straightforward. The 'Retry with Feedback' variant in DynamicsGenerationModal is intentionally different (LLM iteration) and should remain distinct.",
+    "recommendation": "Add retry callbacks to Archivist and Chronicler data-loading error states (highest impact, simplest fix). Standardize that all full-screen error cards include at minimum a Retry button. Consider a shared <ErrorCard title message onRetry? onReload?> that enforces this pattern. Leave LLM-specific retry variants (Retry with Feedback) as intentional variation.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "error-boundary-adoption",
+    "name": "ErrorBoundary Usage Gap",
+    "type": "behavioral",
+    "domain": "Loading & Error State Patterns",
+    "description": "The shared ErrorBoundary component is used at MFE host boundaries only (7 files). No app uses ErrorBoundary internally around complex components that could crash (3D views, chart renderers, etc.), leaving unhandled render errors to propagate to the MFE-level boundary with a generic message.",
+    "impact": "LOW",
+    "total_files": 7,
+    "variants": [
+      {
+        "name": "mfe-host-boundary-only",
+        "description": "ErrorBoundary wraps the Suspense-loaded remote module in each MFE host. This is the only usage pattern.",
+        "file_count": 7,
+        "files": [
+          "apps/canonry/webui/src/remotes/IlluminatorHost.jsx:57",
+          "apps/canonry/webui/src/remotes/ArchivistHost.jsx",
+          "apps/canonry/webui/src/remotes/ChroniclerHost.jsx",
+          "apps/canonry/webui/src/remotes/CoherenceEngineHost.jsx",
+          "apps/canonry/webui/src/remotes/CosmographerHost.jsx",
+          "apps/canonry/webui/src/remotes/LoreWeaveHost.jsx",
+          "apps/canonry/webui/src/remotes/NameForgeHost.jsx"
+        ],
+        "sample_file": "apps/canonry/webui/src/remotes/IlluminatorHost.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/canonry/webui/src/remotes/IlluminatorHost.jsx",
+            "start_line": 56,
+            "end_line": 62,
+            "snippet": "return <div className=\"inline-extracted-1\">\n  <ErrorBoundary title=\"Illuminator encountered an error\">\n    <Suspense fallback={loadingFallback}>\n      <IlluminatorRemote ... />\n    </Suspense>\n  </ErrorBoundary>\n</div>;"
+          }
+        ],
+        "implementation_details": "Consistent pattern across all 7 hosts: ErrorBoundary wraps Suspense wrapping the lazy-loaded remote. Each host provides a custom title prop ('Illuminator encountered an error', etc.). The ErrorBoundary shows generic 'Something went wrong' with the error.message and a Retry button."
+      },
+      {
+        "name": "no-internal-boundaries",
+        "description": "No ErrorBoundary usage inside any app around crash-prone components (3D renderers, canvas-based views, complex parsers).",
+        "file_count": 0,
+        "files": [],
+        "sample_file": "apps/archivist/webui/src/components/WorldExplorer.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/archivist/webui/src/components/WorldExplorer.tsx",
+            "start_line": 145,
+            "end_line": 179,
+            "snippet": "<Suspense fallback={loadingFallback}>\n  {viewMode === \"graph3d\" && (\n    <GraphView3D key={`3d-view-${edgeMetric}`} data={filteredData} ... />\n  )}\n  {viewMode === \"graph2d\" && (\n    <GraphView key={`2d-view-${edgeMetric}`} data={filteredData} ... />\n  )}\n</Suspense>\n// Note: No ErrorBoundary around 3D views that use WebGL"
+          }
+        ],
+        "implementation_details": "Archivist's WorldExplorer lazy-loads GraphView3D and GraphView (WebGL-based 3D renderers) but only wraps them in Suspense, not ErrorBoundary. A WebGL crash would propagate to the MFE-level boundary, crashing the entire Archivist view rather than just the graph. Similar gap exists for other complex components."
+      }
+    ],
+    "behavior_matrix": {
+      "MFE Host wrappers (7 files)": {
+        "error_boundary": "yes \u2014 wraps entire remote module",
+        "custom_title": "yes \u2014 per-module title",
+        "granularity": "whole-app level"
+      },
+      "Archivist 3D views": {
+        "error_boundary": "none \u2014 only Suspense",
+        "custom_title": "N/A",
+        "granularity": "N/A"
+      },
+      "Lore Weave dashboard": {
+        "error_boundary": "none",
+        "custom_title": "N/A",
+        "granularity": "N/A"
+      },
+      "Canonry TracePopover": {
+        "error_boundary": "none \u2014 lazy loads mermaid",
+        "custom_title": "N/A",
+        "granularity": "N/A"
+      }
+    },
+    "missing_behavior_complexity": {
+      "archivist_3d_boundary": "trivial \u2014 wrap GraphView3D/GraphView in <ErrorBoundary title='Graph view error'> (~3 lines)",
+      "trace_popover_boundary": "trivial \u2014 wrap lazy-loaded mermaid in ErrorBoundary (~3 lines)",
+      "general_internal_boundaries": "trivial per component \u2014 identify crash-prone components and wrap each"
+    },
+    "analysis": "This is a relatively low-impact gap because the MFE-level ErrorBoundary does catch crashes \u2014 the issue is granularity, not coverage. When a 3D renderer crashes in Archivist, the entire Archivist module shows 'Archivist encountered an error' instead of just the graph view showing an error while the filter panel remains usable. This is likely an oversight rather than a design decision. The fix is straightforward: add ErrorBoundary around known crash-prone components (3D views, complex parsers, lazy-loaded heavy libraries like mermaid). The shared ErrorBoundary component already supports this via its title and className props.",
+    "recommendation": "Add ErrorBoundary around crash-prone components: Archivist's GraphView3D/GraphView/TimelineView3D, Canonry's TracePopover lazy-loaded mermaid. Low priority \u2014 the MFE boundary already provides a safety net.",
+    "evidence_quality": "medium",
+    "status": "pending"
+  },
+  {
+    "id": "progress-display-inconsistency",
+    "name": "Progress Display Pattern Divergence",
+    "type": "behavioral",
+    "domain": "Loading & Error State Patterns",
+    "description": "Two apps (Lore Weave, Illuminator) have progress display for long-running operations but use completely different component structures, stats layouts, and CSS variable conventions despite serving the same purpose.",
+    "impact": "LOW",
+    "total_files": 4,
+    "variants": [
+      {
+        "name": "lore-weave-progress",
+        "description": "Horizontal overview bar: StatusBadge + progress bar + tick/epoch text + entity/relationship counts.",
+        "file_count": 2,
+        "files": [
+          "apps/lore-weave/webui/src/components/dashboard/ProgressOverview.jsx:10-75",
+          "apps/lore-weave/webui/src/components/dashboard/StatusBadge.jsx"
+        ],
+        "sample_file": "apps/lore-weave/webui/src/components/dashboard/ProgressOverview.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/lore-weave/webui/src/components/dashboard/ProgressOverview.jsx",
+            "start_line": 49,
+            "end_line": 73,
+            "snippet": "<div className=\"lw-overview-bar\">\n  <StatusBadge status={status} />\n  <div className=\"lw-progress-section\">\n    <div className=\"lw-progress-bar\">\n      <div className=\"lw-progress-fill po-progress-fill\" style={{ '--po-progress-width': `${percent}%` }} />\n    </div>\n    <div className=\"lw-progress-text\">\n      <span>Tick {progress.tick} / {progress.maxTicks} \u2022 Epoch {progress.epoch} / {progress.totalEpochs}</span>\n      <span>{Math.round(percent)}%</span>\n    </div>\n  </div>\n  <div className=\"lw-stats-row\">\n    <div className=\"lw-stat-item\"><div className=\"lw-stat-value\">{progress.entityCount.toLocaleString()}</div><div className=\"lw-stat-label\">Entities</div></div>\n    <div className=\"lw-stat-item\"><div className=\"lw-stat-value\">{progress.relationshipCount.toLocaleString()}</div><div className=\"lw-stat-label\">Relations</div></div>\n  </div>\n</div>"
+          }
+        ],
+        "implementation_details": "Uses CSS custom property '--po-progress-width' for bar width. Horizontal single-bar layout with StatusBadge component. Shows domain-specific counters (entities, relationships). Progress calculation based on epochs completed. 'Waiting to start...' when no progress data."
+      },
+      {
+        "name": "illuminator-progress",
+        "description": "Vertical card layout: progress bar + completed/total header + 4-cell stats grid + error log + completion message.",
+        "file_count": 2,
+        "files": [
+          "apps/illuminator/webui/src/components/ProgressPanel.jsx:14-129",
+          "apps/illuminator/webui/src/components/ActivityPanel.jsx:131-285"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/ProgressPanel.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/ProgressPanel.jsx",
+            "start_line": 56,
+            "end_line": 99,
+            "snippet": "<div className=\"pp-progress-section\">\n  <div className=\"pp-progress-header\">\n    <span className=\"pp-progress-completed\">{progress.completed} / {progress.total} tasks</span>\n    <span className=\"pp-progress-percent\">{progressPercent}%</span>\n  </div>\n  <div className=\"illuminator-progress\">\n    <div className=\"illuminator-progress-bar\" style={{ \"--pp-bar-width\": `${progressPercent}%` }} />\n  </div>\n</div>\n...\n<div className=\"pp-stats-grid\">\n  <div className=\"pp-stat-card\"><div className=\"pp-stat-value\">{completedTasks.length}</div><div className=\"pp-stat-label pp-stat-label-completed\">Completed</div></div>\n  <div className=\"pp-stat-card\"><div className=\"pp-stat-value\">{runningTasks.length}</div><div className=\"pp-stat-label pp-stat-label-running\">Running</div></div>\n  <div className=\"pp-stat-card\"><div className=\"pp-stat-value\">{pendingTasks.length}</div><div className=\"pp-stat-label pp-stat-label-pending\">Pending</div></div>\n  <div className=\"pp-stat-card\"><div className=\"pp-stat-value\">{errorTasks.length}</div><div className=\"pp-stat-label pp-stat-label-errors\">Errors</div></div>\n</div>"
+          }
+        ],
+        "implementation_details": "Uses CSS custom property '--pp-bar-width' for bar width (same technique, different variable name). Vertical card layout with multiple sections. Shows task-based counters (completed/running/pending/errors) in a 4-cell grid. Includes inline error log and completion celebration. ActivityPanel shows separate view with per-task status rows using status icon system (\u25f7 \u25d0 \u2713 \u2717)."
+      }
+    ],
+    "behavior_matrix": {
+      "Lore Weave ProgressOverview": {
+        "layout": "horizontal single bar",
+        "css_variable": "--po-progress-width",
+        "counters": "entities + relationships (domain-specific)",
+        "error_display": "none in progress view",
+        "controls": "separate RunControls component",
+        "completion_state": "100% bar fill"
+      },
+      "Illuminator ProgressPanel": {
+        "layout": "vertical multi-section card",
+        "css_variable": "--pp-bar-width",
+        "counters": "completed/running/pending/errors (4-cell grid)",
+        "error_display": "inline error log with task name + message",
+        "controls": "Start/Pause/Resume/Abort buttons in header",
+        "completion_state": "sparkle icon + 'Enrichment Complete!' + task count summary"
+      },
+      "Illuminator ActivityPanel": {
+        "layout": "vertical multi-section with task rows",
+        "css_variable": "N/A (no bar)",
+        "counters": "queued/running/completed/errors stats row",
+        "error_display": "per-task error detail below task row",
+        "controls": "Cancel All + Clear Completed in header",
+        "completion_state": "N/A (continuous queue)"
+      }
+    },
+    "missing_behavior_complexity": {
+      "shared_progress_bar": "moderate \u2014 could extract a shared <ProgressBar value={percent} /> component, but layout contexts differ significantly",
+      "css_variable_standardization": "trivial \u2014 rename to consistent --progress-width"
+    },
+    "analysis": "This is partially intentional variation: Lore Weave tracks simulation progress (epochs, entity counts) while Illuminator tracks queue progress (tasks completed/failed). The domains genuinely differ. However, the progress bar implementation is duplicated \u2014 both use the same CSS custom property technique with different variable names (--po-progress-width vs --pp-bar-width). A shared <ProgressBar> component could handle the visual bar while each app provides its own surrounding context. The stats grid patterns also differ (2-column domain stats vs 4-cell task status grid) but these serve different purposes. This is low priority because only 2 apps have progress display and their domains differ substantially.",
+    "recommendation": "Extract a shared <ProgressBar percent={number} /> component to shared-components with standardized CSS. Keep the surrounding layout and stats grid app-specific, as they serve genuinely different domains. Low priority.",
+    "evidence_quality": "high",
+    "status": "pending"
+  }
+]

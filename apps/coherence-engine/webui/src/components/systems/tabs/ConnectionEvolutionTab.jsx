@@ -2,12 +2,12 @@
  * ConnectionEvolutionTab - Configuration for connection evolution systems
  */
 
-import React, { useState } from 'react';
-import { METRIC_TYPES, DIRECTIONS } from '../constants';
-import { ReferenceDropdown, NumberInput, LocalTextArea } from '../../shared';
-import TagSelector from '@penguin-tales/shared-components/TagSelector';
-
-const NARRATION_TEXTAREA_STYLE = Object.freeze({ fontSize: '12px' });
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import { METRIC_TYPES, DIRECTIONS } from "../constants";
+import { ReferenceDropdown, NumberInput, LocalTextArea } from "../../shared";
+import TagSelector from "@the-canonry/shared-components/TagSelector";
+import "./ConnectionEvolutionTab.css";
 
 /**
  * RuleCard - Expandable card for rule configuration
@@ -29,31 +29,39 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
   };
 
   const entityRefOptions = [
-    { value: '$self', label: '$self' },
-    { value: '$member', label: '$member' },
-    { value: '$member2', label: '$member2' },
+    { value: "$self", label: "$self" },
+    { value: "$member", label: "$member" },
+    { value: "$member2", label: "$member2" },
   ];
 
   const tagRegistry = schema?.tagRegistry || [];
 
   return (
     <div className="item-card">
-      <div
-        className="item-card-header"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="item-card-icon" style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)' }}>R</div>
+      <div className="item-card-header" onClick={() => setExpanded(!expanded)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+        <div className="item-card-icon cet-rule-icon">
+          R
+        </div>
         <div className="item-card-info">
           <div className="item-card-title">
-            {rule.condition?.operator || '>='} {rule.condition?.threshold || '?'}
+            {rule.condition?.operator || ">="} {rule.condition?.threshold || "?"}
           </div>
           <div className="item-card-subtitle">
-            {rule.action?.type} ({rule.action?.delta >= 0 ? '+' : ''}{rule.action?.delta ?? '?'}) - {(rule.probability * 100).toFixed(0)}% chance
+            {rule.action?.type} ({rule.action?.delta >= 0 ? "+" : ""}
+            {rule.action?.delta ?? "?"}) - {(rule.probability * 100).toFixed(0)}% chance
           </div>
         </div>
         <div className="item-card-actions">
-          <button className="btn-icon">{expanded ? '^' : 'v'}</button>
-          <button className="btn-icon btn-icon-danger" onClick={(e) => { e.stopPropagation(); onRemove(); }}>x</button>
+          <button className="btn-icon">{expanded ? "^" : "v"}</button>
+          <button
+            className="btn-icon btn-icon-danger"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+          >
+            x
+          </button>
         </div>
       </div>
 
@@ -62,129 +70,137 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
           <div className="form-grid">
             <ReferenceDropdown
               label="Operator"
-              value={rule.condition?.operator || '>='}
-              onChange={(v) => updateCondition('operator', v)}
+              value={rule.condition?.operator || ">="}
+              onChange={(v) => updateCondition("operator", v)}
               options={[
-                { value: '>=', label: '>= (greater or equal)' },
-                { value: '>', label: '> (greater)' },
-                { value: '<=', label: '<= (less or equal)' },
-                { value: '<', label: '< (less)' },
-                { value: '==', label: '== (equal)' },
+                { value: ">=", label: ">= (greater or equal)" },
+                { value: ">", label: "> (greater)" },
+                { value: "<=", label: "<= (less or equal)" },
+                { value: "<", label: "< (less)" },
+                { value: "==", label: "== (equal)" },
               ]}
             />
             <div className="form-group">
-              <label className="label">Threshold</label>
-              <input
+              <label htmlFor="threshold" className="label">Threshold</label>
+              <input id="threshold"
                 type="text"
-                value={rule.condition?.threshold ?? ''}
+                value={rule.condition?.threshold ?? ""}
                 onChange={(e) => {
                   const v = e.target.value;
-                  updateCondition('threshold', isNaN(Number(v)) ? v : Number(v));
+                  updateCondition("threshold", isNaN(Number(v)) ? v : Number(v));
                 }}
                 className="input"
                 placeholder="Number or 'prominence_scaled'"
               />
             </div>
-            {rule.condition?.threshold === 'prominence_scaled' && (
+            {rule.condition?.threshold === "prominence_scaled" && (
               <div className="form-group">
-                <label className="label">Multiplier</label>
+                <label className="label">Multiplier
                 <NumberInput
                   value={rule.condition?.multiplier}
-                  onChange={(v) => updateCondition('multiplier', v)}
+                  onChange={(v) => updateCondition("multiplier", v)}
                   allowEmpty
                   placeholder="6"
                 />
+                </label>
               </div>
             )}
             <div className="form-group">
-              <label className="label">Probability</label>
+              <label className="label">Probability
               <NumberInput
                 value={rule.probability}
                 onChange={(v) => onChange({ ...rule, probability: v ?? 0 })}
                 min={0}
                 max={1}
               />
+              </label>
             </div>
           </div>
 
-          <div style={{ marginTop: '16px' }}>
-            <label className="label">Action</label>
+          <div className="mt-xl">
+            <span className="label">Action</span>
             <div className="form-grid">
               <ReferenceDropdown
                 label="Type"
-                value={rule.action?.type || 'adjust_prominence'}
-                onChange={(v) => updateAction('type', v)}
+                value={rule.action?.type || "adjust_prominence"}
+                onChange={(v) => updateAction("type", v)}
                 options={[
-                  { value: 'adjust_prominence', label: 'Adjust Prominence' },
-                  { value: 'create_relationship', label: 'Create Relationship' },
-                  { value: 'change_status', label: 'Change Status' },
-                  { value: 'set_tag', label: 'Set Tag' },
+                  { value: "adjust_prominence", label: "Adjust Prominence" },
+                  { value: "create_relationship", label: "Create Relationship" },
+                  { value: "change_status", label: "Change Status" },
+                  { value: "set_tag", label: "Set Tag" },
                 ]}
               />
-              {(rule.action?.type === 'adjust_prominence' || rule.action?.type === 'change_status' || rule.action?.type === 'set_tag') && (
+              {(rule.action?.type === "adjust_prominence" ||
+                rule.action?.type === "change_status" ||
+                rule.action?.type === "set_tag") && (
                 <ReferenceDropdown
                   label="Entity"
-                  value={rule.action?.entity || '$self'}
-                  onChange={(v) => updateAction('entity', v)}
+                  value={rule.action?.entity || "$self"}
+                  onChange={(v) => updateAction("entity", v)}
                   options={entityRefOptions}
                 />
               )}
-              {rule.action?.type === 'adjust_prominence' && (
+              {rule.action?.type === "adjust_prominence" && (
                 <div className="form-group">
-                  <label className="label">Delta</label>
+                  <label className="label">Delta
                   <NumberInput
                     value={rule.action?.delta}
-                    onChange={(v) => updateAction('delta', v ?? 0)}
+                    onChange={(v) => updateAction("delta", v ?? 0)}
                     placeholder="e.g., 0.25 or -0.15"
                   />
+                  </label>
                 </div>
               )}
-              {rule.action?.type === 'create_relationship' && (
+              {rule.action?.type === "create_relationship" && (
                 <>
                   <ReferenceDropdown
                     label="Relationship Kind"
                     value={rule.action?.kind}
-                    onChange={(v) => updateAction('kind', v)}
+                    onChange={(v) => updateAction("kind", v)}
                     options={relationshipKindOptions}
                   />
                   <ReferenceDropdown
                     label="Source"
-                    value={rule.action?.src || '$member'}
-                    onChange={(v) => updateAction('src', v)}
+                    value={rule.action?.src || "$member"}
+                    onChange={(v) => updateAction("src", v)}
                     options={entityRefOptions}
                   />
                   <ReferenceDropdown
                     label="Destination"
-                    value={rule.action?.dst || '$member2'}
-                    onChange={(v) => updateAction('dst', v)}
+                    value={rule.action?.dst || "$member2"}
+                    onChange={(v) => updateAction("dst", v)}
                     options={entityRefOptions}
                   />
                   <div className="form-group">
-                    <label className="label">Category</label>
-                    <input
+                    <label htmlFor="category" className="label">Category</label>
+                    <input id="category"
                       type="text"
-                      value={rule.action?.category || ''}
-                      onChange={(e) => updateAction('category', e.target.value || undefined)}
+                      value={rule.action?.category || ""}
+                      onChange={(e) => updateAction("category", e.target.value || undefined)}
                       className="input"
                       placeholder="Optional"
                     />
                   </div>
                   <div className="form-group">
-                    <label className="label">Strength</label>
+                    <label className="label">Strength
                     <NumberInput
                       value={rule.action?.strength}
-                      onChange={(v) => updateAction('strength', v)}
+                      onChange={(v) => updateAction("strength", v)}
                       min={0}
                       max={1}
                       allowEmpty
                     />
+                    </label>
                   </div>
                   <div className="form-group">
                     <label className="checkbox-label">
                       <input
                         type="checkbox"
                         checked={rule.action?.bidirectional || false}
-                        onChange={(e) => updateAction('bidirectional', e.target.checked || undefined)}
+                        onChange={(e) =>
+                          updateAction("bidirectional", e.target.checked || undefined)
+                        }
                         className="checkbox"
                       />
                       Bidirectional
@@ -192,35 +208,36 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
                   </div>
                 </>
               )}
-              {rule.action?.type === 'change_status' && (
+              {rule.action?.type === "change_status" && (
                 <div className="form-group">
-                  <label className="label">New Status</label>
-                  <input
+                  <label htmlFor="new-status" className="label">New Status</label>
+                  <input id="new-status"
                     type="text"
-                    value={rule.action?.newStatus || ''}
-                    onChange={(e) => updateAction('newStatus', e.target.value)}
+                    value={rule.action?.newStatus || ""}
+                    onChange={(e) => updateAction("newStatus", e.target.value)}
                     className="input"
                   />
                 </div>
               )}
-              {rule.action?.type === 'set_tag' && (
+              {rule.action?.type === "set_tag" && (
                 <>
                   <div className="form-group">
-                    <label className="label">Tag</label>
+                    <label className="label">Tag
                     <TagSelector
                       value={rule.action?.tag ? [rule.action.tag] : []}
-                      onChange={(tags) => updateAction('tag', tags[0] || '')}
+                      onChange={(tags) => updateAction("tag", tags[0] || "")}
                       tagRegistry={tagRegistry}
                       placeholder="Select tag..."
                       singleSelect
                     />
+                    </label>
                   </div>
                   <div className="form-group">
-                    <label className="label">Value (optional)</label>
-                    <input
+                    <label htmlFor="value-optional" className="label">Value (optional)</label>
+                    <input id="value-optional"
                       type="text"
-                      value={rule.action?.value ?? ''}
-                      onChange={(e) => updateAction('value', e.target.value || undefined)}
+                      value={rule.action?.value ?? ""}
+                      onChange={(e) => updateAction("value", e.target.value || undefined)}
                       className="input"
                       placeholder="true"
                     />
@@ -230,31 +247,32 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
             </div>
           </div>
 
-          {rule.action?.type === 'create_relationship' && (
-            <div style={{ marginTop: '16px' }}>
+          {rule.action?.type === "create_relationship" && (
+            <div className="mt-xl">
               <label className="label">
                 <input
                   type="checkbox"
                   checked={rule.betweenMatching || false}
                   onChange={(e) => onChange({ ...rule, betweenMatching: e.target.checked })}
-                  style={{ marginRight: '8px' }}
+                  className="mr-md"
                 />
                 Between Matching (create relationships between all entity pairs that pass condition)
               </label>
             </div>
           )}
 
-          <div style={{ marginTop: '16px' }}>
-            <label className="label">Narration Template</label>
-            <div className="section-desc" style={{ marginBottom: '4px', fontSize: '11px' }}>
-              Syntax: {'{$self.field}'}, {'{$member.field}'}, {'{$member2.field}'}, {'{field|fallback}'}.
+          <div className="mt-xl">
+            <span className="label">Narration Template</span>
+            <div className="section-desc mb-xs text-xs">
+              Syntax: {"{$self.field}"}, {"{$member.field}"}, {"{$member2.field}"},{" "}
+              {"{field|fallback}"}.
             </div>
             <LocalTextArea
-              value={rule.narrationTemplate || ''}
+              value={rule.narrationTemplate || ""}
               onChange={(value) => onChange({ ...rule, narrationTemplate: value || undefined })}
               placeholder="e.g., {$member.name} and {$member2.name} forged an alliance."
               rows={2}
-              style={NARRATION_TEXTAREA_STYLE}
+              className="cet-narration-textarea"
             />
           </div>
         </div>
@@ -262,6 +280,13 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
     </div>
   );
 }
+
+RuleCard.propTypes = {
+  rule: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};
 
 /**
  * @param {Object} props
@@ -271,7 +296,8 @@ function RuleCard({ rule, onChange, onRemove, schema }) {
  */
 export function ConnectionEvolutionTab({ system, onChange, schema }) {
   const config = system.config;
-  const selectionKind = config.selection?.kind && config.selection.kind !== 'any' ? config.selection.kind : undefined;
+  const selectionKind =
+    config.selection?.kind && config.selection.kind !== "any" ? config.selection.kind : undefined;
 
   const relationshipKindOptions = (schema?.relationshipKinds || []).map((rk) => ({
     value: rk.kind,
@@ -290,120 +316,130 @@ export function ConnectionEvolutionTab({ system, onChange, schema }) {
   };
 
   const updateMetric = (field, value) => {
-    updateConfig('metric', { ...config.metric, [field]: value });
+    updateConfig("metric", { ...config.metric, [field]: value });
   };
 
   // Rules
   const rules = config.rules || [];
 
   const addRule = () => {
-    updateConfig('rules', [...rules, {
-      condition: { operator: '>=', threshold: 1 },
-      probability: 0.1,
-      action: { type: 'adjust_prominence', entity: '$self', delta: 0.2 },
-    }]);
+    updateConfig("rules", [
+      ...rules,
+      {
+        condition: { operator: ">=", threshold: 1 },
+        probability: 0.1,
+        action: { type: "adjust_prominence", entity: "$self", delta: 0.2 },
+      },
+    ]);
   };
 
   const updateRule = (index, rule) => {
     const newRules = [...rules];
     newRules[index] = rule;
-    updateConfig('rules', newRules);
+    updateConfig("rules", newRules);
   };
 
   const removeRule = (index) => {
-    updateConfig('rules', rules.filter((_, i) => i !== index));
+    updateConfig(
+      "rules",
+      rules.filter((_, i) => i !== index)
+    );
   };
 
   // Subtype bonuses
   const subtypeBonuses = config.subtypeBonuses || [];
 
   const addSubtypeBonus = () => {
-    updateConfig('subtypeBonuses', [...subtypeBonuses, { subtype: '', bonus: 0 }]);
+    updateConfig("subtypeBonuses", [...subtypeBonuses, { subtype: "", bonus: 0 }]);
   };
 
   const updateSubtypeBonus = (index, bonus) => {
     const newBonuses = [...subtypeBonuses];
     newBonuses[index] = bonus;
-    updateConfig('subtypeBonuses', newBonuses);
+    updateConfig("subtypeBonuses", newBonuses);
   };
 
   const removeSubtypeBonus = (index) => {
-    updateConfig('subtypeBonuses', subtypeBonuses.filter((_, i) => i !== index));
+    updateConfig(
+      "subtypeBonuses",
+      subtypeBonuses.filter((_, i) => i !== index)
+    );
   };
 
   return (
     <div>
       <div className="section">
         <div className="section-title">Metric</div>
-        <div className="section-desc">
-          How entities are measured for rule evaluation.
-        </div>
+        <div className="section-desc">How entities are measured for rule evaluation.</div>
         <div className="form-grid">
           <ReferenceDropdown
             label="Metric Type"
-            value={config.metric?.type || 'connection_count'}
-            onChange={(v) => updateMetric('type', v)}
+            value={config.metric?.type || "connection_count"}
+            onChange={(v) => updateMetric("type", v)}
             options={METRIC_TYPES}
           />
           <ReferenceDropdown
             label="Direction"
-            value={config.metric?.direction || 'both'}
-            onChange={(v) => updateMetric('direction', v)}
+            value={config.metric?.direction || "both"}
+            onChange={(v) => updateMetric("direction", v)}
             options={DIRECTIONS}
           />
-          {(config.metric?.type === 'connection_count' || config.metric?.type === 'relationship_count') && (
+          {(config.metric?.type === "connection_count" ||
+            config.metric?.type === "relationship_count") && (
             <div className="form-group">
-              <label className="label">Filter by Relationship Kinds (optional)</label>
-              <input
+              <label htmlFor="filter-by-relationship-kinds-optional" className="label">Filter by Relationship Kinds (optional)</label>
+              <input id="filter-by-relationship-kinds-optional"
                 type="text"
-                value={(config.metric?.relationshipKinds || []).join(', ')}
+                value={(config.metric?.relationshipKinds || []).join(", ")}
                 onChange={(e) => {
-                  const kinds = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                  updateMetric('relationshipKinds', kinds.length > 0 ? kinds : undefined);
+                  const kinds = e.target.value
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  updateMetric("relationshipKinds", kinds.length > 0 ? kinds : undefined);
                 }}
                 className="input"
                 placeholder="Leave empty for all kinds"
               />
             </div>
           )}
-          {config.metric?.type === 'shared_relationship' && (
+          {config.metric?.type === "shared_relationship" && (
             <>
               <ReferenceDropdown
                 label="Shared Relationship Kind"
                 value={config.metric?.sharedRelationshipKind}
-                onChange={(v) => updateMetric('sharedRelationshipKind', v)}
+                onChange={(v) => updateMetric("sharedRelationshipKind", v)}
                 options={relationshipKindOptions}
               />
               <ReferenceDropdown
                 label="Shared Direction"
-                value={config.metric?.sharedDirection || 'src'}
-                onChange={(v) => updateMetric('sharedDirection', v)}
+                value={config.metric?.sharedDirection || "src"}
+                onChange={(v) => updateMetric("sharedDirection", v)}
                 options={[
-                  { value: 'src', label: 'Source (outgoing)' },
-                  { value: 'dst', label: 'Destination (incoming)' },
+                  { value: "src", label: "Source (outgoing)" },
+                  { value: "dst", label: "Destination (incoming)" },
                 ]}
               />
             </>
           )}
           <div className="form-group">
-            <label className="label">Min Strength</label>
+            <label className="label">Min Strength
             <NumberInput
               value={config.metric?.minStrength}
-              onChange={(v) => updateMetric('minStrength', v)}
+              onChange={(v) => updateMetric("minStrength", v)}
               min={0}
               max={1}
               allowEmpty
               placeholder="0"
             />
+            </label>
           </div>
         </div>
       </div>
 
       <div className="section">
         <div className="section-title">Rules ({rules.length})</div>
-        <div className="section-desc">
-          Conditions and actions based on the metric.
-        </div>
+        <div className="section-desc">Conditions and actions based on the metric.</div>
 
         {rules.map((rule, index) => (
           <RuleCard
@@ -415,23 +451,18 @@ export function ConnectionEvolutionTab({ system, onChange, schema }) {
           />
         ))}
 
-        <button
-          className="btn-add"
-          onClick={addRule}
-        >
+        <button className="btn-add" onClick={addRule}>
           + Add Rule
         </button>
       </div>
 
       <div className="section">
         <div className="section-title">Subtype Bonuses ({subtypeBonuses.length})</div>
-        <div className="section-desc">
-          Bonuses added to metric value based on entity subtype.
-        </div>
+        <div className="section-desc">Bonuses added to metric value based on entity subtype.</div>
 
         {subtypeBonuses.map((bonus, index) => (
           <div key={index} className="item-card">
-            <div style={{ padding: '12px 16px' }}>
+            <div className="py-lg px-xl">
               <div className="form-row-with-delete">
                 <div className="form-row-fields">
                   <ReferenceDropdown
@@ -441,26 +472,35 @@ export function ConnectionEvolutionTab({ system, onChange, schema }) {
                     options={getSubtypeOptions(selectionKind)}
                   />
                   <div className="form-group">
-                    <label className="label">Bonus</label>
+                    <label className="label">Bonus
                     <NumberInput
                       value={bonus.bonus}
                       onChange={(v) => updateSubtypeBonus(index, { ...bonus, bonus: v ?? 0 })}
                     />
+                    </label>
                   </div>
                 </div>
-                <button className="btn-icon btn-icon-danger" onClick={() => removeSubtypeBonus(index)}>×</button>
+                <button
+                  className="btn-icon btn-icon-danger"
+                  onClick={() => removeSubtypeBonus(index)}
+                >
+                  ×
+                </button>
               </div>
             </div>
           </div>
         ))}
 
-        <button
-          className="btn-add"
-          onClick={addSubtypeBonus}
-        >
+        <button className="btn-add" onClick={addSubtypeBonus}>
           + Add Subtype Bonus
         </button>
       </div>
     </div>
   );
 }
+
+ConnectionEvolutionTab.propTypes = {
+  system: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+};

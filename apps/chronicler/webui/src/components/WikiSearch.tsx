@@ -4,10 +4,11 @@
  * Uses fuse.js for fuzzy matching across page titles and content.
  */
 
-import { useMemo, useState, useRef, useEffect } from 'react';
-import Fuse from 'fuse.js';
-import type { WikiPage } from '../types/world.ts';
-import styles from './WikiSearch.module.css';
+import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
+import Fuse from "fuse.js";
+import { useKeyboardNavigation } from "@the-canonry/shared-components";
+import type { WikiPage } from "../types/world.ts";
+import styles from "./WikiSearch.module.css";
 
 interface WikiSearchProps {
   pages: WikiPage[];
@@ -15,7 +16,7 @@ interface WikiSearchProps {
   onQueryChange: (query: string) => void;
   onSelect: (pageId: string) => void;
   /** Direction to expand dropdown - 'down' (default) or 'up' */
-  expandDirection?: 'down' | 'up';
+  expandDirection?: "down" | "up";
 }
 
 export default function WikiSearch({
@@ -23,8 +24,8 @@ export default function WikiSearch({
   query,
   onQueryChange,
   onSelect,
-  expandDirection = 'down',
-}: WikiSearchProps) {
+  expandDirection = "down",
+}: Readonly<WikiSearchProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,11 +34,11 @@ export default function WikiSearch({
   const fuse = useMemo(() => {
     return new Fuse(pages, {
       keys: [
-        { name: 'title', weight: 2 },
-        { name: 'aliases', weight: 1.5 },
-        { name: 'content.summary', weight: 1.2 },
-        { name: 'content.sections.heading', weight: 0.5 },
-        { name: 'content.sections.content', weight: 1 },
+        { name: "title", weight: 2 },
+        { name: "aliases", weight: 1.5 },
+        { name: "content.summary", weight: 1.2 },
+        { name: "content.sections.heading", weight: 0.5 },
+        { name: "content.sections.content", weight: 1 },
       ],
       threshold: 0.3,
       includeScore: true,
@@ -51,32 +52,27 @@ export default function WikiSearch({
     return fuse.search(query).slice(0, 10);
   }, [fuse, query]);
 
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isOpen || results.length === 0) return;
+  // Keyboard navigation via shared hook
+  const handleEnter = useCallback(
+    (id: string) => {
+      onSelect(id);
+      setIsOpen(false);
+      onQueryChange("");
+    },
+    [onSelect, onQueryChange]
+  );
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(i => Math.min(i + 1, results.length - 1));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(i => Math.max(i - 1, 0));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (results[selectedIndex]) {
-          onSelect(results[selectedIndex].item.id);
-          setIsOpen(false);
-          onQueryChange('');
-        }
-        break;
-      case 'Escape':
-        setIsOpen(false);
-        break;
-    }
-  };
+  const handleEscape = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const handleKeyDown = useKeyboardNavigation({
+    results,
+    selectedIndex,
+    setSelectedIndex,
+    onSelect: handleEnter,
+    onEscape: handleEscape,
+  });
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -85,12 +81,13 @@ export default function WikiSearch({
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Reset selection when results change
+  // Reset keyboard selection when result set changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- derived UI selection reset on results refresh
     setSelectedIndex(0);
   }, [results]);
 
@@ -105,12 +102,12 @@ export default function WikiSearch({
           setIsOpen(true);
         }}
         onFocus={() => setIsOpen(true)}
-        onKeyDown={handleKeyDown}
+        onKeyDown={(e) => { if (isOpen) handleKeyDown(e); }}
         className={styles.input}
       />
 
       {isOpen && query.length >= 2 && (
-        <div className={expandDirection === 'up' ? styles.dropdownUp : styles.dropdown}>
+        <div className={expandDirection === "up" ? styles.dropdownUp : styles.dropdown}>
           {results.length > 0 ? (
             results.map((result, index) => (
               <button
@@ -119,7 +116,7 @@ export default function WikiSearch({
                 onClick={() => {
                   onSelect(result.item.id);
                   setIsOpen(false);
-                  onQueryChange('');
+                  onQueryChange("");
                 }}
                 onMouseEnter={() => setSelectedIndex(index)}
               >

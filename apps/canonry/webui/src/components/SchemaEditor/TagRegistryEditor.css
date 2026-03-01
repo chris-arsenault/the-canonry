@@ -1,0 +1,154 @@
+.tre-container {
+  max-width: 1100px;
+}
+
+.tre-stats-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.tre-stat-total {
+  padding: 4px 8px;
+  background: var(--color-bg-dark);
+  border-radius: 4px;
+}
+
+.tre-stat-category {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--tre-stat-bg);
+  color: var(--tre-stat-color);
+}
+
+.tre-badge-dynamic {
+  background-color: var(--tre-badge-bg);
+  color: var(--tre-badge-color);
+}
+
+.tre-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tre-search {
+  max-width: 300px;
+}
+
+.tre-monospace {
+  font-family: monospace;
+}
+
+.tre-basic-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.tre-field-id {
+  flex: 1 1 180px;
+  min-width: 120px;
+}
+
+.tre-label-gap {
+  margin-bottom: 4px;
+}
+
+.tre-axis-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.tre-axis-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.tre-description-wrapper {
+  margin-bottom: 12px;
+}
+
+.tre-textarea {
+  min-height: 50px;
+  resize: vertical;
+  padding: 8px 10px;
+}
+
+.tre-usage-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.tre-usage-inputs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tre-usage-number {
+  width: 60px;
+  padding: 4px 6px;
+  text-align: center;
+}
+
+.tre-merge-label {
+  margin-left: 8px;
+}
+
+.tre-merge-select {
+  width: auto;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.tre-grid-3col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.tre-section-label {
+  margin-bottom: 6px;
+}
+
+.tre-chip-section {
+  margin-bottom: 4px;
+}
+
+.tre-chip-compact {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.tre-chip-remove-sm {
+  font-size: 14px;
+}
+
+.tre-add-select {
+  width: auto;
+  padding: 2px 6px;
+  font-size: 12px;
+  min-width: 80px;
+}
+
+.tre-conflicts-label {
+  margin-bottom: 6px;
+  color: var(--color-danger);
+}
+
+.tre-chip-conflict {
+  padding: 4px 8px;
+  font-size: 12px;
+  background-color: rgba(239, 68, 68, 0.2);
+}

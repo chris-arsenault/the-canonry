@@ -5,16 +5,16 @@
  * See CHRONICLE_DESIGN.md for full architecture documentation.
  */
 
-import type { NarrativeStyle } from '@canonry/world-schema';
-import type { ChronicleStep } from './enrichmentTypes';
-import type { HistorianNote, HistorianTone } from './historianTypes';
+import type { NarrativeStyle } from "@canonry/world-schema";
+import type { ChronicleStep } from "./enrichmentTypes";
+import type { HistorianNote, HistorianTone } from "./historianTypes";
 
 // =============================================================================
 // Chronicle Plan - Output of Step 1
 // =============================================================================
 
-export type ChronicleFormat = 'story' | 'document';
-export type ChronicleSampling = 'normal' | 'low';
+export type ChronicleFormat = "story" | "document";
+export type ChronicleSampling = "normal" | "low";
 export const CHRONICLE_SAMPLING_TOP_P: Record<ChronicleSampling, number> = {
   normal: 1,
   low: 0.95,
@@ -26,7 +26,7 @@ export interface ChronicleEntityRole {
   contribution: string; // How this entity functions in the narrative or document
 }
 
-export type FocusMode = 'single' | 'ensemble';
+export type FocusMode = "single" | "ensemble";
 
 export interface NarrativeFocus {
   mode: FocusMode;
@@ -144,7 +144,7 @@ export interface SectionGoalCheck {
 }
 
 export interface CohesionIssue {
-  severity: 'critical' | 'minor';
+  severity: "critical" | "minor";
   sectionId?: string;
   checkType: string;
   description: string;
@@ -171,15 +171,14 @@ export interface CohesionReport {
 }
 
 export type ChronicleStatus =
-  | 'not_started'
-  | 'generating' // Generation in progress
-  | 'assembly_ready' // Generation complete, awaiting user review
-  | 'editing' // Revision in progress
-  | 'validating' // Validation in progress
-  | 'validation_ready' // Validation complete, issues may exist
-  | 'failed' // Generation failed; requires regeneration
-  | 'complete'; // All steps done, accepted
-
+  | "not_started"
+  | "generating" // Generation in progress
+  | "assembly_ready" // Generation complete, awaiting user review
+  | "editing" // Revision in progress
+  | "validating" // Validation in progress
+  | "validation_ready" // Validation complete, issues may exist
+  | "failed" // Generation failed; requires regeneration
+  | "complete"; // All steps done, accepted
 
 // =============================================================================
 // Chronicle Wizard Types - Role assignments from wizard flow
@@ -324,7 +323,7 @@ export interface WorldDynamic {
 // Chronicle Focus - Defines what the chronicle is about (chronicle-first)
 // =============================================================================
 
-export type ChronicleFocusType = 'single' | 'ensemble';
+export type ChronicleFocusType = "single" | "ensemble";
 
 export interface ChronicleFocus {
   /** What type of chronicle is this? */
@@ -364,7 +363,7 @@ export interface ChronicleFocus {
  *   Always included verbatim, never faceted.
  *   Example: "All sapient beings are penguins or orcas. No humans exist."
  */
-export type FactType = 'world_truth' | 'generation_constraint';
+export type FactType = "world_truth" | "generation_constraint";
 
 /**
  * Canon fact for perspective synthesis.
@@ -448,7 +447,7 @@ export interface PerspectiveSynthesisRecord {
   inputFacts?: Array<{
     id: string;
     text: string;
-    type?: 'world_truth' | 'generation_constraint';
+    type?: "world_truth" | "generation_constraint";
     required?: boolean;
   }>;
   /** World dynamics injected into the synthesis prompt (post-filter/override). */
@@ -596,10 +595,10 @@ export interface AssemblyResult {
 // =============================================================================
 
 /** Display size hint for chronicle images */
-export type ChronicleImageSize = 'small' | 'medium' | 'large' | 'full-width';
+export type ChronicleImageSize = "small" | "medium" | "large" | "full-width";
 
 /** Base properties shared by all image reference types */
-interface BaseChronicleImageRef {
+export interface BaseChronicleImageRef {
   /** Unique ID for this image reference */
   refId: string;
   /** Text phrase to anchor image near (for paragraph-level positioning) */
@@ -609,27 +608,27 @@ interface BaseChronicleImageRef {
   /** Display size hint */
   size: ChronicleImageSize;
   /** Float justification for small/medium images */
-  justification?: 'left' | 'right';
+  justification?: "left" | "right";
   /** Optional caption for the image */
   caption?: string;
 }
 
 /** Reference to an existing entity image */
 export interface EntityImageRef extends BaseChronicleImageRef {
-  type: 'entity_ref';
+  type: "entity_ref";
   /** Entity ID whose image to use */
   entityId: string;
 }
 
 /** Request for a new prompt-generated image */
 export interface PromptRequestRef extends BaseChronicleImageRef {
-  type: 'prompt_request';
+  type: "prompt_request";
   /** LLM-generated scene description for image generation */
   sceneDescription: string;
   /** Entity IDs involved in this scene (for visual identity compositing) */
   involvedEntityIds?: string[];
   /** Generation state */
-  status: 'pending' | 'generating' | 'complete' | 'failed';
+  status: "pending" | "generating" | "complete" | "failed";
   /** Generated imageId (after generation) */
   generatedImageId?: string;
   /** Error message if generation failed */
@@ -657,7 +656,7 @@ export interface ImageRefCompatibility {
   /** Similarity score 0-1 (based on shared context around anchor) */
   contextSimilarity: number;
   /** Recommendation based on analysis */
-  recommendation: 'reuse' | 'regenerate' | 'manual_review';
+  recommendation: "reuse" | "regenerate" | "manual_review";
   /** Reason for the recommendation */
   reason: string;
 }
@@ -685,7 +684,7 @@ export interface ImageRefCompatibilityAnalysis {
  */
 export interface ImageRefSelection {
   refId: string;
-  action: 'reuse' | 'regenerate' | 'skip';
+  action: "reuse" | "regenerate" | "skip";
 }
 
 // =============================================================================
@@ -699,7 +698,7 @@ export interface ChronicleCoverImage {
   /** Entity IDs involved in the cover scene (for visual identity compositing) */
   involvedEntityIds: string[];
   /** Generation state */
-  status: 'pending' | 'generating' | 'complete' | 'failed';
+  status: "pending" | "generating" | "complete" | "failed";
   /** Generated imageId (after image generation) */
   generatedImageId?: string;
   /** Error message if generation failed */
@@ -717,7 +716,7 @@ export interface ChronicleCoverImage {
  * - arc: 20-50 ticks (a major storyline or campaign)
  * - saga: 50+ ticks or multi-era (generational epic)
  */
-export type TemporalScope = 'moment' | 'episode' | 'arc' | 'saga';
+export type TemporalScope = "moment" | "episode" | "arc" | "saga";
 
 /**
  * Era info with tick range for temporal calculations.
@@ -775,14 +774,14 @@ export interface QuickCheckSuspect {
   /** LLM's reasoning for why this is suspicious */
   reasoning: string;
   /** Confidence: high = almost certainly unanchored, medium = ambiguous, low = might be fine */
-  confidence: 'high' | 'medium' | 'low';
+  confidence: "high" | "medium" | "low";
 }
 
 export interface QuickCheckReport {
   /** List of suspicious references */
   suspects: QuickCheckSuspect[];
   /** Overall assessment: clean, minor, or flagged */
-  assessment: 'clean' | 'minor' | 'flagged';
+  assessment: "clean" | "minor" | "flagged";
   /** Brief summary sentence */
   summary: string;
 }
@@ -791,7 +790,7 @@ export interface QuickCheckReport {
 // Fact Coverage Analysis
 // ============================================================================
 
-export type FactCoverageRating = 'missing' | 'mentioned' | 'prevalent' | 'integral';
+export type FactCoverageRating = "missing" | "mentioned" | "prevalent" | "integral";
 
 export interface FactCoverageEntry {
   factId: string;
@@ -832,7 +831,7 @@ export interface TertiaryCastEntry {
 
 export interface EntityBackportEntry {
   entityId: string;
-  status: 'backported' | 'not_needed';
+  status: "backported" | "not_needed";
   updatedAt: number;
 }
 
@@ -975,6 +974,8 @@ export interface ChronicleRecord {
     entityDirectives?: Array<{ entityId: string; entityName: string; directive: string }>;
     /** Optional narrative direction from wizard */
     narrativeDirection?: string;
+    /** World dynamics resolved for this chronicle (post-filter/override). */
+    worldDynamicsResolved?: string[];
   };
 
   // Perspective synthesis (required for all new chronicles)
@@ -1083,7 +1084,7 @@ export interface ChronicleRecord {
 /**
  * Which pipeline step produced this version.
  */
-export type VersionStep = 'generate' | 'regenerate' | 'creative' | 'combine' | 'copy_edit';
+export type VersionStep = "generate" | "regenerate" | "creative" | "combine" | "copy_edit";
 
 /**
  * Stored snapshot of a chronicle generation version.

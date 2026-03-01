@@ -10,17 +10,22 @@
  * - Work in progress survives page navigations (within same origin)
  */
 
-import type { EnrichmentType, WorkerTask, WorkerResult, EnrichmentResult } from '../lib/enrichmentTypes';
+import type {
+  EnrichmentType,
+  WorkerTask,
+  WorkerResult,
+  EnrichmentResult,
+} from "../lib/enrichmentTypes";
 import {
   type WorkerConfig,
   type WorkerInbound,
   type WorkerOutbound,
   createClients,
   executeTask as executeEnrichmentTask,
-} from './enrichmentCore';
-import type { LLMClient } from '../lib/llmClient';
-import type { ImageClient } from '../lib/imageClient';
-import * as entityRepo from '../lib/db/entityRepository';
+} from "./enrichmentCore";
+import type { LLMClient } from "../lib/llmClient";
+import type { ImageClient } from "../lib/imageClient";
+import * as entityRepo from "../lib/db/entityRepository";
 
 // SharedWorker context
 const ctx = self as unknown as SharedWorkerGlobalScope;
@@ -36,13 +41,14 @@ let imageClient: ImageClient | null = null;
 // Track active tasks and their originating ports
 const activeTasks = new Map<string, { port: MessagePort; aborted: boolean }>();
 
-// Track all connected ports
-const connectedPorts = new Set<MessagePort>();
+// Track all connected ports (maintained for future broadcast and dead-port cleanup)
+const connectedPorts = new Set<MessagePort>(); // eslint-disable-line sonarjs/no-unused-collection
 
 function safePostMessage(port: MessagePort, message: WorkerOutbound): void {
   try {
     port.postMessage(message);
   } catch (err) {
+    console.warn('[shared-worker] Failed to post message, removing port:', err);
     connectedPorts.delete(port);
   }
 }
@@ -51,23 +57,28 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
   if (!result || !task.entityId) return;
 
   try {
-    if (task.type === 'description' && result.description) {
-      await entityRepo.applyDescriptionResult(task.entityId, {
-        text: {
-          aliases: result.aliases || [],
-          visualThesis: result.visualThesis,
-          visualTraits: result.visualTraits || [],
-          generatedAt: result.generatedAt,
-          model: result.model,
-          estimatedCost: result.estimatedCost,
-          actualCost: result.actualCost,
-          inputTokens: result.inputTokens,
-          outputTokens: result.outputTokens,
-          debug: result.debug,
-          chainDebug: result.chainDebug,
+    if (task.type === "description" && result.description) {
+      await entityRepo.applyDescriptionResult(
+        task.entityId,
+        {
+          text: {
+            aliases: result.aliases || [],
+            visualThesis: result.visualThesis,
+            visualTraits: result.visualTraits || [],
+            generatedAt: result.generatedAt,
+            model: result.model,
+            estimatedCost: result.estimatedCost,
+            actualCost: result.actualCost,
+            inputTokens: result.inputTokens,
+            outputTokens: result.outputTokens,
+            debug: result.debug,
+            chainDebug: result.chainDebug,
+          },
         },
-      }, result.summary, result.description);
-    } else if (task.type === 'image' && result.imageId && task.imageType !== 'chronicle') {
+        result.summary,
+        result.description
+      );
+    } else if (task.type === "image" && result.imageId && task.imageType !== "chronicle") {
       await entityRepo.applyImageResult(task.entityId, {
         imageId: result.imageId,
         generatedAt: result.generatedAt,
@@ -81,7 +92,7 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
         height: result.height,
         aspect: result.aspect,
       });
-    } else if (task.type === 'entityChronicle' && result.chronicleId) {
+    } else if (task.type === "entityChronicle" && result.chronicleId) {
       await entityRepo.applyEntityChronicleResult(task.entityId, {
         chronicleId: result.chronicleId,
         generatedAt: result.generatedAt,
@@ -93,7 +104,7 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
       });
     }
   } catch (err) {
-    console.warn('[SharedWorker] Failed to persist to Dexie:', err);
+    console.warn("[SharedWorker] Failed to persist to Dexie:", err);
   }
 }
 
@@ -105,25 +116,23 @@ async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
   const taskState = activeTasks.get(task.id);
   const checkAborted = () => taskState?.aborted ?? false;
   const taskConfig = task.llmCallSettings
-    ? { ...config!, llmCallSettings: task.llmCallSettings }
-    : config!;
+    ? { ...config, llmCallSettings: task.llmCallSettings }
+    : config;
 
-  safePostMessage(port, { type: 'started', taskId: task.id });
+  safePostMessage(port, { type: "started", taskId: task.id });
 
   const onThinkingDelta = (delta: string) => {
-    safePostMessage(port, { type: 'thinking_delta', taskId: task.id, delta });
+    safePostMessage(port, { type: "thinking_delta", taskId: task.id, delta });
   };
   const onTextDelta = (delta: string) => {
-    safePostMessage(port, { type: 'text_delta', taskId: task.id, delta });
+    safePostMessage(port, { type: "text_delta", taskId: task.id, delta });
   };
 
   try {
-    let result;
-
-    result = await executeEnrichmentTask(task, {
+    const result = await executeEnrichmentTask(task, {
       config: taskConfig,
-      llmClient: llmClient!,
-      imageClient: imageClient!,
+      llmClient: llmClient,
+      imageClient: imageClient,
       isAborted: checkAborted,
       onThinkingDelta,
       onTextDelta,
@@ -131,9 +140,9 @@ async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
 
     if (!result.success) {
       safePostMessage(port, {
-        type: 'error',
+        type: "error",
         taskId: task.id,
-        error: result.error || 'Unknown error',
+        error: result.error || "Unknown error",
         debug: result.debug,
       });
       return;
@@ -142,7 +151,7 @@ async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
     await persistResult(task, result.result);
 
     safePostMessage(port, {
-      type: 'complete',
+      type: "complete",
       result: {
         id: task.id,
         entityId: task.entityId,
@@ -154,9 +163,9 @@ async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
     });
   } catch (error) {
     safePostMessage(port, {
-      type: 'error',
+      type: "error",
       taskId: task.id,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   } finally {
     activeTasks.delete(task.id);
@@ -171,44 +180,44 @@ ctx.onconnect = (event: MessageEvent) => {
   const port = event.ports[0];
   connectedPorts.add(port);
 
-  port.onmessage = async (e: MessageEvent<WorkerInbound>) => {
+  port.onmessage = (e: MessageEvent<WorkerInbound>) => {
     const message = e.data;
 
     switch (message.type) {
-      case 'init': {
+      case "init": {
         config = message.config;
-        console.log('[SharedWorker] Init - LLM call settings:', config.llmCallSettings);
+        console.log("[SharedWorker] Init - LLM call settings:", config.llmCallSettings);
         const clients = createClients(config);
         llmClient = clients.llmClient;
         imageClient = clients.imageClient;
-        safePostMessage(port, { type: 'ready' });
+        safePostMessage(port, { type: "ready" });
         break;
       }
 
-      case 'execute': {
+      case "execute": {
         if (!config) {
           safePostMessage(port, {
-            type: 'error',
+            type: "error",
             taskId: message.task.id,
-            error: 'Worker not initialized - call init first',
+            error: "Worker not initialized - call init first",
           });
           break;
         }
 
         activeTasks.set(message.task.id, { port, aborted: false });
-        executeTask(message.task, port);
+        void executeTask(message.task, port);
         break;
       }
 
-      case 'abort': {
+      case "abort": {
         if (message.taskId) {
           const taskState = activeTasks.get(message.taskId);
           if (taskState) {
             taskState.aborted = true;
             safePostMessage(port, {
-              type: 'error',
+              type: "error",
               taskId: message.taskId,
-              error: 'Task aborted by user',
+              error: "Task aborted by user",
             });
           }
         }

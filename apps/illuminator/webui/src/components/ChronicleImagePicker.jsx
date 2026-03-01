@@ -8,15 +8,18 @@
  * Uses pagination to avoid loading entire library.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { searchChronicleImages, loadImage } from '../lib/db/imageRepository';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
+import { searchChronicleImages, loadImage } from "../lib/db/imageRepository";
+import { useAsyncAction } from "../hooks/useAsyncAction";
+import "./ChronicleImagePicker.css";
 
 const PAGE_SIZE = 12;
 
 /**
  * Lazy-loading thumbnail that only loads the blob when visible.
  */
-function LazyThumbnail({ imageId, alt, style }) {
+function LazyThumbnail({ imageId, alt, className }) {
   const ref = useRef(null);
   const [url, setUrl] = useState(null);
   const urlRef = useRef(null);
@@ -36,7 +39,7 @@ function LazyThumbnail({ imageId, alt, style }) {
           });
         }
       },
-      { threshold: 0.1 },
+      { threshold: 0.1 }
     );
 
     observer.observe(ref.current);
@@ -50,51 +53,31 @@ function LazyThumbnail({ imageId, alt, style }) {
   }, [imageId]);
 
   return (
-    <div ref={ref} style={style}>
+    <div ref={ref} className={className}>
       {url ? (
-        <img
-          src={url}
-          alt={alt}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-          }}
-        />
+        <img src={url} alt={alt} className="ilu-thumb-cover" />
       ) : (
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '11px',
-          }}
-        >
-          Loading...
-        </div>
+        <div className="ilu-thumb-placeholder">Loading...</div>
       )}
     </div>
   );
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return '';
-  return new Date(timestamp).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+  if (!timestamp) return "";
+  return new Date(timestamp).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
+
+LazyThumbnail.propTypes = {
+  imageId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  alt: PropTypes.string,
+  className: PropTypes.string,
+};
 
 export default function ChronicleImagePicker({
   isOpen,
@@ -106,7 +89,7 @@ export default function ChronicleImagePicker({
   currentImageId,
 }) {
   const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { busy: loading, run } = useAsyncAction();
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
   const [selectedImageId, setSelectedImageId] = useState(null);
@@ -133,47 +116,37 @@ export default function ChronicleImagePicker({
   useEffect(() => {
     if (!isOpen || !projectId) return;
 
-    async function loadData() {
-      setLoading(true);
-      try {
-        const filters = {
-          projectId,
-          limit: PAGE_SIZE,
-          offset: 0,
-        };
+    void run("load", async () => {
+      const filters = {
+        projectId,
+        limit: PAGE_SIZE,
+        offset: 0,
+      };
 
-        // Apply filters based on checkbox state
-        // If filterByRef is ON, filter by imageRefId (most specific)
-        // If filterByRef is OFF but filterByChronicle is ON, filter by chronicleId
-        // If both OFF, show all chronicle images for project
-        if (filterByRef && imageRefId) {
-          filters.imageRefId = imageRefId;
-          // When filtering by ref, also filter by chronicle for efficiency
-          if (chronicleId) filters.chronicleId = chronicleId;
-        } else if (filterByChronicle && chronicleId) {
-          filters.chronicleId = chronicleId;
-        }
-
-        const result = await searchChronicleImages(filters);
-        setImages(result.items);
-        setHasMore(result.hasMore);
-        setTotal(result.total);
-      } catch (err) {
-        console.error('Failed to load chronicle images:', err);
-      } finally {
-        setLoading(false);
+      // Apply filters based on checkbox state
+      // If filterByRef is ON, filter by imageRefId (most specific)
+      // If filterByRef is OFF but filterByChronicle is ON, filter by chronicleId
+      // If both OFF, show all chronicle images for project
+      if (filterByRef && imageRefId) {
+        filters.imageRefId = imageRefId;
+        // When filtering by ref, also filter by chronicle for efficiency
+        if (chronicleId) filters.chronicleId = chronicleId;
+      } else if (filterByChronicle && chronicleId) {
+        filters.chronicleId = chronicleId;
       }
-    }
 
-    loadData();
-  }, [isOpen, projectId, chronicleId, imageRefId, filterByRef, filterByChronicle]);
+      const result = await searchChronicleImages(filters);
+      setImages(result.items);
+      setHasMore(result.hasMore);
+      setTotal(result.total);
+    });
+  }, [isOpen, projectId, chronicleId, imageRefId, filterByRef, filterByChronicle, run]);
 
   // Load more handler
   const handleLoadMore = useCallback(async () => {
     if (loading || !hasMore) return;
 
-    setLoading(true);
-    try {
+    await run("load-more", async () => {
       const filters = {
         projectId,
         limit: PAGE_SIZE,
@@ -190,12 +163,18 @@ export default function ChronicleImagePicker({
       const result = await searchChronicleImages(filters);
       setImages((prev) => [...prev, ...result.items]);
       setHasMore(result.hasMore);
-    } catch (err) {
-      console.error('Failed to load more images:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, hasMore, projectId, chronicleId, imageRefId, filterByRef, filterByChronicle, images.length]);
+    });
+  }, [
+    loading,
+    hasMore,
+    projectId,
+    chronicleId,
+    imageRefId,
+    filterByRef,
+    filterByChronicle,
+    images.length,
+    run,
+  ]);
 
   // Handle selection
   const handleSelect = useCallback(() => {
@@ -228,15 +207,15 @@ export default function ChronicleImagePicker({
     if (!isOpen) return;
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') handleClose();
+      if (e.key === "Escape") handleClose();
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
     };
   }, [isOpen, handleClose]);
 
@@ -247,8 +226,11 @@ export default function ChronicleImagePicker({
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
     >
-      <div className="illuminator-modal" style={{ maxWidth: '800px', maxHeight: '85vh' }}>
+      <div className="illuminator-modal cip-modal">
         <div className="illuminator-modal-header">
           <h3>Select Existing Image</h3>
           <button onClick={handleClose} className="illuminator-modal-close">
@@ -256,27 +238,10 @@ export default function ChronicleImagePicker({
           </button>
         </div>
 
-        <div className="illuminator-modal-body" style={{ padding: '0' }}>
+        <div className="illuminator-modal-body cip-body">
           {/* Filters */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '20px',
-              padding: '12px 16px',
-              borderBottom: '1px solid var(--border-color)',
-              background: 'var(--bg-tertiary)',
-            }}
-          >
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-            >
+          <div className="cip-filters">
+            <label className="cip-filter-label">
               <input
                 type="checkbox"
                 checked={filterByRef}
@@ -285,15 +250,7 @@ export default function ChronicleImagePicker({
               This ref only
             </label>
 
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-            >
+            <label className="cip-filter-label">
               <input
                 type="checkbox"
                 checked={filterByChronicle}
@@ -302,30 +259,24 @@ export default function ChronicleImagePicker({
               This chronicle only
             </label>
 
-            <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-muted)' }}>
-              {total} image{total !== 1 ? 's' : ''}
+            <span className="cip-filter-count">
+              {total} image{total !== 1 ? "s" : ""}
             </span>
           </div>
 
           {/* Image grid */}
-          <div style={{ padding: '16px', maxHeight: '450px', overflowY: 'auto' }}>
-            {loading && images.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                Loading images...
-              </div>
-            ) : images.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div className="cip-grid-area">
+            {loading && images.length === 0 && (
+              <div className="ilu-empty cip-empty-state">Loading images...</div>
+            )}
+            {!loading && images.length === 0 && (
+              <div className="ilu-empty cip-empty-state">
                 No images found. Try unchecking filters to see more.
               </div>
-            ) : (
+            )}
+            {images.length > 0 && (
               <>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                    gap: '12px',
-                  }}
-                >
+                <div className="cip-grid">
                   {images.map((img) => {
                     const isSelected = selectedImageId === img.imageId;
                     const isCurrent = currentImageId === img.imageId;
@@ -334,66 +285,26 @@ export default function ChronicleImagePicker({
                       <div
                         key={img.imageId}
                         onClick={() => setSelectedImageId(img.imageId)}
-                        style={{
-                          position: 'relative',
-                          aspectRatio: '1',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          cursor: 'pointer',
-                          border: isSelected
-                            ? '3px solid #3b82f6'
-                            : isCurrent
-                              ? '3px solid #10b981'
-                              : '1px solid var(--border-color)',
-                          background: 'var(--bg-tertiary)',
-                        }}
+                        className={(() => {
+                          if (isSelected) return "cip-image-card cip-image-card-selected";
+                          if (isCurrent) return "cip-image-card cip-image-card-current";
+                          return "cip-image-card";
+                        })()}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                       >
                         <LazyThumbnail
                           imageId={img.imageId}
-                          alt={img.sceneDescription || 'Chronicle image'}
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                          }}
+                          alt={img.sceneDescription || "Chronicle image"}
+                          className="cip-thumb-container"
                         />
 
                         {/* Current indicator */}
-                        {isCurrent && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '4px',
-                              left: '4px',
-                              padding: '2px 6px',
-                              background: '#10b981',
-                              color: 'white',
-                              fontSize: '9px',
-                              fontWeight: 600,
-                              borderRadius: '4px',
-                            }}
-                          >
-                            Current
-                          </div>
-                        )}
+                        {isCurrent && <div className="cip-current-badge">Current</div>}
 
                         {/* Date overlay */}
-                        <div
-                          style={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            padding: '4px 6px',
-                            background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                            fontSize: '10px',
-                            color: 'white',
-                          }}
-                        >
-                          {formatDate(img.generatedAt)}
-                        </div>
+                        <div className="cip-date-overlay">{formatDate(img.generatedAt)}</div>
                       </div>
                     );
                   })}
@@ -401,22 +312,13 @@ export default function ChronicleImagePicker({
 
                 {/* Load more button */}
                 {hasMore && (
-                  <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                  <div className="cip-load-more-wrapper">
                     <button
-                      onClick={handleLoadMore}
+                      onClick={() => void handleLoadMore()}
                       disabled={loading}
-                      style={{
-                        padding: '8px 20px',
-                        background: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '6px',
-                        color: 'var(--text-secondary)',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        opacity: loading ? 0.6 : 1,
-                        fontSize: '12px',
-                      }}
+                      className="cip-load-more-btn"
                     >
-                      {loading ? 'Loading...' : `Load More (${total - images.length} remaining)`}
+                      {loading ? "Loading..." : `Load More (${total - images.length} remaining)`}
                     </button>
                   </div>
                 )}
@@ -426,43 +328,14 @@ export default function ChronicleImagePicker({
         </div>
 
         {/* Footer */}
-        <div
-          className="illuminator-modal-footer"
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '8px',
-            padding: '12px 16px',
-            borderTop: '1px solid var(--border-color)',
-          }}
-        >
-          <button
-            onClick={handleClose}
-            style={{
-              padding: '8px 16px',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
-          >
+        <div className="illuminator-modal-footer cip-footer">
+          <button onClick={handleClose} className="cip-cancel-btn">
             Cancel
           </button>
           <button
             onClick={handleSelect}
             disabled={!selectedImageId}
-            style={{
-              padding: '8px 16px',
-              background: selectedImageId ? '#3b82f6' : 'var(--bg-tertiary)',
-              border: 'none',
-              borderRadius: '6px',
-              color: selectedImageId ? 'white' : 'var(--text-muted)',
-              cursor: selectedImageId ? 'pointer' : 'not-allowed',
-              fontSize: '12px',
-              fontWeight: 500,
-            }}
+            className={`cip-select-btn ${selectedImageId ? "cip-select-btn-active" : "cip-select-btn-disabled"}`}
           >
             Select Image
           </button>
@@ -471,3 +344,13 @@ export default function ChronicleImagePicker({
     </div>
   );
 }
+
+ChronicleImagePicker.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  onSelect: PropTypes.func,
+  projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  chronicleId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  imageRefId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  currentImageId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};
