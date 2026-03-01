@@ -1,4 +1,13 @@
 /**
+ * Named aliases for optionality intent — semantic only, not enforced by the compiler.
+ *
+ * NOTE: Optional<T> and Legacy<T> both expand to T | undefined and are fully
+ * interchangeable at the type level. TypeScript cannot distinguish them.
+ * The distinction is for human reviewers: grep for Legacy<T> to find auditable
+ * technical debt, grep for Optional<T> to find intentional design decisions.
+ */
+
+/**
  * Intentional design choice — this property is genuinely optional by design.
  * Use when absence has distinct meaning from presence-with-undefined.
  */
