@@ -166,6 +166,9 @@ export default tseslint.config(
       "local/no-non-vitest-testing": "warn",
       "local/no-js-file-extension": "warn",
       "local/no-raw-undefined-union": "warn",
+      "@typescript-eslint/no-unnecessary-condition": ["warn", {
+        allowConstantLoopConditions: true,
+      }],
     },
   },
 
