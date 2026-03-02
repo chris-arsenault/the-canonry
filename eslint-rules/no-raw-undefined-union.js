@@ -27,9 +27,9 @@ export default {
     },
     messages: {
       noRawUndefined:
-        "Raw '| undefined' in property signature. Use Optional<T>, Legacy<T>, or another named alias. See docs/patterns/optionality-aliases.md",
+        "Raw '| undefined' in property signature. In nearly all cases props are not optional — either the caller is wrong and this should be required, or there should be a discriminated union. See docs/patterns/optionality-aliases.md",
       noQuestionToken:
-        "Optional property '{{name}}?:' requires justification. In nearly all cases props are not optional — either the caller is wrong and this should be required, or use 'name: Optional<T>' to make the intent explicit. See docs/patterns/optionality-aliases.md",
+        "Optional property '{{name}}?:' — in nearly all cases props are not optional. Either the caller is wrong and this should be required, or there should be a discriminated union. See docs/patterns/optionality-aliases.md",
     },
     schema: [],
   },
