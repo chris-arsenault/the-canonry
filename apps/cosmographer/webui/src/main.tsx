@@ -8,7 +8,7 @@
  */
 
 // Import the remote component so Vite includes it in the build
-import "./CosmographerRemote.jsx";
+import "./CosmographerRemote.tsx";
 
 // Show a message if someone tries to run this standalone
 const root = document.getElementById("root");

@@ -12,6 +12,7 @@
  */
 
 import React from "react";
+import type { Optional } from "@the-canonry/shared-components";
 
 // ============================================================================
 // Core Utilities
@@ -155,13 +156,13 @@ export interface LinkableEntity {
 
 export interface LinkifyOptions {
   /** CSS styles for the link element */
-  linkStyle?: React.CSSProperties;
+  linkStyle: Optional<React.CSSProperties>;
   /** Whether to link only the first occurrence of each name (default: true) */
-  firstOccurrenceOnly?: boolean;
+  firstOccurrenceOnly: Optional<boolean>;
   /** Callback when mouse enters a link (for hover previews) */
-  onHoverEnter?: (entityId: string, e: React.MouseEvent) => void;
+  onHoverEnter: Optional<(entityId: string, e: React.MouseEvent) => void>;
   /** Callback when mouse leaves a link */
-  onHoverLeave?: () => void;
+  onHoverLeave: Optional<() => void>;
 }
 
 const defaultLinkStyle: React.CSSProperties = {
@@ -235,7 +236,7 @@ function replaceEntityInPart(
  * @param onNavigate - Callback when an entity link is clicked
  * @param options - Optional configuration
  */
-// eslint-disable-next-line sonarjs/function-return-type -- returns React.ReactNode by design
+// eslint-disable-next-line sonarjs/function-return-type, complexity -- returns React.ReactNode by design; branches handle entity match deduplication, length filtering, and first-occurrence tracking across fragmented text nodes
 export function linkifyText(
   text: string,
   entities: LinkableEntity[],

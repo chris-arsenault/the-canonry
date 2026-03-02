@@ -10,18 +10,19 @@
  */
 
 import React, { useState, useCallback } from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface NumberInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'step'> {
-  readonly value?: number | null;
+  readonly value: Optional<number | null>;
   readonly onChange: (value: number | undefined) => void;
-  readonly className?: string;
-  readonly min?: number;
-  readonly max?: number;
-  readonly step?: number | string;
-  readonly placeholder?: string;
-  readonly allowEmpty?: boolean;
-  readonly integer?: boolean;
-  readonly disabled?: boolean;
+  readonly className: Optional<string>;
+  readonly min: Optional<number>;
+  readonly max: Optional<number>;
+  readonly step: Optional<number | string>;
+  readonly placeholder: Optional<string>;
+  readonly allowEmpty: Optional<boolean>;
+  readonly integer: Optional<boolean>;
+  readonly disabled: Optional<boolean>;
 }
 
 function formatValue(val: number | null | undefined | string): string {
@@ -107,22 +108,14 @@ export function NumberInput({
 
   const handleBlur = useCallback(() => {
     setIsFocused(false);
-
-    // On blur, ensure the display value matches the actual value
     const parsed = parseValue(localValue);
     if (parsed !== null) {
-      // Apply constraints and update
       let constrained = parsed;
       if (min !== undefined && constrained < min) constrained = min;
       if (max !== undefined && constrained > max) constrained = max;
-      setLocalValue(formatValue(constrained));
-      onChange(constrained);
-    } else if (allowEmpty && localValue === '') {
-      onChange(undefined);
-    } else {
-      // Revert to the parent's value if local is invalid
-      setLocalValue(externalDisplayValue);
-    }
+      setLocalValue(formatValue(constrained)); onChange(constrained);
+    } else if (allowEmpty && localValue === '') { onChange(undefined); }
+    else { setLocalValue(externalDisplayValue); }
   }, [allowEmpty, externalDisplayValue, localValue, max, min, onChange, parseValue]);
 
   return (

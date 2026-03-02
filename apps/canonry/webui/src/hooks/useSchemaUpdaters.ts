@@ -7,6 +7,7 @@
  */
 
 import { useCallback } from "react";
+import type { Optional } from "@the-canonry/shared-components";
 import {
   FRAMEWORK_ENTITY_KIND_VALUES,
   FRAMEWORK_RELATIONSHIP_KIND_VALUES,
@@ -39,7 +40,7 @@ function deleteNestedProperty(item: Record<string, unknown>, pathSegments: strin
     delete item[propName];
     return true;
   }
-  let obj = item as Record<string, unknown>;
+  let obj = item;
   for (let i = 0; i < pathSegments.length; i++) {
     const seg = pathSegments[i];
     if (obj[seg] === undefined) return false;
@@ -69,6 +70,7 @@ function mergeFrameworkOverrides(
   ];
 }
 
+// eslint-disable-next-line max-lines-per-function -- coordination hook returning 16 useCallback wrappers that delegate to save(); structurally uniform thin callbacks, not complex logic
 export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersParams) {
   const p = currentProject as Record<string, unknown> | null;
 
@@ -82,7 +84,7 @@ export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersPar
         frameworkKeys,
         "kind",
       );
-      save({ entityKinds: merged });
+      void save({ entityKinds: merged });
     },
     [p, save],
   );
@@ -97,7 +99,7 @@ export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersPar
         frameworkKeys,
         "kind",
       );
-      save({ relationshipKinds: merged });
+      void save({ relationshipKinds: merged });
     },
     [p, save],
   );
@@ -112,7 +114,7 @@ export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersPar
         frameworkKeys,
         "id",
       );
-      save({ cultures: merged });
+      void save({ cultures: merged });
     },
     [p, save],
   );
@@ -127,30 +129,30 @@ export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersPar
         frameworkKeys,
         "tag",
       );
-      save({ tagRegistry: merged });
+      void save({ tagRegistry: merged });
     },
     [p, save],
   );
 
   const updateSeedEntities = useCallback(
-    (seedEntities: unknown) => save({ seedEntities }),
+    (seedEntities: unknown) => { void save({ seedEntities }); },
     [save],
   );
   const updateSeedRelationships = useCallback(
-    (seedRelationships: unknown) => save({ seedRelationships }),
+    (seedRelationships: unknown) => { void save({ seedRelationships }); },
     [save],
   );
-  const updateEras = useCallback((eras: unknown) => save({ eras }), [save]);
-  const updatePressures = useCallback((pressures: unknown) => save({ pressures }), [save]);
-  const updateGenerators = useCallback((generators: unknown) => save({ generators }), [save]);
-  const updateSystems = useCallback((systems: unknown) => save({ systems }), [save]);
-  const updateActions = useCallback((actions: unknown) => save({ actions }), [save]);
+  const updateEras = useCallback((eras: unknown) => { void save({ eras }); }, [save]);
+  const updatePressures = useCallback((pressures: unknown) => { void save({ pressures }); }, [save]);
+  const updateGenerators = useCallback((generators: unknown) => { void save({ generators }); }, [save]);
+  const updateSystems = useCallback((systems: unknown) => { void save({ systems }); }, [save]);
+  const updateActions = useCallback((actions: unknown) => { void save({ actions }); }, [save]);
   const updateAxisDefinitions = useCallback(
-    (axisDefinitions: unknown) => save({ axisDefinitions }),
+    (axisDefinitions: unknown) => { void save({ axisDefinitions }); },
     [save],
   );
   const updateDistributionTargets = useCallback(
-    (distributionTargets: unknown) => save({ distributionTargets }),
+    (distributionTargets: unknown) => { void save({ distributionTargets }); },
     [save],
   );
 
@@ -159,7 +161,7 @@ export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersPar
       if (!p) return;
       const existingRegistry = (p.tagRegistry as Array<{ tag: string }>) || [];
       if (existingRegistry.some((t) => t.tag === (newTag as { tag: string }).tag)) return;
-      save({ tagRegistry: [...existingRegistry, newTag] });
+      void save({ tagRegistry: [...existingRegistry, newTag] });
     },
     [p, save],
   );
@@ -167,10 +169,10 @@ export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersPar
   const updateCultureNaming = useCallback(
     (cultureId: string, namingData: unknown) => {
       if (!p) return;
-      const cultures = p.cultures as Array<{ id: string; name?: string; naming?: unknown }>;
+      const cultures = p.cultures as Array<{ id: string; name: Optional<string>; naming: Optional<unknown> }>;
       const existing = cultures.find((c) => c.id === cultureId);
       if (existing) {
-        save({
+        void save({
           cultures: cultures.map((c) =>
             c.id === cultureId ? { ...c, naming: namingData } : c,
           ),
@@ -181,7 +183,7 @@ export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersPar
         (c: { id: string }) => c.id === cultureId,
       );
       if (!baseCulture) return;
-      save({
+      void save({
         cultures: [
           ...cultures,
           { id: baseCulture.id, name: baseCulture.name, naming: namingData },
@@ -208,9 +210,9 @@ export function useSchemaUpdaters({ currentProject, save }: UseSchemaUpdatersPar
         if (!data) continue;
         const itemIndex = data.findIndex((item) => (item as { id: string }).id === itemId);
         if (itemIndex === -1) continue;
-        const item = JSON.parse(JSON.stringify(data[itemIndex]));
+        const item = JSON.parse(JSON.stringify(data[itemIndex])) as Record<string, unknown>;
         if (!deleteNestedProperty(item, pathSegments, propName)) return;
-        const newData = [...data];
+        const newData: ItemWithKey[] = [...data];
         newData[itemIndex] = item;
         update(newData);
         return;

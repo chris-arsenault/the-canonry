@@ -5,18 +5,19 @@
  */
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface ChipSelectOption {
   value: string;
-  label?: string;
+  label: Optional<string>;
 }
 
 interface ChipSelectProps {
-  readonly value?: string[];
+  readonly value: Optional<string[]>;
   readonly onChange: (value: string[]) => void;
   readonly options: ChipSelectOption[];
-  readonly placeholder?: string;
-  readonly label?: string;
+  readonly placeholder: Optional<string>;
+  readonly label: Optional<string>;
 }
 
 /**
@@ -38,95 +39,45 @@ export function ChipSelect({
   const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const handler = (e: MouseEvent) => { if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
-
-  const availableOptions = useMemo(() => {
-    return options.filter(opt => !value.includes(opt.value));
-  }, [options, value]);
-
-  const filteredOptions = useMemo(() => {
-    if (!search) return availableOptions;
+  const available = useMemo(() => options.filter(opt => !value.includes(opt.value)), [options, value]);
+  const filtered = useMemo(() => {
+    if (!search) return available;
     const lower = search.toLowerCase();
-    return availableOptions.filter(opt =>
-      opt.value.toLowerCase().includes(lower) ||
-      opt.label?.toLowerCase().includes(lower)
-    );
-  }, [availableOptions, search]);
-
-  const handleSelect = (optValue: string) => {
-    onChange([...value, optValue]);
-    setSearch('');
-    inputRef.current?.focus();
-  };
-
-  const handleRemove = (optValue: string) => {
-    onChange(value.filter(v => v !== optValue));
-  };
-
-  const getLabel = (val: string) => {
-    const opt = options.find(o => o.value === val);
-    return opt?.label || val;
-  };
+    return available.filter(opt => opt.value.toLowerCase().includes(lower) || opt.label?.toLowerCase().includes(lower));
+  }, [available, search]);
+  const handleSelect = (v: string) => { onChange([...value, v]); setSearch(''); inputRef.current?.focus(); };
+  const getLabel = (val: string) => options.find(o => o.value === val)?.label || val;
 
   return (
     <div className="form-group">
       {label && <label className="label">{label}</label>}
       <div ref={containerRef} className="dropdown">
-        <div
-          className="chip-container chip-container-input"
-          onClick={() => {
-            setIsOpen(true);
-            inputRef.current?.focus();
-          }}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-        >
+        <div className="chip-container chip-container-input"
+          onClick={() => { setIsOpen(true); inputRef.current?.focus(); }}
+          role="button" tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}>
           {value.map(v => (
             <span key={v} className="chip">
               {getLabel(v)}
-              <button
-                type="button"
-                className="chip-remove"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemove(v);
-                }}
-              >
-                ×
-              </button>
+              <button type="button" className="chip-remove"
+                onClick={(e) => { e.stopPropagation(); onChange(value.filter(x => x !== v)); }}>×</button>
             </span>
           ))}
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder={value.length === 0 ? placeholder : ''}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onFocus={() => setIsOpen(true)}
-            className="chip-input"
-          />
+          <input ref={inputRef} type="text" className="chip-input"
+            placeholder={value.length === 0 ? placeholder : ''} value={search}
+            onChange={(e) => setSearch(e.target.value)} onFocus={() => setIsOpen(true)} />
         </div>
-        {isOpen && filteredOptions.length > 0 && (
+        {isOpen && filtered.length > 0 && (
           <div className="dropdown-menu">
-            {filteredOptions.map((opt) => (
-              <div
-                key={opt.value}
-                onClick={() => handleSelect(opt.value)}
-                className="dropdown-item"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-              >
+            {filtered.map((opt) => (
+              <div key={opt.value} className="dropdown-item" onClick={() => handleSelect(opt.value)}
+                role="button" tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}>
                 {opt.label || opt.value}
               </div>
             ))}

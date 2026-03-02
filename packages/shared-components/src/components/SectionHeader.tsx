@@ -3,14 +3,15 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface SectionHeaderProps {
   readonly title: string;
-  readonly description?: string;
-  readonly icon?: string;
-  readonly count?: string | number;
-  readonly actions?: React.ReactNode;
-  readonly className?: string;
+  readonly description: Optional<string>;
+  readonly icon: Optional<string>;
+  readonly count: Optional<string | number>;
+  readonly actions: Optional<React.ReactNode>;
+  readonly className: Optional<string>;
 }
 
 /**

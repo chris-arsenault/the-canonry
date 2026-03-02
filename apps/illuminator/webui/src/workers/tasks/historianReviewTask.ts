@@ -18,6 +18,7 @@ import type {
   HistorianNoteDisplay,
   HistorianNoteType,
   HistorianLLMResponse,
+  HistorianRun,
   HistorianTargetType,
   HistorianTone,
 } from "../../lib/historianTypes";
@@ -490,10 +491,12 @@ function appendChronicleCastSections(sections: string[], chronicle: ChronicleCon
 
 function appendWorldFactSections(sections: string[], world: WorldContext, noteRange: { min: number; max: number }): void {
   if (world.canonFacts && world.canonFacts.length > 0) {
-    sections.push(`=== CANON FACTS ===\n${world.canonFacts.map((f) => `- ${f}`).join("\n")}`);
+    const factList = world.canonFacts.map((f) => `- ${f}`).join("\n");
+    sections.push(`=== CANON FACTS ===\n${factList}`);
   }
   if (world.worldDynamics && world.worldDynamics.length > 0) {
-    sections.push(`=== WORLD DYNAMICS ===\n${world.worldDynamics.map((d) => `- ${d}`).join("\n")}`);
+    const dynamicsList = world.worldDynamics.map((d) => `- ${d}`).join("\n");
+    sections.push(`=== WORLD DYNAMICS ===\n${dynamicsList}`);
   }
   if (world.factCoverageGuidance && world.factCoverageGuidance.length > 0) {
     const factGuidanceSection = buildFactCoverageGuidanceSection(world.factCoverageGuidance, noteRange);
@@ -620,6 +623,35 @@ async function parseHistorianRunInputs(
   return { historianConfig, parsedContext, previousNotes, sourceText: run.sourceText };
 }
 
+function buildReviewPrompts(
+  run: HistorianRun,
+  historianConfig: HistorianConfig,
+  parsedContext: Record<string, unknown>,
+  previousNotes: PreviousNote[],
+  sourceText: string
+): { systemPrompt: string; userPrompt: string } {
+  const { targetType } = run;
+  const tone = run.tone || "weary";
+  const wordCount = sourceText.split(/\s+/).length;
+  const noteRange = computeNoteRange(targetType, wordCount);
+  const chronicleFormat =
+    targetType !== "entity" ? (parsedContext as ChronicleContext).format : undefined;
+  const systemPrompt = buildSystemPrompt(historianConfig, tone, noteRange, targetType, chronicleFormat);
+
+  const worldCtx: WorldContext = {
+    canonFacts: parsedContext.canonFacts as string[] | undefined,
+    worldDynamics: parsedContext.worldDynamics as string[] | undefined,
+    factCoverageGuidance: parsedContext.factCoverageGuidance as FactGuidanceTarget[] | undefined,
+    voiceDigest: parsedContext.voiceDigest as CorpusVoiceDigest | undefined,
+  };
+
+  const userPrompt = targetType === "entity"
+    ? buildEntityUserPrompt(sourceText, parsedContext as unknown as EntityContext, worldCtx, previousNotes)
+    : buildChronicleUserPrompt(sourceText, parsedContext as unknown as ChronicleContext, worldCtx, previousNotes, noteRange);
+
+  return { systemPrompt, userPrompt };
+}
+
 async function executeHistorianReviewTask(
   task: WorkerTask,
   context: TaskContext
@@ -648,49 +680,11 @@ async function executeHistorianReviewTask(
   }
 
   const { historianConfig, parsedContext, previousNotes, sourceText } = parsed;
+  const prompts = buildReviewPrompts(run, historianConfig, parsedContext, previousNotes, sourceText);
 
-  const targetType = run.targetType;
-  const callType = targetType === "entity" ? "historian.entityReview" : "historian.chronicleReview";
+  const callType = run.targetType === "entity" ? "historian.entityReview" : "historian.chronicleReview";
   const callConfig = getCallConfig(config, callType);
-
-  // Build prompts
-  const tone = (run.tone || "weary");
-  const wordCount = sourceText.split(/\s+/).length;
-  const noteRange = computeNoteRange(targetType, wordCount);
-  const chronicleFormat =
-    targetType !== "entity" ? (parsedContext as ChronicleContext).format : undefined;
-  const systemPrompt = buildSystemPrompt(
-    historianConfig,
-    tone,
-    noteRange,
-    targetType,
-    chronicleFormat
-  );
-
-  let userPrompt: string;
-  const worldCtx: WorldContext = {
-    canonFacts: parsedContext.canonFacts as string[] | undefined,
-    worldDynamics: parsedContext.worldDynamics as string[] | undefined,
-    factCoverageGuidance: parsedContext.factCoverageGuidance as FactGuidanceTarget[] | undefined,
-    voiceDigest: parsedContext.voiceDigest as CorpusVoiceDigest | undefined,
-  };
-
-  if (targetType === "entity") {
-    userPrompt = buildEntityUserPrompt(
-      sourceText,
-      parsedContext as unknown as EntityContext,
-      worldCtx,
-      previousNotes
-    );
-  } else {
-    userPrompt = buildChronicleUserPrompt(
-      sourceText,
-      parsedContext as unknown as ChronicleContext,
-      worldCtx,
-      previousNotes,
-      noteRange
-    );
-  }
+  const { systemPrompt, userPrompt } = prompts;
 
   try {
     const callResult = await runTextCall({

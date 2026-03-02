@@ -8,6 +8,7 @@
  */
 
 import React, { useState } from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface LevelDefinition {
   value: number | string;
@@ -19,11 +20,11 @@ interface LevelSelectorProps {
   readonly value: number | string;
   readonly onChange: (value: number | string) => void;
   readonly levels: LevelDefinition[];
-  readonly showNumeric?: boolean;
-  readonly min?: number;
-  readonly max?: number;
-  readonly step?: number;
-  readonly className?: string;
+  readonly showNumeric: Optional<boolean>;
+  readonly min: Optional<number>;
+  readonly max: Optional<number>;
+  readonly step: Optional<number>;
+  readonly className: Optional<string>;
 }
 
 /**
@@ -48,108 +49,47 @@ export function LevelSelector({
   className = '',
 }: LevelSelectorProps) {
   const [hoveredLevel, setHoveredLevel] = useState<number | null>(null);
-
-  // Detect if using numeric or string mode
   const isNumeric = typeof levels[0]?.value === 'number';
-
-  // Get level index based on value
   const getLevelIndex = (val: number | string) => {
-    if (isNumeric) {
-      for (let i = levels.length - 1; i >= 0; i--) {
-        if (val >= levels[i].value) return i;
-      }
-      return 0;
-    } else {
-      const idx = levels.findIndex(l => l.value === val);
-      return idx >= 0 ? idx : 0;
-    }
+    if (!isNumeric) { const idx = levels.findIndex(l => l.value === val); return idx >= 0 ? idx : 0; }
+    for (let i = levels.length - 1; i >= 0; i--) { if (val >= levels[i].value) return i; }
+    return 0;
   };
-
   const levelIndex = getLevelIndex(value);
   const currentLevel = levels[levelIndex];
   const hoverLevel = hoveredLevel !== null ? levels[hoveredLevel] : null;
-
-  // Calculate partial fill for each dot (only meaningful for numeric mode)
   const getPartialFill = (idx: number) => {
-    if (!isNumeric) {
-      // String mode: full fill up to and including current level
-      return idx <= levelIndex ? 1 : 0;
-    }
+    if (!isNumeric) return idx <= levelIndex ? 1 : 0;
     if (idx < levelIndex) return 1;
     if (idx > levelIndex) return 0;
-    // Current level - calculate partial based on value position
     const levelStart = levels[idx].value;
     const levelEnd = idx < levels.length - 1 ? levels[idx + 1].value : max;
-    const progress = (value - levelStart) / (levelEnd - levelStart);
-    return Math.max(0, Math.min(1, progress));
+    return Math.max(0, Math.min(1, (value - levelStart) / (levelEnd - levelStart)));
   };
 
   return (
     <div className={`level-selector ${className}`.trim()}>
       <div className="level-selector-dots">
         {levels.map((level, idx) => {
-          const isHovered = hoveredLevel !== null && idx <= hoveredLevel;
           const fill = getPartialFill(idx);
-          const baseColor = isHovered ? hoverLevel.color : currentLevel.color;
-
+          const baseColor = (hoveredLevel !== null && idx <= hoveredLevel) ? hoverLevel.color : currentLevel.color;
           return (
-            <div
-              key={idx}
+            <div key={idx} title={level.label} role="button" tabIndex={0}
               className={`level-selector-dot ${hoveredLevel === idx ? 'level-selector-dot-active' : ''}`.trim()}
-              onClick={() => onChange(level.value)}
-              onMouseEnter={() => setHoveredLevel(idx)}
+              onClick={() => onChange(level.value)} onMouseEnter={() => setHoveredLevel(idx)}
               onMouseLeave={() => setHoveredLevel(null)}
-              title={`${level.label}`}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-            >
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}>
               <svg className="level-selector-dot-fill-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                <rect
-                  x="0"
-                  y={100 - (fill * 100)}
-                  width="100"
-                  height={fill * 100}
-                  fill={baseColor}
-                />
+                <rect x="0" y={100 - (fill * 100)} width="100" height={fill * 100} fill={baseColor} />
               </svg>
             </div>
           );
         })}
       </div>
       {showNumeric && isNumeric && (
-        <input
-          type="number"
-          className="level-selector-input"
-          value={value}
-          onChange={(e) => {
-            const newVal = parseFloat(e.target.value);
-            if (!isNaN(newVal)) {
-              onChange(Math.max(min, Math.min(max, newVal)));
-            }
-          }}
-          step={step}
-          min={min}
-          max={max}
-        />
+        <input type="number" className="level-selector-input" value={value} step={step} min={min} max={max}
+          onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) onChange(Math.max(min, Math.min(max, v))); }} />
       )}
     </div>
   );
 }
-
-// Common level presets
-export const STRENGTH_LEVELS = [
-  { value: 0, label: 'Off', color: '#475569' },
-  { value: 1, label: 'Low', color: '#3b82f6' },
-  { value: 2, label: 'Medium', color: '#22c55e' },
-  { value: 3, label: 'High', color: '#f59e0b' },
-  { value: 4, label: 'Max', color: '#ef4444' },
-];
-
-export const PROMINENCE_LEVELS = [
-  { value: 'forgotten', label: 'Forgotten', color: '#6b7280' },
-  { value: 'marginal', label: 'Marginal', color: '#60a5fa' },
-  { value: 'recognized', label: 'Recognized', color: '#34d399' },
-  { value: 'renowned', label: 'Renowned', color: '#fbbf24' },
-  { value: 'mythic', label: 'Mythic', color: '#a855f7' },
-];

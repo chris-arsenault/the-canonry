@@ -6,6 +6,7 @@
  */
 
 import { openIlluminatorDb } from "@the-canonry/world-store";
+import type { Optional } from "@the-canonry/shared-components";
 
 const CHRONICLE_STORE_NAME = "chronicles";
 
@@ -35,67 +36,67 @@ export interface ChronicleRecord {
   format: "story" | "document";
   focusType: "single" | "ensemble" | "relationship" | "event";
   narrativeStyleId: string;
-  entrypointId?: string;
+  entrypointId: Optional<string>;
   roleAssignments: ChronicleRoleAssignment[];
   selectedEntityIds: string[];
   selectedEventIds: string[];
   selectedRelationshipIds: string[];
-  temporalContext?: {
-    focalEra?: { id: string; name: string; summary?: string };
-    chronicleTickRange?: [number, number];
-    temporalScope?: string;
-    isMultiEra?: boolean;
-    touchedEraIds?: string[];
-    temporalDescription?: string;
+  temporalContext: Optional<{
+    focalEra: Optional<{ id: string; name: string; summary: Optional<string> }>;
+    chronicleTickRange: Optional<[number, number]>;
+    temporalScope: Optional<string>;
+    isMultiEra: Optional<boolean>;
+    touchedEraIds: Optional<string[]>;
+    temporalDescription: Optional<string>;
     [key: string]: unknown;
-  };
+  }>;
 
   // Content
-  assembledContent?: string;
-  finalContent?: string;
-  summary?: string;
+  assembledContent: Optional<string>;
+  finalContent: Optional<string>;
+  summary: Optional<string>;
 
   // Image refs for inline images
-  imageRefs?: {
+  imageRefs: Optional<{
     refs: Array<{
       refId: string;
       anchorText: string;
-      anchorIndex?: number;
+      anchorIndex: Optional<number>;
       size: "small" | "medium" | "large" | "full-width";
-      justification?: "left" | "right";
-      caption?: string;
+      justification: Optional<"left" | "right">;
+      caption: Optional<string>;
       type: "entity_ref" | "prompt_request";
-      entityId?: string;
-      sceneDescription?: string;
-      status?: "pending" | "generating" | "complete" | "failed";
-      generatedImageId?: string;
+      entityId: Optional<string>;
+      sceneDescription: Optional<string>;
+      status: Optional<"pending" | "generating" | "complete" | "failed">;
+      generatedImageId: Optional<string>;
     }>;
     generatedAt: number;
     model: string;
-  };
+  }>;
 
   // Cover image (montage-style chronicle overview)
-  coverImage?: {
+  coverImage: Optional<{
     sceneDescription: string;
     involvedEntityIds: string[];
     status: "pending" | "generating" | "complete" | "failed";
-    generatedImageId?: string;
-    error?: string;
-  };
+    generatedImageId: Optional<string>;
+    error: Optional<string>;
+  }>;
 
   // Historian annotations
-  historianNotes?: Array<{
+  historianNotes: Optional<Array<{
     noteId: string;
     anchorPhrase: string;
     text: string;
     type: string;
-    display?: "disabled" | "popout" | "full";
+    display: Optional<"disabled" | "popout" | "full">;
     /** @deprecated Use `display` instead */
-    enabled?: boolean;
-  }>;
+    enabled: Optional<boolean>;
+  }>>;
 
   // Timestamps
-  acceptedAt?: number;
+  acceptedAt: Optional<number>;
   createdAt: number;
   updatedAt: number;
 

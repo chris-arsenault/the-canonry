@@ -10,17 +10,18 @@
  */
 
 import React from 'react';
+import type { Optional } from '../../types/optionality.js';
 
 interface BadgeConfig {
   label: string;
-  labelPlural?: string;
+  labelPlural: Optional<string>;
   className: string;
   tooltip: string;
 }
 
 interface DetailUsageBadgesProps {
-  readonly usage?: Record<string, string[]>;
-  readonly showOrphan?: boolean;
+  readonly usage: Optional<Record<string, string[]>>;
+  readonly showOrphan: Optional<boolean>;
 }
 
 // Badge configurations for detail types

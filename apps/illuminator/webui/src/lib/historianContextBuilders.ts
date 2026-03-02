@@ -28,7 +28,7 @@ import {
   computeAnnotationReinforcementCounts,
 } from "./db/chronicleRepository";
 import type { ReinforcementCounts } from "./db/chronicleRepository";
-import type { FactCoverageReport } from "./chronicleTypes";
+import type { ChronicleRecord, FactCoverageReport } from "./chronicleTypes";
 import * as entityRepo from "./db/entityRepository";
 import type { EntityNavItem } from "./db/entityNav";
 
@@ -498,8 +498,8 @@ export async function buildChronicleReviewContext(
   const castEntityIds = (chronicle.roleAssignments || [])
     .map((ra: { entityId: string }) => ra.entityId)
     .filter(Boolean);
-  const castFull = await useEntityStore.getState().loadEntities(castEntityIds);
-  const castMap = new Map(castFull.map((e: { id: string }) => [e.id, e]));
+  const castFull = await useEntityStore.getState().loadEntities(castEntityIds) as Array<{ id: string; name: string; kind: string; summary?: string; description?: string }>;
+  const castMap = new Map(castFull.map((e) => [e.id, e]));
 
   const castSummaries = (chronicle.roleAssignments || [])
     .slice(0, 10)
@@ -548,7 +548,7 @@ export async function buildChronicleReviewContext(
     focalEra: chronicle.temporalContext?.focalEra
       ? {
           name: chronicle.temporalContext.focalEra.name,
-          description: chronicle.temporalContext.focalEra.description,
+          summary: chronicle.temporalContext.focalEra.summary,
         }
       : undefined,
     temporalCheckReport: chronicle.temporalCheckReport || undefined,

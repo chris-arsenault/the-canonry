@@ -3,13 +3,14 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface EmptyStateProps {
-  readonly icon?: string;
+  readonly icon: Optional<string>;
   readonly title: string;
-  readonly description?: string;
-  readonly children?: React.ReactNode;
-  readonly className?: string;
+  readonly description: Optional<string>;
+  readonly children: Optional<React.ReactNode>;
+  readonly className: Optional<string>;
 }
 
 /**

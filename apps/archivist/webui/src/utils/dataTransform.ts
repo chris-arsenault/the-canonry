@@ -146,41 +146,18 @@ export function applyFilters(
   const minProminenceIndex = prominenceOrder.indexOf(filters.minProminence);
   const resolvedScale = resolveProminenceScale(prominenceScale);
 
+  const matchesSearch = (entity: HardState, query: string): boolean => {
+    const tags = getTagsArray(entity.tags);
+    return entity.name.toLowerCase().includes(query) || entity.description.toLowerCase().includes(query) || tags.some((t) => t.toLowerCase().includes(query));
+  };
+
   const filtered = worldState.hardState.filter((entity) => {
-    // Filter by kind
     if (!filters.kinds.includes(entity.kind)) return false;
-
-    // Filter by prominence
-    const entityProminenceLabel =
-      typeof entity.prominence === "number"
-        ? prominenceLabelFromScale(entity.prominence, resolvedScale)
-        : entity.prominence;
-    const entityProminenceIndex = prominenceOrder.indexOf(entityProminenceLabel);
-    if (entityProminenceIndex < minProminenceIndex) return false;
-
-    // Filter by time range
-    if (entity.createdAt < filters.timeRange[0] || entity.createdAt > filters.timeRange[1]) {
-      return false;
-    }
-
-    // Filter by tags
-    if (filters.tags.length > 0) {
-      const entityTags = getTagsArray(entity.tags);
-      const hasMatchingTag = filters.tags.some((tag) => entityTags.includes(tag));
-      if (!hasMatchingTag) return false;
-    }
-
-    // Filter by search query
-    if (filters.searchQuery) {
-      const query = filters.searchQuery.toLowerCase();
-      const entityTags = getTagsArray(entity.tags);
-      const matches =
-        entity.name.toLowerCase().includes(query) ||
-        entity.description.toLowerCase().includes(query) ||
-        entityTags.some((tag) => tag.toLowerCase().includes(query));
-      if (!matches) return false;
-    }
-
+    const label = typeof entity.prominence === "number" ? prominenceLabelFromScale(entity.prominence, resolvedScale) : entity.prominence;
+    if (prominenceOrder.indexOf(label) < minProminenceIndex) return false;
+    if (entity.createdAt < filters.timeRange[0] || entity.createdAt > filters.timeRange[1]) return false;
+    if (filters.tags.length > 0 && !filters.tags.some((tag) => getTagsArray(entity.tags).includes(tag))) return false;
+    if (filters.searchQuery && !matchesSearch(entity, filters.searchQuery.toLowerCase())) return false;
     return true;
   });
 

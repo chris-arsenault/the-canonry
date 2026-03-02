@@ -293,7 +293,7 @@ export default function DescriptionMotifWeaver({ onClose }: Readonly<{ onClose: 
 
   const handleBackdropKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
+      if (e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click();
     },
     [],
   );

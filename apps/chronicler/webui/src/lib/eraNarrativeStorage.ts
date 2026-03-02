@@ -6,6 +6,7 @@
  */
 
 import { openIlluminatorDb } from "@the-canonry/world-store";
+import type { Optional } from "@the-canonry/shared-components";
 
 const ERA_NARRATIVE_STORE_NAME = "eraNarratives";
 
@@ -27,36 +28,36 @@ export interface EraNarrativeViewRecord {
   wordCount: number;
 
   /** Analytical thesis — one-sentence summary of the era's transformation */
-  thesis?: string;
+  thesis: Optional<string>;
 
   /** Cover image metadata */
-  coverImage?: {
+  coverImage: Optional<{
     sceneDescription: string;
     status: string;
-    generatedImageId?: string;
-  };
+    generatedImageId: Optional<string>;
+  }>;
 
   /** Inline image refs (chronicle refs + generated scenes) */
-  imageRefs?: {
+  imageRefs: Optional<{
     refs: Array<{
       refId: string;
       type: string;
       anchorText: string;
-      anchorIndex?: number;
+      anchorIndex: Optional<number>;
       size: string;
-      justification?: "left" | "right";
-      caption?: string;
+      justification: Optional<"left" | "right">;
+      caption: Optional<string>;
       // chronicle_ref fields
-      imageId?: string;
-      chronicleId?: string;
+      imageId: Optional<string>;
+      chronicleId: Optional<string>;
       // prompt_request fields
-      sceneDescription?: string;
-      status?: string;
-      generatedImageId?: string;
+      sceneDescription: Optional<string>;
+      status: Optional<string>;
+      generatedImageId: Optional<string>;
     }>;
     generatedAt: number;
     model: string;
-  };
+  }>;
 
   /** Source chronicle IDs and titles */
   sourceChronicles: Array<{ chronicleId: string; chronicleTitle: string }>;
@@ -65,41 +66,58 @@ export interface EraNarrativeViewRecord {
   updatedAt: number;
 }
 
-/**
- * Project a raw IndexedDB era narrative record into a view record.
- * Picks the best content (edited > draft) and strips generation metadata.
- */
-function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewRecord | null {
-  if (!raw || raw.status !== "complete") return null;
+interface RawNarrativeContent {
+  editedContent: Optional<string>;
+  content: Optional<string>;
+  editedWordCount: Optional<number>;
+  wordCount: Optional<number>;
+}
 
-  const narrative = raw.narrative as
-    | {
-        editedContent?: string;
-        content?: string;
-        editedWordCount?: number;
-        wordCount?: number;
-      }
-    | undefined;
-
-  // Support both full records (content under narrative) and viewer-projected records (content at top level)
+// eslint-disable-next-line complexity -- projects untyped IndexedDB records with legacy field layouts; each typeof/optional check handles a different storage format version
+function resolveContent(raw: Record<string, unknown>): { content: string; wordCount: number } | null {
+  const narrative = raw.narrative as RawNarrativeContent | undefined;
   const content =
     narrative?.editedContent ||
     narrative?.content ||
     (typeof raw.content === "string" ? raw.content : "");
   if (!content) return null;
+  const wordCount =
+    narrative?.editedWordCount ||
+    narrative?.wordCount ||
+    (typeof raw.wordCount === "number" ? raw.wordCount : 0);
+  return { content, wordCount };
+}
 
-  const threadSynthesis = raw.threadSynthesis as { thesis?: string } | undefined;
-  let prepBriefs: Array<{ chronicleId: string; chronicleTitle: string }>;
+/** Extract source chronicles from prepBriefs or sourceChronicles fields */
+function resolveSourceChronicles(raw: Record<string, unknown>): Array<{ chronicleId: string; chronicleTitle: string }> {
   if (Array.isArray(raw.prepBriefs)) {
-    prepBriefs = (raw.prepBriefs as Array<{ chronicleId: string; chronicleTitle: string }>).map((b) => ({
+    return (raw.prepBriefs as Array<{ chronicleId: string; chronicleTitle: string }>).map((b) => ({
       chronicleId: b.chronicleId,
       chronicleTitle: b.chronicleTitle,
     }));
-  } else if (Array.isArray(raw.sourceChronicles)) {
-    prepBriefs = raw.sourceChronicles as Array<{ chronicleId: string; chronicleTitle: string }>;
-  } else {
-    prepBriefs = [];
   }
+  if (Array.isArray(raw.sourceChronicles)) {
+    return raw.sourceChronicles as Array<{ chronicleId: string; chronicleTitle: string }>;
+  }
+  return [];
+}
+
+/** Resolve thesis from threadSynthesis or top-level thesis field */
+function resolveThesis(raw: Record<string, unknown>): string | undefined {
+  const threadSynthesis = raw.threadSynthesis as { thesis: Optional<string> } | undefined;
+  return threadSynthesis?.thesis || (typeof raw.thesis === "string" ? raw.thesis : undefined);
+}
+
+/**
+ * Project a raw IndexedDB era narrative record into a view record.
+ * Picks the best content (edited > draft) and strips generation metadata.
+ */
+// eslint-disable-next-line complexity -- maps untyped IndexedDB fields to a typed view record; each conditional handles an independent field projection
+function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewRecord | null {
+  if (!raw || raw.status !== "complete") return null;
+
+  const resolved = resolveContent(raw);
+  if (!resolved) return null;
 
   const coverImage = raw.coverImage as EraNarrativeViewRecord["coverImage"] | undefined;
   const imageRefs = raw.imageRefs as EraNarrativeViewRecord["imageRefs"] | undefined;
@@ -112,16 +130,13 @@ function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewReco
     eraName: raw.eraName as string,
     status: raw.status as string,
     tone: raw.tone as string,
-    content,
-    wordCount:
-      narrative?.editedWordCount ||
-      narrative?.wordCount ||
-      (typeof raw.wordCount === "number" ? raw.wordCount : 0),
-    thesis: threadSynthesis?.thesis || (typeof raw.thesis === "string" ? raw.thesis : undefined),
+    content: resolved.content,
+    wordCount: resolved.wordCount,
+    thesis: resolveThesis(raw),
     coverImage:
       coverImage?.status === "complete" && coverImage?.generatedImageId ? coverImage : undefined,
     imageRefs: imageRefs?.refs?.length ? imageRefs : undefined,
-    sourceChronicles: prepBriefs,
+    sourceChronicles: resolveSourceChronicles(raw),
     createdAt: raw.createdAt as number,
     updatedAt: raw.updatedAt as number,
   };

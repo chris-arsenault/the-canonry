@@ -1,14 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { ModalShell, TagSelector } from "@the-canonry/shared-components";
 import { PROMINENCE_LEVELS } from "../constants";
 
 function ConditionsModal({ isOpen, onClose, conditions, onChange, tagRegistry = [], onAddTag }) {
   const [localConditions, setLocalConditions] = useState(conditions || {});
+  const [prevConditions, setPrevConditions] = useState(conditions);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
-  useEffect(() => {
+  // Reset local state when conditions or isOpen changes
+  if (prevConditions !== conditions || prevIsOpen !== isOpen) {
+    setPrevConditions(conditions);
+    setPrevIsOpen(isOpen);
     setLocalConditions(conditions || {});
-  }, [conditions, isOpen]);
+  }
 
   const handleSave = () => {
     // Clean up empty values

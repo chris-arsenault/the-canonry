@@ -68,6 +68,7 @@ interface StyleLibrary {
 interface WorldContext {
   name?: string;
   description?: string;
+  speciesConstraint?: string;
   toneFragments?: { core: string };
 }
 
@@ -930,6 +931,8 @@ export default function ChronicleImagePanel({
 
   const hasSceneImages = promptRequests.length > 0;
 
+  const canSelectExisting = !!onSelectExistingImage && !!projectId;
+
   return (
     <div>
       {/* Header with stats */}
@@ -991,28 +994,19 @@ export default function ChronicleImagePanel({
             Scene Images ({promptRequests.length})
           </div>
           <div className="cip-card-list">
+            {/* eslint-disable-next-line sonarjs/cognitive-complexity -- ternaries are conditional prop forwarding, not branching logic */}
             {promptRequests.map((ref) => (
               <PromptRequestCard
                 key={ref.refId}
                 imageRef={ref}
                 onGenerate={() => handleGenerateImage(ref)}
                 onReset={onResetImage ? () => onResetImage(ref) : undefined}
-                onRegenerateDescription={
-                  onRegenerateDescription ? () => onRegenerateDescription(ref) : undefined
-                }
-                onSelectExisting={
-                  onSelectExistingImage && projectId ? () => handleOpenPicker(ref) : undefined
-                }
+                onRegenerateDescription={onRegenerateDescription ? () => onRegenerateDescription(ref) : undefined}
+                onSelectExisting={canSelectExisting ? () => handleOpenPicker(ref) : undefined}
                 onImageClick={handleImageClick}
-                onUpdateAnchorText={
-                  onUpdateAnchorText ? (next) => onUpdateAnchorText(ref, next) : undefined
-                }
-                onUpdateSize={onUpdateSize ? (size) => onUpdateSize(ref, size) : undefined}
-                onUpdateJustification={
-                  onUpdateJustification
-                    ? (justification) => onUpdateJustification(ref, justification)
-                    : undefined
-                }
+                onUpdateAnchorText={onUpdateAnchorText ? (next: string) => onUpdateAnchorText(ref, next) : undefined}
+                onUpdateSize={onUpdateSize ? (size: string) => onUpdateSize(ref, size) : undefined}
+                onUpdateJustification={onUpdateJustification ? (j: string) => onUpdateJustification(ref, j) : undefined}
                 chronicleText={chronicleText}
                 isGenerating={isGenerating}
                 entities={entities}

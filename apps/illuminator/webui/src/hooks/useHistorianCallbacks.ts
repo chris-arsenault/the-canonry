@@ -187,7 +187,7 @@ function buildChronicleContextJson(
     focalEra: chronicle.temporalContext?.focalEra
       ? {
           name: chronicle.temporalContext.focalEra.name,
-          description: chronicle.temporalContext.focalEra.description,
+          summary: chronicle.temporalContext.focalEra.summary,
         }
       : undefined,
     temporalCheckReport: chronicle.temporalCheckReport || undefined,

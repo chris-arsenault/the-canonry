@@ -25,6 +25,8 @@
 // ---------------------------------------------------------------------------
 
 /** String-or-object subtype/status entries in entity kind definitions. */
+import type { Optional } from '../types/optionality.js';
+
 interface SubtypeEntry {
   id: string;
   [key: string]: unknown;
@@ -38,16 +40,16 @@ interface StatusEntry {
 /** An entity kind definition from the schema. */
 interface SchemaEntityKind {
   kind: string;
-  subtypes?: Array<string | SubtypeEntry>;
-  statuses?: Array<string | StatusEntry>;
+  subtypes: Optional<Array<string | SubtypeEntry>>;
+  statuses: Optional<Array<string | StatusEntry>>;
   [key: string]: unknown;
 }
 
 /** A relationship kind definition from the schema. */
 interface SchemaRelationshipKind {
   kind: string;
-  srcKinds?: string[];
-  dstKinds?: string[];
+  srcKinds: Optional<string[]>;
+  dstKinds: Optional<string[]>;
   [key: string]: unknown;
 }
 
@@ -59,177 +61,177 @@ interface TagRegistryEntry {
 
 /** The top-level schema object. */
 interface SchemaConfig {
-  entityKinds?: SchemaEntityKind[];
-  relationshipKinds?: SchemaRelationshipKind[];
-  tagRegistry?: Array<string | TagRegistryEntry>;
+  entityKinds: Optional<SchemaEntityKind[]>;
+  relationshipKinds: Optional<SchemaRelationshipKind[]>;
+  tagRegistry: Optional<Array<string | TagRegistryEntry>>;
   [key: string]: unknown;
 }
 
 /** A feedback factor within a pressure's growth config. */
 interface FeedbackFactor {
-  type?: string;
-  kind?: string;
-  relationshipKinds?: string[];
-  tag?: string;
-  tags?: string[];
+  type: Optional<string>;
+  kind: Optional<string>;
+  relationshipKinds: Optional<string[]>;
+  tag: Optional<string>;
+  tags: Optional<string[]>;
   [key: string]: unknown;
 }
 
 /** A pressure config object. */
 interface PressureConfig {
   id: string;
-  name?: string;
-  homeostasis?: number;
-  growth?: {
-    positiveFeedback?: FeedbackFactor[];
-    negativeFeedback?: FeedbackFactor[];
+  name: Optional<string>;
+  homeostasis: Optional<number>;
+  growth: Optional<{
+    positiveFeedback: Optional<FeedbackFactor[]>;
+    negativeFeedback: Optional<FeedbackFactor[]>;
     [key: string]: unknown;
-  };
+  }>;
   [key: string]: unknown;
 }
 
 /** A mutation entry used in effects / outcomes. */
 interface MutationEntry {
-  type?: string;
-  tag?: string;
-  kind?: string;
-  relationshipKind?: string;
-  newStatus?: string;
-  pressureId?: string;
-  src?: string;
-  dst?: string;
+  type: Optional<string>;
+  tag: Optional<string>;
+  kind: Optional<string>;
+  relationshipKind: Optional<string>;
+  newStatus: Optional<string>;
+  pressureId: Optional<string>;
+  src: Optional<string>;
+  dst: Optional<string>;
   [key: string]: unknown;
 }
 
 /** Entry/exit effects on an era. */
 interface EraEffects {
-  mutations?: MutationEntry[];
+  mutations: Optional<MutationEntry[]>;
   [key: string]: unknown;
 }
 
 /** An era config object. */
 interface EraConfig {
   id: string;
-  name?: string;
-  templateWeights?: Record<string, unknown>;
-  systemModifiers?: Record<string, unknown>;
-  entryEffects?: EraEffects;
-  exitEffects?: EraEffects;
+  name: Optional<string>;
+  templateWeights: Optional<Record<string, unknown>>;
+  systemModifiers: Optional<Record<string, unknown>>;
+  entryEffects: Optional<EraEffects>;
+  exitEffects: Optional<EraEffects>;
   [key: string]: unknown;
 }
 
 /** A graph-path step within an assertion. */
 interface GraphPathStep {
-  via?: string | string[];
-  targetKind?: string;
-  targetSubtype?: string;
-  targetStatus?: string;
+  via: Optional<string | string[]>;
+  targetKind: Optional<string>;
+  targetSubtype: Optional<string>;
+  targetStatus: Optional<string>;
   [key: string]: unknown;
 }
 
 /** A where-constraint in a graph path assertion. */
 interface WhereConstraint {
-  type?: string;
-  kind?: string;
-  subtype?: string;
+  type: Optional<string>;
+  kind: Optional<string>;
+  subtype: Optional<string>;
   [key: string]: unknown;
 }
 
 /** A graph-path assertion (used in conditions and filters). */
 interface GraphPathAssertion {
-  path?: GraphPathStep[];
-  where?: WhereConstraint[];
+  path: Optional<GraphPathStep[]>;
+  where: Optional<WhereConstraint[]>;
   [key: string]: unknown;
 }
 
 /** A selection filter entry. */
 interface SelectionFilter {
-  type?: string;
-  kind?: string;
-  relationshipKind?: string;
-  tag?: string;
-  tags?: string[];
-  status?: string;
-  assert?: GraphPathAssertion | null;
+  type: Optional<string>;
+  kind: Optional<string>;
+  relationshipKind: Optional<string>;
+  tag: Optional<string>;
+  tags: Optional<string[]>;
+  status: Optional<string>;
+  assert: Optional<GraphPathAssertion | null>;
   [key: string]: unknown;
 }
 
 /** A saturation limit within a selection rule. */
 interface SaturationLimit {
   relationshipKind: string;
-  fromKind?: string;
+  fromKind: Optional<string>;
   [key: string]: unknown;
 }
 
 /** A selection rule describing target criteria. */
 interface SelectionRule {
-  kind?: string;
-  kinds?: string[];
-  subtypes?: string[];
-  excludeSubtypes?: string[];
-  status?: string;
-  statuses?: string[];
-  notStatus?: string;
-  relationshipKind?: string;
-  filters?: SelectionFilter[];
-  saturationLimits?: SaturationLimit[];
+  kind: Optional<string>;
+  kinds: Optional<string[]>;
+  subtypes: Optional<string[]>;
+  excludeSubtypes: Optional<string[]>;
+  status: Optional<string>;
+  statuses: Optional<string[]>;
+  notStatus: Optional<string>;
+  relationshipKind: Optional<string>;
+  filters: Optional<SelectionFilter[]>;
+  saturationLimits: Optional<SaturationLimit[]>;
   [key: string]: unknown;
 }
 
 /** A "from" clause within a variable selection rule. */
 interface VariableFromClause {
-  relationshipKind?: string;
+  relationshipKind: Optional<string>;
   [key: string]: unknown;
 }
 
 /** A variable selection rule (superset of selection with `from` and `preferFilters`). */
 interface VariableSelectionRule {
-  from?: VariableFromClause | string;
-  kind?: string;
-  kinds?: string[];
-  subtypes?: string[];
-  status?: string;
-  statuses?: string[];
-  notStatus?: string;
-  filters?: SelectionFilter[];
-  preferFilters?: SelectionFilter[];
+  from: Optional<VariableFromClause | string>;
+  kind: Optional<string>;
+  kinds: Optional<string[]>;
+  subtypes: Optional<string[]>;
+  status: Optional<string>;
+  statuses: Optional<string[]>;
+  notStatus: Optional<string>;
+  filters: Optional<SelectionFilter[]>;
+  preferFilters: Optional<SelectionFilter[]>;
   [key: string]: unknown;
 }
 
 /** A condition entry (used in applicability, thresholds, etc.). */
 interface ConditionEntry {
-  type?: string;
-  pressureId?: string;
-  pressureIds?: string[];
-  pressureA?: string;
-  pressureB?: string;
-  kind?: string;
-  subtype?: string;
-  status?: string;
-  relationshipKind?: string;
-  targetKind?: string;
-  targetSubtype?: string;
-  targetStatus?: string;
-  tag?: string;
-  assert?: GraphPathAssertion | null;
-  conditions?: ConditionEntry[];
+  type: Optional<string>;
+  pressureId: Optional<string>;
+  pressureIds: Optional<string[]>;
+  pressureA: Optional<string>;
+  pressureB: Optional<string>;
+  kind: Optional<string>;
+  subtype: Optional<string>;
+  status: Optional<string>;
+  relationshipKind: Optional<string>;
+  targetKind: Optional<string>;
+  targetSubtype: Optional<string>;
+  targetStatus: Optional<string>;
+  tag: Optional<string>;
+  assert: Optional<GraphPathAssertion | null>;
+  conditions: Optional<ConditionEntry[]>;
   [key: string]: unknown;
 }
 
 /** A metric definition (used in evolution systems, feedback, etc.). */
 interface MetricEntry {
-  type?: string;
-  kind?: string;
-  subtype?: string;
-  status?: string;
-  relationshipKinds?: string[];
-  tags?: string[];
-  numerator?: MetricEntry | null;
-  denominator?: MetricEntry | null;
-  aliveStatus?: string;
-  sharedRelationshipKind?: string;
-  via?: string | string[];
-  then?: string;
+  type: Optional<string>;
+  kind: Optional<string>;
+  subtype: Optional<string>;
+  status: Optional<string>;
+  relationshipKinds: Optional<string[]>;
+  tags: Optional<string[]>;
+  numerator: Optional<MetricEntry | null>;
+  denominator: Optional<MetricEntry | null>;
+  aliveStatus: Optional<string>;
+  sharedRelationshipKind: Optional<string>;
+  via: Optional<string | string[]>;
+  then: Optional<string>;
   [key: string]: unknown;
 }
 
@@ -247,63 +249,63 @@ interface RandomSubtype {
 
 /** A creation entry within a generator. */
 interface CreationEntry {
-  kind?: string;
-  subtype?: string | RandomSubtype;
-  status?: string;
-  tags?: Record<string, string>;
+  kind: Optional<string>;
+  subtype: Optional<string | RandomSubtype>;
+  status: Optional<string>;
+  tags: Optional<Record<string, string>>;
   [key: string]: unknown;
 }
 
 /** Apply block within a generator variant. */
 interface VariantApply {
-  relationships?: RelationshipEntry[];
-  tags?: Record<string, Record<string, string>>;
-  stateUpdates?: MutationEntry[];
+  relationships: Optional<RelationshipEntry[]>;
+  tags: Optional<Record<string, Record<string, string>>>;
+  stateUpdates: Optional<MutationEntry[]>;
   [key: string]: unknown;
 }
 
 /** A variant option in a generator. */
 interface VariantOption {
-  when?: ConditionEntry | null;
-  apply?: VariantApply;
+  when: Optional<ConditionEntry | null>;
+  apply: Optional<VariantApply>;
   [key: string]: unknown;
 }
 
 /** A generator's variables entry. */
 interface GeneratorVariable {
-  select?: VariableSelectionRule;
+  select: Optional<VariableSelectionRule>;
   [key: string]: unknown;
 }
 
 /** A generator config object. */
 interface GeneratorConfig {
   id: string;
-  name?: string;
-  applicability?: ConditionEntry[];
-  selection?: SelectionRule;
-  variables?: Record<string, GeneratorVariable>;
-  creation?: CreationEntry[];
-  relationships?: RelationshipEntry[];
-  stateUpdates?: MutationEntry[];
-  variants?: {
-    options?: VariantOption[];
+  name: Optional<string>;
+  applicability: Optional<ConditionEntry[]>;
+  selection: Optional<SelectionRule>;
+  variables: Optional<Record<string, GeneratorVariable>>;
+  creation: Optional<CreationEntry[]>;
+  relationships: Optional<RelationshipEntry[]>;
+  stateUpdates: Optional<MutationEntry[]>;
+  variants: Optional<{
+    options: Optional<VariantOption[]>;
     [key: string]: unknown;
-  };
+  }>;
   [key: string]: unknown;
 }
 
 /** A phase transition in a contagion system. */
 interface PhaseTransition {
-  selection?: SelectionRule;
-  toStatus?: string;
+  selection: Optional<SelectionRule>;
+  toStatus: Optional<string>;
   [key: string]: unknown;
 }
 
 /** A contagion config within a system. */
 interface ContagionConfig {
-  type?: string;
-  relationshipKind?: string;
-  tagPattern?: string;
+  type: Optional<string>;
+  relationshipKind: Optional<string>;
+  tagPattern: Optional<string>;
   [key: string]: unknown;
 }
 
@@ -315,49 +317,49 @@ interface ContagionVector {
 
 /** Multi-source configuration in contagion systems. */
 interface MultiSourceConfig {
-  sourceSelection?: SelectionRule;
-  immunityTagPrefix?: string;
+  sourceSelection: Optional<SelectionRule>;
+  immunityTagPrefix: Optional<string>;
   [key: string]: unknown;
 }
 
 /** A clustering criterion. */
 interface ClusteringCriterion {
-  type?: string;
-  relationshipKind?: string;
+  type: Optional<string>;
+  relationshipKind: Optional<string>;
   [key: string]: unknown;
 }
 
 /** A meta-entity config within cluster formation. */
 interface MetaEntityConfig {
-  kind?: string;
-  additionalTags?: string[];
+  kind: Optional<string>;
+  additionalTags: Optional<string[]>;
   [key: string]: unknown;
 }
 
 /** Post-process config within cluster formation. */
 interface PostProcessConfig {
-  pressureChanges?: Record<string, unknown>;
-  governanceRelationship?: string;
-  governanceFactionSubtype?: string;
+  pressureChanges: Optional<Record<string, unknown>>;
+  governanceRelationship: Optional<string>;
+  governanceFactionSubtype: Optional<string>;
   [key: string]: unknown;
 }
 
 /** Tag diffusion convergence/divergence config. */
 interface TagDiffusionTagList {
-  tags?: string[];
+  tags: Optional<string[]>;
   [key: string]: unknown;
 }
 
 /** Tag diffusion divergence pressure config. */
 interface DivergencePressureConfig {
-  pressureName?: string;
+  pressureName: Optional<string>;
   [key: string]: unknown;
 }
 
 /** Source/sink config for plane diffusion. */
 interface PlaneDiffusionEndpoint {
-  tagFilter?: string;
-  strengthTag?: string;
+  tagFilter: Optional<string>;
+  strengthTag: Optional<string>;
   [key: string]: unknown;
 }
 
@@ -375,44 +377,44 @@ interface SubtypeBonus {
 
 /** An evolution rule. */
 interface EvolutionRule {
-  action?: MutationEntry;
+  action: Optional<MutationEntry>;
   [key: string]: unknown;
 }
 
 /** Inner config block for a system definition. */
 interface SystemInnerConfig {
   id: string;
-  name?: string;
-  selection?: SelectionRule;
-  pressureChanges?: Record<string, unknown>;
+  name: Optional<string>;
+  selection: Optional<SelectionRule>;
+  pressureChanges: Optional<Record<string, unknown>>;
   // Contagion system fields
-  contagion?: ContagionConfig;
-  vectors?: ContagionVector[];
-  infectionAction?: MutationEntry;
-  phaseTransitions?: PhaseTransition[];
-  multiSource?: MultiSourceConfig;
+  contagion: Optional<ContagionConfig>;
+  vectors: Optional<ContagionVector[]>;
+  infectionAction: Optional<MutationEntry>;
+  phaseTransitions: Optional<PhaseTransition[]>;
+  multiSource: Optional<MultiSourceConfig>;
   // Evolution system fields
-  subtypeBonuses?: SubtypeBonus[];
-  metric?: MetricEntry;
-  rules?: EvolutionRule[];
+  subtypeBonuses: Optional<SubtypeBonus[]>;
+  metric: Optional<MetricEntry>;
+  rules: Optional<EvolutionRule[]>;
   // Threshold system fields
-  conditions?: ConditionEntry[];
-  actions?: MutationEntry[];
-  clusterRelationshipKind?: string;
+  conditions: Optional<ConditionEntry[]>;
+  actions: Optional<MutationEntry[]>;
+  clusterRelationshipKind: Optional<string>;
   // Cluster formation fields
-  clustering?: { criteria?: ClusteringCriterion[]; [key: string]: unknown };
-  metaEntity?: MetaEntityConfig;
-  postProcess?: PostProcessConfig;
+  clustering: Optional<{ criteria: Optional<ClusteringCriterion[]>; [key: string]: unknown }>;
+  metaEntity: Optional<MetaEntityConfig>;
+  postProcess: Optional<PostProcessConfig>;
   // Tag diffusion fields
-  connectionKind?: string;
-  convergence?: TagDiffusionTagList;
-  divergence?: TagDiffusionTagList;
-  divergencePressure?: DivergencePressureConfig;
+  connectionKind: Optional<string>;
+  convergence: Optional<TagDiffusionTagList>;
+  divergence: Optional<TagDiffusionTagList>;
+  divergencePressure: Optional<DivergencePressureConfig>;
   // Plane diffusion fields
-  sources?: PlaneDiffusionEndpoint;
-  sinks?: PlaneDiffusionEndpoint;
-  outputTags?: PlaneDiffusionOutputTag[];
-  valueTag?: string;
+  sources: Optional<PlaneDiffusionEndpoint>;
+  sinks: Optional<PlaneDiffusionEndpoint>;
+  outputTags: Optional<PlaneDiffusionOutputTag[]>;
+  valueTag: Optional<string>;
   [key: string]: unknown;
 }
 
@@ -425,29 +427,29 @@ interface SystemConfig {
 
 /** A pressure modifier within an action's probability. */
 interface PressureModifier {
-  pressure?: string;
+  pressure: Optional<string>;
   [key: string]: unknown;
 }
 
 /** An action config object. */
 interface ActionConfig {
   id: string;
-  name?: string;
-  actor?: {
-    selection?: SelectionRule;
-    conditions?: ConditionEntry[];
-    instigator?: VariableSelectionRule;
+  name: Optional<string>;
+  actor: Optional<{
+    selection: Optional<SelectionRule>;
+    conditions: Optional<ConditionEntry[]>;
+    instigator: Optional<VariableSelectionRule>;
     [key: string]: unknown;
-  };
-  targeting?: SelectionRule;
-  outcome?: {
-    mutations?: MutationEntry[];
+  }>;
+  targeting: Optional<SelectionRule>;
+  outcome: Optional<{
+    mutations: Optional<MutationEntry[]>;
     [key: string]: unknown;
-  };
-  probability?: {
-    pressureModifiers?: PressureModifier[];
+  }>;
+  probability: Optional<{
+    pressureModifiers: Optional<PressureModifier[]>;
     [key: string]: unknown;
-  };
+  }>;
   [key: string]: unknown;
 }
 
@@ -458,7 +460,7 @@ interface ActionConfig {
 /** A reference entry stored in usage tracking arrays (e.g. { id, name }). */
 interface Ref {
   id: string;
-  name?: string;
+  name: Optional<string>;
   [key: string]: unknown;
 }
 
@@ -467,7 +469,7 @@ interface RefInfo {
   type: string;
   id: string;
   field: string;
-  location?: string;
+  location: Optional<string>;
 }
 
 /** A single invalid reference found during scanning. */
@@ -477,7 +479,7 @@ export interface InvalidRef {
   field: string;
   refType: string;
   refId: string;
-  location?: string;
+  location: Optional<string>;
 }
 
 /** An orphaned element (unused). */
@@ -510,14 +512,14 @@ export interface ElementUsage {
 }
 
 export interface UsageMap {
-  entityKinds: Record<string, ElementUsage>;
-  subtypes: Record<string, { generators: Ref[]; systems: Ref[]; actions: Ref[] }>;
-  statuses: Record<string, { generators: Ref[]; systems: Ref[]; actions: Ref[] }>;
-  relationshipKinds: Record<string, ElementUsage & { srcKinds: string[]; dstKinds: string[] }>;
-  tags: Record<string, Record<string, Ref[]>>;
-  pressures: Record<string, { generators: Ref[]; systems: Ref[]; actions: Ref[]; eras: Ref[]; feedbackSources: FeedbackFactor[]; feedbackSinks: FeedbackFactor[] }>;
-  generators: Record<string, { eras: Ref[] }>;
-  systems: Record<string, { eras: Ref[] }>;
+  entityKinds: Partial<Record<string, ElementUsage>>;
+  subtypes: Partial<Record<string, { generators: Ref[]; systems: Ref[]; actions: Ref[] }>>;
+  statuses: Partial<Record<string, { generators: Ref[]; systems: Ref[]; actions: Ref[] }>>;
+  relationshipKinds: Partial<Record<string, ElementUsage & { srcKinds: string[]; dstKinds: string[] }>>;
+  tags: Partial<Record<string, Record<string, Ref[]>>>;
+  pressures: Partial<Record<string, { generators: Ref[]; systems: Ref[]; actions: Ref[]; eras: Ref[]; feedbackSources: FeedbackFactor[]; feedbackSinks: FeedbackFactor[] }>>;
+  generators: Partial<Record<string, { eras: Ref[] }>>;
+  systems: Partial<Record<string, { eras: Ref[] }>>;
   validation: ValidationResults;
 }
 
@@ -595,7 +597,7 @@ export function computeUsageMap(
 
 function initializeFromSchema(usageMap: UsageMap, schema: SchemaConfig): void {
   // Entity kinds
-  (schema?.entityKinds ?? []).forEach(ek => {
+  (schema.entityKinds ?? []).forEach(ek => {
     usageMap.entityKinds[ek.kind] = { generators: [], systems: [], actions: [], pressures: [] };
 
     // Subtypes
@@ -616,7 +618,7 @@ function initializeFromSchema(usageMap: UsageMap, schema: SchemaConfig): void {
   });
 
   // Relationship kinds
-  (schema?.relationshipKinds ?? []).forEach(rk => {
+  (schema.relationshipKinds ?? []).forEach(rk => {
     usageMap.relationshipKinds[rk.kind] = {
       generators: [],
       systems: [],
@@ -628,24 +630,24 @@ function initializeFromSchema(usageMap: UsageMap, schema: SchemaConfig): void {
   });
 
   // Tags (from tag registry if available)
-  (schema?.tagRegistry ?? []).forEach(t => {
+  (schema.tagRegistry ?? []).forEach(t => {
     const tagId = typeof t === 'string' ? t : t.tag;
     ensureTagEntry(usageMap, tagId);
   });
 }
 
 function initializePressures(usageMap: UsageMap, pressures: PressureConfig[]): void {
-  (pressures ?? []).forEach(p => {
+  pressures.forEach(p => {
     usageMap.pressures[p.id] = { generators: [], systems: [], actions: [], eras: [], feedbackSources: [], feedbackSinks: [] };
   });
 }
 
 function initializeGeneratorsAndSystems(usageMap: UsageMap, generators: GeneratorConfig[], systems: SystemConfig[]): void {
-  (generators ?? []).forEach(g => {
+  generators.forEach(g => {
     usageMap.generators[g.id] = { eras: [] };
   });
 
-  (systems ?? []).forEach(s => {
+  systems.forEach(s => {
     const sysId = s.config.id;
     usageMap.systems[sysId] = { eras: [] };
   });
@@ -830,58 +832,36 @@ function scanGraphPathAssertion(assertion: GraphPathAssertion | null | undefined
   });
 }
 
-function scanSelectionFilters(filters: SelectionFilter[] | null | undefined, usageMap: UsageMap, contextKey: string, ref: Ref, info: RefInfo): void {
-  (filters ?? []).forEach((filter, idx) => {
-    switch (filter.type) {
-      case 'has_relationship':
-      case 'lacks_relationship':
-        if (filter.kind) {
-          recordRelationshipKindRef(
-            usageMap,
-            filter.kind,
-            contextKey,
-            ref,
-            { ...info, field: `${info.field}[${idx}].kind` }
-          );
-        }
-        break;
-      case 'shares_related':
-        if (filter.relationshipKind) {
-          recordRelationshipKindRef(
-            usageMap,
-            filter.relationshipKind,
-            contextKey,
-            ref,
-            { ...info, field: `${info.field}[${idx}].relationshipKind` }
-          );
-        }
-        break;
-      case 'has_tag':
-      case 'lacks_tag':
-        recordTagRef(usageMap, filter.tag, contextKey, ref);
-        break;
-      case 'has_tags':
-      case 'has_any_tag':
-      case 'lacks_any_tag':
-        (filter.tags ?? []).forEach(tag => recordTagRef(usageMap, tag, contextKey, ref));
-        break;
-      case 'has_status':
-        if (filter.status) {
-          recordStatusRef(usageMap, filter.status, contextKey, ref);
-        }
-        break;
-      case 'graph_path':
-        scanGraphPathAssertion(filter.assert, usageMap, contextKey, ref, {
-          ...info,
-          field: `${info.field}[${idx}].assert`,
-        });
-        break;
-      default:
-        break;
-    }
-  });
+function scanSelectionFilter(filter: SelectionFilter, idx: number, usageMap: UsageMap, contextKey: string, ref: Ref, info: RefInfo): void {
+  const recordRelKind = () => {
+    if (filter.kind) recordRelationshipKindRef(usageMap, filter.kind, contextKey, ref, { ...info, field: `${info.field}[${idx}].kind` });
+  };
+  const recordTag = () => recordTagRef(usageMap, filter.tag, contextKey, ref);
+  const recordTags = () => (filter.tags ?? []).forEach(tag => recordTagRef(usageMap, tag, contextKey, ref));
+  const handlers: Partial<Record<string, () => void>> = {
+    has_relationship: recordRelKind,
+    lacks_relationship: recordRelKind,
+    shares_related: () => {
+      if (filter.relationshipKind) recordRelationshipKindRef(usageMap, filter.relationshipKind, contextKey, ref, { ...info, field: `${info.field}[${idx}].relationshipKind` });
+    },
+    has_tag: recordTag,
+    lacks_tag: recordTag,
+    has_tags: recordTags,
+    has_any_tag: recordTags,
+    lacks_any_tag: recordTags,
+    has_status: () => { if (filter.status) recordStatusRef(usageMap, filter.status, contextKey, ref); },
+    graph_path: () => scanGraphPathAssertion(filter.assert, usageMap, contextKey, ref, { ...info, field: `${info.field}[${idx}].assert` }),
+  };
+  if (!filter.type) return;
+  const handler = handlers[filter.type];
+  if (handler) handler();
 }
 
+function scanSelectionFilters(filters: SelectionFilter[] | null | undefined, usageMap: UsageMap, contextKey: string, ref: Ref, info: RefInfo): void {
+  (filters ?? []).forEach((filter, idx) => scanSelectionFilter(filter, idx, usageMap, contextKey, ref, info));
+}
+
+// eslint-disable-next-line complexity -- flat sequential scan of independent optional selection fields
 function scanSelectionRule(selection: SelectionRule | null | undefined, usageMap: UsageMap, contextKey: string, ref: Ref, info: RefInfo): void {
   if (!selection) return;
   if (selection.kind) {
@@ -920,6 +900,7 @@ function scanSelectionRule(selection: SelectionRule | null | undefined, usageMap
   });
 }
 
+// eslint-disable-next-line complexity -- flat sequential scan of independent optional variable selection fields
 function scanVariableSelectionRule(selection: VariableSelectionRule | null | undefined, usageMap: UsageMap, contextKey: string, ref: Ref, info: RefInfo): void {
   if (!selection) return;
   const from = selection.from;
@@ -1044,47 +1025,31 @@ function scanCondition(condition: ConditionEntry | null | undefined, usageMap: U
   scanConditionInner(condition, usageMap, pressureIds, contextKey, ref, info);
 }
 
+function scanMutation(mutation: MutationEntry, idx: number, usageMap: UsageMap, pressureIds: Set<string>, contextKey: string, ref: Ref, info: RefInfo): void {
+  const handlers: Partial<Record<string, () => void>> = {
+    set_tag: () => recordTagRef(usageMap, mutation.tag, contextKey, ref),
+    remove_tag: () => recordTagRef(usageMap, mutation.tag, contextKey, ref),
+    create_relationship: () => {
+      if (mutation.kind) recordRelationshipKindRef(usageMap, mutation.kind, contextKey, ref, { ...info, field: `${info.field}[${idx}].kind` });
+    },
+    adjust_relationship_strength: () => {
+      if (mutation.kind) recordRelationshipKindRef(usageMap, mutation.kind, contextKey, ref, { ...info, field: `${info.field}[${idx}].kind` });
+    },
+    archive_relationship: () => {
+      if (mutation.relationshipKind) recordRelationshipKindRef(usageMap, mutation.relationshipKind, contextKey, ref, { ...info, field: `${info.field}[${idx}].relationshipKind` });
+    },
+    change_status: () => { if (mutation.newStatus) recordStatusRef(usageMap, mutation.newStatus, contextKey, ref); },
+    modify_pressure: () => {
+      if (mutation.pressureId) recordPressureRef(usageMap, pressureIds, mutation.pressureId, contextKey, ref, { ...info, field: `${info.field}[${idx}].pressureId` });
+    },
+  };
+  if (!mutation.type) return;
+  const handler = handlers[mutation.type];
+  if (handler) handler();
+}
+
 function scanMutations(mutations: MutationEntry[], usageMap: UsageMap, pressureIds: Set<string>, contextKey: string, ref: Ref, info: RefInfo): void {
-  (mutations ?? []).forEach((mutation, idx) => {
-    switch (mutation.type) {
-      case 'set_tag':
-      case 'remove_tag':
-        recordTagRef(usageMap, mutation.tag, contextKey, ref);
-        break;
-      case 'create_relationship':
-      case 'adjust_relationship_strength':
-        if (mutation.kind) {
-          recordRelationshipKindRef(usageMap, mutation.kind, contextKey, ref, {
-            ...info,
-            field: `${info.field}[${idx}].kind`,
-          });
-        }
-        break;
-      case 'archive_relationship':
-        if (mutation.relationshipKind) {
-          recordRelationshipKindRef(usageMap, mutation.relationshipKind, contextKey, ref, {
-            ...info,
-            field: `${info.field}[${idx}].relationshipKind`,
-          });
-        }
-        break;
-      case 'change_status':
-        if (mutation.newStatus) {
-          recordStatusRef(usageMap, mutation.newStatus, contextKey, ref);
-        }
-        break;
-      case 'modify_pressure':
-        if (mutation.pressureId) {
-          recordPressureRef(usageMap, pressureIds, mutation.pressureId, contextKey, ref, {
-            ...info,
-            field: `${info.field}[${idx}].pressureId`,
-          });
-        }
-        break;
-      default:
-        break;
-    }
-  });
+  mutations.forEach((mutation, idx) => scanMutation(mutation, idx, usageMap, pressureIds, contextKey, ref, info));
 }
 
 function scanMetricEntityCount(metric: MetricEntry, usageMap: UsageMap, contextKey: string, ref: Ref, info: RefInfo): void {
@@ -1119,42 +1084,32 @@ function scanMetricNeighbor(metric: MetricEntry, usageMap: UsageMap, contextKey:
 }
 
 function scanMetricInner(metric: MetricEntry, usageMap: UsageMap, contextKey: string, ref: Ref, info: RefInfo): void {
-  switch (metric.type) {
-    case 'entity_count':
-      scanMetricEntityCount(metric, usageMap, contextKey, ref, info);
-      break;
-    case 'relationship_count':
-    case 'connection_count':
-    case 'cross_culture_ratio':
-      (metric.relationshipKinds ?? []).forEach((kind) =>
-        recordRelationshipKindRef(usageMap, kind, contextKey, ref, info)
-      );
-      break;
-    case 'tag_count':
-      (metric.tags ?? []).forEach(tag => recordTagRef(usageMap, tag, contextKey, ref));
-      break;
-    case 'ratio':
+  const scanRelKinds = () => (metric.relationshipKinds ?? []).forEach((kind) =>
+    recordRelationshipKindRef(usageMap, kind, contextKey, ref, info));
+  const scanNeighbor = () => scanMetricNeighbor(metric, usageMap, contextKey, ref, info);
+  const handlers: Partial<Record<string, () => void>> = {
+    entity_count: () => scanMetricEntityCount(metric, usageMap, contextKey, ref, info),
+    relationship_count: scanRelKinds,
+    connection_count: scanRelKinds,
+    cross_culture_ratio: scanRelKinds,
+    tag_count: () => (metric.tags ?? []).forEach(tag => recordTagRef(usageMap, tag, contextKey, ref)),
+    ratio: () => {
       if (metric.numerator) scanMetricInner(metric.numerator, usageMap, contextKey, ref, info);
       if (metric.denominator) scanMetricInner(metric.denominator, usageMap, contextKey, ref, info);
-      break;
-    case 'status_ratio':
+    },
+    status_ratio: () => {
       scanMetricEntityCount(metric, usageMap, contextKey, ref, info);
-      if (metric.aliveStatus) {
-        recordStatusRef(usageMap, metric.aliveStatus, contextKey, ref);
-      }
-      break;
-    case 'shared_relationship':
-      if (metric.sharedRelationshipKind) {
-        recordRelationshipKindRef(usageMap, metric.sharedRelationshipKind, contextKey, ref, info);
-      }
-      break;
-    case 'neighbor_kind_count':
-    case 'neighbor_prominence':
-      scanMetricNeighbor(metric, usageMap, contextKey, ref, info);
-      break;
-    default:
-      break;
-  }
+      if (metric.aliveStatus) recordStatusRef(usageMap, metric.aliveStatus, contextKey, ref);
+    },
+    shared_relationship: () => {
+      if (metric.sharedRelationshipKind) recordRelationshipKindRef(usageMap, metric.sharedRelationshipKind, contextKey, ref, info);
+    },
+    neighbor_kind_count: scanNeighbor,
+    neighbor_prominence: scanNeighbor,
+  };
+  if (!metric.type) return;
+  const handler = handlers[metric.type];
+  if (handler) handler();
 }
 
 function scanMetric(metric: MetricEntry | null | undefined, usageMap: UsageMap, contextKey: string, ref: Ref, info: RefInfo): void {
@@ -1162,21 +1117,25 @@ function scanMetric(metric: MetricEntry | null | undefined, usageMap: UsageMap, 
   scanMetricInner(metric, usageMap, contextKey, ref, info);
 }
 
+function trackFeedbackEntityKind(factor: FeedbackFactor, usageMap: UsageMap, pressure: PressureConfig, isPositive: boolean): void {
+  if (!factor.kind) return;
+  if (usageMap.entityKinds[factor.kind]) {
+    usageMap.entityKinds[factor.kind].pressures.push({ id: pressure.id, factor: factor.type });
+  } else {
+    usageMap.validation.invalidRefs.push({
+      type: 'pressure',
+      id: pressure.id,
+      field: `${isPositive ? 'positive' : 'negative'}Feedback.kind`,
+      refType: 'entityKind',
+      refId: factor.kind,
+      location: `Pressure "${pressure.name ?? pressure.id}"`,
+    });
+  }
+}
+
 function scanFeedbackFactors(usageMap: UsageMap, pressure: PressureConfig, factors: FeedbackFactor[] | undefined, isPositive: boolean): void {
   (factors ?? []).forEach(factor => {
-    // Track entity kind references
-    if (factor.kind && usageMap.entityKinds[factor.kind]) {
-      usageMap.entityKinds[factor.kind].pressures.push({ id: pressure.id, factor: factor.type });
-    } else if (factor.kind) {
-      usageMap.validation.invalidRefs.push({
-        type: 'pressure',
-        id: pressure.id,
-        field: `${isPositive ? 'positive' : 'negative'}Feedback.kind`,
-        refType: 'entityKind',
-        refId: factor.kind,
-        location: `Pressure "${pressure.name ?? pressure.id}"`,
-      });
-    }
+    trackFeedbackEntityKind(factor, usageMap, pressure, isPositive);
 
     // Track relationship kind references
     if (factor.relationshipKinds) {
@@ -1226,18 +1185,18 @@ function scanFeedbackFactors(usageMap: UsageMap, pressure: PressureConfig, facto
 }
 
 function scanPressureReferences(usageMap: UsageMap, pressures: PressureConfig[]): void {
-  (pressures ?? []).forEach(pressure => {
+  pressures.forEach(pressure => {
     scanFeedbackFactors(usageMap, pressure, pressure.growth?.positiveFeedback, true);
     scanFeedbackFactors(usageMap, pressure, pressure.growth?.negativeFeedback, false);
   });
 }
 
 function scanEraReferences(usageMap: UsageMap, eras: EraConfig[], generators: GeneratorConfig[], systems: SystemConfig[]): void {
-  const generatorIds = new Set((generators ?? []).map(g => g.id));
-  const systemIds = new Set((systems ?? []).map(s => s.config.id));
+  const generatorIds = new Set(generators.map(g => g.id));
+  const systemIds = new Set(systems.map(s => s.config.id));
   const pressureIds = new Set(Object.keys(usageMap.pressures));
 
-  (eras ?? []).forEach(era => {
+  eras.forEach(era => {
     const eraRef: Ref = { id: era.id, name: era.name };
 
     // Track generator references
@@ -1275,7 +1234,7 @@ function scanEraReferences(usageMap: UsageMap, eras: EraConfig[], generators: Ge
     });
 
     (era.entryEffects?.mutations ?? []).forEach((mutation) => {
-      if (mutation?.type !== 'modify_pressure') return;
+      if (mutation.type !== 'modify_pressure') return;
       if (mutation.pressureId) {
         recordPressureRef(usageMap, pressureIds, mutation.pressureId, 'eras', eraRef, {
           type: 'era',
@@ -1286,7 +1245,7 @@ function scanEraReferences(usageMap: UsageMap, eras: EraConfig[], generators: Ge
       }
     });
     (era.exitEffects?.mutations ?? []).forEach((mutation) => {
-      if (mutation?.type !== 'modify_pressure') return;
+      if (mutation.type !== 'modify_pressure') return;
       if (mutation.pressureId) {
         recordPressureRef(usageMap, pressureIds, mutation.pressureId, 'eras', eraRef, {
           type: 'era',
@@ -1302,7 +1261,6 @@ function scanEraReferences(usageMap: UsageMap, eras: EraConfig[], generators: Ge
 function scanVariantApplyTags(tags: Record<string, Record<string, string>> | null | undefined, usageMap: UsageMap, contextKey: string, ref: Ref): void {
   if (!tags) return;
   Object.values(tags).forEach((tagMap) => {
-    if (!tagMap || typeof tagMap !== 'object') return;
     Object.keys(tagMap).forEach((tag) => recordTagRef(usageMap, tag, contextKey, ref));
   });
 }
@@ -1314,6 +1272,7 @@ function scanGeneratorCreation(
   genId: string,
   location: string,
 ): void {
+  // eslint-disable-next-line complexity -- flat sequential scan of creation entry fields (kind, subtype, status, culture, relationships)
   creation.forEach((entry, idx) => {
     const kind = typeof entry.kind === 'string' ? entry.kind : null;
     if (kind) {
@@ -1380,9 +1339,9 @@ function scanGeneratorVariants(
 }
 
 function scanGeneratorReferences(usageMap: UsageMap, generators: GeneratorConfig[], pressures: PressureConfig[]): void {
-  const pressureIds = new Set((pressures ?? []).map(p => p.id));
+  const pressureIds = new Set(pressures.map(p => p.id));
 
-  (generators ?? []).forEach(gen => {
+  generators.forEach(gen => {
     const genRef: Ref = { id: gen.id, name: gen.name };
     const location = `Generator "${gen.name ?? gen.id}"`;
 
@@ -1403,7 +1362,7 @@ function scanGeneratorReferences(usageMap: UsageMap, generators: GeneratorConfig
     });
 
     Object.entries(gen.variables ?? {}).forEach(([varName, variable]) => {
-      scanVariableSelectionRule(variable?.select, usageMap, 'generators', genRef, {
+      scanVariableSelectionRule(variable.select, usageMap, 'generators', genRef, {
         type: 'generator',
         id: gen.id,
         field: `variables.${varName}.select`,
@@ -1456,6 +1415,10 @@ function scanContagionSystem(config: SystemInnerConfig, usageMap: UsageMap, pres
     });
     if (transition.toStatus) recordStatusRef(usageMap, transition.toStatus, 'systems', sysRef);
   });
+  scanContagionMultiSource(config, usageMap, sysRef, sysId, location);
+}
+
+function scanContagionMultiSource(config: SystemInnerConfig, usageMap: UsageMap, sysRef: Ref, sysId: string, location: string): void {
   if (config.multiSource?.sourceSelection) {
     scanSelectionRule(config.multiSource.sourceSelection, usageMap, 'systems', sysRef, {
       type: 'system', id: sysId, field: 'multiSource.sourceSelection', location,
@@ -1472,7 +1435,7 @@ function scanEvolutionSystem(config: SystemInnerConfig, usageMap: UsageMap, pres
     type: 'system', id: sysId, field: 'metric', location,
   });
   (config.rules ?? []).forEach((rule, idx) => {
-    scanMutations(rule?.action ? [rule.action] : [], usageMap, pressureIds, 'systems', sysRef, {
+    scanMutations(rule.action ? [rule.action] : [], usageMap, pressureIds, 'systems', sysRef, {
       type: 'system', id: sysId, field: `rules[${idx}].action`, location,
     });
   });
@@ -1508,6 +1471,10 @@ function scanClusterSystem(config: SystemInnerConfig, usageMap: UsageMap, pressu
     });
   }
   (config.metaEntity?.additionalTags ?? []).forEach((tag) => recordTagRef(usageMap, tag, 'systems', sysRef));
+  scanClusterPostProcess(config, usageMap, pressureIds, sysRef, sysId, location);
+}
+
+function scanClusterPostProcess(config: SystemInnerConfig, usageMap: UsageMap, pressureIds: Set<string>, sysRef: Ref, sysId: string, location: string): void {
   Object.keys(config.postProcess?.pressureChanges ?? {}).forEach((pressureId) => {
     recordPressureRef(usageMap, pressureIds, pressureId, 'systems', sysRef, {
       type: 'system', id: sysId, field: 'postProcess.pressureChanges', location,
@@ -1538,6 +1505,7 @@ function scanTagDiffusionSystem(config: SystemInnerConfig, usageMap: UsageMap, p
   }
 }
 
+// eslint-disable-next-line complexity -- flat sequential scan of independent plane diffusion config fields (sources, sinks, outputTags)
 function scanPlaneDiffusionSystem(config: SystemInnerConfig, usageMap: UsageMap, sysRef: Ref): void {
   if (config.sources?.tagFilter) recordTagRef(usageMap, config.sources.tagFilter, 'systems', sysRef);
   if (config.sources?.strengthTag) recordTagRef(usageMap, config.sources.strengthTag, 'systems', sysRef);
@@ -1549,7 +1517,7 @@ function scanPlaneDiffusionSystem(config: SystemInnerConfig, usageMap: UsageMap,
 
 type SystemScanner = (config: SystemInnerConfig, usageMap: UsageMap, pressureIds: Set<string>, sysRef: Ref, sysId: string, location: string) => void;
 
-const systemTypeScanners: Record<string, SystemScanner> = {
+const systemTypeScanners: Partial<Record<string, SystemScanner>> = {
   graphContagion: scanContagionSystem,
   connectionEvolution: scanEvolutionSystem,
   thresholdTrigger: scanThresholdSystem,
@@ -1558,9 +1526,9 @@ const systemTypeScanners: Record<string, SystemScanner> = {
 };
 
 function scanSystemReferences(usageMap: UsageMap, systems: SystemConfig[], pressures: PressureConfig[]): void {
-  const pressureIds = new Set((pressures ?? []).map(p => p.id));
+  const pressureIds = new Set(pressures.map(p => p.id));
 
-  (systems ?? []).forEach(sys => {
+  systems.forEach(sys => {
     const sysId = sys.config.id;
     const sysName = sys.config.name ?? sysId;
     const sysRef: Ref = { id: sysId, name: sysName };
@@ -1587,9 +1555,9 @@ function scanSystemReferences(usageMap: UsageMap, systems: SystemConfig[], press
 }
 
 function scanActionReferences(usageMap: UsageMap, actions: ActionConfig[], pressures: PressureConfig[]): void {
-  const pressureIds = new Set((pressures ?? []).map(p => p.id));
+  const pressureIds = new Set(pressures.map(p => p.id));
 
-  (actions ?? []).forEach(action => {
+  actions.forEach(action => {
     const actionRef: Ref = { id: action.id, name: action.name };
     const location = `Action "${action.name ?? action.id}"`;
 
@@ -1633,7 +1601,7 @@ function scanActionReferences(usageMap: UsageMap, actions: ActionConfig[], press
     const pressureModifiers = action.probability?.pressureModifiers;
     if (Array.isArray(pressureModifiers)) {
       pressureModifiers.forEach((mod) => {
-        if (mod?.pressure) {
+        if (mod.pressure) {
           recordPressureRef(usageMap, pressureIds, mod.pressure, 'actions', actionRef, {
             type: 'action',
             id: action.id,
@@ -1725,9 +1693,33 @@ interface RelKindConstraints {
   dstKinds: string[];
 }
 
+function collectKindsFromSelection(selection: SelectionRule | null | undefined): string[] {
+  return [
+    ...(selection?.kind ? [selection.kind] : []),
+    ...(selection?.kinds ?? []),
+  ];
+}
+
+function checkDirectionalCompat(
+  constraintKinds: string[], actualKinds: string[], direction: string,
+  mutation: MutationEntry, idx: number, actionId: string, usageMap: UsageMap,
+): void {
+  if (constraintKinds.length === 0 || actualKinds.length === 0) return;
+  const compatible = actualKinds.some(k => constraintKinds.includes(k));
+  if (!compatible) {
+    const ref = direction === 'src' ? mutation.src : mutation.dst;
+    usageMap.validation.compatibility.push({
+      type: 'action',
+      id: actionId,
+      field: `outcome.mutations[${idx}]`,
+      issue: `Relationship "${mutation.kind}" requires ${direction} to be one of [${constraintKinds.join(', ')}], but ${ref ?? 'unknown'} kinds are [${actualKinds.join(', ')}]`,
+    });
+  }
+}
+
 function checkRelationshipCompatibility(usageMap: UsageMap, generators: GeneratorConfig[], actions: ActionConfig[], schema: SchemaConfig): void {
-  const relationshipKinds: Record<string, RelKindConstraints> = {};
-  (schema?.relationshipKinds ?? []).forEach(rk => {
+  const relationshipKinds: Partial<Record<string, RelKindConstraints>> = {};
+  (schema.relationshipKinds ?? []).forEach(rk => {
     relationshipKinds[rk.kind] = {
       srcKinds: rk.srcKinds ?? [],
       dstKinds: rk.dstKinds ?? [],
@@ -1735,7 +1727,7 @@ function checkRelationshipCompatibility(usageMap: UsageMap, generators: Generato
   });
 
   // Check generator relationship compatibility
-  (generators ?? []).forEach(gen => {
+  generators.forEach(gen => {
     (gen.relationships ?? []).forEach((rel) => {
       const rkDef = relationshipKinds[rel.kind];
       if (!rkDef) return; // Already flagged as invalid ref
@@ -1750,22 +1742,10 @@ function checkRelationshipCompatibility(usageMap: UsageMap, generators: Generato
   });
 
   // Check action outcome relationship compatibility
-  (actions ?? []).forEach(action => {
-    const actorSelection = action.actor?.selection ?? {};
-    const actorKinds: string[] = [
-      ...(actorSelection.kind ? [actorSelection.kind] : []),
-      ...(actorSelection.kinds ?? []),
-    ];
-    const instigatorSelection = action.actor?.instigator ?? {};
-    const instigatorKinds: string[] = [
-      ...(instigatorSelection.kind ? [instigatorSelection.kind] : []),
-      ...(instigatorSelection.kinds ?? []),
-    ];
-    const targetSelection = action.targeting ?? {};
-    const targetKinds: string[] = [
-      ...(targetSelection.kind ? [targetSelection.kind] : []),
-      ...(targetSelection.kinds ?? []),
-    ];
+  actions.forEach(action => {
+    const actorKinds = collectKindsFromSelection(action.actor?.selection);
+    const instigatorKinds = collectKindsFromSelection(action.actor?.instigator);
+    const targetKinds = collectKindsFromSelection(action.targeting);
 
     const kindsForRef = (entityRef: string): string[] => {
       if (entityRef === '$actor') return actorKinds;
@@ -1775,39 +1755,14 @@ function checkRelationshipCompatibility(usageMap: UsageMap, generators: Generato
     };
 
     (action.outcome?.mutations ?? []).forEach((mutation, idx) => {
-      if (mutation.type !== 'create_relationship' && mutation.type !== 'adjust_relationship_strength') {
-        return;
-      }
+      if (mutation.type !== 'create_relationship' && mutation.type !== 'adjust_relationship_strength') return;
       if (!mutation.kind) return;
       const rkDef = relationshipKinds[mutation.kind];
       if (!rkDef) return;
-
       const srcKinds = mutation.src ? kindsForRef(mutation.src) : [];
       const dstKinds = mutation.dst ? kindsForRef(mutation.dst) : [];
-
-      if (rkDef.srcKinds.length > 0 && srcKinds.length > 0) {
-        const compatible = srcKinds.some(k => rkDef.srcKinds.includes(k));
-        if (!compatible) {
-          usageMap.validation.compatibility.push({
-            type: 'action',
-            id: action.id,
-            field: `outcome.mutations[${idx}]`,
-            issue: `Relationship "${mutation.kind}" requires src to be one of [${rkDef.srcKinds.join(', ')}], but ${mutation.src ?? 'unknown'} kinds are [${srcKinds.join(', ')}]`,
-          });
-        }
-      }
-
-      if (rkDef.dstKinds.length > 0 && dstKinds.length > 0) {
-        const compatible = dstKinds.some(k => rkDef.dstKinds.includes(k));
-        if (!compatible) {
-          usageMap.validation.compatibility.push({
-            type: 'action',
-            id: action.id,
-            field: `outcome.mutations[${idx}]`,
-            issue: `Relationship "${mutation.kind}" requires dst to be one of [${rkDef.dstKinds.join(', ')}], but ${mutation.dst ?? 'unknown'} kinds are [${dstKinds.join(', ')}]`,
-          });
-        }
-      }
+      checkDirectionalCompat(rkDef.srcKinds, srcKinds, 'src', mutation, idx, action.id, usageMap);
+      checkDirectionalCompat(rkDef.dstKinds, dstKinds, 'dst', mutation, idx, action.id, usageMap);
     });
   });
 }
@@ -1862,58 +1817,58 @@ export function getUsageSummary(usage: Partial<Record<string, Ref[]>>): string {
 /** Axis definition for semantic planes. */
 interface AxisDef {
   id: string;
-  name?: string;
-  lowTag?: string;
-  highTag?: string;
+  name: Optional<string>;
+  lowTag: Optional<string>;
+  highTag: Optional<string>;
   [key: string]: unknown;
 }
 
 /** A seed entity entry. */
 interface SeedEntityEntry {
-  id?: string;
-  name?: string;
-  kind?: string;
-  subtype?: string;
-  tags?: Record<string, unknown>;
+  id: Optional<string>;
+  name: Optional<string>;
+  kind: Optional<string>;
+  subtype: Optional<string>;
+  tags: Optional<Record<string, unknown>>;
   [key: string]: unknown;
 }
 
 /** Culture definition with naming data. */
 interface CultureEntry {
-  naming?: {
-    profiles?: Array<{
-      strategyGroups?: Array<{
-        conditions?: { tags?: string[]; [key: string]: unknown };
+  naming: Optional<{
+    profiles: Optional<Array<{
+      strategyGroups: Optional<Array<{
+        conditions: Optional<{ tags: Optional<string[]>; [key: string]: unknown }>;
         [key: string]: unknown;
-      }>;
+      }>>;
       [key: string]: unknown;
-    }>;
+    }>>;
     [key: string]: unknown;
-  };
+  }>;
   [key: string]: unknown;
 }
 
 /** Entity kind entry (for computeTagUsage axis scanning). */
 interface EntityKindEntry {
-  kind?: string;
-  semanticPlane?: {
-    axes?: Record<string, { axisId?: string } | undefined>;
+  kind: Optional<string>;
+  semanticPlane: Optional<{
+    axes: Optional<Record<string, { axisId: Optional<string> } | undefined>>;
     [key: string]: unknown;
-  };
+  }>;
   [key: string]: unknown;
 }
 
 export interface ComputeTagUsageParams {
-  cultures?: CultureEntry[];
-  seedEntities?: SeedEntityEntry[];
-  generators?: GeneratorConfig[];
-  systems?: SystemConfig[];
-  pressures?: PressureConfig[];
-  entityKinds?: EntityKindEntry[];
-  axisDefinitions?: AxisDef[];
+  cultures: Optional<CultureEntry[]>;
+  seedEntities: Optional<SeedEntityEntry[]>;
+  generators: Optional<GeneratorConfig[]>;
+  systems: Optional<SystemConfig[]>;
+  pressures: Optional<PressureConfig[]>;
+  entityKinds: Optional<EntityKindEntry[]>;
+  axisDefinitions: Optional<AxisDef[]>;
 }
 
-type TagUsageMap = Record<string, Record<string, number>>;
+type TagUsageMap = Partial<Record<string, Partial<Record<string, number>>>>;
 
 function collectTagsFromFilters(filters: SelectionFilter[] | undefined, section: string, usage: TagUsageMap, addTagUsage: (tag: string, sec: string) => void): void {
   (filters ?? []).forEach((filter) => {
@@ -1950,7 +1905,7 @@ function collectTagsFromCondition(condition: ConditionEntry | null | undefined, 
 }
 
 function collectTagsFromMutations(mutations: MutationEntry[], section: string, addTagUsage: (tag: string, sec: string) => void): void {
-  (mutations ?? []).forEach((mutation) => {
+  mutations.forEach((mutation) => {
     if ((mutation.type === 'set_tag' || mutation.type === 'remove_tag') && mutation.tag) {
       addTagUsage(mutation.tag, section);
     }
@@ -1995,37 +1950,36 @@ function collectTagsFromSystems(systems: SystemConfig[], usage: TagUsageMap, add
 }
 
 function collectTagsFromSystemType(sys: SystemConfig, config: SystemInnerConfig, addTagUsage: (tag: string, sec: string) => void): void {
-  switch (sys.systemType) {
-    case 'tagDiffusion':
+  const collectors: Partial<Record<string, () => void>> = {
+    tagDiffusion: () => {
       (config.convergence?.tags ?? []).forEach(tag => addTagUsage(tag, 'systems'));
       (config.divergence?.tags ?? []).forEach(tag => addTagUsage(tag, 'systems'));
-      break;
-    case 'thresholdTrigger':
+    },
+    thresholdTrigger: () => {
       (config.conditions ?? []).forEach((cond) => collectTagsFromCondition(cond, 'systems', addTagUsage));
       collectTagsFromMutations(config.actions ?? [], 'systems', addTagUsage);
-      break;
-    case 'graphContagion':
+    },
+    graphContagion: () => {
       if (config.contagion?.type === 'tag' && config.contagion.tagPattern) {
         addTagUsage(config.contagion.tagPattern, 'systems');
       }
       collectTagsFromMutations(config.infectionAction ? [config.infectionAction] : [], 'systems', addTagUsage);
-      break;
-    case 'connectionEvolution':
+    },
+    connectionEvolution: () => {
       (config.rules ?? []).forEach((rule) => {
-        collectTagsFromMutations(rule?.action ? [rule.action] : [], 'systems', addTagUsage);
+        collectTagsFromMutations(rule.action ? [rule.action] : [], 'systems', addTagUsage);
       });
-      break;
-    case 'clusterFormation':
+    },
+    clusterFormation: () => {
       (config.metaEntity?.additionalTags ?? []).forEach((tag) => addTagUsage(tag, 'systems'));
-      break;
-    case 'planeDiffusion':
-      collectTagsFromPlaneDiffusion(config, addTagUsage);
-      break;
-    default:
-      break;
-  }
+    },
+    planeDiffusion: () => collectTagsFromPlaneDiffusion(config, addTagUsage),
+  };
+  const collector = collectors[sys.systemType];
+  if (collector) collector();
 }
 
+// eslint-disable-next-line complexity -- flat sequential scan of plane diffusion tag fields (sources, sinks, outputTags, dynamicInfluence)
 function collectTagsFromPlaneDiffusion(config: SystemInnerConfig, addTagUsage: (tag: string, sec: string) => void): void {
   if (config.sources?.tagFilter) addTagUsage(config.sources.tagFilter, 'systems');
   if (config.sources?.strengthTag) addTagUsage(config.sources.strengthTag, 'systems');
@@ -2152,10 +2106,10 @@ interface SchemaUsageStatusEntry {
 }
 
 export interface SchemaUsage {
-  entityKinds: Record<string, SchemaUsageEntityKind>;
-  relationshipKinds: Record<string, SchemaUsageRelKind>;
-  subtypes: Record<string, Record<string, SchemaUsageSubtypeEntry>>;
-  statuses: Record<string, Record<string, SchemaUsageStatusEntry>>;
+  entityKinds: Partial<Record<string, SchemaUsageEntityKind>>;
+  relationshipKinds: Partial<Record<string, SchemaUsageRelKind>>;
+  subtypes: Partial<Record<string, Partial<Record<string, SchemaUsageSubtypeEntry>>>>;
+  statuses: Partial<Record<string, Partial<Record<string, SchemaUsageStatusEntry>>>>;
 }
 
 /**
@@ -2164,17 +2118,17 @@ export interface SchemaUsage {
 export function getEntityKindUsageSummary(
   schemaUsage: SchemaUsage | null | undefined,
   kind: string,
-): { coherence: number; seed?: number } {
-  const usage = schemaUsage?.entityKinds?.[kind];
+): { coherence: number; seed: Optional<number> } {
+  const usage = schemaUsage?.entityKinds[kind];
   if (!usage) return { coherence: 0 };
 
   const coherenceTotal =
-    (usage.generators?.length ?? 0) +
-    (usage.systems?.length ?? 0) +
-    (usage.actions?.length ?? 0) +
-    (usage.pressures?.length ?? 0);
+    usage.generators.length +
+    usage.systems.length +
+    usage.actions.length +
+    usage.pressures.length;
 
-  const seedTotal = usage.seeds?.length ?? 0;
+  const seedTotal = usage.seeds.length;
 
   return {
     coherence: coherenceTotal,
@@ -2189,23 +2143,23 @@ export function getRelationshipKindUsageSummary(
   schemaUsage: SchemaUsage | null | undefined,
   kind: string,
 ): { coherence: number } {
-  const usage = schemaUsage?.relationshipKinds?.[kind];
+  const usage = schemaUsage?.relationshipKinds[kind];
   if (!usage) return { coherence: 0 };
 
   const total =
-    (usage.generators?.length ?? 0) +
-    (usage.systems?.length ?? 0) +
-    (usage.actions?.length ?? 0);
+    usage.generators.length +
+    usage.systems.length +
+    usage.actions.length;
 
   return { coherence: total };
 }
 
 export interface ComputeSchemaUsageParams {
-  generators?: GeneratorConfig[];
-  systems?: SystemConfig[];
-  actions?: ActionConfig[];
-  pressures?: PressureConfig[];
-  seedEntities?: SeedEntityEntry[];
+  generators: Optional<GeneratorConfig[]>;
+  systems: Optional<SystemConfig[]>;
+  actions: Optional<ActionConfig[]>;
+  pressures: Optional<PressureConfig[]>;
+  seedEntities: Optional<SeedEntityEntry[]>;
 }
 
 function recordSchemaSelectionUsage(selection: SelectionRule | undefined, section: string, id: string, usage: SchemaUsage): void {
@@ -2219,7 +2173,7 @@ function addSchemaEntityKindUsage(kind: string, section: string, id: string, usa
   if (!usage.entityKinds[kind]) {
     usage.entityKinds[kind] = { generators: [], systems: [], actions: [], pressures: [], seeds: [] };
   }
-  usage.entityKinds[kind][section as keyof SchemaUsageEntityKind]?.push(id);
+  usage.entityKinds[kind][section as keyof SchemaUsageEntityKind].push(id);
 }
 
 function addSchemaRelKindUsage(kind: string, section: string, id: string, usage: SchemaUsage): void {
@@ -2227,7 +2181,7 @@ function addSchemaRelKindUsage(kind: string, section: string, id: string, usage:
   if (!usage.relationshipKinds[kind]) {
     usage.relationshipKinds[kind] = { generators: [], systems: [], actions: [] };
   }
-  usage.relationshipKinds[kind][section as keyof SchemaUsageRelKind]?.push(id);
+  usage.relationshipKinds[kind][section as keyof SchemaUsageRelKind].push(id);
 }
 
 function addSchemaSubtypeUsage(entityKind: string, subtype: string, section: string, id: string, usage: SchemaUsage): void {
@@ -2236,7 +2190,7 @@ function addSchemaSubtypeUsage(entityKind: string, subtype: string, section: str
   if (!usage.subtypes[entityKind][subtype]) {
     usage.subtypes[entityKind][subtype] = { generators: [], systems: [], seeds: [] };
   }
-  usage.subtypes[entityKind][subtype][section as keyof SchemaUsageSubtypeEntry]?.push(id);
+  usage.subtypes[entityKind][subtype][section as keyof SchemaUsageSubtypeEntry].push(id);
 }
 
 function addSchemaStatusUsage(entityKind: string, status: string, section: string, id: string, usage: SchemaUsage): void {
@@ -2245,29 +2199,26 @@ function addSchemaStatusUsage(entityKind: string, status: string, section: strin
   if (!usage.statuses[entityKind][status]) {
     usage.statuses[entityKind][status] = { generators: [], systems: [] };
   }
-  usage.statuses[entityKind][status][section as keyof SchemaUsageStatusEntry]?.push(id);
+  usage.statuses[entityKind][status][section as keyof SchemaUsageStatusEntry].push(id);
 }
 
 function recordSchemaConditionUsage(condition: ConditionEntry | null | undefined, section: string, id: string, usage: SchemaUsage): void {
   if (!condition) return;
-  switch (condition.type) {
-    case 'entity_count':
+  const handlers: Partial<Record<string, () => void>> = {
+    entity_count: () => {
       if (condition.kind) addSchemaEntityKindUsage(condition.kind, section, id, usage);
       if (condition.kind && condition.subtype) addSchemaSubtypeUsage(condition.kind, condition.subtype, section, id, usage);
       if (condition.kind && condition.status) addSchemaStatusUsage(condition.kind, condition.status, section, id, usage);
-      break;
-    case 'relationship_count':
-    case 'relationship_exists':
-    case 'entity_has_relationship':
-      if (condition.relationshipKind) addSchemaRelKindUsage(condition.relationshipKind, section, id, usage);
-      break;
-    case 'and':
-    case 'or':
-      (condition.conditions ?? []).forEach((child) => recordSchemaConditionUsage(child, section, id, usage));
-      break;
-    default:
-      break;
-  }
+    },
+    relationship_count: () => { if (condition.relationshipKind) addSchemaRelKindUsage(condition.relationshipKind, section, id, usage); },
+    relationship_exists: () => { if (condition.relationshipKind) addSchemaRelKindUsage(condition.relationshipKind, section, id, usage); },
+    entity_has_relationship: () => { if (condition.relationshipKind) addSchemaRelKindUsage(condition.relationshipKind, section, id, usage); },
+    and: () => (condition.conditions ?? []).forEach((child) => recordSchemaConditionUsage(child, section, id, usage)),
+    or: () => (condition.conditions ?? []).forEach((child) => recordSchemaConditionUsage(child, section, id, usage)),
+  };
+  if (!condition.type) return;
+  const handler = handlers[condition.type];
+  if (handler) handler();
 }
 
 function recordSchemaMutationUsage(mutation: MutationEntry | null | undefined, section: string, id: string, usage: SchemaUsage): void {
@@ -2281,7 +2232,8 @@ function recordSchemaMutationUsage(mutation: MutationEntry | null | undefined, s
 
 function computeSchemaUsageGenerators(generators: GeneratorConfig[], usage: SchemaUsage): void {
   generators.forEach((gen) => {
-    const genId = gen.id ?? gen.name ?? 'unnamed';
+    const genId = gen.id;
+    // eslint-disable-next-line complexity -- creation entry kind/subtype/status extraction with random-subtype variant detection
     (gen.creation ?? []).forEach((c) => {
       const kind = typeof c.kind === 'string' ? c.kind : null;
       if (kind) addSchemaEntityKindUsage(kind, 'generators', genId, usage);
@@ -2310,7 +2262,7 @@ function computeSchemaUsageGenerators(generators: GeneratorConfig[], usage: Sche
     (gen.variants?.options ?? []).forEach((variant) => {
       recordSchemaConditionUsage(variant.when, 'generators', genId, usage);
       (variant.apply?.relationships ?? []).forEach((rel) => {
-        if (rel?.kind) addSchemaRelKindUsage(rel.kind, 'generators', genId, usage);
+        if (rel.kind) addSchemaRelKindUsage(rel.kind, 'generators', genId, usage);
       });
       (variant.apply?.stateUpdates ?? []).forEach((mutation) => recordSchemaMutationUsage(mutation, 'generators', genId, usage));
     });
@@ -2339,34 +2291,32 @@ function computeSchemaContagionUsage(cfg: SystemInnerConfig, sysId: string, usag
 }
 
 function computeSchemaUsageSystemType(sys: SystemConfig, cfg: SystemInnerConfig, sysId: string, usage: SchemaUsage): void {
-  switch (sys.systemType) {
-    case 'graphContagion':
-      computeSchemaContagionUsage(cfg, sysId, usage);
-      break;
-    case 'thresholdTrigger':
+  const handlers: Partial<Record<string, () => void>> = {
+    graphContagion: () => computeSchemaContagionUsage(cfg, sysId, usage),
+    thresholdTrigger: () => {
       (cfg.conditions ?? []).forEach((condition) => recordSchemaConditionUsage(condition, 'systems', sysId, usage));
       (cfg.actions ?? []).forEach((mutation) => recordSchemaMutationUsage(mutation, 'systems', sysId, usage));
       if (cfg.clusterRelationshipKind) addSchemaRelKindUsage(cfg.clusterRelationshipKind, 'systems', sysId, usage);
-      break;
-    case 'connectionEvolution':
+    },
+    connectionEvolution: () => {
       (cfg.metric?.relationshipKinds ?? []).forEach((kind) => addSchemaRelKindUsage(kind, 'systems', sysId, usage));
       if (cfg.metric?.sharedRelationshipKind) addSchemaRelKindUsage(cfg.metric.sharedRelationshipKind, 'systems', sysId, usage);
-      (cfg.rules ?? []).forEach((rule) => recordSchemaMutationUsage(rule?.action, 'systems', sysId, usage));
-      break;
-    case 'tagDiffusion':
+      (cfg.rules ?? []).forEach((rule) => recordSchemaMutationUsage(rule.action, 'systems', sysId, usage));
+    },
+    tagDiffusion: () => {
       if (cfg.connectionKind) addSchemaRelKindUsage(cfg.connectionKind, 'systems', sysId, usage);
-      break;
-    case 'clusterFormation':
+    },
+    clusterFormation: () => {
       if (cfg.metaEntity?.kind) addSchemaEntityKindUsage(cfg.metaEntity.kind, 'systems', sysId, usage);
       (cfg.clustering?.criteria ?? []).forEach((criterion) => {
         if (criterion.type === 'shared_relationship' && criterion.relationshipKind) {
           addSchemaRelKindUsage(criterion.relationshipKind, 'systems', sysId, usage);
         }
       });
-      break;
-    default:
-      break;
-  }
+    },
+  };
+  const handler = handlers[sys.systemType];
+  if (handler) handler();
 }
 
 /**
@@ -2394,7 +2344,7 @@ export function computeSchemaUsage({
 
   // Analyze actions
   actions.forEach((action) => {
-    const actionId = action.id ?? action.name ?? 'unnamed';
+    const actionId = action.id;
     recordSchemaSelectionUsage(action.actor?.selection, 'actions', actionId, usage);
     recordSchemaSelectionUsage(action.targeting, 'actions', actionId, usage);
     (action.outcome?.mutations ?? []).forEach((mutation) => recordSchemaMutationUsage(mutation, 'actions', actionId, usage));

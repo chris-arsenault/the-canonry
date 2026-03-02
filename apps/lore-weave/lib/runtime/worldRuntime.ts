@@ -83,13 +83,6 @@ export class WorldRuntime implements Graph {
     coordinateContext: CoordinateContext,
     config: EngineConfig
   ) {
-    if (!coordinateContext) {
-      throw new Error(
-        'WorldRuntime: coordinateContext is required. ' +
-        'Runtime must provide a CoordinateContext instance.'
-      );
-    }
-
     this.graph = graph;
     this.targetSelector = targetSelector;
     this.coordinateContext = coordinateContext;
@@ -247,7 +240,7 @@ export class WorldRuntime implements Graph {
    * Convenience method for systems to emit debug/info/warn messages.
    */
   log(level: 'debug' | 'info' | 'warn' | 'error', message: string, context?: Record<string, unknown>): void {
-    this.config?.emitter?.log(level, message, context);
+    this.config.emitter?.log(level, message, context);
   }
 
   /**
@@ -259,7 +252,7 @@ export class WorldRuntime implements Graph {
    * @param context - Optional additional context
    */
   debug(category: DebugCategory, message: string, context?: Record<string, unknown>): void {
-    const debugConfig = this.config?.debugConfig;
+    const debugConfig = this.config.debugConfig;
 
     // If debug is disabled globally or no config, skip
     if (!debugConfig?.enabled) {
@@ -273,7 +266,7 @@ export class WorldRuntime implements Graph {
     }
 
     // Emit with category prefix
-    this.config?.emitter?.log('debug', `[${category.toUpperCase()}] ${message}`, context);
+    this.config.emitter?.log('debug', `[${category.toUpperCase()}] ${message}`, context);
   }
 
   /**
@@ -281,7 +274,7 @@ export class WorldRuntime implements Graph {
    * Useful for avoiding expensive string formatting when debug is disabled.
    */
   isDebugEnabled(category: DebugCategory): boolean {
-    const debugConfig = this.config?.debugConfig ?? DEFAULT_DEBUG_CONFIG;
+    const debugConfig = this.config.debugConfig ?? DEFAULT_DEBUG_CONFIG;
     if (!debugConfig.enabled) return false;
     if (debugConfig.enabledCategories.length === 0) return true;
     return debugConfig.enabledCategories.includes(category);
@@ -517,6 +510,49 @@ export class WorldRuntime implements Graph {
     this.graph.forEachEntity(callback, options);
   }
 
+  /** Validate and normalize input for createEntity, throwing on missing required fields. */
+  private validateCreateEntityInput(partial: Partial<HardState>): { validCoords: Point; tags: EntityTags } {
+    const coords = partial.coordinates;
+    if (!coords || typeof coords.x !== 'number' || typeof coords.y !== 'number' || typeof coords.z !== 'number') {
+      throw new Error(
+        `createEntity: valid coordinates {x: number, y: number, z: number} are required. ` +
+        `Entity kind: ${partial.kind || 'unknown'}, name: ${partial.name || 'unnamed'}. ` +
+        `Received: ${JSON.stringify(coords)}.`
+      );
+    }
+    if (!partial.kind) throw new Error('createEntity: kind is required.');
+    if (!partial.subtype) throw new Error(`createEntity: subtype is required for kind "${partial.kind}".`);
+    if (!partial.status) throw new Error(`createEntity: status is required for kind "${partial.kind}".`);
+    if (!partial.prominence) throw new Error(`createEntity: prominence is required for kind "${partial.kind}".`);
+    if (!partial.culture) throw new Error(`createEntity: culture is required for kind "${partial.kind}".`);
+
+    const validCoords = { x: coords.x, y: coords.y, z: coords.z };
+    const tags: EntityTags = Array.isArray(partial.tags) ? arrayToTags(partial.tags) : { ...(partial.tags || {}) };
+    return { validCoords, tags };
+  }
+
+  /** Log a warning if a newly placed entity overlaps with an existing entity of the same kind. */
+  private warnCoordinateOverlap(kind: string, subtype: string, name: string, coords: Point): void {
+    const overlapThreshold = 1.0;
+    for (const existing of this.graph.getEntities()) {
+      if (existing.kind !== kind) continue;
+      const dx = existing.coordinates.x - coords.x;
+      const dy = existing.coordinates.y - coords.y;
+      const dz = existing.coordinates.z - coords.z;
+      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (distance < overlapThreshold) {
+        this.engineConfig.emitter?.log(
+          'warn',
+          `Coordinate overlap: ${kind}:${subtype} "${name}" ` +
+          `placed at (${coords.x.toFixed(1)}, ${coords.y.toFixed(1)}, ${coords.z.toFixed(1)}) ` +
+          `overlaps with existing "${existing.name}" at ` +
+          `(${existing.coordinates.x.toFixed(1)}, ${existing.coordinates.y.toFixed(1)}, ${existing.coordinates.z.toFixed(1)}) ` +
+          `[distance: ${distance.toFixed(2)}]`
+        );
+      }
+    }
+  }
+
   /**
    * Add an entity to the graph.
    * For coordinate-aware placement, use placeWithCulture() instead.
@@ -533,39 +569,7 @@ export class WorldRuntime implements Graph {
     const resolvedPlacementStrategy = (settingsOrPartial as CreateEntitySettings).placementStrategy ?? placementStrategy;
     const namingContext = (settingsOrPartial as Partial<HardState> & { namingContext?: Record<string, string> }).namingContext;
 
-    const coords = partial.coordinates;
-    if (!coords || typeof coords.x !== 'number' || typeof coords.y !== 'number' || typeof coords.z !== 'number') {
-      throw new Error(
-        `createEntity: valid coordinates {x: number, y: number, z: number} are required. ` +
-        `Entity kind: ${partial.kind || 'unknown'}, name: ${partial.name || 'unnamed'}. ` +
-        `Received: ${JSON.stringify(coords)}.`
-      );
-    }
-
-    const validCoords = { x: coords.x, y: coords.y, z: coords.z };
-
-    let tags: EntityTags;
-    if (Array.isArray(partial.tags)) {
-      tags = arrayToTags(partial.tags);
-    } else {
-      tags = { ...(partial.tags || {}) };
-    }
-
-    if (!partial.kind) {
-      throw new Error('createEntity: kind is required.');
-    }
-    if (!partial.subtype) {
-      throw new Error(`createEntity: subtype is required for kind "${partial.kind}".`);
-    }
-    if (!partial.status) {
-      throw new Error(`createEntity: status is required for kind "${partial.kind}".`);
-    }
-    if (!partial.prominence) {
-      throw new Error(`createEntity: prominence is required for kind "${partial.kind}".`);
-    }
-    if (!partial.culture) {
-      throw new Error(`createEntity: culture is required for kind "${partial.kind}".`);
-    }
+    const { validCoords, tags } = this.validateCreateEntityInput(partial);
 
     let name = partial.name;
     if (!name) {
@@ -602,26 +606,7 @@ export class WorldRuntime implements Graph {
       (message, context) => this.log('warn', message, context)
     );
 
-    // Warn on coordinate overlap with existing entities of the same kind
-    const overlapThreshold = 1.0;
-    for (const existing of this.graph.getEntities()) {
-      if (existing.kind !== partial.kind) continue;
-      const dx = existing.coordinates.x - validCoords.x;
-      const dy = existing.coordinates.y - validCoords.y;
-      const dz = existing.coordinates.z - validCoords.z;
-      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-      if (distance < overlapThreshold) {
-        this.engineConfig.emitter?.log(
-          'warn',
-          `Coordinate overlap: ${partial.kind}:${partial.subtype} "${name}" ` +
-          `placed at (${validCoords.x.toFixed(1)}, ${validCoords.y.toFixed(1)}, ${validCoords.z.toFixed(1)}) ` +
-          `overlaps with existing "${existing.name}" at ` +
-          `(${existing.coordinates.x.toFixed(1)}, ${existing.coordinates.y.toFixed(1)}, ${existing.coordinates.z.toFixed(1)}) ` +
-          `[distance: ${distance.toFixed(2)}]`
-        );
-      }
-    }
+    this.warnCoordinateOverlap(partial.kind, partial.subtype, name, validCoords);
 
     const currentEraEntity = partial.kind !== FRAMEWORK_ENTITY_KINDS.ERA
       ? this.graph.findEntities({
@@ -1501,78 +1486,16 @@ export class WorldRuntime implements Graph {
     };
 
     // Try anchor placement first
-    let result: PlacementResultWithDebug | null = null;
-
-    switch (anchor.type) {
-      case 'entity': {
-        const refEntity = resolvedAnchors.find(e => e.id === anchor.ref || e.name === anchor.ref) || resolvedAnchors[0];
-        if (refEntity && refEntity.coordinates && refEntity.kind === entityKind) {
-          if (anchor.stickToRegion) {
-            result = await tryAnchorRegion(refEntity, 'anchor_region');
-          } else {
-            result = tryNearPoint(refEntity.coordinates, 'anchor', refEntity);
-          }
-        }
-        break;
-      }
-      case 'culture':
-        result = await trySeedRegion(anchor.id, 'seed_region');
-        break;
-      case 'refs_centroid': {
-        const refs = resolvedAnchors.filter(e => anchor.refs.includes(e.id) || anchor.refs.includes(e.name || ''));
-        const withCoords = refs.filter(r => r.kind === entityKind);
-        if (withCoords.length > 0) {
-          const centroid: Point = {
-            x: withCoords.reduce((s, r) => s + r.coordinates.x, 0) / withCoords.length,
-            y: withCoords.reduce((s, r) => s + r.coordinates.y, 0) / withCoords.length,
-            z: withCoords.reduce((s, r) => s + r.coordinates.z, 0) / withCoords.length
-          };
-          if (anchor.jitter) {
-            /* eslint-disable sonarjs/pseudo-random -- simulation coordinate jitter */
-            centroid.x += (Math.random() - 0.5) * anchor.jitter;
-            centroid.y += (Math.random() - 0.5) * anchor.jitter;
-            /* eslint-enable sonarjs/pseudo-random */
-          }
-          result = tryNearPoint(centroid, 'anchor');
-        }
-        break;
-      }
-      case 'sparse':
-        result = trySparse(anchor.preferPeriphery ?? false, 'sparse');
-        break;
-      case 'bounds':
-        result = tryBounds(anchor.bounds, 'bounds');
-        break;
-    }
+    let result = await this.tryAnchorPlacement(
+      anchor, resolvedAnchors, entityKind, cultureId,
+      tryAnchorRegion, tryNearPoint, trySeedRegion, trySparse, tryBounds
+    );
 
     if (!result && steps.length > 0) {
-      for (const step of steps) {
-        switch (step) {
-          case 'anchor_region': {
-            if (anchor.type === 'entity') {
-              const refEntity = resolvedAnchors.find(e => e.id === anchor.ref || e.name === anchor.ref) || resolvedAnchors[0];
-              if (refEntity && refEntity.coordinates && refEntity.kind === entityKind) {
-                result = await tryAnchorRegion(refEntity, 'anchor_region');
-              }
-            } else if (anchor.type === 'culture') {
-              result = await trySeedRegion(anchor.id, 'anchor_region');
-            }
-            break;
-          }
-          case 'seed_region':
-            result = await trySeedRegion(cultureId, 'seed_region');
-            break;
-          case 'sparse': {
-            const preferPeriphery = anchor.type === 'sparse' ? (anchor.preferPeriphery ?? false) : false;
-            result = trySparse(preferPeriphery, 'sparse');
-            break;
-          }
-          case 'random':
-            result = tryBounds(undefined, 'random');
-            break;
-        }
-        if (result) break;
-      }
+      result = await this.tryFallbackSteps(
+        steps, anchor, resolvedAnchors, entityKind, cultureId,
+        tryAnchorRegion, trySeedRegion, trySparse, tryBounds
+      );
     }
 
     // If placement succeeded and createRegion is requested, create an emergent region at the location
@@ -1598,6 +1521,110 @@ export class WorldRuntime implements Graph {
     }
 
     return result;
+  }
+
+  /** Try primary anchor placement based on anchor type. */
+  private async tryAnchorPlacement(
+    anchor: PlacementAnchor,
+    resolvedAnchors: HardState[],
+    entityKind: string,
+    _cultureId: string,
+    tryAnchorRegion: (e: HardState, via: string) => Promise<PlacementResultWithDebug | null>,
+    tryNearPoint: (p: Point, via: string, e?: HardState) => PlacementResultWithDebug | null,
+    trySeedRegion: (c: string | undefined, via: string) => Promise<PlacementResultWithDebug | null>,
+    trySparse: (periphery: boolean, via: string) => PlacementResultWithDebug | null,
+    tryBounds: (b: { x?: [number, number]; y?: [number, number]; z?: [number, number] } | undefined, via: string) => PlacementResultWithDebug,
+  ): Promise<PlacementResultWithDebug | null> {
+    switch (anchor.type) {
+      case 'entity': {
+        const refEntity = resolvedAnchors.find(e => e.id === anchor.ref || e.name === anchor.ref) || resolvedAnchors[0];
+        if (refEntity && refEntity.coordinates && refEntity.kind === entityKind) {
+          return anchor.stickToRegion
+            ? await tryAnchorRegion(refEntity, 'anchor_region')
+            : tryNearPoint(refEntity.coordinates, 'anchor', refEntity);
+        }
+        return null;
+      }
+      case 'culture':
+        return await trySeedRegion(anchor.id, 'seed_region');
+      case 'refs_centroid': {
+        const refs = resolvedAnchors.filter(e => anchor.refs.includes(e.id) || anchor.refs.includes(e.name || ''));
+        const withCoords = refs.filter(r => r.kind === entityKind);
+        if (withCoords.length === 0) return null;
+        const centroid: Point = {
+          x: withCoords.reduce((s, r) => s + r.coordinates.x, 0) / withCoords.length,
+          y: withCoords.reduce((s, r) => s + r.coordinates.y, 0) / withCoords.length,
+          z: withCoords.reduce((s, r) => s + r.coordinates.z, 0) / withCoords.length,
+        };
+        if (anchor.jitter) {
+          /* eslint-disable sonarjs/pseudo-random -- simulation coordinate jitter */
+          centroid.x += (Math.random() - 0.5) * anchor.jitter;
+          centroid.y += (Math.random() - 0.5) * anchor.jitter;
+          /* eslint-enable sonarjs/pseudo-random */
+        }
+        return tryNearPoint(centroid, 'anchor');
+      }
+      case 'sparse':
+        return trySparse(anchor.preferPeriphery ?? false, 'sparse');
+      case 'bounds':
+        return tryBounds(anchor.bounds, 'bounds');
+      default:
+        return null;
+    }
+  }
+
+  /** Try fallback placement steps in order until one succeeds. */
+  private async tryFallbackSteps(
+    steps: PlacementStep[],
+    anchor: PlacementAnchor,
+    resolvedAnchors: HardState[],
+    entityKind: string,
+    cultureId: string,
+    tryAnchorRegion: (e: HardState, via: string) => Promise<PlacementResultWithDebug | null>,
+    trySeedRegion: (c: string | undefined, via: string) => Promise<PlacementResultWithDebug | null>,
+    trySparse: (periphery: boolean, via: string) => PlacementResultWithDebug | null,
+    tryBounds: (b: { x?: [number, number]; y?: [number, number]; z?: [number, number] } | undefined, via: string) => PlacementResultWithDebug,
+  ): Promise<PlacementResultWithDebug | null> {
+    for (const step of steps) {
+      let result: PlacementResultWithDebug | null = null;
+      switch (step) {
+        case 'anchor_region':
+          result = await this.tryAnchorRegionStep(anchor, resolvedAnchors, entityKind, tryAnchorRegion, trySeedRegion);
+          break;
+        case 'seed_region':
+          result = await trySeedRegion(cultureId, 'seed_region');
+          break;
+        case 'sparse': {
+          const preferPeriphery = anchor.type === 'sparse' ? (anchor.preferPeriphery ?? false) : false;
+          result = trySparse(preferPeriphery, 'sparse');
+          break;
+        }
+        case 'random':
+          result = tryBounds(undefined, 'random');
+          break;
+      }
+      if (result) return result;
+    }
+    return null;
+  }
+
+  /** Handle anchor_region fallback step based on original anchor type. */
+  private async tryAnchorRegionStep(
+    anchor: PlacementAnchor,
+    resolvedAnchors: HardState[],
+    entityKind: string,
+    tryAnchorRegion: (e: HardState, via: string) => Promise<PlacementResultWithDebug | null>,
+    trySeedRegion: (c: string | undefined, via: string) => Promise<PlacementResultWithDebug | null>,
+  ): Promise<PlacementResultWithDebug | null> {
+    if (anchor.type === 'entity') {
+      const refEntity = resolvedAnchors.find(e => e.id === anchor.ref || e.name === anchor.ref) || resolvedAnchors[0];
+      if (refEntity && refEntity.coordinates && refEntity.kind === entityKind) {
+        return await tryAnchorRegion(refEntity, 'anchor_region');
+      }
+    } else if (anchor.type === 'culture') {
+      return await trySeedRegion(anchor.id, 'anchor_region');
+    }
+    return null;
   }
 
   /**

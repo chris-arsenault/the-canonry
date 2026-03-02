@@ -339,7 +339,7 @@ function buildKindFolders(
     id: generateId(),
     name: kind.charAt(0).toUpperCase() + kind.slice(1) + "s",
     type: "folder" as const,
-    children: byKind.get(kind)!.sort((a, b) => a.name.localeCompare(b.name)).map((e) => ({
+    children: byKind.get(kind).sort((a, b) => a.name.localeCompare(b.name)).map((e) => ({
       id: generateId(),
       name: e.name,
       type: "entity" as const,
@@ -404,6 +404,24 @@ function buildBodyChildren(
   return bodyChildren;
 }
 
+type StaticPage = { pageId: string; title: string; status: string };
+
+/** Partition published static pages into culture pages (keyed by lowercased culture name) and other pages. */
+function categorizeStaticPages(
+  pages: StaticPage[],
+  existingIds: Set<string>
+): { culturePageMap: Map<string, StaticPage>; nonCulturePages: StaticPage[] } {
+  const published = pages.filter((p) => p.status === "published" && !existingIds.has(p.pageId));
+  const culturePageMap = new Map<string, StaticPage>();
+  const nonCulturePages: StaticPage[] = [];
+  for (const p of published) {
+    const { namespace, baseName } = parseNamespace(p.title);
+    if (namespace === "Cultures") { culturePageMap.set(baseName.toLowerCase(), p); }
+    else { nonCulturePages.push(p); }
+  }
+  return { culturePageMap, nonCulturePages };
+}
+
 /** Build encyclopedia children: entities grouped by culture then kind. */
 function buildEncyclopediaChildren(
   input: AutoPopulateInput,
@@ -423,14 +441,7 @@ function buildEncyclopediaChildren(
     }
   }
 
-  const publishedPages = input.staticPages.filter((p) => p.status === "published" && !existingIds.has(p.pageId));
-  const culturePageMap = new Map<string, (typeof publishedPages)[number]>();
-  const nonCulturePages: typeof publishedPages = [];
-  for (const p of publishedPages) {
-    const { namespace, baseName } = parseNamespace(p.title);
-    if (namespace === "Cultures") { culturePageMap.set(baseName.toLowerCase(), p); }
-    else { nonCulturePages.push(p); }
-  }
+  const { culturePageMap, nonCulturePages } = categorizeStaticPages(input.staticPages, existingIds);
 
   const encyclopediaChildren: ContentTreeNode[] = [];
   const usedPageIds = new Set<string>();
@@ -444,7 +455,7 @@ function buildEncyclopediaChildren(
       usedPageIds.add(culturePage.pageId);
     }
 
-    cultureFolder.children.push(...buildKindFolders(byCulture.get(cultureName)!));
+    cultureFolder.children.push(...buildKindFolders(byCulture.get(cultureName)));
     if (cultureFolder.children.length > 0) encyclopediaChildren.push(cultureFolder);
   }
 

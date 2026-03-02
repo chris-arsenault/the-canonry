@@ -3,19 +3,20 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface CategorySectionProps {
-  readonly id?: string;
-  readonly icon?: string;
+  readonly id: Optional<string>;
+  readonly icon: Optional<string>;
   readonly label: string;
   readonly items: unknown[];
   readonly expanded: boolean;
   readonly onToggleExpand: (e?: React.MouseEvent | React.KeyboardEvent) => void;
-  readonly allEnabled?: boolean;
-  readonly onToggleAll?: () => void;
+  readonly allEnabled: Optional<boolean>;
+  readonly onToggleAll: Optional<() => void>;
   readonly renderItem: (item: unknown, index: number) => React.ReactNode;
-  readonly gridClassName?: string;
-  readonly className?: string;
+  readonly gridClassName: Optional<string>;
+  readonly className: Optional<string>;
 }
 
 /**
@@ -55,7 +56,7 @@ export function CategorySection({
         <span className="category-title">{label}</span>
         <span className="badge-count">{items.length}</span>
         <button
-          className={`btn-toggle-category ${allEnabled ? 'btn-toggle-category-active' : ''}`}
+          className={`btn-switch-category ${allEnabled ? 'btn-switch-category-active' : ''}`}
           onClick={(e) => {
             e.stopPropagation();
             onToggleAll();

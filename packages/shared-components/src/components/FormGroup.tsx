@@ -5,19 +5,20 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface FormGroupProps {
-  readonly label?: string;
-  readonly htmlFor?: string;
-  readonly hint?: string;
-  readonly children?: React.ReactNode;
-  readonly wide?: boolean;
-  readonly className?: string;
+  readonly label: Optional<string>;
+  readonly htmlFor: Optional<string>;
+  readonly hint: Optional<string>;
+  readonly children: Optional<React.ReactNode>;
+  readonly wide: Optional<boolean>;
+  readonly className: Optional<string>;
 }
 
 interface FormRowProps {
-  readonly children?: React.ReactNode;
-  readonly className?: string;
+  readonly children: Optional<React.ReactNode>;
+  readonly className: Optional<string>;
 }
 
 /**

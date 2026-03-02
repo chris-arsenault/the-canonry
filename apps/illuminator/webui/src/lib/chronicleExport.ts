@@ -523,7 +523,7 @@ export async function downloadBulkToneReviewExport(simulationRunId: string): Pro
   );
 
   const rows = complete.map((c) => {
-    const wordCount = c.finalContent?.split(/\s+/).length || c.wordCount || 0;
+    const wordCount: number = c.finalContent?.split(/\s+/).length || (c as { wordCount?: number }).wordCount || 0;
     const noteRange = computeNoteRange("chronicle", wordCount);
 
     // Compute fact coverage guidance using the same logic as the annotation prompt
@@ -714,7 +714,7 @@ export function buildEraNarrativeExport(record: EraNarrativeRecord): EraNarrativ
       chronicleId: b.chronicleId,
       chronicleTitle: b.chronicleTitle,
       eraYear: b.eraYear,
-      ...(b.weight ? { weight: b.weight } : {}),
+      ...(b.weight ? { weight: b.weight as string } : {}),
       prep: b.prep,
     })),
 

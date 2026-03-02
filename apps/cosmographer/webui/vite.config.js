@@ -14,7 +14,7 @@ export default defineConfig({
       filename: 'remoteEntry.js',
       manifest: true,
       exposes: {
-        './CosmographerRemote': './src/CosmographerRemote.jsx',
+        './CosmographerRemote': './src/CosmographerRemote.tsx',
       },
       shared: sharedDeps(),
     }),

@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import type { WorldState } from "../types/world.ts";
+import type { Optional } from "@the-canonry/shared-components";
 import { buildWorldStateForSlot } from "@the-canonry/world-store";
 import { IndexedDBBackend, useNarrativeStore } from "@the-canonry/narrative-store";
 import { useAsyncAction } from "./useAsyncAction";
 
 interface WorldDataLoaderOptions {
-  projectId?: string;
+  projectId: Optional<string>;
   activeSlotIndex: number;
-  dexieSeededAt?: number;
-  preloadedWorldData?: WorldState | null;
+  dexieSeededAt: Optional<number>;
+  preloadedWorldData: Optional<WorldState | null>;
 }
 
 interface WorldDataLoaderResult {

@@ -3,13 +3,14 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface EnableToggleProps {
   readonly enabled: boolean;
-  readonly onChange?: (value: boolean) => void;
-  readonly onClick?: (e: React.MouseEvent | React.KeyboardEvent) => void;
-  readonly label?: string;
-  readonly className?: string;
+  readonly onChange: Optional<(value: boolean) => void>;
+  readonly onClick: Optional<(e: React.MouseEvent | React.KeyboardEvent) => void>;
+  readonly label: Optional<string>;
+  readonly className: Optional<string>;
 }
 
 /**

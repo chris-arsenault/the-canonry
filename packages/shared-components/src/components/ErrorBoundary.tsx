@@ -7,11 +7,12 @@
  */
 
 import React from "react";
+import type { Optional } from '../types/optionality.js';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
-  title?: string;
-  className?: string;
+  title: Optional<string>;
+  className: Optional<string>;
 }
 
 interface ErrorBoundaryState {

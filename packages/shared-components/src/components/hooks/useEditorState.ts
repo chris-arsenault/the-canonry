@@ -16,19 +16,20 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import type { Optional } from '../../types/optionality.js';
 
 /** A generic record type for items managed by the editor. */
 type EditorItem = Record<string, unknown>;
 
 export interface EditorStateOptions {
   /** Field name for item ID (default: 'id') */
-  idField?: string;
+  idField: Optional<string>;
   /** Field name for item name (default: 'name') */
-  nameField?: string;
+  nameField: Optional<string>;
   /** Factory function to create new items */
-  createItem?: () => EditorItem;
+  createItem: Optional<() => EditorItem>;
   /** localStorage key for persisting the selected item ID */
-  persistKey?: string;
+  persistKey: Optional<string>;
 }
 
 export interface EditorStateResult {
@@ -96,37 +97,22 @@ export function useEditorState(
 
   const resolvedIndex = selectedId ? items.findIndex((item) => item[idField] === selectedId) : -1;
   const selectedIndex = resolvedIndex >= 0 ? resolvedIndex : null;
+  const selectedItem = selectedIndex !== null && selectedIndex < items.length ? items[selectedIndex] : null;
 
-  // Derive selected item from index
-  const selectedItem = selectedIndex !== null && selectedIndex < items.length
-    ? items[selectedIndex]
-    : null;
-
-  // Persist selectedId to storage
   useEffect(() => {
     if (!persistKey) return;
-    if (selectedId) {
-      saveStored(persistKey, selectedId);
-    } else {
-      clearStored(persistKey);
-    }
+    if (selectedId) saveStored(persistKey, selectedId);
+    else clearStored(persistKey);
   }, [persistKey, selectedId]);
 
-  // Clear invalid selectedId
-  if (selectedId && selectedIndex === null) {
-    setSelectedId(null);
-  }
+  if (selectedId && selectedIndex === null) setSelectedId(null);
 
-  // Update the currently selected item
   const handleItemChange = useCallback((updated: EditorItem) => {
     if (selectedIndex !== null && selectedIndex < items.length) {
-      const newItems = [...items];
-      newItems[selectedIndex] = updated;
-      onChange(newItems);
+      const newItems = [...items]; newItems[selectedIndex] = updated; onChange(newItems);
     }
   }, [items, onChange, selectedIndex]);
 
-  // Toggle the enabled state of an item
   const handleToggle = useCallback((item: EditorItem) => {
     const index = items.findIndex((i) => i[idField] === item[idField]);
     if (index >= 0) {
@@ -136,30 +122,24 @@ export function useEditorState(
     }
   }, [items, onChange, idField]);
 
-  // Delete the currently selected item (with confirmation)
   const handleDelete = useCallback(() => {
     if (selectedIndex !== null && selectedItem) {
       const itemName = (selectedItem[nameField] as string) || (selectedItem[idField] as string);
       if (confirm(`Delete "${itemName}"?`)) {
-        const newItems = [...items];
-        newItems.splice(selectedIndex, 1);
-        onChange(newItems);
-        setSelectedId(null);
+        const newItems = [...items]; newItems.splice(selectedIndex, 1); onChange(newItems); setSelectedId(null);
       }
     }
   }, [items, onChange, selectedIndex, selectedItem, idField, nameField]);
 
-  // Add a new item (using createItem factory if provided)
   const handleAdd = useCallback((newItem?: EditorItem) => {
     const itemToAdd = newItem || (createItem ? createItem() : { [idField]: `item_${Date.now()}` });
-    onChange([...items, itemToAdd]);
-    setSelectedId((itemToAdd[idField] as string) || null);
+    onChange([...items, itemToAdd]); setSelectedId((itemToAdd[idField] as string) || null);
   }, [items, onChange, createItem, idField]);
 
   // Select an item by index
   const handleSelect = useCallback((index: number) => {
     const item = items[index];
-    setSelectedId(item ? (item[idField] as string) : null);
+    setSelectedId((item[idField] as string) || null);
   }, [items, idField]);
 
   // Close the selection (deselect)

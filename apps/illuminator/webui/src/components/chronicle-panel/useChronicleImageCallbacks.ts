@@ -12,6 +12,12 @@ import { resolveStyleSelection } from "../StyleSelector";
 import { getCoverImageConfig } from "../../lib/coverImageStyles";
 import { buildChronicleScenePrompt } from "../../lib/promptBuilders";
 
+function getVisualThesis(entity: Record<string, unknown> | undefined): string | undefined {
+  const enrichment = entity?.enrichment as Record<string, unknown> | undefined;
+  const text = enrichment?.text as Record<string, unknown> | undefined;
+  return typeof text?.visualThesis === "string" ? text.visualThesis : undefined;
+}
+
 interface UseChronicleImageCallbacksParams {
   selectedItem: SelectedChronicleItem | undefined;
   generationContext: Record<string, unknown> | null;
@@ -43,8 +49,9 @@ export function useChronicleImageCallbacks({
     const visualIdentities: Record<string, string> = {};
     for (const entityCtx of (generationContext as { entities?: Array<{ id: string }> }).entities || []) {
       const entity = fullEntityMapRef.current.get(entityCtx.id);
-      if (entity?.enrichment?.text?.visualThesis) {
-        visualIdentities[entityCtx.id] = entity.enrichment.text.visualThesis as string;
+      const thesis = getVisualThesis(entity);
+      if (thesis) {
+        visualIdentities[entityCtx.id] = thesis;
       }
     }
     onEnqueue([{
@@ -68,8 +75,9 @@ export function useChronicleImageCallbacks({
       const visualIdentities: Record<string, string> = {};
       for (const entityId of ref.involvedEntityIds || []) {
         const entity = fullEntityMapRef.current.get(entityId);
-        if (entity?.enrichment?.text?.visualThesis) {
-          visualIdentities[entityId] = entity.enrichment.text.visualThesis as string;
+        const thesis = getVisualThesis(entity);
+        if (thesis) {
+          visualIdentities[entityId] = thesis;
         }
       }
       onEnqueue([{
@@ -95,8 +103,9 @@ export function useChronicleImageCallbacks({
     const visualIdentities: Record<string, string> = {};
     for (const ra of selectedItem.roleAssignments || []) {
       const entity = fullEntityMapRef.current.get(ra.entityId);
-      if (entity?.enrichment?.text?.visualThesis) {
-        visualIdentities[ra.entityId] = entity.enrichment.text.visualThesis as string;
+      const thesis = getVisualThesis(entity);
+      if (thesis) {
+        visualIdentities[ra.entityId] = thesis;
       }
     }
     onEnqueue([{

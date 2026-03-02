@@ -6,6 +6,7 @@
  */
 
 import { openIlluminatorDb } from "@the-canonry/world-store";
+import type { Optional } from "@the-canonry/shared-components";
 
 const STATIC_PAGE_STORE_NAME = "staticPages";
 
@@ -23,7 +24,7 @@ export interface StaticPage {
   title: string;
   slug: string;
   content: string;
-  summary?: string;
+  summary: Optional<string>;
 
   // Metadata
   status: StaticPageStatus;

@@ -3,11 +3,12 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface InfoBoxProps {
-  readonly title?: string;
+  readonly title: Optional<string>;
   readonly children: React.ReactNode;
-  readonly className?: string;
+  readonly className: Optional<string>;
 }
 
 /**

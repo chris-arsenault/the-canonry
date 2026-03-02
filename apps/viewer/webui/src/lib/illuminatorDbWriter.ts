@@ -10,6 +10,7 @@ import type {
   ChronicleRecord,
   StaticPageRecord,
 } from "@the-canonry/world-store";
+import type { Optional, Legacy } from "@the-canonry/shared-components";
 import {
   openIlluminatorDbForWrite,
   requestToPromise,
@@ -43,15 +44,15 @@ interface PersistedStaticPage extends StaticPageRecord {
   projectId: string;
 }
 
-/** Minimal era narrative shape for IndexedDB writes */
+/** Minimal era narrative shape for IndexedDB writes — fields from raw bundle JSON */
 interface EraNarrativeWriteRecord {
   narrativeId: string;
   projectId: string;
   simulationRunId: string;
-  eraId?: string;
-  eraName?: string;
-  status?: string;
-  content?: string;
+  eraId: Legacy<string>;
+  eraName: Legacy<string>;
+  status: Legacy<string>;
+  content: Legacy<string>;
   [key: string]: unknown;
 }
 
@@ -59,8 +60,8 @@ interface SlotRecord {
   projectId: string;
   slotIndex: number;
   simulationRunId: string;
-  finalTick?: number;
-  finalEraId?: string;
+  finalTick: Optional<number>;
+  finalEraId: Optional<string>;
   isTemporary: boolean;
   updatedAt: number;
 }
@@ -105,7 +106,7 @@ function buildSlotRecord(
     projectId,
     slotIndex,
     simulationRunId,
-    ...(Number.isFinite(tick) ? { finalTick: tick as number } : {}),
+    ...(Number.isFinite(tick) ? { finalTick: tick } : {}),
     ...(era ? { finalEraId: era } : {}),
     isTemporary: slotIndex === 0,
     updatedAt: Date.now(),
@@ -244,11 +245,11 @@ async function writeSupplementalRecords(
 
 interface OverwriteWorldDataParams {
   projectId: string;
-  slotIndex?: number;
+  slotIndex: Optional<number>;
   worldData: WorldOutput;
-  chronicles?: ChronicleRecord[];
-  staticPages?: StaticPageRecord[];
-  eraNarratives?: EraNarrativeWriteRecord[];
+  chronicles: Optional<ChronicleRecord[]>;
+  staticPages: Optional<StaticPageRecord[]>;
+  eraNarratives: Optional<EraNarrativeWriteRecord[]>;
 }
 
 export async function overwriteWorldDataInDexie({

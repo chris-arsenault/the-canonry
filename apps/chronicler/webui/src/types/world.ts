@@ -12,6 +12,7 @@ import type {
   WorldOutput as CanonryWorldOutput,
   WorldRelationship as CanonryWorldRelationship,
 } from "@canonry/world-schema";
+import type { Optional } from "@the-canonry/shared-components";
 
 /** Links an anchor phrase in an entity's description to a source chronicle */
 export interface ChronicleBackref {
@@ -20,40 +21,41 @@ export interface ChronicleBackref {
   anchorPhrase: string;
   createdAt: number;
   /** Image to display at this backref anchor. undefined = legacy fallback (cover), null = no image */
-  imageSource?:
+  imageSource: Optional<
     | { source: "cover" }
     | { source: "image_ref"; refId: string }
     | { source: "entity"; entityId: string }
-    | null;
+    | null
+  >;
   /** Display size for the backref image */
-  imageSize?: "small" | "medium" | "large" | "full-width";
+  imageSize: Optional<"small" | "medium" | "large" | "full-width">;
   /** Float alignment for the backref image */
-  imageAlignment?: "left" | "right";
+  imageAlignment: Optional<"left" | "right">;
 }
 
 export type HardState = CanonryWorldEntity & {
-  enrichment?: {
-    image?: {
-      imageId?: string;
-    };
-    text?: {
-      aliases?: string[];
-      visualThesis?: string;
-      visualTraits?: string[];
-      generatedAt?: number;
-      model?: string;
-    };
-    slugAliases?: string[];
-    chronicleBackrefs?: ChronicleBackref[];
-    historianNotes?: Array<{
+  enrichment: Optional<{
+    image: Optional<{
+      imageId: Optional<string>;
+    }>;
+    text: Optional<{
+      aliases: Optional<string[]>;
+      visualThesis: Optional<string>;
+      visualTraits: Optional<string[]>;
+      generatedAt: Optional<number>;
+      model: Optional<string>;
+    }>;
+    slugAliases: Optional<string[]>;
+    chronicleBackrefs: Optional<ChronicleBackref[]>;
+    historianNotes: Optional<Array<{
       noteId: string;
       anchorPhrase: string;
       text: string;
       type: string;
-      display?: "disabled" | "popout" | "full";
-      enabled?: boolean;
-    }>;
-  };
+      display: Optional<"disabled" | "popout" | "full">;
+      enabled: Optional<boolean>;
+    }>>;
+  }>;
 };
 export type WorldState = Omit<CanonryWorldOutput, "hardState"> & {
   hardState: HardState[];
@@ -81,26 +83,26 @@ export type LoreType =
 
 export interface LoreWikiSection {
   heading: string;
-  level?: 1 | 2 | 3;
+  level: Optional<1 | 2 | 3>;
   content: string;
 }
 
 export interface LoreWikiContent {
   sections: LoreWikiSection[];
-  entityRefs?: { name: string; entityId: string; occurrences: number }[];
-  imageSlots?: { position: string; entityId?: string }[];
-  wordCount?: number;
+  entityRefs: Optional<{ name: string; entityId: string; occurrences: number }[]>;
+  imageSlots: Optional<{ position: string; entityId: Optional<string> }[]>;
+  wordCount: Optional<number>;
 }
 
 export interface LoreRecord {
   id: string;
   type: LoreType;
-  targetId?: string;
+  targetId: Optional<string>;
   text: string;
-  cached?: boolean;
-  warnings?: string[];
-  wikiContent?: LoreWikiContent;
-  metadata?: Record<string, unknown>;
+  cached: Optional<boolean>;
+  warnings: Optional<string[]>;
+  wikiContent: Optional<LoreWikiContent>;
+  metadata: Optional<Record<string, unknown>>;
 }
 
 export interface LoreData {
@@ -120,15 +122,15 @@ export interface EntityImage {
   localPath: string;
   imageId: string;
   /** Optimized thumbnail path (WebP, ~400px wide) - for inline display */
-  thumbPath?: string;
+  thumbPath: Optional<string>;
   /** Optimized full-size path (WebP) - for lightbox view */
-  fullPath?: string;
+  fullPath: Optional<string>;
   /** Image width in pixels */
-  width?: number;
+  width: Optional<number>;
   /** Image height in pixels */
-  height?: number;
+  height: Optional<number>;
   /** Aspect ratio classification: portrait (<0.9), square (0.9-1.1), landscape (>1.1) */
-  aspect?: ImageAspect;
+  aspect: Optional<ImageAspect>;
 }
 
 export interface ImageMetadata {
@@ -153,37 +155,37 @@ export interface PageIndexEntry {
   title: string;
   type: WikiPage["type"];
   slug: string;
-  summary?: string;
-  aliases?: string[];
+  summary: Optional<string>;
+  aliases: Optional<string[]>;
   categories: string[];
-  chronicle?: {
+  chronicle: Optional<{
     format: "story" | "document";
-    entrypointId?: string;
-    narrativeStyleId?: string;
-    roleAssignments?: ChronicleRoleAssignment[];
-    selectedEventIds?: string[];
-    selectedRelationshipIds?: string[];
-    temporalContext?: ChronicleTemporalContext;
-  };
+    entrypointId: Optional<string>;
+    narrativeStyleId: Optional<string>;
+    roleAssignments: Optional<ChronicleRoleAssignment[]>;
+    selectedEventIds: Optional<string[]>;
+    selectedRelationshipIds: Optional<string[]>;
+    temporalContext: Optional<ChronicleTemporalContext>;
+  }>;
   // For entity pages
-  entityKind?: string;
-  entitySubtype?: string;
-  prominence?: number;
-  culture?: string;
+  entityKind: Optional<string>;
+  entitySubtype: Optional<string>;
+  prominence: Optional<number>;
+  culture: Optional<string>;
   // For static pages
-  static?: {
+  static: Optional<{
     pageId: string;
     status: "draft" | "published";
-  };
+  }>;
   // For era narrative pages
-  eraNarrative?: {
+  eraNarrative: Optional<{
     eraId: string;
     tone: string;
-    thesis?: string;
-    sourceChronicleIds?: string[];
-  };
+    thesis: Optional<string>;
+    sourceChronicleIds: Optional<string[]>;
+  }>;
   // Cover image for gallery display
-  coverImageId?: string;
+  coverImageId: Optional<string>;
   // For link resolution
   linkedEntities: string[];
   lastUpdated: number;
@@ -195,9 +197,9 @@ export interface PageIndexEntry {
 export interface DisambiguationEntry {
   pageId: string;
   title: string;
-  namespace?: string; // e.g., "Cultures", "Names", or undefined for no namespace
+  namespace: Optional<string>; // e.g., "Cultures", "Names", or undefined for no namespace
   type: WikiPage["type"];
-  entityKind?: string; // For entity pages
+  entityKind: Optional<string>; // For entity pages
 }
 
 /**
@@ -239,20 +241,20 @@ export interface ChronicleRoleAssignment {
 }
 
 export interface ChronicleTemporalContext {
-  focalEra?: {
+  focalEra: Optional<{
     id: string;
     name: string;
-    summary?: string;
-    order?: number;
-    startTick?: number;
-    endTick?: number;
-    duration?: number;
-  };
-  chronicleTickRange?: [number, number];
-  temporalScope?: string;
-  isMultiEra?: boolean;
-  touchedEraIds?: string[];
-  temporalDescription?: string;
+    summary: Optional<string>;
+    order: Optional<number>;
+    startTick: Optional<number>;
+    endTick: Optional<number>;
+    duration: Optional<number>;
+  }>;
+  chronicleTickRange: Optional<[number, number]>;
+  temporalScope: Optional<string>;
+  isMultiEra: Optional<boolean>;
+  touchedEraIds: Optional<string[]>;
+  temporalDescription: Optional<string>;
 }
 
 export interface WikiPage {
@@ -268,33 +270,33 @@ export interface WikiPage {
     | "static"
     | "region"
     | "era_narrative";
-  chronicle?: {
+  chronicle: Optional<{
     format: "story" | "document";
-    entrypointId?: string;
+    entrypointId: Optional<string>;
     // Seed data for generation context display
-    narrativeStyleId?: string;
-    roleAssignments?: ChronicleRoleAssignment[];
-    selectedEventIds?: string[];
-    selectedRelationshipIds?: string[];
-    temporalContext?: ChronicleTemporalContext;
-  };
-  static?: {
+    narrativeStyleId: Optional<string>;
+    roleAssignments: Optional<ChronicleRoleAssignment[]>;
+    selectedEventIds: Optional<string[]>;
+    selectedRelationshipIds: Optional<string[]>;
+    temporalContext: Optional<ChronicleTemporalContext>;
+  }>;
+  static: Optional<{
     pageId: string;
     status: "draft" | "published";
-  };
-  eraNarrative?: {
+  }>;
+  eraNarrative: Optional<{
     eraId: string;
     tone: string;
-    thesis?: string;
-    sourceChronicleIds?: string[];
-  };
-  aliases?: string[];
+    thesis: Optional<string>;
+    sourceChronicleIds: Optional<string[]>;
+  }>;
+  aliases: Optional<string[]>;
   content: WikiContent;
   categories: string[];
   linkedEntities: string[];
   images: WikiImage[];
   /** Raw narrative events for timeline display (entity pages) */
-  timelineEvents?: NarrativeEvent[];
+  timelineEvents: Optional<NarrativeEvent[]>;
   lastUpdated: number;
 }
 
@@ -310,12 +312,12 @@ export interface WikiHistorianNote {
 
 export interface WikiContent {
   sections: WikiSection[];
-  summary?: string;
+  summary: Optional<string>;
   /** Cover image ID for chronicle pages */
-  coverImageId?: string;
-  infobox?: WikiInfobox;
+  coverImageId: Optional<string>;
+  infobox: Optional<WikiInfobox>;
   /** Enabled historian annotations for this page */
-  historianNotes?: WikiHistorianNote[];
+  historianNotes: Optional<WikiHistorianNote[]>;
 }
 
 /** Image display size for chronicle inline images */
@@ -325,14 +327,14 @@ export type WikiImageSize = "small" | "medium" | "large" | "full-width";
 export interface WikiSectionImage {
   refId: string;
   type: "entity_ref" | "chronicle_image";
-  entityId?: string;
+  entityId: Optional<string>;
   imageId: string;
   anchorText: string;
   /** Character index where anchorText was found (fallback if text changes) */
-  anchorIndex?: number;
+  anchorIndex: Optional<number>;
   size: WikiImageSize;
-  justification?: "left" | "right";
-  caption?: string;
+  justification: Optional<"left" | "right">;
+  caption: Optional<string>;
 }
 
 export interface WikiSection {
@@ -341,38 +343,38 @@ export interface WikiSection {
   level: 1 | 2 | 3;
   content: string;
   /** Inline images for this section (chronicle pages) */
-  images?: WikiSectionImage[];
+  images: Optional<WikiSectionImage[]>;
 }
 
 export interface WikiInfobox {
   type: "entity" | "era" | "relationship";
   fields: WikiInfoboxField[];
-  image?: WikiImage;
+  image: Optional<WikiImage>;
 }
 
 export interface WikiInfoboxField {
   label: string;
   value: string | string[];
-  linkedEntity?: string;
+  linkedEntity: Optional<string>;
 }
 
 export interface WikiImage {
   entityId: string;
   path: string;
-  caption?: string;
+  caption: Optional<string>;
   /** Image width in pixels */
-  width?: number;
+  width: Optional<number>;
   /** Image height in pixels */
-  height?: number;
+  height: Optional<number>;
   /** Aspect ratio classification for display */
-  aspect?: ImageAspect;
+  aspect: Optional<ImageAspect>;
 }
 
 export interface WikiCategory {
   id: string;
   name: string;
-  description?: string;
-  parentCategory?: string;
+  description: Optional<string>;
+  parentCategory: Optional<string>;
   type: "auto" | "manual";
   pageCount: number;
 }
@@ -395,14 +397,14 @@ export type TextAlign = "left" | "center" | "justify";
 export interface PageLayoutOverride {
   pageId: string;
   simulationRunId: string;
-  layoutMode?: LayoutMode;
-  annotationDisplay?: AnnotationDisplay;
-  annotationPosition?: AnnotationPosition;
-  imageLayout?: ImageLayout;
-  contentWidth?: ContentWidth;
-  dropcap?: boolean;
-  textAlign?: TextAlign;
-  customClass?: string;
+  layoutMode: Optional<LayoutMode>;
+  annotationDisplay: Optional<AnnotationDisplay>;
+  annotationPosition: Optional<AnnotationPosition>;
+  imageLayout: Optional<ImageLayout>;
+  contentWidth: Optional<ContentWidth>;
+  dropcap: Optional<boolean>;
+  textAlign: Optional<TextAlign>;
+  customClass: Optional<string>;
   updatedAt: number;
 }
 

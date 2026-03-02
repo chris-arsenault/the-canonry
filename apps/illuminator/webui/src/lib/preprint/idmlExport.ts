@@ -24,7 +24,7 @@ import type { EraNarrativeRecord } from "../eraNarrativeTypes";
 import type { HistorianNote } from "../historianTypes";
 import { isNoteActive, noteDisplay } from "../historianTypes";
 import { resolveAnchorPhrase } from "../fuzzyAnchor";
-import type { ContentTreeState, ExportImageEntry, IdmlLayoutOptions } from "./prePrintTypes";
+import type { ContentTreeNode, ContentTreeState, ExportImageEntry, IdmlLayoutOptions } from "./prePrintTypes";
 import { IDML_PAGE_PRESETS, DEFAULT_IDML_LAYOUT } from "./prePrintTypes";
 import type { ImageMetadataRecord } from "./prePrintStats";
 import { flattenForExport } from "./contentTree";
@@ -810,25 +810,15 @@ function buildFootnoteXml(noteType: string, noteText: string): string {
  * When found, we split the Content at the anchor end and insert <Footnote>.
  * Unmatched footnotes are appended at the end of the last body paragraph.
  */
-function renderParagraphsWithFootnotes(
-  paras: IcmlParagraph[],
-  footnotes: FootnoteInsert[]
-): string {
-  if (footnotes.length === 0) {
-    return renderParagraphs(paras);
-  }
-
-  // Build a map of full text per paragraph for anchor matching
-  const paraTexts = paras.map((p) => p.runs.map((r) => r.text).join(""));
-
-  // Track which footnotes have been placed
+/** Find footnote anchor positions within paragraphs, returning placement map and placed set. */
+function findFootnoteAnchors(
+  footnotes: FootnoteInsert[],
+  paraTexts: string[]
+): { placements: Map<number, { charOffset: number; fnIdx: number }[]>; placed: Set<number> } {
   const placed = new Set<number>();
-  // Map: paraIndex → list of { charOffset (in full text), footnoteIdx }
   const placements = new Map<number, { charOffset: number; fnIdx: number }[]>();
-
   for (let fnIdx = 0; fnIdx < footnotes.length; fnIdx++) {
     const fn = footnotes[fnIdx];
-    // Search through paragraphs for the anchor phrase
     for (let pIdx = 0; pIdx < paraTexts.length; pIdx++) {
       const resolved = resolveAnchorPhrase(fn.anchorPhrase, paraTexts[pIdx]);
       if (resolved) {
@@ -840,45 +830,50 @@ function renderParagraphsWithFootnotes(
       }
     }
   }
+  return { placements, placed };
+}
 
-  // Render each paragraph, inserting footnotes where matched
-  const renderedParas: string[] = [];
+/** Render unplaced footnotes as a trailing collector paragraph. */
+function renderUnplacedFootnotes(unplaced: FootnoteInsert[]): string {
+  const fnParaRuns: string[] = [];
+  fnParaRuns.push(
+    `      <CharacterStyleRange AppliedCharacterStyle="CharacterStyle/$ID/[No character style]">`
+  );
+  fnParaRuns.push(`        <Content> </Content>`);
+  for (const fn of unplaced) {
+    fnParaRuns.push(`        ${buildFootnoteXml(fn.noteType, fn.noteText)}`);
+  }
+  fnParaRuns.push(`      </CharacterStyleRange>`);
+  return `    <ParagraphStyleRange AppliedParagraphStyle="ParagraphStyle/Body">
+${fnParaRuns.join("\n")}
+    </ParagraphStyleRange>`;
+}
 
-  for (let pIdx = 0; pIdx < paras.length; pIdx++) {
-    const para = paras[pIdx];
-    const fnPlacements = placements.get(pIdx);
-
-    if (!fnPlacements || fnPlacements.length === 0) {
-      // No footnotes in this paragraph — render normally
-      renderedParas.push(renderSingleParagraph(para));
-      continue;
-    }
-
-    // Sort footnote placements by offset (ascending) so we process left to right
-    const sorted = [...fnPlacements].sort((a, b) => a.charOffset - b.charOffset);
-
-    // Render paragraph with footnotes spliced in
-    renderedParas.push(renderParagraphWithFootnotes(para, sorted, footnotes));
+function renderParagraphsWithFootnotes(
+  paras: IcmlParagraph[],
+  footnotes: FootnoteInsert[]
+): string {
+  if (footnotes.length === 0) {
+    return renderParagraphs(paras);
   }
 
-  // Append unplaced footnotes at the very end as standalone footnote paragraphs
+  const paraTexts = paras.map((p) => p.runs.map((r) => r.text).join(""));
+  const { placements, placed } = findFootnoteAnchors(footnotes, paraTexts);
+
+  const renderedParas: string[] = [];
+  for (let pIdx = 0; pIdx < paras.length; pIdx++) {
+    const fnPlacements = placements.get(pIdx);
+    if (!fnPlacements || fnPlacements.length === 0) {
+      renderedParas.push(renderSingleParagraph(paras[pIdx]));
+      continue;
+    }
+    const sorted = [...fnPlacements].sort((a, b) => a.charOffset - b.charOffset);
+    renderedParas.push(renderParagraphWithFootnotes(paras[pIdx], sorted, footnotes));
+  }
+
   const unplaced = footnotes.filter((_, i) => !placed.has(i));
   if (unplaced.length > 0 && renderedParas.length > 0) {
-    // Insert unplaced footnotes after the last paragraph
-    // We create a "footnotes collector" paragraph
-    const fnParaRuns: string[] = [];
-    fnParaRuns.push(
-      `      <CharacterStyleRange AppliedCharacterStyle="CharacterStyle/$ID/[No character style]">`
-    );
-    fnParaRuns.push(`        <Content> </Content>`);
-    for (const fn of unplaced) {
-      fnParaRuns.push(`        ${buildFootnoteXml(fn.noteType, fn.noteText)}`);
-    }
-    fnParaRuns.push(`      </CharacterStyleRange>`);
-
-    renderedParas.push(`    <ParagraphStyleRange AppliedParagraphStyle="ParagraphStyle/Body">
-${fnParaRuns.join("\n")}
-    </ParagraphStyleRange>`);
+    renderedParas.push(renderUnplacedFootnotes(unplaced));
   }
 
   return renderedParas.join("\n    <Br/>\n");
@@ -1161,6 +1156,27 @@ ${buildPathGeometry(calloutWidth, calloutHeight)}
     </TextFrame>`;
 }
 
+/** Build extra XML for images and callout frames on the first spread. */
+function buildFirstSpreadExtras(
+  entryId: string,
+  images: ImagePlacement[],
+  calloutStories: { storyId: string }[],
+  layout: ResolvedLayout
+): string {
+  let xml = "";
+  let yOffset = 0;
+  for (const img of images) {
+    xml += "\n\n" + buildImageRectangle(img.imageId, img.filename, yOffset, layout);
+    yOffset += 210; // Stack vertically with 10pt gap
+  }
+  for (let ci = 0; ci < calloutStories.length; ci++) {
+    const cfId = `cf_${entryId}_${ci}`;
+    xml += "\n\n" + buildCalloutFrame(cfId, calloutStories[ci].storyId, yOffset, layout);
+    yOffset += 110;
+  }
+  return xml;
+}
+
 /**
  * Build spread(s) for an entry. Returns spread files and the number of pages consumed.
  *
@@ -1225,17 +1241,7 @@ function buildEntrySpreads(
 
     // Add image rectangles and callout frames to the FIRST spread only
     if (isFirstSpread) {
-      let yOffset = 0;
-      for (const img of images) {
-        extrasXml += "\n\n" + buildImageRectangle(img.imageId, img.filename, yOffset, layout);
-        yOffset += 210; // Stack vertically with 10pt gap
-      }
-
-      for (let ci = 0; ci < calloutStories.length; ci++) {
-        const cfId = `cf_${entryId}_${ci}`;
-        extrasXml += "\n\n" + buildCalloutFrame(cfId, calloutStories[ci].storyId, yOffset, layout);
-        yOffset += 110;
-      }
+      extrasXml = buildFirstSpreadExtras(entryId, images, calloutStories, layout);
     }
 
     const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1506,6 +1512,75 @@ function selectMaster(nodeType: string, contentMaps: ContentMaps, contentId?: st
 }
 
 // =============================================================================
+// Entry Builders (folder and content nodes)
+// =============================================================================
+
+interface EntryResult {
+  stories: StoryFile[];
+  spreads: SpreadFile[];
+  pagesUsed: number;
+}
+
+function buildFolderEntry(
+  entryId: string,
+  name: string,
+  depth: number,
+  startPageNum: number,
+  layout: ResolvedLayout
+): EntryResult {
+  const storyId = `story_${entryId}`;
+  const headingStyle = depth <= 0 ? PS_SECTION_HEADING : PS_ERA_HEADING;
+  const paras = [plainPara(headingStyle, name)];
+  const storyXml = buildEntryStoryXml(storyId, paras, []);
+  const masterId = MASTERS.D.spreadId;
+  const { spreads, pagesUsed } = buildEntrySpreads(entryId, storyId, masterId, 2, startPageNum, [], [], layout);
+  return {
+    stories: [{ filename: `Stories/Story_${storyId}.xml`, xml: storyXml, storyId }],
+    spreads,
+    pagesUsed,
+  };
+}
+
+function buildContentEntry(
+  entryId: string,
+  node: ContentTreeNode,
+  contentMaps: ContentMaps,
+  imageMap: Map<string, ImageMetadataRecord>,
+  referencedImages: Map<string, ExportImageEntry>,
+  registerFn: ReturnType<typeof createImageRegistrar>,
+  startPageNum: number,
+  layout: ResolvedLayout
+): EntryResult | null {
+  if (!node.contentId) return null;
+
+  const masterKey = selectMaster(node.type, contentMaps, node.contentId);
+  const { contentParas: rawParas, footnotes, callouts, images } = buildContentNodeParagraphs(
+    node.type, node.contentId, contentMaps, imageMap, referencedImages, registerFn
+  );
+  if (rawParas.length === 0) return null;
+
+  const contentParas = (footnotes.length > 0 || callouts.length > 0)
+    ? stripHistorianNotes(rawParas) : rawParas;
+
+  const storyId = `story_${entryId}`;
+  const storyXml = buildEntryStoryXml(storyId, contentParas, footnotes);
+  const stories: StoryFile[] = [{ filename: `Stories/Story_${storyId}.xml`, xml: storyXml, storyId }];
+
+  const calloutStoryRefs: { storyId: string }[] = [];
+  for (let ci = 0; ci < callouts.length; ci++) {
+    const calloutStoryId = `story_${entryId}_co${ci}`;
+    const calloutXml = buildCalloutStoryXml(calloutStoryId, callouts[ci].noteType, callouts[ci].noteText, callouts[ci].anchorPhrase);
+    stories.push({ filename: `Stories/Story_${calloutStoryId}.xml`, xml: calloutXml, storyId: calloutStoryId });
+    calloutStoryRefs.push({ storyId: calloutStoryId });
+  }
+
+  const pageCount = estimateEntryPages(contentParas, images.length, layout.linesPerPage);
+  const masterId = MASTERS[masterKey].spreadId;
+  const { spreads, pagesUsed } = buildEntrySpreads(entryId, storyId, masterId, pageCount, startPageNum, images, calloutStoryRefs, layout);
+  return { stories, spreads, pagesUsed };
+}
+
+// =============================================================================
 // Public API
 // =============================================================================
 
@@ -1535,95 +1610,13 @@ export async function buildIdmlPackage(
   for (const { node, depth } of flattened) {
     const entryId = `e${entryCounter++}`;
 
-    if (node.type === "folder") {
-      // Folder heading: simple story + 2-page spread
-      const storyId = `story_${entryId}`;
-      const headingStyle = depth <= 0 ? PS_SECTION_HEADING : PS_ERA_HEADING;
-      const paras = [plainPara(headingStyle, node.name)];
-
-      const storyXml = buildEntryStoryXml(storyId, paras, []);
-      allStories.push({
-        filename: `Stories/Story_${storyId}.xml`,
-        xml: storyXml,
-        storyId,
-      });
-
-      const masterId = MASTERS.D.spreadId; // folders use D-Encyclopedia master
-      const { spreads, pagesUsed } = buildEntrySpreads(
-        entryId,
-        storyId,
-        masterId,
-        2,
-        currentPageNum,
-        [],
-        [],
-        layout
-      );
-      allSpreads.push(...spreads);
-      currentPageNum += pagesUsed;
-      continue;
-    }
-
-    if (!node.contentId) continue;
-
-    // Content entry: build paragraphs, classify notes, collect images
-    const masterKey = selectMaster(node.type, contentMaps, node.contentId);
-    let { contentParas, footnotes, callouts, images } = buildContentNodeParagraphs(
-      node.type, node.contentId, contentMaps, imageMap, referencedImages, registerFn
-    );
-
-    if (contentParas.length === 0) continue;
-
-    // Strip historian note paragraphs from the main content — in IDML,
-    // popout notes become inline footnotes and full notes become callout stories
-    if (footnotes.length > 0 || callouts.length > 0) {
-      contentParas = stripHistorianNotes(contentParas);
-    }
-
-    // Build main story (with inline footnotes)
-    const storyId = `story_${entryId}`;
-    const storyXml = buildEntryStoryXml(storyId, contentParas, footnotes);
-    allStories.push({
-      filename: `Stories/Story_${storyId}.xml`,
-      xml: storyXml,
-      storyId,
-    });
-
-    // Build callout stories
-    const calloutStoryRefs: { storyId: string }[] = [];
-    for (let ci = 0; ci < callouts.length; ci++) {
-      const callout = callouts[ci];
-      const calloutStoryId = `story_${entryId}_co${ci}`;
-      const calloutXml = buildCalloutStoryXml(
-        calloutStoryId,
-        callout.noteType,
-        callout.noteText,
-        callout.anchorPhrase
-      );
-      allStories.push({
-        filename: `Stories/Story_${calloutStoryId}.xml`,
-        xml: calloutXml,
-        storyId: calloutStoryId,
-      });
-      calloutStoryRefs.push({ storyId: calloutStoryId });
-    }
-
-    // Estimate pages and build spreads
-    const pageCount = estimateEntryPages(contentParas, images.length, layout.linesPerPage);
-    const masterId = MASTERS[masterKey].spreadId;
-
-    const { spreads, pagesUsed } = buildEntrySpreads(
-      entryId,
-      storyId,
-      masterId,
-      pageCount,
-      currentPageNum,
-      images,
-      calloutStoryRefs,
-      layout
-    );
-    allSpreads.push(...spreads);
-    currentPageNum += pagesUsed;
+    const result = node.type === "folder"
+      ? buildFolderEntry(entryId, node.name, depth, currentPageNum, layout)
+      : buildContentEntry(entryId, node, contentMaps, imageMap, referencedImages, registerFn, currentPageNum, layout);
+    if (!result) continue;
+    allStories.push(...result.stories);
+    allSpreads.push(...result.spreads);
+    currentPageNum += result.pagesUsed;
   }
 
   // Build master spread files

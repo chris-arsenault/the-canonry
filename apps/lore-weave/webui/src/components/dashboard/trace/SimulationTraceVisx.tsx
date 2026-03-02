@@ -9,7 +9,7 @@
  * - Interactive tooltips and selection
  */
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { ParentSize } from "@visx/responsive";
 import "./SimulationTraceVisx.css";
 import { PRESSURE_COLORS } from "./traceConstants";
@@ -286,12 +286,10 @@ export default function SimulationTraceVisx({
     systemPanel, activeDiffusionId, activeContagionId, systemActions
   );
 
-  // Initialize lockedTick when opening a vis panel
-  useEffect(() => {
-    if ((systemPanel === "plane-diffusion" || systemPanel === "graph-contagion") && lockedTick === null) {
-      setLockedTick(maxTick);
-    }
-  }, [systemPanel, maxTick, lockedTick]);
+  // Initialize lockedTick when opening a vis panel (during render, not in effect)
+  if ((systemPanel === "plane-diffusion" || systemPanel === "graph-contagion") && lockedTick === null) {
+    setLockedTick(maxTick);
+  }
 
   // Handlers
   const handleTickHover = useCallback((tick: number) => setSelectedTick(tick), []);

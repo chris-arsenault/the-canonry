@@ -7,27 +7,28 @@
  */
 
 import React, { useRef, useEffect, useCallback } from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface ModalShellTab {
   id: string;
-  icon?: string;
+  icon: Optional<string>;
   label: string;
 }
 
 interface ModalShellProps {
   readonly onClose: () => void;
-  readonly icon?: string;
+  readonly icon: Optional<string>;
   readonly title: string;
-  readonly disabled?: boolean;
-  readonly tabs?: ModalShellTab[];
-  readonly activeTab?: string;
-  readonly onTabChange?: (tabId: string) => void;
-  readonly renderTabBadge?: (tabId: string) => React.ReactNode;
-  readonly sidebarFooter?: React.ReactNode;
-  readonly children?: React.ReactNode;
-  readonly className?: string;
-  readonly preventOverlayClose?: boolean;
-  readonly footer?: React.ReactNode;
+  readonly disabled: Optional<boolean>;
+  readonly tabs: Optional<ModalShellTab[]>;
+  readonly activeTab: Optional<string>;
+  readonly onTabChange: Optional<(tabId: string) => void>;
+  readonly renderTabBadge: Optional<(tabId: string) => React.ReactNode>;
+  readonly sidebarFooter: Optional<React.ReactNode>;
+  readonly children: Optional<React.ReactNode>;
+  readonly className: Optional<string>;
+  readonly preventOverlayClose: Optional<boolean>;
+  readonly footer: Optional<React.ReactNode>;
 }
 
 /**
@@ -63,34 +64,21 @@ export function ModalShell({
 }: ModalShellProps) {
   const hasTabs = tabs && tabs.length > 0;
   const mouseDownOnOverlay = useRef(false);
-
-  // Escape key handler
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !preventOverlayClose) {
-      onClose();
-    }
+    if (e.key === 'Escape' && !preventOverlayClose) onClose();
   }, [onClose, preventOverlayClose]);
-
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
-
-  // Body scroll lock
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, []);
-
-  const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    mouseDownOnOverlay.current = e.target === e.currentTarget;
-  };
-
+  const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => { mouseDownOnOverlay.current = e.target === e.currentTarget; };
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) => {
-    if (!preventOverlayClose && mouseDownOnOverlay.current && e.target === e.currentTarget) {
-      onClose();
-    }
+    if (!preventOverlayClose && mouseDownOnOverlay.current && e.target === e.currentTarget) onClose();
   };
 
   return (

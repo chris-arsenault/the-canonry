@@ -3,11 +3,12 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface AddCardProps {
   readonly onClick: (e: React.MouseEvent | React.KeyboardEvent) => void;
-  readonly label?: string;
-  readonly className?: string;
+  readonly label: Optional<string>;
+  readonly className: Optional<string>;
 }
 
 /**

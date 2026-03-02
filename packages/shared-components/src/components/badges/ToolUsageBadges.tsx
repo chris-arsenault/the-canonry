@@ -9,6 +9,7 @@
  */
 
 import React from 'react';
+import type { Optional } from '../../types/optionality.js';
 
 interface ToolBadgeConfig {
   label: string;
@@ -18,9 +19,9 @@ interface ToolBadgeConfig {
 }
 
 interface ToolUsageBadgesProps {
-  readonly usage?: Record<string, number>;
-  readonly compact?: boolean;
-  readonly showZero?: boolean;
+  readonly usage: Optional<Record<string, number>>;
+  readonly compact: Optional<boolean>;
+  readonly showZero: Optional<boolean>;
 }
 
 // Badge configurations for different tool types

@@ -381,8 +381,8 @@ export function useEnrichmentQueue(
             setQueue(patchQueueItem(task.id, {
               status: "error" as const,
               completedAt: Date.now(),
-              error: taskResult.error,
-              debug: taskResult.debug,
+              error: taskResult.error as string,
+              debug: taskResult.debug as Record<string, unknown> | undefined,
             }));
           }
           useThinkingStore.getState().finishTask(task.id);

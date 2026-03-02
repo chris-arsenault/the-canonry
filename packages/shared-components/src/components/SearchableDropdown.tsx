@@ -6,20 +6,21 @@
  */
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface SearchableDropdownItem {
   id: string;
-  name?: string;
+  name: Optional<string>;
 }
 
 interface SearchableDropdownProps {
   readonly items: SearchableDropdownItem[];
   readonly onSelect: (id: string) => void;
-  readonly placeholder?: string;
-  readonly emptyMessage?: string;
-  readonly noMatchMessage?: string;
-  readonly searchable?: boolean;
-  readonly className?: string;
+  readonly placeholder: Optional<string>;
+  readonly emptyMessage: Optional<string>;
+  readonly noMatchMessage: Optional<string>;
+  readonly searchable: Optional<boolean>;
+  readonly className: Optional<string>;
 }
 
 /**
@@ -44,40 +45,23 @@ export function SearchableDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
-
   const filteredItems = useMemo(() => {
     if (!search) return items;
     const lower = search.toLowerCase();
-    return items.filter(item =>
-      item.id.toLowerCase().includes(lower) ||
-      item.name?.toLowerCase().includes(lower)
-    );
+    return items.filter(item => item.id.toLowerCase().includes(lower) || item.name?.toLowerCase().includes(lower));
   }, [items, search]);
-
-  const handleSelect = (item: SearchableDropdownItem) => {
-    onSelect(item.id);
-    setIsOpen(false);
-    setSearch('');
-  };
+  const handleSelect = (item: SearchableDropdownItem) => { onSelect(item.id); setIsOpen(false); setSearch(''); };
 
   if (items.length === 0) {
-    return (
-      <div className={`dropdown-trigger dropdown-trigger-disabled ${className}`.trim()}>
-        <span>{emptyMessage}</span>
-      </div>
-    );
+    return <div className={`dropdown-trigger dropdown-trigger-disabled ${className}`.trim()}><span>{emptyMessage}</span></div>;
   }
-
   return (
     <div ref={containerRef} className={`dropdown ${className}`.trim()}>
       <div className="dropdown-trigger" onClick={() => setIsOpen(!isOpen)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >

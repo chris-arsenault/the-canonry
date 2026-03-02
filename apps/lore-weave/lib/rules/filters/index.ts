@@ -6,7 +6,7 @@
  */
 
 import { HardState } from '../../core/worldTypes';
-import { SelectionFilter } from './types';
+import { SelectionFilter, HasRelationshipFilter, LacksRelationshipFilter, SharesRelatedFilter, ComponentSizeFilter } from './types';
 import { hasTag, getTagValue } from '../../utils';
 import { EntityResolver } from '../resolver';
 import { evaluateGraphPath, GraphPathOptions } from '../graphPath';
@@ -102,13 +102,13 @@ export function applySelectionFilters(
 
 function filterByRelationship(
   entities: HardState[],
-  filter: SelectionFilter,
+  filter: HasRelationshipFilter | LacksRelationshipFilter,
   resolver: EntityResolver,
   negate: boolean
 ): HardState[] {
   const graphView = resolver.getGraphView();
   const withEntity = filter.with ? resolver.resolveEntity(filter.with) : undefined;
-  const direction = negate ? undefined : filter.direction;
+  const direction = filter.type === 'has_relationship' ? filter.direction : undefined;
   return entities.filter(entity => {
     const relationships = graphView.getRelationships(entity.id, filter.kind);
     const hasMatch = relationships.some(link =>
@@ -120,7 +120,7 @@ function filterByRelationship(
 
 function filterBySharesRelated(
   entities: HardState[],
-  filter: SelectionFilter,
+  filter: SharesRelatedFilter,
   resolver: EntityResolver
 ): HardState[] {
   const graphView = resolver.getGraphView();
@@ -141,7 +141,7 @@ function filterBySharesRelated(
 
 function filterByComponentSize(
   entities: HardState[],
-  filter: SelectionFilter,
+  filter: ComponentSizeFilter,
   resolver: EntityResolver
 ): HardState[] {
   const graphView = resolver.getGraphView();
@@ -189,15 +189,13 @@ export function applySelectionFilter(
       });
 
     case 'has_tags': {
-      const tagList = filter.tags || [];
-      if (tagList.length === 0) return entities;
-      return entities.filter(entity => tagList.every(tag => hasTag(entity.tags, tag)));
+      if (filter.tags.length === 0) return entities;
+      return entities.filter(entity => filter.tags.every(tag => hasTag(entity.tags, tag)));
     }
 
     case 'has_any_tag': {
-      const tagList = filter.tags || [];
-      if (tagList.length === 0) return entities;
-      return entities.filter(entity => tagList.some(tag => hasTag(entity.tags, tag)));
+      if (filter.tags.length === 0) return entities;
+      return entities.filter(entity => filter.tags.some(tag => hasTag(entity.tags, tag)));
     }
 
     case 'lacks_tag':
@@ -207,9 +205,8 @@ export function applySelectionFilter(
       });
 
     case 'lacks_any_tag': {
-      const tagList = filter.tags || [];
-      if (tagList.length === 0) return entities;
-      return entities.filter(entity => !tagList.some(tag => hasTag(entity.tags, tag)));
+      if (filter.tags.length === 0) return entities;
+      return entities.filter(entity => !filter.tags.some(tag => hasTag(entity.tags, tag)));
     }
 
     case 'has_culture':

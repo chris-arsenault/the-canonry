@@ -15,7 +15,7 @@
  * and simulation systems in alternating phases across multiple eras.
  */
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import "./App.css";
 import ConfigurationSummary from "./components/config";
@@ -68,14 +68,12 @@ export default function LoreWeaveRemote({
   // This allows stepping through epochs, exporting to Archivist, and returning to continue
   const simulationWorker = useSimulationWorker();
 
-  // Sync worker running state (only update if value actually changed)
-  const prevIsRunningRef = useRef(simulationWorker.isRunning);
-  useEffect(() => {
-    if (prevIsRunningRef.current !== simulationWorker.isRunning) {
-      prevIsRunningRef.current = simulationWorker.isRunning;
-      setIsRunning(simulationWorker.isRunning);
-    }
-  }, [simulationWorker.isRunning]);
+  // Sync worker running state (only update if value actually changed, during render)
+  const [prevIsRunning, setPrevIsRunning] = useState(simulationWorker.isRunning);
+  if (prevIsRunning !== simulationWorker.isRunning) {
+    setPrevIsRunning(simulationWorker.isRunning);
+    setIsRunning(simulationWorker.isRunning);
+  }
 
   // Validate configuration completeness
   const configValidation = useMemo(() => {
@@ -129,11 +127,11 @@ export default function LoreWeaveRemote({
   }, [schema, eras, pressures, generators, seedEntities, seedRelationships]);
 
   // Handle simulation completion (don't auto-navigate - let user review logs first)
-  const handleSimulationComplete = useCallback((results) => {
+  const handleSimulationComplete = (results) => {
     setSimulationResults(results);
     setIsRunning(false);
     // Don't auto-navigate to results - user will click "View Results" button
-  }, []);
+  };
 
   const renderContent = () => {
     switch (activeTab) {

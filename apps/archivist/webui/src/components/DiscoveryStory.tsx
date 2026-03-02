@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from "react";
 import { useExpandSingle } from "@the-canonry/shared-components";
+import type { Optional } from "@the-canonry/shared-components";
 import type { DiscoveryEventLore } from "../types/world.ts";
 import "./archivist-section.css";
 import "./DiscoveryStory.css";
@@ -8,9 +9,9 @@ type SectionKey = "discovery" | "significance";
 
 interface DiscoveryStoryProps {
   lore: DiscoveryEventLore;
-  onExplorerClick?: (explorerId: string) => void;
-  onClose?: () => void;
-  isModal?: boolean;
+  onExplorerClick: Optional<(explorerId: string) => void>;
+  onClose: Optional<() => void>;
+  isModal: Optional<boolean>;
 }
 
 function DiscoveryBlock({
@@ -46,7 +47,7 @@ function ExplorerRow({
   onExplorerClick,
 }: Readonly<{
   lore: DiscoveryEventLore;
-  onExplorerClick?: (id: string) => void;
+  onExplorerClick: Optional<(id: string) => void>;
 }>) {
   const isEntityId = /^(npc_|faction_|location_)/.test(lore.metadata.explorer);
 

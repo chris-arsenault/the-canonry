@@ -272,7 +272,7 @@ function AliasTag({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
+      if (e.key === "Enter" || e.key === " ") (e.currentTarget as HTMLElement).click();
     },
     []
   );

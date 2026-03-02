@@ -8,7 +8,8 @@
 export { ReferenceDropdown } from './ReferenceDropdown';
 export { ChipSelect } from './ChipSelect';
 export { SearchableDropdown } from './SearchableDropdown';
-export { LevelSelector, STRENGTH_LEVELS, PROMINENCE_LEVELS } from './LevelSelector';
+export { LevelSelector } from './LevelSelector';
+export { STRENGTH_LEVELS, PROMINENCE_LEVELS } from './levelPresets';
 export { NumberInput } from './NumberInput';
 export { LocalTextArea } from './LocalTextArea';
 

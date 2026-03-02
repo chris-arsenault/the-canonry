@@ -3,16 +3,17 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface Era {
   id: string;
-  name?: string;
+  name: Optional<string>;
 }
 
 interface EraBadgesProps {
-  readonly eras?: Era[];
-  readonly maxVisible?: number;
-  readonly className?: string;
+  readonly eras: Optional<Era[]>;
+  readonly maxVisible: Optional<number>;
+  readonly className: Optional<string>;
 }
 
 const ERA_ICON = '🕰️';

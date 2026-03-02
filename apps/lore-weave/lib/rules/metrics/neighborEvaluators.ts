@@ -7,7 +7,7 @@
 
 import type { HardState, Relationship } from '../../core/worldTypes';
 import { hasTag } from '../../utils';
-import { normalizeDirection } from '../types';
+import { normalizeDirection, type Direction } from '../types';
 import type {
   MetricResult,
   NeighborKindCountMetric,
@@ -15,7 +15,7 @@ import type {
 import type { MetricContext } from './index';
 
 /** Resolve the target IDs from a link given a source entity and direction. */
-function resolveLinkedIds(link: Relationship, entityId: string, direction: 'src' | 'dst' | 'both'): string[] {
+function resolveLinkedIds(link: Relationship, entityId: string, direction: Direction): string[] {
   const ids: string[] = [];
   if ((direction === 'both' || direction === 'src') && link.src === entityId) ids.push(link.dst);
   if ((direction === 'both' || direction === 'dst') && link.dst === entityId) ids.push(link.src);

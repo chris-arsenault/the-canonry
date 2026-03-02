@@ -283,6 +283,24 @@ function isMutationPressureMatch(
   );
 }
 
+/** Collect matching pressure IDs from a single system config. */
+function collectPressureIdsFromConfig(
+  cfg: SystemConfig,
+  deltaPredicate: (d: number) => boolean,
+  out: Set<string>,
+): void {
+  if (cfg.pressureChanges) {
+    for (const [pId, delta] of Object.entries(cfg.pressureChanges)) {
+      if (deltaPredicate(delta)) out.add(pId);
+    }
+  }
+  for (const mutation of collectMutationActions(cfg)) {
+    if (isMutationPressureMatch(mutation, deltaPredicate) && mutation.pressureId) {
+      out.add(mutation.pressureId);
+    }
+  }
+}
+
 /** Scan systems for pressure changes matching a delta predicate */
 function collectSystemPressureIds(
   systems: System[],
@@ -290,17 +308,7 @@ function collectSystemPressureIds(
 ): Set<string> {
   const ids = new Set<string>();
   for (const sys of systems) {
-    const cfg = sys.config;
-    if (cfg.pressureChanges) {
-      for (const [pId, delta] of Object.entries(cfg.pressureChanges)) {
-        if (deltaPredicate(delta)) ids.add(pId);
-      }
-    }
-    for (const mutation of collectMutationActions(cfg)) {
-      if (isMutationPressureMatch(mutation, deltaPredicate)) {
-        ids.add(mutation.pressureId!);
-      }
-    }
+    collectPressureIdsFromConfig(sys.config, deltaPredicate, ids);
   }
   return ids;
 }
@@ -964,31 +972,27 @@ function collectPressureRangeIssues(
   }
 }
 
+function collectNegativeWeightIssues(
+  source: string,
+  fieldPrefix: string,
+  entries: Record<string, number>,
+  issues: RangeIssue[],
+): void {
+  for (const [key, value] of Object.entries(entries)) {
+    if (value < 0) {
+      issues.push({ source, field: `${fieldPrefix}.${key}`, value, expected: ">= 0" });
+    }
+  }
+}
+
 function collectEraWeightIssues(eras: Era[], issues: RangeIssue[]): void {
   for (const era of eras) {
+    const source = `era "${era.id}"`;
     if (era.templateWeights) {
-      for (const [genId, weight] of Object.entries(era.templateWeights)) {
-        if (weight < 0) {
-          issues.push({
-            source: `era "${era.id}"`,
-            field: `templateWeights.${genId}`,
-            value: weight,
-            expected: ">= 0",
-          });
-        }
-      }
+      collectNegativeWeightIssues(source, "templateWeights", era.templateWeights, issues);
     }
     if (era.systemModifiers) {
-      for (const [sysId, mod] of Object.entries(era.systemModifiers)) {
-        if (mod < 0) {
-          issues.push({
-            source: `era "${era.id}"`,
-            field: `systemModifiers.${sysId}`,
-            value: mod,
-            expected: ">= 0",
-          });
-        }
-      }
+      collectNegativeWeightIssues(source, "systemModifiers", era.systemModifiers, issues);
     }
   }
 }

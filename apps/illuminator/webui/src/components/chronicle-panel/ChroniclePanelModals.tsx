@@ -29,6 +29,7 @@ export function RestartModal({ onConfirm, onCancel }: Readonly<RestartModalProps
       tabIndex={0}
       onKeyDown={handleOverlayKeyDown}
     >
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog role is interactive per WAI-ARIA */}
       <div
         className="chron-modal"
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
@@ -81,6 +82,7 @@ export function ResetBackportModal({ onConfirm, onCancel }: Readonly<ResetBackpo
       tabIndex={0}
       onKeyDown={handleOverlayKeyDown}
     >
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog role is interactive per WAI-ARIA */}
       <div
         className="chron-modal chron-modal-wide"
         onClick={(e: React.MouseEvent) => e.stopPropagation()}

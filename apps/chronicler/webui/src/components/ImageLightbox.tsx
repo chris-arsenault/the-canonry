@@ -1,12 +1,13 @@
 import React, { useEffect, useCallback, useRef } from "react";
 import type { MouseEvent } from "react";
+import type { Optional } from "@the-canonry/shared-components";
 import styles from "./ImageLightbox.module.css";
 
 interface ImageLightboxProps {
   isOpen: boolean;
   imageUrl: string | null;
   title: string;
-  summary?: string;
+  summary: Optional<string>;
   onClose: () => void;
 }
 
@@ -52,12 +53,14 @@ export default function ImageLightbox({
   if (!isOpen || !imageUrl) return null;
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog role is interactive per WAI-ARIA
     <div
       className={styles.overlay}
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
       onKeyDown={handleKeyDown}
       role="dialog"
+      tabIndex={-1}
       aria-modal="true"
       aria-label={title || "Image viewer"}
     >

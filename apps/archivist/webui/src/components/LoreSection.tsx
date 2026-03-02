@@ -9,7 +9,7 @@ interface LoreSectionProps {
 
 export default function LoreSection({ lore }: Readonly<LoreSectionProps>) {
   return (
-    <div className="archivist-section lore-section">
+    <div className="archivist-section lore-block">
       <div className="archivist-section-hdr">
         <span className="archivist-section-icon">📖</span>
         <span className="archivist-section-title">Lore</span>

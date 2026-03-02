@@ -15,12 +15,8 @@ function indexEventParticipants(
   eventsByEntity: Map<string, NarrativeEvent[]>,
   touched: Map<string, NarrativeEvent[]>
 ): void {
-  const participants = Array.isArray(event.participantEffects)
-    ? event.participantEffects
-    : [];
-
-  for (const participant of participants) {
-    const entityId = (participant as { entity?: { id?: string } })?.entity?.id;
+  for (const participant of event.participantEffects) {
+    const entityId = participant.entity.id;
     if (!entityId) continue;
 
     let list = touched.get(entityId);
@@ -74,116 +70,125 @@ const DEFAULT_STATUS: NarrativeStatus = {
   totalExpected: 0,
 };
 
+type StoreSet = (fn: (state: NarrativeStoreState) => Partial<NarrativeStoreState>) => void;
+type StoreGet = () => NarrativeStoreState;
+
+async function ensureEntityEventsImpl(
+  entityId: string | null | undefined,
+  set: StoreSet,
+  get: StoreGet
+): Promise<void> {
+  const { backend, simulationRunId, loadedEntityIds, loadingEntityIds } = get();
+  if (!backend || !simulationRunId || !entityId) return;
+  if (loadedEntityIds.has(entityId) || loadingEntityIds.has(entityId)) return;
+
+  set((state) => {
+    const nextLoading = new Set(state.loadingEntityIds);
+    nextLoading.add(entityId);
+    return { loadingEntityIds: nextLoading, status: { ...state.status, loading: true } };
+  });
+
+  try {
+    const events = await backend.getEventsForEntity(simulationRunId, entityId);
+    set((state) => {
+      const nextEventsById = new Map(state.eventsById);
+      const nextEventsByEntity = new Map(state.eventsByEntity);
+      const nextEventIds = new Set(state.eventIds);
+      const uniqueEvents: NarrativeEvent[] = [];
+      const seenIds = new Set<string>();
+
+      for (const event of events) {
+        if (seenIds.has(event.id)) continue;
+        seenIds.add(event.id);
+        nextEventIds.add(event.id);
+        const existing = nextEventsById.get(event.id);
+        if (!existing) {
+          nextEventsById.set(event.id, event);
+          uniqueEvents.push(event);
+        } else {
+          uniqueEvents.push(existing);
+        }
+      }
+
+      nextEventsByEntity.set(entityId, uniqueEvents);
+      const nextLoaded = new Set(state.loadedEntityIds);
+      nextLoaded.add(entityId);
+
+      return { eventsById: nextEventsById, eventsByEntity: nextEventsByEntity, eventIds: nextEventIds, loadedEntityIds: nextLoaded };
+    });
+  } catch (err) {
+    console.error('[NarrativeStore] Failed to load narrative events:', err);
+  } finally {
+    set((state) => {
+      const nextLoading = new Set(state.loadingEntityIds);
+      nextLoading.delete(entityId);
+      return { loadingEntityIds: nextLoading, status: { ...state.status, loading: nextLoading.size > 0 } };
+    });
+  }
+}
+
+function ingestChunkImpl(items: NarrativeEvent[], set: StoreSet): void {
+  if (items.length === 0) return;
+
+  set((state) => {
+    const nextEventsById = new Map(state.eventsById);
+    const nextEventsByEntity = new Map(state.eventsByEntity);
+    const nextEventIds = new Set(state.eventIds);
+    const touched = new Map<string, NarrativeEvent[]>();
+    let didChange = false;
+
+    for (const event of items) {
+      if (nextEventIds.has(event.id)) continue;
+      nextEventIds.add(event.id);
+      nextEventsById.set(event.id, event);
+      didChange = true;
+      indexEventParticipants(event, nextEventsByEntity, touched);
+    }
+
+    if (!didChange && touched.size === 0) return {};
+
+    for (const [entityId, list] of touched) {
+      nextEventsByEntity.set(entityId, list);
+    }
+
+    return { eventsById: nextEventsById, eventsByEntity: nextEventsByEntity, eventIds: nextEventIds };
+  });
+}
+
+const INITIAL_STATE = {
+  eventsById: new Map<string, NarrativeEvent>(),
+  eventsByEntity: new Map<string, NarrativeEvent[]>(),
+  eventIds: new Set<string>(),
+  loadedEntityIds: new Set<string>(),
+  loadingEntityIds: new Set<string>(),
+  allEventsLoaded: false,
+  allEventsLoading: false,
+  status: { ...DEFAULT_STATUS },
+};
+
 export const useNarrativeStore = create<NarrativeStoreState>()(
   subscribeWithSelector((set, get) => ({
     backend: null,
     simulationRunId: null,
-    eventsById: new Map(),
-    eventsByEntity: new Map(),
-    eventIds: new Set(),
-    loadedEntityIds: new Set(),
-    loadingEntityIds: new Set(),
-    allEventsLoaded: false,
-    allEventsLoading: false,
-    status: { ...DEFAULT_STATUS },
+    ...INITIAL_STATE,
 
-    configureBackend: (backend) => {
-      set({ backend });
-    },
+    configureBackend: (backend) => set({ backend }),
 
-    setSimulationRunId: (simulationRunId) => {
-      set({
-        simulationRunId: simulationRunId ?? null,
-        eventsById: new Map(),
-        eventsByEntity: new Map(),
-        eventIds: new Set(),
-        loadedEntityIds: new Set(),
-        loadingEntityIds: new Set(),
-        allEventsLoaded: false,
-        allEventsLoading: false,
-        status: { ...DEFAULT_STATUS },
-      });
-    },
+    setSimulationRunId: (simulationRunId) => set({
+      simulationRunId: simulationRunId ?? null,
+      ...INITIAL_STATE,
+    }),
 
-    ensureEntityEvents: async (entityId) => {
-      const { backend, simulationRunId, loadedEntityIds, loadingEntityIds } = get();
-      if (!backend || !simulationRunId || !entityId) return;
-      if (loadedEntityIds.has(entityId) || loadingEntityIds.has(entityId)) return;
-
-      set((state) => {
-        const nextLoading = new Set(state.loadingEntityIds);
-        nextLoading.add(entityId);
-        return {
-          loadingEntityIds: nextLoading,
-          status: {
-            ...state.status,
-            loading: true,
-          },
-        };
-      });
-
-      try {
-        const events = await backend.getEventsForEntity(simulationRunId, entityId);
-        set((state) => {
-          const nextEventsById = new Map(state.eventsById);
-          const nextEventsByEntity = new Map(state.eventsByEntity);
-          const nextEventIds = new Set(state.eventIds);
-          const uniqueEvents: NarrativeEvent[] = [];
-          const seenIds = new Set<string>();
-
-          for (const event of events || []) {
-            if (!event?.id || seenIds.has(event.id)) continue;
-            seenIds.add(event.id);
-            nextEventIds.add(event.id);
-            const existing = nextEventsById.get(event.id);
-            if (!existing) {
-              nextEventsById.set(event.id, event);
-              uniqueEvents.push(event);
-            } else {
-              uniqueEvents.push(existing);
-            }
-          }
-
-          nextEventsByEntity.set(entityId, uniqueEvents);
-          const nextLoaded = new Set(state.loadedEntityIds);
-          nextLoaded.add(entityId);
-
-          return {
-            eventsById: nextEventsById,
-            eventsByEntity: nextEventsByEntity,
-            eventIds: nextEventIds,
-            loadedEntityIds: nextLoaded,
-          };
-        });
-      } catch (err) {
-        console.error('[NarrativeStore] Failed to load narrative events:', err);
-      } finally {
-        set((state) => {
-          const nextLoading = new Set(state.loadingEntityIds);
-          nextLoading.delete(entityId);
-          return {
-            loadingEntityIds: nextLoading,
-            status: {
-              ...state.status,
-              loading: nextLoading.size > 0,
-            },
-          };
-        });
-      }
-    },
+    ensureEntityEvents: (entityId) => ensureEntityEventsImpl(entityId, set, get),
 
     ensureAllEventsLoaded: async () => {
       const { backend, simulationRunId, allEventsLoaded, allEventsLoading } = get();
       if (!backend || !simulationRunId) return;
       if (allEventsLoaded || allEventsLoading) return;
-
       set({ allEventsLoading: true });
-
       try {
         const events = await backend.getAllEvents(simulationRunId);
-        if (events && events.length > 0) {
-          get().ingestChunk(events);
-        }
+        if (events.length > 0) get().ingestChunk(events);
         set({ allEventsLoaded: true });
       } catch (err) {
         console.error('[NarrativeStore] Failed to load narrative events:', err);
@@ -192,56 +197,11 @@ export const useNarrativeStore = create<NarrativeStoreState>()(
       }
     },
 
-    ingestChunk: (items) => {
-      if (!items || items.length === 0) return;
+    ingestChunk: (items) => ingestChunkImpl(items, set),
 
-      set((state) => {
-        const nextEventsById = new Map(state.eventsById);
-        const nextEventsByEntity = new Map(state.eventsByEntity);
-        const nextEventIds = new Set(state.eventIds);
-        const touched = new Map<string, NarrativeEvent[]>();
-        let didChange = false;
+    setStatus: (partial) => set((state) => ({ status: { ...state.status, ...partial } })),
 
-        for (const event of items) {
-          if (!event?.id || nextEventIds.has(event.id)) continue;
-          nextEventIds.add(event.id);
-          nextEventsById.set(event.id, event);
-          didChange = true;
-
-          indexEventParticipants(event, nextEventsByEntity, touched);
-        }
-
-        if (!didChange && touched.size === 0) return {};
-
-        for (const [entityId, list] of touched) {
-          nextEventsByEntity.set(entityId, list);
-        }
-
-        return { eventsById: nextEventsById, eventsByEntity: nextEventsByEntity, eventIds: nextEventIds };
-      });
-    },
-
-    setStatus: (partial) => {
-      set((state) => ({
-        status: {
-          ...state.status,
-          ...partial,
-        },
-      }));
-    },
-
-    reset: () => {
-      set({
-        eventsById: new Map(),
-        eventsByEntity: new Map(),
-        eventIds: new Set(),
-        loadedEntityIds: new Set(),
-        loadingEntityIds: new Set(),
-        allEventsLoaded: false,
-        allEventsLoading: false,
-        status: { ...DEFAULT_STATUS },
-      });
-    },
+    reset: () => set({ ...INITIAL_STATE }),
 
     getAllEvents: () => Array.from(get().eventsById.values()),
   }))
@@ -320,8 +280,7 @@ function stripSimulationRunId<T extends { simulationRunId?: string }>(record: T)
 }
 
 function eventMatchesEntity(event: NarrativeEvent, entityId: string): boolean {
-  const participants = Array.isArray(event.participantEffects) ? event.participantEffects : [];
-  return participants.some((participant) => participant?.entity?.id === entityId);
+  return event.participantEffects.some((participant) => participant.entity.id === entityId);
 }
 
 /**
@@ -339,7 +298,6 @@ export class FetchBackend implements NarrativeBackend {
 
   async getEventsForEntity(_simulationRunId: string, entityId: string): Promise<NarrativeEvent[]> {
     const file = this.timelineFiles[entityId];
-    if (!file) return [];
     const url = new URL(file.path, this.baseUrl).toString();
     const response = await fetch(url);
     if (!response.ok) return [];
@@ -394,7 +352,7 @@ export class IndexedDBBackend implements NarrativeBackend {
           return;
         }
 
-        if (record && eventMatchesEntity(record, entityId)) {
+        if (eventMatchesEntity(record, entityId)) {
           results.push(stripSimulationRunId(record) as NarrativeEvent);
         }
 

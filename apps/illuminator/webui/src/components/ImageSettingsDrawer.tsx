@@ -9,7 +9,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { getSizeOptions, getQualityOptions } from "../lib/imageSettings";
-import { DEFAULT_RANDOM_EXCLUSIONS, filterStylesForComposition, filterCompositionsForStyle, type ArtisticStyle, type CompositionStyle } from "@canonry/world-schema";
+import { DEFAULT_RANDOM_EXCLUSIONS, filterStylesForComposition, filterCompositionsForStyle } from "@canonry/world-schema";
 import type { ImageGenSettings } from "../hooks/useImageGenSettings";
 import "./ImageSettingsDrawer.css";
 

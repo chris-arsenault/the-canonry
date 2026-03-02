@@ -199,8 +199,8 @@ async function buildEraConfig(
   const resolvedDynamics = worldDynamics
     .filter((d) => d.eraOverrides?.[eraId])
     .map((d) => {
-      const override = d.eraOverrides![eraId];
-      return override.replace ? override.text : `${d.text || ""} ${override.text}`;
+      const override = d.eraOverrides![eraId] as { replace?: boolean; text: string };
+      return override.replace ? override.text : `${(d as { text?: string }).text || ""} ${override.text}`;
     })
     .filter(Boolean);
 

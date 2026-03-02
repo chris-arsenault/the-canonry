@@ -10,7 +10,7 @@
  * 6. Complete: summary
  */
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useChronicleStore } from "../lib/db/chronicleStore";
 import { useEraNarrative } from "../hooks/useEraNarrative";
 import type { UseEraNarrativeReturn, EraNarrativeConfig } from "../hooks/useEraNarrative";
@@ -643,8 +643,10 @@ export default function EraNarrativeModal({
   const [selectedEraId, setSelectedEraId] = useState("");
   const [tone, setTone] = useState<EraNarrativeTone>("witty");
   const [arcDirection, setArcDirection] = useState("");
-  const [existingNarratives, setExistingNarratives] = useState<EraNarrativeRecord[]>([]);
-  const [previousEraThesis, setPreviousEraThesis] = useState<PreviousEraThesis | null>(null);
+  const [narrativeResult, setNarrativeResult] = useState<{ eraId: string; narratives: EraNarrativeRecord[] } | null>(null);
+  const [thesisResult, setThesisResult] = useState<{ eraId: string; thesis: PreviousEraThesis | null } | null>(null);
+  const existingNarratives = narrativeResult?.eraId === selectedEraId ? narrativeResult.narratives : [];
+  const previousEraThesis = thesisResult?.eraId === selectedEraId ? thesisResult.thesis : null;
   const [selectedVersionId, setSelectedVersionId] = useState("");
 
   const {
@@ -666,23 +668,18 @@ export default function EraNarrativeModal({
 
   // Check for existing narratives when era selection changes + look up previous era thesis
   useEffect(() => {
-    if (!selectedEraId || !simulationRunId) {
-      // Resetting to defaults without calling setState in effect body:
-      // we store a flag and check below
-      setExistingNarratives([]);
-      setPreviousEraThesis(null);
-      return;
-    }
+    if (!selectedEraId || !simulationRunId) return;
     let cancelled = false;
-    void getEraNarrativesForEra(simulationRunId, selectedEraId).then((records) => {
+    const eraId = selectedEraId;
+    void getEraNarrativesForEra(simulationRunId, eraId).then((records) => {
       if (cancelled) return;
       const resumable = records
         .filter((r) => r.status !== "cancelled")
         .sort((a, b) => b.updatedAt - a.updatedAt);
-      setExistingNarratives(resumable);
+      setNarrativeResult({ eraId, narratives: resumable });
     });
 
-    const focalInfo = eraTemporalInfo.find((e) => e.id === selectedEraId);
+    const focalInfo = eraTemporalInfo.find((e) => e.id === eraId);
     const focalOrder = focalInfo?.order ?? -1;
     const prevInfo = focalOrder > 0 ? eraTemporalInfo.find((e) => e.order === focalOrder - 1) : undefined;
     if (prevInfo) {
@@ -691,14 +688,13 @@ export default function EraNarrativeModal({
         const completed = prevRecords
           .filter((r) => r.status === "complete" && r.threadSynthesis?.thesis)
           .sort((a, b) => b.updatedAt - a.updatedAt);
-        setPreviousEraThesis(
-          completed.length > 0
+        setThesisResult({
+          eraId,
+          thesis: completed.length > 0
             ? { eraName: prevInfo.name, thesis: completed[0].threadSynthesis.thesis }
             : null
-        );
+        });
       });
-    } else {
-      setPreviousEraThesis(null);
     }
     return () => { cancelled = true; };
   }, [selectedEraId, simulationRunId, eraTemporalInfo]);
@@ -834,7 +830,9 @@ export default function EraNarrativeModal({
   const handleDeleteExisting = useCallback(
     async (narrativeId: string) => {
       await deleteEraNarrative(narrativeId);
-      setExistingNarratives((prev) => prev.filter((r) => r.narrativeId !== narrativeId));
+      setNarrativeResult((prev) =>
+        prev ? { ...prev, narratives: prev.narratives.filter((r) => r.narrativeId !== narrativeId) } : prev
+      );
     },
     []
   );
@@ -914,17 +912,17 @@ export default function EraNarrativeModal({
     return resolveActiveContent(narrative);
   }, [narrative]);
 
-  // Sync selectedVersionId using ref-based pattern (no effect-setState)
-  const prevActiveVersionRef = useRef(resolved.activeVersionId);
-  const prevVersionsLengthRef = useRef(resolved.versions.length);
+  // Sync selectedVersionId using state-based pattern (no effect-setState)
+  const [prevActiveVersion, setPrevActiveVersion] = useState(resolved.activeVersionId);
+  const [prevVersionsLength, setPrevVersionsLength] = useState(resolved.versions.length);
 
   if (
     resolved.activeVersionId &&
-    (prevActiveVersionRef.current !== resolved.activeVersionId ||
-     prevVersionsLengthRef.current !== resolved.versions.length)
+    (prevActiveVersion !== resolved.activeVersionId ||
+     prevVersionsLength !== resolved.versions.length)
   ) {
-    prevActiveVersionRef.current = resolved.activeVersionId;
-    prevVersionsLengthRef.current = resolved.versions.length;
+    setPrevActiveVersion(resolved.activeVersionId);
+    setPrevVersionsLength(resolved.versions.length);
     if (!selectedVersionId || !resolved.versions.some((v) => v.versionId === selectedVersionId)) {
       setSelectedVersionId(resolved.activeVersionId);
     }

@@ -8,6 +8,7 @@
  */
 
 import "./styles/variables.css";
+import type { Optional } from "@the-canonry/shared-components";
 import WikiExplorer from "./components/WikiExplorer.tsx";
 import ChroniclerStatusScreen from "./components/ChroniclerStatusScreen.tsx";
 import type { WorldState, SerializedPageIndex } from "./types/world.ts";
@@ -18,26 +19,26 @@ import useWorldDataLoader from "./hooks/useWorldDataLoader.ts";
 import React from "react";
 
 export interface ChroniclerRemoteProps {
-  projectId?: string;
-  activeSlotIndex?: number;
+  projectId: Optional<string>;
+  activeSlotIndex: Optional<number>;
   /** Timestamp updated when Dexie ingestion completes (viewer). */
-  dexieSeededAt?: number;
+  dexieSeededAt: Optional<number>;
   /** Page ID requested by external navigation */
-  requestedPageId?: string | null;
+  requestedPageId: Optional<string | null>;
   /** Callback to signal that the requested page has been consumed */
-  onRequestedPageConsumed?: () => void;
+  onRequestedPageConsumed: Optional<() => void>;
   /** Pre-loaded world data — skips IndexedDB read when provided (viewer context) */
-  preloadedWorldData?: WorldState | null;
+  preloadedWorldData: Optional<WorldState | null>;
   /** Pre-loaded chronicles — skips IndexedDB read when provided (viewer context) */
-  preloadedChronicles?: ChronicleRecord[];
+  preloadedChronicles: Optional<ChronicleRecord[]>;
   /** Pre-loaded static pages — skips IndexedDB read when provided (viewer context) */
-  preloadedStaticPages?: StaticPage[];
+  preloadedStaticPages: Optional<StaticPage[]>;
   /** Pre-loaded era narratives — skips IndexedDB read when provided (viewer context) */
-  preloadedEraNarratives?: EraNarrativeViewRecord[];
+  preloadedEraNarratives: Optional<EraNarrativeViewRecord[]>;
   /** Pre-baked parchment tile URL — skips runtime canvas pipeline when provided */
-  prebakedParchmentUrl?: string;
+  prebakedParchmentUrl: Optional<string>;
   /** Pre-computed page index — skips buildPageIndex on mount when provided */
-  precomputedPageIndex?: SerializedPageIndex;
+  precomputedPageIndex: Optional<SerializedPageIndex>;
 }
 
 export default function ChroniclerRemote({

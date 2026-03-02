@@ -8,14 +8,15 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface ItemRowProps {
   readonly name: string;
-  readonly muted?: boolean;
-  readonly onRemove?: () => void;
-  readonly removeTitle?: string;
-  readonly children?: React.ReactNode;
-  readonly className?: string;
+  readonly muted: Optional<boolean>;
+  readonly onRemove: Optional<() => void>;
+  readonly removeTitle: Optional<string>;
+  readonly children: Optional<React.ReactNode>;
+  readonly className: Optional<string>;
 }
 
 /**

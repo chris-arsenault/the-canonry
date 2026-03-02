@@ -13,7 +13,9 @@ export interface AsyncActionState {
  * See ADR-015.
  */
 export function useAsyncAction(): AsyncActionState {
+  // eslint-disable-next-line local/no-manual-async-state -- this IS the canonical useAsyncAction implementation
   const [busy, setBusy] = useState<string | null>(null);
+  // eslint-disable-next-line local/no-manual-async-state -- this IS the canonical useAsyncAction implementation
   const [error, setError] = useState<string | null>(null);
 
   const run = useCallback(async (label: string, fn: () => Promise<unknown>) => {
@@ -22,7 +24,14 @@ export function useAsyncAction(): AsyncActionState {
     try {
       await fn();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Unknown error');
+      let msg: string;
+      if (err instanceof Error) {
+        msg = err.message;
+      } else if (typeof err === 'string') {
+        msg = err;
+      } else {
+        msg = 'Unknown error';
+      }
       setError(`${label}: ${msg}`);
     } finally {
       setBusy(null);

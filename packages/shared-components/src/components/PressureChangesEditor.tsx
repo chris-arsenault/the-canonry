@@ -5,18 +5,19 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface PressureDefinition {
   id: string;
-  name?: string;
+  name: Optional<string>;
 }
 
 interface PressureChangesEditorProps {
-  readonly value?: Record<string, number>;
+  readonly value: Optional<Record<string, number>>;
   readonly onChange: (value: Record<string, number>) => void;
-  readonly pressures?: PressureDefinition[];
-  readonly label?: string;
-  readonly className?: string;
+  readonly pressures: Optional<PressureDefinition[]>;
+  readonly label: Optional<string>;
+  readonly className: Optional<string>;
 }
 
 /**

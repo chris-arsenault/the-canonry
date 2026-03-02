@@ -61,11 +61,24 @@ function detectWebGL(): boolean {
 
 const webglAvailable = detectWebGL();
 
+function useHashEntitySelection() {
+  const [selectedEntityId, setSelectedEntityId] = useState<string | undefined>(() => parseHashEntityId());
+  useEffect(() => {
+    const handler = () => setSelectedEntityId(parseHashEntityId());
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
+  }, []);
+  const handleEntitySelect = useCallback((entityId: string | undefined) => {
+    const newHash = buildEntityHash(entityId);
+    if (window.location.hash !== newHash) window.location.hash = newHash;
+  }, []);
+  return { selectedEntityId, handleEntitySelect } as const;
+}
+
+const LOADING_FALLBACK = <div className="world-loading">Loading view…</div>;
+
 export default function WorldExplorer({ worldData, loreData }: Readonly<WorldExplorerProps>) {
-  // Initialize from hash on mount
-  const [selectedEntityId, setSelectedEntityId] = useState<string | undefined>(() =>
-    parseHashEntityId()
-  );
+  const { selectedEntityId, handleEntitySelect } = useHashEntitySelection();
   const [currentTick, setCurrentTick] = useState<number>(worldData.metadata.tick);
   const [isStatsPanelOpen, setIsStatsPanelOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(webglAvailable ? "graph3d" : "graph2d");
@@ -74,144 +87,45 @@ export default function WorldExplorer({ worldData, loreData }: Readonly<WorldExp
   const handleRecalculateLayout = useCallback(() => recalculateLayoutRef.current?.(), []);
   const handleToggleStats = useCallback(() => setIsStatsPanelOpen(prev => !prev), []);
   const handleRecalculateLayoutRef = useCallback(
-    (handler: (() => void) | null) => { recalculateLayoutRef.current = handler; },
-    []
-  );
-
-  // Sync hash changes to state (for back/forward buttons)
-  useEffect(() => {
-    const handleHashChange = () => {
-      const entityId = parseHashEntityId();
-      setSelectedEntityId(entityId);
-    };
-
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
-
-  // Handle entity selection - updates hash which triggers state update via hashchange
-  const handleEntitySelect = useCallback((entityId: string | undefined) => {
-    const newHash = buildEntityHash(entityId);
-    if (window.location.hash !== newHash) {
-      window.location.hash = newHash;
-    }
-  }, []);
-
-  // Get UI configuration from schema
-  const entityKinds = worldData.schema.entityKinds.map((ek) => ek.kind);
-  const defaultMinProminence = getProminenceLevels(worldData.schema)[0];
+    (handler: (() => void) | null) => { recalculateLayoutRef.current = handler; }, []);
   const prominenceScale = useMemo<ProminenceScale>(() => {
-    const values = worldData.hardState
-      .map((entity) => entity.prominence)
-      .filter((value) => typeof value === "number" && Number.isFinite(value));
+    const values = worldData.hardState.map((e) => e.prominence).filter((v) => typeof v === "number" && Number.isFinite(v));
     return buildProminenceScale(values, { distribution: DEFAULT_PROMINENCE_DISTRIBUTION });
   }, [worldData]);
-
   const [filters, setFilters] = useState<Filters>({
-    kinds: entityKinds,
-    minProminence: defaultMinProminence,
-    timeRange: [0, worldData.metadata.tick],
-    tags: [],
-    searchQuery: "",
-    relationshipTypes: [],
-    minStrength: 0.0,
-    showCatalyzedBy: false,
-    showHistoricalRelationships: false,
+    kinds: worldData.schema.entityKinds.map((ek) => ek.kind),
+    minProminence: getProminenceLevels(worldData.schema)[0],
+    timeRange: [0, worldData.metadata.tick], tags: [], searchQuery: "",
+    relationshipTypes: [], minStrength: 0.0, showCatalyzedBy: false, showHistoricalRelationships: false,
   });
-
-  // Apply temporal filter first, then regular filters
-  const temporalData = applyTemporalFilter(worldData, currentTick);
-  const filteredData = applyFilters(temporalData, filters, prominenceScale);
-  const loadingFallback = useMemo(() => <div className="world-loading">Loading view…</div>, []);
+  const filteredData = applyFilters(applyTemporalFilter(worldData, currentTick), filters, prominenceScale);
 
   return (
     <div className="world-explorer">
-      {/* Main Content */}
       <div className="world-main">
-        {/* Filter Panel */}
-        <FilterPanel
-          filters={filters}
-          onChange={setFilters}
-          worldData={worldData}
-          viewMode={viewMode}
-          edgeMetric={edgeMetric}
-          onViewModeChange={setViewMode}
-          onEdgeMetricChange={setEdgeMetric}
-          onRecalculateLayout={handleRecalculateLayout}
-          onToggleStats={handleToggleStats}
-        />
-
-        {/* Graph View */}
+        <FilterPanel filters={filters} onChange={setFilters} worldData={worldData} viewMode={viewMode}
+          edgeMetric={edgeMetric} onViewModeChange={setViewMode} onEdgeMetricChange={setEdgeMetric}
+          onRecalculateLayout={handleRecalculateLayout} onToggleStats={handleToggleStats} />
         <main className="world-graph-container">
-          <Suspense fallback={loadingFallback}>
-            {viewMode === "graph3d" && (
-              <GraphView3D
-                key={`3d-view-${edgeMetric}`}
-                data={filteredData}
-                selectedNodeId={selectedEntityId}
-                onNodeSelect={handleEntitySelect}
-                showCatalyzedBy={filters.showCatalyzedBy}
-                edgeMetric={edgeMetric}
-                prominenceScale={prominenceScale}
-              />
-            )}
-            {viewMode === "graph2d" && (
-              <GraphView
-                key="2d-view"
-                data={filteredData}
-                selectedNodeId={selectedEntityId}
-                onNodeSelect={handleEntitySelect}
-                showCatalyzedBy={filters.showCatalyzedBy}
-                onRecalculateLayoutRef={handleRecalculateLayoutRef}
-                prominenceScale={prominenceScale}
-              />
-            )}
-            {viewMode === "timeline" && (
-              <TimelineView3D
-                key={`timeline-view-${edgeMetric}`}
-                data={filteredData}
-                selectedNodeId={selectedEntityId}
-                onNodeSelect={handleEntitySelect}
-                showCatalyzedBy={filters.showCatalyzedBy}
-                edgeMetric={edgeMetric}
-                prominenceScale={prominenceScale}
-              />
-            )}
+          <Suspense fallback={LOADING_FALLBACK}>
+            {viewMode === "graph3d" && <GraphView3D key={`3d-view-${edgeMetric}`} data={filteredData}
+              selectedNodeId={selectedEntityId} onNodeSelect={handleEntitySelect}
+              showCatalyzedBy={filters.showCatalyzedBy} edgeMetric={edgeMetric} prominenceScale={prominenceScale} />}
+            {viewMode === "graph2d" && <GraphView key="2d-view" data={filteredData}
+              selectedNodeId={selectedEntityId} onNodeSelect={handleEntitySelect}
+              showCatalyzedBy={filters.showCatalyzedBy} onRecalculateLayoutRef={handleRecalculateLayoutRef} prominenceScale={prominenceScale} />}
+            {viewMode === "timeline" && <TimelineView3D key={`timeline-view-${edgeMetric}`} data={filteredData}
+              selectedNodeId={selectedEntityId} onNodeSelect={handleEntitySelect}
+              showCatalyzedBy={filters.showCatalyzedBy} edgeMetric={edgeMetric} prominenceScale={prominenceScale} />}
           </Suspense>
-          {viewMode === "map" && (
-            <CoordinateMapView
-              key="map-view"
-              data={filteredData}
-              selectedNodeId={selectedEntityId}
-              onNodeSelect={handleEntitySelect}
-            />
-          )}
+          {viewMode === "map" && <CoordinateMapView key="map-view" data={filteredData}
+            selectedNodeId={selectedEntityId} onNodeSelect={handleEntitySelect} />}
         </main>
-
-        {/* Entity Detail Panel */}
-        <EntityDetail
-          entityId={selectedEntityId}
-          worldData={worldData}
-          loreData={loreData}
-          onRelatedClick={handleEntitySelect}
-          prominenceScale={prominenceScale}
-        />
+        <EntityDetail entityId={selectedEntityId} worldData={worldData} loreData={loreData}
+          onRelatedClick={handleEntitySelect} prominenceScale={prominenceScale} />
       </div>
-
-      {/* Timeline Control */}
-      <TimelineControl
-        worldData={worldData}
-        loreData={loreData}
-        currentTick={currentTick}
-        onTickChange={setCurrentTick}
-      />
-
-      {/* Stats Panel */}
-      <StatsPanel
-        worldData={worldData}
-        isOpen={isStatsPanelOpen}
-        onToggle={handleToggleStats}
-      />
+      <TimelineControl worldData={worldData} loreData={loreData} currentTick={currentTick} onTickChange={setCurrentTick} />
+      <StatsPanel worldData={worldData} isOpen={isStatsPanelOpen} onToggle={handleToggleStats} />
     </div>
   );
 }

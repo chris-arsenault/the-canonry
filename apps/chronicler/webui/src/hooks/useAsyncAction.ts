@@ -13,7 +13,9 @@ export interface AsyncActionState {
  * See ADR-015.
  */
 export function useAsyncAction(): AsyncActionState {
+  // eslint-disable-next-line local/no-manual-async-state -- this IS the canonical useAsyncAction implementation; internal state is required
   const [busy, setBusy] = useState<string | null>(null);
+  // eslint-disable-next-line local/no-manual-async-state -- this IS the canonical useAsyncAction implementation; internal state is required
   const [error, setError] = useState<string | null>(null);
 
   const run = useCallback(async (label: string, fn: () => Promise<unknown>) => {

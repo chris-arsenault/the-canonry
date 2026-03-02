@@ -474,6 +474,31 @@ function normalizeWorldContextForExport(worldContext) {
 function toArrayOrEmpty(val) {
   return Array.isArray(val) ? val : [];
 }
+async function maybeSyncS3Images(useS3Images, s3Client, projectId, awsConfig, setExportBundleStatus) {
+  if (!useS3Images) return;
+  if (!s3Client) {
+    throw new Error("S3 sync is enabled but AWS credentials are not ready.");
+  }
+  setExportBundleStatus(prev => prev.state === "working" ? {
+    ...prev,
+    detail: "Syncing images to S3..."
+  } : prev);
+  await syncProjectImagesToS3({
+    projectId,
+    s3: s3Client,
+    config: awsConfig,
+    onProgress: ({
+      processed,
+      total,
+      uploaded
+    }) => {
+      setExportBundleStatus(prev => prev.state === "working" ? {
+        ...prev,
+        detail: `Syncing images to S3 (${processed}/${total}, uploaded ${uploaded})...`
+      } : prev);
+    }
+  });
+}
 function resolveExportWorldData(liveWorldData, slotWorldData, slotRunId, liveRunId) {
   const useLive = isWorldOutput(liveWorldData) && (!slotWorldData || !slotRunId || slotRunId === liveRunId);
   return useLive ? liveWorldData : slotWorldData;
@@ -1823,30 +1848,7 @@ export default function App() {
       const eraNarratives = eraNarrativesRaw || [];
       const useS3Images = Boolean(awsConfig?.useS3Images && awsConfig?.imageBucket);
       const imageStorage = useS3Images ? buildImageStorageConfig(awsConfig, currentProject.id) : null;
-      if (useS3Images) {
-        if (!s3Client) {
-          throw new Error("S3 sync is enabled but AWS credentials are not ready.");
-        }
-        setExportBundleStatus(prev => prev.state === "working" ? {
-          ...prev,
-          detail: "Syncing images to S3..."
-        } : prev);
-        await syncProjectImagesToS3({
-          projectId: currentProject.id,
-          s3: s3Client,
-          config: awsConfig,
-          onProgress: ({
-            processed,
-            total,
-            uploaded
-          }) => {
-            setExportBundleStatus(prev => prev.state === "working" ? {
-              ...prev,
-              detail: `Syncing images to S3 (${processed}/${total}, uploaded ${uploaded})...`
-            } : prev);
-          }
-        });
-      }
+      await maybeSyncS3Images(useS3Images, s3Client, currentProject.id, awsConfig, setExportBundleStatus);
       const {
         imageData,
         images,

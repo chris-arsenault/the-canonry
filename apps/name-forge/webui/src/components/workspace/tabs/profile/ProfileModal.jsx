@@ -4,7 +4,7 @@
  * Dynamic tabs: Overview, [each strategy group], Test
  */
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
 import { ModalShell } from "@the-canonry/shared-components";
 import { OverviewTab, SingleGroupTab, TestTab } from "./tabs";
@@ -28,13 +28,41 @@ export default function ProfileModal({
   const autosaveTimeoutRef = useRef(null);
   const lastSavedRef = useRef(null);
 
-  // Initialize edited profile
+  // Initialize/sync edited profile from props (render-time)
+  const [prevProfile, setPrevProfile] = useState(profile);
+  if (prevProfile !== profile && profile) {
+    setPrevProfile(profile);
+    setEditedProfile(JSON.parse(JSON.stringify(profile)));
+  }
+
+  // Keep lastSaved ref in sync when profile changes
   useEffect(() => {
     if (profile) {
-      setEditedProfile(JSON.parse(JSON.stringify(profile)));
       lastSavedRef.current = JSON.stringify(profile);
     }
   }, [profile]);
+
+  const handleSave = useCallback((profileToSave) => {
+    // Normalize weights within each group
+    const normalizedGroups = (profileToSave.strategyGroups || []).map((group) => {
+      const totalWeight = group.strategies.reduce((sum, s) => sum + s.weight, 0);
+      return {
+        ...group,
+        strategies: group.strategies.map((s) => ({
+          ...s,
+          weight:
+            totalWeight > 0 ? s.weight / totalWeight : 1 / Math.max(group.strategies.length, 1),
+        })),
+      };
+    });
+
+    const updatedProfile = {
+      ...profileToSave,
+      strategyGroups: normalizedGroups,
+    };
+
+    onSave(updatedProfile, isNew);
+  }, [onSave, isNew]);
 
   // Autosave effect
   useEffect(() => {
@@ -57,7 +85,7 @@ export default function ProfileModal({
         clearTimeout(autosaveTimeoutRef.current);
       }
     };
-  }, [editedProfile]);
+  }, [editedProfile, handleSave]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -88,28 +116,6 @@ export default function ProfileModal({
 
     return dynamicTabs;
   }, [editedProfile]);
-
-  const handleSave = (profileToSave) => {
-    // Normalize weights within each group
-    const normalizedGroups = (profileToSave.strategyGroups || []).map((group) => {
-      const totalWeight = group.strategies.reduce((sum, s) => sum + s.weight, 0);
-      return {
-        ...group,
-        strategies: group.strategies.map((s) => ({
-          ...s,
-          weight:
-            totalWeight > 0 ? s.weight / totalWeight : 1 / Math.max(group.strategies.length, 1),
-        })),
-      };
-    });
-
-    const updatedProfile = {
-      ...profileToSave,
-      strategyGroups: normalizedGroups,
-    };
-
-    onSave(updatedProfile, isNew);
-  };
 
   const handleClose = () => {
     // Save any pending changes before closing

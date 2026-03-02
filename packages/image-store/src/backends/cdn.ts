@@ -46,38 +46,40 @@ export class CDNBackend implements ImageBackend {
   }
 
   initialize(): Promise<void> {
-    // Legacy format: flat { imageId → url } map
-    if (this.legacyImages) {
-      for (const [imageId, url] of Object.entries(this.legacyImages)) {
-        if (url) this.urlMap.set(imageId, { thumb: url, full: url });
-      }
-    }
-
-    // Modern format: rich metadata with optional optimized paths
-    if (this.bundleImageData?.results) {
-      for (const img of this.bundleImageData.results) {
-        if (!img.imageId) continue;
-
-        const thumb = img.thumbPath || img.localPath || '';
-        const full = img.fullPath || img.localPath || '';
-
-        if (thumb || full) {
-          this.urlMap.set(img.imageId, { thumb, full });
-        }
-
-        this.metadataMap.set(img.imageId, {
-          imageId: img.imageId,
-          entityId: img.entityId,
-          entityName: img.entityName,
-          entityKind: img.entityKind,
-          width: img.width,
-          height: img.height,
-          aspect: img.aspect,
-        });
-      }
-    }
-
+    this.loadLegacyImages();
+    this.loadBundleImages();
     return Promise.resolve();
+  }
+
+  private loadLegacyImages(): void {
+    if (!this.legacyImages) return;
+    for (const [imageId, url] of Object.entries(this.legacyImages)) {
+      if (url) this.urlMap.set(imageId, { thumb: url, full: url });
+    }
+  }
+
+  private loadBundleImages(): void {
+    if (!this.bundleImageData?.results) return;
+    for (const img of this.bundleImageData.results) {
+      if (!img.imageId) continue;
+
+      const thumb = img.thumbPath || img.localPath || '';
+      const full = img.fullPath || img.localPath || '';
+
+      if (thumb || full) {
+        this.urlMap.set(img.imageId, { thumb, full });
+      }
+
+      this.metadataMap.set(img.imageId, {
+        imageId: img.imageId,
+        entityId: img.entityId,
+        entityName: img.entityName,
+        entityKind: img.entityKind,
+        width: img.width,
+        height: img.height,
+        aspect: img.aspect,
+      });
+    }
   }
 
   getImageUrl(imageId: string, size: ImageSize = 'thumb'): Promise<string | null> {

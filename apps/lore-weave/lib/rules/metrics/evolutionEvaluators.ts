@@ -114,6 +114,24 @@ function collectReachableTargets(
   return targets;
 }
 
+/** Collect entity owners reachable through intermediates not in the exclusion set. */
+function collectOwnersViaIntermediates(
+  intermediates: Set<string>,
+  excludeIntermediates: Set<string>,
+  excludeEntityId: string,
+  reverseViaIndex: Map<string, Set<string>>,
+  out: Set<string>
+): void {
+  for (const intermediateId of intermediates) {
+    if (excludeIntermediates.has(intermediateId)) continue;
+    const owners = reverseViaIndex.get(intermediateId);
+    if (!owners) continue;
+    for (const ownerId of owners) {
+      if (ownerId !== excludeEntityId) out.add(ownerId);
+    }
+  }
+}
+
 /** Find entities that share targets via intermediates (multi-hop pattern). */
 function findSharedViaEntities(
   entity: HardState,
@@ -126,18 +144,7 @@ function findSharedViaEntities(
   for (const targetId of myTargets) {
     const otherIntermediates = reverseSharedIndex.get(targetId);
     if (!otherIntermediates) continue;
-
-    for (const otherIntermediateId of otherIntermediates) {
-      if (myIntermediates.has(otherIntermediateId)) continue;
-
-      const owners = reverseViaIndex.get(otherIntermediateId);
-      if (!owners) continue;
-      for (const ownerId of owners) {
-        if (ownerId !== entity.id) {
-          sharedEntities.add(ownerId);
-        }
-      }
-    }
+    collectOwnersViaIntermediates(otherIntermediates, myIntermediates, entity.id, reverseViaIndex, sharedEntities);
   }
   return sharedEntities;
 }

@@ -6,6 +6,7 @@
  */
 
 import type {
+  ChronicleImageRef,
   ChronicleImageRefs,
   ImageRefCompatibility,
   ImageRefCompatibilityAnalysis,

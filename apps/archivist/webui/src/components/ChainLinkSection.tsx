@@ -14,7 +14,7 @@ export default function ChainLinkSection({ lore }: Readonly<ChainLinkSectionProp
   const clue = parts[1] || "";
 
   return (
-    <div className="archivist-section chain-link-section">
+    <div className="archivist-section chain-link-block">
       <div className="archivist-section-hdr">
         <span className="archivist-section-icon">🔍</span>
         <span className="archivist-section-title">Mystery Clue</span>
@@ -35,11 +35,11 @@ export default function ChainLinkSection({ lore }: Readonly<ChainLinkSectionProp
 
       <div className="chain-link-content">
         <div className="chain-link-observation">
-          <div className="chain-link-section-label">Observation</div>
+          <div className="chain-link-block-label">Observation</div>
           <div className="archivist-narrative chain-link-text">{observation}</div>
         </div>
         <div className="chain-link-clue">
-          <div className="chain-link-section-label">Clue</div>
+          <div className="chain-link-block-label">Clue</div>
           <div className="archivist-narrative chain-link-text">{clue}</div>
         </div>
       </div>

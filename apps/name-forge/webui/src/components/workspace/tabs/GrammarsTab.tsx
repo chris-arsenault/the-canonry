@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo, useReducer } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, useReducer, type RefObject } from "react";
 import { ErrorMessage, useExpandBoolean } from "@the-canonry/shared-components";
 import { MARKOV_MODELS, CONTEXT_KEYS, COMMON_LITERALS, GRAMMAR_MODIFIERS } from "../../constants";
 import { previewGrammarNames } from "../../../lib/browser-generator";
@@ -12,6 +12,7 @@ interface GrammarRule {
   [key: string]: string[][];
 }
 
+/* eslint-disable local/no-raw-undefined-union -- JSON-loaded config: fields are absent in source data, not undefined-valued. Correct fix is strict:true migration. */
 interface Grammar {
   id: string;
   start: string;
@@ -48,12 +49,14 @@ interface GrammarsTabProps {
   ) => void;
   allCultures?: Record<string, CultureConfig>;
 }
+/* eslint-enable local/no-raw-undefined-union */
 
 interface InsertItem {
   code: string;
   title: string;
 }
 
+/* eslint-disable local/no-raw-undefined-union -- genuinely optional UI props with defaults */
 interface ClickToInsertSectionProps {
   title: string;
   subtitle?: string;
@@ -61,6 +64,7 @@ interface ClickToInsertSectionProps {
   onInsert: (text: string) => void;
   variant?: string;
 }
+/* eslint-enable local/no-raw-undefined-union */
 
 interface DomainInsertSectionProps {
   domain: Domain;
@@ -91,8 +95,8 @@ function performAutosave(
   editingGrammar: string,
   grammars: Grammar[],
   onGrammarsChange: (grammars: Grammar[]) => void,
-  lastSavedIdRef: React.MutableRefObject<string | null>,
-  lastSavedFormDataRef: React.MutableRefObject<string | null>,
+  lastSavedIdRef: RefObject<string | null>,
+  lastSavedFormDataRef: RefObject<string | null>,
   formDataStr: string,
 ): void {
   if (!formData.id.trim()) return;
@@ -166,10 +170,10 @@ function GrammarsTab({ cultureId, cultureConfig, onGrammarsChange, onLexemesChan
   const [showHelp, setShowHelp] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
 
-  const naming = cultureConfig?.naming || {};
-  const grammars = naming.grammars || [];
-  const lexemeLists = naming.lexemeLists || {};
-  const domains = naming.domains || [];
+  const naming = cultureConfig?.naming;
+  const grammars = useMemo(() => naming?.grammars || [], [naming?.grammars]);
+  const lexemeLists = useMemo(() => naming?.lexemeLists || {}, [naming?.lexemeLists]);
+  const domains = naming?.domains || [];
 
   const handleShowHelp = useCallback(() => setShowHelp(true), []);
   const handleCloseHelp = useCallback(() => setShowHelp(false), []);
@@ -694,6 +698,7 @@ function GrammarEditForm({
 
 interface CollapsiblePanelProps {
   title: string;
+  // eslint-disable-next-line local/no-raw-undefined-union -- genuinely optional prop with default value
   defaultExpanded?: boolean;
   children: React.ReactNode;
 }
@@ -702,15 +707,13 @@ function CollapsiblePanel({ title, defaultExpanded = true, children }: Readonly<
   const { expanded, toggle } = useExpandBoolean();
   const [initialized, setInitialized] = useState(false);
 
-  // Set initial expanded state based on defaultExpanded prop
-  useEffect(() => {
-    if (!initialized) {
-      if (defaultExpanded !== expanded) {
-        toggle();
-      }
-      setInitialized(true);
+  // Set initial expanded state based on defaultExpanded prop (during render, not in effect)
+  if (!initialized) {
+    setInitialized(true);
+    if (defaultExpanded !== expanded) {
+      toggle();
     }
-  }, [initialized, defaultExpanded, expanded, toggle]);
+  }
 
   return (
     <div className="collapsible-panel">
@@ -1039,12 +1042,14 @@ function GrammarHelpModal({ onClose }: Readonly<GrammarHelpModalProps>) {
   );
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog role is interactive per WAI-ARIA
     <div
       className="modal-overlay"
       onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
       onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Escape") onClose(); }}
       role="dialog"
+      tabIndex={-1}
       aria-modal="true"
       aria-label="Context-Free Grammar Help"
     >

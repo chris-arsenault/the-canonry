@@ -11,16 +11,17 @@ import type {
   WorldOutput as CanonryWorldOutput,
   WorldRelationship as CanonryWorldRelationship,
 } from "@canonry/world-schema";
+import type { Optional } from "@the-canonry/shared-components";
 
 export type WorldState = Omit<CanonryWorldOutput, "hardState"> & {
   hardState: HardState[];
 };
 export type HardState = CanonryWorldEntity & {
-  enrichment?: {
-    image?: {
-      imageId?: string;
-    };
-  };
+  enrichment: Optional<{
+    image: Optional<{
+      imageId: Optional<string>;
+    }>;
+  }>;
 };
 export type Relationship = CanonryWorldRelationship;
 export type WorldMetadata = CanonryWorldMetadata;
@@ -55,10 +56,10 @@ export type LoreType =
 export interface LoreRecord {
   id: string;
   type: LoreType;
-  targetId?: string; // For description, relationship_backstory, chain_link, discovery_event
+  targetId: Optional<string>; // For description, relationship_backstory, chain_link, discovery_event
   text: string;
-  cached?: boolean;
-  warnings?: string[];
+  cached: Optional<boolean>;
+  warnings: Optional<string[]>;
 }
 
 export interface DescriptionLore extends LoreRecord {
@@ -127,11 +128,11 @@ export interface EntityImage {
   prompt: string;
   localPath: string;
   /** Image width in pixels */
-  width?: number;
+  width: Optional<number>;
   /** Image height in pixels */
-  height?: number;
+  height: Optional<number>;
   /** Aspect ratio classification: portrait (<0.9), square (0.9-1.1), landscape (>1.1) */
-  aspect?: ImageAspect;
+  aspect: Optional<ImageAspect>;
 }
 
 export interface ImageMetadata {

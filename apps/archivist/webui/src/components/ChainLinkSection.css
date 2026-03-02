@@ -1,7 +1,7 @@
 /* ChainLinkSection Component Styles
  * Structural base: archivist-section.css */
 
-.chain-link-section {
+.chain-link-block {
   --_section-border: var(--color-bg-purple-border);
   --_section-bg: linear-gradient(135deg, rgb(139 92 246 / 5%) 0%, rgb(124 58 237 / 5%) 100%);
   --_section-header-bg: linear-gradient(135deg, rgb(139 92 246 / 15%) 0%, rgb(124 58 237 / 15%) 100%);
@@ -84,7 +84,7 @@
   background: rgb(55 48 163 / 15%);
 }
 
-.chain-link-section-label {
+.chain-link-block-label {
   font-size: var(--font-size-2xs);
   font-weight: var(--font-weight-bold);
   color: var(--color-purple-400);

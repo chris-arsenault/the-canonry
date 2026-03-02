@@ -3,20 +3,21 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface ErrorBadgeProps {
-  readonly count?: number;
-  readonly className?: string;
+  readonly count: Optional<number>;
+  readonly className: Optional<string>;
 }
 
 interface OrphanBadgeProps {
-  readonly isOrphan?: boolean;
-  readonly className?: string;
+  readonly isOrphan: Optional<boolean>;
+  readonly className: Optional<string>;
 }
 
 interface TabValidationBadgeProps {
-  readonly count?: number;
-  readonly className?: string;
+  readonly count: Optional<number>;
+  readonly className: Optional<string>;
 }
 
 /**

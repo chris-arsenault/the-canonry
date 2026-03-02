@@ -3,18 +3,19 @@
  */
 
 import React, { useMemo, useState } from "react";
+import type { Optional } from "@the-canonry/shared-components";
 import type { WikiPage } from "../types/world.ts";
 import styles from "./ChronicleIndex.module.css";
 
 interface ChronicleIndexProps {
   chronicles: WikiPage[];
   /** Era narrative pages to show at the top of their era groups */
-  eraNarrativePages?: WikiPage[];
+  eraNarrativePages: Optional<WikiPage[]>;
   filter:
     | { kind: "all" }
     | { kind: "format"; format: "story" | "document" }
     | { kind: "type"; typeId: string }
-    | { kind: "era"; eraId: string; format?: "story" | "document" };
+    | { kind: "era"; eraId: string; format: Optional<"story" | "document"> };
   onNavigate: (pageId: string) => void;
 }
 
@@ -32,7 +33,7 @@ function formatChronicleSubtype(typeId: string): string {
     .join(" ");
 }
 
-type ChronicleFilter = ChronicleIndexProps['filter'];
+type ChronicleFilter = ChronicleIndexProps["filter"];
 
 function buildChronicleHeading(filter: ChronicleFilter, eraName: string | null): string {
   if (filter.kind === "format") {
@@ -77,6 +78,7 @@ function getChronicleEraInfo(page: WikiPage): EraInfo {
 }
 
 function filterChroniclesWithFilter(chronicles: WikiPage[], filter: ChronicleFilter): WikiPage[] {
+  // eslint-disable-next-line complexity -- filter dispatch covers 4 independent filter kinds with chronicle format sub-filter
   return chronicles.filter((page) => page.chronicle).filter((page) => {
     if (filter.kind === "all") return true;
     if (filter.kind === "format") return page.chronicle?.format === filter.format;
@@ -121,6 +123,81 @@ function buildSortedEraGroups(sorted: WikiPage[], sortMode: string): EraGroup[] 
   return entries;
 }
 
+function EraNarrativeCard({
+  page,
+  onNavigate,
+}: Readonly<{ page: WikiPage; onNavigate: (id: string) => void }>) {
+  const thesis = page.content?.summary || "";
+  return (
+    <button key={page.id} className={styles.item} onClick={() => onNavigate(page.id)}>
+      <div className={styles.itemHeader}>
+        <span className={styles.itemTitle}>{page.title}</span>
+        <div className={styles.badgeGroup}>
+          <span className={styles.badge}>Era Narrative</span>
+          <span className={styles.badgeSecondary}>synthetic</span>
+        </div>
+      </div>
+      {thesis && <div className={styles.itemSummary}>{thesis}</div>}
+    </button>
+  );
+}
+
+interface ChronicleCardData {
+  eraLabel: string;
+  isMultiEra: boolean;
+  formatLabel: string;
+  subtypeLabel: string | null;
+  primaryLabel: string | null;
+  summary: string;
+}
+
+// eslint-disable-next-line complexity -- extracts 7 independent optional display fields from nested wiki page data
+function extractChronicleCardData(page: WikiPage): ChronicleCardData {
+  const eraLabel = page.chronicle?.temporalContext?.focalEra?.name || "Unknown Era";
+  const isMultiEra = !!page.chronicle?.temporalContext?.isMultiEra;
+  const formatLabel = page.chronicle?.format === "document" ? "Document" : "Story";
+  const subtypeLabel = page.chronicle?.narrativeStyleId
+    ? formatChronicleSubtype(page.chronicle.narrativeStyleId)
+    : null;
+  const primaryEntities = (page.chronicle?.roleAssignments || [])
+    .filter((role) => role.isPrimary)
+    .map((role) => role.entityName)
+    .filter(Boolean);
+  return {
+    eraLabel,
+    isMultiEra,
+    formatLabel,
+    subtypeLabel,
+    primaryLabel: primaryEntities.length > 0 ? primaryEntities.join(", ") : null,
+    summary: page.content?.summary || "",
+  };
+}
+
+function ChronicleCard({
+  page,
+  onNavigate,
+}: Readonly<{ page: WikiPage; onNavigate: (id: string) => void }>) {
+  const { eraLabel, isMultiEra, formatLabel, subtypeLabel, primaryLabel, summary } = extractChronicleCardData(page);
+
+  return (
+    <button key={page.id} className={styles.item} onClick={() => onNavigate(page.id)}>
+      <div className={styles.itemHeader}>
+        <span className={styles.itemTitle}>{page.title}</span>
+        <div className={styles.badgeGroup}>
+          <span className={styles.badge}>{formatLabel}</span>
+          {subtypeLabel && <span className={styles.badgeSecondary}>{subtypeLabel}</span>}
+        </div>
+      </div>
+      <div className={styles.itemMeta}>
+        <span>Era: {eraLabel}</span>
+        {isMultiEra && <span>Multi-era</span>}
+        {primaryLabel && <span>Primary: {primaryLabel}</span>}
+      </div>
+      {summary && <div className={styles.itemSummary}>{summary}</div>}
+    </button>
+  );
+}
+
 export default function ChronicleIndex({
   chronicles,
   eraNarrativePages = [],
@@ -129,17 +206,9 @@ export default function ChronicleIndex({
 }: Readonly<ChronicleIndexProps>) {
   const [sortMode, setSortMode] = useState("era_asc");
 
-  const filtered = useMemo(
-    () => filterChroniclesWithFilter(chronicles, filter),
-    [chronicles, filter]
-  );
+  const filtered = useMemo(() => filterChroniclesWithFilter(chronicles, filter), [chronicles, filter]);
+  const sorted = useMemo(() => [...filtered].sort((a, b) => compareChroniclesBySortMode(a, b, sortMode)), [filtered, sortMode]);
 
-  const sorted = useMemo(
-    () => [...filtered].sort((a, b) => compareChroniclesBySortMode(a, b, sortMode)),
-    [filtered, sortMode]
-  );
-
-  // Build era narrative lookup by era name (label used in groups)
   const eraNarrativeByEraName = useMemo(() => {
     const map = new Map<string, WikiPage>();
     for (const page of eraNarrativePages) {
@@ -148,17 +217,11 @@ export default function ChronicleIndex({
     return map;
   }, [eraNarrativePages]);
 
-  const groupedByEra = useMemo(
-    () => buildSortedEraGroups(sorted, sortMode),
-    [sorted, sortMode]
-  );
+  const groupedByEra = useMemo(() => buildSortedEraGroups(sorted, sortMode), [sorted, sortMode]);
 
-  // Get era name for era-based filters
   const eraName = useMemo(() => {
     if (filter.kind !== "era") return null;
-    const chronicle = chronicles.find(
-      (c) => c.chronicle?.temporalContext?.focalEra?.id === filter.eraId
-    );
+    const chronicle = chronicles.find((c) => c.chronicle?.temporalContext?.focalEra?.id === filter.eraId);
     return chronicle?.chronicle?.temporalContext?.focalEra?.name || "Unknown Era";
   }, [chronicles, filter]);
 
@@ -184,81 +247,27 @@ export default function ChronicleIndex({
           <div className={styles.sortControl}>
             <span className={styles.sortLabel}>Sort</span>
             <select
-              className={styles.sortSelect}
-              value={sortMode}
+              className={styles.sortSelect} value={sortMode}
               onChange={(event) => setSortMode(event.target.value)}
             >
               {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+                <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
           </div>
         </div>
       </div>
-
       <div className={styles.list}>
         {groupedByEra.map((group) => (
           <div key={group.label} className={styles.group}>
             <div className={styles.groupHeader}>{group.label}</div>
             <div className={styles.groupItems}>
-              {/* Era narrative at the top of the group */}
-              {eraNarrativeByEraName.has(group.label) &&
-                (() => {
-                  const narrativePage = eraNarrativeByEraName.get(group.label)!;
-                  const thesis = narrativePage.content?.summary || "";
-                  return (
-                    <button
-                      key={narrativePage.id}
-                      className={styles.item}
-                      onClick={() => onNavigate(narrativePage.id)}
-                    >
-                      <div className={styles.itemHeader}>
-                        <span className={styles.itemTitle}>{narrativePage.title}</span>
-                        <div className={styles.badgeGroup}>
-                          <span className={styles.badge}>Era Narrative</span>
-                          <span className={styles.badgeSecondary}>synthetic</span>
-                        </div>
-                      </div>
-                      {thesis && <div className={styles.itemSummary}>{thesis}</div>}
-                    </button>
-                  );
-                })()}
-              {group.items.map((page) => {
-                const eraLabel = page.chronicle?.temporalContext?.focalEra?.name || "Unknown Era";
-                const isMultiEra = page.chronicle?.temporalContext?.isMultiEra;
-                const formatLabel = page.chronicle?.format === "document" ? "Document" : "Story";
-                const subtypeLabel = page.chronicle?.narrativeStyleId
-                  ? formatChronicleSubtype(page.chronicle.narrativeStyleId)
-                  : null;
-                const primaryEntities = (page.chronicle?.roleAssignments || [])
-                  .filter((role) => role.isPrimary)
-                  .map((role) => role.entityName)
-                  .filter(Boolean);
-                const primaryLabel = primaryEntities.length > 0 ? primaryEntities.join(", ") : null;
-                const summary = page.content?.summary || "";
-
-                return (
-                  <button key={page.id} className={styles.item} onClick={() => onNavigate(page.id)}>
-                    <div className={styles.itemHeader}>
-                      <span className={styles.itemTitle}>{page.title}</span>
-                      <div className={styles.badgeGroup}>
-                        <span className={styles.badge}>{formatLabel}</span>
-                        {subtypeLabel && (
-                          <span className={styles.badgeSecondary}>{subtypeLabel}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className={styles.itemMeta}>
-                      <span>Era: {eraLabel}</span>
-                      {isMultiEra && <span>Multi-era</span>}
-                      {primaryLabel && <span>Primary: {primaryLabel}</span>}
-                    </div>
-                    {summary && <div className={styles.itemSummary}>{summary}</div>}
-                  </button>
-                );
-              })}
+              {eraNarrativeByEraName.has(group.label) && (
+                <EraNarrativeCard page={eraNarrativeByEraName.get(group.label)!} onNavigate={onNavigate} />
+              )}
+              {group.items.map((page) => (
+                <ChronicleCard key={page.id} page={page} onNavigate={onNavigate} />
+              ))}
             </div>
           </div>
         ))}

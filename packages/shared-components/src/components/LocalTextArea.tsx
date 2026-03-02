@@ -24,13 +24,14 @@
  */
 
 import React, { useState, useCallback } from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface LocalTextAreaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange'> {
-  readonly value?: string;
+  readonly value: Optional<string>;
   readonly onChange: (value: string) => void;
-  readonly className?: string;
-  readonly placeholder?: string;
-  readonly rows?: number;
+  readonly className: Optional<string>;
+  readonly placeholder: Optional<string>;
+  readonly rows: Optional<number>;
 }
 
 export function LocalTextArea({

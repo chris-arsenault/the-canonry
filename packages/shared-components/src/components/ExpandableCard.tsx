@@ -5,16 +5,17 @@
  */
 
 import React, { useCallback } from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface ExpandableCardProps {
   readonly expanded: boolean;
   readonly onToggle: (id?: string) => void;
-  readonly toggleId?: string;
+  readonly toggleId: Optional<string>;
   readonly title: React.ReactNode;
-  readonly subtitle?: React.ReactNode;
-  readonly actions?: React.ReactNode;
-  readonly children?: React.ReactNode;
-  readonly className?: string;
+  readonly subtitle: Optional<React.ReactNode>;
+  readonly actions: Optional<React.ReactNode>;
+  readonly children: Optional<React.ReactNode>;
+  readonly className: Optional<string>;
 }
 
 /**

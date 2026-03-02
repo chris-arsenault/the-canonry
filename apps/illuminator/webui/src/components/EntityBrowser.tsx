@@ -68,6 +68,69 @@ function prominenceAtLeast(
   return false;
 }
 
+interface BulkCounts {
+  annotationEligible: number;
+  copyEditEligible: number;
+  reEditionEligible: number;
+  legacyConvertEligible: number;
+  annotated: number;
+  missingDesc: number;
+  missingImg: number;
+  dependentDesc: number;
+}
+
+function countHistorianEligibility(items: EntityNavItem[]): Pick<BulkCounts, "annotationEligible" | "copyEditEligible" | "reEditionEligible" | "legacyConvertEligible" | "annotated"> {
+  let annotationEligible = 0;
+  let copyEditEligible = 0;
+  let reEditionEligible = 0;
+  let legacyConvertEligible = 0;
+  let annotated = 0;
+  for (const nav of items) {
+    if (nav.hasDescription && !nav.hasHistorianNotes) annotationEligible++;
+    if (nav.hasDescription && !nav.hasHistorianEdition) copyEditEligible++;
+    if (nav.hasDescription && nav.hasHistorianEdition) reEditionEligible++;
+    if (nav.hasHistorianEdition) legacyConvertEligible++;
+    if (nav.hasHistorianNotes) annotated++;
+  }
+  return { annotationEligible, copyEditEligible, reEditionEligible, legacyConvertEligible, annotated };
+}
+
+function countEnrichmentGaps(
+  items: EntityNavItem[],
+  getStatus: (nav: EntityNavItem, type: string) => EnrichmentStatus,
+  minProminenceForImage: string,
+  requireDescription: boolean,
+  prominenceScale: ProminenceScale
+): Pick<BulkCounts, "missingDesc" | "missingImg" | "dependentDesc"> {
+  let missingDesc = 0;
+  let missingImg = 0;
+  let dependentDesc = 0;
+  for (const nav of items) {
+    if (getStatus(nav, "description") === "missing") missingDesc++;
+    const isImageEligible = prominenceAtLeast(nav.prominence, minProminenceForImage, prominenceScale);
+    if (isImageEligible && getStatus(nav, "image") === "missing") {
+      missingImg++;
+      if (requireDescription && !nav.hasDescription && getStatus(nav, "description") === "missing") {
+        dependentDesc++;
+      }
+    }
+  }
+  return { missingDesc, missingImg, dependentDesc };
+}
+
+function computeBulkCounts(
+  items: EntityNavItem[],
+  getStatus: (nav: EntityNavItem, type: string) => EnrichmentStatus,
+  minProminenceForImage: string,
+  requireDescription: boolean,
+  prominenceScale: ProminenceScale
+): BulkCounts {
+  return {
+    ...countHistorianEligibility(items),
+    ...countEnrichmentGaps(items, getStatus, minProminenceForImage, requireDescription, prominenceScale),
+  };
+}
+
 export default function EntityBrowser({
   config,
   onConfigChange,
@@ -228,36 +291,32 @@ export default function EntityBrowser({
   const cachedEntity = useEntityStore((s) =>
     selectedEntityId ? s.cache.get(selectedEntityId) : undefined
   );
-  const [selectedEntity, setSelectedEntity] = useState<unknown>(null);
+  const [asyncLoadedEntity, setAsyncLoadedEntity] = useState<{ id: string; data: unknown } | null>(null);
 
-  // Derive selected entity from cache or load from Dexie.
-  // Using useMemo + effect combo avoids synchronous setState-in-effect.
+  // Derive selected entity: prefer cache, fall back to async-loaded for same ID
   const resolvedEntity = useMemo(() => {
     if (!selectedEntityId) return null;
     return cachedEntity ?? null;
   }, [selectedEntityId, cachedEntity]);
 
+  const selectedEntity = resolvedEntity
+    ?? (asyncLoadedEntity?.id === selectedEntityId ? asyncLoadedEntity.data : null);
+
   useEffect(() => {
-    if (!selectedEntityId) {
-      setSelectedEntity(null);
-      return;
-    }
-    if (resolvedEntity) {
-       
-      setSelectedEntity(resolvedEntity);
-    } else {
-      void useEntityStore
-        .getState()
-        .loadEntity(selectedEntityId)
-        .then((e) => setSelectedEntity(e));
-    }
+    if (!selectedEntityId || resolvedEntity) return;
+    let cancelled = false;
+    void useEntityStore
+      .getState()
+      .loadEntity(selectedEntityId)
+      .then((e) => { if (!cancelled) setAsyncLoadedEntity({ id: selectedEntityId, data: e }); });
+    return () => { cancelled = true; };
   }, [selectedEntityId, resolvedEntity]);
 
   // ── Progressive rendering ────────────────────────────────────────────
   const filtersKey = `${filters.kind}|${filters.prominence}|${filters.status}|${filters.culture}|${filters.chronicleImage}|${String(hideCompleted)}|${searchQuery}`;
-  const prevFiltersKeyRef = useRef(filtersKey);
-  if (prevFiltersKeyRef.current !== filtersKey) {
-    prevFiltersKeyRef.current = filtersKey;
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
+  if (prevFiltersKey !== filtersKey) {
+    setPrevFiltersKey(filtersKey);
     // Reset visible count synchronously during render instead of useEffect
     if (visibleCount !== ENTITY_PAGE_SIZE) {
       setVisibleCount(ENTITY_PAGE_SIZE);
@@ -287,48 +346,10 @@ export default function EntityBrowser({
   );
 
   // ── Bulk historian counts ────────────────────────────────────────────
-  const bulkCounts = useMemo(() => {
-    let annotationEligible = 0;
-    let copyEditEligible = 0;
-    let reEditionEligible = 0;
-    let legacyConvertEligible = 0;
-    let annotated = 0;
-    let missingDesc = 0;
-    let missingImg = 0;
-    let dependentDesc = 0;
-
-    for (const nav of filteredNavItems) {
-      if (nav.hasDescription && !nav.hasHistorianNotes) annotationEligible++;
-      if (nav.hasDescription && !nav.hasHistorianEdition) copyEditEligible++;
-      if (nav.hasDescription && nav.hasHistorianEdition) reEditionEligible++;
-      if (nav.hasHistorianEdition) legacyConvertEligible++;
-      if (nav.hasHistorianNotes) annotated++;
-      if (getStatus(nav, "description") === "missing") missingDesc++;
-
-      const isImageEligible = prominenceAtLeast(
-        nav.prominence,
-        config.minProminenceForImage,
-        prominenceScale
-      );
-      if (isImageEligible && getStatus(nav, "image") === "missing") {
-        missingImg++;
-        if (config.requireDescription && !nav.hasDescription && getStatus(nav, "description") === "missing") {
-          dependentDesc++;
-        }
-      }
-    }
-
-    return {
-      annotationEligible,
-      copyEditEligible,
-      reEditionEligible,
-      legacyConvertEligible,
-      annotated,
-      missingDesc,
-      missingImg,
-      dependentDesc,
-    };
-  }, [filteredNavItems, getStatus, config.minProminenceForImage, config.requireDescription, prominenceScale]);
+  const bulkCounts = useMemo(
+    () => computeBulkCounts(filteredNavItems, getStatus, config.minProminenceForImage, config.requireDescription, prominenceScale),
+    [filteredNavItems, getStatus, config.minProminenceForImage, config.requireDescription, prominenceScale]
+  );
 
   // ── Render ──────────────────────────────────────────────────────────
   return (

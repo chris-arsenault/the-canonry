@@ -10,9 +10,7 @@ import type { RelationshipKindDefinition } from './relationship.js';
 import type { CultureDefinition } from './culture.js';
 import type { CanonrySchemaSlice, TagDefinition } from './mfeContracts.js';
 
-// ===========================
 // FRAMEWORK ENTITY KINDS
-// ===========================
 
 export const FRAMEWORK_ENTITY_KINDS = {
   ERA: 'era',
@@ -25,9 +23,7 @@ export type FrameworkEntityKind =
 export const FRAMEWORK_ENTITY_KIND_VALUES: readonly FrameworkEntityKind[] =
   Object.values(FRAMEWORK_ENTITY_KINDS);
 
-// ===========================
 // FRAMEWORK RELATIONSHIP KINDS
-// ===========================
 
 export const FRAMEWORK_RELATIONSHIP_KINDS = {
   SUPERSEDES: 'supersedes',
@@ -45,9 +41,7 @@ export type FrameworkRelationshipKind =
 export const FRAMEWORK_RELATIONSHIP_KIND_VALUES: readonly FrameworkRelationshipKind[] =
   Object.values(FRAMEWORK_RELATIONSHIP_KINDS);
 
-// ===========================
 // FRAMEWORK STATUS VALUES
-// ===========================
 
 export const FRAMEWORK_STATUS = {
   ACTIVE: 'active',
@@ -62,10 +56,7 @@ export type FrameworkStatus = typeof FRAMEWORK_STATUS[keyof typeof FRAMEWORK_STA
 export const FRAMEWORK_STATUS_VALUES: readonly FrameworkStatus[] =
   Object.values(FRAMEWORK_STATUS);
 
-// ===========================
 // FRAMEWORK SUBTYPES
-// ===========================
-
 export const FRAMEWORK_SUBTYPES = {
   REGION: 'region',
 } as const;
@@ -75,20 +66,14 @@ export type FrameworkSubtype = typeof FRAMEWORK_SUBTYPES[keyof typeof FRAMEWORK_
 export const FRAMEWORK_SUBTYPE_VALUES: readonly FrameworkSubtype[] =
   Object.values(FRAMEWORK_SUBTYPES);
 
-// ===========================
 // FRAMEWORK CULTURES
-// ===========================
-
 export const FRAMEWORK_CULTURES = {
   WORLD: 'world',
 } as const;
 
 export type FrameworkCultureId = typeof FRAMEWORK_CULTURES[keyof typeof FRAMEWORK_CULTURES];
 
-// ===========================
 // FRAMEWORK TAGS
-// ===========================
-
 export const FRAMEWORK_TAGS = {
   META_ENTITY: 'meta-entity',
   TEMPORAL: 'temporal',
@@ -102,9 +87,7 @@ export type FrameworkTag = typeof FRAMEWORK_TAGS[keyof typeof FRAMEWORK_TAGS];
 export const FRAMEWORK_TAG_VALUES: readonly FrameworkTag[] =
   Object.values(FRAMEWORK_TAGS);
 
-// ===========================
 // TYPE GUARDS
-// ===========================
 
 export function isFrameworkEntityKind(kind: string): kind is FrameworkEntityKind {
   return FRAMEWORK_ENTITY_KIND_VALUES.includes(kind as FrameworkEntityKind);
@@ -126,10 +109,7 @@ export function isFrameworkTag(tag: string): tag is FrameworkTag {
   return FRAMEWORK_TAG_VALUES.includes(tag as FrameworkTag);
 }
 
-// ===========================
 // FRAMEWORK STATUS SETS
-// ===========================
-
 export const FRAMEWORK_ERA_STATUS_VALUES = [
   FRAMEWORK_STATUS.CURRENT,
   FRAMEWORK_STATUS.FUTURE,
@@ -141,10 +121,7 @@ export const FRAMEWORK_OCCURRENCE_STATUS_VALUES = [
   FRAMEWORK_STATUS.HISTORICAL,
 ] as const;
 
-// ===========================
 // RELATIONSHIP PROPERTIES
-// ===========================
-
 export const FRAMEWORK_RELATIONSHIP_PROPERTIES = {
   [FRAMEWORK_RELATIONSHIP_KINDS.SUPERSEDES]: {
     defaultStrength: 0.7,
@@ -180,10 +157,7 @@ export function getFrameworkRelationshipStrength(kind: FrameworkRelationshipKind
   return FRAMEWORK_RELATIONSHIP_PROPERTIES[kind].defaultStrength;
 }
 
-// ===========================
 // FRAMEWORK SCHEMA DEFINITIONS
-// ===========================
-
 export const FRAMEWORK_ENTITY_KIND_DEFINITIONS: EntityKindDefinition[] = [
   {
     kind: FRAMEWORK_ENTITY_KINDS.ERA,
@@ -342,28 +316,9 @@ export const FRAMEWORK_TAG_DEFINITIONS: TagDefinition[] = [
   },
 ];
 
-// ===========================
 // SCHEMA MERGE HELPERS
-// ===========================
-
-export function mergeFrameworkSchemaSlice(schema: CanonrySchemaSlice): CanonrySchemaSlice {
-  const entityOverrides = new Map(
-    (schema.entityKinds || []).map(item => [item.kind, item])
-  );
-  const relationshipOverrides = new Map(
-    (schema.relationshipKinds || []).map(item => [item.kind, item])
-  );
-  const cultureOverrides = new Map(
-    (schema.cultures || []).map(item => [item.id, item])
-  );
-  const tagOverrides = new Map(
-    (schema.tagRegistry || []).map(item => [item.tag, item])
-  );
-
-  const frameworkEntityKindIds = new Set(FRAMEWORK_ENTITY_KIND_VALUES.map(String));
-  const frameworkRelationshipKindIds = new Set(FRAMEWORK_RELATIONSHIP_KIND_VALUES.map(String));
-  const frameworkCultureIds = new Set(Object.values(FRAMEWORK_CULTURES).map(String));
-  const frameworkTagIds = new Set(FRAMEWORK_TAG_VALUES.map(String));
+function mergeEntityKinds(overrides: Map<string, EntityKindDefinition>, domainKinds: EntityKindDefinition[]): EntityKindDefinition[] {
+  const frameworkIds = new Set(FRAMEWORK_ENTITY_KIND_VALUES.map(String));
 
   const mergeSubtypes = (base: EntityKindDefinition, override?: EntityKindDefinition) => {
     const seen = new Set(base.subtypes.map(s => s.id));
@@ -387,10 +342,10 @@ export function mergeFrameworkSchemaSlice(schema: CanonrySchemaSlice): CanonrySc
     return baseRules.length > 0 || extra.length > 0 ? [...baseRules, ...extra] : undefined;
   };
 
-  const mergedEntityKinds = [
+  return [
     ...FRAMEWORK_ENTITY_KIND_DEFINITIONS.map((base) => {
-      const override = entityOverrides.get(base.kind);
-      const merged: EntityKindDefinition = {
+      const override = overrides.get(base.kind);
+      return {
         ...base,
         ...(override || {}),
         kind: base.kind,
@@ -401,16 +356,18 @@ export function mergeFrameworkSchemaSlice(schema: CanonrySchemaSlice): CanonrySc
         style: { ...(base.style || {}), ...(override?.style || {}) },
         semanticPlane: override?.semanticPlane ?? base.semanticPlane,
         defaultStatus: override?.defaultStatus ?? base.defaultStatus,
-      };
-      return merged;
+      } satisfies EntityKindDefinition;
     }),
-    ...(schema.entityKinds || []).filter(item => !frameworkEntityKindIds.has(String(item.kind))),
+    ...domainKinds.filter(item => !frameworkIds.has(String(item.kind))),
   ];
+}
 
-  const mergedRelationshipKinds = [
+function mergeRelationshipKinds(overrides: Map<string, RelationshipKindDefinition>, domainKinds: RelationshipKindDefinition[]): RelationshipKindDefinition[] {
+  const frameworkIds = new Set(FRAMEWORK_RELATIONSHIP_KIND_VALUES.map(String));
+  return [
     ...FRAMEWORK_RELATIONSHIP_KIND_DEFINITIONS.map((base) => {
-      const override = relationshipOverrides.get(base.kind);
-      const merged: RelationshipKindDefinition = {
+      const override = overrides.get(base.kind);
+      return {
         ...base,
         ...(override || {}),
         kind: base.kind,
@@ -423,51 +380,82 @@ export function mergeFrameworkSchemaSlice(schema: CanonrySchemaSlice): CanonrySc
           : base.dstKinds,
         cullable: base.cullable,
         decayRate: base.decayRate,
-      };
-      return merged;
+      } satisfies RelationshipKindDefinition;
     }),
-    ...(schema.relationshipKinds || []).filter(item => !frameworkRelationshipKindIds.has(String(item.kind))),
+    ...domainKinds.filter(item => !frameworkIds.has(String(item.kind))),
   ];
+}
 
-  const mergedCultures = [
-    ...FRAMEWORK_CULTURE_DEFINITIONS.map((base) => {
-      const override = cultureOverrides.get(base.id);
-      const merged: CultureDefinition = {
-        ...base,
-        ...(override || {}),
-        id: base.id,
-        isFramework: true,
-        name: base.name,
-        description: base.description ?? override?.description,
-        color: base.color ?? override?.color,
-        naming: override?.naming ?? base.naming,
-        axisBiases: override?.axisBiases ?? base.axisBiases,
-        homeRegions: override?.homeRegions ?? base.homeRegions,
-      };
-      return merged;
-    }),
-    ...(schema.cultures || []).filter(item => !frameworkCultureIds.has(String(item.id))),
+function mergeFrameworkCulture(
+  base: CultureDefinition,
+  override: CultureDefinition | undefined
+): CultureDefinition {
+  if (!override) return { ...base, isFramework: true };
+  return {
+    ...base,
+    ...override,
+    id: base.id,
+    isFramework: true,
+    name: base.name,
+    description: base.description ?? override.description,
+    color: base.color ?? override.color,
+    naming: override.naming ?? base.naming,
+    axisBiases: override.axisBiases ?? base.axisBiases,
+    homeRegions: override.homeRegions ?? base.homeRegions,
+  };
+}
+
+function mergeCultures(
+  overrides: Map<string, CultureDefinition>,
+  domainCultures: CultureDefinition[]
+): CultureDefinition[] {
+  const frameworkIds = new Set(Object.values(FRAMEWORK_CULTURES).map(String));
+  return [
+    ...FRAMEWORK_CULTURE_DEFINITIONS.map((base) =>
+      mergeFrameworkCulture(base, overrides.get(base.id))
+    ),
+    ...domainCultures.filter(item => !frameworkIds.has(String(item.id))),
   ];
+}
 
-  const mergedTags = [
+function mergeTags(
+  overrides: Map<string, TagDefinition>,
+  domainTags: TagDefinition[]
+): TagDefinition[] {
+  const frameworkIds = new Set(FRAMEWORK_TAG_VALUES.map(String));
+  return [
     ...FRAMEWORK_TAG_DEFINITIONS.map((base) => {
-      const override = tagOverrides.get(base.tag);
-      const merged: TagDefinition = {
+      const override = overrides.get(base.tag);
+      return {
         ...base,
         ...(override || {}),
         tag: base.tag,
         isFramework: true,
-      };
-      return merged;
+      } satisfies TagDefinition;
     }),
-    ...(schema.tagRegistry || []).filter(item => !frameworkTagIds.has(String(item.tag))),
+    ...domainTags.filter(item => !frameworkIds.has(String(item.tag))),
   ];
+}
+
+export function mergeFrameworkSchemaSlice(schema: CanonrySchemaSlice): CanonrySchemaSlice {
+  const entityOverrides = new Map(
+    schema.entityKinds.map(item => [item.kind, item])
+  );
+  const relationshipOverrides = new Map(
+    schema.relationshipKinds.map(item => [item.kind, item])
+  );
+  const cultureOverrides = new Map(
+    schema.cultures.map(item => [item.id, item])
+  );
+  const tagOverrides = new Map(
+    (schema.tagRegistry || []).map(item => [item.tag, item])
+  );
 
   return {
     ...schema,
-    entityKinds: mergedEntityKinds,
-    relationshipKinds: mergedRelationshipKinds,
-    cultures: mergedCultures,
-    tagRegistry: mergedTags,
+    entityKinds: mergeEntityKinds(entityOverrides, schema.entityKinds),
+    relationshipKinds: mergeRelationshipKinds(relationshipOverrides, schema.relationshipKinds),
+    cultures: mergeCultures(cultureOverrides, schema.cultures),
+    tagRegistry: mergeTags(tagOverrides, schema.tagRegistry || []),
   };
 }

@@ -1,7 +1,7 @@
 /* LoreSection Component Styles
  * Structural base: archivist-section.css */
 
-.lore-section {
+.lore-block {
   --_section-border: var(--color-bg-gold-border);
   --_section-bg: linear-gradient(135deg, var(--color-bg-gold-5) 0%, rgb(217 119 6 / 5%) 100%);
   --_section-header-bg: var(--color-bg-gold-15);

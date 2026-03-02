@@ -6,58 +6,9 @@
  */
 
 import React, { useState, useMemo, useCallback } from "react";
-import { TagSelector } from "@the-canonry/shared-components";
+import type { AxisDefinition, AxisUsageEntry, AxisFormData, TagEntry, EntityKind } from "./types.ts";
+import AxisModal from "./AxisModal.tsx";
 import "./AxisRegistry.css";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface TagEntry {
-  tag: string;
-  description?: string;
-  category?: string;
-  isAxis?: boolean;
-  mutuallyExclusiveWith?: string[];
-}
-
-interface AxisDefinition {
-  id: string;
-  name: string;
-  description?: string;
-  lowTag: string;
-  highTag: string;
-}
-
-interface AxisUsageEntry {
-  kind: string;
-  description?: string;
-  axis: string;
-}
-
-interface EntityKind {
-  kind: string;
-  description?: string;
-  semanticPlane?: {
-    axes?: Record<string, { axisId?: string }>;
-  };
-}
-
-interface AxisFormData {
-  id: string;
-  name: string;
-  description: string;
-  lowTag: string;
-  highTag: string;
-}
-
-interface AxisRegistryEditorProps {
-  axisDefinitions: AxisDefinition[];
-  entityKinds: EntityKind[];
-  tagRegistry: TagEntry[];
-  onAxisDefinitionsChange: (defs: AxisDefinition[]) => void;
-  onTagRegistryChange: (registry: TagEntry[]) => void;
-}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -69,6 +20,8 @@ function generateId(name: string): string {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_|_$/g, "");
 }
+
+const EMPTY_USAGE: AxisUsageEntry[] = [];
 
 const EMPTY_FORM: AxisFormData = {
   id: "",
@@ -136,174 +89,18 @@ function AxisCard({ axis, usage, onEdit, onDelete }: Readonly<AxisCardProps>) {
 }
 
 // ---------------------------------------------------------------------------
-// AxisModal - Create/Edit modal
-// ---------------------------------------------------------------------------
-
-interface AxisModalProps {
-  editingAxis: AxisDefinition | null;
-  formData: AxisFormData;
-  tagRegistry: TagEntry[];
-  onNameChange: (name: string) => void;
-  onFormDataChange: (data: AxisFormData) => void;
-  onSave: () => void;
-  onClose: () => void;
-  onTagRegistryChange: (registry: TagEntry[]) => void;
-}
-
-function AxisModal({
-  editingAxis,
-  formData,
-  tagRegistry,
-  onNameChange,
-  onFormDataChange,
-  onSave,
-  onClose,
-  onTagRegistryChange,
-}: Readonly<AxisModalProps>) {
-  const handleIdChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      onFormDataChange({ ...formData, id: e.target.value }),
-    [formData, onFormDataChange],
-  );
-
-  const handleDescriptionChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      onFormDataChange({ ...formData, description: e.target.value }),
-    [formData, onFormDataChange],
-  );
-
-  const lowTagValue = useMemo(
-    () => (formData.lowTag ? [formData.lowTag] : []),
-    [formData.lowTag],
-  );
-
-  const highTagValue = useMemo(
-    () => (formData.highTag ? [formData.highTag] : []),
-    [formData.highTag],
-  );
-
-  const handleLowTagChange = useCallback(
-    (tags: string[]) => onFormDataChange({ ...formData, lowTag: tags[0] || "" }),
-    [formData, onFormDataChange],
-  );
-
-  const handleHighTagChange = useCallback(
-    (tags: string[]) => onFormDataChange({ ...formData, highTag: tags[0] || "" }),
-    [formData, onFormDataChange],
-  );
-
-  const handleAddToRegistry = useCallback(
-    (newTag: { tag: string; category: string; rarity: string; description?: string }) =>
-      onTagRegistryChange([...tagRegistry, newTag]),
-    [tagRegistry, onTagRegistryChange],
-  );
-
-  const isValid = formData.name && formData.lowTag && formData.highTag;
-
-  return (
-    <div className="cosmo-modal" onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}>
-      <div className="cosmo-modal-content" onClick={(e) => e.stopPropagation()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}>
-        <div className="cosmo-modal-title">
-          {editingAxis ? `Edit Axis: ${editingAxis.name}` : "New Axis Definition"}
-        </div>
-
-        <div className="cosmo-form-group">
-          <label htmlFor="name" className="cosmo-label">Name</label>
-          <input
-            id="name"
-            className="cosmo-input"
-            placeholder="e.g., Power, Alignment, Element"
-            value={formData.name}
-            onChange={(e) => onNameChange(e.target.value)}
-            // eslint-disable-next-line jsx-a11y/no-autofocus
-            autoFocus
-          />
-        </div>
-
-        <div className="cosmo-form-group">
-          <label htmlFor="id" className="cosmo-label">ID</label>
-          <input
-            id="id"
-            className="cosmo-input"
-            placeholder="e.g., power, alignment, element"
-            value={formData.id}
-            onChange={handleIdChange}
-            disabled={!!editingAxis}
-          />
-          <div className="cosmo-hint">
-            {editingAxis ? "ID cannot be changed" : "Auto-generated from name"}
-          </div>
-        </div>
-
-        <div className="cosmo-form-group">
-          <label htmlFor="description-optional" className="cosmo-label">Description (optional)</label>
-          <input
-            id="description-optional"
-            className="cosmo-input"
-            placeholder="Brief description of this axis"
-            value={formData.description}
-            onChange={handleDescriptionChange}
-          />
-        </div>
-
-        <div className="cosmo-input-row">
-          <div className="cosmo-input-half">
-            <div className="cosmo-form-group">
-              <label className="cosmo-label">Low Tag (0)
-              <TagSelector
-                tagRegistry={tagRegistry}
-                value={lowTagValue}
-                onChange={handleLowTagChange}
-                onAddToRegistry={handleAddToRegistry}
-                placeholder="Select or create tag..."
-                singleSelect
-              />
-              </label>
-            </div>
-          </div>
-          <div className="cosmo-input-half">
-            <div className="cosmo-form-group">
-              <label className="cosmo-label">High Tag (100)
-              <TagSelector
-                tagRegistry={tagRegistry}
-                value={highTagValue}
-                onChange={handleHighTagChange}
-                onAddToRegistry={handleAddToRegistry}
-                placeholder="Select or create tag..."
-                singleSelect
-              />
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div className="cosmo-hint">
-          Tags will be auto-created in the registry with isAxis=true and set as mutually
-          exclusive.
-        </div>
-
-        <div className="cosmo-modal-actions">
-          <button className="cosmo-cancel-btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className="cosmo-save-btn axr-save-button"
-            style={{ '--axr-save-opacity': isValid ? 1 : 0.5 } as React.CSSProperties}
-            onClick={onSave}
-            disabled={!isValid}
-          >
-            {editingAxis ? "Save Changes" : "Create Axis"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // AxisRegistryEditor - Main component
 // ---------------------------------------------------------------------------
 
+interface AxisRegistryEditorProps {
+  axisDefinitions: AxisDefinition[];
+  entityKinds: EntityKind[];
+  tagRegistry: TagEntry[];
+  onAxisDefinitionsChange: (defs: AxisDefinition[]) => void;
+  onTagRegistryChange: (registry: TagEntry[]) => void;
+}
+
+// eslint-disable-next-line max-lines-per-function -- editor orchestrating CRUD for axis definitions with tag-registry side-effects; the complexity is from axis save logic managing tag mutual exclusivity
 export default function AxisRegistryEditor({
   axisDefinitions,
   entityKinds,
@@ -505,7 +302,7 @@ export default function AxisRegistryEditor({
             <AxisCard
               key={axis.id}
               axis={axis}
-              usage={axisUsage[axis.id] || []}
+              usage={axisUsage[axis.id] ?? EMPTY_USAGE}
               onEdit={openEditModal}
               onDelete={deleteAxis}
             />

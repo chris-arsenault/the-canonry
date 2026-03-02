@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import { optimizeDomain as runOptimizer } from "../../lib/browser-optimizer.js";
 import { ALGORITHMS } from "./constants";
@@ -54,8 +54,10 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
     return domains;
   }, [cultures]);
 
-  // Initialize algorithm params when algorithm changes
-  useEffect(() => {
+  // Reset algorithm params when algorithm changes (during render, not in effect)
+  const [prevAlgorithm, setPrevAlgorithm] = useState(algorithm);
+  if (prevAlgorithm !== algorithm) {
+    setPrevAlgorithm(algorithm);
     const config = ALGORITHMS[algorithm];
     if (config?.params) {
       const defaults = {};
@@ -64,7 +66,7 @@ export default function OptimizerWorkshop({ cultures, onCulturesChange }) {
       });
       setAlgorithmParams(defaults);
     }
-  }, [algorithm]);
+  }
 
   // Toggle culture expansion
   const toggleCulture = (cultureId) => {

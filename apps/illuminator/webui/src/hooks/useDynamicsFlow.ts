@@ -123,7 +123,7 @@ function buildRelationshipsPayload(
     src: r.src,
     dst: r.dst,
     kind: r.kind,
-    weight: r.weight ?? r.strength,
+    weight: (r as { weight?: number }).weight ?? r.strength,
     srcName: entityNavMap.get(r.src)?.name || r.src,
     dstName: entityNavMap.get(r.dst)?.name || r.dst,
   }));

@@ -186,14 +186,6 @@ function getGridValue(grid: Float32Array, x: number, y: number): number {
   return grid[y * GRID_SIZE + x];
 }
 
-/**
- * Set grid value at (x, y) - NO CLAMPING (simulation runs uncapped)
- */
-function setGridValue(grid: Float32Array, x: number, y: number, value: number): void {
-  if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return;
-  grid[y * GRID_SIZE + x] = value;
-}
-
 // falloff calculation now uses rules/metrics
 
 /**
@@ -213,11 +205,8 @@ function getStrength(entity: HardState, strengthTag: string | undefined, default
  * Check if entity has valid coordinates
  */
 function hasCoordinates(entity: HardState): entity is HardState & { coordinates: Point } {
-  return (
-    entity.coordinates != null &&
-    typeof entity.coordinates.x === 'number' &&
-    typeof entity.coordinates.y === 'number'
-  );
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- type guard used by callers for Point narrowing; coordinates are always SemanticCoordinates with x/y
+  return entity.coordinates != null;
 }
 
 /**
@@ -483,22 +472,26 @@ function enforceTagLimitOnMap(newTags: Record<string, boolean | string>): void {
   for (let i = 0; i < excessCount; i++) delete newTags[removalOrder[i]];
 }
 
-function generateOutputTagNarration(
+function interpolateNarration(
   entity: HardState,
-  newOutputTagAdded: boolean,
-  gainedOutputTag: DiffusionOutputTag | undefined,
-  outputTagLost: boolean,
-  lostOutputTag: DiffusionOutputTag | undefined,
+  template: string,
   narrationsByGroup: Record<string, string>
 ): void {
-  if (newOutputTagAdded && gainedOutputTag?.narrationTemplate) {
-    const ctx = createSystemRuleContext({ self: entity });
-    const result = interpolate(gainedOutputTag.narrationTemplate, ctx);
-    if (result.complete) narrationsByGroup[entity.id] = result.text;
-  } else if (outputTagLost && lostOutputTag?.lostNarrationTemplate) {
-    const ctx = createSystemRuleContext({ self: entity });
-    const result = interpolate(lostOutputTag.lostNarrationTemplate, ctx);
-    if (result.complete) narrationsByGroup[entity.id] = result.text;
+  const ctx = createSystemRuleContext({ self: entity });
+  const result = interpolate(template, ctx);
+  if (result.complete) narrationsByGroup[entity.id] = result.text;
+}
+
+function generateOutputTagNarration(
+  entity: HardState,
+  gainedTag: DiffusionOutputTag | undefined,
+  lostTag: DiffusionOutputTag | undefined,
+  narrationsByGroup: Record<string, string>
+): void {
+  if (gainedTag?.narrationTemplate) {
+    interpolateNarration(entity, gainedTag.narrationTemplate, narrationsByGroup);
+  } else if (lostTag?.lostNarrationTemplate) {
+    interpolateNarration(entity, lostTag.lostNarrationTemplate, narrationsByGroup);
   }
 }
 
@@ -520,7 +513,12 @@ function processAllEntityTagUpdates(
     if (!tagsChanged) continue;
     enforceTagLimitOnMap(newTags);
     const significantChange = tagResult.newOutputTagAdded || tagResult.outputTagLost;
-    generateOutputTagNarration(entity, tagResult.newOutputTagAdded, tagResult.gainedOutputTag, tagResult.outputTagLost, tagResult.lostOutputTag, narrationsByGroup);
+    generateOutputTagNarration(
+      entity,
+      tagResult.newOutputTagAdded ? tagResult.gainedOutputTag : undefined,
+      tagResult.outputTagLost ? tagResult.lostOutputTag : undefined,
+      narrationsByGroup
+    );
     modifications.push({
       id: entity.id,
       changes: { tags: buildTagPatch(entity.tags, newTags) },
@@ -575,7 +573,7 @@ function buildDiffusionVizSnapshot(
 export function createPlaneDiffusionSystem(
   config: PlaneDiffusionConfig
 ): SimulationSystem<DiffusionState> {
-  const diffusionRate = config.diffusion.rate ?? 0.2;
+  const diffusionRate = config.diffusion.rate;
   const sourceRadius = config.diffusion.sourceRadius ?? 1;
   const decayRate = config.diffusion.decayRate ?? 0; // Default to 0
   const falloffType = config.diffusion.falloffType ?? 'absolute';
@@ -591,7 +589,7 @@ export function createPlaneDiffusionSystem(
   if (sourceRadius < 0 || sourceRadius > 50) {
     throw new Error(`[${config.id}] Source radius must be between 0 and 50, got ${sourceRadius}`);
   }
-  if (!config.selection?.kind) {
+  if (!config.selection.kind) {
     throw new Error(`[${config.id}] Plane diffusion requires selection.kind to define the semantic plane.`);
   }
 

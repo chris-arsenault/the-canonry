@@ -213,9 +213,8 @@ function FinalSection({ detail, breakdown, tickCount }: Readonly<{
 // ---------------------------------------------------------------------------
 
 function PressureTooltip({ detail, discreteModifications, tickCount }: Readonly<PressureTooltipProps>) {
-  const relevantMods = detail ? (discreteModifications?.filter((m) => m.pressureId === detail.id) || []) : [];
-
   const groupedMods = useMemo(() => {
+    const relevantMods = detail ? (discreteModifications?.filter((m) => m.pressureId === detail.id) || []) : [];
     const groups: GroupedMods = {};
     for (const mod of relevantMods) {
       const key = mod.source.type;
@@ -225,7 +224,7 @@ function PressureTooltip({ detail, discreteModifications, tickCount }: Readonly<
       groups[key].push(mod);
     }
     return groups;
-  }, [relevantMods]);
+  }, [detail, discreteModifications]);
 
   if (!detail) return null;
 
@@ -351,15 +350,16 @@ export default function EpochTimeline({
 }: Readonly<EpochTimelineProps>) {
   const recentEpochs = useMemo(() => epochStats.slice(-5).reverse(), [epochStats]);
 
+  const pressureDetailsList = pressureDetails?.pressures;
   const detailsMap = useMemo(() => {
     const map = new Map<string, PressureChangeDetail>();
-    if (pressureDetails?.pressures) {
-      for (const p of pressureDetails.pressures) {
+    if (pressureDetailsList) {
+      for (const p of pressureDetailsList) {
         map.set(p.id, p);
       }
     }
     return map;
-  }, [pressureDetails?.pressures]);
+  }, [pressureDetailsList]);
 
   const pressureEntries = useMemo(
     () => (pressures ? Object.entries(pressures) : []),

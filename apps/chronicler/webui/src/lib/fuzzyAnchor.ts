@@ -150,7 +150,7 @@ function findBestWordCenter(
   return { bestScore, bestCenter };
 }
 
-/** Find the sentence boundaries around a center position. */
+// eslint-disable-next-line complexity -- bidirectional character scanning for sentence boundaries requires independent punctuation and whitespace checks in each direction
 function findSentenceBoundaries(
   text: string,
   centerCharStart: number,

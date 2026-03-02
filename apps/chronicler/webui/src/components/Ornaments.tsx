@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import type { Optional } from "@the-canonry/shared-components";
 import parchmentSrc from "../assets/textures/parchment.jpg";
 import vellumSrc from "../assets/textures/vellum.jpg";
 import ornStyles from "./Ornaments.module.css";
@@ -153,6 +154,7 @@ export interface ParchmentConfig {
   blurRadius: number; // frequency split point for blending (2–20)
   detailStrength: number; // how much parchment fiber detail to add (0–3)
 }
+// eslint-disable-next-line react-refresh/only-export-components -- config constant co-located with its component; not worth a separate file
 export const DEFAULT_PARCHMENT_CONFIG: ParchmentConfig = {
   opacity: 1,
   blurRadius: 10,
@@ -171,10 +173,10 @@ export function ParchmentTexture({
   config = DEFAULT_PARCHMENT_CONFIG,
   prebakedUrl
 }: Readonly<{
-  className?: string;
-  config?: ParchmentConfig;
+  className: Optional<string>;
+  config: Optional<ParchmentConfig>;
   /** Pre-baked tile URL — skips runtime canvas pipeline when provided */
-  prebakedUrl?: string;
+  prebakedUrl: Optional<string>;
 }>) {
   const [textureUrl, setTextureUrl] = useState<string | null>(prebakedUrl ?? null);
   const [prevUrl, setPrevUrl] = useState<string | null>(null);
@@ -279,32 +281,25 @@ export function ParchmentDebugPanel({
   onChange: (c: ParchmentConfig) => void;
 }>) {
   const [open, setOpen] = useState(false);
-  const set = useCallback((key: keyof ParchmentConfig, val: number) => {
-    onChange({
-      ...config,
-      [key]: val
-    });
-  }, [config, onChange]);
-  if (!open) return <button className={ornStyles.debugBtn} onClick={() => setOpen(true)}>
-        Parchment Config
-      </button>;
+  const setOpacity = useCallback((v: number) => onChange({ ...config, opacity: v }), [config, onChange]);
+  const setBlurRadius = useCallback((v: number) => onChange({ ...config, blurRadius: v }), [config, onChange]);
+  const setDetailStrength = useCallback((v: number) => onChange({ ...config, detailStrength: v }), [config, onChange]);
+  const handleReset = useCallback(() => onChange({ ...DEFAULT_PARCHMENT_CONFIG }), [onChange]);
+  const handleOpen = useCallback(() => setOpen(true), []);
+  const handleClose = useCallback(() => setOpen(false), []);
+
+  if (!open) return <button className={ornStyles.debugBtn} onClick={handleOpen}>Parchment Config</button>;
   return <div className={ornStyles.debugPanel}>
       <div className={ornStyles.debugHeader}>
         <strong className={ornStyles.debugTitle}>Parchment Config</strong>
-        <button onClick={() => setOpen(false)} className={ornStyles.debugClose}>
-          ✕
-        </button>
+        <button onClick={handleClose} className={ornStyles.debugClose}>✕</button>
       </div>
 
-      <Slider label="Opacity" value={config.opacity} min={0} max={1} step={0.01} onChange={v => set("opacity", v)} />
-      <Slider label="Blur radius" value={config.blurRadius} min={2} max={20} step={1} onChange={v => set("blurRadius", v)} />
-      <Slider label="Detail" value={config.detailStrength} min={0} max={3} step={0.1} onChange={v => set("detailStrength", v)} />
+      <Slider label="Opacity" value={config.opacity} min={0} max={1} step={0.01} onChange={setOpacity} />
+      <Slider label="Blur radius" value={config.blurRadius} min={2} max={20} step={1} onChange={setBlurRadius} />
+      <Slider label="Detail" value={config.detailStrength} min={0} max={3} step={0.1} onChange={setDetailStrength} />
 
-      <button onClick={() => onChange({
-      ...DEFAULT_PARCHMENT_CONFIG
-    })} className={ornStyles.resetBtn}>
-        Reset Defaults
-      </button>
+      <button onClick={handleReset} className={ornStyles.resetBtn}>Reset Defaults</button>
     </div>;
 }
 
@@ -340,7 +335,7 @@ function ScrollCorner() {
 export function PageFrame({
   className
 }: Readonly<{
-  className?: string;
+  className: Optional<string>;
 }>) {
   return <div aria-hidden="true" className={`${className ?? ""} ${ornStyles.pageFrame}`}>
       {/* Top-left */}
@@ -371,7 +366,7 @@ export function PageFrame({
 export function SectionDivider({
   className
 }: Readonly<{
-  className?: string;
+  className: Optional<string>;
 }>) {
   return <svg aria-hidden="true" viewBox="0 0 200 24" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Center diamond */}
@@ -404,8 +399,8 @@ export function FrostEdge({
   position = "top",
   className
 }: Readonly<{
-  position?: "top" | "bottom";
-  className?: string;
+  position: Optional<"top" | "bottom">;
+  className: Optional<string>;
 }>) {
   return <svg aria-hidden="true" viewBox="0 0 260 12" className={[className ?? "", position === "bottom" ? ornStyles.frostFlipped : ""].filter(Boolean).join(" ")} fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       {/* Frost background band — visible blue-tinted bar */}

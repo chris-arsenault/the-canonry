@@ -4,25 +4,15 @@
  * Handles: slot download, viewer bundle export, slot/bundle import, example output loading.
  */
 
-import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction } from "react";
-import {
-  getSlot,
-  saveSlot,
-  generateSlotTitle,
-  saveWorldContext,
-  saveEntityGuidance,
-  saveCultureIdentities,
-} from "../storage/worldStore";
-import { getStaticPagesForProject, importStaticPages } from "../storage/staticPageStorage";
+import { useCallback, type RefObject, type Dispatch, type SetStateAction } from "react";
+import type { Optional } from "@the-canonry/shared-components";
+import { getSlot, saveSlot } from "../storage/worldStore";
+import { getStaticPagesForProject } from "../storage/staticPageStorage";
 import {
   getCompletedChroniclesForSimulation,
   getCompletedChroniclesForProject,
-  importChronicles,
 } from "../storage/chronicleStorage";
 import { getCompletedEraNarrativesForSimulation } from "../storage/eraNarrativeStorage";
-import { importBundleImageReferences } from "../storage/imageStorage";
-import { importEntities } from "../storage/entityStorage";
-import { importNarrativeEvents } from "../storage/eventStorage";
 import { createS3Client, buildImageStorageConfig, syncProjectImagesToS3 } from "../aws/awsS3";
 import { useCanonryAwsStore } from "../stores/useCanonryAwsStore";
 import {
@@ -32,23 +22,32 @@ import {
   normalizeWorldContextForExport,
   extractLoreDataWithCurrentImageRefs,
   hydrateWorldDataFromDexie,
+} from "../lib/bundleExportUtils";
+import {
   buildBundleImageAssets,
   throwIfExportCanceled,
   EXPORT_CANCEL_ERROR_NAME,
-} from "../lib/bundleExportUtils";
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const SLOT_EXPORT_FORMAT = "canonry-slot-export";
-const SLOT_EXPORT_VERSION = 1;
-const VIEWER_BUNDLE_FORMAT = "canonry-viewer-bundle";
-const VIEWER_BUNDLE_VERSION = 1;
+} from "../lib/imageAssetBuilder";
+import {
+  SLOT_EXPORT_FORMAT,
+  SLOT_EXPORT_VERSION,
+  parseSlotImportPayload,
+  extractSimulationRunId,
+  resolveSlotTitle,
+  resolveSlotCreatedAt,
+  importDexieData,
+  importProjectData,
+  persistParsedContext,
+} from "./slotPayloadParsing";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+interface ExportBundleStatus {
+  state: "idle" | "working" | "error";
+  detail: string;
+}
 
 interface ArchivistData {
   worldData: unknown;
@@ -67,8 +66,8 @@ interface UseExportCallbacksParams {
   activeSlotIndex: number;
   archivistData: ArchivistData | null;
   awsConfig: Record<string, unknown>;
-  exportCancelRef: MutableRefObject<boolean>;
-  setExportBundleStatus: Dispatch<SetStateAction<{ state: "idle" | "working" | "error"; detail: string }>>;
+  exportCancelRef: RefObject<boolean>;
+  setExportBundleStatus: Dispatch<SetStateAction<ExportBundleStatus>>;
   worldContext: unknown;
   entityGuidance: unknown;
   cultureIdentities: unknown;
@@ -76,336 +75,167 @@ interface UseExportCallbacksParams {
 }
 
 // ---------------------------------------------------------------------------
-// Slot import payload parsing
+// Extracted helpers (reduce callback complexity)
 // ---------------------------------------------------------------------------
 
-interface ParsedSlotPayload {
-  worldData: unknown;
-  simulationResults: unknown;
-  simulationState: unknown;
-  worldContext?: unknown;
-  entityGuidance?: unknown;
-  cultureIdentities?: unknown;
-  slotTitle?: string;
-  slotCreatedAt?: number;
-  chronicles?: unknown[];
-  staticPages?: unknown[];
-  imageData?: unknown;
-  images?: Record<string, string>;
+function updateWorkingDetail(detail: string): (prev: ExportBundleStatus) => ExportBundleStatus {
+  return (prev) => prev.state === "working" ? { ...prev, detail } : prev;
 }
 
-function parseSlotExport(payload: Record<string, unknown>): ParsedSlotPayload {
-  const worldData = payload.worldData || payload.simulationResults;
-  if (!isWorldOutput(worldData)) {
-    throw new Error("Slot export is missing a valid world output.");
-  }
+function handleBundleExportError(err: unknown): void {
+  if ((err as Error)?.name === EXPORT_CANCEL_ERROR_NAME) return;
+  console.error("Failed to export bundle:", err);
+  alert((err as Error).message || "Failed to export bundle");
+}
+
+function pickBestWorldData(slotWd: unknown, liveWd: unknown): unknown {
+  if (!isWorldOutput(liveWd)) return slotWd;
+  const slotRunId = extractSimulationRunId(slotWd);
+  const liveRunId = extractSimulationRunId(liveWd);
+  if (!slotWd || !slotRunId || slotRunId === liveRunId) return liveWd;
+  return slotWd;
+}
+
+interface GatheredExportData {
+  exportWorldData: Record<string, unknown>;
+  loreData: unknown;
+  staticPages: unknown[];
+  chronicles: unknown[];
+  eraNarratives: unknown[];
+  simRunId: Optional<string>;
+}
+
+async function gatherBundleExportData(
+  projectId: string,
+  worldData: unknown,
+  shouldCancel: () => boolean,
+): Promise<GatheredExportData> {
+  const simRunId = extractSimulationRunId(worldData);
+  const exportWorldData = await hydrateWorldDataFromDexie({
+    worldData: worldData as Record<string, unknown>,
+    projectId,
+    simulationRunId: simRunId || "",
+  });
+  const loreData = extractLoreDataWithCurrentImageRefs(exportWorldData);
+  const [staticPagesRaw, chroniclesRaw, eraNarrativesRaw] = await Promise.all([
+    getStaticPagesForProject(projectId),
+    simRunId
+      ? getCompletedChroniclesForSimulation(simRunId)
+      : getCompletedChroniclesForProject(projectId),
+    simRunId ? getCompletedEraNarrativesForSimulation(simRunId) : Promise.resolve<unknown[]>([]),
+  ]);
+  throwIfExportCanceled(shouldCancel);
+  const staticPages = (staticPagesRaw || []).filter(
+    (page) => (page as Record<string, unknown>).status === "published",
+  );
   return {
-    worldData,
-    simulationResults: payload.simulationResults ?? worldData,
-    simulationState: payload.simulationState ?? null,
-    worldContext: payload.worldContext,
-    entityGuidance: payload.entityGuidance,
-    cultureIdentities: payload.cultureIdentities,
-    slotTitle: (payload.slot as Record<string, unknown>)?.title as string,
-    slotCreatedAt: (payload.slot as Record<string, unknown>)?.createdAt as number,
+    exportWorldData, loreData,
+    staticPages, chronicles: chroniclesRaw || [], eraNarratives: eraNarrativesRaw || [],
+    simRunId,
   };
 }
 
-function parseViewerBundle(payload: Record<string, unknown>): ParsedSlotPayload {
-  const worldData = payload.worldData as Record<string, unknown>;
-  if (!isWorldOutput(worldData)) {
-    throw new Error("Viewer bundle is missing a valid world output.");
-  }
-  const metadata = payload.metadata as Record<string, unknown> | undefined;
-  if (!worldData?.metadata && metadata?.simulationRunId) {
-    (worldData).metadata = {
-      ...(worldData.metadata as Record<string, unknown>),
-      simulationRunId: metadata.simulationRunId,
-    };
-  }
+async function maybeSyncS3Images(
+  useS3Images: boolean,
+  s3Client: unknown,
+  projectId: string,
+  awsConfig: Record<string, unknown>,
+  setExportBundleStatus: Dispatch<SetStateAction<ExportBundleStatus>>,
+): Promise<void> {
+  if (!useS3Images) return;
+  if (!s3Client) throw new Error("S3 sync is enabled but AWS credentials are not ready.");
+  setExportBundleStatus(updateWorkingDetail("Syncing images to S3..."));
+  await syncProjectImagesToS3({
+    projectId, s3: s3Client, config: awsConfig,
+    onProgress: ({ processed, total, uploaded }: { processed: number; total: number; uploaded: number }) => {
+      setExportBundleStatus(updateWorkingDetail(`Syncing images to S3 (${processed}/${total}, uploaded ${uploaded})...`));
+    },
+  });
+}
+
+async function processBundleImages(
+  projectId: string,
+  gathered: GatheredExportData,
+  shouldCancel: () => boolean,
+  awsConfig: Record<string, unknown>,
+  s3Client: unknown,
+  setExportBundleStatus: Dispatch<SetStateAction<ExportBundleStatus>>,
+): Promise<{ imageData: unknown; images: unknown; imageFiles: Array<{ path: string; blob: Blob }> }> {
+  const useS3Images = Boolean(awsConfig?.useS3Images && awsConfig?.imageBucket);
+  await maybeSyncS3Images(useS3Images, s3Client, projectId, awsConfig, setExportBundleStatus);
+  return buildBundleImageAssets({
+    projectId, worldData: gathered.exportWorldData,
+    chronicles: gathered.chronicles, staticPages: gathered.staticPages, eraNarratives: gathered.eraNarratives,
+    shouldCancel,
+    onProgress: ({ phase, processed, total }) => {
+      if (phase !== "images") return;
+      setExportBundleStatus(updateWorkingDetail(`Collecting images (${processed}/${total})...`));
+    },
+    mode: useS3Images ? "s3" : "local",
+    storage: useS3Images ? buildImageStorageConfig(awsConfig, projectId) : null,
+  });
+}
+
+function buildSlotExportPayload(
+  slot: Record<string, unknown>,
+  slotIndex: number,
+  worldData: unknown,
+  worldContext: unknown,
+  entityGuidance: unknown,
+  cultureIdentities: unknown,
+): Record<string, unknown> {
+  const exportWc = normalizeWorldContextForExport(worldContext as Record<string, unknown>);
+  const title = (slot.title as string) || (slotIndex === 0 ? "Scratch" : `Slot ${slotIndex}`);
   return {
-    worldData,
-    simulationResults: worldData,
-    simulationState: null,
-    slotTitle: (payload.slot as Record<string, unknown>)?.title as string || metadata?.title as string,
-    slotCreatedAt: (payload.slot as Record<string, unknown>)?.createdAt as number,
-    chronicles: Array.isArray(payload.chronicles) ? payload.chronicles : [],
-    staticPages: Array.isArray(payload.staticPages) ? payload.staticPages : [],
-    imageData: payload.imageData ?? null,
-    images: (payload.images as Record<string, string>) ?? undefined,
+    format: SLOT_EXPORT_FORMAT, version: SLOT_EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    slot: {
+      index: slotIndex, title,
+      createdAt: slot.createdAt || null, savedAt: slot.savedAt || null,
+    },
+    worldData, simulationResults: slot.simulationResults || null,
+    simulationState: slot.simulationState || null,
+    worldContext: exportWc, entityGuidance: entityGuidance ?? null,
+    cultureIdentities: cultureIdentities ?? null,
   };
 }
 
-function parseSlotImportPayload(payload: Record<string, unknown>): ParsedSlotPayload {
-  if (payload?.format === SLOT_EXPORT_FORMAT && payload?.version === SLOT_EXPORT_VERSION) {
-    return parseSlotExport(payload);
-  }
-  if (payload?.format === VIEWER_BUNDLE_FORMAT && payload?.version === VIEWER_BUNDLE_VERSION) {
-    return parseViewerBundle(payload);
-  }
-  if (isWorldOutput(payload)) {
-    return { worldData: payload, simulationResults: payload, simulationState: null };
-  }
-  throw new Error(
-    "Unsupported import format. Expected a Canonry slot export, viewer bundle, or world output JSON.",
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
-
-export function useExportCallbacks(params: UseExportCallbacksParams) {
-  const {
-    currentProject, slots, activeSlotIndex, archivistData,
-    awsConfig, exportCancelRef, setExportBundleStatus,
-    worldContext, entityGuidance, cultureIdentities, slotOps,
-  } = params;
-
-  const projectId = (currentProject as Record<string, unknown>)?.id as string | undefined;
-  const projectName = (currentProject as Record<string, unknown>)?.name as string | undefined;
-  const awsTokens = useCanonryAwsStore((s) => s.tokens);
-  const s3Client = createS3Client(awsConfig, awsTokens);
-
-  // -------------------------------------------------------------------------
-  // Slot import (shared logic for file import and example output)
-  // -------------------------------------------------------------------------
-
-  const importSlotPayload = useCallback(
-    async (slotIndex: number, payload: Record<string, unknown>, options: { defaultTitle?: string } = {}) => {
-      if (!projectId) return;
-      const parsed = parseSlotImportPayload(payload);
-      const now = Date.now();
-      const existingSlot = ((await getSlot(projectId, slotIndex)) || {}) as Record<string, unknown>;
-      const title =
-        parsed.slotTitle ||
-        (existingSlot.title as string) ||
-        options.defaultTitle ||
-        (slotIndex === 0 ? "Scratch" : generateSlotTitle(slotIndex, now));
-      const createdAt = parsed.slotCreatedAt ?? (existingSlot.createdAt as number) ?? now;
-      const worldData = mergeDefined(parsed.worldData, existingSlot.worldData ?? null);
-      const simResults = mergeDefined(
-        parsed.simulationResults ?? parsed.worldData,
-        existingSlot.simulationResults ?? null,
-      );
-      const simState = mergeDefined(parsed.simulationState, existingSlot.simulationState ?? null);
-
-      const slotData = {
-        ...existingSlot,
-        title,
-        createdAt,
-        savedAt: now,
-        simulationResults: simResults,
-        simulationState: simState,
-        worldData,
-      };
-      await saveSlot(projectId, slotIndex, slotData);
-
-      const simulationRunId = (worldData as Record<string, unknown>)?.metadata
-        ? ((worldData as Record<string, unknown>).metadata as Record<string, unknown>)?.simulationRunId as string
-        : undefined;
-
-      await importDexieData(simulationRunId, worldData as Record<string, unknown>, parsed);
-      await importProjectData(projectId, parsed, simulationRunId);
-      await persistParsedContext(projectId, parsed, params);
-      await slotOps.handleLoadSlot(slotIndex);
-    },
-    [projectId, slotOps, params],   
-  );
-
-  // -------------------------------------------------------------------------
-  // Standard slot export (JSON download)
-  // -------------------------------------------------------------------------
-
-  const handleExportSlotDownload = useCallback(
-    (slotIndex: number) => {
-      const slot = slots[slotIndex];
-      if (!slot) { alert("Slot is empty."); return; }
-      const wd = slot.worldData || slot.simulationResults;
-      if (!isWorldOutput(wd)) { alert("Slot does not contain a valid world output."); return; }
-      const exportWc = normalizeWorldContextForExport(worldContext as Record<string, unknown>);
-      const exportPayload = {
-        format: SLOT_EXPORT_FORMAT, version: SLOT_EXPORT_VERSION,
-        exportedAt: new Date().toISOString(),
-        slot: {
-          index: slotIndex,
-          title: (slot.title as string) || (slotIndex === 0 ? "Scratch" : `Slot ${slotIndex}`),
-          createdAt: slot.createdAt || null, savedAt: slot.savedAt || null,
-        },
-        worldData: wd, simulationResults: slot.simulationResults || null,
-        simulationState: slot.simulationState || null,
-        worldContext: exportWc, entityGuidance: entityGuidance ?? null,
-        cultureIdentities: cultureIdentities ?? null,
-      };
-      const slotFallback = `slot-${slotIndex}`;
-      const safeBase = buildExportBase(exportPayload.slot.title, slotFallback);
-      const filename = `${safeBase || slotFallback}.canonry-slot.json`;
-      downloadJson(exportPayload, filename);
-    },
-    [slots, worldContext, entityGuidance, cultureIdentities],
-  );
-
-  // -------------------------------------------------------------------------
-  // Viewer bundle export
-  // -------------------------------------------------------------------------
-
-  const handleExportBundle = useCallback(
-    async (slotIndex: number) => {
-      if (!projectId) return;
-      const slot = slots[slotIndex];
-      if (!slot) { alert("Slot is empty."); return; }
-      const slotWd = slot.worldData || slot.simulationResults;
-      const liveWd = slotIndex === activeSlotIndex ? archivistData?.worldData : null;
-      const worldData = pickBestWorldData(slotWd, liveWd);
-      if (!isWorldOutput(worldData)) { alert("Slot does not contain a valid world output."); return; }
-
-      const shouldCancel = () => exportCancelRef.current;
-      exportCancelRef.current = false;
-      setExportBundleStatus({ state: "working", detail: "Gathering run data..." });
-
-      try {
-        const simRunId = (worldData as Record<string, unknown>)?.metadata
-          ? ((worldData as Record<string, unknown>).metadata as Record<string, unknown>)?.simulationRunId as string
-          : undefined;
-        const exportWorldData = await hydrateWorldDataFromDexie({
-          worldData: worldData as Record<string, unknown>,
-          projectId,
-          simulationRunId: simRunId || "",
-        });
-        const [loreData, staticPagesRaw, chroniclesRaw, eraNarrativesRaw] = await Promise.all([
-          extractLoreDataWithCurrentImageRefs(exportWorldData) as Promise<unknown>,
-          getStaticPagesForProject(projectId) as Promise<unknown>,
-          (simRunId
-            ? getCompletedChroniclesForSimulation(simRunId)
-            : getCompletedChroniclesForProject(projectId)) as Promise<unknown>,
-          simRunId ? getCompletedEraNarrativesForSimulation(simRunId) as Promise<unknown> : Promise.resolve([]),
-        ]);
-        throwIfExportCanceled(shouldCancel);
-
-        const staticPages = (staticPagesRaw || []).filter(
-          (page: Record<string, unknown>) => page.status === "published",
-        );
-        const chronicles = chroniclesRaw || [];
-        const eraNarratives = eraNarrativesRaw || [];
-
-        const useS3Images = Boolean(awsConfig?.useS3Images && awsConfig?.imageBucket);
-        const imageStorage = useS3Images ? buildImageStorageConfig(awsConfig, projectId) : null;
-        if (useS3Images) {
-          if (!s3Client) throw new Error("S3 sync is enabled but AWS credentials are not ready.");
-          setExportBundleStatus((prev) =>
-            prev.state === "working" ? { ...prev, detail: "Syncing images to S3..." } : prev,
-          );
-          await syncProjectImagesToS3({
-            projectId, s3: s3Client, config: awsConfig,
-            onProgress: ({ processed, total, uploaded }: { processed: number; total: number; uploaded: number }) => {
-              setExportBundleStatus((prev) =>
-                prev.state === "working"
-                  ? { ...prev, detail: `Syncing images to S3 (${processed}/${total}, uploaded ${uploaded})...` }
-                  : prev,
-              );
-            },
-          });
-        }
-
-        const { imageData, images, imageFiles } = await buildBundleImageAssets({
-          projectId, worldData: exportWorldData, chronicles, staticPages, eraNarratives,
-          shouldCancel,
-          onProgress: ({ phase, processed, total }) => {
-            if (phase !== "images") return;
-            setExportBundleStatus((prev) =>
-              prev.state === "working"
-                ? { ...prev, detail: `Collecting images (${processed}/${total})...` }
-                : prev,
-            );
-          },
-          mode: useS3Images ? "s3" : "local",
-          storage: imageStorage,
-        });
-
-        throwIfExportCanceled(shouldCancel);
-        setExportBundleStatus((prev) =>
-          prev.state === "working" ? { ...prev, detail: "Packaging bundle..." } : prev,
-        );
-
-        const exportTitle = (slot.title as string) || (slotIndex === 0 ? "Scratch" : `Slot ${slotIndex}`);
-        const safeBase = buildExportBase(exportTitle, `slot-${slotIndex}`);
-        const exportedAt = new Date().toISOString();
-        const bundle = {
-          format: "canonry-viewer-bundle", version: 1,
-          metadata: {
-            title: exportTitle, exportedAt, projectId,
-            projectName: projectName || null,
-            simulationRunId: simRunId || null,
-          },
-          projectId,
-          slot: { index: slotIndex, title: exportTitle, createdAt: slot.createdAt || null, savedAt: slot.savedAt || null },
-          worldData: exportWorldData, loreData, staticPages, chronicles, eraNarratives, imageData, images,
-        };
-        const bundleJson = JSON.stringify(bundle, null, 2);
-        throwIfExportCanceled(shouldCancel);
-
-        await downloadBundleOrZip(imageFiles, bundleJson, safeBase, slotIndex, exportedAt);
-        slotOps.closeExportModal();
-      } catch (err) {
-        if ((err as Error)?.name === EXPORT_CANCEL_ERROR_NAME) return;
-        console.error("Failed to export bundle:", err);
-        alert((err as Error).message || "Failed to export bundle");
-      } finally {
-        exportCancelRef.current = false;
-        setExportBundleStatus({ state: "idle", detail: "" });
-      }
-    },
-    [activeSlotIndex, archivistData?.worldData, awsConfig, projectId, projectName, s3Client, slots, slotOps, exportCancelRef, setExportBundleStatus],
-  );
-
-  const handleExportSlot = useCallback(
-    (slotIndex: number) => {
-      const slot = slots[slotIndex];
-      if (!slot) { alert("Slot is empty."); return; }
-      slotOps.openExportModal(slotIndex);
-    },
-    [slots, slotOps],
-  );
-
-  const handleImportSlot = useCallback(
-    async (slotIndex: number, file: File) => {
-      if (!projectId || !file) return;
-      try {
-        const payload = await readImportFile(file);
-        await importSlotPayload(slotIndex, payload, { defaultTitle: "Imported Output" });
-      } catch (err) {
-        console.error("Failed to import slot:", err);
-        alert((err as Error).message || "Failed to import slot data");
-      }
-    },
-    [projectId, importSlotPayload],
-  );
-
-  const handleLoadExampleOutput = useCallback(async () => {
-    if (!projectId) return;
-    try {
-      const baseUrl = import.meta.env.BASE_URL || "/";
-      const response = await fetch(`${baseUrl}default-project/worldOutput.json`);
-      if (!response.ok) throw new Error("Example output not found.");
-      const payload = await response.json();
-      await importSlotPayload(0, payload, { defaultTitle: "Example Output" });
-    } catch (err) {
-      console.error("Failed to load example output:", err);
-      alert((err as Error).message || "Failed to load example output");
-    }
-  }, [projectId, importSlotPayload]);
-
+function assembleBundlePayload(
+  slot: Record<string, unknown>,
+  slotIndex: number,
+  exportWorldData: Record<string, unknown>,
+  loreData: unknown,
+  staticPages: unknown[],
+  chronicles: unknown[],
+  eraNarratives: unknown[],
+  imageData: unknown,
+  images: unknown,
+  projectId: string,
+  projectName: string | undefined,
+  simRunId: string | undefined,
+): { bundle: Record<string, unknown>; safeBase: string; exportedAt: string } {
+  const exportTitle = (slot.title as string) || (slotIndex === 0 ? "Scratch" : `Slot ${slotIndex}`);
+  const exportedAt = new Date().toISOString();
+  const safeBase = buildExportBase(exportTitle, `slot-${slotIndex}`);
   return {
-    handleExportSlotDownload,
-    handleExportBundle,
-    handleExportSlot,
-    handleImportSlot,
-    handleLoadExampleOutput,
+    bundle: {
+      format: "canonry-viewer-bundle", version: 1,
+      metadata: {
+        title: exportTitle, exportedAt, projectId,
+        projectName: projectName || null,
+        simulationRunId: simRunId || null,
+      },
+      projectId,
+      slot: { index: slotIndex, title: exportTitle, createdAt: slot.createdAt || null, savedAt: slot.savedAt || null },
+      worldData: exportWorldData, loreData, staticPages, chronicles, eraNarratives, imageData, images,
+    },
+    safeBase,
+    exportedAt,
   };
 }
 
 // ---------------------------------------------------------------------------
-// Helpers (kept outside the hook to avoid closure complexity)
+// Download helpers
 // ---------------------------------------------------------------------------
 
 function downloadJson(data: unknown, filename: string): void {
@@ -453,77 +283,153 @@ async function readImportFile(file: File): Promise<Record<string, unknown>> {
     const bundleFile = zip.file("bundle.json");
     if (!bundleFile) throw new Error("Bundle zip is missing bundle.json.");
     const text = await bundleFile.async("string");
-    return JSON.parse(text);
+    return JSON.parse(text) as Record<string, unknown>;
   }
   const text = await file.text();
-  return JSON.parse(text);
+  return JSON.parse(text) as Record<string, unknown>;
 }
 
-function pickBestWorldData(slotWd: unknown, liveWd: unknown): unknown {
-  const slotRunId = (slotWd as Record<string, unknown>)?.metadata
-    ? ((slotWd as Record<string, unknown>).metadata as Record<string, unknown>)?.simulationRunId
-    : undefined;
-  const liveRunId = (liveWd as Record<string, unknown>)?.metadata
-    ? ((liveWd as Record<string, unknown>).metadata as Record<string, unknown>)?.simulationRunId
-    : undefined;
-  if (isWorldOutput(liveWd) && (!slotWd || !slotRunId || slotRunId === liveRunId)) {
-    return liveWd;
-  }
-  return slotWd;
-}
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
 
-async function importDexieData(
-  simulationRunId: string | undefined,
-  worldData: Record<string, unknown>,
-  parsed: ParsedSlotPayload,
-): Promise<void> {
-  if (simulationRunId && Array.isArray(worldData?.hardState) && (worldData.hardState as unknown[]).length > 0) {
-    const entityResult = await importEntities(simulationRunId, worldData.hardState);
-    console.log("[Canonry] Import entities (Dexie)", entityResult);
-  }
-  if (simulationRunId && Array.isArray(worldData?.narrativeHistory) && (worldData.narrativeHistory as unknown[]).length > 0) {
-    const eventResult = await importNarrativeEvents(simulationRunId, worldData.narrativeHistory);
-    console.log("[Canonry] Import narrative events (Dexie)", eventResult);
-  }
-  if (!simulationRunId && (worldData?.hardState as unknown[])?.length) {
-    console.warn("[Canonry] Import skipped Dexie entity merge: missing simulationRunId");
-  }
-}
+// eslint-disable-next-line max-lines-per-function -- coordination hook returning 5 useCallback wrappers that delegate to extracted helpers; structurally uniform thin callbacks, not complex logic
+export function useExportCallbacks(params: UseExportCallbacksParams) {
+  const {
+    currentProject, slots, activeSlotIndex, archivistData,
+    awsConfig, exportCancelRef, setExportBundleStatus,
+    worldContext, entityGuidance, cultureIdentities, slotOps,
+  } = params;
 
-async function importProjectData(
-  projectId: string,
-  parsed: ParsedSlotPayload,
-  simulationRunId: string | undefined,
-): Promise<void> {
-  if (Array.isArray(parsed.staticPages) && parsed.staticPages.length > 0) {
-    await importStaticPages(projectId, parsed.staticPages, { preserveIds: true });
-  }
-  if (Array.isArray(parsed.chronicles) && parsed.chronicles.length > 0) {
-    const chronicleResult = await importChronicles(projectId, parsed.chronicles, { simulationRunId });
-    console.log("[Canonry] Import chronicles", chronicleResult);
-  }
-  if (parsed.imageData) {
-    const imageResult = await importBundleImageReferences({
-      projectId, imageData: parsed.imageData, images: parsed.images,
-    });
-    console.log("[Canonry] Import image references", imageResult);
-  }
-}
+  const projectId = (currentProject as Record<string, unknown>)?.id as string | undefined;
+  const projectName = (currentProject as Record<string, unknown>)?.name as string | undefined;
+  const awsTokens = useCanonryAwsStore((s) => s.tokens);
+  const s3Client = createS3Client(awsConfig, awsTokens);
 
-async function persistParsedContext(
-  projectId: string,
-  parsed: ParsedSlotPayload,
-  params: UseExportCallbacksParams,
-): Promise<void> {
-  if (parsed.worldContext !== undefined) {
-    // We can't call React setters here directly since this is a pure function.
-    // The parent hook handles this through the slotOps.handleLoadSlot call.
-    await saveWorldContext(projectId, parsed.worldContext);
-  }
-  if (parsed.entityGuidance !== undefined) {
-    await saveEntityGuidance(projectId, parsed.entityGuidance);
-  }
-  if (parsed.cultureIdentities !== undefined) {
-    await saveCultureIdentities(projectId, parsed.cultureIdentities);
-  }
+  const importSlotPayload = useCallback(
+    async (slotIndex: number, payload: Record<string, unknown>, defaultTitle: string) => {
+      if (!projectId) return;
+      const parsed = parseSlotImportPayload(payload);
+      const now = Date.now();
+      const existingSlot = ((await getSlot(projectId, slotIndex)) || {}) as Record<string, unknown>;
+      const title = resolveSlotTitle(parsed, existingSlot.title as string, defaultTitle, slotIndex, now);
+      const createdAt = resolveSlotCreatedAt(parsed, existingSlot.createdAt as number, now);
+      const worldData = mergeDefined(parsed.worldData, existingSlot.worldData ?? null);
+      const simResults = mergeDefined(parsed.simulationResults ?? parsed.worldData, existingSlot.simulationResults ?? null);
+      const simState = mergeDefined(parsed.simulationState, existingSlot.simulationState ?? null);
+
+      await saveSlot(projectId, slotIndex, {
+        ...existingSlot, title, createdAt, savedAt: now,
+        simulationResults: simResults, simulationState: simState, worldData,
+      });
+      const simulationRunId = extractSimulationRunId(worldData);
+      await importDexieData(simulationRunId, worldData as Record<string, unknown>);
+      await importProjectData(projectId, parsed, simulationRunId);
+      await persistParsedContext(projectId, parsed);
+      await slotOps.handleLoadSlot(slotIndex);
+    },
+    [projectId, slotOps],
+  );
+
+  const handleExportSlotDownload = useCallback(
+    (slotIndex: number) => {
+      const slot = slots[slotIndex];
+      if (!slot) { alert("Slot is empty."); return; }
+      const wd = slot.worldData || slot.simulationResults;
+      if (!isWorldOutput(wd)) { alert("Slot does not contain a valid world output."); return; }
+      const exportPayload = buildSlotExportPayload(slot, slotIndex, wd, worldContext, entityGuidance, cultureIdentities);
+      const slotFallback = `slot-${slotIndex}`;
+      const safeBase = buildExportBase((exportPayload.slot as Record<string, unknown>).title as string, slotFallback);
+      downloadJson(exportPayload, `${safeBase || slotFallback}.canonry-slot.json`);
+    },
+    [slots, worldContext, entityGuidance, cultureIdentities],
+  );
+
+  const handleExportBundle = useCallback(
+    async (slotIndex: number) => {
+      if (!projectId) return;
+      const slot = slots[slotIndex];
+      if (!slot) { alert("Slot is empty."); return; }
+      const slotWd = slot.worldData || slot.simulationResults;
+      const liveWd = slotIndex === activeSlotIndex ? archivistData?.worldData : null;
+      const worldData = pickBestWorldData(slotWd, liveWd);
+      if (!isWorldOutput(worldData)) { alert("Slot does not contain a valid world output."); return; }
+
+      const shouldCancel = () => exportCancelRef.current;
+      exportCancelRef.current = false;
+      setExportBundleStatus({ state: "working", detail: "Gathering run data..." });
+
+      try {
+        const gathered = await gatherBundleExportData(projectId, worldData, shouldCancel);
+        const { imageData, images, imageFiles } = await processBundleImages(
+          projectId, gathered, shouldCancel, awsConfig, s3Client, setExportBundleStatus,
+        );
+
+        throwIfExportCanceled(shouldCancel);
+        setExportBundleStatus(updateWorkingDetail("Packaging bundle..."));
+
+        const { bundle, safeBase, exportedAt } = assembleBundlePayload(
+          slot, slotIndex, gathered.exportWorldData, gathered.loreData,
+          gathered.staticPages, gathered.chronicles, gathered.eraNarratives,
+          imageData, images, projectId, projectName, gathered.simRunId,
+        );
+        const bundleJson = JSON.stringify(bundle, null, 2);
+        throwIfExportCanceled(shouldCancel);
+
+        await downloadBundleOrZip(imageFiles, bundleJson, safeBase, slotIndex, exportedAt);
+        slotOps.closeExportModal();
+      } catch (err) {
+        handleBundleExportError(err);
+      } finally {
+        exportCancelRef.current = false;
+        setExportBundleStatus({ state: "idle", detail: "" });
+      }
+    },
+    [activeSlotIndex, archivistData?.worldData, awsConfig, projectId, projectName, s3Client, slots, slotOps, exportCancelRef, setExportBundleStatus],
+  );
+
+  const handleExportSlot = useCallback(
+    (slotIndex: number) => {
+      const slot = slots[slotIndex];
+      if (!slot) { alert("Slot is empty."); return; }
+      slotOps.openExportModal(slotIndex);
+    },
+    [slots, slotOps],
+  );
+
+  const handleImportSlot = useCallback(
+    async (slotIndex: number, file: File) => {
+      if (!projectId || !file) return;
+      try {
+        const payload = await readImportFile(file);
+        await importSlotPayload(slotIndex, payload, "Imported Output");
+      } catch (err) {
+        console.error("Failed to import slot:", err);
+        alert((err as Error).message || "Failed to import slot data");
+      }
+    },
+    [projectId, importSlotPayload],
+  );
+
+  const handleLoadExampleOutput = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const baseUrl = ((import.meta as unknown as { env: Record<string, string> }).env.BASE_URL) || "/";
+      const response = await fetch(`${baseUrl}default-project/worldOutput.json`);
+      if (!response.ok) throw new Error("Example output not found.");
+      const payload = (await response.json()) as Record<string, unknown>;
+      await importSlotPayload(0, payload, "Example Output");
+    } catch (err) {
+      console.error("Failed to load example output:", err);
+      alert((err as Error).message || "Failed to load example output");
+    }
+  }, [projectId, importSlotPayload]);
+
+  return {
+    handleExportSlotDownload,
+    handleExportBundle,
+    handleExportSlot,
+    handleImportSlot,
+    handleLoadExampleOutput,
+  };
 }

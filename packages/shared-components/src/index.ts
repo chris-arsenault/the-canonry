@@ -30,7 +30,8 @@ export {
 export { ReferenceDropdown } from './components/ReferenceDropdown';
 export { ChipSelect } from './components/ChipSelect';
 export { SearchableDropdown } from './components/SearchableDropdown';
-export { LevelSelector, STRENGTH_LEVELS, PROMINENCE_LEVELS } from './components/LevelSelector';
+export { LevelSelector } from './components/LevelSelector';
+export { STRENGTH_LEVELS, PROMINENCE_LEVELS } from './components/levelPresets';
 export { NumberInput } from './components/NumberInput';
 export { LocalTextArea } from './components/LocalTextArea';
 

@@ -3,11 +3,12 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface ErrorMessageProps {
   readonly message: string;
-  readonly title?: string;
-  readonly className?: string;
+  readonly title: Optional<string>;
+  readonly className: Optional<string>;
 }
 
 /**

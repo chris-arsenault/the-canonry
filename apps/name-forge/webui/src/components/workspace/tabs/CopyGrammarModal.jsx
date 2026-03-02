@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAsyncAction } from "../../../hooks/useAsyncAction";
 import PropTypes from "prop-types";
 import { ModalShell } from "@the-canonry/shared-components";
@@ -117,11 +117,10 @@ function GrammarPreview({ grammar, domains, lexemeLists }) {
   const [names, setNames] = useState([]);
   const { busy: loading, run } = useAsyncAction();
 
+  const hasRules = grammar?.rules && Object.keys(grammar.rules).length > 0;
+
   useEffect(() => {
-    if (!grammar?.rules || Object.keys(grammar.rules).length === 0) {
-      setNames([]);
-      return;
-    }
+    if (!hasRules) return;
 
     let cancelled = false;
     void run("preview", async () => {
@@ -132,7 +131,7 @@ function GrammarPreview({ grammar, domains, lexemeLists }) {
     return () => {
       cancelled = true;
     };
-  }, [grammar, domains, lexemeLists, run]);
+  }, [grammar, domains, lexemeLists, run, hasRules]);
 
   if (!grammar?.rules || Object.keys(grammar.rules).length === 0) {
     return (
@@ -184,10 +183,8 @@ export function CopyGrammarModal({
 }) {
   const [selectedCulture, setSelectedCulture] = useState(null);
   const [selectedGrammar, setSelectedGrammar] = useState(null);
-  const [newGrammarId, setNewGrammarId] = useState("");
-  const [substitutedGrammar, setSubstitutedGrammar] = useState(null);
-  const [dependencies, setDependencies] = useState({ missing: [], existing: [] });
   const [selectedDeps, setSelectedDeps] = useState(new Set());
+  const [newGrammarId, setNewGrammarId] = useState("");
 
   const otherCultures = Object.entries(allCultures || {})
     .filter(([id]) => id !== cultureId)
@@ -197,17 +194,17 @@ export function CopyGrammarModal({
       grammars: config.naming?.grammars || [],
     }));
 
-  useEffect(() => {
+  // Derive substituted grammar and dependencies from selection (pure computation)
+  const { substitutedGrammar, dependencies, derivedGrammarId } = useMemo(() => {
     if (!selectedGrammar || !selectedCulture) {
-      setSubstitutedGrammar(null);
-      setDependencies({ missing: [], existing: [] });
-      setSelectedDeps(new Set());
-      return;
+      return { substitutedGrammar: null, dependencies: { missing: [], existing: [] }, derivedGrammarId: "" };
     }
 
     const sourceCulture = allCultures[selectedCulture];
     const sourceGrammar = sourceCulture?.naming?.grammars?.find((g) => g.id === selectedGrammar);
-    if (!sourceGrammar) return;
+    if (!sourceGrammar) {
+      return { substitutedGrammar: null, dependencies: { missing: [], existing: [] }, derivedGrammarId: "" };
+    }
 
     // Find dependencies
     const slotRefs = extractSlotReferences(sourceGrammar);
@@ -232,9 +229,6 @@ export function CopyGrammarModal({
       }
     });
 
-    setDependencies({ missing, existing });
-    setSelectedDeps(new Set(missing.map((d) => d.sourceId)));
-
     const substituted = substituteGrammarReferences(
       sourceGrammar,
       sourceCulture,
@@ -243,9 +237,26 @@ export function CopyGrammarModal({
     );
     const finalId = generateUniqueId(cultureId, sourceGrammar.id, existingGrammarIds);
 
-    setNewGrammarId(finalId);
-    setSubstitutedGrammar({ ...substituted, id: finalId });
+    return {
+      substitutedGrammar: { ...substituted, id: finalId },
+      dependencies: { missing, existing },
+      derivedGrammarId: finalId,
+    };
   }, [selectedGrammar, selectedCulture, allCultures, cultureConfig, cultureId, existingGrammarIds]);
+
+  // Sync derived grammar ID to editable state when it changes
+  const [prevDerivedId, setPrevDerivedId] = useState(derivedGrammarId);
+  if (prevDerivedId !== derivedGrammarId) {
+    setPrevDerivedId(derivedGrammarId);
+    setNewGrammarId(derivedGrammarId);
+  }
+
+  // Reset selected deps when dependencies change
+  const [prevDeps, setPrevDeps] = useState(dependencies);
+  if (prevDeps !== dependencies) {
+    setPrevDeps(dependencies);
+    setSelectedDeps(new Set(dependencies.missing.map((d) => d.sourceId)));
+  }
 
   const toggleDep = (sourceId) => {
     const newSelected = new Set(selectedDeps);

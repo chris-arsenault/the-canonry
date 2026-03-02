@@ -8,6 +8,7 @@
 
 import React, { useState } from "react";
 import "./ChronicleSeedViewer.css";
+import type { Optional } from '../types/optionality.js';
 
 interface ChronicleRoleAssignment {
   role: string;
@@ -18,60 +19,137 @@ interface ChronicleRoleAssignment {
 }
 
 interface ChronicleTemporalContext {
-  focalEra?: { id: string; name: string; summary?: string };
-  chronicleTickRange?: [number, number];
-  temporalScope?: string;
-  isMultiEra?: boolean;
-  touchedEraIds?: string[];
-  temporalDescription?: string;
+  focalEra: Optional<{ id: string; name: string; summary: Optional<string> }>;
+  chronicleTickRange: Optional<[number, number]>;
+  temporalScope: Optional<string>;
+  isMultiEra: Optional<boolean>;
+  touchedEraIds: Optional<string[]>;
+  temporalDescription: Optional<string>;
 }
 
 interface ChronicleSeedData {
   narrativeStyleId: string;
-  narrativeStyleName?: string;
-  entrypointId?: string;
-  entrypointName?: string;
-  narrativeDirection?: string;
+  narrativeStyleName: Optional<string>;
+  entrypointId: Optional<string>;
+  entrypointName: Optional<string>;
+  narrativeDirection: Optional<string>;
   roleAssignments: ChronicleRoleAssignment[];
   selectedEventIds: string[];
   selectedRelationshipIds: string[];
-  temporalContext?: ChronicleTemporalContext;
+  temporalContext: Optional<ChronicleTemporalContext>;
 }
 
 interface ChronicleSeedViewerProps {
   readonly seed: ChronicleSeedData;
-  readonly eventNames?: Map<string, string>;
-  readonly relationshipLabels?: Map<string, string>;
+  readonly eventNames: Optional<Map<string, string>>;
+  readonly relationshipLabels: Optional<Map<string, string>>;
 }
 
 interface ExpandableSeedSectionProps {
   readonly seed: ChronicleSeedData;
-  readonly eventNames?: Map<string, string>;
-  readonly relationshipLabels?: Map<string, string>;
-  readonly defaultExpanded?: boolean;
+  readonly eventNames: Optional<Map<string, string>>;
+  readonly relationshipLabels: Optional<Map<string, string>>;
+  readonly defaultExpanded: Optional<boolean>;
 }
 
 interface SeedModalProps {
   readonly isOpen: boolean;
   readonly onClose: (e?: React.MouseEvent | React.KeyboardEvent) => void;
   readonly seed: ChronicleSeedData;
-  readonly eventNames?: Map<string, string>;
-  readonly relationshipLabels?: Map<string, string>;
-  readonly title?: string;
+  readonly eventNames: Optional<Map<string, string>>;
+  readonly relationshipLabels: Optional<Map<string, string>>;
+  readonly title: Optional<string>;
 }
-export default function ChronicleSeedViewer({
-  seed,
-  eventNames,
-  relationshipLabels,
-}: ChronicleSeedViewerProps) {
-  const primaryRoles = seed.roleAssignments.filter((r) => r.isPrimary);
-  const supportingRoles = seed.roleAssignments.filter((r) => !r.isPrimary);
+function SeedTemporalFields({ ctx }: { readonly ctx: ChronicleTemporalContext }) {
+  return (
+    <>
+      {ctx.focalEra?.summary && (
+        <div className="csv-field">
+          <span className="csv-field-label">Era Summary:</span>
+          <span className="csv-field-value">{ctx.focalEra.summary}</span>
+        </div>
+      )}
+      {ctx.temporalDescription && (
+        <div className="csv-field">
+          <span className="csv-field-label">Scope:</span>
+          <span className="csv-field-value">{ctx.temporalDescription}</span>
+        </div>
+      )}
+      {ctx.chronicleTickRange && (
+        <div className="csv-field">
+          <span className="csv-field-label">Ticks:</span>
+          <span className="csv-field-value">{ctx.chronicleTickRange[0]}&ndash;{ctx.chronicleTickRange[1]}</span>
+        </div>
+      )}
+      {ctx.isMultiEra != null && (
+        <div className="csv-field">
+          <span className="csv-field-label">Multi-era:</span>
+          <span className="csv-field-value">{ctx.isMultiEra ? "Yes" : "No"}</span>
+        </div>
+      )}
+      {ctx.touchedEraIds?.length ? (
+        <div>
+          <div className="csv-field-label-spaced">Touched Eras:</div>
+          <div className="csv-id-list">
+            {ctx.touchedEraIds.map((id) => <span key={id} className="csv-id-tag">{id}</span>)}
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
 
+function SeedTemporalContext({ ctx }: { readonly ctx: ChronicleTemporalContext }) {
+  return (
+    <div className="csv-block">
+      <div className="csv-block-title">Temporal Context</div>
+      <div className="csv-field">
+        <span className="csv-field-label">Focal Era:</span>
+        <span className="csv-field-value">{ctx.focalEra?.name || "Unknown"}</span>
+      </div>
+      <SeedTemporalFields ctx={ctx} />
+    </div>
+  );
+}
+
+function SeedRoleList({ roles }: { readonly roles: ChronicleRoleAssignment[] }) {
+  if (roles.length === 0) return <div className="csv-no-data">No roles assigned</div>;
+  const primary = roles.filter((r) => r.isPrimary);
+  const supporting = roles.filter((r) => !r.isPrimary);
+  return (
+    <div className="csv-role-list">
+      {primary.map((role, i) => (
+        <div key={`primary-${i}`} className="csv-role-item">
+          <span className="csv-primary-role-badge">{role.role}</span>
+          <span className="csv-entity-name">{role.entityName}</span>
+          <span className="csv-entity-kind">({role.entityKind})</span>
+        </div>
+      ))}
+      {supporting.map((role, i) => (
+        <div key={`supporting-${i}`} className="csv-role-item">
+          <span className="csv-supporting-role-badge">{role.role}</span>
+          <span className="csv-entity-name">{role.entityName}</span>
+          <span className="csv-entity-kind">({role.entityKind})</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SeedIdList({ ids, labels }: { readonly ids: string[]; readonly labels: Optional<Map<string, string>> }) {
+  if (ids.length === 0) return <div className="csv-no-data">None selected</div>;
+  return (
+    <div className="csv-id-list">
+      {ids.map((id, i) => <span key={i} className="csv-id-tag">{labels?.get(id) || id}</span>)}
+    </div>
+  );
+}
+
+export default function ChronicleSeedViewer({ seed, eventNames, relationshipLabels }: ChronicleSeedViewerProps) {
   return (
     <div className="csv-container">
-      {/* Style & Entry Point */}
-      <div className="csv-section">
-        <div className="csv-section-title">Generation Settings</div>
+      <div className="csv-block">
+        <div className="csv-block-title">Generation Settings</div>
         <div className="csv-field">
           <span className="csv-field-label">Style:</span>
           <span className="csv-field-value">{seed.narrativeStyleName || seed.narrativeStyleId}</span>
@@ -84,134 +162,28 @@ export default function ChronicleSeedViewer({
         )}
         {seed.narrativeDirection && (
           <div className="csv-narrative-direction-wrapper">
-            <div className="csv-narrative-direction-label">
-              Narrative Direction:
-            </div>
-            <div
-              className="csv-narrative-direction-body"
-              title="Click to copy"
+            <div className="csv-narrative-direction-label">Narrative Direction:</div>
+            <div className="csv-narrative-direction-body" title="Click to copy"
               onClick={() => void navigator.clipboard.writeText(seed.narrativeDirection)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
-            >
+              role="button" tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}>
               {seed.narrativeDirection}
             </div>
           </div>
         )}
       </div>
-
-      {/* Role Assignments */}
-      <div className="csv-section">
-        <div className="csv-section-title">Cast ({seed.roleAssignments.length} entities)</div>
-        {seed.roleAssignments.length === 0 ? (
-          <div className="csv-empty-state">No roles assigned</div>
-        ) : (
-          <div className="csv-role-list">
-            {primaryRoles.map((role, i) => (
-              <div key={`primary-${i}`} className="csv-role-item">
-                <span className="csv-primary-role-badge">{role.role}</span>
-                <span className="csv-entity-name">{role.entityName}</span>
-                <span className="csv-entity-kind">({role.entityKind})</span>
-              </div>
-            ))}
-            {supportingRoles.map((role, i) => (
-              <div key={`supporting-${i}`} className="csv-role-item">
-                <span className="csv-supporting-role-badge">{role.role}</span>
-                <span className="csv-entity-name">{role.entityName}</span>
-                <span className="csv-entity-kind">({role.entityKind})</span>
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="csv-block">
+        <div className="csv-block-title">Cast ({seed.roleAssignments.length} entities)</div>
+        <SeedRoleList roles={seed.roleAssignments} />
       </div>
-
-      {/* Temporal Context (optional, used by chronicler) */}
-      {seed.temporalContext && (
-        <div className="csv-section">
-          <div className="csv-section-title">Temporal Context</div>
-          <div className="csv-field">
-            <span className="csv-field-label">Focal Era:</span>
-            <span className="csv-field-value">
-              {seed.temporalContext.focalEra?.name || "Unknown"}
-            </span>
-          </div>
-          {seed.temporalContext.focalEra?.summary && (
-            <div className="csv-field">
-              <span className="csv-field-label">Era Summary:</span>
-              <span className="csv-field-value">{seed.temporalContext.focalEra.summary}</span>
-            </div>
-          )}
-          {seed.temporalContext.temporalDescription && (
-            <div className="csv-field">
-              <span className="csv-field-label">Scope:</span>
-              <span className="csv-field-value">
-                {seed.temporalContext.temporalDescription}
-              </span>
-            </div>
-          )}
-          {seed.temporalContext.chronicleTickRange && (
-            <div className="csv-field">
-              <span className="csv-field-label">Ticks:</span>
-              <span className="csv-field-value">
-                {seed.temporalContext.chronicleTickRange[0]}&ndash;
-                {seed.temporalContext.chronicleTickRange[1]}
-              </span>
-            </div>
-          )}
-          {typeof seed.temporalContext.isMultiEra === "boolean" && (
-            <div className="csv-field">
-              <span className="csv-field-label">Multi-era:</span>
-              <span className="csv-field-value">
-                {seed.temporalContext.isMultiEra ? "Yes" : "No"}
-              </span>
-            </div>
-          )}
-          {seed.temporalContext.touchedEraIds?.length ? (
-            <div>
-              <div className="csv-field-label-spaced">Touched Eras:</div>
-              <div className="csv-id-list">
-                {seed.temporalContext.touchedEraIds.map((id) => (
-                  <span key={id} className="csv-id-tag">
-                    {id}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {/* Selected Events */}
-      <div className="csv-section">
-        <div className="csv-section-title">Events ({seed.selectedEventIds.length})</div>
-        {seed.selectedEventIds.length === 0 ? (
-          <div className="csv-empty-state">No events selected</div>
-        ) : (
-          <div className="csv-id-list">
-            {seed.selectedEventIds.map((id, i) => (
-              <span key={i} className="csv-id-tag">
-                {eventNames?.get(id) || id}
-              </span>
-            ))}
-          </div>
-        )}
+      {seed.temporalContext && <SeedTemporalContext ctx={seed.temporalContext} />}
+      <div className="csv-block">
+        <div className="csv-block-title">Events ({seed.selectedEventIds.length})</div>
+        <SeedIdList ids={seed.selectedEventIds} labels={eventNames} />
       </div>
-
-      {/* Selected Relationships */}
-      <div className="csv-section">
-        <div className="csv-section-title">Relationships ({seed.selectedRelationshipIds.length})</div>
-        {seed.selectedRelationshipIds.length === 0 ? (
-          <div className="csv-empty-state">No relationships selected</div>
-        ) : (
-          <div className="csv-id-list">
-            {seed.selectedRelationshipIds.map((id, i) => (
-              <span key={i} className="csv-id-tag">
-                {relationshipLabels?.get(id) || id}
-              </span>
-            ))}
-          </div>
-        )}
+      <div className="csv-block">
+        <div className="csv-block-title">Relationships ({seed.selectedRelationshipIds.length})</div>
+        <SeedIdList ids={seed.selectedRelationshipIds} labels={relationshipLabels} />
       </div>
     </div>
   );
@@ -226,6 +198,7 @@ export function ExpandableSeedSection({
   relationshipLabels,
   defaultExpanded = false,
 }: ExpandableSeedSectionProps) {
+  // eslint-disable-next-line local/no-manual-expand-state -- needs defaultExpanded prop; useExpandBoolean doesn't accept initial value
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (

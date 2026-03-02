@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useCallback, useState, useMemo } from "react"
 import ForceGraph3D from "react-force-graph-3d";
 import type { WorldState } from "../types/world.ts";
 import type { ProminenceScale } from "@canonry/world-schema";
+import type { Optional } from "@the-canonry/shared-components";
 import { getKindColor, prominenceToNumber } from "../utils/dataTransform.ts";
 import * as THREE from "three";
 import "./visualization-overlay.css";
@@ -12,23 +13,23 @@ export type EdgeMetric = "strength" | "distance" | "none";
 interface D3LinkForce {
   distance(fn: (link: GraphLink) => number): D3LinkForce;
   strength(val: number): D3LinkForce;
-  stop?: () => void;
+  stop: Optional<() => void>;
 }
 
 /** Minimal typing for the imperative handle exposed by react-force-graph-3d */
 interface ForceGraphInstance {
   camera(): THREE.Camera;
-  pauseAnimation?: () => void;
+  pauseAnimation: Optional<() => void>;
   d3Force(name: string): D3LinkForce | undefined;
   d3ReheatSimulation(): void;
 }
 
 interface GraphView3DProps {
   data: WorldState;
-  selectedNodeId?: string;
+  selectedNodeId: Optional<string>;
   onNodeSelect: (nodeId: string | undefined) => void;
-  showCatalyzedBy?: boolean;
-  edgeMetric?: EdgeMetric;
+  showCatalyzedBy: Optional<boolean>;
+  edgeMetric: Optional<EdgeMetric>;
   prominenceScale: ProminenceScale;
 }
 
@@ -46,8 +47,8 @@ interface GraphLink {
   target: string;
   kind: string;
   strength: number;
-  distance?: number;
-  catalyzed?: boolean;
+  distance: Optional<number>;
+  catalyzed: Optional<boolean>;
 }
 
 function detectWebGL(): boolean {
@@ -61,6 +62,7 @@ function detectWebGL(): boolean {
 
 const webglAvailable = detectWebGL();
 
+// eslint-disable-next-line max-lines-per-function -- ForceGraph3D imperative API requires collocated state, effects, and callbacks for data transform, physics, THREE.js rendering, and lifecycle
 export default function GraphView3D({
   data,
   selectedNodeId,
@@ -324,6 +326,7 @@ export default function GraphView3D({
   return (
     <div ref={containerRef} className="viz-container viz-theme-blue">
       {isReady && (
+        // eslint-disable-next-line local/max-jsx-props -- react-force-graph-3d API requires individual props for graph data, physics, rendering, and interaction
         <ForceGraph3D
           key={graphKey}
           ref={fgRef}

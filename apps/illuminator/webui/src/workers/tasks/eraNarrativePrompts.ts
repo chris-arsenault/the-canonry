@@ -52,12 +52,14 @@ function formatCulturalIdentities(identities: Record<string, unknown>): string {
           const inner = Object.entries(val as Record<string, unknown>)
             .map(([k, v]) => {
               if (v && typeof v === "object") return `  ${k}: ${JSON.stringify(v)}`;
-              return `  ${k}: ${typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? `${v}` : JSON.stringify(v)}`;
+              const formatted = typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? String(v) : JSON.stringify(v);
+              return `  ${k}: ${formatted}`;
             })
             .join("\n");
           return `## ${key}\n${inner}`;
         }
-        return `## ${key}\n  ${typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean' ? `${val}` : JSON.stringify(val)}`;
+        const valStr = typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean' ? String(val) : JSON.stringify(val);
+        return `## ${key}\n  ${valStr}`;
       })
       .join("\n\n");
   }

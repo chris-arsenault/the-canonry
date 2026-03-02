@@ -270,6 +270,7 @@ function StyleEditModal({ style, type, onSave, onCancel }: Readonly<StyleEditMod
   const isValid = formData.name.trim() && formData.promptFragment.trim();
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog role is interactive per WAI-ARIA
     <div
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
@@ -535,6 +536,7 @@ function DocumentStyleViewModal({
   const { handleOverlayMouseDown, handleOverlayClick } = useOverlayDismiss(onCancel);
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog role is interactive per WAI-ARIA
     <div
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
@@ -1127,6 +1129,7 @@ function NarrativeStyleEditModal({
   };
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog role is interactive per WAI-ARIA
     <div
       className="illuminator-modal-overlay"
       onMouseDown={handleOverlayMouseDown}

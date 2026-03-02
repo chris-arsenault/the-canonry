@@ -319,10 +319,11 @@ function exportCurrentState(): void {
     const isComplete = engine.isComplete();
 
     const exportData = engine.exportState();
+    const existingMetadata = (exportData.metadata ?? {}) as Record<string, unknown>;
     emitter.stateExport({
       ...exportData,
       metadata: {
-        ...exportData.metadata,
+        ...existingMetadata,
         isComplete,
       },
     });

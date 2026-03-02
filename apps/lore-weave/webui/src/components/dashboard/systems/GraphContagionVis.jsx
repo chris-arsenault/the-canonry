@@ -8,7 +8,7 @@
  * - Node size based on connectivity/prominence
  */
 
-import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import React, { useMemo, useState, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { Group } from "@visx/group";
 import { ParentSize } from "@visx/responsive";
@@ -68,10 +68,8 @@ function generateNetworkFromSnapshot(snapshot) {
  * Run force simulation to position nodes
  */
 function useForceLayout(nodes, links, width, height) {
-  const [positions, setPositions] = useState({ nodes: [], links: [] });
-
-  useEffect(() => {
-    if (!nodes.length || width === 0 || height === 0) return;
+  return useMemo(() => {
+    if (!nodes.length || width === 0 || height === 0) return { nodes: [], links: [] };
 
     // Clone nodes and links for simulation
     const simNodes = nodes.map((n) => ({ ...n }));
@@ -100,16 +98,10 @@ function useForceLayout(nodes, links, width, height) {
     for (let i = 0; i < 120; i++) {
       simulation.tick();
     }
+    simulation.stop();
 
-    setPositions({
-      nodes: simNodes,
-      links: simLinks,
-    });
-
-    return () => simulation.stop();
+    return { nodes: simNodes, links: simLinks };
   }, [nodes, links, width, height]);
-
-  return positions;
 }
 
 /**

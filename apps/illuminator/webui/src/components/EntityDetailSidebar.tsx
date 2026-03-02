@@ -66,6 +66,7 @@ function ExpandableSection({
   content: string | undefined;
   charCount?: number;
 }>) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call -- useExpandBoolean return type (ExpandBooleanResult) is correctly typed but unresolvable across monorepo package boundary at lint time
   const { expanded, headerProps } = useExpandBoolean();
   if (!content) return null;
 

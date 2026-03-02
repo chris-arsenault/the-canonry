@@ -34,38 +34,17 @@ const VIEW_MODES: { key: ViewMode; label: string; title: string }[] = [
   { key: "timeline", label: "Time", title: "Timeline View - Eras along axis" },
 ];
 
-function ViewControls({
-  viewMode,
-  onViewModeChange,
-  onRecalculateLayout,
-  onToggleStats,
-}: Readonly<{
-  viewMode: ViewMode;
-  onViewModeChange: (m: ViewMode) => void;
-  onRecalculateLayout: () => void;
-  onToggleStats: () => void;
+function ViewControls({ viewMode, onViewModeChange, onRecalculateLayout, onToggleStats }: Readonly<{
+  viewMode: ViewMode; onViewModeChange: (m: ViewMode) => void; onRecalculateLayout: () => void; onToggleStats: () => void;
 }>) {
   return (
     <div className="view-controls">
       <div className="view-mode-buttons">
-        {VIEW_MODES.map((m) => (
-          <button
-            key={m.key}
-            className={`view-mode-btn ${viewMode === m.key ? "active" : ""}`}
-            onClick={() => onViewModeChange(m.key)}
-            title={m.title}
-          >
-            {m.label}
-          </button>
-        ))}
+        {VIEW_MODES.map((m) => <button key={m.key} className={`view-mode-btn ${viewMode === m.key ? "active" : ""}`} onClick={() => onViewModeChange(m.key)} title={m.title}>{m.label}</button>)}
       </div>
       <div className="view-actions">
-        <button className="view-action-btn" onClick={onRecalculateLayout} title="Recalculate Layout">
-          recalc
-        </button>
-        <button className="view-action-btn" onClick={onToggleStats} title="Toggle Stats Panel">
-          stats
-        </button>
+        <button className="view-action-btn" onClick={onRecalculateLayout} title="Recalculate Layout">recalc</button>
+        <button className="view-action-btn" onClick={onToggleStats} title="Toggle Stats Panel">stats</button>
       </div>
     </div>
   );
@@ -77,26 +56,12 @@ const EDGE_METRICS: { key: EdgeMetric; label: string }[] = [
   { key: "none", label: "Equal" },
 ];
 
-function EdgeMetricSelector({
-  edgeMetric,
-  onEdgeMetricChange,
-}: Readonly<{
-  edgeMetric: EdgeMetric;
-  onEdgeMetricChange: (m: EdgeMetric) => void;
-}>) {
+function EdgeMetricSelector({ edgeMetric, onEdgeMetricChange }: Readonly<{ edgeMetric: EdgeMetric; onEdgeMetricChange: (m: EdgeMetric) => void }>) {
   return (
     <div className="edge-metric-group">
       <span className="filter-section-label">Edge Spring</span>
       <div className="edge-metric-buttons">
-        {EDGE_METRICS.map((m) => (
-          <button
-            key={m.key}
-            className={`edge-metric-btn ${edgeMetric === m.key ? "active" : ""}`}
-            onClick={() => onEdgeMetricChange(m.key)}
-          >
-            {m.label}
-          </button>
-        ))}
+        {EDGE_METRICS.map((m) => <button key={m.key} className={`edge-metric-btn ${edgeMetric === m.key ? "active" : ""}`} onClick={() => onEdgeMetricChange(m.key)}>{m.label}</button>)}
       </div>
     </div>
   );
@@ -171,77 +136,31 @@ function RelationshipTypeAccordion({
   );
 }
 
-function TimeRangeSlider({
-  filters,
-  onChange,
-  maxTick,
-}: Readonly<{
-  filters: Filters;
-  onChange: (f: Filters) => void;
-  maxTick: number;
-}>) {
+function TimeRangeSlider({ filters, onChange, maxTick }: Readonly<{ filters: Filters; onChange: (f: Filters) => void; maxTick: number }>) {
   return (
     <div className="fp-group">
       <span className="filter-section-label">Time Range</span>
       <div className="time-range-box">
         <div className="time-range-labels">
-          <span className="time-range-label">
-            Start: <span className="time-range-label-value">{filters.timeRange[0]}</span>
-          </span>
-          <span className="time-range-label">
-            End: <span className="time-range-label-value">{filters.timeRange[1]}</span>
-          </span>
+          <span className="time-range-label">Start: <span className="time-range-label-value">{filters.timeRange[0]}</span></span>
+          <span className="time-range-label">End: <span className="time-range-label-value">{filters.timeRange[1]}</span></span>
         </div>
         <div className="time-range-sliders">
-          <input
-            type="range"
-            min={0}
-            max={maxTick}
-            value={filters.timeRange[0]}
-            onChange={(e) =>
-              onChange({ ...filters, timeRange: [parseInt(e.target.value), filters.timeRange[1]] })
-            }
-          />
-          <input
-            type="range"
-            min={0}
-            max={maxTick}
-            value={filters.timeRange[1]}
-            onChange={(e) =>
-              onChange({ ...filters, timeRange: [filters.timeRange[0], parseInt(e.target.value)] })
-            }
-          />
+          <input type="range" min={0} max={maxTick} value={filters.timeRange[0]} onChange={(e) => onChange({ ...filters, timeRange: [parseInt(e.target.value), filters.timeRange[1]] })} />
+          <input type="range" min={0} max={maxTick} value={filters.timeRange[1]} onChange={(e) => onChange({ ...filters, timeRange: [filters.timeRange[0], parseInt(e.target.value)] })} />
         </div>
       </div>
     </div>
   );
 }
 
-function StrengthSlider({
-  filters,
-  onChange,
-}: Readonly<{ filters: Filters; onChange: (f: Filters) => void }>) {
+function StrengthSlider({ filters, onChange }: Readonly<{ filters: Filters; onChange: (f: Filters) => void }>) {
   return (
     <div className="fp-group">
-      <span className="filter-section-label">
-        Min Relationship Strength{" "}
-        <span className="text-blue-400 font-normal">({filters.minStrength.toFixed(2)})</span>
-      </span>
+      <span className="filter-section-label">Min Relationship Strength <span className="text-blue-400 font-normal">({filters.minStrength.toFixed(2)})</span></span>
       <div className="strength-slider-container">
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={filters.minStrength}
-          onChange={(e) => onChange({ ...filters, minStrength: parseFloat(e.target.value) })}
-          className="strength-slider"
-        />
-        <div className="strength-slider-labels">
-          <span>0.0</span>
-          <span>0.5</span>
-          <span>1.0</span>
-        </div>
+        <input type="range" min={0} max={1} step={0.05} value={filters.minStrength} onChange={(e) => onChange({ ...filters, minStrength: parseFloat(e.target.value) })} className="strength-slider" />
+        <div className="strength-slider-labels"><span>0.0</span><span>0.5</span><span>1.0</span></div>
       </div>
     </div>
   );
@@ -252,15 +171,23 @@ function WorldStats({ worldData }: Readonly<{ worldData: WorldState }>) {
     <div className="fp-stats">
       <div className="world-stats-title">World Stats</div>
       <div className="world-stats-grid">
-        <div className="world-stat-card">
-          <div className="world-stat-label">Entities</div>
-          <div className="world-stat-value">{worldData.metadata.entityCount}</div>
-        </div>
-        <div className="world-stat-card">
-          <div className="world-stat-label">Relations</div>
-          <div className="world-stat-value">{worldData.metadata.relationshipCount}</div>
-        </div>
+        <div className="world-stat-card"><div className="world-stat-label">Entities</div><div className="world-stat-value">{worldData.metadata.entityCount}</div></div>
+        <div className="world-stat-card"><div className="world-stat-label">Relations</div><div className="world-stat-value">{worldData.metadata.relationshipCount}</div></div>
       </div>
+    </div>
+  );
+}
+
+function FilterCheckbox({ label, helpText, checked, onChange, className }: Readonly<{
+  label: string; helpText: string; checked: boolean; onChange: (v: boolean) => void; className: string;
+}>) {
+  return (
+    <div className="fp-group">
+      <label className={`filter-checkbox-label ${className}`}>
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+        <span>{label}</span>
+      </label>
+      <div className="filter-help-text">{helpText}</div>
     </div>
   );
 }
@@ -269,201 +196,60 @@ function WorldStats({ worldData }: Readonly<{ worldData: WorldState }>) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function FilterPanel({
-  filters,
-  onChange,
-  worldData,
-  viewMode,
-  edgeMetric,
-  onViewModeChange,
-  onEdgeMetricChange,
-  onRecalculateLayout,
-  onToggleStats,
-}: Readonly<FilterPanelProps>) {
+export default function FilterPanel({ filters, onChange, worldData, viewMode, edgeMetric, onViewModeChange, onEdgeMetricChange, onRecalculateLayout, onToggleStats }: Readonly<FilterPanelProps>) {
   const allTags = getAllTags(worldData);
   const relationshipTypeCounts = getRelationshipTypeCounts(worldData);
   const maxTick = worldData.metadata.tick;
-
   const entityKindSchemas = worldData.schema.entityKinds;
-  const entityKinds: EntityKind[] = useMemo(
-    () => entityKindSchemas.map((ek) => ek.kind),
-    [entityKindSchemas],
-  );
+  const entityKinds: EntityKind[] = useMemo(() => entityKindSchemas.map((ek) => ek.kind), [entityKindSchemas]);
   const prominenceLevels: Prominence[] = getProminenceLevels(worldData.schema);
-
-  const kindDisplayNames = useMemo(
-    () =>
-      Object.fromEntries(
-        entityKindSchemas.map((ek) => [ek.kind, ek.style?.displayName || ek.description || ek.kind]),
-      ),
-    [entityKindSchemas],
-  );
-
+  const kindDisplayNames = useMemo(() => Object.fromEntries(entityKindSchemas.map((ek) => [ek.kind, ek.style?.displayName || ek.description || ek.kind])), [entityKindSchemas]);
   const sortedRelationshipTypes = useMemo(() => {
-    const all = entityKindSchemas.length > 0
-      ? worldData.schema.relationshipKinds.map((rel) => rel.kind)
-      : [];
+    const all = entityKindSchemas.length > 0 ? worldData.schema.relationshipKinds.map((rel) => rel.kind) : [];
     return [...all].sort((a, b) => (relationshipTypeCounts[b] || 0) - (relationshipTypeCounts[a] || 0));
   }, [worldData.schema.relationshipKinds, relationshipTypeCounts, entityKindSchemas.length]);
-
-  const toggleKind = useCallback(
-    (kind: EntityKind) => {
-      const kinds = filters.kinds.includes(kind)
-        ? filters.kinds.filter((k) => k !== kind)
-        : [...filters.kinds, kind];
-      onChange({ ...filters, kinds });
-    },
-    [filters, onChange],
-  );
-
-  const toggleTag = useCallback(
-    (tag: string) => {
-      const tags = filters.tags.includes(tag)
-        ? filters.tags.filter((t) => t !== tag)
-        : [...filters.tags, tag];
-      onChange({ ...filters, tags });
-    },
-    [filters, onChange],
-  );
-
-  const showEdgeMetric = viewMode === "graph3d" || viewMode === "graph2d";
+  const toggleKind = useCallback((kind: EntityKind) => {
+    onChange({ ...filters, kinds: filters.kinds.includes(kind) ? filters.kinds.filter((k) => k !== kind) : [...filters.kinds, kind] });
+  }, [filters, onChange]);
+  const toggleTag = useCallback((tag: string) => {
+    onChange({ ...filters, tags: filters.tags.includes(tag) ? filters.tags.filter((t) => t !== tag) : [...filters.tags, tag] });
+  }, [filters, onChange]);
+  const toggleCatalyzedBy = useCallback((v: boolean) => onChange({ ...filters, showCatalyzedBy: v }), [filters, onChange]);
+  const toggleHistorical = useCallback((v: boolean) => onChange({ ...filters, showHistoricalRelationships: v }), [filters, onChange]);
 
   return (
     <div className="filter-panel">
-      <ViewControls
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
-        onRecalculateLayout={onRecalculateLayout}
-        onToggleStats={onToggleStats}
-      />
-
-      {showEdgeMetric && (
-        <EdgeMetricSelector edgeMetric={edgeMetric} onEdgeMetricChange={onEdgeMetricChange} />
-      )}
-
+      <ViewControls viewMode={viewMode} onViewModeChange={onViewModeChange} onRecalculateLayout={onRecalculateLayout} onToggleStats={onToggleStats} />
+      {(viewMode === "graph3d" || viewMode === "graph2d") && <EdgeMetricSelector edgeMetric={edgeMetric} onEdgeMetricChange={onEdgeMetricChange} />}
       <div className="filter-panel-divider" />
-
-      {/* Search */}
       <div className="fp-group">
         <label htmlFor="search" className="filter-section-label">Search</label>
-        <input
-          id="search"
-          type="text"
-          value={filters.searchQuery}
-          onChange={(e) => onChange({ ...filters, searchQuery: e.target.value })}
-          placeholder="Search entities..."
-          className="filter-search-input"
-        />
+        <input id="search" type="text" value={filters.searchQuery} onChange={(e) => onChange({ ...filters, searchQuery: e.target.value })} placeholder="Search entities..." className="filter-search-input" />
       </div>
-
-      {/* Entity Types */}
       <div className="fp-group">
         <span className="filter-section-label">Entity Types</span>
         <div className="filter-checkbox-group">
-          {entityKinds.map((kind) => (
-            <label key={kind} className="filter-checkbox-label">
-              <input
-                type="checkbox"
-                checked={filters.kinds.includes(kind)}
-                onChange={() => toggleKind(kind)}
-              />
-              <span>{kindDisplayNames[kind] ?? kind}</span>
-            </label>
-          ))}
+          {entityKinds.map((kind) => <label key={kind} className="filter-checkbox-label"><input type="checkbox" checked={filters.kinds.includes(kind)} onChange={() => toggleKind(kind)} /><span>{kindDisplayNames[kind] ?? kind}</span></label>)}
         </div>
       </div>
-
-      <RelationshipTypeAccordion
-        filters={filters}
-        onChange={onChange}
-        sortedTypes={sortedRelationshipTypes}
-        typeCounts={relationshipTypeCounts}
-      />
-
-      {/* Minimum Prominence */}
+      <RelationshipTypeAccordion filters={filters} onChange={onChange} sortedTypes={sortedRelationshipTypes} typeCounts={relationshipTypeCounts} />
       <div className="fp-group">
         <label htmlFor="minimum-prominence" className="filter-section-label">Minimum Prominence</label>
-        <select
-          id="minimum-prominence"
-          value={filters.minProminence}
-          onChange={(e) => onChange({ ...filters, minProminence: e.target.value as Prominence })}
-          className="filter-select"
-        >
-          {prominenceLevels.map((level) => (
-            <option key={level} value={level}>{level}</option>
-          ))}
+        <select id="minimum-prominence" value={filters.minProminence} onChange={(e) => onChange({ ...filters, minProminence: e.target.value as Prominence })} className="filter-select">
+          {prominenceLevels.map((level) => <option key={level} value={level}>{level}</option>)}
         </select>
       </div>
-
       <TimeRangeSlider filters={filters} onChange={onChange} maxTick={maxTick} />
-
-      {/* Tags */}
       <div className="fp-group">
-        <span className="filter-section-label">
-          Tags <span className="text-blue-400 font-normal">({filters.tags.length} selected)</span>
-        </span>
+        <span className="filter-section-label">Tags <span className="text-blue-400 font-normal">({filters.tags.length} selected)</span></span>
         <div className="tags-box">
-          {allTags.map((tag) => (
-            <label key={tag} className="filter-checkbox-label">
-              <input type="checkbox" checked={filters.tags.includes(tag)} onChange={() => toggleTag(tag)} />
-              <span>{tag}</span>
-            </label>
-          ))}
+          {allTags.map((tag) => <label key={tag} className="filter-checkbox-label"><input type="checkbox" checked={filters.tags.includes(tag)} onChange={() => toggleTag(tag)} /><span>{tag}</span></label>)}
         </div>
       </div>
-
       <StrengthSlider filters={filters} onChange={onChange} />
-
-      {/* CatalyzedBy */}
-      <div className="fp-group">
-        <label className="filter-checkbox-label catalyzed-checkbox">
-          <input
-            type="checkbox"
-            checked={filters.showCatalyzedBy}
-            onChange={(e) => onChange({ ...filters, showCatalyzedBy: e.target.checked })}
-          />
-          <span>Show Catalyzed-By Chains</span>
-        </label>
-        <div className="filter-help-text">
-          Visualizes meta-relationships showing which events or entities catalyzed the formation of relationships
-        </div>
-      </div>
-
-      {/* Historical */}
-      <div className="fp-group">
-        <label className="filter-checkbox-label historical-checkbox">
-          <input
-            type="checkbox"
-            checked={filters.showHistoricalRelationships}
-            onChange={(e) => onChange({ ...filters, showHistoricalRelationships: e.target.checked })}
-          />
-          <span>Show Historical Relationships</span>
-        </label>
-        <div className="filter-help-text">
-          Shows archived relationships that are no longer active but remain in the historical record
-        </div>
-      </div>
-
-      {/* Reset */}
-      <button
-        onClick={() =>
-          onChange({
-            kinds: entityKinds,
-            minProminence: prominenceLevels[0],
-            timeRange: [0, maxTick],
-            tags: [],
-            searchQuery: "",
-            relationshipTypes: [],
-            minStrength: 0.0,
-            showCatalyzedBy: false,
-            showHistoricalRelationships: false,
-          })
-        }
-        className="reset-button"
-      >
-        Reset Filters
-      </button>
-
+      <FilterCheckbox label="Show Catalyzed-By Chains" helpText="Visualizes meta-relationships showing which events or entities catalyzed the formation of relationships" checked={filters.showCatalyzedBy} onChange={toggleCatalyzedBy} className="catalyzed-checkbox" />
+      <FilterCheckbox label="Show Historical Relationships" helpText="Shows archived relationships that are no longer active but remain in the historical record" checked={filters.showHistoricalRelationships} onChange={toggleHistorical} className="historical-checkbox" />
+      <button onClick={() => onChange({ kinds: entityKinds, minProminence: prominenceLevels[0], timeRange: [0, maxTick], tags: [], searchQuery: "", relationshipTypes: [], minStrength: 0.0, showCatalyzedBy: false, showHistoricalRelationships: false })} className="reset-button">Reset Filters</button>
       <WorldStats worldData={worldData} />
     </div>
   );

@@ -1,3 +1,4 @@
+/* eslint-disable local/no-manual-expand-state -- this IS the canonical expand-state implementation */
 import { useState, useCallback, useMemo } from "react";
 import type { KeyboardEvent } from "react";
 
@@ -27,7 +28,7 @@ export function useExpandSingle(): ExpandSingleResult {
 export interface ExpandSetResult {
   expanded: Set<string>;
   toggle: (id: string) => void;
-  set: (ids: Set<string>) => void;
+  set: (ids: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
   reset: () => void;
 }
 

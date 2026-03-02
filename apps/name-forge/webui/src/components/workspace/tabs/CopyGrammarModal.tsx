@@ -3,7 +3,7 @@ import { ModalShell } from "@the-canonry/shared-components";
 import { previewGrammarNames } from "../../../lib/browser-generator";
 
 /* ------------------------------------------------------------------ */
-/*  Types                                                              */
+/*  Types — JSON-loaded config; fields genuinely absent in source data */
 /* ------------------------------------------------------------------ */
 
 interface GrammarRule {
@@ -11,6 +11,7 @@ interface GrammarRule {
   id: string;
 }
 
+/* eslint-disable local/no-raw-undefined-union -- JSON-loaded config: fields are absent in source data, not undefined-valued. Correct fix is strict:true migration. */
 interface NamingConfig {
   domains?: Array<{ id: string }>;
   grammars?: GrammarRule[];
@@ -28,6 +29,7 @@ interface LexemeList {
   description?: string;
   id?: string;
 }
+/* eslint-enable local/no-raw-undefined-union */
 
 interface ExistingDep {
   sourceId: string;
@@ -205,15 +207,26 @@ function computeDependencies(
 
 function GrammarPreview({ grammar, domains, lexemeLists }: Readonly<GrammarPreviewProps>) {
   const [names, setNames] = useState<string[]>([]);
+  // eslint-disable-next-line local/no-manual-async-state -- render-time synchronous loading flag for input-change flicker prevention; useAsyncAction doesn't support this pattern
   const [loading, setLoading] = useState(false);
+  const hasRules = grammar?.rules && Object.keys(grammar.rules).length > 0;
+
+  // Set loading synchronously during render when inputs change, before effect fires
+  const [prevInputs, setPrevInputs] = useState({ grammar, domains, lexemeLists });
+  if (
+    hasRules &&
+    (prevInputs.grammar !== grammar ||
+      prevInputs.domains !== domains ||
+      prevInputs.lexemeLists !== lexemeLists)
+  ) {
+    setPrevInputs({ grammar, domains, lexemeLists });
+    setLoading(true);
+  }
 
   useEffect(() => {
-    if (!grammar?.rules || Object.keys(grammar.rules).length === 0) {
-      return;
-    }
+    if (!hasRules) return;
 
     let cancelled = false;
-    setLoading(true);
 
     previewGrammarNames({ grammar, domains, lexemeLists, count: 6 })
       .then((result: string[]) => {
@@ -232,7 +245,7 @@ function GrammarPreview({ grammar, domains, lexemeLists }: Readonly<GrammarPrevi
     return () => {
       cancelled = true;
     };
-  }, [grammar, domains, lexemeLists]);
+  }, [grammar, domains, lexemeLists, hasRules]);
 
   if (!grammar?.rules || Object.keys(grammar.rules).length === 0) {
     return (
@@ -498,8 +511,6 @@ export function CopyGrammarModal({
   const [selectedCulture, setSelectedCulture] = useState<string | null>(null);
   const [selectedGrammar, setSelectedGrammar] = useState<string | null>(null);
   const [newGrammarId, setNewGrammarId] = useState("");
-  const [substitutedGrammar, setSubstitutedGrammar] = useState<GrammarRule | null>(null);
-  const [dependencies, setDependencies] = useState<Dependencies>({ missing: [], existing: [] });
   const [selectedDeps, setSelectedDeps] = useState<Set<string>>(new Set());
 
   const otherCultures = useMemo(
@@ -514,27 +525,23 @@ export function CopyGrammarModal({
     [allCultures, cultureId],
   );
 
-  // Compute substituted grammar and dependencies from selection
-  useEffect(() => {
+  // Derive substituted grammar and dependencies from selection (pure computation)
+  const { substitutedGrammar, dependencies, derivedGrammarId } = useMemo(() => {
     if (!selectedGrammar || !selectedCulture) {
-      setSubstitutedGrammar(null);
-      setDependencies({ missing: [], existing: [] });
-      setSelectedDeps(new Set());
-      return;
+      return { substitutedGrammar: null, dependencies: { missing: [], existing: [] } as Dependencies, derivedGrammarId: "" };
     }
 
     const sourceCulture = allCultures[selectedCulture];
     const sourceGrammar = sourceCulture?.naming?.grammars?.find(
       (g) => g.id === selectedGrammar,
     );
-    if (!sourceGrammar) return;
+    if (!sourceGrammar) {
+      return { substitutedGrammar: null, dependencies: { missing: [], existing: [] } as Dependencies, derivedGrammarId: "" };
+    }
 
     const targetLexemes = Object.keys(cultureConfig?.naming?.lexemeLists || {});
     const sourceLexemes = sourceCulture?.naming?.lexemeLists || {};
     const deps = computeDependencies(sourceGrammar, sourceLexemes, targetLexemes);
-
-    setDependencies(deps);
-    setSelectedDeps(new Set(deps.missing.map((d) => d.sourceId)));
 
     const substituted = substituteGrammarReferences(
       sourceGrammar,
@@ -544,9 +551,23 @@ export function CopyGrammarModal({
     );
     const finalId = generateUniqueId(cultureId, sourceGrammar.id, existingGrammarIds);
 
-    setNewGrammarId(finalId);
-    setSubstitutedGrammar({ ...substituted, id: finalId });
+    return {
+      substitutedGrammar: { ...substituted, id: finalId } as GrammarRule,
+      dependencies: deps,
+      derivedGrammarId: finalId,
+    };
   }, [selectedGrammar, selectedCulture, allCultures, cultureConfig, cultureId, existingGrammarIds]);
+
+  // Sync derived grammar ID and deps to state when they change
+  const [prevDerived, setPrevDerived] = useState({ derivedGrammarId, dependencies });
+  if (prevDerived.derivedGrammarId !== derivedGrammarId) {
+    setPrevDerived({ derivedGrammarId, dependencies });
+    setNewGrammarId(derivedGrammarId);
+    setSelectedDeps(new Set(dependencies.missing.map((d) => d.sourceId)));
+  } else if (prevDerived.dependencies !== dependencies) {
+    setPrevDerived({ derivedGrammarId, dependencies });
+    setSelectedDeps(new Set(dependencies.missing.map((d) => d.sourceId)));
+  }
 
   const handleCultureChange = useCallback(
     (id: string | null) => {

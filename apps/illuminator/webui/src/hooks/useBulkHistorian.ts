@@ -256,8 +256,13 @@ function recordEntityFailure(
   counters.failedEntities.push({
     entityId: entity.entityId,
     entityName: entity.entityName,
-    error: err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Unknown error'),
+    error: toErrorMessage(err),
   });
+}
+
+function toErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return typeof err === 'string' ? err : 'Unknown error';
 }
 
 // ============================================================================
@@ -356,7 +361,7 @@ export function useBulkHistorian(deps: BulkHistorianDeps): UseBulkHistorianRetur
         console.error("[Bulk Historian] Fatal error:", err);
         setProgress((p) => ({
           ...p, status: "failed", currentEntityName: "",
-          error: err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Unknown error'),
+          error: toErrorMessage(err),
         }));
       } finally {
         activeRef.current = false;

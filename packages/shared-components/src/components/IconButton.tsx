@@ -3,13 +3,14 @@
  */
 
 import React from 'react';
+import type { Optional } from '../types/optionality.js';
 
 interface IconButtonProps {
   readonly icon: string;
   readonly onClick: () => void;
-  readonly danger?: boolean;
-  readonly title?: string;
-  readonly className?: string;
+  readonly danger: Optional<boolean>;
+  readonly title: Optional<string>;
+  readonly className: Optional<string>;
 }
 
 /**
