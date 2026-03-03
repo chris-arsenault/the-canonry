@@ -53,7 +53,7 @@ export default function LoreWeaveHost({
   onSimulationStateChange,
   onSearchRunScored
 }) {
-  return <div className="inline-extracted-1">
+  return <div className="remote-container">
       <ErrorBoundary title="Lore Weave encountered an error">
       <Suspense fallback={loadingFallback}>
         <LoreWeaveRemote projectId={projectId} schema={schema} eras={eras} pressures={pressures} generators={generators} systems={systems} actions={actions} seedEntities={seedEntities} seedRelationships={seedRelationships} distributionTargets={distributionTargets} onDistributionTargetsChange={onDistributionTargetsChange} activeSection={activeSection} onSectionChange={onSectionChange} simulationResults={simulationResults} onSimulationResultsChange={onSimulationResultsChange} simulationState={simulationState} onSimulationStateChange={onSimulationStateChange} onSearchRunScored={onSearchRunScored} />

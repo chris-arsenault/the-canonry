@@ -53,7 +53,7 @@ export default function IlluminatorHost({
   onSectionChange,
   activeSlotIndex
 }) {
-  return <div className="inline-extracted-1">
+  return <div className="remote-container">
       <ErrorBoundary title="Illuminator encountered an error">
       <Suspense fallback={loadingFallback}>
         <IlluminatorRemote projectId={projectId} schema={schema} worldData={worldData} worldContext={worldContext} onWorldContextChange={onWorldContextChange} entityGuidance={entityGuidance} onEntityGuidanceChange={onEntityGuidanceChange} cultureIdentities={cultureIdentities} onCultureIdentitiesChange={onCultureIdentitiesChange} enrichmentConfig={enrichmentConfig} onEnrichmentConfigChange={onEnrichmentConfigChange} styleSelection={styleSelection} onStyleSelectionChange={onStyleSelectionChange} historianConfig={historianConfig} onHistorianConfigChange={onHistorianConfigChange} activeSection={activeSection} onSectionChange={onSectionChange} activeSlotIndex={activeSlotIndex} />

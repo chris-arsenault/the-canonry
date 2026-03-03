@@ -46,7 +46,7 @@ export default function CoherenceEngineHost({
   activeSection,
   onSectionChange
 }) {
-  return <div className="inline-extracted-1">
+  return <div className="remote-container">
       <ErrorBoundary title="Coherence Engine encountered an error">
       <Suspense fallback={loadingFallback}>
         <CoherenceEngineRemote projectId={projectId} schema={schema} eras={eras} onErasChange={onErasChange} pressures={pressures} onPressuresChange={onPressuresChange} generators={generators} onGeneratorsChange={onGeneratorsChange} actions={actions} onActionsChange={onActionsChange} systems={systems} onSystemsChange={onSystemsChange} activeSection={activeSection} onSectionChange={onSectionChange} />

@@ -109,9 +109,9 @@ function SessionSection({
     message = "No user pool configured. Identity pool must allow unauthenticated access.";
   }
   return (
-    <div className="inline-extracted-10">
-      <div className="inline-extracted-11">Session</div>
-      <div className="inline-extracted-12">{message}</div>
+    <div className="aws-section">
+      <div className="aws-label">Session</div>
+      <div className="aws-session-value">{message}</div>
     </div>
   );
 }
@@ -119,7 +119,7 @@ function SessionSection({
 function StatusSection({ status }: Readonly<{ status: AwsStatus }>) {
   if (!status.detail) return null;
   return (
-    <div className="modal-status inline-extracted-13">
+    <div className="modal-status aws-section">
       <div className="modal-status-title">AWS Status</div>
       <div className="modal-status-subtitle">{status.detail}</div>
     </div>
@@ -129,12 +129,12 @@ function StatusSection({ status }: Readonly<{ status: AwsStatus }>) {
 function SyncProgressSection({ progress }: Readonly<{ progress: SyncProgress }>) {
   if (progress.total <= 0) return null;
   return (
-    <div className="inline-extracted-14">
-      <div className="inline-extracted-15">
+    <div className="aws-section">
+      <div className="aws-hint">
         Sync progress: {progress.processed}/{progress.total} processed
         {progress.uploaded ? `, ${progress.uploaded} uploaded` : ""}
       </div>
-      <div className="inline-extracted-16">
+      <div className="aws-progress-track">
         <progress
           className="canonry-aws-sync-progress"
           max={Math.max(progress.total, 1)}
@@ -170,82 +170,82 @@ function CognitoAuthSection({
   | "onLogout"
 >>) {
   return (
-    <div className="inline-extracted-17">
-      <div className="modal-title inline-extracted-18">Cognito Auth</div>
-      <div className="inline-extracted-19">
-        <div className="inline-extracted-20">
-          <label htmlFor="region" className="inline-extracted-21">Region</label>
+    <div className="aws-section">
+      <div className="modal-title aws-section-title">Cognito Auth</div>
+      <div className="aws-grid">
+        <div className="aws-field">
+          <label htmlFor="region" className="aws-label">Region</label>
           <input
             id="region"
             value={config.region}
             onChange={(e) => onUpdateConfig({ region: e.target.value })}
             placeholder="us-east-1"
-            className="inline-extracted-22"
+            className="aws-input"
           />
         </div>
-        <div className="inline-extracted-23">
-          <label htmlFor="identity-pool-id" className="inline-extracted-24">Identity Pool ID</label>
+        <div className="aws-field">
+          <label htmlFor="identity-pool-id" className="aws-label">Identity Pool ID</label>
           <input
             id="identity-pool-id"
             value={config.identityPoolId}
             onChange={(e) => onUpdateConfig({ identityPoolId: e.target.value })}
             placeholder="us-east-1:xxxx-xxxx"
-            className="inline-extracted-25"
+            className="aws-input"
           />
         </div>
-        <div className="inline-extracted-26">
-          <label htmlFor="user-pool-id" className="inline-extracted-27">User Pool ID</label>
+        <div className="aws-field">
+          <label htmlFor="user-pool-id" className="aws-label">User Pool ID</label>
           <input
             id="user-pool-id"
             value={config.cognitoUserPoolId}
             onChange={(e) => onUpdateConfig({ cognitoUserPoolId: e.target.value })}
             placeholder="us-east-1_XXXXXX"
-            className="inline-extracted-28"
+            className="aws-input"
           />
         </div>
-        <div className="inline-extracted-29">
-          <label htmlFor="app-client-id" className="inline-extracted-30">App Client ID</label>
+        <div className="aws-field">
+          <label htmlFor="app-client-id" className="aws-label">App Client ID</label>
           <input
             id="app-client-id"
             value={config.cognitoClientId}
             onChange={(e) => onUpdateConfig({ cognitoClientId: e.target.value })}
             placeholder="Cognito client id"
-            className="inline-extracted-31"
+            className="aws-input"
           />
         </div>
       </div>
-      <div className="inline-extracted-32">
+      <div className="aws-credentials">
         {hasAwsToken ? (
-          <div className="inline-extracted-33">
-            <div className="inline-extracted-34">
+          <div className="aws-session-info">
+            <div className="aws-user-row">
               {userLabel ? `User: ${userLabel}` : "User authenticated."}
             </div>
             <button className="btn-sm" onClick={onLogout}>Sign Out</button>
           </div>
         ) : (
-          <div className="inline-extracted-35">
-            <div className="inline-extracted-36">
-              <label htmlFor="username" className="inline-extracted-37">Username</label>
+          <div className="aws-login-grid">
+            <div className="aws-field">
+              <label htmlFor="username" className="aws-label">Username</label>
               <input
                 id="username"
                 value={username}
                 onChange={(e) => onSetUsername(e.target.value)}
                 placeholder="username"
-                className="inline-extracted-38"
+                className="aws-input"
               />
             </div>
-            <div className="inline-extracted-39">
-              <label htmlFor="password" className="inline-extracted-40">Password</label>
+            <div className="aws-field">
+              <label htmlFor="password" className="aws-label">Password</label>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => onSetPassword(e.target.value)}
                 placeholder="password"
-                className="inline-extracted-41"
+                className="aws-input"
               />
             </div>
-            <div className="inline-extracted-42">
+            <div className="aws-login-submit">
               <button className="btn-sm btn-sm-primary" onClick={onLogin}>Sign In</button>
             </div>
           </div>
@@ -281,31 +281,31 @@ function S3StorageSection({
   | "onSyncImages"
 > & { awsReady: boolean }) {
   return (
-    <div className="inline-extracted-43">
-      <div className="modal-title inline-extracted-44">S3 Image Storage</div>
-      <div className="inline-extracted-45">
-        <div className="inline-extracted-46">
-          <label htmlFor="image-bucket" className="inline-extracted-47">Bucket</label>
+    <div className="aws-section">
+      <div className="modal-title aws-section-title">S3 Image Storage</div>
+      <div className="aws-grid">
+        <div className="aws-field">
+          <label htmlFor="image-bucket" className="aws-label">Bucket</label>
           <input
             id="image-bucket"
             value={config.imageBucket}
             onChange={(e) => onUpdateConfig({ imageBucket: e.target.value })}
             placeholder="bucket-name"
-            className="inline-extracted-48"
+            className="aws-input"
           />
         </div>
-        <div className="inline-extracted-49">
-          <label htmlFor="image-prefix" className="inline-extracted-50">Base Prefix</label>
+        <div className="aws-field">
+          <label htmlFor="image-prefix" className="aws-label">Base Prefix</label>
           <input
             id="image-prefix"
             value={config.imagePrefix}
             onChange={(e) => onUpdateConfig({ imagePrefix: e.target.value })}
             placeholder="canonry"
-            className="inline-extracted-51"
+            className="aws-input"
           />
         </div>
       </div>
-      <div className="inline-extracted-52">
+      <div className="aws-s3-toggle">
         <button className="btn-sm" onClick={onBrowsePrefixes}>Browse Prefix</button>
         <button className="btn-sm" onClick={onTestSetup}>Test Setup</button>
         <button
@@ -331,17 +331,17 @@ function S3StorageSection({
         </button>
       </div>
       {browseState.loading && (
-        <div className="inline-extracted-53">Loading prefixes...</div>
+        <div className="aws-browse-loading">Loading prefixes...</div>
       )}
       {browseState.error && (
-        <div className="inline-extracted-54">{browseState.error}</div>
+        <div className="aws-browse-error">{browseState.error}</div>
       )}
       {browseState.prefixes.length > 0 && (
-        <div className="inline-extracted-55">
+        <div className="aws-browse-prefixes">
           {browseState.prefixes.map((prefix) => (
             <button
               key={prefix}
-              className="btn-sm inline-extracted-56"
+              className="btn-sm aws-browse-prefix-btn"
               onClick={() => onUpdateConfig({ imagePrefix: prefix.replace(/\/$/, "") })}
             >
               {prefix}
@@ -361,8 +361,8 @@ function UseS3Toggle({
   onUpdateConfig: (patch: Partial<AwsConfig>) => void;
 }>) {
   return (
-    <div className="inline-extracted-57">
-      <label className="inline-extracted-58">
+    <div className="aws-checkbox-section">
+      <label className="aws-checkbox-label">
         <input
           type="checkbox"
           checked={checked}
@@ -390,13 +390,13 @@ function DataSnapshotSection({
       ? "canonry-snapshot-detail canonry-snapshot-detail-error"
       : "canonry-snapshot-detail canonry-snapshot-detail-default";
   return (
-    <div className="inline-extracted-59">
-      <div className="modal-title inline-extracted-60">Data Snapshot</div>
-      <div className="inline-extracted-61">
+    <div className="aws-section">
+      <div className="modal-title aws-section-title">Data Snapshot</div>
+      <div className="aws-actions-row">
         Export/import all IndexedDB data (projects, runs, entities, chronicles, costs,
         styles, etc.) to S3. Images excluded -- sync those separately.
       </div>
-      <div className="inline-extracted-62">
+      <div className="aws-status-text">
         <button
           className="btn-sm"
           disabled={!awsReady || snapshotStatus.state === "working"}
@@ -428,32 +428,32 @@ function UploadPlanSection({ uploadPlan }: Readonly<{ uploadPlan: UploadPlan }>)
   }
 
   return (
-    <div className="inline-extracted-63">
-      <div className="modal-title inline-extracted-64">Upload Plan</div>
-      <div className="inline-extracted-65">{description}</div>
+    <div className="aws-section">
+      <div className="modal-title aws-section-title">Upload Plan</div>
+      <div className="aws-actions-row">{description}</div>
       {uploadPlan.summary && (
-        <div className="inline-extracted-66">
+        <div className="aws-plan-summary">
           Manifest: {uploadPlan.summary.manifestFound ? "found" : "missing"} · Prefix:{" "}
           {uploadPlan.summary.basePrefix || "(root)"}
         </div>
       )}
       {uploadPlan.summary?.repairs && (
-        <div className="inline-extracted-67">
+        <div className="aws-plan-detail">
           Repairs: {uploadPlan.summary.repairs.updated} updated,{" "}
           {uploadPlan.summary.repairs.skipped} skipped,{" "}
           {uploadPlan.summary.repairs.failed} failed.
         </div>
       )}
       {uploadPlan.summary?.manifestRepairs && (
-        <div className="inline-extracted-68">
+        <div className="aws-plan-detail">
           Manifest repairs: {uploadPlan.summary.manifestRepairs.updated} updated,{" "}
           {uploadPlan.summary.manifestRepairs.skipped} skipped,{" "}
           {uploadPlan.summary.manifestRepairs.failed} failed.
         </div>
       )}
-      {uploadPlan.error && <div className="inline-extracted-69">{uploadPlan.error}</div>}
+      {uploadPlan.error && <div className="aws-plan-error">{uploadPlan.error}</div>}
       {uploadPlan.json && (
-        <textarea readOnly value={uploadPlan.json} className="inline-extracted-70" />
+        <textarea readOnly value={uploadPlan.json} className="aws-plan-json" />
       )}
     </div>
   );
@@ -521,7 +521,7 @@ export default function AwsSyncModal({
       tabIndex={0}
       onKeyDown={handleOverlayKeyDown}
     >
-      <div className="modal modal-simple inline-extracted-2">
+      <div className="modal modal-simple aws-modal">
         <div className="modal-header" role="button" tabIndex={0} onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
         }}>

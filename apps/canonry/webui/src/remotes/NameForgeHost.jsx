@@ -40,7 +40,7 @@ export default function NameForgeHost({
   onSectionChange,
   generators
 }) {
-  return <div className="inline-extracted-1">
+  return <div className="remote-container">
       <ErrorBoundary title="Name Forge encountered an error">
       <Suspense fallback={loadingFallback}>
         <NameForgeRemote projectId={projectId} schema={schema} onNamingDataChange={onNamingDataChange} onAddTag={onAddTag} activeSection={activeSection} onSectionChange={onSectionChange} generators={generators} />

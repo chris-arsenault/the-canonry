@@ -36,7 +36,7 @@ export default function ArchivistHost({
   projectId,
   activeSlotIndex
 }) {
-  return <div className="inline-extracted-1">
+  return <div className="remote-container">
       <ErrorBoundary title="Archivist encountered an error">
       <Suspense fallback={loadingFallback}>
         <ArchivistRemote projectId={projectId} activeSlotIndex={activeSlotIndex} />

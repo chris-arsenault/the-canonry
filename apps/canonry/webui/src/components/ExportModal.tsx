@@ -99,14 +99,14 @@ export default function ExportModal({
             </div>
           ) : (
             <>
-              <div className="inline-extracted-7">
+              <div className="aws-description">
                 Choose the export format for this run slot.
               </div>
-              <div className="inline-extracted-8">
+              <div className="aws-hint">
                 Viewer bundles include chronicles, static pages, and referenced images.
               </div>
               {useS3Images && (
-                <div className="inline-extracted-9">
+                <div className="aws-hint-spaced">
                   S3 image sync enabled: bundle will reference remote images and skip
                   embedding them.
                 </div>

@@ -47,7 +47,7 @@ export default function CosmographerHost({
   onSectionChange,
   schemaUsage
 }) {
-  return <div className="inline-extracted-1">
+  return <div className="remote-container">
       <ErrorBoundary title="Cosmographer encountered an error">
       <Suspense fallback={loadingFallback}>
         <CosmographerRemote schema={schema} axisDefinitions={axisDefinitions} seedEntities={seedEntities} seedRelationships={seedRelationships} onEntityKindsChange={onEntityKindsChange} onCulturesChange={onCulturesChange} onAxisDefinitionsChange={onAxisDefinitionsChange} onTagRegistryChange={onTagRegistryChange} onSeedEntitiesChange={onSeedEntitiesChange} onSeedRelationshipsChange={onSeedRelationshipsChange} onAddTag={onAddTag} activeSection={activeSection} onSectionChange={onSectionChange} schemaUsage={schemaUsage} />

@@ -38,7 +38,7 @@ export default function ChroniclerHost({
   requestedPageId,
   onRequestedPageConsumed
 }) {
-  return <div className="inline-extracted-1">
+  return <div className="remote-container">
       <ErrorBoundary title="Chronicler encountered an error">
       <Suspense fallback={loadingFallback}>
         <ChroniclerRemote projectId={projectId} activeSlotIndex={activeSlotIndex} requestedPageId={requestedPageId} onRequestedPageConsumed={onRequestedPageConsumed} />

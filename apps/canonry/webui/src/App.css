@@ -5,6 +5,13 @@
  * Theme values hardcoded from theme.js.
  */
 
+/* ===== Remote host container (used by all *Host.jsx wrappers) ===== */
+
+.remote-container {
+  height: 100%;
+  overflow: auto;
+}
+
 /* ===== App shell ===== */
 
 .canonry-app-loading {
