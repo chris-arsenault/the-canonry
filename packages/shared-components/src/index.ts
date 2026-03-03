@@ -44,6 +44,8 @@ export { IconButton } from './components/IconButton';
 export { InfoBox } from './components/InfoBox';
 export { SectionHeader } from './components/SectionHeader';
 export { EmptyState } from './components/EmptyState';
+export { ErrorBoundary } from './components/ErrorBoundary';
+export { ErrorMessage } from './components/ErrorMessage';
 export { CategorySection } from './components/CategorySection';
 export { AddCard } from './components/AddCard';
 export { AddItemButton } from './components/AddItemButton';
