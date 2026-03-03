@@ -170,6 +170,11 @@ export function ChroniclePanel({
   const getEffectiveStatus = nav.getEffectiveStatus;
   const chronicleItems = useChronicleNavItems(getEffectiveStatus);
 
+  // Feed chronicle items into the navigation filter
+  useEffect(() => {
+    nav.setChronicleItemsForFilter(chronicleItems);
+  }, [chronicleItems, nav.setChronicleItemsForFilter]);
+
   // Selected chronicle
   const isEraNarrativeSelected = nav.selectedItemId?.startsWith("eranarr:") ?? false;
   const selectedEraNarrativeId = isEraNarrativeSelected ? nav.selectedItemId.slice("eranarr:".length) : null;
