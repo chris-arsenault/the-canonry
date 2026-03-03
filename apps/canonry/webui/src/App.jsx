@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import "./App.css";
 import { useProjectStorage } from "./storage/useProjectStorage";
 // saveUiState is now called by useCanonryUiStore subscribe()
 import { useCanonryUiStore, selectActiveSection } from "./stores/useCanonryUiStore";

@@ -237,7 +237,15 @@ export default {
           if (expr.type === "TemplateLiteral") {
             for (const quasi of expr.quasis) {
               if (quasi.value.cooked) {
-                checkClassString(quasi.value.cooked, node);
+                // Skip partial class fragments from template interpolation
+                // e.g. `archivist-${variant}-state` produces quasis ["archivist-", "-state"]
+                const segment = quasi.value.cooked;
+                const classes = segment.split(/\s+/).filter(Boolean);
+                for (const cls of classes) {
+                  // Partial fragment: starts/ends with hyphen, or is adjacent to an expression
+                  if (cls.startsWith("-") || cls.endsWith("-")) continue;
+                  checkClass(cls, node);
+                }
               }
             }
             return;

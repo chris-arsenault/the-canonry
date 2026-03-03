@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import "./App.css";
 import { useProjectStorage } from "./storage/useProjectStorage";
 import { useCanonryUiStore, selectActiveSection } from "./stores/useCanonryUiStore";
 import { useCanonryAwsStore } from "./stores/useCanonryAwsStore";
