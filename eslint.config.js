@@ -41,6 +41,7 @@ import noManualAsyncState from "./eslint-rules/no-manual-async-state.js";
 import noManualExpandState from "./eslint-rules/no-manual-expand-state.js";
 import noManualViewHeader from "./eslint-rules/no-manual-view-header.js";
 import noRawUndefinedUnion from "./eslint-rules/no-raw-undefined-union.js";
+import noUndefinedCssClass from "./eslint-rules/no-undefined-css-class.js";
 
 const localPlugin = {
   rules: {
@@ -77,6 +78,7 @@ const localPlugin = {
     "no-manual-expand-state": noManualExpandState,
     "no-manual-view-header": noManualViewHeader,
     "no-raw-undefined-union": noRawUndefinedUnion,
+    "no-undefined-css-class": noUndefinedCssClass,
   },
 };
 
@@ -249,6 +251,9 @@ export default tseslint.config(
       "local/no-manual-expand-state": "warn",
       "local/no-manual-view-header": "warn",
       "local/no-raw-undefined-union": "warn",
+      "local/no-undefined-css-class": ["warn", {
+        globalStyleDirs: ["packages/shared-components/src/styles"],
+      }],
       "no-restricted-imports": ["warn", {
         paths: [{
           name: "prop-types",
