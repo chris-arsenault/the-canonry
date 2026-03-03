@@ -49,7 +49,7 @@ export default function useWorldContextSync({ externalWorldContext, onWorldConte
   const pendingWorldContextRef = useRef<LocalWorldContext>(localWorldContext);
 
   // Detect external context changes during render (no ref access)
-  const [prevExternalContext, setPrevExternalContext] = useState<LocalWorldContext | undefined>(externalWorldContext);
+  const [prevExternalContext, setPrevExternalContext] = useState<LocalWorldContext | undefined>(undefined);
   if (externalWorldContext !== prevExternalContext) {
     setPrevExternalContext(externalWorldContext);
     if (externalWorldContext !== undefined) {

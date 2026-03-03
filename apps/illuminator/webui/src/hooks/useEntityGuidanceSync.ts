@@ -38,14 +38,14 @@ export default function useEntityGuidanceSync({
   const pendingCultureIdentitiesRef = useRef<CultureIdentities>(localCultureIdentities);
 
   // Detect external changes during render (no ref access)
-  const [prevGuidance, setPrevGuidance] = useState<EntityGuidance | undefined>(externalEntityGuidance);
+  const [prevGuidance, setPrevGuidance] = useState<EntityGuidance | undefined>(undefined);
   if (externalEntityGuidance !== prevGuidance) {
     setPrevGuidance(externalEntityGuidance);
     if (externalEntityGuidance !== undefined) {
       setLocalEntityGuidance(externalEntityGuidance || createDefaultEntityGuidance());
     }
   }
-  const [prevIdentities, setPrevIdentities] = useState<CultureIdentities | undefined>(externalCultureIdentities);
+  const [prevIdentities, setPrevIdentities] = useState<CultureIdentities | undefined>(undefined);
   if (externalCultureIdentities !== prevIdentities) {
     setPrevIdentities(externalCultureIdentities);
     if (externalCultureIdentities !== undefined) {

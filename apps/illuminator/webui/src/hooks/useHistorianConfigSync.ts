@@ -67,7 +67,7 @@ export default function useHistorianConfigSync({
   const pendingHistorianConfigRef = useRef<HistorianConfig>(localHistorianConfig);
 
   // Detect external changes during render (no ref access)
-  const [prevExternal, setPrevExternal] = useState<HistorianConfig | undefined>(externalHistorianConfig);
+  const [prevExternal, setPrevExternal] = useState<HistorianConfig | undefined>(undefined);
   if (externalHistorianConfig !== prevExternal) {
     setPrevExternal(externalHistorianConfig);
     if (externalHistorianConfig !== undefined) {

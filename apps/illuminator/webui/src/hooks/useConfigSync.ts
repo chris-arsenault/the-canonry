@@ -104,7 +104,7 @@ export default function useConfigSync({ externalEnrichmentConfig, onEnrichmentCo
   const skipConfigSyncRef = useRef<boolean>(false);
 
   // Detect external config changes during render (no ref access)
-  const [prevExternalConfig, setPrevExternalConfig] = useState<EnrichmentConfig | null | undefined>(externalEnrichmentConfig);
+  const [prevExternalConfig, setPrevExternalConfig] = useState<EnrichmentConfig | null | undefined>(undefined);
   if (externalEnrichmentConfig !== prevExternalConfig) {
     setPrevExternalConfig(externalEnrichmentConfig);
     if (externalEnrichmentConfig) {
