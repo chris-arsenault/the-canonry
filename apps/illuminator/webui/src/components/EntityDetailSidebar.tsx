@@ -6,7 +6,7 @@
 
 import React from "react";
 import type { NetworkDebugInfo, DescriptionChainDebug } from "../lib/enrichmentTypes";
-import { useExpandBoolean } from "@canonry/shared-components";
+import { useExpandBoolean } from "@the-canonry/shared-components";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
