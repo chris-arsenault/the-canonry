@@ -1,24 +1,12 @@
 /**
- * App.css — Styles for canonry App.jsx
+ * App.css — Styles for canonry App.jsx / App.tsx
  *
- * These classes correspond to what was originally inline styles (styles.app,
- * styles.loading, styles.footer, styles.awsGrid, etc.) on main. They were
- * extracted during the linting branch migration.
- *
- * Theme values from theme.js are hardcoded here:
- *   colors.bgPrimary = #0a1929
- *   colors.bgSecondary = #1e3a5f
- *   colors.bgTertiary = #2d4a6f
- *   colors.textPrimary = #ffffff
- *   colors.textSecondary = #93c5fd
- *   colors.textMuted = #60a5fa
- *   colors.border = rgba(59, 130, 246, 0.3)
- *   typography.fontFamily = -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ...
- *   typography.sizeXs = 11px, sizeSm = 12px, sizeMd = 13px, sizeLg = 14px
- *   spacing.xs = 4px, sm = 8px, md = 12px, lg = 16px
+ * AWS modal, app shell, loading screen.
+ * Theme values hardcoded from theme.js.
  */
 
-/* canonry-app-loading: styles.app + centered */
+/* ===== App shell ===== */
+
 .canonry-app-loading {
   display: flex;
   flex-direction: column;
@@ -30,8 +18,7 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* inline-extracted-3: styles.loading */
-.inline-extracted-3 {
+.canonry-loading-text {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -39,8 +26,7 @@
   color: #60a5fa;
 }
 
-/* inline-extracted-4: styles.app (main app container) */
-.inline-extracted-4 {
+.canonry-app-root {
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -49,14 +35,12 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* inline-extracted-1: styles.content */
-.inline-extracted-1 {
+.canonry-content {
   flex: 1;
   overflow: hidden;
 }
 
-/* inline-extracted-5: styles.footer */
-.inline-extracted-5 {
+.canonry-footer {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -69,74 +53,73 @@
   flex-shrink: 0;
 }
 
-/* inline-extracted-7: { color: textSecondary, marginBottom: spacing.md } */
-.inline-extracted-7 {
-  color: #93c5fd;
-  margin-bottom: 12px;
-}
+/* ===== AWS modal layout ===== */
 
-/* inline-extracted-8: { fontSize: sizeSm, color: textMuted } */
-.inline-extracted-8 {
-  font-size: 12px;
-  color: #60a5fa;
-}
-
-/* inline-extracted-9: { fontSize: sizeSm, color: textMuted, marginTop: spacing.sm } */
-.inline-extracted-9 {
-  font-size: 12px;
-  color: #60a5fa;
-  margin-top: 8px;
-}
-
-/* inline-extracted-2: modal override maxWidth */
-.inline-extracted-2 {
+.aws-modal {
   max-width: 900px;
 }
 
-/* inline-extracted-10: { marginBottom: spacing.lg } */
-.inline-extracted-10 {
+.aws-section {
   margin-bottom: 16px;
 }
 
-/* inline-extracted-11: styles.awsLabel */
-.inline-extracted-11 {
+.aws-section-title {
+  font-size: 13px;
+}
+
+.aws-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.aws-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aws-label {
   font-size: 11px;
   color: #60a5fa;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-/* inline-extracted-12: { color: textSecondary, marginTop: spacing.xs } */
-.inline-extracted-12 {
+.aws-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  background-color: #1e3a5f;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+}
+
+.aws-description {
   color: #93c5fd;
-  margin-top: 4px;
+  margin-bottom: 12px;
 }
 
-/* inline-extracted-13: { marginBottom: spacing.lg } (status) */
-.inline-extracted-13 {
-  margin-bottom: 16px;
-}
-
-/* inline-extracted-14: { marginBottom: spacing.lg } (sync progress) */
-.inline-extracted-14 {
-  margin-bottom: 16px;
-}
-
-/* inline-extracted-15: { fontSize: sizeSm, color: textMuted } */
-.inline-extracted-15 {
+.aws-hint {
   font-size: 12px;
   color: #60a5fa;
 }
 
-/* inline-extracted-16: { marginTop: xs, height: 6px, background: bgTertiary, borderRadius: 4px } */
-.inline-extracted-16 {
-  margin-top: 4px;
-  height: 6px;
-  background: #2d4a6f;
-  border-radius: 4px;
+.aws-hint-spaced {
+  font-size: 12px;
+  color: #60a5fa;
+  margin-top: 8px;
 }
 
-/* canonry-aws-sync-progress: the progress bar inside the sync container */
+.aws-session-value {
+  color: #93c5fd;
+  margin-top: 4px;
+}
+
+/* ===== AWS sync progress ===== */
+
 .canonry-aws-sync-progress {
   width: 100%;
   height: 100%;
@@ -152,163 +135,79 @@
   border-radius: 4px;
 }
 
-/* inline-extracted-17..19: Cognito Auth section { marginBottom: lg } */
-.inline-extracted-17 {
-  margin-bottom: 16px;
+.aws-progress-track {
+  margin-top: 4px;
+  height: 6px;
+  background: #2d4a6f;
+  border-radius: 4px;
 }
 
-/* inline-extracted-18: modal-title override { fontSize: sizeMd } */
-.inline-extracted-18 {
-  font-size: 13px;
-}
+/* ===== AWS credentials ===== */
 
-/* inline-extracted-19: styles.awsGrid */
-.inline-extracted-19 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-/* inline-extracted-20..31: styles.awsField, styles.awsLabel, styles.awsInput */
-.inline-extracted-20,
-.inline-extracted-23,
-.inline-extracted-26,
-.inline-extracted-29,
-.inline-extracted-36,
-.inline-extracted-39 {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.inline-extracted-21,
-.inline-extracted-24,
-.inline-extracted-27,
-.inline-extracted-30,
-.inline-extracted-37,
-.inline-extracted-40,
-.inline-extracted-47,
-.inline-extracted-50 {
-  font-size: 11px;
-  color: #60a5fa;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.inline-extracted-22,
-.inline-extracted-25,
-.inline-extracted-28,
-.inline-extracted-31,
-.inline-extracted-38,
-.inline-extracted-41,
-.inline-extracted-48,
-.inline-extracted-51 {
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  background-color: #1e3a5f;
-  color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 12px;
-}
-
-/* inline-extracted-32: credentials section container */
-.inline-extracted-32 {
+.aws-credentials {
   margin-top: 12px;
 }
 
-/* inline-extracted-33: logged in state */
-.inline-extracted-33 {
+.aws-session-info {
   color: #93c5fd;
   font-size: 12px;
 }
 
-/* inline-extracted-34: logged in user label row */
-.inline-extracted-34 {
+.aws-user-row {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
 }
 
-/* inline-extracted-35: login form section */
-.inline-extracted-35 {
+.aws-login-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
 
-/* inline-extracted-42: login button container */
-.inline-extracted-42 {
+.aws-login-submit {
   display: flex;
   align-items: flex-end;
 }
 
-/* inline-extracted-43..52: S3 Config section (mirrors Cognito Auth structure) */
-.inline-extracted-43 {
-  margin-bottom: 16px;
-}
+/* ===== AWS S3 config ===== */
 
-.inline-extracted-44 {
-  font-size: 13px;
-}
-
-.inline-extracted-45 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.inline-extracted-46,
-.inline-extracted-49 {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* inline-extracted-52: use S3 toggle row */
-.inline-extracted-52 {
+.aws-s3-toggle {
   margin-top: 12px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-/* inline-extracted-53: browse loading */
-.inline-extracted-53 {
+.aws-browse-loading {
   color: #60a5fa;
   font-size: 12px;
   margin-top: 8px;
 }
 
-/* inline-extracted-54: browse error */
-.inline-extracted-54 {
+.aws-browse-error {
   color: #ef4444;
   font-size: 12px;
   margin-top: 8px;
 }
 
-/* inline-extracted-55: browse prefixes list */
-.inline-extracted-55 {
+.aws-browse-prefixes {
   margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
 
-/* inline-extracted-56: browse prefix button */
-.inline-extracted-56 {
+.aws-browse-prefix-btn {
   font-size: 11px;
 }
 
-/* inline-extracted-57: use S3 checkbox section */
-.inline-extracted-57 {
+.aws-checkbox-section {
   margin-top: 12px;
 }
 
-/* inline-extracted-58: checkbox label */
-.inline-extracted-58 {
+.aws-checkbox-label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -317,31 +216,20 @@
   cursor: pointer;
 }
 
-/* inline-extracted-59: Snapshot section */
-.inline-extracted-59 {
-  margin-bottom: 16px;
-}
+/* ===== AWS snapshot ===== */
 
-/* inline-extracted-60: snapshot title */
-.inline-extracted-60 {
-  font-size: 13px;
-}
-
-/* inline-extracted-61: snapshot buttons row */
-.inline-extracted-61 {
+.aws-actions-row {
   display: flex;
   gap: 8px;
   margin-top: 8px;
 }
 
-/* inline-extracted-62: snapshot status */
-.inline-extracted-62 {
+.aws-status-text {
   margin-top: 8px;
   font-size: 12px;
   color: #60a5fa;
 }
 
-/* canonry-snapshot-detail: snapshot detail text */
 .canonry-snapshot-detail {
   margin-top: 4px;
   font-size: 11px;
@@ -353,53 +241,27 @@
   color: #60a5fa;
 }
 
-/* inline-extracted-63: Upload Plan section */
-.inline-extracted-63 {
-  margin-bottom: 16px;
-}
+/* ===== AWS upload plan ===== */
 
-/* inline-extracted-64: upload plan title */
-.inline-extracted-64 {
-  font-size: 13px;
-}
-
-/* inline-extracted-65: upload plan buttons row */
-.inline-extracted-65 {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-/* inline-extracted-66: upload plan summary */
-.inline-extracted-66 {
+.aws-plan-summary {
   margin-top: 8px;
   font-size: 12px;
   color: #93c5fd;
 }
 
-/* inline-extracted-67: repairs info */
-.inline-extracted-67 {
+.aws-plan-detail {
   margin-top: 4px;
   font-size: 11px;
   color: #60a5fa;
 }
 
-/* inline-extracted-68: manifest repairs info */
-.inline-extracted-68 {
-  margin-top: 4px;
-  font-size: 11px;
-  color: #60a5fa;
-}
-
-/* inline-extracted-69: upload plan error */
-.inline-extracted-69 {
+.aws-plan-error {
   margin-top: 8px;
   font-size: 12px;
   color: #ef4444;
 }
 
-/* inline-extracted-70: upload plan JSON textarea */
-.inline-extracted-70 {
+.aws-plan-json {
   width: 100%;
   height: 200px;
   margin-top: 8px;

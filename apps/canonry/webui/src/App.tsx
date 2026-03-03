@@ -252,13 +252,13 @@ export default function App() {
   if (loading) {
     return (
       <div className="canonry-app-loading">
-        <div className="inline-extracted-3">Loading...</div>
+        <div className="canonry-loading-text">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="inline-extracted-4">
+    <div className="canonry-app-root">
       <ProjectManager
         projects={projects}
         currentProject={currentProject}
@@ -295,7 +295,7 @@ export default function App() {
           onHelpClick={openHelpModal}
         />
       )}
-      <div className="inline-extracted-1">
+      <div className="canonry-content">
         <AppContent
           showHome={showHome}
           activeTab={activeTab}
@@ -345,7 +345,7 @@ export default function App() {
           handleLandingNavigate={handleLandingNavigate}
         />
       </div>
-      <footer className="inline-extracted-5">
+      <footer className="canonry-footer">
         <span>Copyright &copy; 2026</span>
         <a href="https://ahara.io" target="_blank" rel="noopener noreferrer">
           <img src="/tsonu-combined.png" alt="tsonu" height="14" />
