@@ -118,7 +118,7 @@ function aggregatePressureUpdates(pressureUpdates: PressureUpdatePayload[], curr
       if (!agg) continue;
 
       agg.epochEndValue = p.newValue;
-      (agg.tickCount as number)++;
+      agg.tickCount = (agg.tickCount as number) + 1;
 
       agg.totalFeedback = (agg.totalFeedback as number) + p.breakdown.feedbackTotal;
       agg.totalScaledFeedback = (agg.totalScaledFeedback as number) + p.breakdown.scaledFeedback;
