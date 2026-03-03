@@ -7,6 +7,12 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  resolve: {
+    alias: {
+      // AWS SDK uses Node stream.Writable — provide browser-compatible polyfill
+      stream: 'readable-stream',
+    },
+  },
   plugins: [
     react(),
     federation({
