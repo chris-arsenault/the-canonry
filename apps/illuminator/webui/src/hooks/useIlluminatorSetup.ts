@@ -318,7 +318,7 @@ export function useIlluminatorSetup({
   useEffect(() => {
     if (apiKeys.anthropicApiKey || apiKeys.openaiApiKey)
       initializeWorker(buildWorkerConfig(apiKeys, config, imageGenSettings));
-  }, [apiKeys, config, imageGenSettings, initializeWorker]);
+  }, [apiKeys.anthropicApiKey, apiKeys.openaiApiKey, config, imageGenSettings.imageSize, imageGenSettings.imageQuality, initializeWorker]);
 
   // Config store sync
   useEffect(() => {
