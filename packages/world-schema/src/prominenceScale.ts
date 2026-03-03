@@ -74,8 +74,9 @@ export const DEFAULT_BUILD_OPTIONS: BuildProminenceScaleOptions = {
 
 export function buildProminenceScale(
   values: number[],
-  options: BuildProminenceScaleOptions = DEFAULT_BUILD_OPTIONS
+  overrides: Partial<BuildProminenceScaleOptions> = {}
 ): ProminenceScale {
+  const options = { ...DEFAULT_BUILD_OPTIONS, ...overrides };
   const { labels, min, max } = options;
   const distribution = normalizeDistribution(options.distribution, labels.length);
 
