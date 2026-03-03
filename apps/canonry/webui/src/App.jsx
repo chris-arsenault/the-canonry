@@ -2107,16 +2107,16 @@ export default function App() {
         // Keep LoreWeaveHost, IlluminatorHost, ArchivistHost, and ChroniclerHost mounted so state persists
         // when navigating between them
         return <>
-            <div className={activeTab === "simulation" ? "canonry-remote-pane canonry-remote-pane-visible" : "canonry-remote-pane canonry-remote-pane-hidden"}>
+            <div style={{ display: activeTab === "simulation" ? "contents" : "none" }}>
               <LoreWeaveHost projectId={currentProject?.id} schema={schema} eras={currentProject?.eras || EMPTY_ARRAY} pressures={currentProject?.pressures || EMPTY_ARRAY} generators={currentProject?.generators || EMPTY_ARRAY} systems={currentProject?.systems || EMPTY_ARRAY} actions={currentProject?.actions || EMPTY_ARRAY} seedEntities={currentProject?.seedEntities || EMPTY_ARRAY} seedRelationships={currentProject?.seedRelationships || EMPTY_ARRAY} distributionTargets={currentProject?.distributionTargets || null} onDistributionTargetsChange={updateDistributionTargets} activeSection={activeSection} onSectionChange={setActiveSection} simulationResults={simulationResults} onSimulationResultsChange={setSimulationResults} simulationState={simulationState} onSimulationStateChange={setSimulationState} onSearchRunScored={handleSearchRunScored} />
             </div>
-            <div className={activeTab === "illuminator" ? "canonry-remote-pane canonry-remote-pane-visible" : "canonry-remote-pane canonry-remote-pane-hidden"}>
+            <div style={{ display: activeTab === "illuminator" ? "contents" : "none" }}>
               <IlluminatorHost projectId={currentProject?.id} schema={schema} worldData={archivistData?.worldData} worldContext={worldContext} onWorldContextChange={setWorldContext} entityGuidance={entityGuidance} onEntityGuidanceChange={setEntityGuidance} cultureIdentities={cultureIdentities} onCultureIdentitiesChange={setCultureIdentities} enrichmentConfig={enrichmentConfig} onEnrichmentConfigChange={setEnrichmentConfig} styleSelection={styleSelection} onStyleSelectionChange={setStyleSelection} historianConfig={historianConfig} onHistorianConfigChange={setHistorianConfig} activeSection={activeSection} onSectionChange={setActiveSection} activeSlotIndex={activeSlotIndex} />
             </div>
-            <div className={activeTab === "archivist" ? "canonry-remote-pane canonry-remote-pane-visible" : "canonry-remote-pane canonry-remote-pane-hidden"}>
+            <div style={{ display: activeTab === "archivist" ? "contents" : "none" }}>
               <ArchivistHost projectId={currentProject?.id} activeSlotIndex={activeSlotIndex} />
             </div>
-            <div className={activeTab === "chronicler" ? "canonry-remote-pane canonry-remote-pane-visible" : "canonry-remote-pane canonry-remote-pane-hidden"}>
+            <div style={{ display: activeTab === "chronicler" ? "contents" : "none" }}>
               <ChroniclerHost projectId={currentProject?.id} activeSlotIndex={activeSlotIndex} requestedPageId={chroniclerRequestedPage} onRequestedPageConsumed={clearChroniclerRequestedPage} />
             </div>
           </>;
