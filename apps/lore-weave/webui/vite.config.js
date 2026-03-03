@@ -17,6 +17,7 @@ export default defineConfig({
   plugins: [
     react(),
     federation({
+      dts: false,
       name: 'loreWeave',
       filename: 'remoteEntry.js',
       manifest: true,

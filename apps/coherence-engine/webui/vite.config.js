@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [
     react(),
     federation({
+      dts: false,
       name: 'coherenceEngine',
       filename: 'remoteEntry.js',
       manifest: true,

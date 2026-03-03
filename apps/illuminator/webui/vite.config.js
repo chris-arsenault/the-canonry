@@ -16,6 +16,7 @@ export default defineConfig({
   plugins: [
     react(),
     federation({
+      dts: false,
       name: "illuminator",
       filename: "remoteEntry.js",
       manifest: true,

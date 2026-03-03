@@ -11,6 +11,7 @@ export default defineConfig({
   plugins: [
     react(),
     federation({
+      dts: false,
       name: 'nameForge',
       filename: 'remoteEntry.js',
       manifest: true,
