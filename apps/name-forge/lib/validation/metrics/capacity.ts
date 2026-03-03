@@ -46,7 +46,7 @@ export function validateCapacity(
   const minEntropy = config.minEntropy ?? 3.0;
 
   // Generate samples using the name generator's test function
-  const testResult = testDomain(domain, sampleSize, config.seed);
+  const testResult = testDomain(domain, sampleSize, config.seed ?? "capacity");
 
   // Calculate metrics
   const uniqueCount = testResult.uniqueCount;

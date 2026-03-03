@@ -51,6 +51,7 @@ export function archiveRelationship(
       srcId: src,
       dstId: dst,
       kind,
+      polarity: 'neutral',
       age,
       reason,
     });

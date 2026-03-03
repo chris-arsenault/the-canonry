@@ -2,8 +2,9 @@ import {
   SimulationSystem,
   SystemResult,
   Era,
-  TransitionCondition
-, entityCriteria } from '../engine/types';
+  TransitionCondition,
+  ActionContext,
+  entityCriteria } from '../engine/types';
 import { HardState } from '../core/worldTypes';
 import {
   FRAMEWORK_ENTITY_KINDS,
@@ -110,8 +111,11 @@ class EraTransitionSystem implements SimulationSystem {
     graphView: WorldRuntime, currentEra: HardState, currentConfig: Era,
     nextConfig: Era, timeSinceStart: number, conditionResults: TransitionConditionResult[]
   ): SystemResult {
+    const ctx: ActionContext = { source: 'framework', sourceId: this.id, success: true };
+    const narrativeGroupId = `era_transition:${currentConfig.id}:${nextConfig.id}`;
+
     // Spawn next era entity
-    const { entity: nextEra } = createEraEntity(nextConfig, graphView.tick, FRAMEWORK_STATUS.CURRENT, currentEra, nextConfig.id);
+    const { entity: nextEra } = createEraEntity(nextConfig, graphView.tick, FRAMEWORK_STATUS.CURRENT, nextConfig.id);
     graphView.loadEntity(nextEra);
 
     // End current era
@@ -126,16 +130,18 @@ class EraTransitionSystem implements SimulationSystem {
     const pressureChanges = this.collectPressureChanges(graphView, currentConfig, nextConfig, currentEra, nextEra);
 
     // Build relationships
-    const relationshipsAdded = this.buildTransitionRelationships(graphView, currentEra, nextEra);
+    const relationshipsAdded = this.buildTransitionRelationships(graphView, currentEra, nextEra, ctx);
 
     // Prominence snapshot
     const { modifications, lockedCount } = this.snapshotProminence(graphView, currentConfig);
 
     return {
       relationshipsAdded,
+      relationshipsAdjusted: [],
+      relationshipsToArchive: [],
       entitiesModified: [
-        { id: currentEra.id, changes: { status: FRAMEWORK_STATUS.HISTORICAL, temporal: currentEra.temporal } },
-        ...modifications,
+        { id: currentEra.id, changes: { status: FRAMEWORK_STATUS.HISTORICAL, temporal: currentEra.temporal }, actionContext: ctx, narrativeGroupId },
+        ...modifications.map(m => ({ ...m, actionContext: ctx, narrativeGroupId })),
       ],
       pressureChanges,
       description: `Era transition: ${currentEra.name} → ${nextEra.name} (${relationshipsAdded.length - 1} entities linked, ${lockedCount} prominence locked)`,
@@ -150,6 +156,7 @@ class EraTransitionSystem implements SimulationSystem {
           pressureEffects: pressureChanges,
         },
       },
+      narrationsByGroup: {},
     };
   }
 
@@ -168,11 +175,13 @@ class EraTransitionSystem implements SimulationSystem {
   }
 
   private buildTransitionRelationships(
-    graphView: WorldRuntime, currentEra: HardState, nextEra: HardState
+    graphView: WorldRuntime, currentEra: HardState, nextEra: HardState, ctx: ActionContext
   ): SystemResult['relationshipsAdded'] {
+    const narrativeGroupId = `era_transition:${currentEra.id}:${nextEra.id}`;
     const rels: SystemResult['relationshipsAdded'] = [{
       kind: FRAMEWORK_RELATIONSHIP_KINDS.SUPERSEDES,
       src: nextEra.id, dst: currentEra.id, strength: 1.0, createdAt: graphView.tick,
+      actionContext: ctx, narrativeGroupId,
     }];
 
     // Link prominent entities to ending era
@@ -184,6 +193,7 @@ class EraTransitionSystem implements SimulationSystem {
       rels.push({
         kind: FRAMEWORK_RELATIONSHIP_KINDS.ACTIVE_DURING,
         src: entity.id, dst: currentEra.id, strength: 1.0, createdAt: graphView.tick,
+        actionContext: ctx, narrativeGroupId,
       });
     }
     return rels;
@@ -213,7 +223,7 @@ class EraTransitionSystem implements SimulationSystem {
   }
 
   private noResult(description: string): SystemResult {
-    return { relationshipsAdded: [], entitiesModified: [], pressureChanges: {}, description };
+    return { relationshipsAdded: [], relationshipsAdjusted: [], relationshipsToArchive: [], entitiesModified: [], pressureChanges: {}, description, details: {}, narrationsByGroup: {} };
   }
 }
 

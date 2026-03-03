@@ -93,22 +93,16 @@ export type Region = SemanticRegion;
 /**
  * Result of emergent region creation.
  */
-export interface EmergentRegionResult {
-  success: boolean;
-  region: Region;
-  failureReason: string;
-}
+export type EmergentRegionResult =
+  | { success: true; region: Region }
+  | { success: false; failureReason: string };
 
 /**
  * Result of finding a sparse area on a semantic plane.
  */
-export interface SparseAreaResult {
-  success: boolean;
-  coordinates: Point;
-  /** Minimum distance to nearest entity (score of how "sparse" the area is) */
-  minDistanceToEntity: number;
-  failureReason: string;
-}
+export type SparseAreaResult =
+  | { success: true; coordinates: Point; minDistanceToEntity: number }
+  | { success: false; failureReason: string };
 
 /**
  * Options for finding a sparse area.

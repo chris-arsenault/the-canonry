@@ -21,7 +21,7 @@
  *   relationships don't also emit separate relationship_formed events)
  */
 
-import type { NarrativeEvent, Polarity, RelationshipKindDefinition, EntityKindDefinition, TagDefinition, ParticipantEffect } from '@canonry/world-schema';
+import type { NarrativeEvent, NarrativeEntityRef, Polarity, RelationshipKindDefinition, EntityKindDefinition, TagDefinition, ParticipantEffect } from '@canonry/world-schema';
 import { FRAMEWORK_RELATIONSHIP_KINDS, FRAMEWORK_TAGS } from '@canonry/world-schema';
 import type { HardState } from '../core/worldTypes.js';
 import type { Graph, NarrativeConfig } from '../engine/types.js';
@@ -106,7 +106,7 @@ export interface NarrativeSchemaSlice {
  */
 export class StateChangeTracker {
   // Debug flag for tracing prominence changes - mirrors Graph.DEBUG_PROMINENCE
-  static readonly DEBUG_PROMINENCE = false;
+  static DEBUG_PROMINENCE = false;
 
   private config: NarrativeConfig;
   private eventBuilder: NarrativeEventBuilder | null = null;
@@ -292,7 +292,7 @@ export class StateChangeTracker {
         src: rel.src,
         dst: rel.dst,
         createdAt: rel.createdAt,
-        polarity: this.getRelationshipPolarity(rel.kind),
+        polarity: this.getRelationshipPolarity(rel.kind) ?? 'neutral',
       });
     }
   }
@@ -394,7 +394,7 @@ export class StateChangeTracker {
     field: string,
     previousValue: unknown,
     newValue: unknown,
-    catalyst: { entityId: string; actionType: string }
+    catalyst: { entityId: string; actionType: string; success: boolean }
   ): void {
     if (!this.config.enabled) return;
 
@@ -464,7 +464,7 @@ export class StateChangeTracker {
       entityId,
       tag,
       changeType,
-      value,
+      value: value ?? (changeType === 'added' ? true : false),
       catalyst,
     };
 
@@ -669,7 +669,6 @@ export class StateChangeTracker {
     if (participantEffects.length === 0) return null;
 
     const primaryEntity = this.findPrimaryEntity(participantEffects, entitiesCreated.length > 0);
-    if (!primaryEntity) return null;
 
     const narration = this.resolveTemplateNarration(context.sourceId);
     const description = narration || this.buildTemplateDescription(
@@ -708,13 +707,14 @@ export class StateChangeTracker {
   }
 
   private findPrimaryEntity(
-    participantEffects: Array<{ entity: HardState; effects: Array<{ type: string }> }>,
+    participantEffects: ParticipantEffect[],
     hasCreatedEntities: boolean
-  ): HardState | undefined {
+  ): NarrativeEntityRef {
     if (hasCreatedEntities) {
-      return participantEffects.find(p => p.effects.some(e => e.type === 'created'))?.entity;
+      const creator = participantEffects.find(p => p.effects.some(e => e.type === 'created'));
+      if (creator) return creator.entity;
     }
-    return participantEffects[0]?.entity;
+    return participantEffects[0].entity;
   }
 
   private resolveTemplateNarration(sourceId: string): string | undefined {

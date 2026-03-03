@@ -218,8 +218,10 @@ export function crossValidate(
       const predicted = classifier.predict(fv);
       const actual = fv.domainId;
       const correct = predicted === actual;
+      const distances = [...classifier.getCentroidDistances(fv).values()].sort((a, b) => a - b);
+      const confidence = distances.length >= 2 && distances[1] > 0 ? 1 - distances[0] / distances[1] : 1;
 
-      results.push({ predicted, actual, correct });
+      results.push({ predicted, actual, correct, confidence });
 
       // Update confusion matrix
       const actualCount = confusionMatrix.get(actual)!.get(predicted) ?? 0;

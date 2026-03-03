@@ -135,6 +135,7 @@ export class NarrativeEventBuilder {
       addEffect(created.entityId, {
         type: 'created',
         description: this.getCreationVerb(created.kind),
+        semanticKind: '',
       });
     }
   }
@@ -215,7 +216,7 @@ export class NarrativeEventBuilder {
     addEffect: (entityId: string, effect: EntityEffect) => void
   ): void {
     for (const tag of tagsAdded) {
-      addEffect(tag.entityId, { type: 'tag_gained', tag: tag.tag, description: this.getTagGainedVerb(tag.tag) });
+      addEffect(tag.entityId, { type: 'tag_gained', tag: tag.tag, description: this.getTagGainedVerb(tag.tag), semanticKind: '' });
     }
   }
 
@@ -224,7 +225,7 @@ export class NarrativeEventBuilder {
     addEffect: (entityId: string, effect: EntityEffect) => void
   ): void {
     for (const tag of tagsRemoved) {
-      addEffect(tag.entityId, { type: 'tag_lost', tag: tag.tag, description: this.getTagLostVerb(tag.tag) });
+      addEffect(tag.entityId, { type: 'tag_lost', tag: tag.tag, description: this.getTagLostVerb(tag.tag), semanticKind: '' });
     }
   }
 
@@ -240,8 +241,9 @@ export class NarrativeEventBuilder {
   private buildFieldChangeEffect(field: FieldChangeInput): EntityEffect {
     if (field.field === 'status' && (field.newValue === 'historical' || field.newValue === 'dissolved')) {
       return {
-        type: 'ended', field: field.field, previousValue: field.oldValue, newValue: field.newValue,
+        type: 'ended',
         description: field.newValue === 'historical' ? 'passed into history' : 'dissolved',
+        semanticKind: '',
       };
     }
 
@@ -260,7 +262,7 @@ export class NarrativeEventBuilder {
 
     return {
       type: 'field_changed', field: field.field, previousValue: field.oldValue,
-      newValue: field.newValue,
+      newValue: field.newValue, semanticKind: '',
       description: this.getFieldChangedVerb(field.field, field.oldValue, field.newValue),
     };
   }

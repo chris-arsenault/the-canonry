@@ -32,10 +32,10 @@ export class ContractEnforcer {
   private registry: TagMetadata[];
 
   constructor(private config: EngineConfig) {
-    // TagDefinition from schema is looser than TagMetadata; filter to valid entries
-    this.registry = config.schema.tagRegistry.filter(
-      (t): t is TagMetadata => typeof t.category === 'string' && t.category.length > 0
-    );
+    // TagDefinition from schema is structurally compatible with TagMetadata for the fields we use
+    this.registry = config.schema.tagRegistry
+      .filter(t => typeof t.category === 'string' && t.category.length > 0)
+      .map(t => ({ ...t, consolidateInto: '' }) as TagMetadata);
     this.tagAnalyzer = new TagHealthAnalyzer(this.registry);
   }
 
@@ -60,7 +60,7 @@ export class ContractEnforcer {
       for (const tag of getTagKeysNormalized(entity.tags)) {
         tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
       }
-    });
+    }, { includeHistorical: false });
 
     // Check which tags would exceed maxUsage
     const oversaturatedTags: string[] = [];
@@ -85,7 +85,7 @@ export class ContractEnforcer {
       };
     }
 
-    return { saturated: false, oversaturatedTags: [] };
+    return { saturated: false, oversaturatedTags: [], reason: '' };
   }
 
   /**
@@ -125,7 +125,7 @@ export class ContractEnforcer {
 
     // Check if coverage is acceptable (3-5 tags)
     if (currentCount >= 3 && currentCount <= 5) {
-      return { needsAdjustment: false, suggestion: 'Tag coverage is adequate' };
+      return { needsAdjustment: false, suggestion: 'Tag coverage is adequate', tagsToAdd: [], tagsToRemove: [] };
     }
 
     // Too few tags - suggest additions
@@ -134,7 +134,8 @@ export class ContractEnforcer {
       return {
         needsAdjustment: true,
         suggestion: `Entity ${entity.name} has only ${currentCount} tags, needs ${needed} more`,
-        tagsToAdd: []  // Template should handle this
+        tagsToAdd: [],  // Template should handle this
+        tagsToRemove: []
       };
     }
 
@@ -145,11 +146,12 @@ export class ContractEnforcer {
       return {
         needsAdjustment: true,
         suggestion: `Entity ${entity.name} has ${currentCount} tags, should remove ${excess}`,
+        tagsToAdd: [],
         tagsToRemove: tagKeys.slice(5)  // Remove excess tags
       };
     }
 
-    return { needsAdjustment: false, suggestion: 'Tag coverage is adequate' };
+    return { needsAdjustment: false, suggestion: 'Tag coverage is adequate', tagsToAdd: [], tagsToRemove: [] };
   }
 
   /**

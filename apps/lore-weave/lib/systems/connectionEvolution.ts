@@ -1,5 +1,5 @@
-import { SimulationSystem, SystemResult } from '../engine/types';
-import { HardState, Relationship } from '../core/worldTypes';
+import { SimulationSystem, SystemResult, ActionContext } from '../engine/types';
+import { HardState } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { rollProbability } from '../utils';
 import {
@@ -172,16 +172,17 @@ function resolveThreshold(
 
 function mergeMutationResult(
   result: MutationResult,
-  modifications: Array<EntityModification & { narrativeGroupId: string }>,
-  relationships: Array<Relationship & { narrativeGroupId: string }>,
-  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId: string }>,
+  modifications: Array<EntityModification & { actionContext: ActionContext; narrativeGroupId: string }>,
+  relationships: SystemResult['relationshipsAdded'],
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; actionContext: ActionContext; narrativeGroupId: string }>,
   pressureChanges: Record<string, number>,
-  narrativeGroupId: string
+  narrativeGroupId: string,
+  ctx: ActionContext
 ): void {
   if (!result.applied) return;
 
   for (const mod of result.entityModifications) {
-    modifications.push(narrativeGroupId ? { ...mod, narrativeGroupId } : mod);
+    modifications.push({ ...mod, actionContext: ctx, narrativeGroupId });
   }
 
   for (const rel of result.relationshipsCreated) {
@@ -191,12 +192,13 @@ function mergeMutationResult(
       dst: rel.dst,
       strength: rel.strength,
       category: rel.category,
-      ...(narrativeGroupId ? { narrativeGroupId } : {}),
+      actionContext: ctx,
+      narrativeGroupId,
     });
   }
 
   for (const adj of result.relationshipsAdjusted) {
-    relationshipsAdjusted.push(narrativeGroupId ? { ...adj, narrativeGroupId } : adj);
+    relationshipsAdjusted.push({ ...adj, actionContext: ctx, narrativeGroupId });
   }
 
   for (const [pressureId, delta] of Object.entries(result.pressureChanges)) {
@@ -216,9 +218,9 @@ function evaluateCondition(
 // APPLY HELPERS
 // =============================================================================
 
-type ModArray = Array<EntityModification & { narrativeGroupId: string }>;
-type RelArray = Array<Relationship & { narrativeGroupId: string }>;
-type AdjArray = Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId: string }>;
+type ModArray = Array<EntityModification & { actionContext: ActionContext; narrativeGroupId: string }>;
+type RelArray = SystemResult['relationshipsAdded'];
+type AdjArray = Array<{ kind: string; src: string; dst: string; delta: number; actionContext: ActionContext; narrativeGroupId: string }>;
 
 interface ApplyAccumulators {
   modifications: ModArray;
@@ -231,9 +233,13 @@ interface ApplyAccumulators {
 function createThrottledResult(configName: string): SystemResult {
   return {
     relationshipsAdded: [],
+    relationshipsAdjusted: [],
+    relationshipsToArchive: [],
     entitiesModified: [],
     pressureChanges: {},
-    description: `${configName}: throttled`
+    description: `${configName}: throttled`,
+    details: {},
+    narrationsByGroup: {},
   };
 }
 
@@ -254,7 +260,8 @@ function evaluateEntityRules(
   ruleCtx: ReturnType<typeof createSystemContext>,
   modifier: number,
   matchingByRule: Map<number, HardState[]>,
-  acc: ApplyAccumulators
+  acc: ApplyAccumulators,
+  ctx: ActionContext
 ): void {
   for (let ruleIdx = 0; ruleIdx < config.rules.length; ruleIdx++) {
     const rule = config.rules[ruleIdx];
@@ -271,7 +278,7 @@ function evaluateEntityRules(
       if (!matchingByRule.has(ruleIdx)) matchingByRule.set(ruleIdx, []);
       matchingByRule.get(ruleIdx)!.push(entity);
     } else {
-      applyIndividualAction(entity, rule, ruleCtx, acc);
+      applyIndividualAction(entity, rule, ruleCtx, acc, ctx);
     }
   }
 }
@@ -280,14 +287,15 @@ function applyIndividualAction(
   entity: HardState,
   rule: EvolutionRule,
   ruleCtx: ReturnType<typeof createSystemContext>,
-  acc: ApplyAccumulators
+  acc: ApplyAccumulators,
+  ctx: ActionContext
 ): void {
   const entityCtx = { ...ruleCtx, self: entity };
   const result = prepareMutation(rule.action as Mutation, entityCtx);
-  mergeMutationResult(result, acc.modifications, acc.relationships, acc.relationshipsAdjusted, acc.pressureChanges, entity.id);
+  mergeMutationResult(result, acc.modifications, acc.relationships, acc.relationshipsAdjusted, acc.pressureChanges, entity.id, ctx);
 
   if (rule.narrationTemplate && result.applied) {
-    const narrationCtx = createSystemRuleContext({ self: entity });
+    const narrationCtx = createSystemRuleContext({ self: entity, member: entity, member2: entity, sharedVia: entity, variables: {}, counts: {}, values: {} });
     const narrationResult = interpolate(rule.narrationTemplate, narrationCtx);
     if (narrationResult.complete) {
       acc.narrationsByGroup[entity.id] = narrationResult.text;
@@ -299,7 +307,7 @@ function buildAdjacencyMap(
   graphView: WorldRuntime,
   sizeLimit: ConnectionEvolutionConfig['pairComponentSizeLimit']
 ): Map<string, Set<string>> | undefined {
-  if (sizeLimit <= 0) return undefined;
+  if (sizeLimit.max <= 0) return undefined;
 
   const adjacency = new Map<string, Set<string>>();
   const rels = graphView.getAllRelationships();
@@ -380,7 +388,7 @@ function checkComponentSizeLimit(
   config: ConnectionEvolutionConfig,
   adjacency: Map<string, Set<string>>
 ): boolean {
-  if (config.pairComponentSizeLimit <= 0) return true;
+  if (config.pairComponentSizeLimit.max <= 0) return true;
   const combinedSize = getCombinedComponentSize(srcId, dstId, adjacency);
   if (combinedSize > config.pairComponentSizeLimit.max) return false;
   if (!adjacency.has(srcId)) adjacency.set(srcId, new Set());
@@ -493,7 +501,8 @@ function processCliques(
   cliques: HardState[][],
   rule: EvolutionRule,
   ruleCtx: ReturnType<typeof createSystemContext>,
-  acc: ApplyAccumulators
+  acc: ApplyAccumulators,
+  ctx: ActionContext
 ): void {
   for (const clique of cliques) {
     const cliqueId = clique.map(e => e.id).sort((a, b) => a.localeCompare(b)).join(':');
@@ -505,7 +514,7 @@ function processCliques(
           entities: { ...(ruleCtx.entities), member: clique[i], member2: clique[j] },
         };
         const result = prepareMutation(rule.action as Mutation, pairCtx);
-        mergeMutationResult(result, acc.modifications, acc.relationships, acc.relationshipsAdjusted, acc.pressureChanges, cliqueId);
+        mergeMutationResult(result, acc.modifications, acc.relationships, acc.relationshipsAdjusted, acc.pressureChanges, cliqueId, ctx);
       }
     }
 
@@ -534,7 +543,8 @@ function processNonCliquePairs(
   nonCliquePairs: Array<{ src: HardState; dst: HardState }>,
   rule: EvolutionRule,
   ruleCtx: ReturnType<typeof createSystemContext>,
-  acc: ApplyAccumulators
+  acc: ApplyAccumulators,
+  ctx: ActionContext
 ): void {
   for (const { src, dst } of nonCliquePairs) {
     const pairCtx = {
@@ -542,10 +552,10 @@ function processNonCliquePairs(
       entities: { ...(ruleCtx.entities), member: src, member2: dst },
     };
     const result = prepareMutation(rule.action as Mutation, pairCtx);
-    mergeMutationResult(result, acc.modifications, acc.relationships, acc.relationshipsAdjusted, acc.pressureChanges, src.id);
+    mergeMutationResult(result, acc.modifications, acc.relationships, acc.relationshipsAdjusted, acc.pressureChanges, src.id, ctx);
 
     if (rule.narrationTemplate && result.applied) {
-      const narrationCtx = createSystemRuleContext({ member: src, member2: dst });
+      const narrationCtx = createSystemRuleContext({ self: src, member: src, member2: dst, sharedVia: src, variables: {}, counts: {}, values: {} });
       const narrationResult = interpolate(rule.narrationTemplate, narrationCtx);
       if (narrationResult.complete) {
         acc.narrationsByGroup[src.id] = narrationResult.text;
@@ -559,7 +569,8 @@ function processBetweenMatchingRules(
   config: ConnectionEvolutionConfig,
   graphView: WorldRuntime,
   ruleCtx: ReturnType<typeof createSystemContext>,
-  acc: ApplyAccumulators
+  acc: ApplyAccumulators,
+  ctx: ActionContext
 ): void {
   const adjacency = buildAdjacencyMap(graphView, config.pairComponentSizeLimit);
 
@@ -575,8 +586,8 @@ function processBetweenMatchingRules(
       pairGraph, validPairs, matchingEntities
     );
 
-    processCliques(cliques, rule, ruleCtx, acc);
-    processNonCliquePairs(nonCliquePairs, rule, ruleCtx, acc);
+    processCliques(cliques, rule, ruleCtx, acc, ctx);
+    processNonCliquePairs(nonCliquePairs, rule, ruleCtx, acc, ctx);
   }
 }
 
@@ -592,6 +603,7 @@ function applyConnectionEvolution(
     }
   }
 
+  const ctx: ActionContext = { source: 'system', sourceId: config.id, success: true };
   const acc: ApplyAccumulators = {
     modifications: [],
     relationships: [],
@@ -610,10 +622,10 @@ function applyConnectionEvolution(
       entity,
       config.subtypeBonuses
     );
-    evaluateEntityRules(entity, metricValue, config, ruleCtx, modifier, matchingByRule, acc);
+    evaluateEntityRules(entity, metricValue, config, ruleCtx, modifier, matchingByRule, acc, ctx);
   }
 
-  processBetweenMatchingRules(matchingByRule, config, graphView, ruleCtx, acc);
+  processBetweenMatchingRules(matchingByRule, config, graphView, ruleCtx, acc, ctx);
 
   if (acc.modifications.length > 0 || acc.relationships.length > 0 || acc.relationshipsAdjusted.length > 0) {
     for (const [pressureId, delta] of Object.entries(config.pressureChanges)) {
@@ -624,10 +636,12 @@ function applyConnectionEvolution(
   return {
     relationshipsAdded: acc.relationships,
     relationshipsAdjusted: acc.relationshipsAdjusted,
+    relationshipsToArchive: [],
     entitiesModified: acc.modifications as SystemResult['entitiesModified'],
     pressureChanges: acc.pressureChanges,
     description: `${config.name}: ${acc.modifications.length} modified, ${acc.relationships.length} relationships`,
-    narrationsByGroup: Object.keys(acc.narrationsByGroup).length > 0 ? acc.narrationsByGroup : undefined,
+    details: {},
+    narrationsByGroup: Object.keys(acc.narrationsByGroup).length > 0 ? acc.narrationsByGroup : {},
   };
 }
 
@@ -644,6 +658,8 @@ export function createConnectionEvolutionSystem(
   return {
     id: config.id,
     name: config.name,
+    state: {},
+    initialize: () => {},
 
     apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
       return applyConnectionEvolution(config, graphView, modifier);

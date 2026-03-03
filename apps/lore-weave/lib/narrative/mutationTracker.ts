@@ -241,7 +241,7 @@ export class MutationTracker {
    * Get fallback context when no context is set
    */
   private getFallbackContext(): ExecutionContext {
-    return { tick: this.currentTick, source: 'framework', sourceId: 'unknown' };
+    return { tick: this.currentTick, source: 'framework', sourceId: 'unknown', success: true, narration: '' };
   }
 
   // ===========================================================================
@@ -304,7 +304,7 @@ export class MutationTracker {
       type: 'tag_removed',
       tick: this.currentTick,
       context: this.getCurrentContext() ?? this.getFallbackContext(),
-      data: { entityId, tag },
+      data: { entityId, tag, value: false },
     });
   }
 

@@ -44,6 +44,7 @@ async function evaluateBatch(
         hyphenRate: 0,
         lengthMin: 0,
         lengthMax: 0,
+        favoredClusterBoost: 0,
       },
       validationSettings,
       fitnessWeights,
@@ -117,8 +118,8 @@ function crossover(
 
   const p1 = parent1.phonology;
   const p2 = parent2.phonology;
-  const [newCons1, newCons2, newConsW1, newConsW2] = crossArrays(p1.consonants, p2.consonants, p1.consonantWeights, p2.consonantWeights, rng);
-  const [newVowels1, newVowels2, newVowelW1, newVowelW2] = crossArrays(p1.vowels, p2.vowels, p1.vowelWeights, p2.vowelWeights, rng);
+  const [newCons1, newCons2, newConsW1, newConsW2] = crossArrays(p1.consonants, p2.consonants, p1.consonantWeights ?? [], p2.consonantWeights ?? [], rng);
+  const [newVowels1, newVowels2, newVowelW1, newVowelW2] = crossArrays(p1.vowels, p2.vowels, p1.vowelWeights ?? [], p2.vowelWeights ?? [], rng);
 
   // Crossover templates (simple swap)
   const swapTemplates = rng() < 0.5;
@@ -248,7 +249,7 @@ function generateChildren(
 async function runEvolutionLoop(
   population: Individual[], generations: number, gaSettings: GASettings,
   validationSettings: ValidationSettings, fitnessWeights: FitnessWeights,
-  siblingDomains: NamingDomain[], primaryGoal: string, rng: () => number,
+  siblingDomains: NamingDomain[], primaryGoal: keyof typeof MUTATION_WEIGHTS, rng: () => number,
   initialFitness: number
 ): Promise<{ evaluations: EvaluationResult[]; convergenceHistory: number[] }> {
   const evaluations: EvaluationResult[] = [];

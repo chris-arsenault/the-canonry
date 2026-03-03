@@ -73,7 +73,7 @@ export function validateSeparation(
   const allFeatureVectors: FeatureVector[] = [];
 
   for (const domain of domains) {
-    const testResult = testDomain(domain, sampleSize, config.seed);
+    const testResult = testDomain(domain, sampleSize, config.seed ?? "separation");
 
     for (const name of testResult.samples) {
       const fv = extractFeatures(name, domain.id);

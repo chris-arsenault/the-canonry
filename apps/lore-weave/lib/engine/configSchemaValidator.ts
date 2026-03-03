@@ -105,7 +105,7 @@ function formatAjvErrors(errors: ErrorObject[] | null | undefined, itemId: strin
     const expected = expectedFmt ? expectedFmt(params) : (error.message || 'valid value');
 
     const suggestionFmt = SUGGESTION_FORMATTERS[error.keyword];
-    const suggestion = suggestionFmt ? suggestionFmt(params) : undefined;
+    const suggestion = suggestionFmt ? suggestionFmt(params) : '';
 
     return {
       path,
@@ -149,6 +149,7 @@ export function validateTemplates(templates: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: templates,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -184,6 +185,7 @@ export function validatePressures(pressures: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: pressures,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -213,6 +215,7 @@ export function validateSystems(systems: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: systems,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -248,6 +251,7 @@ export function validateEras(eras: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: eras,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -277,6 +281,7 @@ export function validateActions(actions: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: actions,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -316,6 +321,7 @@ export function validateEntities(entities: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: entities,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }

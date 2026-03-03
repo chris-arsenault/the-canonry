@@ -7,7 +7,8 @@
 
 import type { HardState, Relationship } from '../../core/worldTypes';
 import { hasTag } from '../../utils';
-import { normalizeDirection , entityCriteria } from '../types';
+import { normalizeDirection } from '../types';
+import { entityCriteria } from '../../engine/types';
 import type {
   MetricResult,
   SimpleCountMetric,

@@ -243,7 +243,7 @@ export function scorePronounceability(
   profile: PhonologyProfile
 ): number {
   const templateScore = scoreTemplateLegality(name, syllables, profile.syllableTemplates);
-  const sonorityScore = scoreSonoritySequencing(name, phonemes, profile.sonorityRanks);
+  const sonorityScore = scoreSonoritySequencing(name, phonemes, profile.sonorityRanks ?? {});
   const harmonicScore = scoreHarmonicConstraints(name, profile);
 
   // Weighted combination

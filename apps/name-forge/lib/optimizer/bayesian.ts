@@ -20,6 +20,7 @@ import type {
   FitnessWeights,
   OptimizationResult,
   EvaluationResult,
+  ParameterVector,
 } from "./optimization.js";
 
 /**
@@ -105,8 +106,8 @@ function encodeConfig(domain: NamingDomain): ConfigPoint {
     vowels,
     templates,
     clusters,
-    apostropheRate: domain.style.apostropheRate,
-    hyphenRate: domain.style.hyphenRate,
+    apostropheRate: domain.style.apostropheRate ?? 0,
+    hyphenRate: domain.style.hyphenRate ?? 0,
     lengthMin: domain.phonology.lengthRange[0],
     lengthMax: domain.phonology.lengthRange[1],
   };
@@ -421,7 +422,7 @@ export async function bayesianOptimization(
   // Evaluate initial domain
   const initialEval = await computeFitness(
     initialDomain,
-    { consonantWeights: [], vowelWeights: [], templateWeights: [], structureWeights: [], apostropheRate: 0, hyphenRate: 0, lengthMin: 0, lengthMax: 0 },
+    { consonantWeights: [], vowelWeights: [], templateWeights: [], structureWeights: [], apostropheRate: 0, hyphenRate: 0, lengthMin: 0, lengthMax: 0, favoredClusterBoost: 0 },
     validationSettings,
     fitnessWeights,
     useSeparation ? siblingDomains : [],
@@ -444,13 +445,13 @@ export async function bayesianOptimization(
   let bestDomain = initialDomain;
 
   const evalDomains: NamingDomain[] = useSeparation ? siblingDomains : [];
-  const emptyTheta: ParameterVector = { consonantWeights: [], vowelWeights: [], templateWeights: [], structureWeights: [], apostropheRate: 0, hyphenRate: 0, lengthMin: 0, lengthMax: 0 };
+  const emptyTheta: ParameterVector = { consonantWeights: [], vowelWeights: [], templateWeights: [], structureWeights: [], apostropheRate: 0, hyphenRate: 0, lengthMin: 0, lengthMax: 0, favoredClusterBoost: 0 };
 
   async function evaluate(domain: NamingDomain, iter: number): Promise<EvaluationResult> {
     return computeFitness(domain, emptyTheta, validationSettings, fitnessWeights, evalDomains, iter, false);
   }
 
-  const track = (point: ParameterVector, domain: NamingDomain, result: EvaluationResult) => {
+  const track = (point: ConfigPoint, domain: NamingDomain, result: EvaluationResult) => {
     observations.push({ point, fitness: result.fitness, domain });
     evaluations.push(result);
     convergenceHistory.push(Math.max(bestFitness, result.fitness));

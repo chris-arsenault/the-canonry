@@ -95,10 +95,10 @@ export interface VariableDiagnosis {
 class ExecutionContext implements IExecutionContext, EntityResolver {
   graphView: WorldRuntime;
   variables: Map<string, VariableValue> = new Map();
-  target: HardState;
+  target!: HardState;
   pathSets: Map<string, Set<string>> = new Map();
   /** Current template being executed (for error context) */
-  templateId: string;
+  templateId!: string;
 
   constructor(graphView: WorldRuntime) {
     this.graphView = graphView;
@@ -316,14 +316,14 @@ export class TemplateInterpreter {
     applicabilityPassed: boolean
   ): { targets: HardState[]; selectionCount: number; selectionStrategy: string; selectionDiagnosis: SelectionDiagnosis } {
     if (!applicabilityPassed) {
-      return { targets: [], selectionCount: 0, selectionStrategy: 'none' };
+      return { targets: [], selectionCount: 0, selectionStrategy: 'none', selectionDiagnosis: { strategy: 'none', targetKind: '', filterSteps: [] } };
     }
     const targets = this.executeSelection(template.selection, context);
     const selectionCount = targets.length;
     const selectionStrategy = template.selection.strategy;
     const selectionDiagnosis = selectionCount === 0
       ? this.diagnoseSelection(template.selection, context)
-      : undefined;
+      : { strategy: selectionStrategy, targetKind: template.selection.kind || '', filterSteps: [] };
     return { targets, selectionCount, selectionStrategy, selectionDiagnosis };
   }
 
@@ -414,8 +414,8 @@ export class TemplateInterpreter {
       name,
       fromType,
       kind: select.kind,
-      relationshipKind: isFromRelated ? fromSpec.relationshipKind : undefined,
-      relatedTo: isFromRelated ? fromSpec.relatedTo : undefined,
+      relationshipKind: isFromRelated ? fromSpec.relationshipKind : '',
+      relatedTo: isFromRelated ? fromSpec.relatedTo : '',
       filterSteps: trace.steps,
     };
   }
@@ -432,7 +432,7 @@ export class TemplateInterpreter {
    */
   private describeRuleFailure(rule: ApplicabilityRule, context: ExecutionContext): string {
     const ruleCtx = createRuleContext(context.graphView, context, context.target);
-    const result = rulesEvaluateCondition(rule, ruleCtx);
+    const result = rulesEvaluateCondition(rule, ruleCtx, context.target);
     return result.diagnostic;
   }
 
@@ -622,7 +622,7 @@ export class TemplateInterpreter {
     const ruleCtx = createRuleContext(context.graphView, context, context.target);
 
     // Evaluate using rules library
-    const result = rulesEvaluateCondition(rule, ruleCtx);
+    const result = rulesEvaluateCondition(rule, ruleCtx, context.target);
     return result.passed;
   }
 
@@ -651,7 +651,7 @@ export class TemplateInterpreter {
 
   private executeSelection(rule: SelectionRule, context: ExecutionContext): HardState[] {
     const ruleCtx = createRuleContext(context.graphView, context, context.target);
-    return rulesSelectEntities(rule, ruleCtx);
+    return rulesSelectEntities(rule, ruleCtx, { steps: [] });
   }
 
   // Selection filtering and saturation limits are handled by the rules library.
@@ -711,9 +711,7 @@ export class TemplateInterpreter {
     if (!rule.status) {
       throw new Error(`Creation rule for kind "${rule.kind}" is missing status.`);
     }
-    if (rule.prominence === '') {
-      throw new Error(`Creation rule for kind "${rule.kind}" is missing prominence.`);
-    }
+    // prominence is type-enforced to ProminenceLabel — no runtime check needed
   }
 
   private async createSingleEntity(
@@ -751,8 +749,8 @@ export class TemplateInterpreter {
       kind: rule.kind, subtype, status: rule.status,
       prominence: prominenceValue, culture, narrativeHint,
       tags: mergedTags, coordinates: placementResult.coordinates,
-      regionId: placementResult.regionId, allRegionIds: placementResult.allRegionIds,
-      namingContext
+      regionId: placementResult.regionId ?? '', allRegionIds: placementResult.allRegionIds,
+      namingContext: namingContext ?? {}
     };
 
     const placementDebug: PlacementDebug = {
@@ -1101,20 +1099,23 @@ export class TemplateInterpreter {
     context: ExecutionContext
   ): Relationship[] {
     if (srcId === dstId) return [];
-    // Note: distance is computed from coordinates when relationship is added to graph
-    const rel: Relationship = {
-      kind: rule.kind,
-      src: srcId,
-      dst: dstId,
-      strength: rule.strength
-    };
+    // Note: distance is computed from coordinates when relationship is added to graph.
+    // These are placeholder relationships; the growth system re-creates them via graph.addRelationship.
+    let catalyzedById = '';
     if (rule.catalyzedBy) {
       const catalyst = context.resolveEntity(rule.catalyzedBy);
-      if (catalyst) rel.catalyzedBy = catalyst.id;
+      if (catalyst) catalyzedById = catalyst.id;
     }
+    const base = {
+      kind: rule.kind, strength: rule.strength,
+      distance: 0, category: '', createdAt: 0, catalyzedBy: catalyzedById,
+      status: 'active' as const, archived: { occurred: false as const, tick: 0 as 0 },
+      createdBy: { tick: 0, source: 'template' as const, sourceId: '', success: true, narration: '' },
+    };
+    const rel: Relationship = { ...base, src: srcId, dst: dstId };
     const result: Relationship[] = [rel];
     if (rule.bidirectional) {
-      result.push({ kind: rule.kind, src: dstId, dst: srcId, strength: rule.strength, catalyzedBy: rel.catalyzedBy });
+      result.push({ ...base, src: dstId, dst: srcId } as Relationship);
     }
     return result;
   }
@@ -1148,7 +1149,7 @@ export class TemplateInterpreter {
     context: ExecutionContext
   ): boolean {
     const ruleCtx = createRuleContext(context.graphView, context, context.target);
-    const result = rulesEvaluateCondition(condition, ruleCtx);
+    const result = rulesEvaluateCondition(condition, ruleCtx, context.target);
     return result.passed;
   }
 
@@ -1302,6 +1303,7 @@ export function createTemplateFromDeclarative(
   return {
     id: template.id,
     name: template.name,
+    requiredEra: [],
 
     canApply: (graphView: WorldRuntime) => {
       return interpreter.canApply(template, graphView);

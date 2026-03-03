@@ -124,6 +124,7 @@ export class NameForgeService {
         description: culture.description,
         domains: culture.naming.domains as NamingDomain[],
         lexemeLists: culture.naming.lexemeLists as Record<string, LexemeList>,
+        lexemeSpecs: culture.naming.lexemeSpecs,
         grammars: culture.naming.grammars as Grammar[],
         profiles: culture.naming.profiles as Profile[],
       };
@@ -210,6 +211,7 @@ export class NameForgeService {
     try {
       const name = await generateOne(culture, {
         cultureId,
+        profileId: '',
         kind,
         subtype,
         prominence,
@@ -260,7 +262,7 @@ export class NameForgeService {
     const { total, successes, failures, byCultureAndKind } = this.stats;
 
     if (total === 0) {
-      this.log('info', '[NameForge] No calls made');
+      this.log('info', '[NameForge] No calls made', {});
       return;
     }
 

@@ -59,7 +59,7 @@ export function executePhonotacticPipeline(
     morphologyCandidates: number;
     /** Maximum name length for morphology scoring (default: 20) */
     maxMorphologyLength: number;
-  } = {}
+  } = { morphologyCandidates: 3, maxMorphologyLength: 20 }
 ): PipelineResult {
   const {
     morphologyCandidates = 3,

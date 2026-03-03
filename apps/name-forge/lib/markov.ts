@@ -24,7 +24,7 @@ export function generateFromMarkov(
     minLength: number;
     maxLength: number;
     seed: string;
-  } = {}
+  } = { minLength: 3, maxLength: 12, seed: "" }
 ): string {
   const { minLength = 3, maxLength = 12, seed } = options;
   const rng = seed ? seedrandom(seed) : Math.random;
@@ -62,7 +62,7 @@ export function generateNamesFromMarkov(
     minLength: number;
     maxLength: number;
     seed: string;
-  } = {}
+  } = { minLength: 3, maxLength: 12, seed: "" }
 ): string[] {
   const names = new Set<string>();
   const baseSeed = options.seed || String(Date.now());

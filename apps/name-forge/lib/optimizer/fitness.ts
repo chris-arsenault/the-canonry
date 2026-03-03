@@ -152,6 +152,7 @@ interface ScoreSet {
   separation: number;
   pronounceability: number;
   length: number;
+  style: number;
 }
 
 function computeAllScores(
@@ -181,7 +182,7 @@ function computeAllScores(
   return {
     capacity: normalizeCapacityScore(capReport, settings),
     diffuseness: normalizeDiffusenessScore(diffReport, settings),
-    separation, pronounceability, length,
+    separation, pronounceability, length, style: 0,
   };
 }
 

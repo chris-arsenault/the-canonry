@@ -11,7 +11,7 @@
 import { z } from "zod";
 import type { NamingDomain } from "./domain.js";
 import type { Capitalization } from "../utils/helpers.js";
-import type { EntityKindDefinition } from "@canonry/world-schema";
+import type { EntityKindDefinition, LexemeSpec } from "@canonry/world-schema";
 
 // ============================================================================
 // Lexeme Types
@@ -254,7 +254,7 @@ export interface Culture {
   /** Lexeme lists keyed by ID */
   lexemeLists: Record<string, LexemeList>;
   /** Lexeme specs for LLM generation (UI feature) */
-  lexemeSpecs: Record<string, unknown>;
+  lexemeSpecs: LexemeSpec[];
   /** Grammar rules */
   grammars: Grammar[];
   /** Naming profiles */

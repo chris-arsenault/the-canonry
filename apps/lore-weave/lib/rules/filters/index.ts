@@ -72,6 +72,11 @@ function linkMatchesConstraints(
   return withEntityId ? otherId === withEntityId : true;
 }
 
+const DEFAULT_GRAPH_PATH_OPTIONS: GraphPathOptions = {
+  filterEvaluator: (entities, filters, resolver, options) =>
+    applySelectionFilters(entities, filters, resolver, options),
+};
+
 function resolveGraphPathOptions(graphPathOptions: GraphPathOptions): GraphPathOptions {
   return graphPathOptions;
 }
@@ -84,7 +89,7 @@ export function applySelectionFilters(
   entities: HardState[],
   filters: SelectionFilter[] | undefined,
   resolver: EntityResolver,
-  graphPathOptions: GraphPathOptions
+  graphPathOptions: GraphPathOptions = DEFAULT_GRAPH_PATH_OPTIONS
 ): HardState[] {
   if (!filters || filters.length === 0) return entities;
 
@@ -105,12 +110,12 @@ function filterByRelationship(
   negate: boolean
 ): HardState[] {
   const graphView = resolver.getGraphView();
-  const withEntity = filter.with ? resolver.resolveEntity(filter.with) : undefined;
-  const direction = filter.type === 'has_relationship' ? filter.direction : undefined;
+  const withEntityId = filter.with ? (resolver.resolveEntity(filter.with)?.id ?? '') : '';
+  const direction = filter.type === 'has_relationship' ? filter.direction : 'both';
   return entities.filter(entity => {
-    const relationships = graphView.getRelationships(entity.id, filter.kind);
+    const relationships = graphView.getRelationships(entity.id, filter.kind, { includeHistorical: false });
     const hasMatch = relationships.some(link =>
-      linkMatchesConstraints(link, entity.id, direction, withEntity?.id)
+      linkMatchesConstraints(link, entity.id, direction, withEntityId)
     );
     return negate ? !hasMatch : hasMatch;
   });
@@ -125,13 +130,13 @@ function filterBySharesRelated(
   const refEntity = resolver.resolveEntity(filter.with);
   if (!refEntity) return entities;
   const refRelated = graphView
-    .getConnectedEntities(refEntity.id, filter.relationshipKind, 'both')
+    .getConnectedEntities(refEntity.id, filter.relationshipKind, 'both', { includeHistorical: false })
     .map(entity => entity.id);
   if (refRelated.length === 0) return [];
   const refRelatedSet = new Set(refRelated);
   return entities.filter(entity => {
     const entityRelated = graphView
-      .getConnectedEntities(entity.id, filter.relationshipKind, 'both')
+      .getConnectedEntities(entity.id, filter.relationshipKind, 'both', { includeHistorical: false })
       .map(related => related.id);
     return entityRelated.some(id => refRelatedSet.has(id));
   });
@@ -144,7 +149,7 @@ function filterByComponentSize(
 ): HardState[] {
   const graphView = resolver.getGraphView();
   const adjacency = buildRelationshipAdjacency(
-    graphView.getAllRelationships(),
+    graphView.getAllRelationships({ includeHistorical: false }),
     filter.relationshipKinds,
     filter.minStrength
   );
@@ -164,14 +169,14 @@ function filterByExclude(entities: HardState[], filter: ExcludeEntitiesFilter, r
 }
 
 function filterByTag(entities: HardState[], filter: HasTagSelectionFilter): HardState[] {
-  return entities.filter(e => hasTag(e.tags, filter.tag) && getTagValue(e.tags, filter.tag) === filter.value);
+  return entities.filter(e => hasTag(e.tags, filter.tag) && getTagValue(e.tags, filter.tag, filter.value) === filter.value);
 }
 
 function filterByLacksTag(entities: HardState[], filter: LacksTagSelectionFilter): HardState[] {
-  return entities.filter(e => !hasTag(e.tags, filter.tag) || getTagValue(e.tags, filter.tag) !== filter.value);
+  return entities.filter(e => !hasTag(e.tags, filter.tag) || getTagValue(e.tags, filter.tag, filter.value) !== filter.value);
 }
 
-function filterByCultureMatch(entities: HardState[], filter: MatchesCultureFilter, resolver: EntityResolver, negate: boolean): HardState[] {
+function filterByCultureMatch(entities: HardState[], filter: MatchesCultureFilter | NotMatchesCultureFilter, resolver: EntityResolver, negate: boolean): HardState[] {
   const ref = resolver.resolveEntity(filter.with);
   if (!ref) return entities;
   return negate ? entities.filter(e => e.culture !== ref.culture) : entities.filter(e => e.culture === ref.culture);
@@ -231,7 +236,7 @@ export function applySelectionFilter(
   entities: HardState[],
   filter: SelectionFilter,
   resolver: EntityResolver,
-  graphPathOptions: GraphPathOptions
+  graphPathOptions: GraphPathOptions = DEFAULT_GRAPH_PATH_OPTIONS
 ): HardState[] {
   return FILTER_DISPATCH[filter.type](entities, filter, resolver, graphPathOptions);
 }
@@ -243,9 +248,10 @@ export function applySelectionFilter(
 export function entityPassesFilter(
   entity: HardState,
   filter: SelectionFilter,
-  resolver: EntityResolver
+  resolver: EntityResolver,
+  graphPathOptions: GraphPathOptions = DEFAULT_GRAPH_PATH_OPTIONS
 ): boolean {
-  const result = applySelectionFilter([entity], filter, resolver);
+  const result = applySelectionFilter([entity], filter, resolver, graphPathOptions);
   return result.length > 0;
 }
 
@@ -255,12 +261,13 @@ export function entityPassesFilter(
 export function entityPassesAllFilters(
   entity: HardState,
   filters: SelectionFilter[] | undefined,
-  resolver: EntityResolver
+  resolver: EntityResolver,
+  graphPathOptions: GraphPathOptions = DEFAULT_GRAPH_PATH_OPTIONS
 ): boolean {
   if (!filters || filters.length === 0) return true;
 
   for (const filter of filters) {
-    if (!entityPassesFilter(entity, filter, resolver)) {
+    if (!entityPassesFilter(entity, filter, resolver, graphPathOptions)) {
       return false;
     }
   }

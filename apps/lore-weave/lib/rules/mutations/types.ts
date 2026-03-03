@@ -11,6 +11,7 @@
 
 import type { Direction } from '../types';
 import type { Condition } from '../conditions/types';
+import type { HardState } from '../../core/worldTypes';
 
 /**
  * Unified Mutation type.
@@ -290,13 +291,9 @@ export interface MutationResult {
 export interface EntityModification {
   /** Entity ID */
   id: string;
-  /** Changes to apply */
-  changes: {
-    status: string;
-    prominence: number;
-    // Tag patch: set values; use undefined to remove.
-    tags: Record<string, string | boolean | undefined>;
-  };
+  /** Changes to apply — callers supply only the fields that changed.
+   * For tags: `true` or a string value means "set this tag"; `false` means "remove this tag". */
+  changes: Partial<HardState>;
 }
 
 /**

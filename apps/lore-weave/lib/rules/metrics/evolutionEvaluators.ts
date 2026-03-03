@@ -73,7 +73,7 @@ function buildRelIndex(
   kinds: string[],
   direction: 'src' | 'dst',
   minStrength: number,
-  kindFilter: { ctx: MetricContext; intermediateKind: string }
+  kindFilter?: { ctx: MetricContext; intermediateKind: string }
 ): { forward: Map<string, Set<string>>; reverse: Map<string, Set<string>> } {
   const forward = new Map<string, Set<string>>();
   const reverse = new Map<string, Set<string>>();
@@ -85,8 +85,10 @@ function buildRelIndex(
     const sourceId = direction === 'src' ? link.src : link.dst;
     const targetId = direction === 'src' ? link.dst : link.src;
 
-    const target = kindFilter.ctx.graph.getEntity(targetId);
-    if (!target || target.kind !== kindFilter.intermediateKind) continue;
+    if (kindFilter) {
+      const target = kindFilter.ctx.graph.getEntity(targetId);
+      if (!target || target.kind !== kindFilter.intermediateKind) continue;
+    }
 
     addToMultiMap(forward, sourceId, targetId);
     addToMultiMap(reverse, targetId, sourceId);

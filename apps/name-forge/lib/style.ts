@@ -195,7 +195,7 @@ export function applyStyleWithCandidates(
     rng,
     styledCandidates,
     (name) => name,
-    style.preferredEndings,
+    style.preferredEndings ?? [],
     style.preferredEndingBoost
   );
 }

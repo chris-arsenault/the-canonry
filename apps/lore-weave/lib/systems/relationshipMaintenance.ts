@@ -1,4 +1,4 @@
-import { SimulationSystem, SystemResult } from '../engine/types';
+import { SimulationSystem, SystemResult, ActionContext } from '../engine/types';
 import { Relationship } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import type { RelationshipKindDefinition } from '@canonry/world-schema';
@@ -172,7 +172,7 @@ class RelationshipMaintenanceSystem implements SimulationSystem {
 
   apply(graphView: WorldRuntime, modifier: number = 1.0): SystemResult {
     if (graphView.tick % this.frequency !== 0) {
-      return { relationshipsAdded: [], entitiesModified: [], pressureChanges: {}, description: 'Relationship maintenance dormant' };
+      return { relationshipsAdded: [], relationshipsAdjusted: [], relationshipsToArchive: [], entitiesModified: [], pressureChanges: {}, description: 'Relationship maintenance dormant', details: {}, narrationsByGroup: {} };
     }
 
     const allRels = graphView.getAllRelationships({ includeHistorical: true });
@@ -188,11 +188,16 @@ class RelationshipMaintenanceSystem implements SimulationSystem {
     }
 
     graphView.setRelationships(maintained);
+    const ctx: ActionContext = { source: 'framework', sourceId: this.id, success: true };
     return {
       relationshipsAdded: [],
-      entitiesModified: Array.from(modifiedIds).map(id => ({ id, changes: { updatedAt: graphView.tick } })),
+      relationshipsAdjusted: [],
+      relationshipsToArchive: [],
+      entitiesModified: Array.from(modifiedIds).map(id => ({ id, changes: { updatedAt: graphView.tick }, actionContext: ctx, narrativeGroupId: '' })),
       pressureChanges: {},
       description: buildMaintenanceDescription(stats.decayed, stats.reinforced, stats.archived, stats.removed, originalCount),
+      details: {},
+      narrationsByGroup: {},
     };
   }
 

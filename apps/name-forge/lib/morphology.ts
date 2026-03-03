@@ -19,7 +19,7 @@ function applyRootToken(state: MorphState, root: string, rootSyllables: string[]
 
 function applyPrefixToken(state: MorphState, rng: () => number, profile: MorphologyProfile): void {
   if (!profile.prefixes || profile.prefixes.length === 0) return;
-  const prefix = pickWeighted(rng, profile.prefixes, profile.prefixWeights);
+  const prefix = pickWeighted(rng, profile.prefixes, profile.prefixWeights ?? []);
   state.result += prefix;
   state.parts.push(`prefix:${prefix}`);
   state.syllables.push(prefix);
@@ -27,7 +27,7 @@ function applyPrefixToken(state: MorphState, rng: () => number, profile: Morphol
 
 function applySuffixToken(state: MorphState, rng: () => number, profile: MorphologyProfile): void {
   if (!profile.suffixes || profile.suffixes.length === 0) return;
-  const suffix = pickWeighted(rng, profile.suffixes, profile.suffixWeights);
+  const suffix = pickWeighted(rng, profile.suffixes, profile.suffixWeights ?? []);
   state.result += suffix;
   state.parts.push(`suffix:${suffix}`);
   state.syllables.push(suffix);
@@ -69,7 +69,7 @@ export function applyMorphology(
   profile: MorphologyProfile,
   rootSyllables: string[]
 ): { result: string; structure: string; parts: string[]; syllables: string[] } {
-  const structure = pickWeighted(rng, profile.structure, profile.structureWeights);
+  const structure = pickWeighted(rng, profile.structure, profile.structureWeights ?? []);
   const state: MorphState = { result: "", parts: [], syllables: [] };
   const tokens = structure.split("-");
 

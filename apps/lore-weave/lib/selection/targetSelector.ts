@@ -184,7 +184,13 @@ export class TargetSelector {
     graph: Graph,
     kind: string,
     count: number,
-    bias: SelectionBias = {}
+    bias: SelectionBias = {
+      prefer: { subtypes: [], tags: [], prominence: [], sameLocationAs: '', sameCultureAs: '', preferenceBoost: 2.0 },
+      avoid: { relationshipKinds: [], hubPenaltyStrength: 1.0, maxTotalRelationships: 0, excludeRelatedTo: { entityId: '', relationshipKind: '' }, differentCulturePenalty: 1.0 },
+      culture: { require: '', exclude: [] },
+      createIfSaturated: { threshold: 0.1, factory: () => ({}), maxCreated: 1 },
+      diversityTracking: { trackingId: '', strength: 1.0 },
+    }
   ): SelectionResult {
     // Find all candidate entities
     const candidates = graph.getEntities()
@@ -234,7 +240,8 @@ export class TargetSelector {
       bestScore: Math.max(...scores, 0),
       worstScore: Math.min(...scores, 0),
       avgScore: scores.reduce((a, b) => a + b, 0) / scores.length || 0,
-      creationTriggered: false
+      creationTriggered: false,
+      creationReason: '',
     };
 
     return {
@@ -381,7 +388,7 @@ export class TargetSelector {
       );
     }
 
-    if (bias.avoid.excludeRelatedTo.length > 0) {
+    if (bias.avoid.excludeRelatedTo.entityId) {
       const { entityId, relationshipKind } = bias.avoid.excludeRelatedTo;
       filtered = filtered.filter(s => {
         const hasRelationship = graph.getRelationships().some(r =>
@@ -449,7 +456,8 @@ export class TargetSelector {
         bestScore: 0,
         worstScore: 0,
         avgScore: 0,
-        creationTriggered: false
+        creationTriggered: false,
+        creationReason: '',
       }
     };
   }

@@ -8,7 +8,8 @@ import { HardState } from '../../core/worldTypes';
 import { hasTag, pickRandom } from '../../utils';
 import type { RuleContext } from '../context';
 import { applySelectionFilters } from '../filters';
-import { normalizeDirection, prominenceIndex, prominenceThreshold, ProminenceLabel , entityCriteria } from '../types';
+import { normalizeDirection, prominenceIndex, prominenceThreshold, type ProminenceLabel } from '../types';
+import { entityCriteria } from '../../engine/types';
 import type {
   EntitySelectionCriteria,
   SelectionRule,
@@ -35,8 +36,7 @@ export interface SelectionTrace {
   steps: SelectionTraceStep[];
 }
 
-function pushTrace(trace: SelectionTrace | undefined, description: string, remaining: number): void {
-  if (!trace) return;
+function pushTrace(trace: SelectionTrace, description: string, remaining: number): void {
   trace.steps.push({ description, remaining });
 }
 
@@ -215,7 +215,7 @@ function resolveCultureAnchor(ctx: RuleContext): HardState {
 }
 
 function calculateHubPenalty(entity: HardState, ctx: RuleContext): number {
-  const totalLinks = ctx.graph.getEntityRelationships(entity.id, 'both').length;
+  const totalLinks = ctx.graph.getEntityRelationships(entity.id, 'both', { includeHistorical: false }).length;
   if (totalLinks <= HUB_PENALTY_THRESHOLD) return 1.0;
   const over = totalLinks - HUB_PENALTY_THRESHOLD;
   return 1 / (1 + Math.pow(over, HUB_PENALTY_EXPONENT));
@@ -333,7 +333,7 @@ export function applyPickStrategy(
 }
 
 function buildConnectedEntitySet(entity: HardState, limit: SaturationLimit, ctx: RuleContext): Set<string> {
-  const relationships = ctx.graph.getRelationships(entity.id, limit.relationshipKind);
+  const relationships = ctx.graph.getRelationships(entity.id, limit.relationshipKind, { includeHistorical: false });
   const connectedEntities = new Set<string>();
   for (const rel of relationships) {
     const otherId = rel.src === entity.id ? rel.dst : rel.src;
@@ -387,7 +387,7 @@ function selectByPreferenceOrder(
   allEntities: HardState[],
   rule: SelectionRule,
   kindLabel: string,
-  trace: SelectionTrace | undefined
+  trace: SelectionTrace
 ): HardState[] {
   let result: HardState[] = [];
   for (const subtype of rule.subtypePreferences) {
@@ -403,7 +403,7 @@ function applyEntitySelectionFilters(
   entities: HardState[],
   rule: SelectionRule,
   ctx: RuleContext,
-  trace: SelectionTrace | undefined
+  trace: SelectionTrace
 ): HardState[] {
   let result = entities;
   if (rule.subtypes.length > 0) {
@@ -441,7 +441,7 @@ function applyEntitySelectionFilters(
 export function selectEntities(
   rule: SelectionRule,
   ctx: RuleContext,
-  trace: SelectionTrace
+  trace: SelectionTrace = { steps: [] }
 ): HardState[] {
   const graphView = ctx.graph;
   let entities: HardState[];
@@ -465,7 +465,7 @@ export function selectEntities(
       const direction = normalizeDirection(rule.direction);
       const mustHave = rule.mustHave === true;
       entities = getCandidates().filter((entity) => {
-        const relationships = ctx.graph.getRelationships(entity.id, rule.relationshipKind);
+        const relationships = ctx.graph.getRelationships(entity.id, rule.relationshipKind, { includeHistorical: false });
         const hasRel = relationships.some((link) => {
           if (direction === 'src') return link.src === entity.id;
           if (direction === 'dst') return link.dst === entity.id;
@@ -538,7 +538,7 @@ function traversePath(
     const direction = normalizeDirection(step.direction);
 
     for (const entity of currentEntities) {
-      const related = graphView.getConnectedEntities(entity.id, step.via, direction);
+      const related = graphView.getConnectedEntities(entity.id, step.via, direction, { includeHistorical: false });
       nextEntities.push(...related.filter((r) => passesStepFilters(r, step)));
     }
 
@@ -561,7 +561,7 @@ function resolveFromEntities(
   ctx: RuleContext,
   graphView: RuleContext['graph'],
   needsHistorical: boolean,
-  trace: SelectionTrace | undefined
+  trace: SelectionTrace
 ): HardState[] {
   if (isPathBasedSpec(select.from)) {
     const steps = (select.from).path;
@@ -579,11 +579,11 @@ function resolveFromEntities(
     }
     return traversePath(startEntities, steps, ctx, trace);
   }
-  const fromSpec = select.from as { relatedTo: string; relationshipKind: string; direction: string };
+  const fromSpec = select.from as { relatedTo: string; relationshipKind: string; direction: 'out' | 'in' | 'any' | 'src' | 'dst' | 'both' };
   const relatedTo = ctx.resolver.resolveEntity(fromSpec.relatedTo);
   if (!relatedTo) { pushTrace(trace, `related to ${fromSpec.relatedTo} (not found)`, 0); return []; }
   const direction = normalizeDirection(fromSpec.direction);
-  const result = graphView.getConnectedEntities(relatedTo.id, fromSpec.relationshipKind, direction);
+  const result = graphView.getConnectedEntities(relatedTo.id, fromSpec.relationshipKind, direction, { includeHistorical: false });
   pushTrace(trace, `via ${fromSpec.relationshipKind} from ${relatedTo.name || relatedTo.id}`, result.length);
   return result;
 }
@@ -592,7 +592,7 @@ function resolveByKindEntities(
   select: VariableSelectionRule,
   graphView: RuleContext['graph'],
   needsHistorical: boolean,
-  trace: SelectionTrace | undefined
+  trace: SelectionTrace
 ): HardState[] {
   if (select.kinds.length > 0) {
     const result = graphView.getEntities({ includeHistorical: needsHistorical }).filter((e) => select.kinds.includes(e.kind));
@@ -613,7 +613,7 @@ function applyVariableEntityFilters(
   entities: HardState[],
   select: VariableSelectionRule,
   ctx: RuleContext,
-  trace: SelectionTrace | undefined
+  trace: SelectionTrace
 ): HardState[] {
   let result = entities;
   if (select.kinds.length > 0) {
@@ -651,7 +651,7 @@ function applyVariableEntityFilters(
 export function selectVariableEntities(
   select: VariableSelectionRule,
   ctx: RuleContext,
-  trace: SelectionTrace
+  trace: SelectionTrace = { steps: [] }
 ): HardState[] {
   const graphView = ctx.graph;
   const needsHistorical = select.status === 'historical' || select.statuses.includes('historical');
@@ -718,7 +718,7 @@ export function resolveVariablesForEntity(
   baseCtx: RuleContext,
   self: HardState
 ): Record<string, HardState> | null {
-  const resolved: Partial<Record<string, HardState>> = {};
+  const resolved: Record<string, HardState> = {};
 
   // Create a resolver that can resolve $self and previously resolved variables
   const createResolvingContext = (): RuleContext => ({

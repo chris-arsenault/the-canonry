@@ -291,9 +291,16 @@ export class SemanticEnricher {
       action: 'war_started',
       participantEffects: participants.map(p => ({
         entity: p!,
-        effects: [{ type: 'relationship_formed' as const, semanticKind: 'rivalry' as const, description: 'entered conflict' }],
+        effects: [{
+          type: 'relationship_formed' as const,
+          semanticKind: 'rivalry' as const,
+          description: 'entered conflict',
+          relationshipKind: 'at_war_with',
+          relatedEntity: participants.find(other => other!.id !== p!.id) ?? p!,
+        }],
       })),
       description: `War erupts between ${participants.slice(0, 3).map(p => p!.name).join(', ')}${participants.length > 3 ? ' and ' + (participants.length - 3) + ' others' : ''}`,
+      causedBy: { hasCause: false, eventId: '', entityId: '', actionType: '', success: true },
       narrativeTags: ['war', 'conflict', 'multi-entity'],
     };
   }
@@ -356,12 +363,13 @@ export class SemanticEnricher {
       action: 'coalescence',
       participantEffects: [{
         entity: { id: target.id, name: target.name, kind: target.kind, subtype: target.subtype },
-        effects: [{ type: 'relationship_formed' as const, description: `received ${members.length} new members` }],
+        effects: [{ type: 'relationship_formed' as const, semanticKind: '' as const, description: `received ${members.length} new members`, relationshipKind: 'part_of', relatedEntity: { id: members[0].srcId, name: members[0].srcName, kind: 'unknown', subtype: 'unknown' } }],
       }, ...members.map(m => ({
         entity: { id: m.srcId, name: m.srcName, kind: 'unknown', subtype: 'unknown' },
-        effects: [{ type: 'relationship_formed' as const, relationshipKind: 'part_of', description: `joined ${target.name}` }],
+        effects: [{ type: 'relationship_formed' as const, semanticKind: 'alliance' as const, relationshipKind: 'part_of', description: `joined ${target.name}`, relatedEntity: { id: target.id, name: target.name, kind: target.kind, subtype: target.subtype } }],
       }))],
       description: `${members.map(m => m.srcName).slice(0, 3).join(', ')}${members.length > 3 ? ' and ' + (members.length - 3) + ' others' : ''} united under ${target.name}`,
+      causedBy: { hasCause: false, eventId: '', entityId: '', actionType: '', success: true },
       narrativeTags: ['coalescence', 'unification', 'multi-entity'],
     };
   }

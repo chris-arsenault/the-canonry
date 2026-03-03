@@ -115,7 +115,7 @@ export class DynamicWeightCalculator {
     templates.forEach(template => {
       const baseWeight = baseWeights.get(template.id) || 0;
       const creationInfo = creationInfoMap.get(template.id);
-      const adjustment = this.calculateWeight(template, baseWeight, metrics, creationInfo);
+      const adjustment = this.calculateWeight(template, baseWeight, metrics, creationInfo || { entityKinds: [] });
       adjustments.set(template.id, adjustment);
     });
 

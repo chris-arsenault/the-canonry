@@ -14,6 +14,14 @@ import {
 import { describeMetric, evaluateMetric } from '../rules/metrics';
 import type { MetricContext, MetricResult } from '../rules/metrics';
 import type { FeedbackContribution } from '../observer/types';
+import type { HardState } from '../core/worldTypes';
+
+/**
+ * Sentinel entity for pressure evaluation.
+ * Pressure feedback metrics are always global (entity_count, ratio, etc.)
+ * and never dereference the entity parameter.
+ */
+const PRESSURE_SENTINEL = {} as HardState;
 
 // =============================================================================
 // FACTOR EVALUATION (rules/metrics)
@@ -65,11 +73,11 @@ function extractRawValue(factor: FeedbackFactor, result: MetricResult): number {
 }
 
 function evaluateFactor(factor: FeedbackFactor, ctx: MetricContext): number {
-  return evaluateMetric(factor, ctx).value;
+  return evaluateMetric(factor, ctx, PRESSURE_SENTINEL).value;
 }
 
 function evaluateFactorWithDetails(factor: FeedbackFactor, ctx: MetricContext): FeedbackContribution {
-  const result = evaluateMetric(factor, ctx);
+  const result = evaluateMetric(factor, ctx, PRESSURE_SENTINEL);
   const rawValue = extractRawValue(factor, result);
   const coefficient = typeof factor.coefficient === 'number' ? factor.coefficient : 1;
 

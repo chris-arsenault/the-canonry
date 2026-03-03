@@ -8,6 +8,20 @@
 import { Relationship } from '../core/worldTypes';
 import { Graph } from '../engine/types';
 
+/** Build a full Relationship object with sensible defaults for fields not known at construction time. */
+function buildRelationship(kind: string, src: string, dst: string, strength: number): Relationship {
+  return {
+    kind, src, dst, strength,
+    distance: 0,
+    category: '',
+    createdAt: 0,
+    catalyzedBy: '',
+    status: 'active',
+    archived: { occurred: false as const, tick: 0 },
+    createdBy: { tick: 0, source: 'template', sourceId: '', success: true, narration: '' },
+  };
+}
+
 export class RelationshipBuilder {
   private relationships: Relationship[] = [];
 
@@ -19,8 +33,7 @@ export class RelationshipBuilder {
    * @param strength - Optional relationship strength (0-1)
    */
   add(kind: string, src: string, dst: string, strength: number = 0.5): this {
-    const rel: Relationship = { kind, src, dst, strength };
-    this.relationships.push(rel);
+    this.relationships.push(buildRelationship(kind, src, dst, strength));
     return this;
   }
 
@@ -127,5 +140,5 @@ export function createRelationship(
   dst: string,
   strength: number = 0.5
 ): Relationship {
-  return { kind, src, dst, strength };
+  return buildRelationship(kind, src, dst, strength);
 }

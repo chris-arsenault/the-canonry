@@ -89,7 +89,7 @@ export function encodeParameters(domain: NamingDomain): ParameterVector {
     lengthMin: phonology.lengthRange[0],
     lengthMax: phonology.lengthRange[1],
 
-    favoredClusterBoost: phonology.favoredClusterBoost,
+    favoredClusterBoost: phonology.favoredClusterBoost ?? 1,
   };
 }
 
@@ -177,9 +177,7 @@ export function perturbParameters(
     lengthMin: theta.lengthMin + Math.round(gaussian() * stepSizes.lengthRange),
     lengthMax: theta.lengthMax + Math.round(gaussian() * stepSizes.lengthRange),
 
-    favoredClusterBoost: theta.favoredClusterBoost
-      ? theta.favoredClusterBoost + gaussian() * 1.0
-      : undefined,
+    favoredClusterBoost: theta.favoredClusterBoost + gaussian() * 1.0,
   };
 }
 

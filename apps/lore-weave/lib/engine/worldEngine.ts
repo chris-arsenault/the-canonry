@@ -78,8 +78,8 @@ export class WorldEngine {
   private startTime: number = 0;  // Track simulation duration
   private simulationRunId: string = '';  // Unique ID for this simulation run
   private statisticsCollector: StatisticsCollector;  // Statistics tracking for fitness evaluation
-  private populationTracker: PopulationTracker;  // Population metrics for homeostatic control
-  private dynamicWeightCalculator: DynamicWeightCalculator;  // Dynamic template weight adjustment
+  private populationTracker!: PopulationTracker;  // Population metrics for homeostatic control
+  private dynamicWeightCalculator!: DynamicWeightCalculator;  // Dynamic template weight adjustment
   private contractEnforcer: ContractEnforcer;  // Active contract enforcement
   // Enrichment tracking moved to @illuminator
   // private pendingEnrichments: Promise<void>[] = [];
@@ -110,7 +110,7 @@ export class WorldEngine {
   private targetSelector: TargetSelector;
 
   // Coordinate context (shared across all templates/systems)
-  private coordinateContext: CoordinateContext;
+  private coordinateContext!: CoordinateContext;
 
   // Name generation service (created from cultures config)
   private nameForgeService: NameGenerationService | null = null;
@@ -137,7 +137,7 @@ export class WorldEngine {
   private tickStartPressures: Map<string, number> = new Map();
 
   // Narrative event tracking (captures state changes for story generation)
-  private stateChangeTracker: StateChangeTracker;
+  private stateChangeTracker!: StateChangeTracker;
 
   /**
    * Mutation tracker for lineage tracking.
@@ -212,7 +212,7 @@ export class WorldEngine {
 
     // Initialize target selector (prevents super-hub formation)
     this.targetSelector = new TargetSelector();
-    this.emitter.log('info', 'Intelligent target selection enabled (anti-super-hub)');
+    this.emitter.log('info', 'Intelligent target selection enabled (anti-super-hub)', {});
 
     // Initialize mutation tracker (lineage system - see LINEAGE.md)
     this.mutationTracker = new MutationTracker();
@@ -312,11 +312,11 @@ export class WorldEngine {
       const errorDetails = validationResult.errors.join('\n  - ');
       this.emitter.error({
         message: `Framework validation failed with ${validationResult.errors.length} error(s):\n  - ${errorDetails}`,
-        phase: 'validation', context: { errors: validationResult.errors }
+        stack: '', phase: 'validation', context: { errors: validationResult.errors }
       });
       throw new Error(`Framework validation failed with ${validationResult.errors.length} error(s):\n  - ${errorDetails}`);
     }
-    this.emitter.log('info', `Lore Weave version ${LORE_WEAVE_VERSION}`);
+    this.emitter.log('info', `Lore Weave version ${LORE_WEAVE_VERSION}`, {});
   }
 
   private initializePopulationTracking(config: EngineConfig): void {
@@ -339,7 +339,7 @@ export class WorldEngine {
       );
     }
     this.nameForgeService = new NameForgeService(culturesWithNaming, this.emitter);
-    this.config.nameForgeService = this.nameForgeService;
+    this.config.nameForgeService = this.nameForgeService!;
     this.emitter.log('info', 'NameForgeService initialized', {
       cultures: culturesWithNaming.length,
       cultureIds: culturesWithNaming.map(c => c.id)
@@ -350,7 +350,7 @@ export class WorldEngine {
     this.coordinateContext = new CoordinateContext({
       schema: config.schema,
       defaultMinDistance: config.defaultMinDistance,
-      nameForgeService: this.nameForgeService,
+      nameForgeService: this.nameForgeService!,
     });
     this.emitter.log('info', 'Coordinate context initialized', {
       cultures: this.coordinateContext.getCultureIds().length,
@@ -439,7 +439,7 @@ export class WorldEngine {
 
     if (!this.growthSystem && !hasDisabledGrowthSystem) {
       this.growthSystem = createGrowthSystem(
-        { id: 'framework-growth', name: 'Framework Growth', description: 'Distributes template growth across simulation ticks' },
+        { id: 'framework-growth', name: 'Framework Growth', description: 'Distributes template growth across simulation ticks', maxTemplatesPerTick: 5, minTemplatesPerTick: 1, yieldAveragingWindow: 30, maxAttemptsPerTick: 40 },
         growthDependencies
       );
       this.config.systems.push({
@@ -479,7 +479,7 @@ export class WorldEngine {
       return;
     }
 
-    runtimeSystems.push(createSystemFromDeclarative(sys as DeclarativeSystem));
+    runtimeSystems.push(createSystemFromDeclarative(sys as DeclarativeSystem, { growthDependencies }));
   }
 
   private loadInitialEntities(initialState: HardState[]): void {
@@ -511,7 +511,7 @@ export class WorldEngine {
       createdAt: 0,
       updatedAt: 0,
       narrativeHint: entity.narrativeHint || entity.summary || entity.description,
-      lockedSummary: entity.summary ? true : undefined
+      lockedSummary: entity.summary ? true : false
     };
     initializeCatalystSmart(loadedEntity);
     this.assignRegionToEntity(loadedEntity);
@@ -610,7 +610,8 @@ export class WorldEngine {
 
     effects.push({
       type: 'created',
-      description: this.getGenesisCreationVerb(entity.kind)
+      description: this.getGenesisCreationVerb(entity.kind),
+      semanticKind: '',
     });
 
     const entityRels = relsByEntity.get(entity.id) || [];
@@ -627,7 +628,8 @@ export class WorldEngine {
           id: other.id, name: other.name,
           kind: other.kind, subtype: other.subtype
         },
-        description: this.getGenesisRelationshipVerb(rel.kind, isSource, other.name)
+        description: this.getGenesisRelationshipVerb(rel.kind, isSource, other.name),
+        semanticKind: '',
       });
     }
 
@@ -690,14 +692,14 @@ export class WorldEngine {
   private logWarning(message: string): void {
     // Record warning in statistics
     if (message.includes('BUDGET')) {
-      this.statisticsCollector.recordWarning('budget');
+      this.statisticsCollector.recordWarning('budget', '');
     } else if (message.includes('AGGRESSIVE SYSTEM')) {
       const match = message.match(/AGGRESSIVE SYSTEM: (\S+)/);
       if (match) {
         this.statisticsCollector.recordWarning('aggressive', match[1]);
       }
     } else if (message.includes('GROWTH RATE')) {
-      this.statisticsCollector.recordWarning('growth');
+      this.statisticsCollector.recordWarning('growth', '');
     }
 
     this.emitter.log('warn', message, { tick: this.graph.tick });
@@ -717,8 +719,8 @@ export class WorldEngine {
     this.simulationRunId = `run_${this.startTime}_${crypto.randomUUID().slice(0, 9)}`;
     this.simulationStarted = true;
 
-    this.emitter.log('info', `Starting world generation (runId: ${this.simulationRunId})...`);
-    this.emitter.log('info', `Initial state: ${this.graph.getEntityCount()} entities`);
+    this.emitter.log('info', `Starting world generation (runId: ${this.simulationRunId})...`, {});
+    this.emitter.log('info', `Initial state: ${this.graph.getEntityCount()} entities`, {});
 
     // Ensure first era entity exists BEFORE any growth phase runs
     // This is critical so entities created in the first growth phase can have ORIGINATED_IN relationships
@@ -741,7 +743,7 @@ export class WorldEngine {
     // Get first era from config
     const configEras = this.config.eras;
     if (configEras.length === 0) {
-      this.emitter.log('warn', 'No eras defined in config - entities will not have ORIGINATED_IN relationships');
+      this.emitter.log('warn', 'No eras defined in config - entities will not have ORIGINATED_IN relationships', {});
       return;
     }
 
@@ -767,14 +769,13 @@ export class WorldEngine {
       firstEraConfig,
       this.graph.tick,
       FRAMEWORK_STATUS.CURRENT,
-      undefined,
       firstEraId
     );
 
     // Add era entity to graph directly (bypasses addEntity to avoid circular ORIGINATED_IN)
     this.graph._loadEntity(firstEra.id, firstEra);
 
-    this.emitter.log('info', `[WorldEngine] Initialized first era: ${firstEraConfig.name}`);
+    this.emitter.log('info', `[WorldEngine] Initialized first era: ${firstEraConfig.name}`, {});
   }
 
   /**
@@ -862,11 +863,11 @@ export class WorldEngine {
     }
   }
 
-  private getReachabilityMetrics(): { connectedComponents: number; fullyConnectedTick: number | null } {
+  private getReachabilityMetrics(): { connectedComponents: number; fullyConnectedTick: number } {
     this.updateReachabilityMetrics();
     return {
       connectedComponents: this.reachabilityComponents ?? 0,
-      fullyConnectedTick: this.fullyConnectedTick
+      fullyConnectedTick: this.fullyConnectedTick ?? 0
     };
   }
 
@@ -935,8 +936,8 @@ export class WorldEngine {
     // Emit finalizing progress
     this.emitProgress('finalizing');
 
-    this.emitter.log('info', 'Generation complete!');
-    this.emitter.log('info', `Final state: ${this.graph.getEntityCount()} entities, ${this.graph.getRelationshipCount()} relationships`);
+    this.emitter.log('info', 'Generation complete!', {});
+    this.emitter.log('info', `Final state: ${this.graph.getEntityCount()} entities, ${this.graph.getRelationshipCount()} relationships`, {});
 
     // Emit final reports
     this.emitFinalFeedbackReport();
@@ -981,7 +982,7 @@ export class WorldEngine {
     this.loadSeedRelationships();
     this.updateReachabilityMetrics();
 
-    this.emitter.log('info', 'Simulation reset to initial state');
+    this.emitter.log('info', 'Simulation reset to initial state', {});
     this.emitProgress('initializing');
   }
 
@@ -1005,7 +1006,7 @@ export class WorldEngine {
     this.lastGrowthSummary = null;
     this.reachabilityComponents = null;
     this.fullyConnectedTick = null;
-    this.growthSystem.reset();
+    this.growthSystem?.reset();
     coordinateStats.reset();
   }
 
@@ -1064,21 +1065,21 @@ export class WorldEngine {
     // - Completed all eras AND (hit tick limit OR excessive growth)
     // - Final era exit conditions met
     if (hitTickLimit) {
-      this.emitter.log('warn', `Stopped: Hit maximum tick limit (${this.config.maxTicks})`);
+      this.emitter.log('warn', `Stopped: Hit maximum tick limit (${this.config.maxTicks})`, {});
       return false;
     }
 
     if (finalEraExitMet) {
-      this.emitter.log('info', `Stopped: Final era exit conditions met at tick ${this.graph.tick}`);
+      this.emitter.log('info', `Stopped: Final era exit conditions met at tick ${this.graph.tick}`, {});
       return false;
     }
 
     if (allErasCompleted) {
       if (excessiveGrowth) {
-        this.emitter.log('warn', `Stopped: All eras complete + excessive growth (${this.graph.getEntityCount()} entities)`);
+        this.emitter.log('warn', `Stopped: All eras complete + excessive growth (${this.graph.getEntityCount()} entities)`, {});
         return false;
       }
-      this.emitter.log('info', `All eras completed at epoch ${this.currentEpoch}`);
+      this.emitter.log('info', `All eras completed at epoch ${this.currentEpoch}`, {});
       return false;
     }
 
@@ -1157,7 +1158,7 @@ export class WorldEngine {
     });
 
     if (linkedCount > 0) {
-      this.emitter.log('info', `Linked final era "${currentEra.name}" to ${linkedCount} prominent entities`);
+      this.emitter.log('info', `Linked final era "${currentEra.name}" to ${linkedCount} prominent entities`, {});
     }
   }
 
@@ -1179,7 +1180,7 @@ export class WorldEngine {
     const initialRelationshipCount = this.graph.getRelationshipCount();
 
     // Initialize distributed growth for this epoch
-    this.growthSystem.startEpoch(epochEra);
+    this.growthSystem!.startEpoch(epochEra);
     this.lastGrowthSummary = null;
 
     // Simulation phase
@@ -1207,7 +1208,7 @@ export class WorldEngine {
     }
 
     // Capture growth summary for this epoch
-    this.lastGrowthSummary = this.growthSystem.completeEpoch();
+    this.lastGrowthSummary = this.growthSystem!.completeEpoch();
     this.emitter.growthPhase({
       epoch: this.currentEpoch,
       entitiesCreated: this.lastGrowthSummary.entitiesCreated,
@@ -1352,12 +1353,12 @@ export class WorldEngine {
     failedRules: string[];
     selectionCount: number;
     summary: string;
-    selectionDiagnosis: unknown;
-    variableDiagnoses: unknown[];
+    selectionDiagnosis: { strategy: string; targetKind: string; filterSteps: Array<{ description: string; remaining: number }> };
+    variableDiagnoses: Array<{ name: string; fromType: 'graph' | 'related' | 'path'; kind: string; relationshipKind: string; relatedTo: string; filterSteps: Array<{ description: string; remaining: number }> }>;
   } {
     const declarativeTemplate = this.declarativeTemplates.get(template.id);
     if (!declarativeTemplate) {
-      return { templateId: template.id, failedRules: [], selectionCount: 0, summary: 'Non-declarative template' };
+      return { templateId: template.id, failedRules: [], selectionCount: 0, summary: 'Non-declarative template', selectionDiagnosis: { strategy: '', targetKind: '', filterSteps: [] }, variableDiagnoses: [] };
     }
     const diagnosis = this.templateInterpreter.diagnoseCanApply(declarativeTemplate, this.runtime);
     let summary: string;
@@ -1378,7 +1379,7 @@ export class WorldEngine {
       selectionDiagnosis: diagnosis.selectionDiagnosis,
       variableDiagnoses: diagnosis.failedVariableDiagnoses.length > 0
         ? diagnosis.failedVariableDiagnoses
-        : undefined
+        : []
     };
   }
 
@@ -1426,7 +1427,7 @@ export class WorldEngine {
 
   private emitSystemHealthReport(avgEntityDeviation: number): void {
     const populationHealth = 1 - avgEntityDeviation;
-    let status: string = 'needs_attention';
+    let status: 'stable' | 'functional' | 'needs_attention' = 'needs_attention';
     if (populationHealth > 0.8) status = 'stable';
     else if (populationHealth > 0.6) status = 'functional';
     this.emitter.systemHealth({ populationHealth, status });
@@ -1441,7 +1442,7 @@ export class WorldEngine {
     const relationships = this.graph.getRelationships();
 
     // Entity breakdown by kind:subtype
-    const byKind: Partial<Record<string, { total: number; bySubtype: Record<string, number> }>> = {};
+    const byKind: Record<string, { total: number; bySubtype: Record<string, number> }> = {};
     entities.forEach(e => {
       if (!byKind[e.kind]) {
         byKind[e.kind] = { total: 0, bySubtype: {} };
@@ -1569,13 +1570,22 @@ export class WorldEngine {
         entityCount: entities.length,
         relationshipCount: relationships.length,
         durationMs,
+        isComplete: true,
+        metaEntityCount: this.metaEntitiesFormed.length,
+        enrichment: { occurred: false, tick: 0 },
+        metaEntityFormation: {
+          totalFormed: this.metaEntitiesFormed.length,
+          formations: this.metaEntitiesFormed,
+          comment: ''
+        },
         reachability: this.getReachabilityMetrics()
       },
       hardState: entities,
       relationships,
-      narrativeHistory: this.graph.narrativeHistory.length > 0 ? this.graph.narrativeHistory : undefined,
+      narrativeHistory: this.graph.narrativeHistory.length > 0 ? this.graph.narrativeHistory : [],
       pressures: Object.fromEntries(this.graph.pressures),
-      coordinateState
+      coordinateState,
+      validation: { totalChecks: 0, passed: 0, failed: 0, results: [] }
     });
   }
   // Meta-entity formation is now handled by SimulationSystems:
@@ -1662,10 +1672,12 @@ export class WorldEngine {
 
     Object.entries(distributionTargets.entities).forEach(([kind, subtypeTargets]) => {
       let kindTotal = 0;
-      Object.values(subtypeTargets).forEach((targetConfig) => {
-        const targetValue = typeof targetConfig.target === 'number' ? targetConfig.target : 0;
-        kindTotal += targetValue;
-      });
+      if (subtypeTargets) {
+        Object.values(subtypeTargets).forEach((targetConfig) => {
+          const targetValue = targetConfig && typeof targetConfig.target === 'number' ? targetConfig.target : 0;
+          kindTotal += targetValue;
+        });
+      }
       totalsByKind.set(kind, kindTotal);
       total += kindTotal;
     });
@@ -1826,7 +1838,7 @@ export class WorldEngine {
     relationshipsAddedThisTick: number
   ): Promise<number> {
     try {
-      this.mutationTracker.enterContext('system', system.id);
+      this.mutationTracker.enterContext('system', system.id, true, '');
 
       const relationshipsBefore = this.graph.getRelationshipCount();
       const result = await system.apply(this.runtime, baseModifier);
@@ -1859,7 +1871,7 @@ export class WorldEngine {
       return totalAdded;
     } catch (error) {
       this.mutationTracker.exitContext();
-      this.emitter.log('error', `System ${system.id} failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.emitter.log('error', `System ${system.id} failed: ${error instanceof Error ? error.message : String(error)}`, {});
       return 0;
     }
   }
@@ -1888,7 +1900,7 @@ export class WorldEngine {
     const hasNarrativeGroup = !!(item.narrativeGroupId && !hasActionContext);
     if (hasNarrativeGroup) {
       const narration = narrationsByGroup[item.narrativeGroupId || ''];
-      this.mutationTracker.enterContext('system', `${systemId}:${item.narrativeGroupId}`, undefined, narration);
+      this.mutationTracker.enterContext('system', `${systemId}:${item.narrativeGroupId}`, true, narration);
     }
 
     return { hasActionContext, hasNarrativeGroup };
@@ -1942,7 +1954,7 @@ export class WorldEngine {
     if (result.relationshipsToArchive.length === 0) return;
     for (const rel of result.relationshipsToArchive) {
       const ctx = this.enterItemContext(rel, systemId, result.narrationsByGroup);
-      archiveRelationship(this.graph, rel.src, rel.dst, rel.kind);
+      archiveRelationship(this.graph, rel.src, rel.dst, rel.kind, 'system');
       this.exitItemContext(ctx.hasActionContext, ctx.hasNarrativeGroup);
     }
   }
@@ -1971,7 +1983,7 @@ export class WorldEngine {
     const entity = this.graph.getEntity(mod.id);
 
     if (changes.tags && entity) {
-      changes.tags = applyTagPatch(entity.tags, changes.tags);
+      changes.tags = applyTagPatch(entity.tags, changes.tags as Record<string, string | boolean>);
     }
 
     this.recordModificationChange(entity, mod, changes);
@@ -2000,9 +2012,9 @@ export class WorldEngine {
 
     if (hasNarrativeGroup) {
       const narration = narrationsByGroup[mod.narrativeGroupId || ''];
-      this.mutationTracker.enterContext('system', `${system.id}:${mod.narrativeGroupId}`, undefined, narration);
+      this.mutationTracker.enterContext('system', `${system.id}:${mod.narrativeGroupId}`, true, narration);
     } else if (needsFallback) {
-      this.mutationTracker.enterContext('system', `${system.id}:${mod.id}`);
+      this.mutationTracker.enterContext('system', `${system.id}:${mod.id}`, true, '');
     }
 
     return { hasAction, hasNarrativeGroup, needsFallback };
@@ -2100,10 +2112,11 @@ export class WorldEngine {
       subject: { id: oldEra.id, name: oldEra.name, kind: oldEra.kind, subtype: oldEra.subtype },
       action: 'ended',
       participantEffects: [
-        { entity: { id: oldEra.id, name: oldEra.name, kind: oldEra.kind, subtype: oldEra.subtype }, effects: [{ type: 'ended', description: 'era concluded' }] },
-        { entity: { id: newEra.id, name: newEra.name, kind: newEra.kind, subtype: newEra.subtype }, effects: [{ type: 'created', description: 'era began' }] },
+        { entity: { id: oldEra.id, name: oldEra.name, kind: oldEra.kind, subtype: oldEra.subtype }, effects: [{ type: 'ended', description: 'era concluded', semanticKind: '' }] },
+        { entity: { id: newEra.id, name: newEra.name, kind: newEra.kind, subtype: newEra.subtype }, effects: [{ type: 'created', description: 'era began', semanticKind: '' }] },
       ],
       description,
+      causedBy: { hasCause: false, eventId: '', entityId: '', actionType: '', success: true },
       narrativeTags: ['era', 'transition', 'historical', 'temporal'],
     };
     this.graph.narrativeHistory.push(eraEvent);
@@ -2369,7 +2382,10 @@ export class WorldEngine {
         era: this.graph.currentEra.name,
         entityCount: entities.length,
         relationshipCount: relationships.length,
+        durationMs: 0,
+        isComplete: false,
         metaEntityCount: metaEntities.length,
+        enrichment: { occurred: false, tick: 0 },
         metaEntityFormation: {
           totalFormed: this.metaEntitiesFormed.length,
           formations: this.metaEntitiesFormed,
@@ -2380,9 +2396,10 @@ export class WorldEngine {
       hardState: entities,
       relationships,
       pressures: Object.fromEntries(this.graph.pressures),
-      narrativeHistory: this.graph.narrativeHistory.length > 0 ? this.graph.narrativeHistory : undefined,
+      narrativeHistory: this.graph.narrativeHistory.length > 0 ? this.graph.narrativeHistory : [],
       // loreRecords moved to @illuminator
-      coordinateState
+      coordinateState,
+      validation: { totalChecks: 0, passed: 0, failed: 0, results: [] }
     };
   }
 

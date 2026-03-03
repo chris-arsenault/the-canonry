@@ -1,4 +1,4 @@
-import { SimulationSystem, SystemResult } from '../engine/types';
+import { SimulationSystem, SystemResult, ActionContext } from '../engine/types';
 import { HardState, Relationship } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { rollProbability, hasTag } from '../utils';
@@ -294,8 +294,13 @@ function mergeMutationResult(
         src: rel.src,
         dst: rel.dst,
         strength: rel.strength,
-        category: rel.category,
+        distance: 0,
+        category: rel.category ?? '',
+        createdAt: 0,
         catalyzedBy,
+        status: 'active',
+        archived: { occurred: false, tick: 0 },
+        createdBy: { tick: 0, source: 'system', sourceId: '', success: true, narration: '' },
       });
     }
   }
@@ -319,25 +324,33 @@ function mergeMutationResult(
 export function createGraphContagionSystem(
   config: GraphContagionConfig
 ): SimulationSystem {
+  const emptyResult = (description: string): SystemResult => ({
+    relationshipsAdded: [],
+    relationshipsAdjusted: [],
+    relationshipsToArchive: [],
+    entitiesModified: [],
+    pressureChanges: {},
+    description,
+    details: {},
+    narrationsByGroup: {},
+  });
+
   return {
     id: config.id,
     name: config.name,
+    state: {},
+    initialize: () => {},
 
     apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
       // Throttle check
       if (config.throttleChance < 1.0) {
         if (!rollProbability(config.throttleChance, modifier)) {
-          return {
-            relationshipsAdded: [],
-            entitiesModified: [],
-            pressureChanges: {},
-            description: `${config.name}: dormant`
-          };
+          return emptyResult(`${config.name}: dormant`);
         }
       }
 
       // Use multi-source mode if configured, otherwise single-source mode
-      if (config.multiSource.enabled) {
+      if (config.multiSource.sourceSelection.kind) {
         return applyMultiSourceContagion(config, graphView, modifier);
       } else {
         return applySingleSourceContagion(config, graphView, modifier);
@@ -362,7 +375,7 @@ function categorizeContagionEntities(
   for (const entity of entities) {
     if (isInfected(entity, config.contagion, graphView)) {
       infected.push(entity);
-    } else if (config.recovery.immunityTag && isImmune(entity, config.recovery.immunityTag)) {
+    } else if (config.recovery.immunityTag && isImmune(entity, config.recovery.immunityTag, '')) {
       immune.push(entity);
     } else {
       susceptible.push(entity);
@@ -396,7 +409,12 @@ function generateNarration(
   if (!config.narrationTemplate) return;
   const narrationCtx = createSystemRuleContext({
     self: entity,
+    member: entity,
+    member2: entity,
+    sharedVia: entity,
     variables: { source, contagion_source: contagionSource },
+    counts: {},
+    values: {},
   });
   const narrationResult = interpolate(config.narrationTemplate, narrationCtx);
   if (narrationResult.complete) {
@@ -450,7 +468,7 @@ function processTransmissionForEntity(
   const result = prepareMutation(action, infectionCtx);
   mergeMutationResult(
     result, modifications, relationships, relationshipsAdjusted, pressureChanges,
-    action.type === 'create_relationship' ? source.id : undefined
+    action.type === 'create_relationship' ? source.id : ''
   );
   if (action.type === 'create_relationship' && result.applied && result.relationshipsCreated.length > 0) {
     graphView.recordRelationshipFormation(entity.id, action.kind);
@@ -584,9 +602,13 @@ function applySingleSourceContagion(
   if (infected.length === 0) {
     return {
       relationshipsAdded: [],
+      relationshipsAdjusted: [],
+      relationshipsToArchive: [],
       entitiesModified: [],
       pressureChanges: {},
-      description: `${config.name}: no carriers`
+      description: `${config.name}: no carriers`,
+      details: {},
+      narrationsByGroup: {},
     };
   }
 
@@ -634,16 +656,18 @@ function applySingleSourceContagion(
     adoptionRate: entities.length > 0 ? infected.length / entities.length : 0,
   };
 
+  const ctx: ActionContext = { source: 'system', sourceId: config.id, success: true };
   return {
-    relationshipsAdded: relationships,
-    relationshipsAdjusted,
-    entitiesModified: modifications as SystemResult['entitiesModified'],
+    relationshipsAdded: relationships.map(r => ({ ...r, actionContext: ctx, narrativeGroupId: r.catalyzedBy ?? '' })),
+    relationshipsAdjusted: relationshipsAdjusted.map(r => ({ ...r, actionContext: ctx, narrativeGroupId: '' })),
+    relationshipsToArchive: [],
+    entitiesModified: modifications.map(m => ({ ...m, actionContext: ctx, narrativeGroupId: m.id })),
     pressureChanges,
     description: `${config.name}: ${relationships.length} new infections, ${modifications.length} modifications`,
     details: {
       contagionSnapshot: visualizationSnapshot,
     },
-    narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : undefined,
+    narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : {},
   };
 }
 
@@ -701,7 +725,7 @@ function applySetTagInfection(
   if (!result.applied) return false;
   for (const mod of result.entityModifications) {
     let currentTags = modifiedTags.get(mod.id) || { ...entity.tags };
-    currentTags = applyTagPatch(currentTags, mod.changes.tags);
+    if (mod.changes.tags) currentTags = applyTagPatch(currentTags, mod.changes.tags);
     modifiedTags.set(mod.id, currentTags);
   }
   return true;
@@ -746,7 +770,7 @@ function processMultiSourceTransmissionForEntity(
     actionApplied = applySetTagInfection(entity, source, action, infectionCtx, modifiedTags);
   } else {
     const result = prepareMutation(action, infectionCtx);
-    mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, pressureChanges);
+    mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, pressureChanges, source.id);
     actionApplied = result.applied;
   }
   if (actionApplied) {
@@ -774,7 +798,7 @@ function processMultiSourceRecoveryForEntity(
   currentTags[`${multiSource.immunityTagPrefix}:${source.id}`] = true;
   modifiedTags.set(entity.id, currentTags);
   if (!multiSource.immunityNarrationTemplate) return;
-  const narrationCtx = createSystemRuleContext({ self: entity, variables: { source } });
+  const narrationCtx = createSystemRuleContext({ self: entity, member: entity, member2: entity, sharedVia: entity, variables: { source }, counts: {}, values: {} });
   const narrationResult = interpolate(multiSource.immunityNarrationTemplate, narrationCtx);
   if (narrationResult.complete) {
     narrationsByGroup[`${entity.id}:immunity:${source.id}`] = narrationResult.text;
@@ -837,7 +861,7 @@ function flushTagModificationsToEntityMods(
     trimExcessTags(tags, 10);
     modifications.push({
       id: entityId,
-      changes: { tags: buildTagPatch(graphView.getEntity(entityId)?.tags, tags) }
+      changes: { tags: buildTagPatch(graphView.getEntity(entityId)!.tags, tags) }
     });
   }
 }
@@ -901,9 +925,13 @@ function applyMultiSourceContagion(
   if (sources.length === 0) {
     return {
       relationshipsAdded: [],
+      relationshipsAdjusted: [],
+      relationshipsToArchive: [],
       entitiesModified: [],
       pressureChanges: {},
-      description: `${config.name}: no active sources`
+      description: `${config.name}: no active sources`,
+      details: {},
+      narrationsByGroup: {},
     };
   }
 
@@ -956,15 +984,17 @@ function applyMultiSourceContagion(
     entities, allInfected, infectedBySource, vectorEdges, sources, newInfections
   );
 
+  const ctx: ActionContext = { source: 'system', sourceId: config.id, success: true };
   return {
-    relationshipsAdded: relationships,
-    relationshipsAdjusted,
-    entitiesModified: modifications as SystemResult['entitiesModified'],
+    relationshipsAdded: relationships.map(r => ({ ...r, actionContext: ctx, narrativeGroupId: r.catalyzedBy ?? '' })),
+    relationshipsAdjusted: relationshipsAdjusted.map(r => ({ ...r, actionContext: ctx, narrativeGroupId: '' })),
+    relationshipsToArchive: [],
+    entitiesModified: modifications.map(m => ({ ...m, actionContext: ctx, narrativeGroupId: m.id })),
     pressureChanges,
     description: `${config.name}: ${relationships.length} new believers, ${modifications.length} modifications across ${sources.length} sources`,
     details: {
       contagionSnapshot: visualizationSnapshot,
     },
-    narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : undefined,
+    narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : {},
   };
 }

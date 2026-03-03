@@ -91,17 +91,17 @@ const CONDITION_HANDLERS: Record<string, ConditionHandler> = {
 export function evaluateCondition(
   condition: Condition,
   ctx: RuleContext,
-  entity: HardState
+  entity: HardState = ctx.self
 ): ConditionResult {
-  const self = entity;
   const handler = CONDITION_HANDLERS[condition.type];
-  return handler(condition, ctx, self);
-
-  return {
-    passed: false,
-    diagnostic: `unknown condition type: ${condition.type}`,
-    details: { condition },
-  };
+  if (!handler) {
+    return {
+      passed: false,
+      diagnostic: `unknown condition type: ${condition.type}`,
+      details: { condition },
+    };
+  }
+  return handler(condition, ctx, entity);
 }
 
 // =============================================================================
@@ -228,7 +228,7 @@ function evaluateRelationshipCount(
   let count = 0;
 
   // Use graph relationships as the single source of truth
-  const allRelationships = ctx.graph.getAllRelationships();
+  const allRelationships = ctx.graph.getAllRelationships({ includeHistorical: false });
   for (const link of allRelationships) {
     if (condition.relationshipKind && link.kind !== condition.relationshipKind) {
       continue;
@@ -294,7 +294,7 @@ function evaluateRelationshipExists(
   const direction = normalizeDirection(condition.direction);
   const withEntityId = condition.with ? resolveEntityRef(condition.with, ctx, self)?.id : undefined;
 
-  const allRelationships = ctx.graph.getAllRelationships();
+  const allRelationships = ctx.graph.getAllRelationships({ includeHistorical: false });
   const passed = allRelationships.some((link) => {
     if (link.kind !== condition.relationshipKind) return false;
     if (!matchesDirection(link, self.id, direction)) return false;
@@ -338,7 +338,7 @@ function evaluateTagExists(
   let passed = has;
 
   if (has) {
-    const actualValue = getTagValue(entity.tags, condition.tag);
+    const actualValue = getTagValue(entity.tags, condition.tag, condition.value);
     passed = actualValue === condition.value;
   }
 
@@ -616,7 +616,7 @@ function evaluateComponentSize(
   self: HardState
 ): ConditionResult {
   const minStrength = condition.minStrength;
-  const adjacency = buildComponentAdjacency(ctx.graph.getAllRelationships(), condition.relationshipKinds, minStrength);
+  const adjacency = buildComponentAdjacency(ctx.graph.getAllRelationships({ includeHistorical: false }), condition.relationshipKinds, minStrength);
   const componentSize = dfsComponentSize(self.id, adjacency);
 
   const minOk = componentSize >= condition.min;
@@ -638,7 +638,7 @@ function evaluateEntityExists(
   condition: EntityExistsCondition,
   ctx: RuleContext
 ): ConditionResult {
-  const entity = resolveEntityRef(condition.entity, ctx);
+  const entity = resolveEntityRef(condition.entity, ctx, ctx.self);
   const passed = entity !== undefined;
 
   return {
@@ -652,7 +652,7 @@ function evaluateEntityHasRelationship(
   condition: EntityHasRelationshipCondition,
   ctx: RuleContext
 ): ConditionResult {
-  const entity = resolveEntityRef(condition.entity, ctx);
+  const entity = resolveEntityRef(condition.entity, ctx, ctx.self);
   if (!entity) {
     return {
       passed: false,
@@ -662,7 +662,7 @@ function evaluateEntityHasRelationship(
   }
 
   const direction = normalizeDirection(condition.direction);
-  const passed = ctx.graph.getAllRelationships().some((link) => {
+  const passed = ctx.graph.getAllRelationships({ includeHistorical: false }).some((link) => {
     if (link.kind !== condition.relationshipKind) return false;
     if (direction === 'both') {
       return link.src === entity.id || link.dst === entity.id;

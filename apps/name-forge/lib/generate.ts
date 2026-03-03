@@ -287,7 +287,7 @@ function checkGroupMatch(
   const tagResult = checkTagCondition(conditions.tags, conditions.tagMatchAll, tags);
   if (tagResult) return tagResult;
 
-  return { matched: true };
+  return { matched: true, reason: "All conditions matched" };
 }
 
 /**
@@ -394,6 +394,8 @@ function generateSingleName(
       name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
       strategyType: "fallback",
       strategyDesc: "No strategies in group",
+      grammarId: "",
+      domainId: "",
     };
   }
 
@@ -409,6 +411,7 @@ function generateSingleName(
         strategyType: result.usedMarkov ? "markov" : "grammar",
         strategyDesc: `grammar:${strategy.grammarId}`,
         grammarId: strategy.grammarId,
+        domainId: "",
       };
     }
     // Grammar not found
@@ -417,6 +420,7 @@ function generateSingleName(
       strategyType: "fallback",
       strategyDesc: `grammar:${strategy.grammarId} NOT FOUND`,
       grammarId: strategy.grammarId,
+      domainId: "",
     };
   }
 
@@ -427,6 +431,7 @@ function generateSingleName(
         name: generatePhonotacticName(ctx.rng, domain),
         strategyType: "phonotactic",
         strategyDesc: `phonotactic:${strategy.domainId}`,
+        grammarId: "",
         domainId: strategy.domainId,
       };
     }
@@ -436,6 +441,7 @@ function generateSingleName(
         name: generatePhonotacticName(ctx.rng, ctx.domains[0]),
         strategyType: "phonotactic",
         strategyDesc: `phonotactic:${strategy.domainId} NOT FOUND, used ${ctx.domains[0].id}`,
+        grammarId: "",
         domainId: ctx.domains[0].id,
       };
     }
@@ -444,6 +450,7 @@ function generateSingleName(
       name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
       strategyType: "fallback",
       strategyDesc: `phonotactic:${strategy.domainId} NOT FOUND, no domains available`,
+      grammarId: "",
       domainId: strategy.domainId,
     };
   }
@@ -452,6 +459,8 @@ function generateSingleName(
     name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
     strategyType: "fallback",
     strategyDesc: `Unknown strategy type: ${strategy.type}`,
+    grammarId: "",
+    domainId: "",
   };
 }
 
@@ -939,7 +948,7 @@ function resolveSimpleToken(
 function generateFromMarkovModel(
   model: MarkovModel,
   rng: () => number,
-  options: { minLength: number; maxLength: number } = {}
+  options: { minLength: number; maxLength: number } = { minLength: 3, maxLength: 12 }
 ): string {
   const { minLength = 3, maxLength = 12 } = options;
 
@@ -1061,7 +1070,7 @@ export interface TestDomainResult {
 export function testDomain(
   domain: NamingDomain,
   sampleSize: number = 100,
-  seed: string
+  seed: string = "default"
 ): TestDomainResult {
   const samples = generateFromDomain(domain, sampleSize, seed);
   const uniqueSet = new Set(samples);

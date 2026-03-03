@@ -79,14 +79,14 @@ function buildNarrationText(
 ): string | undefined {
   if (!declTemplate.narrationTemplate) return undefined;
   const variables: Record<string, HardState | HardState[] | undefined> = { ...result.resolvedVariables };
-  if (result.entityRefToIndex.size > 0) {
+  if (Object.keys(result.entityRefToIndex).length > 0) {
     for (const [entityRef, idx] of Object.entries(result.entityRefToIndex)) {
       if (createdEntities[idx]) {
         variables[entityRef.startsWith('$') ? entityRef : `$${entityRef}`] = createdEntities[idx];
       }
     }
   }
-  const ctx = createGeneratorContext({ target, variables });
+  const ctx = createGeneratorContext({ target, selected: target, variables, entitiesCreated: createdEntities, counts: {}, values: {} });
   const narrationResult = interpolate(declTemplate.narrationTemplate, ctx);
   return narrationResult.text;
 }
@@ -105,7 +105,9 @@ function buildEntityCreationInfo(createdEntities: HardState[], result: TemplateR
         anchorType: debug.anchorType, anchorEntity: debug.anchorEntity,
         anchorCulture: debug.anchorCulture, resolvedVia: debug.resolvedVia,
         seedRegionsAvailable: debug.seedRegionsAvailable,
+        regionsTried: [],
         emergentRegionCreated: debug.emergentRegionCreated,
+        failureReason: '',
       },
     };
   });
@@ -164,7 +166,7 @@ class GrowthSystemImpl implements GrowthSystem {
     this.templatesUsed.clear();
     this.phaseCompleted = false;
     this.epochEra = era;
-    this.deps.emitter.log('info', `[Growth] Planning epoch ${this.epoch} in era ${era.name} with target ${this.epochTarget}`);
+    this.deps.emitter.log('info', `[Growth] Planning epoch ${this.epoch} in era ${era.name} with target ${this.epochTarget}`, {});
   }
 
   getEpochTarget(): number { return this.epochTarget; }
@@ -228,7 +230,7 @@ class GrowthSystemImpl implements GrowthSystem {
     this.epoch = this.deps.getCurrentEpoch();
     this.phaseCompleted = false;
     this.epochEra = this.deps.getEpochEra();
-    this.deps.emitter.log('info', `[Growth] Auto-sync epoch ${this.epoch} in era ${this.epochEra.name} with target ${this.epochTarget}`);
+    this.deps.emitter.log('info', `[Growth] Auto-sync epoch ${this.epoch} in era ${this.epochEra.name} with target ${this.epochTarget}`, {});
   }
 
   private computeBudget(graphView: WorldRuntime, remaining: number, modifier: number): number {
@@ -253,7 +255,7 @@ class GrowthSystemImpl implements GrowthSystem {
     const rejections = new Map<string, string>();
     const applicable = this.filterApplicable(graphView, rejections);
     if (applicable.length === 0) {
-      this.deps.emitter.log('warn', `No applicable templates remaining (${this.entitiesCreated}/${this.epochTarget})`);
+      this.deps.emitter.log('warn', `No applicable templates remaining (${this.entitiesCreated}/${this.epochTarget})`, {});
       for (const [id, reason] of rejections) graphView.debug('templates', `  ${id}: ${reason}`);
       this.recordPhaseCompletion(graphView, 'exhausted');
       return { appliedDelta: 0, createdDelta: 0, exhausted: true };
@@ -303,7 +305,7 @@ class GrowthSystemImpl implements GrowthSystem {
     const pressureBefore = this.deps.getPendingPressureModifications().length;
     graphView.setPressureModificationCallback((p, d, s) => this.deps.trackPressureModification(p, d, s));
     graphView.setCurrentSource({ type: 'template', templateId: template.id });
-    this.deps.mutationTracker.enterContext('template', template.id);
+    this.deps.mutationTracker.enterContext('template', template.id, true, '');
 
     let result: TemplateResult;
     try { result = await template.expand(graphView, target); }
@@ -347,11 +349,11 @@ class GrowthSystemImpl implements GrowthSystem {
   }
 
   private checkContracts(result: TemplateResult, template: GrowthTemplate, graphView: WorldRuntime): void {
-    const tags = Array.from(new Set(result.entities.flatMap(e => Object.keys(e.tags))));
+    const tags = Array.from(new Set(result.entities.flatMap(e => Object.keys(e.tags ?? {}))));
     const sat = this.deps.contractEnforcer.checkTagSaturation(graphView, tags);
-    if (sat.saturated) this.deps.emitter.log('warn', `Template ${template.id} oversaturates: ${sat.oversaturatedTags.join(', ')}`);
+    if (sat.saturated) this.deps.emitter.log('warn', `Template ${template.id} oversaturates: ${sat.oversaturatedTags.join(', ')}`, {});
     const orph = this.deps.contractEnforcer.checkTagOrphans(tags);
-    if (orph.hasOrphans && orph.orphanTags.length >= 3) this.deps.emitter.log('debug', `Template ${template.id} unregistered: ${orph.orphanTags.slice(0, 5).join(', ')}`);
+    if (orph.hasOrphans && orph.orphanTags.length >= 3) this.deps.emitter.log('debug', `Template ${template.id} unregistered: ${orph.orphanTags.slice(0, 5).join(', ')}`, {});
   }
 
   private validateCreated(entities: HardState[], graphView: WorldRuntime): void {
@@ -373,7 +375,7 @@ class GrowthSystemImpl implements GrowthSystem {
     const decl = this.deps.declarativeTemplates.get(template.id);
     const raw = decl?.creation[0]?.description;
     const narration = decl ? buildNarrationText(decl, target, result, created) : undefined;
-    this.deps.stateChangeTracker.recordCreationBatch(template.id, template.name || template.id, newIds, summary, (typeof raw === 'string' ? raw : undefined) || result.description, narration);
+    this.deps.stateChangeTracker.recordCreationBatch(template.id, template.name || template.id, newIds, summary, (typeof raw === 'string' ? raw : '') || result.description, narration ?? '');
   }
 
   private emitApplication(
@@ -407,7 +409,7 @@ class GrowthSystemImpl implements GrowthSystem {
   }
 
   private emptyResult(description: string): import('../engine/types').SystemResult {
-    return { relationshipsAdded: [], entitiesModified: [], pressureChanges: {}, description };
+    return { relationshipsAdded: [], relationshipsAdjusted: [], relationshipsToArchive: [], entitiesModified: [], pressureChanges: {}, description, details: {}, narrationsByGroup: {} };
   }
 }
 

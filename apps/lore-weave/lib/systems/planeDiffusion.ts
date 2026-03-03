@@ -20,7 +20,7 @@
  * For numerical stability, rate should be <= 0.25.
  */
 
-import { SimulationSystem, SystemResult } from '../engine/types';
+import { SimulationSystem, SystemResult, ActionContext } from '../engine/types';
 import { HardState } from '../core/worldTypes';
 import { Point } from '../coordinates/types';
 import { WorldRuntime } from '../runtime/worldRuntime';
@@ -194,8 +194,8 @@ function getGridValue(grid: Float32Array, x: number, y: number): number {
 function getStrength(entity: HardState, strengthTag: string | undefined, defaultStrength: number): number {
   if (!strengthTag) return defaultStrength;
 
-  const value = getTagValue(entity.tags, strengthTag);
-  if (value === undefined) return defaultStrength;
+  const value = getTagValue(entity.tags, strengthTag, '');
+  if (value === undefined || value === '') return defaultStrength;
 
   const parsed = typeof value === 'number' ? value : parseFloat(String(value));
   return isNaN(parsed) ? defaultStrength : parsed;
@@ -422,6 +422,8 @@ function clearOldOutputTags(
   return changed;
 }
 
+const NO_OUTPUT_TAG: DiffusionOutputTag = { tag: '', minValue: 0, maxValue: 0, narrationTemplate: '', lostNarrationTemplate: '' };
+
 interface ApplyOutputTagsResult {
   newOutputTagAdded: boolean;
   gainedOutputTag: DiffusionOutputTag;
@@ -438,7 +440,7 @@ function applyNewOutputTags(
 ): ApplyOutputTagsResult {
   let tagsChanged = false;
   let newOutputTagAdded = false;
-  let gainedOutputTag: DiffusionOutputTag | undefined;
+  let gainedOutputTag: DiffusionOutputTag = NO_OUTPUT_TAG;
   const newOutputTags = new Set<string>();
   for (const outputTag of config.outputTags) {
     const minOk = fieldValue >= outputTag.minValue;
@@ -451,7 +453,7 @@ function applyNewOutputTags(
     }
   }
   let outputTagLost = false;
-  let lostOutputTag: DiffusionOutputTag | undefined;
+  let lostOutputTag: DiffusionOutputTag = NO_OUTPUT_TAG;
   for (const outputTag of config.outputTags) {
     if (previousOutputTags.has(outputTag.tag) && !newOutputTags.has(outputTag.tag)) {
       outputTagLost = true; lostOutputTag = outputTag; break;
@@ -477,7 +479,7 @@ function interpolateNarration(
   template: string,
   narrationsByGroup: Record<string, string>
 ): void {
-  const ctx = createSystemRuleContext({ self: entity });
+  const ctx = createSystemRuleContext({ self: entity, member: entity, member2: entity, sharedVia: entity, variables: {}, counts: {}, values: {} });
   const result = interpolate(template, ctx);
   if (result.complete) narrationsByGroup[entity.id] = result.text;
 }
@@ -573,12 +575,12 @@ function buildDiffusionVizSnapshot(
 class PlaneDiffusionSystem implements SimulationSystem<DiffusionState> {
   readonly id: string;
   readonly name: string;
-  state: DiffusionState | undefined;
+  state: DiffusionState;
   private readonly config: PlaneDiffusionConfig;
   private readonly diffusionRate: number;
   private readonly sourceRadius: number;
   private readonly decayRate: number;
-  private readonly falloffType: string;
+  private readonly falloffType: FalloffType;
   private readonly iterationsPerTick: number;
 
   constructor(config: PlaneDiffusionConfig) {
@@ -590,6 +592,7 @@ class PlaneDiffusionSystem implements SimulationSystem<DiffusionState> {
     this.decayRate = config.diffusion.decayRate;
     this.falloffType = config.diffusion.falloffType;
     this.iterationsPerTick = config.diffusion.iterationsPerTick;
+    this.state = { grid: new Float32Array(GRID_SIZE * GRID_SIZE), tempGrid: new Float32Array(GRID_SIZE * GRID_SIZE), initialized: false };
     this.validateConfig();
   }
 
@@ -605,8 +608,8 @@ class PlaneDiffusionSystem implements SimulationSystem<DiffusionState> {
   }
 
   apply(graphView: WorldRuntime, _modifier: number = 1.0): SystemResult {
-    if (!this.state?.initialized) this.initialize();
-    const state = this.state!;
+    if (!this.state.initialized) this.initialize();
+    const state = this.state;
 
     if (this.config.throttleChance < 1.0) {
       // eslint-disable-next-line sonarjs/pseudo-random -- simulation throttle
@@ -630,18 +633,21 @@ class PlaneDiffusionSystem implements SimulationSystem<DiffusionState> {
     const { modifications, narrationsByGroup, significantModificationCount } = processAllEntityTagUpdates(withCoords, state, this.config);
     const pressureChanges = (sources.length > 0 || sinks.length > 0) ? this.config.pressureChanges : {};
 
+    const ctx: ActionContext = { source: 'system', sourceId: this.id, success: true };
     return {
       relationshipsAdded: [],
-      entitiesModified: modifications,
+      relationshipsAdjusted: [],
+      relationshipsToArchive: [],
+      entitiesModified: modifications.map(m => ({ ...m, actionContext: ctx, narrativeGroupId: m.narrativeGroupId ?? '' })),
       pressureChanges,
       description: `${this.name}: ${sources.length} sources, ${sinks.length} sinks, ${significantModificationCount} entities gained output tags`,
-      narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : undefined,
+      narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : {},
       details: { diffusionSnapshot: buildDiffusionVizSnapshot(state, sources, sinks, withCoords, this.config, { diffusionRate: this.diffusionRate, sourceRadius: this.sourceRadius, decayRate: this.decayRate, falloffType: this.falloffType, iterationsPerTick: this.iterationsPerTick }), significantModificationCount },
     };
   }
 
   private dormantResult(state: DiffusionState): SystemResult {
-    return { relationshipsAdded: [], entitiesModified: [], pressureChanges: {}, description: `${this.name}: dormant`, details: { diffusionSnapshot: { grid: Array.from(state.grid), gridSize: GRID_SIZE, sources: [], sinks: [], entities: [] } } };
+    return { relationshipsAdded: [], relationshipsAdjusted: [], relationshipsToArchive: [], entitiesModified: [], pressureChanges: {}, description: `${this.name}: dormant`, details: { diffusionSnapshot: { grid: Array.from(state.grid), gridSize: GRID_SIZE, sources: [], sinks: [], entities: [] } }, narrationsByGroup: {} };
   }
 }
 

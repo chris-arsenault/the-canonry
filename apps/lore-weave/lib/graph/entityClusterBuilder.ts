@@ -61,7 +61,12 @@ export class EntityClusterBuilder {
       ? `will-be-assigned-${toIndex}`
       : toIndex;
 
-    const rel: Relationship = { kind, src, dst, strength };
+    const rel: Relationship = {
+      kind, src, dst, strength,
+      distance: 0, category: '', createdAt: 0, catalyzedBy: '', status: 'active',
+      archived: { occurred: false as const, tick: 0 },
+      createdBy: { tick: 0, source: 'template', sourceId: '', success: true, narration: '' },
+    };
 
     this.relationships.push(rel);
     return this;
@@ -177,7 +182,12 @@ export class EntityClusterBuilder {
     return {
       entities: this.entities,
       relationships: this.relationships,
-      description
+      description,
+      placementStrategies: [],
+      derivedTagsList: [],
+      placementDebugList: [],
+      resolvedVariables: {},
+      entityRefToIndex: {},
     };
   }
 

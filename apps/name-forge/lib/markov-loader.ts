@@ -26,7 +26,7 @@ let nodeLoader: { loadModelFromFilesystem: (id: string) => MarkovModel | null } 
 // Check for browser environment safely (works in Node.js without DOM types)
 const isBrowser =
   typeof globalThis !== "undefined" &&
-  typeof (globalThis as { window: unknown }).window !== "undefined";
+  'window' in globalThis;
 
 // ============================================================================
 // Configuration

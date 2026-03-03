@@ -429,7 +429,14 @@ export interface ActionContext {
 }
 
 export interface SystemResult {
-  relationshipsAdded: Array<Relationship & {
+  relationshipsAdded: Array<{
+    kind: string;
+    src: string;
+    dst: string;
+    strength: number;
+    category?: string;
+    catalyzedBy?: string;
+    createdAt?: number;
     /** Action context for narrative attribution (e.g., action:raid instead of system:universal_catalyst) */
     actionContext: ActionContext;
     /** Narrative group ID for per-target event splitting (e.g., entity ID when clusterMode=individual) */
@@ -757,8 +764,8 @@ export class GraphStore implements Graph {
     relationshipsPerTick: [],
     averageGrowthRate: 0
   };
-  subtypeMetrics: Map<string, number>;
-  protectedRelationshipViolations: Array<{
+  subtypeMetrics!: Map<string, number>;
+  protectedRelationshipViolations!: Array<{
     tick: number;
     violations: Array<{ kind: string; strength: number }>;
   }>;
@@ -768,7 +775,7 @@ export class GraphStore implements Graph {
    * Part of the unified lineage system - see LINEAGE.md.
    * When set, entity and relationship creation will stamp createdBy from current context.
    */
-  mutationTracker: MutationTracker;
+  mutationTracker!: MutationTracker;
 
   // ===========================================================================
   // ENTITY READ METHODS
@@ -952,9 +959,12 @@ export class GraphStore implements Graph {
       temporal: settings.temporal,
       regionId: settings.regionId,
       allRegionIds: settings.allRegionIds,
+      catalyst: { canAct: false },
+      summary: '',
+      lockedSummary: false,
       createdAt: this.tick,
       updatedAt: this.tick,
-      createdBy: this.mutationTracker.getCurrentContext(),
+      createdBy: this.mutationTracker.getCurrentContext()!,
     };
   }
 
@@ -986,7 +996,7 @@ export class GraphStore implements Graph {
   }
 
   // Debug flag for tracing prominence mutations - set to true to enable logging
-  static readonly DEBUG_PROMINENCE = false;
+  static DEBUG_PROMINENCE = false;
 
   updateEntity(id: string, changes: Partial<HardState>): boolean {
     const entity = this.#entities.get(id);
@@ -1001,7 +1011,7 @@ export class GraphStore implements Graph {
 
 
   private trackMutations(id: string, entity: HardState, changes: Partial<HardState>): void {
-    this.trackTagChanges(id, entity.tags, changes.tags);
+    if (changes.tags) this.trackTagChanges(id, entity.tags, changes.tags);
 
     const trackedFields = ['status', 'prominence', 'culture'] as const;
     for (const field of trackedFields) {
@@ -1129,11 +1139,13 @@ export class GraphStore implements Graph {
       kind, src: srcId, dst: dstId,
       strength, distance, category,
       status: 'active', createdAt: this.tick,
-      createdBy: this.mutationTracker.getCurrentContext(),
+      archived: { occurred: false, tick: 0 },
+      catalyzedBy: '',
+      createdBy: this.mutationTracker.getCurrentContext()!,
     };
 
     this.#relationships.push(relationship);
-    this.mutationTracker.recordRelationshipCreated({ srcId, dstId, kind, strength: relationship.strength });
+    this.mutationTracker.recordRelationshipCreated({ srcId, dstId, kind, strength: relationship.strength, polarity: 'neutral' });
     srcEntity.updatedAt = this.tick;
     dstEntity.updatedAt = this.tick;
     return true;

@@ -83,7 +83,8 @@ export function validateNPCStructure(graph: Graph, config: EngineConfig): Valida
       name: 'Entity Structure',
       passed: true,
       failureCount: 0,
-      details: 'No requiredRelationships defined in schema'
+      details: 'No requiredRelationships defined in schema',
+      failedEntities: []
     };
   }
 
@@ -175,7 +176,8 @@ export function validateRelationshipIntegrity(graph: Graph): ValidationResult {
     name: 'Relationship Integrity',
     passed,
     failureCount: brokenRelationships.length,
-    details
+    details,
+    failedEntities: []
   };
 }
 

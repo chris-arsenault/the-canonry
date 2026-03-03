@@ -23,7 +23,7 @@ export function validateDiffuseness(
   const minShapeNN_p5 = config.minShapeNN_p5 ?? 0.2;
 
   // Generate samples
-  const testResult = testDomain(domain, sampleSize, config.seed);
+  const testResult = testDomain(domain, sampleSize, config.seed ?? "diffuseness");
   const samples = testResult.samples;
 
   // Find nearest neighbors using raw Levenshtein

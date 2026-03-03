@@ -94,7 +94,7 @@ function collectRelatedEntities(
   const relatedSet = new Set<string>();
   const related: HardState[] = [];
   for (const viaKind of viaKinds) {
-    const entities = graphView.getConnectedEntities(entity.id, viaKind, direction);
+    const entities = graphView.getConnectedEntities(entity.id, viaKind, direction, { includeHistorical: false });
     for (const e of entities) {
       if (!relatedSet.has(e.id)) {
         relatedSet.add(e.id);
@@ -187,7 +187,7 @@ function evaluateRelConstraint(
   }
 
   if (requireExists) {
-    const related = graphView.getConnectedEntities(entity.id, constraint.kind, 'both');
+    const related = graphView.getConnectedEntities(entity.id, constraint.kind, 'both', { includeHistorical: false });
     return related.length > 0;
   }
   return true;

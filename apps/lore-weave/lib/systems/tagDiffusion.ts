@@ -11,7 +11,7 @@
  * The factory creates a SimulationSystem from a TagDiffusionConfig.
  */
 
-import { SimulationSystem, SystemResult } from '../engine/types';
+import { SimulationSystem, SystemResult, ActionContext } from '../engine/types';
 import { HardState } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { rollProbability, pickRandom, hasTag } from '../utils';
@@ -124,12 +124,12 @@ function countConnections(
   const connections = new Set<string>();
 
   if (direction === 'src' || direction === 'both') {
-    const related = graphView.getRelated(entity.id, connectionKind, 'src');
+    const related = graphView.getRelated(entity.id, connectionKind, 'src', { minStrength: 0 });
     related.forEach(e => connections.add(e.id));
   }
 
   if (direction === 'dst' || direction === 'both') {
-    const related = graphView.getRelated(entity.id, connectionKind, 'dst');
+    const related = graphView.getRelated(entity.id, connectionKind, 'dst', { minStrength: 0 });
     related.forEach(e => connections.add(e.id));
   }
 
@@ -148,12 +148,12 @@ function getConnectedEntities(
   const connectionIds = new Set<string>();
 
   if (direction === 'src' || direction === 'both') {
-    const related = graphView.getRelated(entity.id, connectionKind, 'src');
+    const related = graphView.getRelated(entity.id, connectionKind, 'src', { minStrength: 0 });
     related.forEach(e => connectionIds.add(e.id));
   }
 
   if (direction === 'dst' || direction === 'both') {
-    const related = graphView.getRelated(entity.id, connectionKind, 'dst');
+    const related = graphView.getRelated(entity.id, connectionKind, 'dst', { minStrength: 0 });
     related.forEach(e => connectionIds.add(e.id));
   }
 
@@ -299,7 +299,7 @@ function resolveNarration(
     ? config.convergence.narrationTemplate
     : config.divergence.narrationTemplate;
   if (!template) return null;
-  const ctx = createSystemRuleContext({ self: entity });
+  const ctx = createSystemRuleContext({ self: entity, member: entity, member2: entity, sharedVia: entity, variables: {}, counts: {}, values: {} });
   const result = interpolate(template, ctx);
   return result.complete ? result.text : null;
 }
@@ -309,9 +309,10 @@ function buildTagModifications(
   entityNarrations: Map<string, { tag: string; type: 'convergence' | 'divergence' }>,
   config: TagDiffusionConfig,
   graphView: WorldRuntime,
-  narrationsByGroup: Record<string, string>
-): Array<{ id: string; changes: Partial<HardState>; narrativeGroupId: string }> {
-  const modifications: Array<{ id: string; changes: Partial<HardState>; narrativeGroupId: string }> = [];
+  narrationsByGroup: Record<string, string>,
+  ctx: ActionContext
+): Array<{ id: string; changes: Partial<HardState>; actionContext: ActionContext; narrativeGroupId: string }> {
+  const modifications: Array<{ id: string; changes: Partial<HardState>; actionContext: ActionContext; narrativeGroupId: string }> = [];
   for (const [entityId, tags] of modifiedTags) {
     const entity = graphView.getEntity(entityId);
     const narrationInfo = entityNarrations.get(entityId);
@@ -322,7 +323,8 @@ function buildTagModifications(
     modifications.push({
       id: entityId,
       changes: { tags: tags as Record<string, boolean> },
-      narrativeGroupId: narrationInfo ? entityId : undefined
+      actionContext: ctx,
+      narrativeGroupId: narrationInfo ? entityId : ''
     });
   }
   return modifications;
@@ -337,7 +339,7 @@ function computeTagDiffusionPressure(
   const pressureChanges: Record<string, number> = modificationsCount > 0
     ? { ...config.pressureChanges }
     : {};
-  if (config.divergencePressure.minCount > 0 && divergentCount >= config.divergencePressure.minDivergent) {
+  if (config.divergencePressure.minDivergent > 0 && divergentCount >= config.divergencePressure.minDivergent) {
     pressureChanges[config.divergencePressure.pressureName] =
       (pressureChanges[config.divergencePressure.pressureName] ?? 0) +
       config.divergencePressure.delta * modifier;
@@ -351,23 +353,37 @@ export function createTagDiffusionSystem(
   const direction = config.connectionDirection;
   const maxTags = config.maxTags;
 
+  const emptyResult = (description: string): SystemResult => ({
+    relationshipsAdded: [],
+    relationshipsAdjusted: [],
+    relationshipsToArchive: [],
+    entitiesModified: [],
+    pressureChanges: {},
+    description,
+    details: {},
+    narrationsByGroup: {},
+  });
+
   return {
     id: config.id,
     name: config.name,
+    state: {},
+    initialize: () => {},
 
     apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
       if (config.throttleChance < 1.0) {
         if (!rollProbability(config.throttleChance, modifier)) {
-          return { relationshipsAdded: [], entitiesModified: [], pressureChanges: {}, description: `${config.name}: dormant` };
+          return emptyResult(`${config.name}: dormant`);
         }
       }
 
       const selectionCtx = createSystemContext(graphView);
       const entities = selectEntities(config.selection, selectionCtx);
       if (entities.length < 2) {
-        return { relationshipsAdded: [], entitiesModified: [], pressureChanges: {}, description: `${config.name}: not enough entities` };
+        return emptyResult(`${config.name}: not enough entities`);
       }
 
+      const ctx: ActionContext = { source: 'system', sourceId: config.id, success: true };
       const modifiedTags = new Map<string, Record<string, boolean | string>>();
       const narrationsByGroup: Record<string, string> = {};
       const entityNarrations = new Map<string, { tag: string; type: 'convergence' | 'divergence' }>();
@@ -381,15 +397,18 @@ export function createTagDiffusionSystem(
         divergentCount = processDivergence(entities, config.divergence, config, direction, maxTags, modifier, modifiedTags, entityNarrations, graphView);
       }
 
-      const modifications = buildTagModifications(modifiedTags, entityNarrations, config, graphView, narrationsByGroup);
+      const modifications = buildTagModifications(modifiedTags, entityNarrations, config, graphView, narrationsByGroup, ctx);
       const pressureChanges = computeTagDiffusionPressure(config, modifications.length, divergentCount, modifier);
 
       return {
         relationshipsAdded: [],
+        relationshipsAdjusted: [],
+        relationshipsToArchive: [],
         entitiesModified: modifications,
         pressureChanges,
         description: `${config.name}: ${modifications.length} entities affected`,
-        narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : undefined
+        details: {},
+        narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : {},
       };
     }
   };

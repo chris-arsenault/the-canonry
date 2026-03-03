@@ -87,8 +87,8 @@ type CriterionMatcher = (
 const CRITERION_MATCHERS: Record<ClusterCriterionType, CriterionMatcher> = {
   shared_relationship: (e1, e2, criterion, graphView) => {
     const direction = criterion.direction;
-    const e1Related = graphView.getConnectedEntities(e1.id, criterion.relationshipKind, direction);
-    const e2Related = graphView.getConnectedEntities(e2.id, criterion.relationshipKind, direction);
+    const e1Related = graphView.getConnectedEntities(e1.id, criterion.relationshipKind, direction, { includeHistorical: false });
+    const e2Related = graphView.getConnectedEntities(e2.id, criterion.relationshipKind, direction, { includeHistorical: false });
     const e1RelatedIds = new Set(e1Related.map(r => r.id));
     return e2Related.some(r => e1RelatedIds.has(r.id));
   },

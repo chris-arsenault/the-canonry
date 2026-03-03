@@ -188,7 +188,7 @@ export interface ActionResult {
 // =============================================================================
 
 function resolveSingleEntity(select: VariableSelectionRule, ctx: RuleContext): HardState | undefined {
-  const candidates = selectVariableEntities(select, ctx);
+  const candidates = selectVariableEntities(select, ctx, { steps: [] });
 
   if (candidates.length === 0) {
     return undefined;
@@ -204,7 +204,7 @@ function resolveInstigator(
   ctx: RuleContext
 ): { instigator: HardState | null; failureReason: ActionResult['failureReason']; failureDescription: string } {
   if (!config) {
-    return { instigator: null };
+    return { instigator: null, failureReason: 'no_instigator', failureDescription: '' };
   }
 
   const instigator = resolveSingleEntity(config, ctx);
@@ -217,7 +217,7 @@ function resolveInstigator(
     };
   }
 
-  return { instigator: instigator ?? null };
+  return { instigator: instigator ?? null, failureReason: 'no_instigator', failureDescription: '' };
 }
 
 function formatDescription(
@@ -232,8 +232,8 @@ function formatDescription(
   const tokenMap: Record<string, string> = {
     'actor.name': bindings.actor.name,
     'actor.id': bindings.actor.id,
-    'instigator.name': bindings.instigator.name,
-    'instigator.id': bindings.instigator.id,
+    'instigator.name': bindings.instigator?.name ?? '',
+    'instigator.id': bindings.instigator?.id ?? '',
     'target.name': bindings.target.name,
     'target.id': bindings.target.id,
     'target2.name': bindings.target2.name,
@@ -264,7 +264,9 @@ function formatNarration(
     target: bindings.target,
     target2: bindings.target2,
     instigator: bindings.instigator,
-    variables: bindings.variables,
+    variables: bindings.variables as Record<string, import('../core/worldTypes').VariableValue>,
+    counts: {},
+    values: {},
   });
 
   const result = interpolate(template, context);
@@ -276,17 +278,17 @@ function evaluateActorConditions(
   ctx: RuleContext
 ): { passed: boolean; diagnostic: string } {
   if (!conditions || conditions.length === 0) {
-    return { passed: true };
+    return { passed: true, diagnostic: '' };
   }
 
   for (const condition of conditions) {
-    const result = evaluateCondition(condition, ctx, ctx.self);
+    const result = evaluateCondition(condition, ctx, ctx.self!);
     if (!result.passed) {
       return { passed: false, diagnostic: result.diagnostic };
     }
   }
 
-  return { passed: true };
+  return { passed: true, diagnostic: '' };
 }
 
 // =============================================================================
@@ -297,7 +299,12 @@ function evaluateActorConditions(
  * Create an executable action handler from declarative configuration.
  */
 function failResult(description: string, failureReason: ActionResult['failureReason']): ActionResult {
-  return { success: false, relationships: [], description, failureReason };
+  return {
+    success: false, relationships: [], description, failureReason,
+    relationshipsAdjusted: [], relationshipsToArchive: [], entitiesModified: [],
+    pressureChanges: {}, narration: '', entitiesCreated: [],
+    instigatorId: '', targetId: '', target2Id: '',
+  };
 }
 
 function resolveTargets(
@@ -309,7 +316,7 @@ function resolveTargets(
     pickStrategy: action.targeting.pickStrategy,
   };
 
-  const targets = selectEntities(targetingRule, baseCtx);
+  const targets = selectEntities(targetingRule, baseCtx, { steps: [] });
   if (targets.length === 0) {
     return { targets: [], failure: failResult('found no valid targets', 'no_target') };
   }
@@ -332,7 +339,7 @@ function resolveActionVariables(
   actor: HardState
 ): ActionResult | null {
   if (Object.keys(action.variables).length === 0) return null;
-  const varCtx = createActionContext(graph, bindings, actor);
+  const varCtx = createActionContext(graph, bindings, actor, {});
   const resolvedVars = resolveVariablesForEntity(action.variables, varCtx, actor);
   if (resolvedVars === null) {
     return failResult('required variable could not be resolved', 'no_target');
@@ -371,6 +378,9 @@ function aggregateMutationResults(
       result.relationships.push({
         kind: rel.kind, src: rel.src, dst: rel.dst,
         strength: rel.strength, category: rel.category, createdAt: tick,
+        distance: 0, catalyzedBy: '', status: 'active',
+        archived: { occurred: false, tick: 0 },
+        createdBy: { tick, source: 'action', sourceId: '', success: true, narration: '' },
       });
     }
     if (p.relationshipsAdjusted.length > 0) {
@@ -405,7 +415,7 @@ function buildNarration(
   }
 
   return formatNarration(action.outcome.narrationTemplate, {
-    actor, instigator, target, target2, variables,
+    actor, instigator, target: target!, target2: target2!, variables,
   });
 }
 
@@ -415,7 +425,7 @@ function buildNarration(
 function createActionHandler(action: DeclarativeAction): ExecutableAction['handler'] {
   return (graph: WorldRuntime, actor: HardState): ActionResult => {
     const bindings: Record<string, HardState | undefined> = { actor };
-    const baseCtx = createActionContext(graph, bindings, actor);
+    const baseCtx = createActionContext(graph, bindings, actor, {});
 
     // Resolve optional instigator
     const instigatorResult = resolveInstigator(action.actor.instigator, baseCtx);
@@ -445,7 +455,7 @@ function createActionHandler(action: DeclarativeAction): ExecutableAction['handl
     const varFailure = resolveActionVariables(action, graph, bindings, actor);
     if (varFailure) return varFailure;
 
-    const mutationCtx = createActionContext(graph, bindings, actor);
+    const mutationCtx = createActionContext(graph, bindings, actor, {});
     const prepared = (action.outcome.mutations).map((mutation) => prepareMutation(mutation, mutationCtx));
     const failed = prepared.filter((result) => !result.applied);
 
@@ -465,10 +475,12 @@ function createActionHandler(action: DeclarativeAction): ExecutableAction['handl
       entitiesModified: aggregated.modifications,
       pressureChanges: aggregated.pressureChanges,
       description,
-      narration,
-      instigatorId: instigator.id,
-      targetId: target.id,
-      target2Id: target2.id,
+      narration: narration ?? '',
+      instigatorId: instigator?.id ?? '',
+      targetId: target?.id ?? '',
+      target2Id: target2?.id ?? '',
+      entitiesCreated: [],
+      failureReason: 'no_target',
     };
   };
 }

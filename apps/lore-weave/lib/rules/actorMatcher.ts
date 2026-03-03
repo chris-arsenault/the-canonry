@@ -34,13 +34,13 @@ export function matchesActorConfig(
   graphView: WorldRuntime
 ): boolean {
   const bindings: Record<string, HardState | undefined> = { actor: entity };
-  const ctx = createActionContext(graphView, bindings, entity);
+  const ctx = createActionContext(graphView, bindings, entity, {});
 
   // Eligibility: actor must appear in selection results (no random picking).
   const selectionRule = {
     ...actorConfig.selection,
     pickStrategy: 'all' as const,
-    maxResults: undefined,
+    maxResults: 0,
   };
 
   const candidates = selectEntities(selectionRule, ctx);

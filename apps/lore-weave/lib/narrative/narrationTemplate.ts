@@ -64,6 +64,11 @@ interface ParsedToken {
   valueKey: string;
 }
 
+const EMPTY_TOKEN: ParsedToken = {
+  type: 'value', raw: '', entityRef: '', field: '', fallback: '',
+  countKind: '', listRef: '', listField: '', valueKey: '',
+};
+
 /**
  * Parse a template token like {actor.name|unknown} into its components.
  */
@@ -79,6 +84,7 @@ function parseToken(token: string): ParsedToken {
   // Check for count: prefix
   if (trimmedMain.startsWith('count:')) {
     return {
+      ...EMPTY_TOKEN,
       type: 'count',
       raw: token,
       countKind: trimmedMain.slice(6),
@@ -92,6 +98,7 @@ function parseToken(token: string): ParsedToken {
     const dotIndex = listPart.indexOf('.');
     if (dotIndex !== -1) {
       return {
+        ...EMPTY_TOKEN,
         type: 'list',
         raw: token,
         listRef: listPart.slice(0, dotIndex),
@@ -100,6 +107,7 @@ function parseToken(token: string): ParsedToken {
       };
     }
     return {
+      ...EMPTY_TOKEN,
       type: 'list',
       raw: token,
       listRef: listPart,
@@ -113,6 +121,7 @@ function parseToken(token: string): ParsedToken {
     const dotIndex = trimmedMain.indexOf('.');
     if (dotIndex !== -1) {
       return {
+        ...EMPTY_TOKEN,
         type: 'variable_field',
         raw: token,
         entityRef: trimmedMain.slice(0, dotIndex),
@@ -122,6 +131,7 @@ function parseToken(token: string): ParsedToken {
     }
     // Variable without field - default to name
     return {
+      ...EMPTY_TOKEN,
       type: 'variable_field',
       raw: token,
       entityRef: trimmedMain,
@@ -134,6 +144,7 @@ function parseToken(token: string): ParsedToken {
   const dotIndex = trimmedMain.indexOf('.');
   if (dotIndex !== -1) {
     return {
+      ...EMPTY_TOKEN,
       type: 'entity_field',
       raw: token,
       entityRef: trimmedMain.slice(0, dotIndex),
@@ -144,6 +155,7 @@ function parseToken(token: string): ParsedToken {
 
   // Simple value reference
   return {
+    ...EMPTY_TOKEN,
     type: 'value',
     raw: token,
     valueKey: trimmedMain,

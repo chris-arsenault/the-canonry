@@ -133,9 +133,16 @@ export function normalizeInitialState(entities: RawEntityInput[]): HardState[] {
       prominence: entity.prominence,
       culture: entity.culture,
       tags,
+      eraId: '',
       createdAt: 0,
       updatedAt: 0,
-      coordinates: entity.coordinates
+      coordinates: entity.coordinates,
+      temporal: { startTick: 0, end: { occurred: false as const, tick: 0 } },
+      catalyst: { canAct: false },
+      regionId: '',
+      allRegionIds: [],
+      lockedSummary: false,
+      createdBy: { tick: 0, source: 'seed' as const, sourceId: 'initial_state', success: true, narration: '' },
     };
   });
 }
@@ -171,7 +178,11 @@ export async function addEntity(graph: Graph, entity: Partial<HardState>, source
   const coords = entity.coordinates!;
   const tags: EntityTags = Array.isArray(entity.tags) ? arrayToTags(entity.tags) : { ...(entity.tags) };
 
-  const entityId = generateEntityIdFromName(entity.name!, id => graph.hasEntity(id));
+  const entityId = generateEntityIdFromName(
+    entity.name!,
+    id => graph.hasEntity(id),
+    (_message, _context) => { /* silent - addEntity logs at higher level */ }
+  );
 
   // Delegate to Graph.createEntity()
   // Use validated coords to satisfy TypeScript (already validated above)
@@ -200,7 +211,7 @@ export async function addEntity(graph: Graph, entity: Partial<HardState>, source
     resolvedEraId = currentEraEntity?.id;
   }
 
-  const narrativeHint = entity.narrativeHint || entity.summary ?? (entity.description ? entity.description : undefined);
+  const narrativeHint = entity.narrativeHint || entity.summary || entity.description || '';
 
   const createdId = await graph.createEntity({
     id: entityId,
@@ -208,16 +219,18 @@ export async function addEntity(graph: Graph, entity: Partial<HardState>, source
     subtype: entity.subtype!,
     coordinates: validCoords,
     tags,
-    eraId: resolvedEraId,
-    name: entity.name,
-    description: entity.description,
+    eraId: resolvedEraId || '',
+    name: entity.name!,
+    description: entity.description || '',
     narrativeHint,
     status: entity.status!,
     prominence: entity.prominence!,
     culture: entity.culture!,
-    temporal: entity.temporal,
+    temporal: entity.temporal || { startTick: graph.tick, end: { occurred: false as const, tick: 0 } },
     source,
-    placementStrategy
+    placementStrategy,
+    regionId: entity.regionId || '',
+    allRegionIds: entity.allRegionIds || [],
   });
 
   // Create CREATED_DURING relationship to current era (unless entity is an era itself)

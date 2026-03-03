@@ -38,19 +38,20 @@ import { hasTag } from '../../utils';
 export * from './types';
 
 type TagValue = string | boolean;
-type TagPatch = Record<string, TagValue | undefined>;
+type TagPatch = Record<string, TagValue>;
 
 export function applyTagPatch(
-  base: Record<string, TagValue> | undefined,
+  base: Record<string, TagValue>,
   patch: TagPatch
 ): Record<string, TagValue> {
-  const merged: Record<string, TagValue> = { ...(base ?? {}) };
+  const merged: Record<string, TagValue> = { ...base };
 
   for (const [tag, value] of Object.entries(patch)) {
     if (!tag || tag === 'undefined') {
       continue;
     }
-    if (value === undefined) {
+    if (value === false) {
+      // false = remove this tag
       delete merged[tag];
     } else {
       merged[tag] = value;
@@ -68,27 +69,27 @@ export function applyTagPatch(
 }
 
 export function buildTagPatch(
-  before: Record<string, TagValue> | undefined,
+  before: Record<string, TagValue>,
   after: Record<string, TagValue>
 ): TagPatch {
-  const base = before ?? {};
   const patch: TagPatch = {};
 
   for (const [tag, value] of Object.entries(after)) {
     if (!tag || tag === 'undefined') {
       continue;
     }
-    if (base[tag] !== value) {
+    if (before[tag] !== value) {
       patch[tag] = value;
     }
   }
 
-  for (const tag of Object.keys(base)) {
+  for (const tag of Object.keys(before)) {
     if (!tag || tag === 'undefined') {
       continue;
     }
     if (!(tag in after)) {
-      patch[tag] = undefined;
+      // false = remove this tag
+      patch[tag] = false;
     }
   }
 
@@ -130,7 +131,7 @@ const MUTATION_DISPATCH: Record<Mutation['type'], MutationHandler> = {
   archive_all_relationships: (m, ctx, r) => {
     const mut = m as ArchiveAllRelationshipsMutation;
     return prepareArchiveRelationship(
-      { type: 'archive_relationship', entity: mut.entity, relationshipKind: mut.relationshipKind, direction: mut.direction },
+      { type: 'archive_relationship', entity: mut.entity, relationshipKind: mut.relationshipKind, direction: mut.direction, with: 'any' },
       ctx, r
     );
   },
@@ -174,15 +175,15 @@ export function applyMutationResult(result: MutationResult, ctx: RuleContext): v
     const entity = ctx.graph.getEntity(mod.id);
     if (!entity) continue;
 
-    if (mod.true) {
+    if (mod.changes.status) {
       ctx.graph.updateEntityStatus(mod.id, mod.changes.status);
     }
 
-    if (mod.true) {
+    if (mod.changes.prominence && mod.changes.prominence !== 0) {
       ctx.graph.updateEntity(mod.id, { prominence: mod.changes.prominence });
     }
 
-    if (mod.true) {
+    if (mod.changes.tags && Object.keys(mod.changes.tags).length > 0) {
       const newTags = applyTagPatch(entity.tags, mod.changes.tags);
       ctx.graph.updateEntity(mod.id, { tags: newTags });
     }
@@ -278,6 +279,8 @@ function prepareSetTag(
   result.entityModifications.push({
     id: entity.id,
     changes: {
+      status: '',
+      prominence: 0,
       tags: { [mutation.tag]: value },
     },
   });
@@ -305,7 +308,7 @@ function prepareRemoveTag(
 
   result.entityModifications.push({
     id: entity.id,
-    changes: { tags: { [mutation.tag]: undefined } },
+    changes: { status: '', prominence: 0, tags: { [mutation.tag]: false } },
   });
 
   result.diagnostic = `removed ${mutation.tag} from ${entity.name}`;
@@ -453,7 +456,7 @@ function prepareArchiveRelationship(
     return result;
   }
 
-  const rels = ctx.graph.getAllRelationships() as RelGraphItem[];
+  const rels = ctx.graph.getAllRelationships({ includeHistorical: false }) as RelGraphItem[];
   if (withEntity) {
     archivePairRelationships(rels, entity!, withEntity, mutation.relationshipKind, direction, result);
   } else {
@@ -524,7 +527,7 @@ function prepareChangeStatus(
 
   result.entityModifications.push({
     id: entity.id,
-    changes: { status: mutation.newStatus },
+    changes: { status: mutation.newStatus, prominence: 0, tags: {} },
   });
 
   result.diagnostic = `changed ${entity.name} status to ${mutation.newStatus}`;
@@ -561,7 +564,7 @@ function prepareAdjustProminence(
   if (newValue !== currentValue) {
     result.entityModifications.push({
       id: entity.id,
-      changes: { prominence: newValue },
+      changes: { status: '', prominence: newValue, tags: {} },
     });
 
     const levelChange = oldLabel !== newLabel ? ` (now ${newLabel})` : '';
@@ -633,7 +636,7 @@ function prepareTransferRelationship(
     }
   }
 
-  const rels = ctx.graph.getAllRelationships() as RelGraphItem[];
+  const rels = ctx.graph.getAllRelationships({ includeHistorical: false }) as RelGraphItem[];
   const foundOld = findAndArchiveOldRelationship(rels, entity!, from!, mutation.relationshipKind, result);
 
   result.relationshipsCreated.push({
@@ -641,6 +644,7 @@ function prepareTransferRelationship(
     src: entity!.id,
     dst: to!.id,
     strength: 0.8,
+    category: '',
   });
 
   result.diagnostic = foundOld
@@ -690,7 +694,7 @@ function prepareForEachRelated(
   const self = ctx.self;
   // Find related entities
   const direction = normalizeDirection(mutation.direction);
-  const relationships = ctx.graph.getAllRelationships().filter((rel) => {
+  const relationships = ctx.graph.getAllRelationships({ includeHistorical: false }).filter((rel) => {
     if (rel.kind !== mutation.relationship || rel.status === 'historical') return false;
 
     // Check direction
