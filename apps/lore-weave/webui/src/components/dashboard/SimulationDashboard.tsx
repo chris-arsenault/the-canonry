@@ -29,6 +29,22 @@ interface FeedbackSum {
   ticksSeen: number;
 }
 
+interface PressureAgg {
+  id: string;
+  name: string;
+  epochStartValue: number;
+  epochEndValue: number;
+  totalFeedback: number;
+  positiveFeedbackSum: Map<string, FeedbackSum>;
+  negativeFeedbackSum: Map<string, FeedbackSum>;
+  totalScaledFeedback: number;
+  totalHomeostaticDelta: number;
+  totalRawDelta: number;
+  totalSmoothedDelta: number;
+  homeostasis: number;
+  tickCount: number;
+}
+
 /**
  * Accumulate feedback items from one tick into the running feedback sum map.
  */
@@ -92,7 +108,7 @@ function aggregatePressureUpdates(pressureUpdates: PressureUpdatePayload[], curr
   const lastUpdate = epochUpdates[epochUpdates.length - 1];
 
   const aggregatedPressures: Array<Record<string, unknown>> = [];
-  const pressureMap = new Map<string, Record<string, unknown>>();
+  const pressureMap = new Map<string, PressureAgg>();
 
   for (const p of firstUpdate.pressures) {
     pressureMap.set(p.id, {
@@ -118,17 +134,17 @@ function aggregatePressureUpdates(pressureUpdates: PressureUpdatePayload[], curr
       if (!agg) continue;
 
       agg.epochEndValue = p.newValue;
-      agg.tickCount = (agg.tickCount as number) + 1;
+      agg.tickCount++;
 
-      agg.totalFeedback = (agg.totalFeedback as number) + p.breakdown.feedbackTotal;
-      agg.totalScaledFeedback = (agg.totalScaledFeedback as number) + p.breakdown.scaledFeedback;
-      agg.totalHomeostaticDelta = (agg.totalHomeostaticDelta as number) + p.breakdown.homeostaticDelta;
-      agg.totalRawDelta = (agg.totalRawDelta as number) + p.breakdown.rawDelta;
-      agg.totalSmoothedDelta = (agg.totalSmoothedDelta as number) + p.breakdown.smoothedDelta;
+      agg.totalFeedback += p.breakdown.feedbackTotal;
+      agg.totalScaledFeedback += p.breakdown.scaledFeedback;
+      agg.totalHomeostaticDelta += p.breakdown.homeostaticDelta;
+      agg.totalRawDelta += p.breakdown.rawDelta;
+      agg.totalSmoothedDelta += p.breakdown.smoothedDelta;
       agg.homeostasis = p.breakdown.homeostasis;
 
-      aggregateFeedbackByLabel(agg.positiveFeedbackSum as Map<string, FeedbackSum>, p.breakdown.positiveFeedback);
-      aggregateFeedbackByLabel(agg.negativeFeedbackSum as Map<string, FeedbackSum>, p.breakdown.negativeFeedback);
+      aggregateFeedbackByLabel(agg.positiveFeedbackSum, p.breakdown.positiveFeedback);
+      aggregateFeedbackByLabel(agg.negativeFeedbackSum, p.breakdown.negativeFeedback);
     }
   }
 
@@ -138,13 +154,13 @@ function aggregatePressureUpdates(pressureUpdates: PressureUpdatePayload[], curr
       name: agg.name,
       previousValue: agg.epochStartValue,
       newValue: agg.epochEndValue,
-      delta: (agg.epochEndValue as number) - (agg.epochStartValue as number),
+      delta: agg.epochEndValue - agg.epochStartValue,
       tickCount: agg.tickCount,
       breakdown: {
-        positiveFeedback: Array.from((agg.positiveFeedbackSum as Map<string, FeedbackSum>).values()).map((f) => ({
+        positiveFeedback: Array.from(agg.positiveFeedbackSum.values()).map((f) => ({
           label: f.label, type: f.type, rawValue: f.totalRawValue / f.ticksSeen, coefficient: f.coefficient, contribution: f.totalContribution,
         })),
-        negativeFeedback: Array.from((agg.negativeFeedbackSum as Map<string, FeedbackSum>).values()).map((f) => ({
+        negativeFeedback: Array.from(agg.negativeFeedbackSum.values()).map((f) => ({
           label: f.label, type: f.type, rawValue: f.totalRawValue / f.ticksSeen, coefficient: f.coefficient, contribution: f.totalContribution,
         })),
         feedbackTotal: agg.totalFeedback,
