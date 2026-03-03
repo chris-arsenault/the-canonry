@@ -123,6 +123,11 @@ export async function generate(
     seed,
   } = request;
 
+  // Normalize profiles — persisted data may lack entityKinds
+  for (const p of culture.profiles) {
+    if (!p.entityKinds) (p as { entityKinds: string[] }).entityKinds = [];
+  }
+
   // Find the profile using selection logic:
   // 1. If profileId specified, use that
   // 2. Otherwise, find first profile matching entityKind

@@ -287,9 +287,11 @@ export function useChronicleNavigation({
       return aT.startTick - bT.startTick;
     });
     return sortedEras.map((era, index) => {
-      const temporal = era.temporal as { startTick: number; end: { occurred: boolean; tick: number } };
+      const temporal = era.temporal as { startTick: number; end: { occurred: boolean; tick: number }; endTick?: number };
       const startTick: number = temporal.startTick;
-      const endTick: number = temporal.end.occurred ? temporal.end.tick : 150;
+      const endTick: number = temporal.end
+        ? (temporal.end.occurred ? temporal.end.tick : 150)
+        : (temporal.endTick ?? 150);
       return {
         id: era.eraId || era.id,
         name: era.name,
