@@ -273,7 +273,7 @@ function openDb(dbName: string, onVersionChange?: () => void): Promise<IDBDataba
   });
 }
 
-function stripSimulationRunId<T extends { simulationRunId?: string }>(record: T): Omit<T, 'simulationRunId'> {
+function stripSimulationRunId<T extends { simulationRunId: string }>(record: T): Omit<T, 'simulationRunId'> {
   // eslint-disable-next-line sonarjs/no-unused-vars
   const { simulationRunId: _omit, ...rest } = record;
   return rest;
@@ -314,9 +314,9 @@ export class IndexedDBBackend implements NarrativeBackend {
   private dbName: string;
   private storeName: string;
 
-  constructor(options?: { dbName?: string; storeName?: string }) {
-    this.dbName = options?.dbName ?? DEFAULT_DB_NAME;
-    this.storeName = options?.storeName ?? EVENTS_STORE;
+  constructor() {
+    this.dbName = DEFAULT_DB_NAME;
+    this.storeName = EVENTS_STORE;
   }
 
   async getEventsForEntity(simulationRunId: string, entityId: string): Promise<NarrativeEvent[]> {
@@ -346,7 +346,7 @@ export class IndexedDBBackend implements NarrativeBackend {
           return;
         }
 
-        const record = cursor.value as NarrativeEvent & { simulationRunId?: string };
+        const record = cursor.value as NarrativeEvent & { simulationRunId: string };
         if (!hasIndex && record.simulationRunId !== simulationRunId) {
           cursor.continue();
           return;
@@ -393,7 +393,7 @@ export class IndexedDBBackend implements NarrativeBackend {
           return;
         }
 
-        const record = cursor.value as NarrativeEvent & { simulationRunId?: string };
+        const record = cursor.value as NarrativeEvent & { simulationRunId: string };
         if (!hasIndex && record.simulationRunId !== simulationRunId) {
           cursor.continue();
           return;

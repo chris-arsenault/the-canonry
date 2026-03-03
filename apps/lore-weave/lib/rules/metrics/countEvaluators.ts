@@ -7,7 +7,7 @@
 
 import type { HardState, Relationship } from '../../core/worldTypes';
 import { hasTag } from '../../utils';
-import { normalizeDirection } from '../types';
+import { normalizeDirection , entityCriteria } from '../types';
 import type {
   MetricResult,
   SimpleCountMetric,
@@ -29,7 +29,7 @@ export function evaluateSimpleCount(
 ): number {
   switch (metric.type) {
     case 'entity_count': {
-      let entities = ctx.graph.findEntities({ kind: metric.kind });
+      let entities = ctx.graph.findEntities(entityCriteria({ kind: metric.kind }));
       if (metric.subtype) {
         entities = entities.filter((e) => e.subtype === metric.subtype);
       }
@@ -41,10 +41,10 @@ export function evaluateSimpleCount(
 
     case 'relationship_count': {
       const rels = ctx.graph.getAllRelationships();
-      if (!metric.relationshipKinds || metric.relationshipKinds.length === 0) {
+      if (metric.relationshipKinds.length === 0) {
         return rels.length;
       }
-      return rels.filter((r) => metric.relationshipKinds!.includes(r.kind)).length;
+      return rels.filter((r) => metric.relationshipKinds.includes(r.kind)).length;
     }
 
     case 'tag_count': {
@@ -78,7 +78,7 @@ export function evaluateEntityCount(
   metric: EntityCountMetric,
   ctx: MetricContext
 ): MetricResult {
-  let entities = ctx.graph.findEntities({ kind: metric.kind });
+  let entities = ctx.graph.findEntities(entityCriteria({ kind: metric.kind }));
   if (metric.subtype) {
     entities = entities.filter((e) => e.subtype === metric.subtype);
   }
@@ -110,10 +110,10 @@ function matchesRelFilter(
   entity: HardState | undefined,
   direction: 'src' | 'dst' | 'both'
 ): boolean {
-  if (metric.relationshipKinds?.length && !metric.relationshipKinds.includes(r.kind)) {
+  if (metric.relationshipKinds.length && !metric.relationshipKinds.includes(r.kind)) {
     return false;
   }
-  if (metric.minStrength !== undefined && (r.strength ?? 0) < metric.minStrength) {
+  if (r.strength < metric.minStrength) {
     return false;
   }
   if (!entity) return true;
@@ -125,7 +125,7 @@ function matchesRelFilter(
 export function evaluateRelationshipCount(
   metric: RelationshipCountMetric,
   ctx: MetricContext,
-  entity?: HardState
+  entity: HardState
 ): MetricResult {
   const direction = normalizeDirection(metric.direction);
   const rels = ctx.graph.getAllRelationships();
@@ -184,7 +184,7 @@ export function evaluateTotalEntities(
 }
 
 export function evaluateConstant(metric: ConstantMetric): MetricResult {
-  const value = metric.value * (metric.coefficient ?? 1);
+  const value = metric.value * (metric.coefficient);
 
   return {
     value,
@@ -201,10 +201,10 @@ function matchesConnectionFilter(
 ): boolean {
   const involvesEntity = link.src === entity.id || link.dst === entity.id;
   if (!involvesEntity) return false;
-  if (metric.relationshipKinds?.length && !metric.relationshipKinds.includes(link.kind)) {
+  if (metric.relationshipKinds.length && !metric.relationshipKinds.includes(link.kind)) {
     return false;
   }
-  if (metric.minStrength !== undefined && (link.strength ?? 0) < metric.minStrength) {
+  if (link.strength < metric.minStrength) {
     return false;
   }
   return direction === 'both'
@@ -215,12 +215,8 @@ function matchesConnectionFilter(
 export function evaluateConnectionCount(
   metric: ConnectionCountMetric,
   ctx: MetricContext,
-  entity?: HardState
+  entity: HardState
 ): MetricResult {
-  if (!entity) {
-    return { value: 0, diagnostic: 'no entity for connection count', details: {} };
-  }
-
   const direction = normalizeDirection(metric.direction);
   const rels = ctx.graph.getAllRelationships();
   const count = rels.filter((link) => matchesConnectionFilter(link, entity, metric, direction)).length;

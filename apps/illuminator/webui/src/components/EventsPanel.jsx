@@ -5,7 +5,7 @@
  * with filtering by era, kind, significance, and tags.
  */
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import "./EventsPanel.css";
 
@@ -236,10 +236,13 @@ export default function EventsPanel({
     setDisplayLimit(prev => prev + LOAD_MORE_INCREMENT);
   };
 
-  // Reset display limit when filters change
-  useEffect(() => {
+  // Reset display limit during render when filters change
+  const filterKey = `${significanceFilter}|${kindFilter}|${eraFilter}|${tagFilter}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setDisplayLimit(DEFAULT_DISPLAY_LIMIT);
-  }, [significanceFilter, kindFilter, eraFilter, tagFilter]);
+  }
   const toggleExpanded = eventId => {
     setExpandedEvents(prev => {
       const next = new Set(prev);

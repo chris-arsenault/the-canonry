@@ -47,13 +47,12 @@ export function getRelationshipIdSet(
   graph: Graph,
   entityId: string,
   relationshipKinds: string[],
-  direction?: 'src' | 'dst'
+  direction: 'src' | 'dst'
 ): Set<string> {
   return new Set(
     graph.getRelationships()
       .filter(r => {
         if (!relationshipKinds.includes(r.kind)) return false;
-        if (!direction) return r.src === entityId || r.dst === entityId;
         return r[direction] === entityId;
       })
       .map(r => r.src === entityId ? r.dst : r.src)
@@ -73,11 +72,10 @@ export function countRelationships(
   graph: Graph,
   entityId: string,
   relationshipKind: string,
-  direction?: 'src' | 'dst'
+  direction: 'src' | 'dst'
 ): number {
   return graph.getRelationships().filter(r => {
     if (r.kind !== relationshipKind) return false;
-    if (!direction) return r.src === entityId || r.dst === entityId;
     return r[direction] === entityId;
   }).length;
 }

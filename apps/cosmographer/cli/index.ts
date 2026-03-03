@@ -25,7 +25,56 @@ import {
   VERSION
 } from '../lib/index.js';
 
-import type { CosmographerInput, DomainClass } from '../lib/types/index.js';
+import type { CosmographerInput, CosmographerOutput, DomainClass } from '../lib/types/index.js';
+
+function parseInputFile(inputPath: string): CosmographerInput {
+  const fullPath = resolve(inputPath);
+  if (!existsSync(fullPath)) {
+    throw new Error(`Input file not found: ${fullPath}`);
+  }
+
+  const content = readFileSync(fullPath, 'utf-8');
+  const ext = extname(fullPath).toLowerCase();
+
+  let raw: Record<string, unknown>;
+  if (ext === '.yaml' || ext === '.yml') {
+    raw = parseYaml(content) as Record<string, unknown>;
+  } else if (ext === '.json') {
+    raw = JSON.parse(content) as Record<string, unknown>;
+  } else {
+    throw new Error(`Unsupported file format: ${ext}. Use .yaml, .yml, or .json`);
+  }
+
+  const rawOptions = (raw.options ?? {}) as Record<string, unknown>;
+  return {
+    ...raw,
+    distanceHints: (raw.distanceHints as CosmographerInput['distanceHints']) ?? [],
+    customCategories: (raw.customCategories as CosmographerInput['customCategories']) ?? [],
+    options: {
+      weights: rawOptions.weights as CosmographerInput['options']['weights'],
+      saturationStrategy: rawOptions.saturationStrategy as CosmographerInput['options']['saturationStrategy'],
+      densityThreshold: rawOptions.densityThreshold as CosmographerInput['options']['densityThreshold'],
+      includeMetadata: rawOptions.includeMetadata as CosmographerInput['options']['includeMetadata'],
+    },
+  } as CosmographerInput;
+}
+
+function validateInput(input: CosmographerInput): void {
+  if (!input.domainId) throw new Error('Input must have a domainId');
+  if (!input.planes || input.planes.length === 0) throw new Error('Input must have at least one plane');
+}
+
+function printSummary(output: CosmographerOutput): void {
+  console.error('\nGeneration Summary:');
+  console.error(`  Planes: ${output.planeHierarchy.length}`);
+  console.error(`  Primary: ${output.planeHierarchy.find(p => p.priority === 1)?.planeId}`);
+  console.error(`  Strategy: ${output.saturationStrategy}`);
+  if (!output.classifications) return;
+  console.error('\nClassifications:');
+  for (const [planeId, cls] of Object.entries(output.classifications)) {
+    console.error(`  ${planeId}: ${cls.category} (${(cls.confidence * 100).toFixed(1)}%)`);
+  }
+}
 
 const program = new Command();
 
@@ -47,37 +96,9 @@ program
   .option('--threshold <number>', 'Density threshold (0.0-1.0)', '0.7')
   .action((inputPath: string, options: { metadata: boolean; strategy: string; threshold: string; output?: string }) => {
     try {
-      // Read and parse input
-      const fullPath = resolve(inputPath);
-      if (!existsSync(fullPath)) {
-        console.error(`Error: Input file not found: ${fullPath}`);
-        process.exit(1);
-      }
+      const input = parseInputFile(inputPath);
+      validateInput(input);
 
-      const content = readFileSync(fullPath, 'utf-8');
-      let input: CosmographerInput;
-
-      const ext = extname(fullPath).toLowerCase();
-      if (ext === '.yaml' || ext === '.yml') {
-        input = parseYaml(content) as CosmographerInput;
-      } else if (ext === '.json') {
-        input = JSON.parse(content) as CosmographerInput;
-      } else {
-        console.error(`Error: Unsupported file format: ${ext}. Use .yaml, .yml, or .json`);
-        process.exit(1);
-      }
-
-      // Validate input
-      if (!input.domainId) {
-        console.error('Error: Input must have a domainId');
-        process.exit(1);
-      }
-      if (!input.planes || input.planes.length === 0) {
-        console.error('Error: Input must have at least one plane');
-        process.exit(1);
-      }
-
-      // Apply CLI options
       input.options = {
         ...input.options,
         includeMetadata: options.metadata !== false,
@@ -89,33 +110,17 @@ program
       console.error(`Space type: ${input.spaceType}`);
       console.error(`Planes: ${input.planes.length}`);
 
-      // Generate
       const output = generateManifold(input);
-
-      // Output
       const json = JSON.stringify(output, null, 2);
 
       if (options.output) {
-        const outputPath = resolve(options.output);
-        writeFileSync(outputPath, json);
-        console.error(`\nManifold written to: ${outputPath}`);
+        writeFileSync(resolve(options.output), json);
+        console.error(`\nManifold written to: ${resolve(options.output)}`);
       } else {
         console.log(json);
       }
 
-      // Summary
-      console.error('\nGeneration Summary:');
-      console.error(`  Planes: ${output.planeHierarchy.length}`);
-      console.error(`  Primary: ${output.planeHierarchy.find(p => p.priority === 1)?.planeId}`);
-      console.error(`  Strategy: ${output.saturationStrategy}`);
-
-      if (output.classifications) {
-        console.error('\nClassifications:');
-        for (const [planeId, cls] of Object.entries(output.classifications)) {
-          console.error(`  ${planeId}: ${cls.category} (${(cls.confidence * 100).toFixed(1)}%)`);
-        }
-      }
-
+      printSummary(output);
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
       process.exit(1);

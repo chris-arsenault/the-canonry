@@ -32,7 +32,7 @@ export function archiveRelationship(
   src: string,
   dst: string,
   kind: string,
-  reason?: string
+  reason: string
 ): void {
   const rel = graph.getRelationships().find(r =>
     r.src === src &&
@@ -42,12 +42,12 @@ export function archiveRelationship(
   );
 
   if (rel) {
-    const age = graph.tick - (rel.createdAt ?? 0);
+    const age = graph.tick - rel.createdAt;
     rel.status = 'historical';
-    rel.archivedAt = graph.tick;
+    rel.archived = { occurred: true, tick: graph.tick };
 
     // Record archival for context-based event generation
-    graph.mutationTracker?.recordRelationshipArchived({
+    graph.mutationTracker.recordRelationshipArchived({
       srcId: src,
       dstId: dst,
       kind,
@@ -83,7 +83,7 @@ export function modifyRelationshipStrength(
 
   if (!rel) return false;
 
-  const currentStrength = rel.strength ?? 0.5;
+  const currentStrength = rel.strength;
   rel.strength = Math.max(0.0, Math.min(1.0, currentStrength + delta));
 
   const srcEntity = graph.getEntity(srcId);

@@ -3,21 +3,34 @@
  */
 
 import React from "react";
-import PropTypes from "prop-types";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import "./TraceTooltip.css";
+
+interface PressurePoint {
+  name: string;
+  color: string;
+  value: number;
+}
+
+type TooltipData =
+  | { type: "tick"; tick: number; pressures: PressurePoint[] }
+  | { type: "event"; tick: number; eventType: string; label: string };
 
 /**
  * Tooltip hook and component for trace visualization
  */
 export function useTraceTooltip() {
-  return useTooltip();
+  return useTooltip<TooltipData>();
 }
 
-/**
- * Simple tooltip component
- */
-export default function TraceTooltip({ tooltipData, tooltipLeft, tooltipTop, tooltipOpen }) {
+interface TraceTooltipProps {
+  tooltipData: TooltipData | null;
+  tooltipLeft: number;
+  tooltipTop: number;
+  tooltipOpen: boolean;
+}
+
+export default function TraceTooltip({ tooltipData, tooltipLeft, tooltipTop, tooltipOpen }: Readonly<TraceTooltipProps>) {
   if (!tooltipOpen || !tooltipData) return null;
 
   return (
@@ -27,7 +40,7 @@ export default function TraceTooltip({ tooltipData, tooltipLeft, tooltipTop, too
           <div className="tt-tick-header">Tick {tooltipData.tick}</div>
           {tooltipData.pressures?.map((p, i) => (
             <div key={i} className="tt-pressure-row">
-              <span className="tt-pressure-name" style={{ '--tt-pressure-color': p.color }}>{p.name}</span>
+              <span className="tt-pressure-name" style={{ '--tt-pressure-color': p.color } as React.CSSProperties}>{p.name}</span>
               <span>{p.value?.toFixed(1)}</span>
             </div>
           ))}
@@ -47,10 +60,3 @@ export default function TraceTooltip({ tooltipData, tooltipLeft, tooltipTop, too
     </TooltipWithBounds>
   );
 }
-
-TraceTooltip.propTypes = {
-  tooltipData: PropTypes.object,
-  tooltipLeft: PropTypes.number,
-  tooltipTop: PropTypes.number,
-  tooltipOpen: PropTypes.bool,
-};

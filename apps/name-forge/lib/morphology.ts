@@ -7,10 +7,10 @@ interface MorphState {
   syllables: string[];
 }
 
-function applyRootToken(state: MorphState, root: string, rootSyllables?: string[]): void {
+function applyRootToken(state: MorphState, root: string, rootSyllables: string[]): void {
   state.result += root;
   state.parts.push(`root:${root}`);
-  if (rootSyllables && rootSyllables.length > 0) {
+  if (rootSyllables.length > 0) {
     state.syllables.push(...rootSyllables);
   } else {
     state.syllables.push(root);
@@ -41,7 +41,7 @@ function applyInfixToken(state: MorphState, rng: () => number, profile: Morpholo
   state.parts.push(`infix:${infix}`);
 }
 
-function applyWordrootToken(state: MorphState, rng: () => number, profile: MorphologyProfile, root: string, rootSyllables?: string[]): void {
+function applyWordrootToken(state: MorphState, rng: () => number, profile: MorphologyProfile, root: string, rootSyllables: string[]): void {
   if (profile.wordRoots && profile.wordRoots.length > 0) {
     const wordRoot = pickRandom(rng, profile.wordRoots);
     state.result += wordRoot;
@@ -67,7 +67,7 @@ export function applyMorphology(
   rng: () => number,
   root: string,
   profile: MorphologyProfile,
-  rootSyllables?: string[]
+  rootSyllables: string[]
 ): { result: string; structure: string; parts: string[]; syllables: string[] } {
   const structure = pickWeighted(rng, profile.structure, profile.structureWeights);
   const state: MorphState = { result: "", parts: [], syllables: [] };
@@ -99,7 +99,7 @@ export function applyMorphologyBest(
   profile: MorphologyProfile,
   candidateCount: number = 3,
   maxLength: number = 20,
-  rootSyllables?: string[]
+  rootSyllables: string[]
 ): { result: string; structure: string; parts: string[]; syllables: string[] } {
   const candidates: {
     result: string;

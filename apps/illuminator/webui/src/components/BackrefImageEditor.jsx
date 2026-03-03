@@ -318,9 +318,10 @@ export default function BackrefImageEditor({
 }) {
   const [chronicles, setChronicles] = useState(new Map());
   const [expanded, setExpanded] = useState(alwaysExpanded);
+  const rawBackrefs = entity?.enrichment?.chronicleBackrefs;
   const backrefs = useMemo(
-    () => entity?.enrichment?.chronicleBackrefs || [],
-    [entity?.enrichment?.chronicleBackrefs]
+    () => rawBackrefs || [],
+    [rawBackrefs]
   );
 
   // Stable key for chronicle IDs to use as dependency

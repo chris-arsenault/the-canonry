@@ -24,13 +24,13 @@ export interface ArtisticStyle {
   /** Display name */
   name: string;
   /** Human-readable description */
-  description?: string;
+  description: string;
   /** Prompt fragment for artistic direction (injected into image prompt) */
   promptFragment: string;
   /** Additional keywords for the style */
-  keywords?: string[];
+  keywords: string[];
   /** Visual medium category for filtering */
-  category?: ArtisticStyleCategory;
+  category: ArtisticStyleCategory;
 }
 
 export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [

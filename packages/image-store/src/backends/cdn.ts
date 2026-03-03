@@ -1,20 +1,21 @@
 import type { ImageBackend, ImageEntryMetadata, ImageSize } from '../types';
 
 /**
- * Shape of image data from a viewer bundle.
+ * Shape of image data from a viewer bundle (wire format from JSON).
  * Paths are already resolved to absolute CDN URLs by normalizeBundle().
+ * Fields use `| null` because the JSON may omit them.
  */
 export interface BundleImageResult {
   imageId: string;
-  entityId?: string;
-  entityName?: string;
-  entityKind?: string;
-  localPath?: string;
-  thumbPath?: string;
-  fullPath?: string;
-  width?: number;
-  height?: number;
-  aspect?: 'portrait' | 'landscape' | 'square';
+  entityId: string | null;
+  entityName: string | null;
+  entityKind: string | null;
+  localPath: string | null;
+  thumbPath: string | null;
+  fullPath: string | null;
+  width: number | null;
+  height: number | null;
+  aspect: 'portrait' | 'landscape' | 'square' | null;
 }
 
 export interface BundleImageData {
@@ -25,6 +26,20 @@ export interface BundleImageData {
  * Legacy format: flat { imageId → url } map.
  */
 export type LegacyImageMap = Record<string, string>;
+
+function bundleResultToMetadata(img: BundleImageResult): ImageEntryMetadata {
+  return {
+    imageId: img.imageId,
+    entity: img.entityId && img.entityName && img.entityKind
+      ? { id: img.entityId, name: img.entityName, kind: img.entityKind, culture: '' }
+      : null,
+    dimensions: img.width != null && img.height != null && img.aspect
+      ? { width: img.width, height: img.height, aspect: img.aspect }
+      : null,
+    generation: null,
+    size: null,
+  };
+}
 
 /**
  * CDN backend — resolves image URLs from a pre-loaded viewer bundle.
@@ -62,24 +77,17 @@ export class CDNBackend implements ImageBackend {
     if (!this.bundleImageData?.results) return;
     for (const img of this.bundleImageData.results) {
       if (!img.imageId) continue;
-
-      const thumb = img.thumbPath || img.localPath || '';
-      const full = img.fullPath || img.localPath || '';
-
-      if (thumb || full) {
-        this.urlMap.set(img.imageId, { thumb, full });
-      }
-
-      this.metadataMap.set(img.imageId, {
-        imageId: img.imageId,
-        entityId: img.entityId,
-        entityName: img.entityName,
-        entityKind: img.entityKind,
-        width: img.width,
-        height: img.height,
-        aspect: img.aspect,
-      });
+      this.indexBundleImage(img);
     }
+  }
+
+  private indexBundleImage(img: BundleImageResult): void {
+    const thumb = img.thumbPath || img.localPath || '';
+    const full = img.fullPath || img.localPath || '';
+    if (thumb || full) {
+      this.urlMap.set(img.imageId, { thumb, full });
+    }
+    this.metadataMap.set(img.imageId, bundleResultToMetadata(img));
   }
 
   getImageUrl(imageId: string, size: ImageSize = 'thumb'): Promise<string | null> {

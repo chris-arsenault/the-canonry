@@ -1,4 +1,4 @@
-import { Graph, GraphStore, EngineConfig, Era, GrowthTemplate, Pressure, SimulationSystem, SystemResult, EpochEraSummary, EpochEraTransitionSummary } from '../engine/types';
+import { Graph, GraphStore, EngineConfig, Era, GrowthTemplate, Pressure, SimulationSystem, SystemResult, EpochEraSummary, EpochEraTransitionSummary, entityCriteria } from '../engine/types';
 import { createPressureFromDeclarative, evaluatePressureGrowthWithBreakdown } from './pressureInterpreter';
 import { DeclarativePressure } from './declarativePressureTypes';
 import { TemplateInterpreter, createTemplateFromDeclarative } from './templateInterpreter';
@@ -42,13 +42,23 @@ import { NameForgeService } from '../naming/nameForgeService';
 import type { NameGenerationService } from './types';
 import { createGrowthSystem, GrowthSystem, GrowthEpochSummary } from '../systems/growthSystem';
 import { checkTransitionConditions } from '../systems/eraTransition';
-import { StateChangeTracker, createDefaultNarrativeConfig } from '../narrative/index.js';
+import { StateChangeTracker } from '../narrative/index.js';
 import { MutationTracker } from '../narrative/mutationTracker.js';
 
 // Change detection functions moved to @illuminator/lib/engine/changeDetection.ts
 // EntitySnapshot interface and detect*Changes functions available there
 
 const LORE_WEAVE_VERSION = '2025-12-23.1';
+
+function isExplicitlyDisabled(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && 'enabled' in value &&
+    (value as { enabled: unknown }).enabled === false;
+}
+
+function isGrowthSystem(system: SimulationSystem | DeclarativeSystem): boolean {
+  if (isDeclarativeSystem(system)) return system.systemType === 'growth';
+  return system.id === 'growth' || system.id === 'framework-growth';
+}
 
 export class WorldEngine {
   private config: EngineConfig;
@@ -58,7 +68,7 @@ export class WorldEngine {
   private runtimeTemplates!: GrowthTemplate[];  // Converted from declarative templates
   private declarativeTemplates!: Map<string, DeclarativeTemplate>;  // Original declarative templates for diagnostics
   private runtimeSystems!: SimulationSystem[];  // Converted from declarative systems
-  private growthSystem?: GrowthSystem;  // Distributed growth system (framework-managed)
+  private growthSystem: GrowthSystem | undefined;  // Distributed growth system — set during initializeSystemsPipeline
   private templateInterpreter!: TemplateInterpreter;  // Interprets declarative templates
   private graph: Graph;
   private runtime!: WorldRuntime;
@@ -143,34 +153,8 @@ export class WorldEngine {
     config: EngineConfig,
     initialState: HardState[]
   ) {
-    // REQUIRED: Emitter must be provided - no fallback to console.log
-    if (!config.emitter) {
-      throw new Error(
-        'WorldEngine: emitter is required in EngineConfig. ' +
-        'Provide a SimulationEmitter instance that handles simulation events.'
-      );
-    }
-    if (!config.schema) {
-      throw new Error(
-        'WorldEngine: schema is required in EngineConfig. ' +
-        'Provide the canonical world schema used to run the simulation.'
-      );
-    }
     this.emitter = config.emitter;
     this.config = config;
-
-    const isExplicitlyDisabled = (value: unknown): boolean =>
-      typeof value === 'object' &&
-      value !== null &&
-      'enabled' in value &&
-      (value as { enabled?: unknown }).enabled === false;
-
-    const isGrowthSystem = (system: SimulationSystem | DeclarativeSystem): boolean => {
-      if (isDeclarativeSystem(system)) {
-        return system.systemType === 'growth';
-      }
-      return system.id === 'growth' || system.id === 'framework-growth';
-    };
 
     const hasDisabledGrowthSystem = config.systems
       .some(system => isExplicitlyDisabled(system) && isGrowthSystem(system));
@@ -186,11 +170,11 @@ export class WorldEngine {
     }
 
     // Set prominence debug flags based on debug config
-    const prominenceDebugEnabled = config.debugConfig?.enabled &&
+    const prominenceDebugEnabled = config.debugConfig.enabled &&
       (config.debugConfig.enabledCategories.length === 0 ||
        config.debugConfig.enabledCategories.includes('prominence'));
-    GraphStore.DEBUG_PROMINENCE = prominenceDebugEnabled ?? false;
-    StateChangeTracker.DEBUG_PROMINENCE = prominenceDebugEnabled ?? false;
+    GraphStore.DEBUG_PROMINENCE = prominenceDebugEnabled;
+    StateChangeTracker.DEBUG_PROMINENCE = prominenceDebugEnabled;
 
     // Emit initializing progress
     this.emitter.progress({
@@ -212,7 +196,7 @@ export class WorldEngine {
     this.currentEpoch = 0;
 
     // Initialize scaled values
-    const scale = config.scaleFactor || 1.0;
+    const scale = config.scaleFactor;
     // Scale maxRunsPerTemplate more aggressively (1.5 exponent) to handle
     // cases where only a subset of templates are applicable in early epochs
     // INCREASED: From 12 to 20 to prevent template starvation in later epochs
@@ -222,67 +206,9 @@ export class WorldEngine {
       max: Infinity  // No hard cap - let distribution targets drive growth
     };
 
-    // Emit validating progress
-    this.emitter.progress({
-      phase: 'validating',
-      tick: 0,
-      maxTicks: config.maxTicks,
-      epoch: 0,
-      totalEpochs: this.getTotalEpochs(),
-      entityCount: initialState.length,
-      relationshipCount: 0
-    });
-
-    // Framework Validation
-    const validator = new FrameworkValidator(config);
-    const validationResult = validator.validate();
-
-    // Emit validation result
-    this.emitter.validation({
-      status: validationResult.errors.length > 0 ? 'failed' : 'success',
-      errors: validationResult.errors,
-      warnings: validationResult.warnings
-    });
-
-    // Throw on validation errors
-    if (validationResult.errors.length > 0) {
-      const errorDetails = validationResult.errors.join('\n  - ');
-      this.emitter.error({
-        message: `Framework validation failed with ${validationResult.errors.length} error(s):\n  - ${errorDetails}`,
-        phase: 'validation',
-        context: { errors: validationResult.errors }
-      });
-      throw new Error(`Framework validation failed with ${validationResult.errors.length} error(s):\n  - ${errorDetails}`);
-    }
-
-    this.emitter.log('info', `Lore Weave version ${LORE_WEAVE_VERSION}`);
-    this.emitter.log('info', 'Framework validation passed');
-
-    // Initialize homeostatic control system
-    const distributionTargets = config.distributionTargets ?? {
-      version: '1.0.0',
-      entities: {}
-    };
-    if (!distributionTargets.entities || Array.isArray(distributionTargets.entities)) {
-      throw new Error('distributionTargets.entities must be an object keyed by kind/subtype.');
-    }
-    this.config.distributionTargets = distributionTargets;
-    const { totalsByKind, total } = this.computeTargetTotals(distributionTargets);
-    this.targetTotalsByKind = totalsByKind;
-    this.totalTargetEntities = total;
-    this.populationTracker = new PopulationTracker(distributionTargets, config.schema);
-    this.dynamicWeightCalculator = new DynamicWeightCalculator();
-    this.emitter.log('info', 'Population tracking enabled');
-
-    // Initialize contract enforcement system
+    this.validateFramework(config, initialState);
+    this.initializePopulationTracking(config);
     this.contractEnforcer = new ContractEnforcer(config);
-    this.emitter.log('info', 'Contract enforcement enabled', {
-      features: [
-        'Template filtering by applicability rules',
-        'Automatic lineage relationship creation',
-        'Contract affects validation'
-      ]
-    });
 
     // Initialize target selector (prevents super-hub formation)
     this.targetSelector = new TargetSelector();
@@ -294,42 +220,8 @@ export class WorldEngine {
     // Initialize narrative event tracking
     this.initializeNarrativeTracking(config);
 
-    // Initialize NameForgeService from schema cultures that have naming config
-    // Must be done before CoordinateContext since it requires nameForgeService
-    const schemaCultures = config.schema.cultures;
-    if (!schemaCultures || schemaCultures.length === 0) {
-      throw new Error(
-        'WorldEngine: schema.cultures is required in EngineConfig. ' +
-        'Provide cultures with naming configuration for name generation.'
-      );
-    }
-    const culturesWithNaming = schemaCultures.filter(c => c.naming);
-    if (culturesWithNaming.length === 0) {
-      throw new Error(
-        'WorldEngine: No cultures have naming configuration. ' +
-        'At least one culture must have a naming property for name generation.'
-      );
-    }
-    this.nameForgeService = new NameForgeService(culturesWithNaming, this.emitter);
-    // Set on config so Graph can access it for entity name generation
-    this.config.nameForgeService = this.nameForgeService;
-    this.emitter.log('info', 'NameForgeService initialized', {
-      cultures: culturesWithNaming.length,
-      cultureIds: culturesWithNaming.map(c => c.id)
-    });
-
-    // Initialize coordinate context (REQUIRED - no fallbacks)
-    const coordinateConfig = {
-      schema: config.schema,
-      defaultMinDistance: config.defaultMinDistance,
-      nameForgeService: this.nameForgeService,
-    };
-    this.coordinateContext = new CoordinateContext(coordinateConfig);
-    this.emitter.log('info', 'Coordinate context initialized', {
-      cultures: this.coordinateContext.getCultureIds().length,
-      entityKinds: this.coordinateContext.getConfiguredKinds().length,
-      defaultMinDistance: config.defaultMinDistance ?? 5
-    });
+    this.initializeNaming(config);
+    this.initializeCoordinates(config);
 
     // Build runtime systems (including new distributed growth system)
     this.initializeRuntimeSystems(config, hasDisabledGrowthSystem);
@@ -392,7 +284,7 @@ export class WorldEngine {
   }
 
   private initializeActions(config: EngineConfig): void {
-    if (config.actions && config.actions.length > 0) {
+    if (config.actions.length > 0) {
       config.executableActions = loadActions(config.actions);
     }
     config.actionUsageTracker = {
@@ -402,8 +294,73 @@ export class WorldEngine {
     };
   }
 
+
+
+  private validateFramework(config: EngineConfig, initialState: HardState[]): void {
+    this.emitter.progress({
+      phase: 'validating', tick: 0, maxTicks: config.maxTicks,
+      epoch: 0, totalEpochs: this.getTotalEpochs(),
+      entityCount: initialState.length, relationshipCount: 0
+    });
+    const validator = new FrameworkValidator(config);
+    const validationResult = validator.validate();
+    this.emitter.validation({
+      status: validationResult.errors.length > 0 ? 'failed' : 'success',
+      errors: validationResult.errors, warnings: validationResult.warnings
+    });
+    if (validationResult.errors.length > 0) {
+      const errorDetails = validationResult.errors.join('\n  - ');
+      this.emitter.error({
+        message: `Framework validation failed with ${validationResult.errors.length} error(s):\n  - ${errorDetails}`,
+        phase: 'validation', context: { errors: validationResult.errors }
+      });
+      throw new Error(`Framework validation failed with ${validationResult.errors.length} error(s):\n  - ${errorDetails}`);
+    }
+    this.emitter.log('info', `Lore Weave version ${LORE_WEAVE_VERSION}`);
+  }
+
+  private initializePopulationTracking(config: EngineConfig): void {
+    const distributionTargets = config.distributionTargets;
+    this.config.distributionTargets = distributionTargets;
+    const { totalsByKind, total } = this.computeTargetTotals(distributionTargets);
+    this.targetTotalsByKind = totalsByKind;
+    this.totalTargetEntities = total;
+    this.populationTracker = new PopulationTracker(distributionTargets, config.schema);
+    this.dynamicWeightCalculator = new DynamicWeightCalculator();
+  }
+
+  private initializeNaming(config: EngineConfig): void {
+    const schemaCultures = config.schema.cultures;
+    const culturesWithNaming = schemaCultures.filter(c => c.naming.domains.length > 0 || c.naming.grammars.length > 0);
+    if (culturesWithNaming.length === 0) {
+      throw new Error(
+        'WorldEngine: No cultures have naming configuration. ' +
+        'At least one culture must have a naming property for name generation.'
+      );
+    }
+    this.nameForgeService = new NameForgeService(culturesWithNaming, this.emitter);
+    this.config.nameForgeService = this.nameForgeService;
+    this.emitter.log('info', 'NameForgeService initialized', {
+      cultures: culturesWithNaming.length,
+      cultureIds: culturesWithNaming.map(c => c.id)
+    });
+  }
+
+  private initializeCoordinates(config: EngineConfig): void {
+    this.coordinateContext = new CoordinateContext({
+      schema: config.schema,
+      defaultMinDistance: config.defaultMinDistance,
+      nameForgeService: this.nameForgeService,
+    });
+    this.emitter.log('info', 'Coordinate context initialized', {
+      cultures: this.coordinateContext.getCultureIds().length,
+      entityKinds: this.coordinateContext.getConfiguredKinds().length,
+      defaultMinDistance: config.defaultMinDistance
+    });
+  }
+
   private initializeNarrativeTracking(config: EngineConfig): void {
-    const narrative = config.narrativeConfig ?? createDefaultNarrativeConfig();
+    const narrative = config.narrativeConfig;
     this.stateChangeTracker = new StateChangeTracker(narrative, this.mutationTracker);
     this.stateChangeTracker.setSchema({
       relationshipKinds: config.schema.relationshipKinds,
@@ -426,8 +383,8 @@ export class WorldEngine {
     const sourceNames: Array<{ id: string; name: string }> = [];
     sourceNames.push(...this.collectSystemSourceNames(config.systems));
     sourceNames.push(...this.collectActionSourceNames(config.executableActions));
-    sourceNames.push(...(config.templates ?? []).map(t => ({ id: t.id, name: t.name || t.id })));
-    sourceNames.push(...(config.eras ?? []).map(e => ({ id: e.id, name: e.name || e.id })));
+    sourceNames.push(...config.templates.map(t => ({ id: t.id, name: t.name || t.id })));
+    sourceNames.push(...config.eras.map(e => ({ id: e.id, name: e.name || e.id })));
     return sourceNames;
   }
 
@@ -436,7 +393,7 @@ export class WorldEngine {
   ): Array<{ id: string; name: string }> {
     const names: Array<{ id: string; name: string }> = [];
     for (const sys of systems) {
-      if ('systemType' in sys && sys.config) {
+      if ('systemType' in sys) {
         const id = sys.config.id || sys.systemType;
         const name = sys.config.name || id;
         names.push({ id, name });
@@ -450,7 +407,6 @@ export class WorldEngine {
   private collectActionSourceNames(
     actions: EngineConfig['executableActions']
   ): Array<{ id: string; name: string }> {
-    if (!actions) return [];
     return actions.map(a => ({ id: a.type, name: a.name || a.type }));
   }
 
@@ -497,9 +453,7 @@ export class WorldEngine {
       : runtimeSystems;
 
     for (const system of this.runtimeSystems) {
-      if (system.initialize) {
-        system.initialize();
-      }
+      system.initialize();
     }
   }
 
@@ -521,7 +475,7 @@ export class WorldEngine {
       if (this.growthSystem) {
         throw new Error('Multiple growth systems configured. Only one growth system is supported.');
       }
-      this.growthSystem = createGrowthSystem((sys).config, growthDependencies);
+      this.growthSystem = createGrowthSystem(sys.config, growthDependencies);
       return;
     }
 
@@ -541,13 +495,7 @@ export class WorldEngine {
         `Seed entities must include stable ids used by seed relationships.`
       );
     }
-    const coordinates = entity.coordinates;
-    if (!coordinates || typeof coordinates.x !== 'number' || typeof coordinates.y !== 'number' || typeof coordinates.z !== 'number') {
-      throw new Error(
-        `WorldEngine: initial entity "${entity.name}" (${entity.kind}) has invalid coordinates. ` +
-        `Expected {x, y, z} numbers, received: ${JSON.stringify(coordinates)}.`
-      );
-    }
+    // coordinates is always SemanticCoordinates {x, y, z} — validated by type system
     if (!entity.culture || entity.culture.startsWith('$')) {
       throw new Error(
         `WorldEngine: initial entity "${entity.name}" (${entity.kind}) has invalid culture "${entity.culture}".`
@@ -556,14 +504,13 @@ export class WorldEngine {
   }
 
   private buildLoadedEntity(entity: HardState): HardState {
-    const narrativeHint = entity.narrativeHint ?? entity.summary ?? (entity.description ? entity.description : undefined);
     const loadedEntity: HardState = {
       ...entity,
       id: entity.id,
       coordinates: entity.coordinates,
       createdAt: 0,
       updatedAt: 0,
-      narrativeHint,
+      narrativeHint: entity.narrativeHint || entity.summary || entity.description,
       lockedSummary: entity.summary ? true : undefined
     };
     initializeCatalystSmart(loadedEntity);
@@ -572,7 +519,7 @@ export class WorldEngine {
   }
 
   private assignRegionToEntity(entity: HardState): void {
-    if (entity.coordinates && !entity.regionId) {
+    if (!entity.regionId) {
       const lookup = this.runtime.lookupRegion(entity.kind, entity.coordinates);
       if (lookup.primary) {
         entity.regionId = lookup.primary.id;
@@ -642,7 +589,11 @@ export class WorldEngine {
       participantEffects,
       description: `In the time before memory, the world took shape. ${kindSummary} emerged from the primordial ice, bound by ${relationships.length} threads of fate.`,
       causedBy: {
-        actionType: 'genesis'
+        hasCause: true,
+        eventId: '',
+        entityId: '',
+        actionType: 'genesis',
+        success: true,
       },
       narrativeTags: ['genesis', 'creation', 'primordial', 'origin']
     };
@@ -719,7 +670,7 @@ export class WorldEngine {
       'practitioner_of': ['inherited the ways of', 'bestowed knowledge upon']
     };
 
-    const [srcVerb, dstVerb] = verbs[kind] || ['was connected to', 'was linked with'];
+    const [srcVerb, dstVerb] = verbs[kind];
     return `${isSource ? srcVerb : dstVerb} ${otherName}`;
   }
 
@@ -789,32 +740,19 @@ export class WorldEngine {
   private ensureFirstEraExists(): void {
     // Get first era from config
     const configEras = this.config.eras;
-    if (!configEras || configEras.length === 0) {
+    if (configEras.length === 0) {
       this.emitter.log('warn', 'No eras defined in config - entities will not have ORIGINATED_IN relationships');
       return;
     }
 
     // Check if any era entities already exist
-    const existingEras = this.graph.findEntities({
+    const existingEras = this.graph.findEntities(entityCriteria({
       kind: FRAMEWORK_ENTITY_KINDS.ERA,
       includeHistorical: true
-    });
+    }));
 
     if (existingEras.length > 0) {
-      const firstEraConfig = configEras[0];
-      const firstEraEntity = existingEras.find(era =>
-        era.id === firstEraConfig.id ||
-        era.subtype === firstEraConfig.id ||
-        era.name === firstEraConfig.name
-      );
-      if (firstEraEntity && firstEraEntity.temporal?.startTick == null) {
-        firstEraEntity.temporal = {
-          startTick: 0,
-          endTick: firstEraEntity.temporal?.endTick ?? null
-        };
-        firstEraEntity.updatedAt = this.graph.tick;
-      }
-      // Era already exists - nothing else to do
+      // Era already exists — temporal is always set at entity creation
       return;
     }
 
@@ -933,16 +871,15 @@ export class WorldEngine {
   }
 
   private finalizeCurrentEraTemporal(): void {
-    const currentEraEntity = this.graph.findEntities({
+    const currentEraEntity: HardState | undefined = this.graph.findEntities(entityCriteria({
       kind: FRAMEWORK_ENTITY_KINDS.ERA,
       status: FRAMEWORK_STATUS.CURRENT
-    })[0];
+    }))[0];
     if (!currentEraEntity) return;
 
-    const startTick = currentEraEntity.temporal?.startTick ?? currentEraEntity.createdAt ?? 0;
     currentEraEntity.temporal = {
-      startTick,
-      endTick: this.graph.tick
+      startTick: currentEraEntity.temporal.startTick,
+      end: { occurred: true, tick: this.graph.tick }
     };
     currentEraEntity.updatedAt = this.graph.tick;
   }
@@ -1059,18 +996,16 @@ export class WorldEngine {
 
   private resetTrackingMaps(): void {
     this.templateRunCounts.clear();
-    if (this.config.actionUsageTracker) {
-      this.config.actionUsageTracker.applications = [];
-      this.config.actionUsageTracker.countsByActionId.clear();
-      this.config.actionUsageTracker.countsByActorId.clear();
-    }
+    this.config.actionUsageTracker.applications = [];
+    this.config.actionUsageTracker.countsByActionId.clear();
+    this.config.actionUsageTracker.countsByActorId.clear();
     this.systemMetrics.clear();
     this.metaEntitiesFormed = [];
     this.lastRelationshipCount = 0;
     this.lastGrowthSummary = null;
     this.reachabilityComponents = null;
     this.fullyConnectedTick = null;
-    this.growthSystem?.reset();
+    this.growthSystem.reset();
     coordinateStats.reset();
   }
 
@@ -1086,7 +1021,6 @@ export class WorldEngine {
   }
 
   private loadSeedRelationships(): void {
-    if (!this.config.seedRelationships) return;
     for (const rel of this.config.seedRelationships) {
       const srcEntity = this.graph.getEntity(rel.src) || this.findEntityByName(rel.src);
       const dstEntity = this.graph.getEntity(rel.dst) || this.findEntityByName(rel.dst);
@@ -1116,7 +1050,7 @@ export class WorldEngine {
     const hitTickLimit = this.graph.tick >= this.config.maxTicks;
 
     // PRIORITY 3: Excessive growth safety valve (only if WAY over target AND all eras done)
-    const scale = this.config.scaleFactor || 1.0;
+    const scale = this.config.scaleFactor;
     const safetyLimit = this.totalTargetEntities > 0
       ? this.totalTargetEntities * 10 * scale
       : Infinity;
@@ -1158,22 +1092,22 @@ export class WorldEngine {
   private checkFinalEraExitConditions(): boolean {
     // Get the final era from config
     const eras = this.config.eras;
-    if (!eras || eras.length === 0) return false;
+    if (eras.length === 0) return false;
     const finalEraConfig = eras[eras.length - 1];
 
     // Check if we're in the final era
-    const currentEraId = this.graph.currentEra?.id;
+    const currentEraId = this.graph.currentEra.id;
     if (currentEraId !== finalEraConfig.id) return false;
 
     // Check if the final era has exit conditions
     const exitConditions = finalEraConfig.exitConditions;
-    if (!exitConditions || exitConditions.length === 0) return false;
+    if (exitConditions.length === 0) return false;
 
     // Find the current era entity
-    const currentEraEntity = this.graph.findEntities({
+    const currentEraEntity: HardState | undefined = this.graph.findEntities(entityCriteria({
       kind: FRAMEWORK_ENTITY_KINDS.ERA,
       status: FRAMEWORK_STATUS.CURRENT
-    })[0];
+    }))[0];
     if (!currentEraEntity) return false;
 
     // Check if exit conditions are met
@@ -1192,10 +1126,10 @@ export class WorldEngine {
    */
   private linkFinalEra(): void {
     // Find current era entity
-    const eraEntities = this.graph.findEntities({ kind: FRAMEWORK_ENTITY_KINDS.ERA, status: FRAMEWORK_STATUS.CURRENT });
-    const currentEra = eraEntities[0];
+    const eraEntities = this.graph.findEntities(entityCriteria({ kind: FRAMEWORK_ENTITY_KINDS.ERA, status: FRAMEWORK_STATUS.CURRENT }));
+    const currentEra: HardState | undefined = eraEntities[0];
 
-    if (!currentEra || !currentEra.temporal) return;
+    if (!currentEra) return;
 
     const eraStartTick = currentEra.temporal.startTick;
 
@@ -1235,16 +1169,7 @@ export class WorldEngine {
     this.epochEra = epochEra;
     this.epochEraTransitions = [];
 
-    // Emit epoch start event
-    this.emitter.epochStart({
-      epoch: this.currentEpoch,
-      era: {
-        id: epochEra.id,
-        name: epochEra.name,
-        summary: epochEra.summary
-      },
-      tick: this.graph.tick
-    });
+    this.emitter.epochStart({ epoch: this.currentEpoch, era: { id: epochEra.id, name: epochEra.name, summary: epochEra.summary }, tick: this.graph.tick });
 
     // Reset rate limit counter for new epoch
     this.graph.rateLimitState.creationsThisEpoch = 0;
@@ -1254,13 +1179,8 @@ export class WorldEngine {
     const initialRelationshipCount = this.graph.getRelationshipCount();
 
     // Initialize distributed growth for this epoch
-    if (this.growthSystem) {
-      this.growthSystem.startEpoch(epochEra);
-      this.lastGrowthSummary = null;
-    } else {
-      this.lastGrowthSummary = null;
-      this.emitter.log('info', 'Growth system disabled; skipping growth for this epoch');
-    }
+    this.growthSystem.startEpoch(epochEra);
+    this.lastGrowthSummary = null;
 
     // Simulation phase
     for (let i = 0; i < this.config.ticksPerEpoch; i++) {
@@ -1282,28 +1202,18 @@ export class WorldEngine {
 
       // Emit progress every few ticks
       if (i % 5 === 0) {
-        this.emitter.progress({
-          phase: 'running',
-          tick: this.graph.tick,
-          maxTicks: this.config.maxTicks,
-          epoch: this.currentEpoch,
-          totalEpochs: this.getTotalEpochs(),
-          entityCount: this.graph.getEntityCount(),
-          relationshipCount: this.graph.getRelationshipCount()
-        });
+        this.emitRunProgress();
       }
     }
 
     // Capture growth summary for this epoch
-    if (this.growthSystem) {
-      this.lastGrowthSummary = this.growthSystem.completeEpoch();
-      this.emitter.growthPhase({
-        epoch: this.currentEpoch,
-        entitiesCreated: this.lastGrowthSummary.entitiesCreated,
-        target: this.lastGrowthSummary.target,
-        templatesApplied: this.lastGrowthSummary.templatesUsed
-      });
-    }
+    this.lastGrowthSummary = this.growthSystem.completeEpoch();
+    this.emitter.growthPhase({
+      epoch: this.currentEpoch,
+      entitiesCreated: this.lastGrowthSummary.entitiesCreated,
+      target: this.lastGrowthSummary.target,
+      templatesApplied: this.lastGrowthSummary.templatesUsed,
+    });
 
     // Meta-entity formation is now handled by SimulationSystems (run at epoch end)
 
@@ -1325,12 +1235,12 @@ export class WorldEngine {
       this.currentEpoch,
       entitiesCreated,
       relationshipsCreated,
-      this.lastGrowthSummary?.target ?? 0,
+      this.lastGrowthSummary.target,
       eraSummary
     );
 
     // Emit epoch stats
-    this.emitEpochStats(eraSummary, entitiesCreated, relationshipsCreated, this.lastGrowthSummary?.target ?? 0);
+    this.emitEpochStats(eraSummary, entitiesCreated, relationshipsCreated, this.lastGrowthSummary.target);
 
     // Emit diagnostics (updated each epoch for visibility during stepping)
     this.emitDiagnostics();
@@ -1348,6 +1258,15 @@ export class WorldEngine {
   /**
    * Emit epoch statistics via emitter
    */
+
+  private emitRunProgress(): void {
+    this.emitter.progress({
+      phase: 'running', tick: this.graph.tick, maxTicks: this.config.maxTicks,
+      epoch: this.currentEpoch, totalEpochs: this.getTotalEpochs(),
+      entityCount: this.graph.getEntityCount(), relationshipCount: this.graph.getRelationshipCount(),
+    });
+  }
+
   private emitEpochStats(era: EpochEraSummary, entitiesCreated: number, relationshipsCreated: number, growthTarget: number): void {
     const byKind: Record<string, number> = {};
     this.graph.forEachEntity((entity) => {
@@ -1433,8 +1352,8 @@ export class WorldEngine {
     failedRules: string[];
     selectionCount: number;
     summary: string;
-    selectionDiagnosis?: unknown;
-    variableDiagnoses?: unknown[];
+    selectionDiagnosis: unknown;
+    variableDiagnoses: unknown[];
   } {
     const declarativeTemplate = this.declarativeTemplates.get(template.id);
     if (!declarativeTemplate) {
@@ -1522,7 +1441,7 @@ export class WorldEngine {
     const relationships = this.graph.getRelationships();
 
     // Entity breakdown by kind:subtype
-    const byKind: Record<string, { total: number; bySubtype: Record<string, number> }> = {};
+    const byKind: Partial<Record<string, { total: number; bySubtype: Record<string, number> }>> = {};
     entities.forEach(e => {
       if (!byKind[e.kind]) {
         byKind[e.kind] = { total: 0, bySubtype: {} };
@@ -1537,10 +1456,10 @@ export class WorldEngine {
     });
 
     // Catalyst statistics
-    const agents = entities.filter(e => e.catalyst?.canAct);
+    const agents = entities.filter(e => e.catalyst.canAct);
     const actionUsage = this.config.actionUsageTracker;
-    const actionCountsByActor = actionUsage?.countsByActorId ?? new Map<string, { name: string; kind: string; count: number }>();
-    const actionCountsByActionId = actionUsage?.countsByActionId ?? new Map<string, number>();
+    const actionCountsByActor = actionUsage.countsByActorId;
+    const actionCountsByActionId = actionUsage.countsByActionId;
 
     const activeAgents = actionCountsByActor.size;
 
@@ -1552,7 +1471,7 @@ export class WorldEngine {
     const totalActions = Array.from(actionCountsByActor.values()).reduce((sum, a) => sum + a.count, 0);
 
     // Compute unused actions (actions that have never succeeded)
-    const allActions = this.config.executableActions || [];
+    const allActions = this.config.executableActions;
     const unusedActions = allActions
       .filter(action => !actionCountsByActionId.has(action.type))
       .map(action => ({
@@ -1743,8 +1662,8 @@ export class WorldEngine {
 
     Object.entries(distributionTargets.entities).forEach(([kind, subtypeTargets]) => {
       let kindTotal = 0;
-      Object.values(subtypeTargets || {}).forEach((targetConfig) => {
-        const targetValue = typeof targetConfig?.target === 'number' ? targetConfig.target : 0;
+      Object.values(subtypeTargets).forEach((targetConfig) => {
+        const targetValue = typeof targetConfig.target === 'number' ? targetConfig.target : 0;
         kindTotal += targetValue;
       });
       totalsByKind.set(kind, kindTotal);
@@ -1834,7 +1753,7 @@ export class WorldEngine {
   }
 
   private computeCompletedPhases(): { completedPhasesByEra: Map<string, number>; completedPhasesTotal: number } {
-    const growthPhaseHistory = this.graph.growthPhaseHistory ?? [];
+    const growthPhaseHistory = this.graph.growthPhaseHistory;
     const completedPhasesByEra = new Map<string, number>();
     for (const entry of growthPhaseHistory) {
       completedPhasesByEra.set(entry.eraId, (completedPhasesByEra.get(entry.eraId) || 0) + 1);
@@ -1846,10 +1765,10 @@ export class WorldEngine {
     const expectedPhasesByEra = new Map<string, number>();
     for (const era of this.config.eras) {
       let expected = 0;
-      for (const condition of (era.exitConditions ?? [])) {
+      for (const condition of (era.exitConditions)) {
         if (condition.type !== 'growth_phases_complete') continue;
         if (condition.eraId && condition.eraId !== era.id) continue;
-        expected = Math.max(expected, Math.max(0, condition.minPhases ?? 0));
+        expected = Math.max(expected, Math.max(0, condition.minPhases));
       }
       expectedPhasesByEra.set(era.id, expected);
     }
@@ -1860,13 +1779,13 @@ export class WorldEngine {
     expectedPhasesByEra: Map<string, number>,
     completedPhasesByEra: Map<string, number>
   ): number {
-    const currentEraId = this.graph.currentEra?.id ?? '';
+    const currentEraId = this.graph.currentEra.id;
     const currentEraExpected = expectedPhasesByEra.get(currentEraId) ?? 0;
     const currentEraCompleted = completedPhasesByEra.get(currentEraId) ?? 0;
     let phasesRemaining = Math.max(0, currentEraExpected - currentEraCompleted);
 
     const seenEraIds = new Set(
-      this.graph.findEntities({ kind: FRAMEWORK_ENTITY_KINDS.ERA, includeHistorical: true })
+      this.graph.findEntities(entityCriteria({ kind: FRAMEWORK_ENTITY_KINDS.ERA, includeHistorical: true }))
         .map(entity => entity.subtype)
     );
 
@@ -1881,11 +1800,11 @@ export class WorldEngine {
     this.mutationTracker.setTick(this.graph.tick);
     this.stateChangeTracker.startTick(this.graph, this.graph.tick, tickEra.id);
 
-    const budget = this.config.relationshipBudget?.maxPerSimulationTick || Infinity;
+    const budget = this.config.relationshipBudget.maxPerSimulationTick;
     let relationshipsAddedThisTick = 0;
 
     for (const system of this.runtimeSystems) {
-      const modifierEra = this.growthSystem && system === this.growthSystem && this.epochEra
+      const modifierEra = this.growthSystem && system === (this.growthSystem as SimulationSystem) && this.epochEra
         ? this.epochEra
         : tickEra;
       const baseModifier = getSystemModifier(modifierEra, system.id);
@@ -1956,19 +1875,19 @@ export class WorldEngine {
    * Enter mutation context for an item with optional action/narrative group context.
    */
   private enterItemContext(
-    item: { actionContext?: { source: ExecutionSource; sourceId: string; success?: boolean }; narrativeGroupId?: string },
+    item: { actionContext: { source: ExecutionSource; sourceId: string; success: boolean }; narrativeGroupId: string },
     systemId: string,
-    narrationsByGroup?: Record<string, string>
+    narrationsByGroup: Record<string, string>
   ): { hasActionContext: boolean; hasNarrativeGroup: boolean } {
-    const hasActionContext = !!(item.actionContext && item.actionContext.source === 'action');
+    const hasActionContext = item.actionContext.source === 'action';
     if (hasActionContext) {
-      const narration = narrationsByGroup?.[item.narrativeGroupId || ''];
-      this.mutationTracker.enterContext(item.actionContext!.source, item.actionContext!.sourceId, item.actionContext!.success, narration);
+      const narration = narrationsByGroup[item.narrativeGroupId || ''];
+      this.mutationTracker.enterContext(item.actionContext.source, item.actionContext.sourceId, item.actionContext.success, narration);
     }
 
     const hasNarrativeGroup = !!(item.narrativeGroupId && !hasActionContext);
     if (hasNarrativeGroup) {
-      const narration = narrationsByGroup?.[item.narrativeGroupId || ''];
+      const narration = narrationsByGroup[item.narrativeGroupId || ''];
       this.mutationTracker.enterContext('system', `${systemId}:${item.narrativeGroupId}`, undefined, narration);
     }
 
@@ -2011,7 +1930,7 @@ export class WorldEngine {
   }
 
   private applyResultRelationshipAdjustments(result: SystemResult, systemId: string): void {
-    if (!result.relationshipsAdjusted || result.relationshipsAdjusted.length === 0) return;
+    if (result.relationshipsAdjusted.length === 0) return;
     for (const rel of result.relationshipsAdjusted) {
       const ctx = this.enterItemContext(rel, systemId, result.narrationsByGroup);
       modifyRelationshipStrength(this.graph, rel.src, rel.dst, rel.kind, rel.delta);
@@ -2020,7 +1939,7 @@ export class WorldEngine {
   }
 
   private applyResultRelationshipArchivals(result: SystemResult, systemId: string): void {
-    if (!result.relationshipsToArchive || result.relationshipsToArchive.length === 0) return;
+    if (result.relationshipsToArchive.length === 0) return;
     for (const rel of result.relationshipsToArchive) {
       const ctx = this.enterItemContext(rel, systemId, result.narrationsByGroup);
       archiveRelationship(this.graph, rel.src, rel.dst, rel.kind);
@@ -2045,7 +1964,7 @@ export class WorldEngine {
   private applySingleModification(
     mod: SystemResult['entitiesModified'][0],
     system: SimulationSystem,
-    narrationsByGroup?: Record<string, string>
+    narrationsByGroup: Record<string, string>
   ): void {
     const ctx = this.enterModificationContext(mod, system, narrationsByGroup);
     const changes = { ...mod.changes };
@@ -2055,8 +1974,7 @@ export class WorldEngine {
       changes.tags = applyTagPatch(entity.tags, changes.tags);
     }
 
-    this.debugProminenceChange(entity, changes, system.id, mod.id);
-    this.recordModificationChange(entity, mod, changes, system);
+    this.recordModificationChange(entity, mod, changes);
 
     updateEntity(this.graph, mod.id, changes);
 
@@ -2067,13 +1985,13 @@ export class WorldEngine {
   private enterModificationContext(
     mod: SystemResult['entitiesModified'][0],
     system: SimulationSystem,
-    narrationsByGroup?: Record<string, string>
+    narrationsByGroup: Record<string, string>
   ): { hasAction: boolean; hasNarrativeGroup: boolean; needsFallback: boolean } {
     const actionAttribution = mod.actionContext;
-    const hasAction = !!(actionAttribution && actionAttribution.source === 'action');
+    const hasAction = actionAttribution.source === 'action';
 
     if (hasAction) {
-      const narration = narrationsByGroup?.[mod.narrativeGroupId || ''];
+      const narration = narrationsByGroup[mod.narrativeGroupId || ''];
       this.mutationTracker.enterContext(actionAttribution.source, actionAttribution.sourceId, actionAttribution.success, narration);
     }
 
@@ -2081,7 +1999,7 @@ export class WorldEngine {
     const needsFallback = !hasAction && !hasNarrativeGroup;
 
     if (hasNarrativeGroup) {
-      const narration = narrationsByGroup?.[mod.narrativeGroupId || ''];
+      const narration = narrationsByGroup[mod.narrativeGroupId || ''];
       this.mutationTracker.enterContext('system', `${system.id}:${mod.narrativeGroupId}`, undefined, narration);
     } else if (needsFallback) {
       this.mutationTracker.enterContext('system', `${system.id}:${mod.id}`);
@@ -2090,37 +2008,22 @@ export class WorldEngine {
     return { hasAction, hasNarrativeGroup, needsFallback };
   }
 
-  private debugProminenceChange(
-    entity: HardState | undefined,
-    changes: Partial<HardState>,
-    systemId: string,
-    modId: string
-  ): void {
-    if (GraphStore.DEBUG_PROMINENCE && 'prominence' in changes && entity) {
-      console.log(`[PROMINENCE-FLOW] tick=${this.graph.tick} system=${systemId} entity=${entity.name} (${modId})`);
-      console.log(`  entity.prominence=${entity.prominence} changes.prominence=${changes.prominence}`);
-    }
-  }
+  
 
   private buildModificationCatalyst(
-    mod: SystemResult['entitiesModified'][0],
-    system: SimulationSystem
-  ): { entityId: string; actionType: string; success?: boolean } {
+    mod: SystemResult['entitiesModified'][0]
+  ): { entityId: string; actionType: string; success: boolean } {
     const attribution = mod.actionContext;
-    if (attribution) {
-      return { entityId: attribution.sourceId, actionType: attribution.sourceId, success: attribution.success };
-    }
-    return { entityId: system.id, actionType: system.name };
+    return { entityId: attribution.sourceId, actionType: attribution.sourceId, success: attribution.success };
   }
 
   private recordModificationChange(
     entity: HardState | undefined,
     mod: SystemResult['entitiesModified'][0],
-    changes: Partial<HardState>,
-    system: SimulationSystem
+    changes: Partial<HardState>
   ): void {
     if (!entity) return;
-    const catalyst = this.buildModificationCatalyst(mod, system);
+    const catalyst = this.buildModificationCatalyst(mod);
     this.stateChangeTracker.recordEntityChange(entity, changes, catalyst);
     this.trackModificationTagChanges(mod.id, entity, changes, catalyst);
   }
@@ -2129,10 +2032,10 @@ export class WorldEngine {
     entityId: string,
     entity: HardState,
     changes: Partial<HardState>,
-    catalyst: { entityId: string; actionType: string; success?: boolean }
+    catalyst: { entityId: string; actionType: string; success: boolean }
   ): void {
     if (!changes.tags) return;
-    const oldTags = entity.tags || {};
+    const oldTags = entity.tags;
     const newTags = changes.tags;
 
     for (const [tag, value] of Object.entries(newTags)) {
@@ -2156,7 +2059,7 @@ export class WorldEngine {
   }
 
   private handleEraTransition(result: SystemResult): void {
-    const eraTransition = result.details?.eraTransition as {
+    const eraTransition = result.details.eraTransition as {
       fromEra: string; fromEraId: string; toEra: string; toEraId: string;
     } | undefined;
 
@@ -2212,14 +2115,14 @@ export class WorldEngine {
     directAdded: number,
     addedFromResult: number
   ): void {
-    const reportedModifications = typeof result.details?.significantModificationCount === 'number'
+    const reportedModifications = typeof result.details.significantModificationCount === 'number'
       ? result.details.significantModificationCount
       : result.entitiesModified.length;
 
     const didMeaningfulWork =
       directAdded > 0 ||
       addedFromResult > 0 ||
-      (result.relationshipsAdjusted && result.relationshipsAdjusted.length > 0) ||
+      result.relationshipsAdjusted.length > 0 ||
       reportedModifications > 0 ||
       Object.keys(result.pressureChanges).length > 0;
 
@@ -2239,18 +2142,14 @@ export class WorldEngine {
   }
 
   private recordSystemNarrations(result: SystemResult, systemId: string): void {
-    if (result.narrationsByGroup && Object.keys(result.narrationsByGroup).length > 0) {
-      if (systemId === 'universal_catalyst') {
-        for (const [groupId, narration] of Object.entries(result.narrationsByGroup)) {
-          this.stateChangeTracker.recordNarration('action', groupId, narration);
-        }
-      } else {
-        this.stateChangeTracker.recordNarrationsByGroup('system', systemId, result.narrationsByGroup);
+    if (Object.keys(result.narrationsByGroup).length === 0) return;
+
+    if (systemId === 'universal_catalyst') {
+      for (const [groupId, narration] of Object.entries(result.narrationsByGroup)) {
+        this.stateChangeTracker.recordNarration('action', groupId, narration);
       }
-    // eslint-disable-next-line sonarjs/deprecation -- handles legacy systems that still use narrations[]
-    } else if (result.narrations && result.narrations.length > 0) {
-      // eslint-disable-next-line sonarjs/deprecation -- bridges deprecated narrations[] to current API
-      this.stateChangeTracker.recordSystemNarrations(systemId, result.narrations);
+    } else {
+      this.stateChangeTracker.recordNarrationsByGroup('system', systemId, result.narrationsByGroup);
     }
   }
   
@@ -2265,7 +2164,7 @@ export class WorldEngine {
       from: { id: transition.fromEraId, name: transition.fromEra },
       to: { id: transition.toEraId, name: transition.toEra }
     };
-    const last = this.epochEraTransitions[this.epochEraTransitions.length - 1];
+    const last: EpochEraTransitionSummary | undefined = this.epochEraTransitions[this.epochEraTransitions.length - 1];
     if (last && last.tick === entry.tick && last.from.id === entry.from.id && last.to.id === entry.to.id) {
       return;
     }
@@ -2302,12 +2201,12 @@ export class WorldEngine {
       const homeostaticDelta = (0 - currentValueAfterSystems) * pressure.homeostasis;
 
       // Apply era modifier if present
-      const eraModifier = era.pressureModifiers?.[pressure.id] || 1.0;
+      const eraModifier = era.pressureModifiers[pressure.id] || 1.0;
 
       const rawDelta = (scaledFeedback + homeostaticDelta) * eraModifier;
 
       // Smooth large changes to prevent spikes (default max change per tick: ±10)
-      const smoothingLimit = this.config.pressureDeltaSmoothing ?? 10;
+      const smoothingLimit = this.config.pressureDeltaSmoothing;
       const smoothedDelta = Math.max(-smoothingLimit, Math.min(smoothingLimit, rawDelta));
 
       // Apply feedback delta ON TOP OF system modifications

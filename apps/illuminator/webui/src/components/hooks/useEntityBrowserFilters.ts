@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { prominenceLabelFromScale } from "@canonry/world-schema";
 import type { ProminenceScale } from "@canonry/world-schema";
 import type { EntityNavItem } from "../../lib/db/entityNav";
-import type { EntityFilters, FilterOptions, EnrichmentStatus, EntityBrowserConfig } from "../EntityBrowserTypes";
+import type { EntityFilters, FilterOptions, EnrichmentStatus } from "../EntityBrowserTypes";
 
 type GetStatusFn = (nav: EntityNavItem, type: string) => EnrichmentStatus;
 
@@ -38,7 +38,7 @@ export function useEntityBrowserFilters(
   hideCompleted: boolean,
   getStatus: GetStatusFn,
   prominenceScale: ProminenceScale,
-  config: EntityBrowserConfig
+  _config: unknown
 ): {
   filteredNavItems: EntityNavItem[];
   filterOptions: FilterOptions;

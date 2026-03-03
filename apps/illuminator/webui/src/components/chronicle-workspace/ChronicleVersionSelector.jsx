@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import "./ChronicleVersionSelector.css";
 
@@ -16,15 +16,16 @@ export default function ChronicleVersionSelector({
   const isActive = selectedVersionId === activeVersionId;
   const canDelete = versions.length > 1 && onDeleteVersion;
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
-  const confirmingDelete = confirmingDeleteId === selectedVersionId;
 
-  useEffect(() => {
-    if (!confirmingDeleteId) return;
-    const stillExists = versions.some((v) => v.id === confirmingDeleteId);
-    if (!stillExists || confirmingDeleteId !== selectedVersionId || disabled) {
-      setConfirmingDeleteId(null);
-    }
-  }, [confirmingDeleteId, selectedVersionId, versions, disabled]);
+  // Cancel confirmation if the version no longer exists, was deselected, or component is disabled
+  const stillValid = confirmingDeleteId
+    && confirmingDeleteId === selectedVersionId
+    && !disabled
+    && versions.some((v) => v.id === confirmingDeleteId);
+  if (confirmingDeleteId && !stillValid) {
+    setConfirmingDeleteId(null);
+  }
+  const confirmingDelete = confirmingDeleteId === selectedVersionId;
 
   const handleDeleteClick = () => {
     if (confirmingDelete) {

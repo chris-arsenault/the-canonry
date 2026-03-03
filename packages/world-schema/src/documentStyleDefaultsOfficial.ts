@@ -33,13 +33,14 @@ Avoid modern journalism terms, passive voice in headlines, speculation presented
 
     eventInstructions: 'Events are the news. Present them as recent occurrences with immediate relevance.',
 
+    craftPosture: '',
     titleGuidance: 'The title is an announcement — what the crier shouts to gather a crowd. It leads with the event, the decree, or the name that commands attention. Declarative register, present tense energy, urgency. Short enough to shout across a square. The title is news, not analysis.',
 
     roles: [
-      { role: 'newsworthy-subject', count: { min: 1, max: 2 }, description: 'The occurrence or entity being announced' },
-      { role: 'affected-territory', count: { min: 0, max: 2 }, description: 'Locations impacted by the news' },
-      { role: 'faction-involved', count: { min: 0, max: 2 }, description: 'Organizations, kingdoms, or groups in the news' },
-      { role: 'notable-figure', count: { min: 0, max: 2 }, description: 'Persons of importance mentioned' },
+      { role: 'newsworthy-subject', count: { min: 1, max: 2 }, description: 'The occurrence or entity being announced', selectionCriteria: '' },
+      { role: 'affected-territory', count: { min: 0, max: 2 }, description: 'Locations impacted by the news', selectionCriteria: '' },
+      { role: 'faction-involved', count: { min: 0, max: 2 }, description: 'Organizations, kingdoms, or groups in the news', selectionCriteria: '' },
+      { role: 'notable-figure', count: { min: 0, max: 2 }, description: 'Persons of importance mentioned', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -74,13 +75,14 @@ Avoid casual language, unsubstantiated claims, sensationalism, first person sing
 
     eventInstructions: 'Events serve as case studies or evidence. Cite specific instances where powers manifested.',
 
+    craftPosture: '',
     titleGuidance: 'Academic and classificatory. The title names the subject under study with the precision of a scholar establishing scope. Formal and descriptive register — what would appear on a leather-bound spine in a university library. Prepositions carry institutional weight: "On," "Of," "Concerning." The title claims territory rather than making an argument.',
 
     roles: [
-      { role: 'studied-power', count: { min: 1, max: 2 }, description: 'The ability, magic, or phenomenon being analyzed' },
-      { role: 'documented-practitioner', count: { min: 0, max: 2 }, description: 'Those who wield or manifest the power' },
-      { role: 'scholarly-authority', count: { min: 0, max: 1 }, description: 'Expert or institution lending credibility' },
-      { role: 'related-artifact', count: { min: 0, max: 2 }, description: 'Objects associated with the power' },
+      { role: 'studied-power', count: { min: 1, max: 2 }, description: 'The ability, magic, or phenomenon being analyzed', selectionCriteria: '' },
+      { role: 'documented-practitioner', count: { min: 0, max: 2 }, description: 'Those who wield or manifest the power', selectionCriteria: '' },
+      { role: 'scholarly-authority', count: { min: 0, max: 1 }, description: 'Expert or institution lending credibility', selectionCriteria: '' },
+      { role: 'related-artifact', count: { min: 0, max: 2 }, description: 'Objects associated with the power', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -114,12 +116,13 @@ Avoid modern marketing jargon, obvious lies, threatening language, desperation.`
 
     eventInstructions: 'Recent events create opportunities. "After the siege, rebuilding supplies in high demand!"',
 
+    craftPosture: '',
     titleGuidance: 'The title sells. It is what a merchant would paint on a sign or shout at passersby — a boast, a promise, a name that sticks. Commercial register: confident, specific, slightly louder than necessary. Name the goods, the shop, or the deal. The title should make someone curious enough to read further.',
 
     roles: [
-      { role: 'merchant', count: { min: 1, max: 1 }, description: 'The seller with personality and credibility' },
-      { role: 'featured-goods', count: { min: 1, max: 3 }, description: 'Products or services being advertised' },
-      { role: 'satisfied-customer', count: { min: 0, max: 1 }, description: 'Testimonial source' },
+      { role: 'merchant', count: { min: 1, max: 1 }, description: 'The seller with personality and credibility', selectionCriteria: '' },
+      { role: 'featured-goods', count: { min: 1, max: 3 }, description: 'Products or services being advertised', selectionCriteria: '' },
+      { role: 'satisfied-customer', count: { min: 0, max: 1 }, description: 'Testimonial source', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -153,12 +156,13 @@ Avoid identical voices, exposition dumps, modern idioms, perfect information.`,
 
     eventInstructions: 'Events are what they write about. News, reactions, consequences discussed in personal terms.',
 
+    craftPosture: '',
     titleGuidance: 'The title names the correspondence as a found document — who wrote to whom, or the matter that prompted the exchange. Archival register: the voice of a collector or editor presenting private letters to the public. The intimacy is in the content, not the title. The title is a catalog label for something personal.',
 
     roles: [
-      { role: 'correspondent-a', count: { min: 1, max: 1 }, description: 'First letter writer' },
-      { role: 'correspondent-b', count: { min: 1, max: 1 }, description: 'Second letter writer / respondent' },
-      { role: 'mentioned-party', count: { min: 0, max: 2 }, description: 'People or groups discussed in the letters' },
+      { role: 'correspondent-a', count: { min: 1, max: 1 }, description: 'First letter writer', selectionCriteria: '' },
+      { role: 'correspondent-b', count: { min: 1, max: 1 }, description: 'Second letter writer / respondent', selectionCriteria: '' },
+      { role: 'mentioned-party', count: { min: 0, max: 2 }, description: 'People or groups discussed in the letters', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -192,14 +196,15 @@ Avoid emotional language, speculation as fact, modern historical terms, bias wit
 
     eventInstructions: 'Events are the primary content. Document them with precision and context.',
 
+    craftPosture: '',
     titleGuidance: 'The title is a record heading — what an archivist would write on the folder. It names the event, the period, or the territory documented. Archival register: neutral, factual, locating the record rather than interpreting it. No judgment, no drama. The title places the entry in time and subject.',
 
     roles: [
-      { role: 'era-documented', count: { min: 0, max: 1 }, description: 'The age or period being recorded' },
-      { role: 'pivotal-event', count: { min: 0, max: 2 }, description: 'Key occurrence being chronicled' },
-      { role: 'historical-figure', count: { min: 0, max: 3 }, description: 'Notable persons documented' },
-      { role: 'faction-recorded', count: { min: 0, max: 2 }, description: 'Organizations or powers mentioned' },
-      { role: 'chronicler', count: { min: 0, max: 1 }, description: 'The voice recording history' },
+      { role: 'era-documented', count: { min: 0, max: 1 }, description: 'The age or period being recorded', selectionCriteria: '' },
+      { role: 'pivotal-event', count: { min: 0, max: 2 }, description: 'Key occurrence being chronicled', selectionCriteria: '' },
+      { role: 'historical-figure', count: { min: 0, max: 3 }, description: 'Notable persons documented', selectionCriteria: '' },
+      { role: 'faction-recorded', count: { min: 0, max: 2 }, description: 'Organizations or powers mentioned', selectionCriteria: '' },
+      { role: 'chronicler', count: { min: 0, max: 1 }, description: 'The voice recording history', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -233,12 +238,13 @@ Avoid ambiguity, lengthy prose, humor, speculation.`,
 
     eventInstructions: 'Events are the crimes or incidents. Reference specific acts.',
 
+    craftPosture: '',
     titleGuidance: 'The title is what gets painted at the top of a posted notice — blunt, authoritative, designed to be read at a glance. Name the fugitive, the crime, or the bounty. Official and terse register: commands, not sentences. No ambiguity. The title identifies and accuses in the same breath.',
 
     roles: [
-      { role: 'wanted-subject', count: { min: 1, max: 1 }, description: 'The person or entity being sought' },
-      { role: 'issuing-authority', count: { min: 0, max: 1 }, description: 'Who posted the notice' },
-      { role: 'victim', count: { min: 0, max: 2 }, description: 'Those harmed by the subject' },
+      { role: 'wanted-subject', count: { min: 1, max: 1 }, description: 'The person or entity being sought', selectionCriteria: '' },
+      { role: 'issuing-authority', count: { min: 0, max: 1 }, description: 'Who posted the notice', selectionCriteria: '' },
+      { role: 'victim', count: { min: 0, max: 2 }, description: 'Those harmed by the subject', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -272,13 +278,14 @@ Avoid ambiguous terms, one-sided benefits, informal language, unenforceable clau
 
     eventInstructions: 'Events may be what led to the treaty - referenced in preamble as context.',
 
+    craftPosture: '',
     titleGuidance: 'The title is a treaty name — formal, bilateral, naming the parties or the matter resolved. Diplomatic register: precise and ceremonial. Real treaties name locations, dates, or the subject of agreement. The title should sound like what both sides agreed to call the document. Neutrality is a design feature.',
 
     roles: [
-      { role: 'signatory-faction', count: { min: 2, max: 4 }, description: 'Party to the accord' },
-      { role: 'binding-principle', count: { min: 0, max: 2 }, description: 'Law, tradition, or doctrine being established or invoked' },
-      { role: 'territorial-subject', count: { min: 0, max: 2 }, description: 'Land or region covered by the accord' },
-      { role: 'signatory-leader', count: { min: 0, max: 2 }, description: 'Representative who signs on behalf of faction' },
+      { role: 'signatory-faction', count: { min: 2, max: 4 }, description: 'Party to the accord', selectionCriteria: '' },
+      { role: 'binding-principle', count: { min: 0, max: 2 }, description: 'Law, tradition, or doctrine being established or invoked', selectionCriteria: '' },
+      { role: 'territorial-subject', count: { min: 0, max: 2 }, description: 'Land or region covered by the accord', selectionCriteria: '' },
+      { role: 'signatory-leader', count: { min: 0, max: 2 }, description: 'Representative who signs on behalf of faction', selectionCriteria: '' },
     ],
 
     pacing: {

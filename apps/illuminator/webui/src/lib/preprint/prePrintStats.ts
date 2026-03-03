@@ -79,18 +79,14 @@ function collectHistorianNotes(
 function computeDimensionRange(
   images: ImageMetadataRecord[]
 ): { minWidth: number; maxWidth: number; minHeight: number; maxHeight: number } | null {
-  let minW = Infinity, maxW = 0, minH = Infinity, maxH = 0;
-  let hasDimensions = false;
-  for (const img of images) {
-    if (img.width && img.height) {
-      hasDimensions = true;
-      if (img.width < minW) minW = img.width;
-      if (img.width > maxW) maxW = img.width;
-      if (img.height < minH) minH = img.height;
-      if (img.height > maxH) maxH = img.height;
-    }
-  }
-  return hasDimensions ? { minWidth: minW, maxWidth: maxW, minHeight: minH, maxHeight: maxH } : null;
+  const withDimensions = images.filter(img => img.width && img.height);
+  if (withDimensions.length === 0) return null;
+  return {
+    minWidth: Math.min(...withDimensions.map(img => img.width)),
+    maxWidth: Math.max(...withDimensions.map(img => img.width)),
+    minHeight: Math.min(...withDimensions.map(img => img.height)),
+    maxHeight: Math.max(...withDimensions.map(img => img.height)),
+  };
 }
 
 function computeImageSizeDistribution(

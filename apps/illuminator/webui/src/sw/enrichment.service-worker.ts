@@ -27,7 +27,7 @@ import * as entityRepo from "../lib/db/entityRepository";
 declare const self: ServiceWorkerGlobalScope;
 
 /** Union of possible event.source values per the WebWorker spec. */
-type MessageMessageEventSource = Client | ServiceWorker | MessagePort | null;
+type _MessageMessageEventSource = Client | ServiceWorker | MessagePort | null;
 
 type ServiceWorkerMessage =
   | { type: "connect"; handleId: string }
@@ -324,7 +324,7 @@ async function executeTask(task: WorkerTask, handleId: string): Promise<void> {
     });
 
     if (!result.success) {
-      const errorMessage = result.error || "Unknown error";
+      const errorMessage = String(result.error || "Unknown error");
       log("warn", "Task failed", {
         taskId: task.id,
         error: errorMessage,

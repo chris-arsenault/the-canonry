@@ -168,21 +168,26 @@ export function useChronicleNavigation({
     });
   }, [chronicleItemsForFilter, eraNarrativeNavItems, entitySearchQuery, entitySearchSelectedId, focusFilter, getChronicleTypeLabel, sortMode, statusFilter]);
 
-  // Pagination
-  useEffect(() => { setNavVisibleCount(NAV_PAGE_SIZE); }, [statusFilter, focusFilter, entitySearchQuery, entitySearchSelectedId, sortMode, groupByType, simulationRunId]);
+  // Pagination — reset to page size when filters change (derive during render)
+  const filterKey = `${statusFilter}|${focusFilter}|${entitySearchQuery}|${entitySearchSelectedId}|${sortMode}|${groupByType}|${simulationRunId}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setNavVisibleCount(NAV_PAGE_SIZE);
+  }
 
   const selectedNavIndex = useMemo(() => filteredItems.findIndex((item) => item.id === selectedItemId), [filteredItems, selectedItemId]);
 
-  useEffect(() => {
-    if (selectedNavIndex >= 0 && selectedNavIndex + 1 > navVisibleCount) {
-      const nextCount = Math.min(filteredItems.length, Math.ceil((selectedNavIndex + 1) / NAV_PAGE_SIZE) * NAV_PAGE_SIZE);
-      if (nextCount !== navVisibleCount) setNavVisibleCount(nextCount);
-    }
-  }, [selectedNavIndex, navVisibleCount, filteredItems.length]);
+  // Expand visible count if selected item is beyond current page (derive during render)
+  if (selectedNavIndex >= 0 && selectedNavIndex + 1 > navVisibleCount) {
+    const nextCount = Math.min(filteredItems.length, Math.ceil((selectedNavIndex + 1) / NAV_PAGE_SIZE) * NAV_PAGE_SIZE);
+    if (nextCount !== navVisibleCount) setNavVisibleCount(nextCount);
+  }
 
-  useEffect(() => {
-    if (filteredItems.length > 0 && navVisibleCount > filteredItems.length) setNavVisibleCount(filteredItems.length);
-  }, [filteredItems.length, navVisibleCount]);
+  // Clamp visible count to actual item count (derive during render)
+  if (filteredItems.length > 0 && navVisibleCount > filteredItems.length) {
+    setNavVisibleCount(filteredItems.length);
+  }
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -276,15 +281,19 @@ export function useChronicleNavigation({
     if (!fullEntities.length) return [];
     const eraEntities = fullEntities.filter((e: Record<string, unknown>) => e.kind === "era" && e.temporal);
     if (eraEntities.length === 0) return [];
-    const sortedEras = [...eraEntities].sort((a, b) => ((a.temporal as Record<string, unknown>).startTick as number) - ((b.temporal as Record<string, unknown>).startTick as number));
+    const sortedEras = [...eraEntities].sort((a, b) => {
+      const aT = a.temporal as { startTick: number };
+      const bT = b.temporal as { startTick: number };
+      return aT.startTick - bT.startTick;
+    });
     return sortedEras.map((era, index) => {
-      const temporal = era.temporal as Record<string, unknown>;
-      const startTick = temporal.startTick as number;
-      const endTick = (temporal.endTick as number) ?? 150;
+      const temporal = era.temporal as { startTick: number; end: { occurred: boolean; tick: number } };
+      const startTick: number = temporal.startTick;
+      const endTick: number = temporal.end.occurred ? temporal.end.tick : 150;
       return {
-        id: (era.eraId as string) || (era.id as string),
-        name: era.name as string,
-        summary: (era.summary as string) || "",
+        id: era.eraId || era.id,
+        name: era.name,
+        summary: era.summary || "",
         order: index,
         startTick,
         endTick,

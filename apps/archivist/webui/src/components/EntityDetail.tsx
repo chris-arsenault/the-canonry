@@ -87,7 +87,7 @@ function RegionDetail({ region, entityKind, worldData }: Readonly<{ region: Regi
       {region.description && <div className="detail-card"><div className="section-header">Description</div><p className="detail-card-content ed-region-description">{region.description}</p></div>}
       <div className="entity-meta-grid">
         {circleBounds && <><MetaItem label="Radius" value={circleBounds.radius.toFixed(1)} /><MetaItem label="Center X" value={circleBounds.center.x.toFixed(1)} /><MetaItem label="Center Y" value={circleBounds.center.y.toFixed(1)} /></>}
-        {region.emergent && region.createdAt !== undefined && <MetaItem label="Created" value={`Tick ${region.createdAt}`} />}
+        {region.emergent && <MetaItem label="Created" value={`Tick ${region.createdAt}`} />}
       </div>
       {region.tags && region.tags.length > 0 && <div className="entity-tags-block"><div className="section-header">Tags</div><div className="tags-container">{region.tags.map((tag: string) => <span key={tag} className="tag">{tag}</span>)}</div></div>}
     </div>
@@ -109,8 +109,8 @@ function RelationshipRow({ rel, entity, relLore, onRelatedClick, onShowLore }: R
       <button onClick={() => onRelatedClick(entity.id)} className={`accordion-row-button ${isHistorical ? "ed-row-historical" : ""}`}>
         <div className="accordion-row-name">{isHistorical && <span className="ed-historical-icon">📜</span>}{entity.name}</div>
         <div className="accordion-row-kind">
-          ({entity.kind}) <span className={isHistorical ? "ed-rel-metric-historical" : "ed-rel-metric"}>[S:{strength.toFixed(2)}{rel.distance !== undefined ? ` D:${rel.distance.toFixed(2)}` : ""}]</span>
-          {isHistorical && rel.archivedAt && <span className="ed-archived-label">archived @{rel.archivedAt}</span>}
+          ({entity.kind}) <span className={isHistorical ? "ed-rel-metric-historical" : "ed-rel-metric"}>[S:{strength.toFixed(2)} D:{rel.distance.toFixed(2)}]</span>
+          {isHistorical && rel.archived.occurred && <span className="ed-archived-label">archived @{rel.archived.tick}</span>}
         </div>
       </button>
       {relLore && <button onClick={(e) => { e.stopPropagation(); onShowLore(relLore); }} className="lore-indicator" title="View relationship story">📜</button>}

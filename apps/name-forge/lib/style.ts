@@ -68,7 +68,7 @@ export function applyStyle(
   rng: () => number,
   name: string,
   style: StyleRules,
-  syllables?: string[]
+  syllables: string[]
 ): { result: string; transforms: string[] } {
   let result = name;
   const transforms: string[] = [];
@@ -80,7 +80,7 @@ export function applyStyle(
   const wantApostrophe = apostropheRate > 0 && chance(rng, apostropheRate);
   const wantHyphen = hyphenRate > 0 && chance(rng, hyphenRate);
 
-  if ((wantApostrophe || wantHyphen) && syllables && syllables.length > 1) {
+  if ((wantApostrophe || wantHyphen) && syllables.length > 1) {
     const boundaries = findSyllableBoundaries(result, syllables);
     if (boundaries.length > 0) {
       result = insertStyleMarkers(result, boundaries, wantApostrophe, wantHyphen, rng, transforms);
@@ -98,9 +98,9 @@ export function applyStyle(
  */
 export function hasPreferredEnding(
   name: string,
-  preferredEndings?: string[]
+  preferredEndings: string[]
 ): boolean {
-  if (!preferredEndings || preferredEndings.length === 0) {
+  if (preferredEndings.length === 0) {
     return false;
   }
   return endsWithAny(name, preferredEndings);
@@ -113,11 +113,10 @@ export function selectWithPreferredEndings<T>(
   rng: () => number,
   candidates: T[],
   nameExtractor: (candidate: T) => string,
-  preferredEndings?: string[],
+  preferredEndings: string[],
   boost: number = 2.0
 ): T {
   if (
-    !preferredEndings ||
     preferredEndings.length === 0 ||
     candidates.length === 0
   ) {
@@ -153,7 +152,7 @@ export function selectWithPreferredEndings<T>(
  */
 export function applyRhythmBias(
   name: string,
-  _rhythmBias?: "soft" | "harsh" | "staccato" | "flowing" | "neutral"
+  _rhythmBias: "soft" | "harsh" | "staccato" | "flowing" | "neutral"
 ): string {
   // Rhythm bias is primarily enforced during phonology generation.
   // Post-processing transformations (softening consonant clusters,
@@ -178,7 +177,7 @@ export function applyStyleWithCandidates(
   rng: () => number,
   candidates: string[],
   style: StyleRules,
-  syllablesPerCandidate?: string[][]
+  syllablesPerCandidate: string[][]
 ): string {
   if (candidates.length === 0) {
     throw new Error("No candidates provided");
@@ -186,7 +185,7 @@ export function applyStyleWithCandidates(
 
   // Generate styled versions
   const styledCandidates = candidates.map((name, index) => {
-    const syllables = syllablesPerCandidate?.[index];
+    const syllables = syllablesPerCandidate[index];
     const { result } = applyStyle(rng, name, style, syllables);
     return result;
   });

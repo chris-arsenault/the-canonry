@@ -11,7 +11,7 @@
  * - Bulk backport state and handlers (delegates to useBulkBackport)
  */
 
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { Dispatch, RefObject, SetStateAction } from "react";
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useChronicleLoreBackport } from "./useChronicleLoreBackport";
 import type { ChronicleLoreBackportConfig } from "./useChronicleLoreBackport";
@@ -264,7 +264,7 @@ function runBackportConfigStart(
   simulationRunId: string | null,
   selectedEntityIds: string[],
   customInstructions: string | undefined,
-  backportSentEntityIdsRef: MutableRefObject<string[] | null>,
+  backportSentEntityIdsRef: RefObject<string[] | null>,
   startBackport: (config: ChronicleLoreBackportConfig) => Promise<void>,
   setBackportConfig: Dispatch<SetStateAction<BackportConfigContext | null>>
 ): void {
@@ -288,7 +288,7 @@ async function runAcceptBackport(
   backportChronicleId: string | null,
   applyAcceptedBackportPatches: () => SummaryRevisionPatch[],
   reloadEntities: ReloadEntities,
-  backportSentEntityIdsRef: MutableRefObject<string[] | null>,
+  backportSentEntityIdsRef: RefObject<string[] | null>,
   setChronicleRefreshTrigger: SetChronicleRefreshTrigger
 ): Promise<void> {
   const cId = backportChronicleId;
@@ -435,7 +435,7 @@ export function useBackportFlow({
     updateAnchorPhrase: updateBackportAnchorPhrase,
     applyAccepted: applyAcceptedBackportPatches,
     cancelBackport,
-  } = useChronicleLoreBackport(getEntityContextsForRevision);
+  } = useChronicleLoreBackport();
 
   const assembleContextForChronicle = useCallback(
     (chronicleId: string) =>

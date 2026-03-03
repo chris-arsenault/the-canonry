@@ -62,11 +62,13 @@ function InlineDiff({ current, proposed, label }) {
 function AnchorPhraseEditor({ patch, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(patch.anchorPhrase || "");
+  const [prevAnchor, setPrevAnchor] = useState(patch.anchorPhrase);
 
-  // Sync when patch updates externally
-  useEffect(() => {
+  // Sync during render when patch updates externally
+  if (patch.anchorPhrase !== prevAnchor) {
+    setPrevAnchor(patch.anchorPhrase);
     setValue(patch.anchorPhrase || "");
-  }, [patch.anchorPhrase]);
+  }
 
   if (!patch.anchorPhrase && !editing) return null;
 
@@ -283,18 +285,18 @@ export default function SummaryRevisionModal({
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [run?.batches?.length, run?.currentBatchIndex, run?.status]);
 
-  // Reset expanded state when batch changes
-  useEffect(() => {
+  // Reset expanded state during render when batch changes
+  const batchKey = `${run?.currentBatchIndex}|${run?.status}`;
+  const [prevBatchKey, setPrevBatchKey] = useState(batchKey);
+  if (batchKey !== prevBatchKey) {
+    setPrevBatchKey(batchKey);
     setExpandedIds(new Set());
-  }, [run?.currentBatchIndex, run?.status]);
+  }
 
   // Build entity lookup from entity contexts
   const [entityLookup, setEntityLookup] = useState(new Map());
   useEffect(() => {
-    if (!run || !getEntityContexts) {
-      setEntityLookup(new Map());
-      return;
-    }
+    if (!run || !getEntityContexts) return;
     let cancelled = false;
     const allIds = run.batches.flatMap((b) => b.entityIds);
     Promise.resolve(getEntityContexts(allIds)).then((contexts) => {

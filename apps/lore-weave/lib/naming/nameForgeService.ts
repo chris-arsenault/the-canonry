@@ -27,6 +27,10 @@ export type {
   GroupConditions,
 } from 'name-forge';
 
+function generateNameSeed(): string {
+  return `${String(Date.now())}-${crypto.randomUUID()}`;
+}
+
 // =============================================================================
 // CANONRY CULTURE FORMAT (input)
 // =============================================================================
@@ -48,13 +52,13 @@ export interface CultureNamingConfig {
 export interface Culture {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   // Coordinate fields (used by CoordinateContext)
-  color?: string;
-  axisBiases?: Record<string, { x: number; y: number; z: number }>;
-  homeRegions?: Record<string, string[]>;
+  color: string;
+  axisBiases: Record<string, { x: number; y: number; z: number }>;
+  homeRegions: Record<string, string[]>;
   // Naming configuration (used by NameForgeService)
-  naming?: CultureNamingConfig;
+  naming: CultureNamingConfig;
 }
 
 // =============================================================================
@@ -69,7 +73,7 @@ export interface NameForgeStats {
   successes: number;
   failures: number;
   // culture -> kind -> { calls, failures }
-  byCultureAndKind: Record<string, Record<string, { calls: number; failures: number }>>;
+  byCultureAndKind: Partial<Record<string, Partial<Record<string, { calls: number; failures: number }>>>>;
 }
 
 // =============================================================================
@@ -84,9 +88,9 @@ export interface NameForgeStats {
  * down to this translation layer.
  */
 export class NameForgeService {
-  private cultures: Record<string, NameForgeCulture>;
+  private cultures: Partial<Record<string, NameForgeCulture>>;
   private stats: NameForgeStats;
-  private log: (level: 'debug' | 'info' | 'warn' | 'error', message: string, context?: Record<string, unknown>) => void;
+  private log: (level: 'debug' | 'info' | 'warn' | 'error', message: string, context: Record<string, unknown>) => void;
 
   /**
    * Create a NameForgeService from canonry's cultures array.
@@ -96,28 +100,17 @@ export class NameForgeService {
    */
   constructor(
     cultures: CultureDefinition[],
-    emitter?: { log: (level: 'debug' | 'info' | 'warn' | 'error', message: string, context?: Record<string, unknown>) => void }
+    emitter: { log: (level: 'debug' | 'info' | 'warn' | 'error', message: string, context: Record<string, unknown>) => void }
   ) {
-    // Set up logging - use emitter if provided, otherwise console
-    this.log = emitter
-      ? (level, message, context) => emitter.log(level, message, context)
-      : (level, message) => {
-          if (level === 'error') console.error(message);
-          else if (level === 'warn') console.warn(message);
-          else console.log(message);
-        };
-
-    if (!cultures || cultures.length === 0) {
-      throw new Error('NameForgeService: cultures array is empty');
-    }
+    this.log = (level, message, context) => emitter.log(level, message, context);
 
     // Transform canonry format to name-forge format
     this.cultures = {};
 
     for (const culture of cultures) {
-      if (!culture.naming) {
+      if (culture.naming.domains.length === 0 && culture.naming.grammars.length === 0) {
         this.log('warn',
-          `[NameForge] Culture '${culture.id}' has no naming configuration, skipping`,
+          `[NameForge] Culture '${culture.id}' has no naming domains or grammars, skipping`,
           { cultureId: culture.id }
         );
         continue;
@@ -192,7 +185,7 @@ export class NameForgeService {
     prominence: string,
     tags: string[],
     cultureId: string,
-    context?: Record<string, string>
+    context: Record<string, string>
   ): Promise<string> {
     const culture = this.cultures[cultureId];
 
@@ -205,7 +198,7 @@ export class NameForgeService {
       return 'unnamed';
     }
 
-    if (!culture.profiles || culture.profiles.length === 0) {
+    if (culture.profiles.length === 0) {
       this.log('error',
         `[NameForge] Culture '${cultureId}' has no profiles`,
         { cultureId }
@@ -222,7 +215,7 @@ export class NameForgeService {
         prominence,
         tags,
         context,
-        seed: `${Date.now()}-${crypto.randomUUID()}`,
+        seed: generateNameSeed(),
       });
 
       if (!name) {

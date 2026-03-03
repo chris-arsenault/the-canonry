@@ -25,8 +25,7 @@ export function mergeTags(...tagSets: (EntityTags | undefined)[]): EntityTags {
  * @param key - The tag key to check
  * @param value - Optional: specific value to match (if not provided, checks key existence)
  */
-export function hasTag(tags: EntityTags | undefined, key: string, value?: string | boolean): boolean {
-  if (!tags) return false;
+export function hasTag(tags: EntityTags, key: string, value?: string | boolean): boolean {
   if (!(key in tags)) return false;
   if (value === undefined) return true;
   return tags[key] === value;
@@ -38,7 +37,7 @@ export function hasTag(tags: EntityTags | undefined, key: string, value?: string
 export function getTagValue<T extends string | boolean>(
   tags: EntityTags | undefined,
   key: string,
-  defaultValue?: T
+  defaultValue: T
 ): T | undefined {
   if (!tags || !(key in tags)) return defaultValue;
   return tags[key] as T;

@@ -3,11 +3,50 @@
  */
 
 import React from "react";
-import PropTypes from "prop-types";
 import { LinePath } from "@visx/shape";
 import { AxisLeft, AxisBottom } from "@visx/axis";
 import { GridRows, GridColumns } from "@visx/grid";
 import { PRESSURE_COLORS } from "./traceConstants";
+
+const Y_AXIS_LABEL_PROPS = () => ({
+  fill: "#93c5fd",
+  fontSize: 11,
+  textAnchor: "end" as const,
+  dy: "0.33em",
+  dx: -4,
+});
+
+const X_AXIS_LABEL_PROPS = () => ({
+  fill: "#93c5fd",
+  fontSize: 11,
+  textAnchor: "middle" as const,
+  dy: 4,
+});
+
+interface Margin {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+type ScaleFn = (value: number) => number;
+
+interface PressureDataPoint {
+  tick: number;
+  [pressureId: string]: number;
+}
+
+interface PressureChartProps {
+  data: PressureDataPoint[];
+  pressureIds: string[];
+  hiddenPressures: Set<string>;
+  xScale: ScaleFn;
+  yScale: ScaleFn;
+  margin: Margin;
+  height: number; // chartBottom, not total height
+  width: number;
+}
 
 /**
  * Pressure chart component
@@ -15,6 +54,16 @@ import { PRESSURE_COLORS } from "./traceConstants";
  * Note: `height` here is the y-coordinate of the chart bottom (chartBottom),
  * NOT the total chart height. The chart area spans from margin.top to height.
  */
+function PressureLine({ pressureId, pressureIds, data, xScale, yScale }: Readonly<{
+  pressureId: string; pressureIds: string[]; data: PressureDataPoint[]; xScale: ScaleFn; yScale: ScaleFn;
+}>) {
+  const colorIndex = pressureIds.indexOf(pressureId);
+  const color = PRESSURE_COLORS[colorIndex % PRESSURE_COLORS.length];
+  const getX = React.useCallback((d: PressureDataPoint) => xScale(d.tick), [xScale]);
+  const getY = React.useCallback((d: PressureDataPoint) => yScale(Number(d[pressureId] ?? 0)), [yScale, pressureId]);
+  return <LinePath data={data} x={getX} y={getY} stroke={color} strokeWidth={2} strokeLinecap="round" />;
+}
+
 export default function PressureChart({
   data,
   pressureIds,
@@ -22,15 +71,14 @@ export default function PressureChart({
   xScale,
   yScale,
   margin,
-  height, // This is chartBottom, not total height
+  height,
   width,
-}) {
+}: Readonly<PressureChartProps>) {
   if (!data?.length || !pressureIds?.length) {
     return null;
   }
 
   const visiblePressures = pressureIds.filter((id) => !hiddenPressures.has(id));
-  // Chart area height is from margin.top to chartBottom (height param)
   const chartAreaHeight = height - margin.top;
   const zeroY = yScale(0);
 
@@ -65,22 +113,9 @@ export default function PressureChart({
       )}
 
       {/* Pressure lines */}
-      {visiblePressures.map((pressureId) => {
-        const colorIndex = pressureIds.indexOf(pressureId);
-        const color = PRESSURE_COLORS[colorIndex % PRESSURE_COLORS.length];
-
-        return (
-          <LinePath
-            key={pressureId}
-            data={data}
-            x={(d) => xScale(d.tick)}
-            y={(d) => yScale(d[pressureId] ?? 0)}
-            stroke={color}
-            strokeWidth={2}
-            strokeLinecap="round"
-          />
-        );
-      })}
+      {visiblePressures.map((pressureId) => (
+        <PressureLine key={pressureId} pressureId={pressureId} pressureIds={pressureIds} data={data} xScale={xScale} yScale={yScale} />
+      ))}
 
       {/* Y Axis */}
       <AxisLeft
@@ -88,13 +123,7 @@ export default function PressureChart({
         left={margin.left}
         stroke="#93c5fd"
         tickStroke="#93c5fd"
-        tickLabelProps={() => ({
-          fill: "#93c5fd",
-          fontSize: 11,
-          textAnchor: "end",
-          dy: "0.33em",
-          dx: -4,
-        })}
+        tickLabelProps={Y_AXIS_LABEL_PROPS}
         numTicks={5}
         hideAxisLine={false}
         hideTicks={false}
@@ -106,12 +135,7 @@ export default function PressureChart({
         top={height}
         stroke="#93c5fd"
         tickStroke="#93c5fd"
-        tickLabelProps={() => ({
-          fill: "#93c5fd",
-          fontSize: 11,
-          textAnchor: "middle",
-          dy: 4,
-        })}
+        tickLabelProps={X_AXIS_LABEL_PROPS}
         numTicks={Math.min(10, data.length)}
         hideAxisLine={false}
         hideTicks={false}
@@ -119,14 +143,3 @@ export default function PressureChart({
     </g>
   );
 }
-
-PressureChart.propTypes = {
-  data: PropTypes.array,
-  pressureIds: PropTypes.array,
-  hiddenPressures: PropTypes.instanceOf(Set),
-  xScale: PropTypes.func,
-  yScale: PropTypes.func,
-  margin: PropTypes.object,
-  height: PropTypes.number,
-  width: PropTypes.number,
-};

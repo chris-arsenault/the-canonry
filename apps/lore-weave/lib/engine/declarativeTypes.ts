@@ -153,43 +153,20 @@ export type {
 export interface DeclarativeTemplate {
   id: string;
   name: string;
-  /** Whether this template is active (default: true) */
-  enabled?: boolean;
-
-  // Step 1: Additional applicability constraints (pressure, era, counts, etc.)
-  // The selection having at least 1 target is ALWAYS an implicit applicability rule.
+  enabled: boolean;
   applicability: ApplicabilityRule[];
-
-  // Step 2: What entities to act upon? (Also serves as primary applicability check)
   selection: SelectionRule;
-
-  // Step 3: What entities to create?
   creation: CreationRule[];
-
-  // Step 4: What relationships to form?
   relationships: RelationshipRule[];
-
-  // Step 5: What state updates to apply?
   stateUpdates: StateUpdateRule[];
-
-  // Named entity references computed during execution
-  variables?: Record<string, VariableDefinition>;
-
-  // Step 6: Conditional variants that modify the template based on world state
-  variants?: TemplateVariants;
+  variables: Record<string, VariableDefinition>;
+  variants: TemplateVariants;
 
   /**
    * Narration template for narrative-quality text when this template executes.
-   * Uses the full template syntax:
-   * - {target.field} or {$target.field} - The selected target entity
-   * - {$variable.field} - Access resolved variables
-   * - {field|fallback} - Use fallback if field is null/undefined
-   * - {count:kind} - Count of entities by kind
-   * - {list:created} - Comma-separated list of created entity names
-   *
-   * Example: "From the {$target.subtype} {$target.name}, a new {list:created} emerged."
+   * Empty string if no narration.
    */
-  narrationTemplate?: string;
+  narrationTemplate: string;
 }
 
 // =============================================================================
@@ -217,14 +194,14 @@ export interface CreationRule {
   status: string;
   prominence: ProminenceLabel;  // Template uses label; interpreter converts to numeric
   culture: CultureSpec;
-  description?: DescriptionSpec;
-  tags?: Record<string, boolean>;
+  description: DescriptionSpec;
+  tags: Record<string, boolean>;
 
   // Placement
   placement: PlacementSpec;
 
   // Count (for batch creation)
-  count?: number | CountRange;
+  count: number | CountRange;
 
   /**
    * Optional creation chance (0.0 to 1.0).
@@ -232,7 +209,7 @@ export interface CreationRule {
    * Useful for cross-pollination - e.g., 25% chance to also create an artifact.
    * If omitted, entity is always created (100% chance).
    */
-  createChance?: number;
+  createChance: number;
 }
 
 /**
@@ -240,14 +217,14 @@ export interface CreationRule {
  */
 export type SubtypeCondition =
   | { type: 'target_subtype'; equals: string }  // Check if target entity has specific subtype
-  | { type: 'pressure_check'; pressureId: string; min?: number; max?: number };  // Check pressure threshold
+  | { type: 'pressure_check'; pressureId: string; min: number; max: number };  // Check pressure threshold
 
 /**
  * How to determine subtype.
  */
 export type SubtypeSpec =
   | string  // Fixed subtype
-  | { inherit: string; chance?: number }  // Inherit from reference
+  | { inherit: string; chance: number }  // Inherit from reference
   | { fromPressure: Record<string, string> }  // Choose based on dominant pressure
   | { random: string[] }  // Random from list
   | { conditional: { when: Array<{ condition: SubtypeCondition; then: string }>; otherwise: string } };  // Conditional selection
@@ -278,26 +255,26 @@ export type DescriptionSpec =
 
 /** Anchor determines the primary placement strategy */
 export type PlacementAnchor =
-  | { type: 'entity'; ref: string; stickToRegion?: boolean }
+  | { type: 'entity'; ref: string; stickToRegion: boolean }
   | { type: 'culture'; id: string }
-  | { type: 'refs_centroid'; refs: string[]; jitter?: number }
-  | { type: 'sparse'; preferPeriphery?: boolean }
-  | { type: 'bounds'; bounds?: { x: [number, number]; y: [number, number]; z?: [number, number] } };
+  | { type: 'refs_centroid'; refs: string[]; jitter: number }
+  | { type: 'sparse'; preferPeriphery: boolean }
+  | { type: 'bounds'; bounds: { x: [number, number]; y: [number, number]; z: [number, number] } };
 
 /** Spacing constraints for placement */
 export interface PlacementSpacing {
-  minDistance?: number;
-  avoidRefs?: string[];
+  minDistance: number;
+  avoidRefs: string[];
 }
 
 /** Region creation policy */
 export interface PlacementRegionPolicy {
   /** Allow emergent region creation when seed regions are at capacity */
-  allowEmergent?: boolean;
+  allowEmergent: boolean;
   /** Create a new region centered on the placed entity (useful for sparse placement establishing new territories) */
-  createRegion?: boolean;
+  createRegion: boolean;
   /** Bias region selection toward sparser regions (weighted by inverse entity count) */
-  preferSparse?: boolean;
+  preferSparse: boolean;
 }
 
 /** Ordered placement steps to attempt if the primary anchor placement fails */
@@ -306,9 +283,9 @@ export type PlacementStep = 'anchor_region' | 'seed_region' | 'sparse' | 'random
 /** Placement specification */
 export interface PlacementSpec {
   anchor: PlacementAnchor;
-  spacing?: PlacementSpacing;
-  regionPolicy?: PlacementRegionPolicy;
-  steps?: PlacementStep[];
+  spacing: PlacementSpacing;
+  regionPolicy: PlacementRegionPolicy;
+  steps: PlacementStep[];
 }
 
 export interface CountRange {
@@ -336,11 +313,11 @@ export interface RelationshipRule {
   // Note: distance is computed from coordinates, not specified here
 
   // Special behaviors
-  bidirectional?: boolean;
-  catalyzedBy?: string;  // Entity reference
+  bidirectional: boolean;
+  catalyzedBy: string;
 
   // Conditional creation
-  condition?: RelationshipCondition;
+  condition: RelationshipCondition;
 }
 
 export type RelationshipCondition = Condition;
@@ -362,7 +339,7 @@ export interface VariableDefinition {
    * If true, the template will not run unless this variable resolves to at least one entity.
    * Use this when the template logic depends on the variable existing.
    */
-  required?: boolean;
+  required: boolean;
 }
 
 // VariableSelectionRule and RelatedEntitiesSpec are imported from rules/selection/types
@@ -409,16 +386,16 @@ export type VariantCondition = Condition;
  */
 export interface VariantEffects {
   /** Override subtype for created entities. Key is entityRef (e.g., "$location") */
-  subtype?: Record<string, string>;
+  subtype: Record<string, string>;
 
   /** Additional tags to add to created entities. Key is entityRef */
-  tags?: Record<string, Record<string, boolean>>;
+  tags: Record<string, Record<string, boolean>>;
 
   /** Additional relationships to create */
-  relationships?: RelationshipRule[];
+  relationships: RelationshipRule[];
 
   /** Additional state updates to apply */
-  stateUpdates?: StateUpdateRule[];
+  stateUpdates: StateUpdateRule[];
 }
 
 // =============================================================================
@@ -431,7 +408,7 @@ export interface VariantEffects {
 export interface ExecutionContext {
   graphView: import('../runtime/worldRuntime').WorldRuntime;
   variables: Map<string, import('../core/worldTypes').HardState | import('../core/worldTypes').HardState[] | undefined>;
-  target?: import('../core/worldTypes').HardState;
+  target: import('../core/worldTypes').HardState;
   // Stores for graph path traversal (e.g., "$controlled" -> set of entity IDs)
   pathSets: Map<string, Set<string>>;
 }

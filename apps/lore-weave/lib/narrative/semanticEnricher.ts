@@ -77,7 +77,7 @@ export class SemanticEnricher {
    * Enrich a single event based on its effects
    */
   private enrichEvent(event: NarrativeEvent, _allEvents: NarrativeEvent[]): NarrativeEvent {
-    if (!event.participantEffects || event.participantEffects.length === 0) {
+    if (event.participantEffects.length === 0) {
       return event;
     }
 
@@ -128,7 +128,7 @@ export class SemanticEnricher {
    * Derive eventKind from the dominant semantic effects in participantEffects
    */
   private deriveEventKindFromEffects(event: NarrativeEvent): NarrativeEventKind | null {
-    if (!event.participantEffects) return null;
+    // participantEffects always present
 
     // Count semantic kinds across all effects
     const semanticCounts: Record<string, number> = {};
@@ -169,7 +169,7 @@ export class SemanticEnricher {
    * Detect power vacuum: authority entity ended with no clear successor
    */
   private detectPowerVacuum(event: NarrativeEvent): boolean {
-    if (!event.participantEffects) return false;
+    // participantEffects always present
 
     for (const participant of event.participantEffects) {
       const endedEffect = participant.effects.find(e => e.type === 'ended');
@@ -198,7 +198,7 @@ export class SemanticEnricher {
    * Detect succession: container entity ended with part_of members
    */
   private detectSuccession(event: NarrativeEvent): boolean {
-    if (!event.participantEffects) return false;
+    // participantEffects always present
 
     for (const participant of event.participantEffects) {
       const endedEffect = participant.effects.find(e => e.type === 'ended');
@@ -219,7 +219,7 @@ export class SemanticEnricher {
    * Detect leadership established: first authority relationship for a target
    */
   private detectLeadershipEstablished(event: NarrativeEvent): boolean {
-    if (!event.participantEffects) return false;
+    // participantEffects always present
 
     for (const participant of event.participantEffects) {
       const authorityEffects = participant.effects.filter(e =>
@@ -260,10 +260,10 @@ export class SemanticEnricher {
   private collectRivalryPairs(events: NarrativeEvent[]): Array<{ src: string; dst: string }> {
     const pairs: Array<{ src: string; dst: string }> = [];
     for (const event of events) {
-      if (!event.participantEffects) continue;
+      // participantEffects is always present
       for (const participant of event.participantEffects) {
         for (const effect of participant.effects) {
-          if (effect.semanticKind === 'rivalry' && effect.relatedEntity) {
+          if (effect.semanticKind === 'rivalry' && effect.type === 'relationship_formed') {
             pairs.push({ src: participant.entity.id, dst: effect.relatedEntity.id });
           }
         }
@@ -319,7 +319,7 @@ export class SemanticEnricher {
     participant: NonNullable<NarrativeEvent['participantEffects']>[number]
   ): void {
     for (const effect of participant.effects) {
-      if (effect.type !== 'relationship_formed' || effect.relationshipKind !== 'part_of' || !effect.relatedEntity) continue;
+      if (effect.type !== 'relationship_formed' || effect.relationshipKind !== 'part_of') continue;
       const targetId = effect.relatedEntity.id;
       if (!partOfByTarget.has(targetId)) partOfByTarget.set(targetId, []);
       partOfByTarget.get(targetId)!.push({ srcId: participant.entity.id, srcName: participant.entity.name });
@@ -329,7 +329,7 @@ export class SemanticEnricher {
   private collectPartOfFormations(events: NarrativeEvent[]): Map<string, Array<{ srcId: string; srcName: string }>> {
     const partOfByTarget = new Map<string, Array<{ srcId: string; srcName: string }>>();
     for (const event of events) {
-      if (!event.participantEffects) continue;
+      // participantEffects is always present
       for (const participant of event.participantEffects) {
         this.addPartOfEffectsFromParticipant(partOfByTarget, participant);
       }

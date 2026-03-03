@@ -62,10 +62,10 @@ AVOID: Making the speaker obviously villainous. Making the "truth" explicitly st
     titleGuidance: 'The title belongs to the speaker — it is what they would call their own account. It should carry their particular self-deception: a justification framed as a title, a euphemism for what they did, or a claim about themselves the reader will learn to doubt. Intimate register. The title is the first unreliable thing the speaker says.',
 
     roles: [
-      { role: 'confessor', count: { min: 1, max: 1 }, description: 'The speaker - articulate, self-deceiving, sympathetic despite everything' },
-      { role: 'audience', count: { min: 1, max: 1 }, description: 'Who the confession is addressed to - judge, lover, deity, self. May never speak but shapes the confession' },
-      { role: 'the-wronged', count: { min: 1, max: 1 }, description: 'The person the speaker harmed - present only through the speaker\'s distorted account' },
-      { role: 'the-event', count: { min: 0, max: 1 }, description: 'What happened - the act being justified or confessed' },
+      { role: 'confessor', count: { min: 1, max: 1 }, description: 'The speaker - articulate, self-deceiving, sympathetic despite everything', selectionCriteria: '' },
+      { role: 'audience', count: { min: 1, max: 1 }, description: 'Who the confession is addressed to - judge, lover, deity, self. May never speak but shapes the confession', selectionCriteria: '' },
+      { role: 'the-wronged', count: { min: 1, max: 1 }, description: 'The person the speaker harmed - present only through the speaker\'s distorted account', selectionCriteria: '' },
+      { role: 'the-event', count: { min: 0, max: 1 }, description: 'What happened - the act being justified or confessed', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -132,10 +132,10 @@ AVOID: Psychological complexity. Moral ambiguity (the fable has a clear lesson, 
     titleGuidance: 'Name the creature, the object, or the choice at the center. Fable titles are the simplest of all forms — they work as labels spoken by a storyteller to a listening audience. Oral and declarative register. No subtlety, no double meaning. The title announces what the story is about with the directness of someone who has told it a hundred times.',
 
     roles: [
-      { role: 'archetype', count: { min: 1, max: 1 }, description: 'The central figure - defined by one trait, simplified from a real entity into a folk character' },
-      { role: 'the-test', count: { min: 1, max: 1 }, description: 'The challenge or choice that reveals character - simple, resonant, archetypal' },
-      { role: 'the-trickster', count: { min: 0, max: 1 }, description: 'A figure who disrupts, tests, or teaches through mischief or disguise' },
-      { role: 'the-lesson', count: { min: 0, max: 1 }, description: 'The moral embodied - may be a person, object, or consequence' },
+      { role: 'archetype', count: { min: 1, max: 1 }, description: 'The central figure - defined by one trait, simplified from a real entity into a folk character', selectionCriteria: '' },
+      { role: 'the-test', count: { min: 1, max: 1 }, description: 'The challenge or choice that reveals character - simple, resonant, archetypal', selectionCriteria: '' },
+      { role: 'the-trickster', count: { min: 0, max: 1 }, description: 'A figure who disrupts, tests, or teaches through mischief or disguise', selectionCriteria: '' },
+      { role: 'the-lesson', count: { min: 0, max: 1 }, description: 'The moral embodied - may be a person, object, or consequence', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -209,11 +209,11 @@ AVOID: Clear-cut guilt or innocence. Perry Mason revelations. Courtroom drama cl
     titleGuidance: 'The title should carry the weight of formal proceedings — a case name, a charge, a verdict, or the principle being tested. Legal register: precise, impersonal, procedural. The gravity comes from the system, not from emotion. The best trial titles sound like documents that decide fates.',
 
     roles: [
-      { role: 'accused', count: { min: 1, max: 1 }, description: 'The one on trial - their guilt or innocence genuinely uncertain' },
-      { role: 'accuser', count: { min: 1, max: 1 }, description: 'The prosecution - may be wronged party, state authority, or political rival' },
-      { role: 'judge', count: { min: 1, max: 1 }, description: 'Who presides and decides - carries the weight of judgment' },
-      { role: 'witness', count: { min: 1, max: 2 }, description: 'Those who testify - their divided loyalties and partial knowledge complicate both narratives' },
-      { role: 'the-precedent', count: { min: 0, max: 1 }, description: 'The law, doctrine, tradition, or past event invoked by both sides. The principle being tested as much as the accused' },
+      { role: 'accused', count: { min: 1, max: 1 }, description: 'The one on trial - their guilt or innocence genuinely uncertain', selectionCriteria: '' },
+      { role: 'accuser', count: { min: 1, max: 1 }, description: 'The prosecution - may be wronged party, state authority, or political rival', selectionCriteria: '' },
+      { role: 'judge', count: { min: 1, max: 1 }, description: 'Who presides and decides - carries the weight of judgment', selectionCriteria: '' },
+      { role: 'witness', count: { min: 1, max: 2 }, description: 'Those who testify - their divided loyalties and partial knowledge complicate both narratives', selectionCriteria: '' },
+      { role: 'the-precedent', count: { min: 0, max: 1 }, description: 'The law, doctrine, tradition, or past event invoked by both sides. The principle being tested as much as the accused', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -285,9 +285,9 @@ AVOID: Plot. Causality. Rational explanations. Metaphors that are "explained" - 
     titleGuidance: 'The title should feel like something remembered from a dream — specific and vivid, but the logic is slightly wrong. Sensory words in unexpected combinations. A color that shouldn\'t modify that noun. A texture where a sound should be. The title doesn\'t need to make sense; it needs to make the reader feel the way dreams feel just before they dissolve.',
 
     roles: [
-      { role: 'dreamer', count: { min: 1, max: 1 }, description: 'The consciousness moving through the dream - may split, transform, or dissolve' },
-      { role: 'the-seed', count: { min: 1, max: 1 }, description: 'The recurring image that anchors the dream - concrete, transforming, accumulating meaning' },
-      { role: 'the-shifting', count: { min: 0, max: 2 }, description: 'Figures who appear in the dream - unstable identities, faces that change, voices that belong to the wrong bodies' },
+      { role: 'dreamer', count: { min: 1, max: 1 }, description: 'The consciousness moving through the dream - may split, transform, or dissolve', selectionCriteria: '' },
+      { role: 'the-seed', count: { min: 1, max: 1 }, description: 'The recurring image that anchors the dream - concrete, transforming, accumulating meaning', selectionCriteria: '' },
+      { role: 'the-shifting', count: { min: 0, max: 2 }, description: 'Figures who appear in the dream - unstable identities, faces that change, voices that belong to the wrong bodies', selectionCriteria: '' },
     ],
 
     pacing: {

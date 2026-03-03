@@ -3,7 +3,7 @@
  * Props originate in ChroniclePanel and pass through ChronicleReviewPanel.
  * When adding props, update all three files.
  */
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import ImageModal from "../ImageModal";
 import QuickCheckModal from "../QuickCheckModal";
 import WorkspaceHeader from "./WorkspaceHeader";
@@ -95,15 +95,6 @@ interface Era {
 // ---------------------------------------------------------------------------
 // Prop group interfaces (for max-jsx-props compliance)
 // ---------------------------------------------------------------------------
-
-interface ImageGenerationProps {
-  styleSelection?: StyleSelection;
-  imageSize?: string;
-  imageQuality?: string;
-  imageModel?: string;
-  imageGenSettings?: ImageGenSettings;
-  onOpenImageSettings?: () => void;
-}
 
 // ---------------------------------------------------------------------------
 // Version type
@@ -276,10 +267,12 @@ function TitleAcceptModal({
 }: Readonly<TitleAcceptModalProps>) {
   const [customTitle, setCustomTitle] = useState("");
   const hasPending = !!item.pendingTitle;
+  const [prevPendingTitle, setPrevPendingTitle] = useState(item.pendingTitle);
 
-  useEffect(() => {
+  if (item.pendingTitle !== prevPendingTitle) {
+    setPrevPendingTitle(item.pendingTitle);
     setCustomTitle("");
-  }, [item.pendingTitle]);
+  }
 
   const handleOverlayClick = useCallback(() => {
     if (hasPending) onRejectTitle();
@@ -454,12 +447,14 @@ interface TabDefinition {
 }
 
 function useTabs(isComplete: boolean, versionCount: number, chronicleId: string) {
-  const defaultTab = isComplete ? "historian" : "pipeline";
-  const [activeTab, setActiveTab] = useState(defaultTab);
+  const [activeTab, setActiveTab] = useState(isComplete ? "historian" : "pipeline");
+  const [prevTabKey, setPrevTabKey] = useState(`${chronicleId}|${isComplete}`);
 
-  useEffect(() => {
+  const currentKey = `${chronicleId}|${isComplete}`;
+  if (currentKey !== prevTabKey) {
+    setPrevTabKey(currentKey);
     setActiveTab(isComplete ? "historian" : "pipeline");
-  }, [chronicleId, isComplete]);
+  }
 
   const tabs: TabDefinition[] = useMemo(() => {
     if (isComplete) {
@@ -484,11 +479,9 @@ function useTabs(isComplete: boolean, versionCount: number, chronicleId: string)
     ];
   }, [isComplete, versionCount]);
 
-  useEffect(() => {
-    if (!tabs.find((t) => t.id === activeTab)) {
-      setActiveTab(tabs[0].id);
-    }
-  }, [tabs, activeTab]);
+  // Keep active tab valid if tab list changes
+  const validTab = tabs.find((t) => t.id === activeTab) ? activeTab : tabs[0].id;
+  if (validTab !== activeTab) setActiveTab(validTab);
 
   return { tabs, activeTab, setActiveTab };
 }
@@ -507,28 +500,29 @@ function useVersionState(
 
   const [selectedVersionId, setSelectedVersionId] = useState(activeVersionId);
   const [compareToVersionId, setCompareToVersionId] = useState("");
+  const [prevVersionKey, setPrevVersionKey] = useState(`${activeVersionId}|${chronicleId}`);
 
-  useEffect(() => {
+  // Reset selections during render when active version or chronicle changes
+  const versionKey = `${activeVersionId}|${chronicleId}`;
+  if (versionKey !== prevVersionKey) {
+    setPrevVersionKey(versionKey);
     setSelectedVersionId(activeVersionId);
     setCompareToVersionId("");
-  }, [activeVersionId, chronicleId]);
+  }
 
-  useEffect(() => {
-    if (versions.length === 0) return;
+  // Keep selections valid during render when version list changes
+  if (versions.length > 0) {
     const hasSelected = versions.some((v) => v.id === selectedVersionId);
-    let nextSelected = selectedVersionId;
     if (!hasSelected) {
       const hasActive = versions.some((v) => v.id === activeVersionId);
-      nextSelected = hasActive ? activeVersionId : versions[versions.length - 1].id;
-      setSelectedVersionId(nextSelected);
-    }
-    if (compareToVersionId) {
+      const next = hasActive ? activeVersionId : versions[versions.length - 1].id;
+      setSelectedVersionId(next);
+      if (compareToVersionId && compareToVersionId === next) setCompareToVersionId("");
+    } else if (compareToVersionId) {
       const hasCompare = versions.some((v) => v.id === compareToVersionId);
-      if (!hasCompare || compareToVersionId === nextSelected) {
-        setCompareToVersionId("");
-      }
+      if (!hasCompare || compareToVersionId === selectedVersionId) setCompareToVersionId("");
     }
-  }, [versions, selectedVersionId, compareToVersionId, activeVersionId]);
+  }
 
   const selectedVersion = useMemo(
     () => versions.find((v) => v.id === selectedVersionId) || versions[versions.length - 1],
@@ -567,6 +561,57 @@ function useVersionState(
 }
 
 // ---------------------------------------------------------------------------
+// Tertiary cast helpers
+// ---------------------------------------------------------------------------
+
+function buildWikiEntities(entities: Array<Record<string, unknown>>): Array<{ id: string; name: string }> {
+  const wikiEntities: Array<{ id: string; name: string }> = [];
+  for (const entity of entities) {
+    if (entity.kind === "era") continue;
+    wikiEntities.push({ id: entity.id as string, name: entity.name as string });
+    const aliases = (entity.enrichment as Record<string, unknown>)?.text as Record<string, unknown> | undefined;
+    const aliasList = aliases?.aliases;
+    if (!Array.isArray(aliasList)) continue;
+    for (const alias of aliasList) {
+      if (typeof alias === "string" && alias.length >= 3) {
+        wikiEntities.push({ id: entity.id as string, name: alias });
+      }
+    }
+  }
+  return wikiEntities;
+}
+
+function deduplicateMentions(
+  mentions: Array<{ entityId: string; start: number; end: number }>,
+  declaredIds: Set<string>,
+  entityMap: Map<string, Record<string, unknown>>,
+  content: string,
+  prevDecisions: Map<string, boolean>
+) {
+  const seen = new Set<string>();
+  const entries: Array<{
+    entityId: string; name: string; kind: string;
+    matchedAs: string; matchStart: number; matchEnd: number; accepted: boolean;
+  }> = [];
+  for (const m of mentions) {
+    if (declaredIds.has(m.entityId) || seen.has(m.entityId)) continue;
+    seen.add(m.entityId);
+    const entity = entityMap.get(m.entityId);
+    if (!entity) continue;
+    entries.push({
+      entityId: entity.id as string,
+      name: entity.name as string,
+      kind: entity.kind as string,
+      matchedAs: content.slice(m.start, m.end),
+      matchStart: m.start,
+      matchEnd: m.end,
+      accepted: prevDecisions.get(entity.id as string) ?? true,
+    });
+  }
+  return entries;
+}
+
+// ---------------------------------------------------------------------------
 // Tertiary cast hook (extracted to reduce main component complexity)
 // ---------------------------------------------------------------------------
 
@@ -586,19 +631,7 @@ function useTertiaryCast(
     const freshEntities = await getEntitiesForRun(simulationRunId);
     const freshEntityMap = new Map(freshEntities.map((e) => [e.id, e]));
 
-    const wikiEntities: Array<{ id: string; name: string }> = [];
-    for (const entity of freshEntities) {
-      if (entity.kind === "era") continue;
-      wikiEntities.push({ id: entity.id, name: entity.name });
-      const aliases = entity.enrichment?.text?.aliases;
-      if (Array.isArray(aliases)) {
-        for (const alias of aliases) {
-          if (typeof alias === "string" && alias.length >= 3) {
-            wikiEntities.push({ id: entity.id, name: alias });
-          }
-        }
-      }
-    }
+    const wikiEntities = buildWikiEntities(freshEntities);
 
     const mentions = findEntityMentions(content, wikiEntities);
     const declaredIds = new Set(item.selectedEntityIds || []);
@@ -606,32 +639,7 @@ function useTertiaryCast(
       (item.tertiaryCast || []).map((e) => [e.entityId, e.accepted])
     );
 
-    const seen = new Set<string>();
-    const entries: Array<{
-      entityId: string;
-      name: string;
-      kind: string;
-      matchedAs: string;
-      matchStart: number;
-      matchEnd: number;
-      accepted: boolean;
-    }> = [];
-    for (const m of mentions) {
-      if (declaredIds.has(m.entityId) || seen.has(m.entityId)) continue;
-      seen.add(m.entityId);
-      const entity = freshEntityMap.get(m.entityId);
-      if (entity) {
-        entries.push({
-          entityId: entity.id,
-          name: entity.name,
-          kind: entity.kind,
-          matchedAs: content.slice(m.start, m.end),
-          matchStart: m.start,
-          matchEnd: m.end,
-          accepted: prevDecisions.get(entity.id) ?? true,
-        });
-      }
-    }
+    const entries = deduplicateMentions(mentions, declaredIds, freshEntityMap, content, prevDecisions);
 
     const { updateChronicleTertiaryCast } = await import("../../lib/db/chronicleRepository");
     await updateChronicleTertiaryCast(item.chronicleId, entries);

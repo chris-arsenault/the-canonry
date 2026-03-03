@@ -5,6 +5,7 @@
  */
 
 import type { HardState } from '../../core/worldTypes';
+import { entityCriteria } from '../../engine/types';
 import type {
   MetricResult,
   RatioMetric,
@@ -22,11 +23,11 @@ export function evaluateRatio(
   const denValue = evaluateSimpleCount(metric.denominator, ctx);
 
   const ratio = denValue === 0
-    ? (metric.fallbackValue ?? 0)
+    ? metric.fallbackValue
     : numValue / denValue;
 
-  let value = ratio * (metric.coefficient ?? 1);
-  if (metric.cap !== undefined) {
+  let value = ratio * (metric.coefficient);
+  {
     value = Math.min(value, metric.cap);
   }
 
@@ -48,7 +49,7 @@ export function evaluateStatusRatio(
   metric: StatusRatioMetric,
   ctx: MetricContext
 ): MetricResult {
-  let entities: HardState[] = ctx.graph.findEntities({ kind: metric.kind });
+  let entities: HardState[] = ctx.graph.findEntities(entityCriteria({ kind: metric.kind }));
   if (metric.subtype) {
     entities = entities.filter((e) => e.subtype === metric.subtype);
   }
@@ -56,7 +57,7 @@ export function evaluateStatusRatio(
   const total = entities.length;
   if (total === 0) {
     return {
-      value: metric.coefficient ?? 1,
+      value: metric.coefficient,
       diagnostic: `status ratio: no ${metric.kind} entities`,
       details: { total: 0, alive: 0 },
     };
@@ -65,8 +66,8 @@ export function evaluateStatusRatio(
   const alive = entities.filter((e) => e.status === metric.aliveStatus).length;
   const ratio = alive / total;
 
-  let value = ratio * (metric.coefficient ?? 1);
-  if (metric.cap !== undefined) {
+  let value = ratio * (metric.coefficient);
+  {
     value = Math.min(value, metric.cap);
   }
 
@@ -113,8 +114,8 @@ export function evaluateCrossCultureRatio(
   }
 
   const ratio = crossCulture / total;
-  let value = ratio * (metric.coefficient ?? 1);
-  if (metric.cap !== undefined) {
+  let value = ratio * (metric.coefficient);
+  {
     value = Math.min(value, metric.cap);
   }
 

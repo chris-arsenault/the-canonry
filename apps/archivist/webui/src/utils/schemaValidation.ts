@@ -23,11 +23,11 @@ function validateProminenceConfig(schema: CanonrySchemaSlice, add: Collector): v
 function validateKindAxesAndRegions(
   kind: NonNullable<CanonrySchemaSlice["entityKinds"]>[number], axisIds: Set<string>, add: Collector
 ): void {
-  const axes = kind.semanticPlane?.axes;
-  ([axes?.x?.axisId, axes?.y?.axisId, axes?.z?.axisId].filter(Boolean) as string[]).forEach((id) => {
+  const axes = kind.semanticPlane.axes;
+  [axes.x.axisId, axes.y.axisId, axes.z.axisId].filter(id => id.length > 0).forEach((id) => {
     if (!axisIds.has(id)) add(`Axis "${id}" referenced by kind "${kind.kind}" is missing in schema.axisDefinitions.`);
   });
-  kind.semanticPlane?.regions?.forEach((r) => { if (!r.color) add(`Region "${r.id}" in kind "${kind.kind}" is missing color.`); });
+  kind.semanticPlane.regions.forEach((r) => { if (!r.color) add(`Region "${r.id}" in kind "${kind.kind}" is missing color.`); });
 }
 
 function validateEntityKinds(schema: CanonrySchemaSlice, add: Collector): void {

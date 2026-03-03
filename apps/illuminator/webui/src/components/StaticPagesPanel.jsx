@@ -18,19 +18,20 @@ import {
 export default function StaticPagesPanel({ projectId }) {
   const [pages, setPages] = useState([]);
   const [selectedPageId, setSelectedPageId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!projectId);
+  const [prevProjectId, setPrevProjectId] = useState(projectId);
+
+  // Set loading during render when projectId changes
+  if (projectId && projectId !== prevProjectId) {
+    setPrevProjectId(projectId);
+    setLoading(true);
+  }
 
   // Load pages on mount and when projectId changes
   useEffect(() => {
-    if (!projectId) {
-      setPages([]);
-      setLoading(false);
-      return;
-    }
+    if (!projectId) return;
 
     let cancelled = false;
-
-    setLoading(true);
     getStaticPagesForProject(projectId)
       .then((loadedPages) => {
         if (cancelled) return;

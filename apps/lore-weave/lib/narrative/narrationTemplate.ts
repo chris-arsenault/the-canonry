@@ -25,9 +25,9 @@ export interface NarrationContext {
   /** Named entity bindings (actor, target, $variable, etc.) */
   entities: Record<string, VariableValue>;
   /** Counts by entity kind */
-  counts?: Record<string, number>;
+  counts: Record<string, number>;
   /** Additional string values */
-  values?: Record<string, ScalarValue>;
+  values: Record<string, ScalarValue>;
 }
 
 /**
@@ -55,13 +55,13 @@ type TokenType =
 interface ParsedToken {
   type: TokenType;
   raw: string;
-  entityRef?: string;
-  field?: string;
-  fallback?: string;
-  countKind?: string;
-  listRef?: string;
-  listField?: string;
-  valueKey?: string;
+  entityRef: string;
+  field: string;
+  fallback: string;
+  countKind: string;
+  listRef: string;
+  listField: string;
+  valueKey: string;
 }
 
 /**
@@ -74,7 +74,7 @@ function parseToken(token: string): ParsedToken {
   // Check for fallback
   const [mainPart, fallback] = inner.split('|');
   const trimmedMain = mainPart.trim();
-  const trimmedFallback = fallback?.trim();
+  const trimmedFallback = fallback.trim();
 
   // Check for count: prefix
   if (trimmedMain.startsWith('count:')) {
@@ -154,35 +154,24 @@ function parseToken(token: string): ParsedToken {
 /**
  * Get a field value from an entity.
  */
+const ENTITY_STRING_FIELDS = new Set(['name', 'id', 'kind', 'subtype', 'culture', 'status', 'description']);
+
 function getEntityField(entity: HardState, field: string): string | undefined {
-  switch (field) {
-    case 'name':
-      return entity.name;
-    case 'id':
-      return entity.id;
-    case 'kind':
-      return entity.kind;
-    case 'subtype':
-      return entity.subtype;
-    case 'culture':
-      return entity.culture;
-    case 'status':
-      return entity.status;
-    case 'description':
-      return entity.description;
-    default:
-      // Check tags
-      if (entity.tags && field in entity.tags) {
-        const tagValue = entity.tags[field];
-        return typeof tagValue === 'string' ? tagValue : String(tagValue);
-      }
-      // Try direct property access for extensibility
-      const value = (entity as unknown as Record<string, unknown>)[field];
-      if (value !== undefined && value !== null) {
-        return typeof value === 'object' ? JSON.stringify(value) : String(value as ScalarValue);
-      }
-      return undefined;
+  // Known string fields on HardState
+  if (ENTITY_STRING_FIELDS.has(field)) {
+    return (entity as unknown as Record<string, string>)[field];
   }
+  // Check tags
+  if (field in entity.tags) {
+    const tagValue = entity.tags[field];
+    return typeof tagValue === 'string' ? tagValue : String(tagValue);
+  }
+  // Try direct property access for extensibility
+  const value = (entity as unknown as Record<string, unknown>)[field];
+  if (value !== undefined && value !== null) {
+    return typeof value === 'object' ? JSON.stringify(value) : String(value as ScalarValue);
+  }
+  return undefined;
 }
 
 /**
@@ -201,17 +190,16 @@ function resolveEntityOrVariableToken(
   token: ParsedToken,
   context: NarrationContext
 ): string | undefined {
-  const key = token.entityRef!;
-  const keyExists = key in context.entities;
+  const key = token.entityRef;
 
   const entityOrArray = resolveEntityRef(key, context);
   if (!entityOrArray) {
-    return keyExists ? (token.fallback ?? '') : token.fallback;
+    return token.fallback;
   }
-  const entity = Array.isArray(entityOrArray) ? entityOrArray[0] : entityOrArray;
-  if (!entity) return token.fallback ?? '';
+  const entity: HardState | undefined = Array.isArray(entityOrArray) ? entityOrArray[0] : entityOrArray;
+  if (!entity) return token.fallback;
 
-  const value = getEntityField(entity, token.field!);
+  const value = getEntityField(entity, token.field);
   return value ?? token.fallback;
 }
 
@@ -219,14 +207,14 @@ function resolveListToken(
   token: ParsedToken,
   context: NarrationContext
 ): string | undefined {
-  const entityOrArray = resolveEntityRef(token.listRef!, context);
+  const entityOrArray = resolveEntityRef(token.listRef, context);
   if (!entityOrArray) return token.fallback;
 
   const entities = Array.isArray(entityOrArray) ? entityOrArray : [entityOrArray];
   if (entities.length === 0) return token.fallback;
 
   const values = entities
-    .map((e) => getEntityField(e, token.listField!))
+    .map((e) => getEntityField(e, token.listField))
     .filter((v): v is string => v !== undefined);
   if (values.length === 0) return token.fallback;
 
@@ -252,16 +240,20 @@ function resolveToken(
       return resolveEntityOrVariableToken(token, context);
 
     case 'count': {
-      const count = context.counts?.[token.countKind!];
-      return count === undefined ? token.fallback : String(count);
+      if (token.countKind in context.counts) {
+        return String(context.counts[token.countKind]);
+      }
+      return token.fallback;
     }
 
     case 'list':
       return resolveListToken(token, context);
 
     case 'value': {
-      const value = context.values?.[token.valueKey!];
-      return value === undefined ? token.fallback : String(value);
+      if (token.valueKey in context.values) {
+        return String(context.values[token.valueKey]);
+      }
+      return token.fallback;
     }
 
     default:
@@ -326,23 +318,23 @@ export function interpolate(template: string, context: NarrationContext): Narrat
  * Create a NarrationContext from common action/system bindings.
  */
 export function createNarrationContext(bindings: {
-  actor?: HardState;
-  target?: HardState;
-  target2?: HardState;
-  instigator?: HardState | null;
-  variables?: Record<string, VariableValue>;
-  counts?: Record<string, number>;
-  values?: Record<string, ScalarValue>;
+  actor: HardState;
+  target: HardState;
+  target2: HardState;
+  instigator: HardState | null;
+  variables: Record<string, VariableValue>;
+  counts: Record<string, number>;
+  values: Record<string, ScalarValue>;
 }): NarrationContext {
   const entities: Record<string, VariableValue> = {};
 
-  if (bindings.actor) {
+  {
     entities['actor'] = bindings.actor;
   }
-  if (bindings.target) {
+  {
     entities['target'] = bindings.target;
   }
-  if (bindings.target2) {
+  {
     entities['target2'] = bindings.target2;
   }
   // Always add instigator key if it was provided (even if null),
@@ -352,7 +344,7 @@ export function createNarrationContext(bindings: {
   }
 
   // Add variables with $ prefix
-  if (bindings.variables) {
+  {
     for (const [key, value] of Object.entries(bindings.variables)) {
       // Ensure $ prefix for consistency
       const prefixedKey = key.startsWith('$') ? key : `$${key}`;
@@ -371,34 +363,34 @@ export function createNarrationContext(bindings: {
  * Helper to create context for system rules (connectionEvolution, etc.)
  */
 export function createSystemRuleContext(bindings: {
-  self?: HardState;
-  member?: HardState;
-  member2?: HardState;
-  sharedVia?: HardState;
-  variables?: Record<string, VariableValue>;
-  counts?: Record<string, number>;
-  values?: Record<string, ScalarValue>;
+  self: HardState;
+  member: HardState;
+  member2: HardState;
+  sharedVia: HardState;
+  variables: Record<string, VariableValue>;
+  counts: Record<string, number>;
+  values: Record<string, ScalarValue>;
 }): NarrationContext {
   const entities: Record<string, VariableValue> = {};
 
-  if (bindings.self) {
+  {
     entities['self'] = bindings.self;
     entities['$self'] = bindings.self;
   }
-  if (bindings.member) {
+  {
     entities['member'] = bindings.member;
     entities['$member'] = bindings.member;
   }
-  if (bindings.member2) {
+  {
     entities['member2'] = bindings.member2;
     entities['$member2'] = bindings.member2;
   }
-  if (bindings.sharedVia) {
+  {
     entities['sharedVia'] = bindings.sharedVia;
     entities['$sharedVia'] = bindings.sharedVia;
   }
 
-  if (bindings.variables) {
+  {
     for (const [key, value] of Object.entries(bindings.variables)) {
       const prefixedKey = key.startsWith('$') ? key : `$${key}`;
       entities[prefixedKey] = value;
@@ -416,29 +408,29 @@ export function createSystemRuleContext(bindings: {
  * Helper to create context for template/generator execution
  */
 export function createGeneratorContext(bindings: {
-  target?: HardState;
-  selected?: HardState;
-  variables?: Record<string, VariableValue>;
-  entitiesCreated?: HardState[];
-  counts?: Record<string, number>;
-  values?: Record<string, ScalarValue>;
+  target: HardState;
+  selected: HardState;
+  variables: Record<string, VariableValue>;
+  entitiesCreated: HardState[];
+  counts: Record<string, number>;
+  values: Record<string, ScalarValue>;
 }): NarrationContext {
   const entities: Record<string, VariableValue> = {};
 
-  if (bindings.target) {
+  {
     entities['target'] = bindings.target;
     entities['$target'] = bindings.target;
   }
-  if (bindings.selected) {
+  {
     entities['selected'] = bindings.selected;
     entities['$selected'] = bindings.selected;
   }
-  if (bindings.entitiesCreated) {
+  {
     entities['created'] = bindings.entitiesCreated;
     entities['$created'] = bindings.entitiesCreated;
   }
 
-  if (bindings.variables) {
+  {
     for (const [key, value] of Object.entries(bindings.variables)) {
       const prefixedKey = key.startsWith('$') ? key : `$${key}`;
       entities[prefixedKey] = value;

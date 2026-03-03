@@ -99,18 +99,19 @@ export default function ChronicleImagePicker({
   const [filterByChronicle, setFilterByChronicle] = useState(true);
 
   const mouseDownOnOverlay = useRef(false);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
-  // Reset state when opening
-  useEffect(() => {
-    if (isOpen) {
-      setImages([]);
-      setSelectedImageId(null);
-      setFilterByRef(true);
-      setFilterByChronicle(true);
-      setHasMore(false);
-      setTotal(0);
-    }
-  }, [isOpen]);
+  // Reset state during render when modal opens
+  if (isOpen && !prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    setImages([]);
+    setSelectedImageId(null);
+    setFilterByRef(true);
+    setFilterByChronicle(true);
+    setHasMore(false);
+    setTotal(0);
+  }
+  if (!isOpen && prevIsOpen) setPrevIsOpen(isOpen);
 
   // Load images when filters change
   useEffect(() => {

@@ -33,8 +33,9 @@ export class ContractEnforcer {
 
   constructor(private config: EngineConfig) {
     // TagDefinition from schema is looser than TagMetadata; filter to valid entries
-    this.registry = (config.schema.tagRegistry || [])
-      .filter((t): t is TagMetadata => t.category !== undefined);
+    this.registry = config.schema.tagRegistry.filter(
+      (t): t is TagMetadata => typeof t.category === 'string' && t.category.length > 0
+    );
     this.tagAnalyzer = new TagHealthAnalyzer(this.registry);
   }
 
@@ -52,7 +53,7 @@ export class ContractEnforcer {
   public checkTagSaturation(
     graph: WorldRuntime,
     tagsToAdd: string[]
-  ): { saturated: boolean; oversaturatedTags: string[]; reason?: string } {
+  ): { saturated: boolean; oversaturatedTags: string[]; reason: string } {
     // Count current tag usage
     const tagCounts = new Map<string, number>();
     graph.forEachEntity((entity) => {
@@ -119,7 +120,7 @@ export class ContractEnforcer {
   public enforceTagCoverage(
     entity: HardState,
     _graph: WorldRuntime
-  ): { needsAdjustment: boolean; suggestion: string; tagsToAdd?: string[]; tagsToRemove?: string[] } {
+  ): { needsAdjustment: boolean; suggestion: string; tagsToAdd: string[]; tagsToRemove: string[] } {
     const currentCount = getTagKeyCount(entity.tags);
 
     // Check if coverage is acceptable (3-5 tags)
@@ -140,7 +141,7 @@ export class ContractEnforcer {
     // Too many tags - suggest removals
     if (currentCount > 5) {
       const excess = currentCount - 5;
-      const tagKeys = Object.keys(entity.tags || {});
+      const tagKeys = Object.keys(entity.tags);
       return {
         needsAdjustment: true,
         suggestion: `Entity ${entity.name} has ${currentCount} tags, should remove ${excess}`,
@@ -184,7 +185,7 @@ export class ContractEnforcer {
     parts.push(`canApply(): ${canApply ? '✓' : '✗'}`);
 
     // Check targets
-    const targets = template.findTargets ? template.findTargets(graphView) : [];
+    const targets = template.findTargets(graphView);
     parts.push(`Targets: ${targets.length}`);
 
     return parts.join(' | ');

@@ -272,6 +272,27 @@ function pickRandom(arr) {
   return arr[Math.floor(randomValue * arr.length)];
 }
 
+function resolveAxisRandom(items, fixedOtherId, rules, artisticStyles, compositionStyles, axis) {
+  if (fixedOtherId && fixedOtherId !== NONE_ID && rules.length > 0) {
+    return pickRandom(filterByExclusion(items, fixedOtherId, rules, artisticStyles, compositionStyles, axis));
+  }
+  return pickRandom(items);
+}
+
+function resolveAxis(selectedId, items, fixedOtherId, rules, artisticStyles, compositionStyles, axis) {
+  if (selectedId === NONE_ID) return null;
+  if (selectedId === RANDOM_ID || !selectedId) {
+    return resolveAxisRandom(items, fixedOtherId, rules, artisticStyles, compositionStyles, axis);
+  }
+  return items.find((s) => s.id === selectedId) || null;
+}
+
+function resolveColorPalette(selectedId, colorPalettes) {
+  if (selectedId === NONE_ID) return null;
+  if (selectedId === RANDOM_ID || !selectedId) return pickRandom(colorPalettes);
+  return colorPalettes.find((p) => p.id === selectedId) || null;
+}
+
 /**
  * Resolve style selection to actual style definitions
  * Handles culture defaults, random selection, exclusion filtering, and fallbacks
@@ -298,100 +319,27 @@ export function resolveStyleSelection({
   const colorPalettes = styleLibrary.colorPalettes || [];
   const rules = exclusionRules || [];
 
-  // Filter composition styles by entity kind
   const filteredCompositionStyles = entityKind
     ? compositionStyles.filter(
-        (s) =>
-          !s.suitableForKinds ||
-          s.suitableForKinds.length === 0 ||
-          s.suitableForKinds.includes(entityKind)
+        (s) => !s.suitableForKinds || s.suitableForKinds.length === 0 || s.suitableForKinds.includes(entityKind)
       )
     : compositionStyles;
 
   const styleIsRandom = selection.artisticStyleId === RANDOM_ID || !selection.artisticStyleId;
   const compIsRandom = selection.compositionStyleId === RANDOM_ID || !selection.compositionStyleId;
+  const bothRandom = styleIsRandom && compIsRandom && selection.artisticStyleId !== NONE_ID && selection.compositionStyleId !== NONE_ID;
 
-  if (
-    styleIsRandom &&
-    compIsRandom &&
-    selection.artisticStyleId !== NONE_ID &&
-    selection.compositionStyleId !== NONE_ID
-  ) {
+  if (bothRandom) {
     // Both random: pick composition first, then filter styles for that composition
     result.compositionStyle = pickRandom(filteredCompositionStyles);
-    if (result.compositionStyle && rules.length > 0) {
-      const filteredStyles = filterByExclusion(
-        artisticStyles,
-        result.compositionStyle.id,
-        rules,
-        artisticStyles,
-        compositionStyles,
-        "style"
-      );
-      result.artisticStyle = pickRandom(filteredStyles);
-    } else {
-      result.artisticStyle = pickRandom(artisticStyles);
-    }
+    result.artisticStyle = resolveAxisRandom(artisticStyles, result.compositionStyle?.id, rules, artisticStyles, compositionStyles, "style");
   } else {
-    // Resolve artistic style
-    if (selection.artisticStyleId === NONE_ID) {
-      result.artisticStyle = null;
-    } else if (styleIsRandom) {
-      // Style is random, composition is fixed — filter styles for fixed composition
-      const fixedCompId = selection.compositionStyleId;
-      if (fixedCompId && fixedCompId !== NONE_ID && rules.length > 0) {
-        const filteredStyles = filterByExclusion(
-          artisticStyles,
-          fixedCompId,
-          rules,
-          artisticStyles,
-          compositionStyles,
-          "style"
-        );
-        result.artisticStyle = pickRandom(filteredStyles);
-      } else {
-        result.artisticStyle = pickRandom(artisticStyles);
-      }
-    } else {
-      result.artisticStyle = artisticStyles.find((s) => s.id === selection.artisticStyleId);
-    }
-
-    // Resolve composition style
-    if (selection.compositionStyleId === NONE_ID) {
-      result.compositionStyle = null;
-    } else if (compIsRandom) {
-      // Composition is random, style is fixed — filter compositions for fixed style
-      const fixedStyleId = selection.artisticStyleId;
-      if (fixedStyleId && fixedStyleId !== NONE_ID && rules.length > 0) {
-        const filteredComps = filterByExclusion(
-          filteredCompositionStyles,
-          fixedStyleId,
-          rules,
-          artisticStyles,
-          compositionStyles,
-          "composition"
-        );
-        result.compositionStyle = pickRandom(filteredComps);
-      } else {
-        result.compositionStyle = pickRandom(filteredCompositionStyles);
-      }
-    } else {
-      result.compositionStyle = compositionStyles.find(
-        (s) => s.id === selection.compositionStyleId
-      );
-    }
+    result.artisticStyle = resolveAxis(selection.artisticStyleId, artisticStyles, selection.compositionStyleId, rules, artisticStyles, compositionStyles, "style");
+    result.compositionStyle = resolveAxis(selection.compositionStyleId, filteredCompositionStyles, selection.artisticStyleId, rules, artisticStyles, compositionStyles, "composition");
   }
 
-  // Resolve color palette (no culture default for palettes)
-  if (selection.colorPaletteId === NONE_ID) {
-    result.colorPalette = null;
-  } else if (selection.colorPaletteId === RANDOM_ID || !selection.colorPaletteId) {
-    result.colorPalette = pickRandom(colorPalettes);
-  } else {
-    result.colorPalette = colorPalettes.find((p) => p.id === selection.colorPaletteId);
-  }
+  result.colorPalette = resolveColorPalette(selection.colorPaletteId, colorPalettes);
 
-  // Get culture style keywords
   const culture = cultures?.find((c) => c.id === entityCultureId);
   if (culture?.styleKeywords?.length > 0) {
     result.cultureKeywords = culture.styleKeywords;

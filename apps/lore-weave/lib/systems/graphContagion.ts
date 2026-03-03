@@ -42,12 +42,12 @@ export type MarkerType = 'relationship' | 'tag';
 export interface ContagionMarker {
   type: MarkerType;
   /** For relationship type: the relationship kind (e.g., 'believer_of', 'enemy_of') */
-  relationshipKind?: string;
+  relationshipKind: string;
   /** For tag type: the tag key pattern (e.g., 'infected', 'believes_in') */
-  tagPattern?: string;
+  tagPattern: string;
   /** For relationship type: the target entity to check relationship against (optional) */
   /** If not specified, any relationship of this kind counts as infected */
-  targetEntityId?: string;
+  targetEntityId: string;
 }
 
 export interface TransmissionVector {
@@ -56,7 +56,7 @@ export interface TransmissionVector {
   /** Direction to check for contacts */
   direction: 'src' | 'dst' | 'both';
   /** Minimum relationship strength to count as contact */
-  minStrength?: number;
+  minStrength: number;
 }
 
 export interface TransmissionConfig {
@@ -65,16 +65,16 @@ export interface TransmissionConfig {
   /** Multiplier applied per infected contact (stacks additively) */
   contactMultiplier: number;
   /** Maximum transmission probability (capped before rolling) */
-  maxProbability?: number;
+  maxProbability: number;
 }
 
 export interface RecoveryConfig {
   /** Base recovery probability per tick (0-1) */
   baseRate: number;
   /** Tag to add when entity recovers (grants immunity) */
-  immunityTag?: string;
+  immunityTag: string;
   /** Trait tags that increase recovery probability */
-  recoveryBonusTraits?: Array<{ tag: string; bonus: number }>;
+  recoveryBonusTraits: Array<{ tag: string; bonus: number }>;
 }
 
 export type ContagionAction = SetTagMutation | CreateRelationshipMutation;
@@ -87,7 +87,7 @@ export interface PhaseTransition {
   /** Adoption threshold (0-1, proportion of entities that must be infected) */
   adoptionThreshold: number;
   /** Optional: also update description */
-  descriptionSuffix?: string;
+  descriptionSuffix: string;
 }
 
 /**
@@ -99,13 +99,13 @@ export interface MultiSourceConfig {
   /** Selection rule for contagion sources (e.g., proposed rules) */
   sourceSelection: SelectionRule;
   /** Immunity tag prefix - will be suffixed with source ID (e.g., 'immune' → 'immune:{sourceId}') */
-  immunityTagPrefix?: string;
+  immunityTagPrefix: string;
   /** Narration template for immunity gains. Variables: {$self.name}, {$source.name} */
-  immunityNarrationTemplate?: string;
+  immunityNarrationTemplate: string;
   /** Low adoption threshold - sources below this are marked forgotten */
-  lowAdoptionThreshold?: number;
+  lowAdoptionThreshold: number;
   /** Low adoption status - what to set when below threshold */
-  lowAdoptionStatus?: string;
+  lowAdoptionStatus: string;
 }
 
 export interface GraphContagionConfig {
@@ -114,7 +114,7 @@ export interface GraphContagionConfig {
   /** Human-readable name */
   name: string;
   /** Optional description */
-  description?: string;
+  description: string;
 
   /** Selection rule for the population */
   selection: SelectionRule;
@@ -132,37 +132,37 @@ export interface GraphContagionConfig {
   infectionAction: ContagionAction;
 
   /** Optional recovery mechanics */
-  recovery?: RecoveryConfig;
+  recovery: RecoveryConfig;
 
   /** Optional phase transitions when adoption thresholds are met */
-  phaseTransitions?: PhaseTransition[];
+  phaseTransitions: PhaseTransition[];
 
   /** Traits that modify susceptibility */
-  susceptibilityModifiers?: Array<{
+  susceptibilityModifiers: Array<{
     tag: string;
     modifier: number; // negative = more susceptible, positive = more resistant
   }>;
 
   /** Throttle: only run on some ticks (0-1, default: 1.0 = every tick) */
-  throttleChance?: number;
+  throttleChance: number;
 
   /** Cooldown: ticks before same entity can be infected again */
-  cooldown?: number;
+  cooldown: number;
 
   /** Pressure changes when contagion spreads */
-  pressureChanges?: Record<string, number>;
+  pressureChanges: Record<string, number>;
 
   /**
    * Template for in-world narration when infection occurs.
    * Supports {$self.name}, {$source.name}, {$contagion_source.name}, etc.
    */
-  narrationTemplate?: string;
+  narrationTemplate: string;
 
   /**
    * Exclude infections where the entity and source have these relationship kinds.
    * Prevents spreading conflict between allies, etc.
    */
-  excludeRelationships?: string[];
+  excludeRelationships: string[];
 
   /**
    * Multi-source mode: when configured, the system tracks multiple independent
@@ -173,7 +173,7 @@ export interface GraphContagionConfig {
    * through NPCs via social networks. Each NPC can believe in some ideologies
    * but not others.
    */
-  multiSource?: MultiSourceConfig;
+  multiSource: MultiSourceConfig;
 }
 
 // =============================================================================
@@ -189,7 +189,7 @@ function isInfected(
     return hasTag(entity.tags, config.tagPattern || '');
   }
 
-  if (config.type === 'relationship' && config.relationshipKind) {
+  if (config.relationshipKind) {
     const relationships = graphView.getAllRelationships();
     return relationships.some(r => {
       if (r.kind !== config.relationshipKind) return false;
@@ -213,14 +213,14 @@ function isInfectedWith(
     return hasTag(entity.tags, `${config.tagPattern}:${targetId}`);
   }
 
-  if (config.type === 'relationship' && config.relationshipKind) {
+  if (config.relationshipKind) {
     return graphView.hasRelationship(entity.id, targetId, config.relationshipKind);
   }
 
   return false;
 }
 
-function isImmune(entity: HardState, immunityTag: string, targetId?: string): boolean {
+function isImmune(entity: HardState, immunityTag: string, targetId: string): boolean {
   if (targetId) {
     return hasTag(entity.tags, `${immunityTag}:${targetId}`);
   }
@@ -235,7 +235,7 @@ function getContacts(
   const contactIds = new Set<string>();
 
   for (const vector of vectors) {
-    const minStrength = vector.minStrength ?? 0;
+    const minStrength = vector.minStrength;
 
     if (vector.direction === 'src' || vector.direction === 'both') {
       const related = graphView.getRelated(entity.id, vector.relationshipKind, 'src', { minStrength });
@@ -279,7 +279,7 @@ function mergeMutationResult(
   relationships: Relationship[],
   relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number }>,
   pressureChanges: Record<string, number>,
-  catalyzedBy?: string
+  catalyzedBy: string
 ): void {
   if (!result.applied) return;
 
@@ -325,7 +325,7 @@ export function createGraphContagionSystem(
 
     apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
       // Throttle check
-      if (config.throttleChance !== undefined && config.throttleChance < 1.0) {
+      if (config.throttleChance < 1.0) {
         if (!rollProbability(config.throttleChance, modifier)) {
           return {
             relationshipsAdded: [],
@@ -337,7 +337,7 @@ export function createGraphContagionSystem(
       }
 
       // Use multi-source mode if configured, otherwise single-source mode
-      if (config.multiSource) {
+      if (config.multiSource.enabled) {
         return applyMultiSourceContagion(config, graphView, modifier);
       } else {
         return applySingleSourceContagion(config, graphView, modifier);
@@ -362,7 +362,7 @@ function categorizeContagionEntities(
   for (const entity of entities) {
     if (isInfected(entity, config.contagion, graphView)) {
       infected.push(entity);
-    } else if (config.recovery?.immunityTag && isImmune(entity, config.recovery.immunityTag)) {
+    } else if (config.recovery.immunityTag && isImmune(entity, config.recovery.immunityTag)) {
       immune.push(entity);
     } else {
       susceptible.push(entity);
@@ -425,7 +425,7 @@ function processTransmissionForEntity(
   const baseProb = config.transmission.baseRate +
     (infectedContacts.length * config.transmission.contactMultiplier);
   const modifiedProb = baseProb * (1 - susceptibilityMod);
-  const maxProb = config.transmission.maxProbability ?? 0.95;
+  const maxProb = config.transmission.maxProbability;
   const infectionProb = Math.min(maxProb, Math.max(0, modifiedProb));
   if (!rollProbability(infectionProb, modifier)) return;
   if (config.infectionAction.type === 'create_relationship' && config.cooldown) {
@@ -433,7 +433,7 @@ function processTransmissionForEntity(
   }
   // eslint-disable-next-line sonarjs/pseudo-random -- simulation random source selection
   const source = infectedContacts[Math.floor(Math.random() * infectedContacts.length)];
-  if (config.excludeRelationships?.length &&
+  if (config.excludeRelationships.length &&
       isRelationshipExcluded(entity.id, source.id, config.excludeRelationships, graphView)) {
     return;
   }
@@ -441,7 +441,7 @@ function processTransmissionForEntity(
     ...baseCtx,
     self: entity,
     entities: {
-      ...(baseCtx.entities ?? {}),
+      ...(baseCtx.entities),
       source,
       contagion_source: contagionSource,
     },
@@ -466,7 +466,7 @@ function computeEntityRecoveryProb(
   recovery: NonNullable<GraphContagionConfig['recovery']>
 ): number {
   let prob = recovery.baseRate;
-  if (recovery.recoveryBonusTraits) {
+  if (recovery.recoveryBonusTraits.length > 0) {
     for (const trait of recovery.recoveryBonusTraits) {
       if (hasTag(entity.tags, trait.tag)) prob += trait.bonus;
     }
@@ -495,7 +495,7 @@ function processRecoveryPhase(
   modifier: number,
   modifications: EntityModification[]
 ): void {
-  if (!config.recovery) return;
+  // recovery always present
   for (const entity of infected) {
     const recoveryProb = computeEntityRecoveryProb(entity, config.recovery);
     if (rollProbability(recoveryProb, modifier)) {
@@ -511,7 +511,7 @@ function processPhaseTransitions(
   baseCtx: ReturnType<typeof createSystemContext>,
   modifications: EntityModification[]
 ): void {
-  if (!config.phaseTransitions) return;
+  if (config.phaseTransitions.length === 0) return;
   const adoptionRate = infected.length / entities.length;
   for (const transition of config.phaseTransitions) {
     if (adoptionRate < transition.adoptionThreshold) continue;
@@ -519,7 +519,7 @@ function processPhaseTransitions(
     for (const candidate of candidates) {
       const changes: Partial<HardState> = { status: transition.toStatus };
       if (transition.descriptionSuffix) {
-        const baseNarrative = candidate.narrativeHint ?? candidate.summary ?? candidate.description ?? '';
+        const baseNarrative = candidate.narrativeHint || candidate.summary || candidate.description;
         changes.narrativeHint = `${baseNarrative} ${transition.descriptionSuffix}`;
       }
       modifications.push({ id: candidate.id, changes });
@@ -537,8 +537,8 @@ function collectContagionVectorEdges(
   for (const vector of config.vectors) {
     for (const rel of allRelationships) {
       if (rel.kind !== vector.relationshipKind) continue;
-      const minStrength = vector.minStrength ?? 0;
-      const strength = rel.strength ?? 0;
+      const minStrength = vector.minStrength;
+      const strength = rel.strength;
       if (strength < minStrength) continue;
       if (entityIds.has(rel.src) && entityIds.has(rel.dst)) {
         vectorEdges.push({ source: rel.src, target: rel.dst, kind: rel.kind, strength });
@@ -603,7 +603,7 @@ function applySingleSourceContagion(
 
   const hadChanges =
     relationships.length > 0 || modifications.length > 0 || Object.keys(pressureChanges).length > 0;
-  if (hadChanges && config.pressureChanges) {
+  if (hadChanges) {
     for (const [pressureId, delta] of Object.entries(config.pressureChanges)) {
       pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
     }
@@ -617,8 +617,8 @@ function applySingleSourceContagion(
       id: e.id,
       name: e.name,
       /* eslint-disable sonarjs/pseudo-random -- fallback coordinates for visualization */
-      x: e.coordinates?.x ?? Math.random() * 100,
-      y: e.coordinates?.y ?? Math.random() * 100,
+      x: e.coordinates.x,
+      y: e.coordinates.y,
       /* eslint-enable sonarjs/pseudo-random */
       state: getContagionNodeState(e, infected, immune),
       prominence: e.prominence,
@@ -701,7 +701,7 @@ function applySetTagInfection(
   if (!result.applied) return false;
   for (const mod of result.entityModifications) {
     let currentTags = modifiedTags.get(mod.id) || { ...entity.tags };
-    if (mod.changes.tags) currentTags = applyTagPatch(currentTags, mod.changes.tags);
+    currentTags = applyTagPatch(currentTags, mod.changes.tags);
     modifiedTags.set(mod.id, currentTags);
   }
   return true;
@@ -732,13 +732,13 @@ function processMultiSourceTransmissionForEntity(
   const baseProb = config.transmission.baseRate +
     (infectedContacts.length * config.transmission.contactMultiplier);
   const modifiedProb = baseProb * (1 - susceptibilityMod);
-  const maxProb = config.transmission.maxProbability ?? 0.95;
+  const maxProb = config.transmission.maxProbability;
   const infectionProb = Math.min(maxProb, Math.max(0, modifiedProb));
   if (!rollProbability(infectionProb, modifier)) return;
   const infectionCtx = {
     ...baseCtx,
     self: entity,
-    entities: { ...(baseCtx.entities ?? {}), source, contagion_source: source },
+    entities: { ...(baseCtx.entities), source, contagion_source: source },
   };
   const action = config.infectionAction;
   let actionApplied = false;
@@ -766,7 +766,7 @@ function processMultiSourceRecoveryForEntity(
   modifiedTags: Map<string, Record<string, boolean | string>>,
   narrationsByGroup: Record<string, string>
 ): void {
-  if (!config.recovery) return;
+  // recovery always present
   const recoveryProb = computeEntityRecoveryProb(entity, config.recovery);
   if (!rollProbability(recoveryProb, modifier)) return;
   if (!multiSource.immunityTagPrefix) return;
@@ -790,7 +790,7 @@ function processMultiSourcePhaseTransitionsForSource(
   baseCtx: ReturnType<typeof createSystemContext>,
   modifications: EntityModification[]
 ): void {
-  if (!config.phaseTransitions || entities.length === 0) return;
+  if (config.phaseTransitions.length === 0 || entities.length === 0) return;
   const adoptionRate = infected.length / entities.length;
   for (const transition of config.phaseTransitions) {
     if (adoptionRate < transition.adoptionThreshold) continue;
@@ -798,16 +798,16 @@ function processMultiSourcePhaseTransitionsForSource(
     if (!candidates.some(candidate => candidate.id === source.id)) continue;
     const changes: Partial<HardState> = { status: transition.toStatus };
     if (transition.descriptionSuffix) {
-      const baseNarrative = source.narrativeHint ?? source.summary ?? source.description ?? '';
+      const baseNarrative = source.narrativeHint || source.summary || source.description;
       changes.narrativeHint = `${baseNarrative} ${transition.descriptionSuffix}`;
     }
     modifications.push({ id: source.id, changes });
   }
-  if (multiSource.lowAdoptionThreshold !== undefined &&
+  if (
       adoptionRate < multiSource.lowAdoptionThreshold) {
     modifications.push({
       id: source.id,
-      changes: { status: multiSource.lowAdoptionStatus || 'forgotten' }
+      changes: { status: multiSource.lowAdoptionStatus }
     });
   }
 }
@@ -855,8 +855,8 @@ function buildMultiSourceVizSnapshot(
       id: e.id,
       name: e.name,
       /* eslint-disable sonarjs/pseudo-random -- fallback coordinates for visualization */
-      x: e.coordinates?.x ?? Math.random() * 100,
-      y: e.coordinates?.y ?? Math.random() * 100,
+      x: e.coordinates.x,
+      y: e.coordinates.y,
       /* eslint-enable sonarjs/pseudo-random */
       state: allInfected.has(e.id) ? 'infected' : 'susceptible',
       prominence: e.prominence,
@@ -886,7 +886,7 @@ function applyMultiSourceContagion(
   graphView: WorldRuntime,
   modifier: number
 ): SystemResult {
-  const multiSource = config.multiSource!;
+  const multiSource = config.multiSource;
   const modifications: EntityModification[] = [];
   const relationships: Relationship[] = [];
   const relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number }> = [];
@@ -938,7 +938,7 @@ function applyMultiSourceContagion(
 
   const hadChanges =
     relationships.length > 0 || modifications.length > 0 || Object.keys(pressureChanges).length > 0;
-  if (hadChanges && config.pressureChanges) {
+  if (hadChanges) {
     for (const [pressureId, delta] of Object.entries(config.pressureChanges)) {
       pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
     }

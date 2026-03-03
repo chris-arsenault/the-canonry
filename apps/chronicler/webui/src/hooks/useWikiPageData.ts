@@ -328,7 +328,7 @@ export function useWikiPageData({ page, pages, entityIndex }: Readonly<UseWikiPa
   const { url: infoboxImageUrl } = useImageUrl(infoboxImageId);
   const infoboxMetadataMap = useImageMetadata(infoboxImageId ? [infoboxImageId] : []);
   const infoboxMetadata = infoboxImageId ? infoboxMetadataMap.get(infoboxImageId) : undefined;
-  const infoboxImageAspect = infoboxMetadata?.aspect;
+  const infoboxImageAspect = infoboxMetadata?.dimensions?.aspect;
 
   // Image lightbox
   const openImageModal = useCallback(

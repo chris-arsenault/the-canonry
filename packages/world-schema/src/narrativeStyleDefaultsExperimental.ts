@@ -60,10 +60,10 @@ AVOID: Omniscient resolution. One account being obviously correct. Witnesses ack
     titleGuidance: 'The title names the event or object at the center — the thing all witnesses agree exists but disagree about entirely. It should feel stable, even factual, while the story beneath it fractures. A concrete noun phrase carrying the weight of contested truth. The title is the one thing everyone recognizes; everything else is disputed.',
 
     roles: [
-      { role: 'witness-a', count: { min: 1, max: 1 }, description: 'First perspective - their account opens the story and establishes the baseline truth that subsequent accounts will complicate' },
-      { role: 'witness-b', count: { min: 1, max: 1 }, description: 'Second perspective - contradicts or complicates the first account through different position and interpretation' },
-      { role: 'witness-c', count: { min: 1, max: 1 }, description: 'Third perspective - often marginal to the main players, reveals what the principals missed or misread' },
-      { role: 'the-moment', count: { min: 1, max: 1 }, description: 'The pivotal event all three witnesses observed - must be specific and bounded, a single scene lasting minutes not hours' },
+      { role: 'witness-a', count: { min: 1, max: 1 }, description: 'First perspective - their account opens the story and establishes the baseline truth that subsequent accounts will complicate', selectionCriteria: '' },
+      { role: 'witness-b', count: { min: 1, max: 1 }, description: 'Second perspective - contradicts or complicates the first account through different position and interpretation', selectionCriteria: '' },
+      { role: 'witness-c', count: { min: 1, max: 1 }, description: 'Third perspective - often marginal to the main players, reveals what the principals missed or misread', selectionCriteria: '' },
+      { role: 'the-moment', count: { min: 1, max: 1 }, description: 'The pivotal event all three witnesses observed - must be specific and bounded, a single scene lasting minutes not hours', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -135,10 +135,10 @@ AVOID: Plot mechanics. Explaining what images mean. Rushing to conclusion. Gener
     titleGuidance: 'The title is an image, not a description of one. One to four words. Concrete and sensory — a color, a texture, a quality of light, a natural element. It should carry the emotional weight of the whole piece in a single phrase the reader returns to after finishing. Sound matters as much as meaning; say it aloud.',
 
     roles: [
-      { role: 'consciousness', count: { min: 1, max: 1 }, description: 'The perceiving presence - we see through them, feel with them' },
-      { role: 'the-image', count: { min: 1, max: 1 }, description: 'The central image that opens and closes the loop - must be concrete and specific' },
-      { role: 'presence', count: { min: 0, max: 1 }, description: 'What enters awareness - visitor, memory, other consciousness' },
-      { role: 'absence', count: { min: 0, max: 1 }, description: 'What is longed for or lost - may never appear directly' },
+      { role: 'consciousness', count: { min: 1, max: 1 }, description: 'The perceiving presence - we see through them, feel with them', selectionCriteria: '' },
+      { role: 'the-image', count: { min: 1, max: 1 }, description: 'The central image that opens and closes the loop - must be concrete and specific', selectionCriteria: '' },
+      { role: 'presence', count: { min: 0, max: 1 }, description: 'What enters awareness - visitor, memory, other consciousness', selectionCriteria: '' },
+      { role: 'absence', count: { min: 0, max: 1 }, description: 'What is longed for or lost - may never appear directly', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -211,10 +211,10 @@ AVOID: Jokes. Punchlines. Winking at the audience. Characters being funny on pur
     titleGuidance: 'The title should sound like a bureaucratic label, an incident report heading, or a perfectly reasonable description of something that is not reasonable at all. Flat register, no winking. The gap between the title\'s composure and the story\'s catastrophe is where the comedy lives. The more procedural and precise, the funnier.',
 
     roles: [
-      { role: 'fool', count: { min: 1, max: 2 }, description: 'The reasonable person trapped in unreasonable circumstances - competent, professional, doing everything right' },
-      { role: 'system', count: { min: 1, max: 1 }, description: 'The inadequate structure - bureaucracy, protocol, or procedure that cannot handle what it encounters' },
-      { role: 'catalyst', count: { min: 0, max: 1 }, description: 'What sets the disaster in motion - small, routine, the kind of thing that happens every day' },
-      { role: 'victim', count: { min: 0, max: 2 }, description: 'Collateral damage - those permanently affected by the catastrophe through no fault of their own' },
+      { role: 'fool', count: { min: 1, max: 2 }, description: 'The reasonable person trapped in unreasonable circumstances - competent, professional, doing everything right', selectionCriteria: '' },
+      { role: 'system', count: { min: 1, max: 1 }, description: 'The inadequate structure - bureaucracy, protocol, or procedure that cannot handle what it encounters', selectionCriteria: '' },
+      { role: 'catalyst', count: { min: 0, max: 1 }, description: 'What sets the disaster in motion - small, routine, the kind of thing that happens every day', selectionCriteria: '' },
+      { role: 'victim', count: { min: 0, max: 2 }, description: 'Collateral damage - those permanently affected by the catastrophe through no fault of their own', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -279,12 +279,12 @@ AVOID: Irony. Deconstruction. Moral ambiguity. Anticlimactic endings. This is no
     titleGuidance: 'Common words arranged with mythic weight. The title should sound ancient even if every word is simple — the kind of name that survives oral retelling across generations. It names the hero, the quest, or the legendary thing in a way that feels inevitable. Short, rhythmic, spoken-aloud quality. Simple monosyllables over Latinate abstractions.',
 
     roles: [
-      { role: 'hero', count: { min: 1, max: 1 }, description: 'The chosen one - starts ordinary, becomes extraordinary' },
-      { role: 'darkness', count: { min: 1, max: 1 }, description: 'The evil to be vanquished - dark lord, corrupting power, or malevolent force' },
-      { role: 'guide', count: { min: 0, max: 1 }, description: 'Mentor figure who provides wisdom and/or the call' },
-      { role: 'companion', count: { min: 0, max: 2 }, description: 'Those who journey with the hero - may fall, may be saved' },
-      { role: 'quest-object', count: { min: 0, max: 1 }, description: 'What is sought - weapon, knowledge, place of power' },
-      { role: 'the-calling', count: { min: 0, max: 1 }, description: 'The prophecy, ancient law, forbidden power, or world-event that sets the quest in motion. Defines what the hero must confront beyond any single enemy' },
+      { role: 'hero', count: { min: 1, max: 1 }, description: 'The chosen one - starts ordinary, becomes extraordinary', selectionCriteria: '' },
+      { role: 'darkness', count: { min: 1, max: 1 }, description: 'The evil to be vanquished - dark lord, corrupting power, or malevolent force', selectionCriteria: '' },
+      { role: 'guide', count: { min: 0, max: 1 }, description: 'Mentor figure who provides wisdom and/or the call', selectionCriteria: '' },
+      { role: 'companion', count: { min: 0, max: 2 }, description: 'Those who journey with the hero - may fall, may be saved', selectionCriteria: '' },
+      { role: 'quest-object', count: { min: 0, max: 1 }, description: 'What is sought - weapon, knowledge, place of power', selectionCriteria: '' },
+      { role: 'the-calling', count: { min: 0, max: 1 }, description: 'The prophecy, ancient law, forbidden power, or world-event that sets the quest in motion. Defines what the hero must confront beyond any single enemy', selectionCriteria: '' },
     ],
 
     pacing: {

@@ -194,44 +194,6 @@ async function createProjectZip(project, options = {}) {
  * Extract project data from a zip file
  * Returns { project, illuminatorConfig, staticPages }
  */
-async function extractCanonProjectFromZip(zip, canonFiles) {
-  const sources = await Promise.all(
-    canonFiles.map(async (file) => ({
-      path: file.name,
-      content: await file.async("string"),
-    }))
-  );
-
-  const { config, diagnostics } = compileCanonProject(sources);
-  if (!config || diagnostics.some((diag) => diag.severity === "error")) {
-    throw new Error(`Invalid .canon project:\n${formatCanonDiagnostics(diagnostics)}`);
-  }
-
-  const project = normalizeProjectConfig(config);
-  const illuminatorConfig = await loadOptionalJsonFromZip(zip, "illuminatorConfig.json");
-
-  const mdFiles = zip.file(/\.md$/);
-  const staticSources = await Promise.all(
-    [...canonFiles, ...mdFiles].map(async (file) => ({
-      path: file.name,
-      content: await file.async("string"),
-    }))
-  );
-  const { pages, diagnostics: staticPageDiagnostics } = compileCanonStaticPages(staticSources);
-  if (staticPageDiagnostics.some((diag) => diag.severity === "error")) {
-    throw new Error(`Invalid static pages:\n${formatCanonDiagnostics(staticPageDiagnostics)}`);
-  }
-
-  let staticPages = [];
-  if (pages && pages.length > 0) {
-    staticPages = pages;
-  } else {
-    staticPages = (await loadOptionalJsonFromZip(zip, "staticPages.json")) || [];
-  }
-
-  return { project, illuminatorConfig, staticPages };
-}
-
 async function loadOptionalJsonFromZip(zip, filename) {
   const file = zip.file(filename);
   if (!file) return null;

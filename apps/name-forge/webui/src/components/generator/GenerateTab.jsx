@@ -70,7 +70,7 @@ function GenerateTab({ worldSchema, cultures, formState, onFormStateChange }) {
     } else if (availableProfiles.length === 0 && selectedProfile) {
       updateField("selectedProfile", "");
     }
-  }, [availableProfiles]);
+  }, [availableProfiles, selectedProfile, updateField]);
 
   // Get subkinds for selected entity kind
   const subKinds = useMemo(() => {

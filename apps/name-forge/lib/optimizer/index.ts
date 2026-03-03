@@ -89,7 +89,7 @@ export async function optimizeDomain(
   optimizationSettings: OptimizationSettings,
   siblingDomains: NamingDomain[] = [],
   bounds: ParameterBounds = DEFAULT_BOUNDS,
-  seed?: string
+  seed: string
 ): Promise<OptimizationResult> {
   const algorithm = optimizationSettings.algorithm || 'hillclimb';
   const effectiveSeed = seed || `optimize-${algorithm}-${Date.now()}`;

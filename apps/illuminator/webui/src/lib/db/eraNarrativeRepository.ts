@@ -195,8 +195,7 @@ export async function setEraNarrativeActiveVersion(
 export async function updateEraNarrativeCoverImage(
   narrativeId: string,
   coverImage: EraNarrativeCoverImage,
-  costs: { estimated: number; actual: number; inputTokens: number; outputTokens: number },
-  model: string
+  costs: { estimated: number; actual: number; inputTokens: number; outputTokens: number }
 ): Promise<void> {
   const record = await db.eraNarratives.get(narrativeId);
   if (!record) throw new Error(`Era narrative ${narrativeId} not found`);
@@ -232,8 +231,7 @@ export async function updateEraNarrativeCoverImageStatus(
 export async function updateEraNarrativeImageRefs(
   narrativeId: string,
   imageRefs: EraNarrativeImageRefs,
-  costs: { estimated: number; actual: number; inputTokens: number; outputTokens: number },
-  model: string
+  costs: { estimated: number; actual: number; inputTokens: number; outputTokens: number }
 ): Promise<void> {
   const record = await db.eraNarratives.get(narrativeId);
   if (!record) throw new Error(`Era narrative ${narrativeId} not found`);

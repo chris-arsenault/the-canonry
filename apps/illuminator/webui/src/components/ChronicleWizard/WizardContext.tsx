@@ -685,7 +685,6 @@ export function WizardProvider({
       computeEventMetricsForSelection,
       state.roleAssignments,
       state.candidateEvents,
-      state.narrativeStyle,
     ]
   );
 
@@ -714,7 +713,6 @@ export function WizardProvider({
     state.roleAssignments,
     state.candidateRelationships,
     state.candidateEvents,
-    state.narrativeStyle,
     state.lens,
   ]);
 

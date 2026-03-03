@@ -16,11 +16,11 @@ export interface SaturationLimit {
   /** Relationship kind to count */
   relationshipKind: string;
   /** Direction: 'in' = incoming, 'out' = outgoing (default: 'in') */
-  direction?: 'in' | 'out' | Direction;
+  direction: 'in' | 'out' | Direction;
   /** Optional: only count relationships from/to this entity kind */
-  fromKind?: string;
+  fromKind: string;
   /** Optional: only count relationships from/to this entity subtype (requires fromKind) */
-  fromSubtype?: string;
+  fromSubtype: string;
   /** Maximum number of relationships allowed (target is selected only if count < maxCount) */
   maxCount: number;
 }
@@ -32,40 +32,40 @@ export type SelectionPickStrategy = 'random' | 'first' | 'all' | 'weighted';
  */
 export interface SelectionRule {
   strategy: 'by_kind' | 'by_preference_order' | 'by_relationship' | 'by_proximity' | 'by_prominence';
-  kind?: string;
-  kinds?: string[];
+  kind: string;
+  kinds: string[];
 
   // Common filters
-  subtypes?: string[];
-  excludeSubtypes?: string[];
-  status?: string;
-  statuses?: string[];
-  notStatus?: string;
+  subtypes: string[];
+  excludeSubtypes: string[];
+  status: string;
+  statuses: string[];
+  notStatus: string;
 
   // For by_relationship strategy
-  relationshipKind?: string;
-  mustHave?: boolean;
-  direction?: Direction;
+  relationshipKind: string;
+  mustHave: boolean;
+  direction: Direction;
 
   // For by_preference_order strategy
-  subtypePreferences?: string[];
+  subtypePreferences: string[];
 
   // For by_proximity strategy
-  referenceEntity?: string;  // Variable reference like "$target"
-  maxDistance?: number;
+  referenceEntity: string;  // Variable reference like "$target"
+  maxDistance: number;
 
   // For by_prominence strategy
-  minProminence?: ProminenceLabel;
+  minProminence: ProminenceLabel;
 
   // Post-selection filters
-  filters?: SelectionFilter[];
+  filters: SelectionFilter[];
 
   // Saturation limits - filter by relationship counts
-  saturationLimits?: SaturationLimit[];
+  saturationLimits: SaturationLimit[];
 
   // Result handling
-  pickStrategy?: SelectionPickStrategy;
-  maxResults?: number;
+  pickStrategy: SelectionPickStrategy;
+  maxResults: number;
 }
 
 export interface RelatedEntitiesSpec {
@@ -79,15 +79,15 @@ export interface RelatedEntitiesSpec {
  */
 export interface PathTraversalStep {
   /** Starting entity reference (only for first step) */
-  from?: string;
+  from: string;
   /** Relationship to traverse */
   via: string;
   /** Direction: 'out'/'in'/'any' or 'src'/'dst'/'both' */
   direction: Direction | 'out' | 'in' | 'any';
   /** Filter targets at this step */
-  targetKind?: string;
-  targetSubtype?: string;
-  targetStatus?: string;
+  targetKind: string;
+  targetSubtype: string;
+  targetStatus: string;
 }
 
 /**
@@ -102,38 +102,38 @@ export interface PathBasedSpec {
  */
 export interface VariableSelectionRule {
   // Select from graph, from related entities, or via path traversal
-  from?: RelatedEntitiesSpec | PathBasedSpec | 'graph';
+  from: RelatedEntitiesSpec | PathBasedSpec | 'graph';
 
   // Entity filtering (kind used when from='graph')
-  kind?: string;
-  kinds?: string[];
-  subtypes?: string[];
-  status?: string;
-  statuses?: string[];
-  notStatus?: string;
+  kind: string;
+  kinds: string[];
+  subtypes: string[];
+  status: string;
+  statuses: string[];
+  notStatus: string;
 
   // Post-filters
-  filters?: SelectionFilter[];
+  filters: SelectionFilter[];
 
   // Prefer filters (try these first, fall back to all matches)
-  preferFilters?: SelectionFilter[];
+  preferFilters: SelectionFilter[];
 
   // Result handling
-  pickStrategy?: SelectionPickStrategy;
-  maxResults?: number;
+  pickStrategy: SelectionPickStrategy;
+  maxResults: number;
 }
 
 /**
  * Base criteria for filtering entities across contexts.
  */
 export interface EntitySelectionCriteria {
-  kind?: string;
-  kinds?: string[];
-  subtypes?: string[];
-  excludeSubtypes?: string[];
-  status?: string;
-  statuses?: string[];
-  notStatus?: string;
-  hasTag?: string;
-  notHasTag?: string;
+  kind: string;
+  kinds: string[];
+  subtypes: string[];
+  excludeSubtypes: string[];
+  status: string;
+  statuses: string[];
+  notStatus: string;
+  hasTag: string;
+  notHasTag: string;
 }

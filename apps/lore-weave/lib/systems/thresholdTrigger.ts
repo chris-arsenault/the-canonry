@@ -50,7 +50,7 @@ export type TriggerCondition = Condition;
 
 export type TriggerAction = Mutation & {
   /** If true, create relationships between all matching entities */
-  betweenMatching?: boolean;
+  betweenMatching: boolean;
 };
 
 export interface ThresholdTriggerConfig {
@@ -59,7 +59,7 @@ export interface ThresholdTriggerConfig {
   /** Human-readable name */
   name: string;
   /** Optional description */
-  description?: string;
+  description: string;
 
   /** Selection rule for entities to evaluate */
   selection: SelectionRule;
@@ -76,31 +76,31 @@ export interface ThresholdTriggerConfig {
    * 'all_matching' - all matching entities share one cluster ID
    * 'by_relationship' - group by shared relationship targets
    */
-  clusterMode?: 'individual' | 'all_matching' | 'by_relationship';
+  clusterMode: 'individual' | 'all_matching' | 'by_relationship';
 
   /** For by_relationship clustering: the relationship to group by */
-  clusterRelationshipKind?: string;
+  clusterRelationshipKind: string;
 
   /** Minimum entities needed to trigger (for cluster modes) */
-  minClusterSize?: number;
+  minClusterSize: number;
 
   /** Throttle: only run on some ticks (0-1, default: 1.0 = every tick) */
-  throttleChance?: number;
+  throttleChance: number;
 
   /** Cooldown tag: if this tag exists on entity, skip it */
-  cooldownTag?: string;
+  cooldownTag: string;
 
   /** Ticks to check for cooldown */
-  cooldownTicks?: number;
+  cooldownTicks: number;
 
   /** Pressure changes when trigger fires */
-  pressureChanges?: Record<string, number>;
+  pressureChanges: Record<string, number>;
 
   /**
    * Template for in-world narration when this system triggers.
    * Supports {$self.name}, {$variable.field}, etc.
    */
-  narrationTemplate?: string;
+  narrationTemplate: string;
 
   /**
    * Variables to resolve before applying actions.
@@ -108,9 +108,9 @@ export interface ThresholdTriggerConfig {
    * Variables can reference $self (the matched entity) or other previously resolved variables.
    * If a required variable cannot be resolved, the entity is skipped.
    */
-  variables?: Record<string, {
+  variables: Record<string, {
     select: VariableSelectionRule;
-    required?: boolean;
+    required: boolean;
   }>;
 }
 
@@ -238,10 +238,10 @@ function clusterEntities(
 
 /** Bundled mutable results accumulated during action application */
 interface ActionResults {
-  modifications: Array<EntityModification & { narrativeGroupId?: string }>;
-  relationships: Array<Relationship & { narrativeGroupId?: string }>;
-  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId?: string }>;
-  relationshipsToArchive: Array<{ kind: string; src: string; dst: string; narrativeGroupId?: string }>;
+  modifications: Array<EntityModification & { narrativeGroupId: string }>;
+  relationships: Array<Relationship & { narrativeGroupId: string }>;
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId: string }>;
+  relationshipsToArchive: Array<{ kind: string; src: string; dst: string; narrativeGroupId: string }>;
   pressureChanges: Record<string, number>;
   narrationsByGroup: Record<string, string>;
   skippedMembers: number;
@@ -249,18 +249,18 @@ interface ActionResults {
 
 function pushWithNarrativeGroup<T extends object>(
   items: T[],
-  dest: Array<T & { narrativeGroupId?: string }>,
-  narrativeGroupId?: string
+  dest: Array<T & { narrativeGroupId: string }>,
+  narrativeGroupId: string
 ): void {
   for (const item of items) {
-    dest.push(narrativeGroupId ? { ...item, narrativeGroupId } : item as T & { narrativeGroupId?: string });
+    dest.push(narrativeGroupId ? { ...item, narrativeGroupId } : item as T & { narrativeGroupId: string });
   }
 }
 
 function mergeRelationshipsCreated(
   created: MutationResult['relationshipsCreated'],
-  dest: Array<Relationship & { narrativeGroupId?: string }>,
-  narrativeGroupId?: string
+  dest: Array<Relationship & { narrativeGroupId: string }>,
+  narrativeGroupId: string
 ): void {
   for (const rel of created) {
     dest.push({
@@ -283,7 +283,7 @@ function mergePressureChanges(from: Record<string, number>, into: Record<string,
 function mergeMutationResult(
   result: MutationResult,
   out: ActionResults,
-  narrativeGroupId?: string
+  narrativeGroupId: string
 ): void {
   if (!result.applied) return;
   pushWithNarrativeGroup(result.entityModifications, out.modifications, narrativeGroupId);
@@ -309,7 +309,7 @@ function applyBetweenMatchingPairs(
       if (graphView.hasRelationship(src.id, dst.id, actionKind)) continue;
       const pairCtx = {
         ...clusterCtx,
-        entities: { ...(clusterCtx.entities ?? {}), member: src, member2: dst },
+        entities: { ...(clusterCtx.entities), member: src, member2: dst },
       };
       const result = prepareMutation(action, pairCtx);
       mergeMutationResult(result, out, narrativeGroupId);
@@ -343,15 +343,13 @@ function applyActionsToMember(
   out: ActionResults,
   narrativeGroupId: string | undefined
 ): boolean {
-  const resolvedVars = config.variables
-    ? resolveVariablesForEntity(config.variables, clusterCtx, member)
-    : {};
+  const resolvedVars = resolveVariablesForEntity(config.variables, clusterCtx, member);
   if (resolvedVars === null) return false;
 
   const memberCtx = {
     ...clusterCtx,
     self: member,
-    entities: { ...(clusterCtx.entities ?? {}), self: member, ...resolvedVars },
+    entities: { ...(clusterCtx.entities), self: member, ...resolvedVars },
   };
 
   if (config.narrationTemplate && narrativeGroupId) {
@@ -380,10 +378,10 @@ function applyActions(
   config: ThresholdTriggerConfig,
   graphView: WorldRuntime
 ): {
-  modifications: Array<EntityModification & { narrativeGroupId?: string }>;
-  relationships: Array<Relationship & { narrativeGroupId?: string }>;
-  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId?: string }>;
-  relationshipsToArchive: Array<{ kind: string; src: string; dst: string; narrativeGroupId?: string }>;
+  modifications: Array<EntityModification & { narrativeGroupId: string }>;
+  relationships: Array<Relationship & { narrativeGroupId: string }>;
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId: string }>;
+  relationshipsToArchive: Array<{ kind: string; src: string; dst: string; narrativeGroupId: string }>;
   pressureChanges: Record<string, number>;
   skippedMembers: number;
   narrationsByGroup: Record<string, string>;
@@ -403,7 +401,7 @@ function applyActions(
   for (const [clusterId, members] of clusters) {
     const clusterCtx = {
       ...baseCtx,
-      values: { ...(baseCtx.values ?? {}), cluster_id: clusterId },
+      values: { ...(baseCtx.values), cluster_id: clusterId },
     };
     const narrativeGroupId = usePerClusterNarrative ? clusterId : undefined;
 
@@ -416,7 +414,7 @@ function applyActions(
     }
   }
 
-  if (clusters.size > 0 && config.pressureChanges) {
+  if (clusters.size > 0) {
     mergePressureChanges(config.pressureChanges, out.pressureChanges);
   }
 
@@ -447,7 +445,7 @@ export function createThresholdTriggerSystem(
 
     apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
       // Throttle check
-      if (config.throttleChance !== undefined && config.throttleChance < 1.0) {
+      if (config.throttleChance < 1.0) {
         if (!rollProbability(config.throttleChance, modifier)) {
           return {
             relationshipsAdded: [],
@@ -464,7 +462,7 @@ export function createThresholdTriggerSystem(
 
       // Apply cooldown filter
       if (config.cooldownTag) {
-        entities = entities.filter(e => !hasTag(e.tags, config.cooldownTag!));
+        entities = entities.filter(e => !hasTag(e.tags, config.cooldownTag));
       }
 
       // Evaluate conditions on each entity

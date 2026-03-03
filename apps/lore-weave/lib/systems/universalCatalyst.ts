@@ -46,22 +46,22 @@ interface ExtendedActionOutcome {
   status: ActionOutcomeStatus;
   success: boolean;
   relationships: Relationship[];
-  relationshipsAdjusted?: Array<{ kind: string; src: string; dst: string; delta: number }>;
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number }>;
   /** Relationships to archive (deferred until worldEngine applies with proper context) */
-  relationshipsToArchive?: Array<{ kind: string; src: string; dst: string }>;
+  relationshipsToArchive: Array<{ kind: string; src: string; dst: string }>;
   description: string;
   /** Domain-controlled narration from narrationTemplate */
-  narration?: string;
-  entitiesCreated?: string[];
-  entitiesModified?: Array<{ id: string; changes: Partial<HardState> }>;
-  pressureChanges?: Record<string, number>;
-  instigatorId?: string;
-  instigatorName?: string;
-  targetId?: string;
-  targetName?: string;
-  targetKind?: string;
-  target2Id?: string;
-  target2Name?: string;
+  narration: string;
+  entitiesCreated: string[];
+  entitiesModified: Array<{ id: string; changes: Partial<HardState> }>;
+  pressureChanges: Record<string, number>;
+  instigatorId: string;
+  instigatorName: string;
+  targetId: string;
+  targetName: string;
+  targetKind: string;
+  target2Id: string;
+  target2Name: string;
   successChance: number;
   prominenceMultiplier: number;
 }
@@ -94,10 +94,10 @@ interface AgentActionContext {
   success: boolean;
 }
 
-type EntityMod = { id: string; changes: Partial<HardState>; actionContext?: AgentActionContext };
-type RelAdded = Relationship & { actionContext?: AgentActionContext };
-type RelAdjusted = { kind: string; src: string; dst: string; delta: number; actionContext?: AgentActionContext };
-type RelArchive = { kind: string; src: string; dst: string; actionContext?: AgentActionContext };
+type EntityMod = { id: string; changes: Partial<HardState>; actionContext: AgentActionContext };
+type RelAdded = Relationship & { actionContext: AgentActionContext };
+type RelAdjusted = { kind: string; src: string; dst: string; delta: number; actionContext: AgentActionContext };
+type RelArchive = { kind: string; src: string; dst: string; actionContext: AgentActionContext };
 type ProminenceChange = { entityId: string; entityName: string; direction: 'up' | 'down' };
 
 interface CatalystAccumulator {
@@ -123,13 +123,11 @@ function collectOutcomeResults(
   acc: CatalystAccumulator
 ): void {
   if (outcome.narration) acc.actionNarrations.set(actionContext.sourceId, outcome.narration);
-  for (const mod of outcome.entitiesModified ?? []) acc.entitiesModified.push({ ...mod, actionContext });
-  for (const adj of outcome.relationshipsAdjusted ?? []) acc.relationshipsAdjusted.push({ ...adj, actionContext });
-  for (const arch of outcome.relationshipsToArchive ?? []) acc.relationshipsToArchive.push({ ...arch, actionContext });
-  if (outcome.pressureChanges) {
-    for (const [k, v] of Object.entries(outcome.pressureChanges)) {
-      acc.pressureChanges[k] = (acc.pressureChanges[k] ?? 0) + v;
-    }
+  for (const mod of outcome.entitiesModified) acc.entitiesModified.push({ ...mod, actionContext });
+  for (const adj of outcome.relationshipsAdjusted) acc.relationshipsAdjusted.push({ ...adj, actionContext });
+  for (const arch of outcome.relationshipsToArchive) acc.relationshipsToArchive.push({ ...arch, actionContext });
+  for (const [k, v] of Object.entries(outcome.pressureChanges)) {
+    acc.pressureChanges[k] = (acc.pressureChanges[k] ?? 0) + v;
   }
   for (const rel of outcome.relationships) {
     rel.catalyzedBy = agent.id;
@@ -187,7 +185,7 @@ function emitAndTrackSuccess(
   graphView: WorldRuntime,
   prominenceChanges: ProminenceChange[]
 ): void {
-  const ticksPerEpoch = graphView.config.ticksPerEpoch ?? 20;
+  const ticksPerEpoch = graphView.config.ticksPerEpoch;
   const payload: ActionApplicationPayload = {
     tick: graphView.tick,
     epoch: Math.floor(graphView.tick / ticksPerEpoch),
@@ -224,7 +222,7 @@ function emitAndTrackSuccess(
         dstName: graphView.getEntity(rel.dst)?.name ?? rel.dst,
         strength: rel.strength
       })),
-      relationshipsStrengthened: (outcome.relationshipsAdjusted ?? []).map(rel => ({
+      relationshipsStrengthened: (outcome.relationshipsAdjusted).map(rel => ({
         kind: rel.kind, srcId: rel.src, dstId: rel.dst,
         srcName: graphView.getEntity(rel.src)?.name ?? rel.src,
         dstName: graphView.getEntity(rel.dst)?.name ?? rel.dst,
@@ -233,10 +231,9 @@ function emitAndTrackSuccess(
       prominenceChanges
     }
   };
-  const emitter = graphView.config.emitter;
-  if (emitter) emitter.actionApplication(payload);
+  graphView.config.emitter.actionApplication(payload);
   const tracker = graphView.config.actionUsageTracker;
-  if (tracker) updateActionTracker(tracker, payload);
+  updateActionTracker(tracker, payload);
 }
 
 function handleSuccessfulOutcome(
@@ -289,7 +286,7 @@ function processAgentTick(
   counters: AgentCounters,
   acc: CatalystAccumulator
 ): void {
-  if (!agent.catalyst?.canAct) return;
+  if (!agent.catalyst.canAct) return;
   const baseAttemptChance = calculateAttemptChance(agent, actionAttemptRate);
   const availableActions = getAvailableActions(agent, actions, graphView);
   const relevantPressures = getRelevantPressuresFromActions(graphView, availableActions);
@@ -309,7 +306,7 @@ function processAgentTick(
   }
 }
 
-function resolveActionStatus(handlerResult: { success: boolean; failureReason?: string }): ActionOutcomeStatus {
+function resolveActionStatus(handlerResult: { success: boolean; failureReason: string }): ActionOutcomeStatus {
   if (handlerResult.success) return 'success';
   switch (handlerResult.failureReason) {
     case 'no_target': return 'failed_no_target';
@@ -319,9 +316,9 @@ function resolveActionStatus(handlerResult: { success: boolean; failureReason?: 
 }
 
 function resolveTargetData(
-  handlerResult: { targetId?: string; target2Id?: string },
+  handlerResult: { targetId: string; target2Id: string },
   graphView: WorldRuntime
-): { targetId?: string; targetName?: string; targetKind?: string; target2Id?: string; target2Name?: string } {
+): { targetId: string; targetName: string; targetKind: string; target2Id: string; target2Name: string } {
   const { targetId, target2Id } = handlerResult;
   const targetEntity = targetId ? graphView.getEntity(targetId) : undefined;
   const target2Entity = target2Id ? graphView.getEntity(target2Id) : undefined;
@@ -333,10 +330,10 @@ function resolveTargetData(
 
 export function createUniversalCatalystSystem(config: UniversalCatalystConfig): SimulationSystem {
   // Extract config with defaults
-  const actionAttemptRate = config.actionAttemptRate ?? 0.3;
-  const pressureMultiplier = config.pressureMultiplier ?? 1.5;
-  const prominenceUpChance = config.prominenceUpChanceOnSuccess ?? 0.1;
-  const prominenceDownChance = config.prominenceDownChanceOnFailure ?? 0.05;
+  const actionAttemptRate = config.actionAttemptRate;
+  const pressureMultiplier = config.pressureMultiplier;
+  const prominenceUpChance = config.prominenceUpChanceOnSuccess;
+  const prominenceDownChance = config.prominenceDownChanceOnFailure;
 
   return {
     id: config.id || 'universal_catalyst',
@@ -344,7 +341,7 @@ export function createUniversalCatalystSystem(config: UniversalCatalystConfig): 
 
     apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
       // Get executable actions from declarative config
-      const actions: ExecutableAction[] = graphView.config.executableActions || [];
+      const actions: ExecutableAction[] = graphView.config.executableActions;
 
       if (actions.length === 0) {
         return {
@@ -356,7 +353,7 @@ export function createUniversalCatalystSystem(config: UniversalCatalystConfig): 
       }
 
       // Find all agents (entities that can act)
-      const allAgents = graphView.getEntities().filter(e => e.catalyst?.canAct === true);
+      const allAgents = graphView.getEntities().filter(e => e.catalyst.canAct === true);
 
       const acc: CatalystAccumulator = {
         relationshipsAdded: [],
@@ -418,7 +415,6 @@ function getRelevantPressuresFromActions(graphView: WorldRuntime, actions: Execu
   const pressureContributions: Map<string, number[]> = new Map();
 
   for (const action of actions) {
-    if (!action.pressureModifiers) continue;
     for (const mod of action.pressureModifiers) {
       if (!pressureContributions.has(mod.pressure)) {
         pressureContributions.set(mod.pressure, []);
@@ -461,7 +457,7 @@ function selectActionWithContext(
     prominenceBonus
   };
 
-  if (!agent.catalyst || availableActions.length === 0) {
+  if (availableActions.length === 0) {
     return { action: null, context: emptyContext };
   }
 
@@ -499,12 +495,12 @@ function selectActionWithContext(
   // Fallback to first action
   const fallback = weightedActions[0];
   return {
-    action: fallback?.action || null,
+    action: fallback.action,
     context: {
       availableActionCount: availableActions.length,
-      selectedWeight: fallback?.weight || 0,
+      selectedWeight: fallback.weight,
       totalWeight,
-      pressureInfluences: fallback?.pressureInfluences || [],
+      pressureInfluences: fallback.pressureInfluences,
       attemptChance,
       prominenceBonus
     }
@@ -534,7 +530,7 @@ function calculateActionWeightWithBreakdown(action: ExecutableAction, graphView:
   const baseWeight = action.baseWeight || 1.0;
   const pressureInfluences: PressureInfluence[] = [];
 
-  if (!action.pressureModifiers || action.pressureModifiers.length === 0) {
+  if (action.pressureModifiers.length === 0) {
     return { weight: baseWeight, pressureInfluences };
   }
 
@@ -570,10 +566,6 @@ function executeActionWithContext(
   const baseChance = action.baseSuccessChance || 0.5;
   const prominenceMultiplier = getProminenceMultiplierValue(agent.prominence, 'success_chance');
   const successChance = Math.min(0.95, baseChance * prominenceMultiplier);
-
-  if (!action.handler) {
-    return { status: 'failed_roll', success: false, relationships: [], description: 'Action has no handler', entitiesCreated: [], entitiesModified: [], successChance, prominenceMultiplier };
-  }
 
   if (Math.random() >= successChance) {
     return { status: 'failed_roll', success: false, relationships: [], description: `failed to ${action.type}`, entitiesCreated: [], entitiesModified: [], successChance, prominenceMultiplier };

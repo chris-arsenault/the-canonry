@@ -24,101 +24,82 @@ interface PlacementGridProps {
   entity: CreatedEntity;
 }
 
+function PlacementRow({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
+  return (
+    <div className="lw-trace-view-entity-placement-row">
+      <span className="lw-trace-view-entity-placement-label">{label}</span>
+      <span className="lw-trace-view-entity-placement-value">{children}</span>
+    </div>
+  );
+}
+
+function AnchorRow({ placement, fallback }: Readonly<{ placement: CreatedEntity['placement']; fallback: string }>) {
+  return (
+    <PlacementRow label="Anchor">
+      <span className={`lw-trace-view-anchor-badge ${placement.anchorType || "unknown"}`}>
+        {placement.anchorType || fallback}
+      </span>
+    </PlacementRow>
+  );
+}
+
+function ResolvedViaRow({ placement, fallback }: Readonly<{ placement: CreatedEntity['placement']; fallback: string }>) {
+  const via = placement.resolvedVia || "unknown";
+  return (
+    <PlacementRow label="Resolved Via">
+      <span className={`lw-trace-view-resolved-badge ${via.replace(/_/g, "-")}`}>{via || fallback}</span>
+      {via === "random" && <span className="lw-trace-view-fallback-badge">fallback</span>}
+    </PlacementRow>
+  );
+}
+
 function PlacementGrid({ entity }: Readonly<PlacementGridProps>) {
-  const placement = entity.placement;
+  const p = entity.placement;
 
   return (
     <div className="lw-trace-view-entity-placement">
       <div className="lw-trace-view-entity-section-label">Placement</div>
       <div className="lw-trace-view-entity-placement-grid">
-        <div className="lw-trace-view-entity-placement-row">
-          <span className="lw-trace-view-entity-placement-label">Anchor</span>
-          <span className="lw-trace-view-entity-placement-value">
-            <span className={`lw-trace-view-anchor-badge ${placement?.anchorType ?? "unknown"}`}>
-              {placement?.anchorType ?? entity.placementStrategy}
-            </span>
+        <AnchorRow placement={p} fallback={entity.placementStrategy} />
+        <ResolvedViaRow placement={p} fallback={entity.placementStrategy} />
+
+        {p.anchorEntity && p.anchorEntity.name && (
+          <PlacementRow label="Near Entity">
+            <span className="lw-trace-view-anchor-entity">{p.anchorEntity.name}</span>
+            <span className="lw-trace-view-anchor-entity-kind">({p.anchorEntity.kind})</span>
+          </PlacementRow>
+        )}
+
+        {p.anchorCulture && (
+          <PlacementRow label="Culture">{p.anchorCulture}</PlacementRow>
+        )}
+
+        {p.seedRegionsAvailable.length > 0 && (
+          <PlacementRow label="Seed Regions">{p.seedRegionsAvailable.length} available</PlacementRow>
+        )}
+
+        {p.emergentRegionCreated && (
+          <PlacementRow label="Emergent Region">
+            <span className="lw-trace-view-emergent-badge">+ {p.emergentRegionCreated.label}</span>
+          </PlacementRow>
+        )}
+
+        <PlacementRow label="Coordinates">
+          <span className="mono">
+            ({entity.coordinates.x.toFixed(1)}, {entity.coordinates.y.toFixed(1)}, {entity.coordinates.z.toFixed(1)})
           </span>
-        </div>
-
-        <div className="lw-trace-view-entity-placement-row">
-          <span className="lw-trace-view-entity-placement-label">Resolved Via</span>
-          <span className="lw-trace-view-entity-placement-value">
-            <span
-              className={`lw-trace-view-resolved-badge ${(placement?.resolvedVia ?? "unknown").replace(/_/g, "-")}`}
-            >
-              {placement?.resolvedVia ?? entity.placementStrategy}
-            </span>
-            {placement?.resolvedVia === "random" && (
-              <span className="lw-trace-view-fallback-badge">fallback</span>
-            )}
-          </span>
-        </div>
-
-        {placement?.anchorEntity && (
-          <div className="lw-trace-view-entity-placement-row">
-            <span className="lw-trace-view-entity-placement-label">Near Entity</span>
-            <span className="lw-trace-view-entity-placement-value">
-              <span className="lw-trace-view-anchor-entity">
-                {placement.anchorEntity.name}
-              </span>
-              <span className="lw-trace-view-anchor-entity-kind">
-                ({placement.anchorEntity.kind})
-              </span>
-            </span>
-          </div>
-        )}
-
-        {placement?.anchorCulture && (
-          <div className="lw-trace-view-entity-placement-row">
-            <span className="lw-trace-view-entity-placement-label">Culture</span>
-            <span className="lw-trace-view-entity-placement-value">
-              {placement.anchorCulture}
-            </span>
-          </div>
-        )}
-
-        {(placement?.seedRegionsAvailable?.length ?? 0) > 0 && (
-          <div className="lw-trace-view-entity-placement-row">
-            <span className="lw-trace-view-entity-placement-label">Seed Regions</span>
-            <span className="lw-trace-view-entity-placement-value">
-              {placement.seedRegionsAvailable.length} available
-            </span>
-          </div>
-        )}
-
-        {placement?.emergentRegionCreated && (
-          <div className="lw-trace-view-entity-placement-row">
-            <span className="lw-trace-view-entity-placement-label">Emergent Region</span>
-            <span className="lw-trace-view-entity-placement-value">
-              <span className="lw-trace-view-emergent-badge">
-                + {placement.emergentRegionCreated.label}
-              </span>
-            </span>
-          </div>
-        )}
-
-        {entity.coordinates && (
-          <div className="lw-trace-view-entity-placement-row">
-            <span className="lw-trace-view-entity-placement-label">Coordinates</span>
-            <span className="lw-trace-view-entity-placement-value mono">
-              ({entity.coordinates.x.toFixed(1)}, {entity.coordinates.y.toFixed(1)},{" "}
-              {entity.coordinates.z?.toFixed(1) ?? "0.0"})
-            </span>
-          </div>
-        )}
+        </PlacementRow>
 
         {entity.regionId && (
-          <div className="lw-trace-view-entity-placement-row">
-            <span className="lw-trace-view-entity-placement-label">Region</span>
-            <span className="lw-trace-view-entity-placement-value">
-              <span className="lw-trace-view-region-badge">{entity.regionId}</span>
-            </span>
-          </div>
+          <PlacementRow label="Region">
+            <span className="lw-trace-view-region-badge">{entity.regionId}</span>
+          </PlacementRow>
         )}
       </div>
     </div>
   );
 }
+
 
 interface TagSectionProps {
   tags: Record<string, string | boolean>;

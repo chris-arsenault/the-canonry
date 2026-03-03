@@ -3,7 +3,7 @@
  * Calls useHistorianEdition, useHistorianReview, and useBulkHistorian internally.
  */
 
-import type { MutableRefObject } from "react";
+import type { RefObject } from "react";
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useHistorianEdition } from "./useHistorianEdition";
 import type { UseHistorianEditionReturn } from "./useHistorianEdition";
@@ -142,7 +142,7 @@ async function resolveFactCoverageGuidance(
   chronicle: ChronicleRecord,
   worldContext: HistorianWorldContext,
   simulationRunId: string,
-  corpusStrengthCacheRef: MutableRefObject<CorpusStrengthCache>
+  corpusStrengthCacheRef: RefObject<CorpusStrengthCache>
 ): Promise<unknown> {
   if (!chronicle.factCoverageReport?.entries?.length) return undefined;
 
@@ -288,7 +288,7 @@ async function runChronicleHistorianReview({
   tone?: HistorianTone;
   worldContext: HistorianWorldContext;
   historianConfig: HistorianConfig;
-  corpusStrengthCacheRef: MutableRefObject<CorpusStrengthCache>;
+  corpusStrengthCacheRef: RefObject<CorpusStrengthCache>;
   startHistorianReview: (config: HistorianReviewConfig) => Promise<void>;
 }): Promise<void> {
   if (!validateChronicleForReview(projectId, simulationRunId, chronicleId, historianConfig)) return;

@@ -145,6 +145,17 @@ function accumulateEntity(
   entities.set(ref.id, ent);
 }
 
+function accumulateEventEntities(
+  entities: Map<string, FreqEntityInfo>,
+  subject: { id?: string; name?: string; kind?: string } | undefined,
+  participantEffects: Array<{ entity?: { id?: string; name?: string; kind?: string } }>,
+): void {
+  accumulateEntity(entities, subject);
+  for (const p of participantEffects) {
+    if (p.entity?.id !== subject?.id) accumulateEntity(entities, p.entity);
+  }
+}
+
 function buildFreqRows(
   filteredEvents: PersistedNarrativeEvent[],
   eventCoverage: Map<string, number>,
@@ -189,10 +200,7 @@ function buildFreqRows(
     if (ev.era) existing.eras.add(ev.era as string);
 
     const subject = ev.subject as { id?: string; name?: string; kind?: string } | undefined;
-    accumulateEntity(existing.entities, subject);
-    for (const p of participantEffects) {
-      if (p.entity?.id !== subject?.id) accumulateEntity(existing.entities, p.entity);
-    }
+    accumulateEventEntities(existing.entities, subject, participantEffects);
     groups.set(key, existing);
   }
 

@@ -164,7 +164,7 @@ export function compareDomains(
   domain1: NamingDomain,
   domain2: NamingDomain,
   sampleSize: number = 200,
-  seed?: string
+  seed: string
 ): {
   centroidDistance: number;
   classifierAccuracy: number;
@@ -182,15 +182,15 @@ export function compareDomains(
       0
     );
   const domain1MisclassifiedAs2 =
-    (report.confusionMatrix[domain1.id]?.[domain2.id] ?? 0) / domain1Total;
+    (report.confusionMatrix[domain1.id][domain2.id]) / domain1Total;
 
   const domain2Total =
-    Object.values(report.confusionMatrix[domain2.id] ?? {}).reduce(
+    Object.values(report.confusionMatrix[domain2.id]).reduce(
       (sum, count) => sum + count,
       0
     );
   const domain2MisclassifiedAs1 =
-    (report.confusionMatrix[domain2.id]?.[domain1.id] ?? 0) / domain2Total;
+    (report.confusionMatrix[domain2.id][domain1.id]) / domain2Total;
 
   return {
     centroidDistance,

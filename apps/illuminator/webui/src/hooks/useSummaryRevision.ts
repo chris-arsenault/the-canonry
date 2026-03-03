@@ -168,7 +168,9 @@ export function useSummaryRevision(
     []
   );
 
-  // Poll IndexedDB for run state changes
+  // Poll IndexedDB for run state changes — uses a ref for self-reference
+  // to avoid the callback referencing itself before its declaration completes.
+  const startPollingRef = useRef<(runId: string) => void>(() => {});
   const startPolling = useCallback(
     (runId: string) => {
       stopPolling();
@@ -198,7 +200,7 @@ export function useSummaryRevision(
                 const contexts = getEntityContexts(nextBatch.entityIds);
                 await updateRevisionRun(runId, { currentBatchIndex: nextIndex });
                 dispatchBatch(runId, contexts);
-                startPolling(runId);
+                startPollingRef.current(runId);
               }
             }
           }
@@ -207,6 +209,9 @@ export function useSummaryRevision(
     },
     [stopPolling, dispatchBatch, getEntityContexts]
   );
+  useEffect(() => {
+    startPollingRef.current = startPolling;
+  }, [startPolling]);
 
   // Start a new revision session
   const startRevision = useCallback(

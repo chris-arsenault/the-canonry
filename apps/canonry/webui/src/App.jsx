@@ -33,7 +33,6 @@ import { getCompletedEraNarrativesForSimulation } from "./storage/eraNarrativeSt
 import { importBundleImageReferences, getImageCountForProject } from "./storage/imageStorage";
 import { importEntities, getEntityCountForRun } from "./storage/entityStorage";
 import { importNarrativeEvents, getNarrativeEventCountForRun } from "./storage/eventStorage";
-import { colors, typography, spacing } from "./theme";
 import { isTokenValid } from "./aws/awsConfigStorage";
 import { useCanonryAwsStore } from "./stores/useCanonryAwsStore";
 import { extractCognitoTokensFromUrl, clearCognitoHash } from "./aws/cognitoAuth";
@@ -385,66 +384,7 @@ async function buildBundleImageAssets({
     imageFiles
   };
 }
-const styles = {
-  app: {
-    display: "flex",
-    flexDirection: "column",
-    height: "100vh",
-    backgroundColor: colors.bgPrimary,
-    color: colors.textPrimary,
-    fontFamily: typography.fontFamily
-  },
-  content: {
-    flex: 1,
-    overflow: "hidden"
-  },
-  loading: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    height: "100%",
-    color: colors.textMuted
-  },
-  footer: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: spacing.sm,
-    padding: `${spacing.sm} ${spacing.lg}`,
-    backgroundColor: colors.bgPrimary,
-    borderTop: `1px solid ${colors.border}`,
-    fontSize: typography.sizeSm,
-    color: colors.textMuted,
-    flexShrink: 0
-  },
-  awsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: spacing.md
-  },
-  awsField: {
-    display: "flex",
-    flexDirection: "column",
-    gap: spacing.xs
-  },
-  awsLabel: {
-    fontSize: typography.sizeXs,
-    color: colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: "0.06em"
-  },
-  awsInput: {
-    width: "100%",
-    padding: `${spacing.sm} ${spacing.md}`,
-    borderRadius: spacing.sm,
-    border: `1px solid ${colors.border}`,
-    backgroundColor: colors.bgSecondary,
-    color: colors.textPrimary,
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizeSm
-  }
-};
-const VALID_TABS = ["enumerist", "names", "cosmography", "coherence", "simulation", "illuminator", "archivist", "chronicler"];
+// Tab IDs handled by router — no need for validation constant
 const SLOT_EXPORT_FORMAT = "canonry-slot-export";
 const SLOT_EXPORT_VERSION = 1;
 const VIEWER_BUNDLE_FORMAT = "canonry-viewer-bundle";
@@ -1769,7 +1709,7 @@ export default function App() {
       await saveCultureIdentities(currentProject.id, parsed.cultureIdentities);
     }
     await handleLoadSlot(slotIndex);
-  }, [currentProject?.id, parseSlotImportPayload, handleLoadSlot, getSlot, saveSlot, saveWorldContext, saveEntityGuidance, saveCultureIdentities, importStaticPages, importChronicles, importBundleImageReferences, getStaticPagesForProject, getChronicleCountForProject, getImageCountForProject, importEntities, getEntityCountForRun, importNarrativeEvents, getNarrativeEventCountForRun]);
+  }, [currentProject?.id, parseSlotImportPayload, handleLoadSlot, getSlot, saveSlot, saveWorldContext, saveEntityGuidance, saveCultureIdentities, importStaticPages, importChronicles, importBundleImageReferences, importEntities, importNarrativeEvents]);
   const handleExportSlotDownload = useCallback(slotIndex => {
     const slot = slots[slotIndex];
     if (!slot) {
@@ -2000,7 +1940,7 @@ export default function App() {
       }
     });
     return data;
-  }, [currentProject?.cultures]);
+  }, [currentProject]);
 
   // Derived data for remotes (read-only schema)
   const schema = useMemo(() => {
@@ -2026,7 +1966,7 @@ export default function App() {
       uiConfig: undefined
     };
     return mergeFrameworkSchemaSlice(baseSchema);
-  }, [currentProject?.id, currentProject?.name, currentProject?.version, currentProject?.entityKinds, currentProject?.relationshipKinds, currentProject?.cultures, currentProject?.tagRegistry, currentProject?.axisDefinitions, currentProject?.uiConfig]);
+  }, [currentProject]);
 
   // Compute tag usage across all tools
   const tagUsage = useMemo(() => {
@@ -2040,7 +1980,7 @@ export default function App() {
       entityKinds: currentProject.entityKinds,
       axisDefinitions: currentProject.axisDefinitions
     });
-  }, [currentProject?.cultures, currentProject?.seedEntities, currentProject?.generators, currentProject?.systems, currentProject?.pressures, currentProject?.entityKinds, currentProject?.axisDefinitions]);
+  }, [currentProject]);
 
   // Compute schema element usage across Coherence Engine
   const schemaUsage = useMemo(() => {
@@ -2052,7 +1992,7 @@ export default function App() {
       pressures: currentProject.pressures || [],
       seedEntities: currentProject.seedEntities || []
     });
-  }, [currentProject?.generators, currentProject?.systems, currentProject?.actions, currentProject?.pressures, currentProject?.seedEntities]);
+  }, [currentProject]);
 
   // Compute structure validation for ValidationPopover
   const validationResult = useMemo(() => {
@@ -2077,7 +2017,7 @@ export default function App() {
         relationshipKinds
       }
     });
-  }, [currentProject?.generators, currentProject?.pressures, currentProject?.systems, currentProject?.eras, currentProject?.actions, currentProject?.seedEntities, schema]);
+  }, [currentProject, schema]);
 
   // Navigate to validation tab
   const handleNavigateToValidation = useCallback(() => {

@@ -22,7 +22,7 @@ function buildAdjacency(
 
   for (const link of rels) {
     if (!relationshipKinds.includes(link.kind)) continue;
-    if ((link.strength ?? 0) < minStrength) continue;
+    if (link.strength < minStrength) continue;
 
     if (!adjacency.has(link.src)) adjacency.set(link.src, new Set());
     if (!adjacency.has(link.dst)) adjacency.set(link.dst, new Set());
@@ -65,21 +65,15 @@ function findComponent(
 export function evaluateComponentSize(
   metric: ComponentSizeMetric,
   ctx: MetricContext,
-  entity?: HardState
+  entity: HardState
 ): MetricResult {
-  if (!entity) {
-    return { value: 0, diagnostic: 'no entity for component size', details: {} };
-  }
-
-  const minStrength = metric.minStrength ?? 0;
+  const minStrength = metric.minStrength;
   const adjacency = buildAdjacency(ctx, metric.relationshipKinds, minStrength);
   const visited = findComponent(entity.id, adjacency);
   const componentSize = visited.size;
 
-  let value = componentSize * (metric.coefficient ?? 1);
-  if (metric.cap !== undefined) {
-    value = Math.min(value, metric.cap);
-  }
+  let value = componentSize * (metric.coefficient);
+  value = Math.min(value, metric.cap);
 
   return {
     value,

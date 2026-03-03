@@ -81,7 +81,7 @@ export interface NameGenerationService {
     prominence: string,
     tags: string[],
     culture: string,
-    context?: Record<string, string>
+    context: Record<string, string>
   ): Promise<string>;
   printStats(): void;
 }
@@ -105,7 +105,7 @@ export type TransitionCondition = Condition;
  * These are expressed as mutation rules (currently pressure modifications).
  */
 export interface EraTransitionEffects {
-  mutations?: ModifyPressureMutation[];
+  mutations: ModifyPressureMutation[];
 }
 
 // =============================================================================
@@ -130,25 +130,24 @@ export interface Era {
   id: string;
   name: string;
   summary: string;
-  templateWeights: Record<string, number>;  // 0 = disabled, 2 = double chance
-  systemModifiers: Record<string, number>;  // multipliers for system effects
-  pressureModifiers?: Record<string, number>;
-  specialRules?: (runtime: import('../runtime/worldRuntime').WorldRuntime) => void;
+  templateWeights: Record<string, number>;
+  systemModifiers: Record<string, number>;
+  pressureModifiers: Record<string, number>;
 
   // Criteria for this era to END (all must be met)
-  exitConditions?: TransitionCondition[];
+  exitConditions: TransitionCondition[];
 
   // Criteria for this era to START (all must be met, checked when seeking next era)
-  entryConditions?: TransitionCondition[];
+  entryConditions: TransitionCondition[];
 
-  // Optional explicit next era ID (if not set, searches for first candidate)
-  nextEra?: string;
+  // Explicit next era ID (empty string = search for first candidate)
+  nextEra: string;
 
   // Effects applied when transitioning OUT of this era
-  exitEffects?: EraTransitionEffects;
+  exitEffects: EraTransitionEffects;
 
   // Effects applied when transitioning INTO this era
-  entryEffects?: EraTransitionEffects;
+  entryEffects: EraTransitionEffects;
 }
 
 export interface EpochEraTransitionSummary {
@@ -168,23 +167,23 @@ export interface EpochEraSummary {
  * Framework enforces: coordinates → tags → name ordering
  */
 export interface CreateEntitySettings {
-  id: string; // Required - derived from entity name
+  id: string;
   kind: string;
   subtype: string;
-  coordinates: import('../coordinates/types').Point;  // REQUIRED - simple 2D+z coordinates
-  tags?: EntityTags;  // Optional - defaults to {}
-  eraId?: string;  // Optional - era identifier for the entity
-  name?: string;  // Optional - runtime may auto-generate if not provided
-  description?: string;
-  narrativeHint?: string;
+  coordinates: import('../coordinates/types').Point;
+  tags: EntityTags;
+  eraId: string;
+  name: string;
+  description: string;
+  narrativeHint: string;
   status: string;
-  prominence: number;  // 0.0-5.0 numeric scale
+  prominence: number;
   culture: string;
-  temporal?: { startTick: number; endTick: number | null };
-  source?: string;  // Optional - for debugging (e.g., template ID, system ID)
-  placementStrategy?: string;  // Optional - for debugging (e.g., 'near_entity', 'in_culture_region')
-  regionId?: string | null;  // Primary region containing this entity
-  allRegionIds?: string[];   // All regions containing this entity (for overlapping regions)
+  temporal: { startTick: number; end: import('@canonry/world-schema').TickStatus };
+  source: string;
+  placementStrategy: string;
+  regionId: string;
+  allRegionIds: string[];
 }
 
 export interface GrowthPhaseCompletion {
@@ -281,7 +280,7 @@ export interface Graph {
   narrativeHistory: NarrativeEvent[];
   relationshipCooldowns: Map<string, Map<string, number>>;
   // LLM-related fields moved to @illuminator
-  // loreIndex?: LoreIndex;
+  // loreIndex: LoreIndex;
   // loreRecords: LoreRecord[];
   rateLimitState: import('../core/worldTypes').RateLimitState;
   growthPhaseHistory: GrowthPhaseCompletion[];
@@ -289,50 +288,63 @@ export interface Graph {
     relationshipsPerTick: number[];
     averageGrowthRate: number;
   };
-  subtypeMetrics?: Map<string, number>;
-  protectedRelationshipViolations?: Array<{
+  subtypeMetrics: Map<string, number>;
+  protectedRelationshipViolations: Array<{
     tick: number;
     violations: Array<{ kind: string; strength: number }>;
   }>;
 
   /**
    * Mutation tracker for lineage tracking.
-   * Part of the unified lineage system - see LINEAGE.md.
-   * When set, entity and relationship creation will stamp createdBy from current context.
    * Set by WorldEngine after graph creation.
    */
-  mutationTracker?: MutationTracker;
+  mutationTracker: MutationTracker;
 }
 
 // Criteria for finding entities
 export interface EntityCriteria {
-  kind?: string;
-  subtype?: string;
-  status?: string;
-  prominence?: ProminenceLabel;  // Filter by prominence label (matches that level)
-  culture?: string;
-  tag?: string;  // Check if entity has this tag key
-  exclude?: string[];  // Entity IDs to exclude
-  /** Include historical entities (default: false) */
-  includeHistorical?: boolean;
+  kind: string;
+  subtype: string;
+  status: string;
+  prominence: ProminenceLabel | 'any';
+  culture: string;
+  tag: string;
+  exclude: string[];
+  includeHistorical: boolean;
 }
 
-// Criteria for finding relationships
 export interface RelationshipCriteria {
-  kind?: string;
-  src?: string;
-  dst?: string;
-  category?: string;
-  minStrength?: number;
-  /** Include historical relationships (default: false) */
-  includeHistorical?: boolean;
+  kind: string;
+  src: string;
+  dst: string;
+  category: string;
+  minStrength: number;
+  includeHistorical: boolean;
+}
+
+const ENTITY_CRITERIA_DEFAULTS: EntityCriteria = {
+  kind: 'any', subtype: '', status: '', prominence: 'any', culture: '', tag: '', exclude: [], includeHistorical: false,
+};
+
+const RELATIONSHIP_CRITERIA_DEFAULTS: RelationshipCriteria = {
+  kind: '', src: '', dst: '', category: '', minStrength: 0, includeHistorical: false,
+};
+
+/** Create entity criteria with sensible defaults — only specify what you want to filter by */
+export function entityCriteria(overrides: Partial<EntityCriteria>): EntityCriteria {
+  return { ...ENTITY_CRITERIA_DEFAULTS, ...overrides };
+}
+
+/** Create relationship criteria with sensible defaults */
+export function relationshipCriteria(overrides: Partial<RelationshipCriteria>): RelationshipCriteria {
+  return { ...RELATIONSHIP_CRITERIA_DEFAULTS, ...overrides };
 }
 
 // Growth template interface
 export interface GrowthTemplate {
   id: string;
   name: string;
-  requiredEra?: string[];  // optional era restrictions
+  requiredEra: string[];  // optional era restrictions
 
   // Check if template can be applied
   // Uses WorldRuntime for safe, restricted graph access
@@ -345,39 +357,39 @@ export interface GrowthTemplate {
   // Execute the template on a target
   // Uses WorldRuntime which includes targetSelector for entity selection
   // Returns Promise to support async operations (e.g., name generation)
-  expand: (graphView: import('../runtime/worldRuntime').WorldRuntime, target?: HardState) => Promise<TemplateResult> | TemplateResult;
+  expand: (graphView: import('../runtime/worldRuntime').WorldRuntime, target: HardState) => Promise<TemplateResult> | TemplateResult;
 }
 
 /** Placement debug info for a single entity */
 export interface PlacementDebug {
   anchorType: string;
-  anchorEntity?: { id: string; name: string; kind: string };
-  anchorCulture?: string;
+  anchorEntity: { id: string; name: string; kind: string };
+  anchorCulture: string;
   resolvedVia: string;
-  seedRegionsAvailable?: string[];
-  emergentRegionCreated?: { id: string; label: string };
-  regionId?: string | null;
-  allRegionIds?: string[];
+  seedRegionsAvailable: string[];
+  emergentRegionCreated: { id: string; label: string };
+  regionId: string | null;
+  allRegionIds: string[];
 }
 
 export interface TemplateResult {
   entities: Partial<HardState>[];
   relationships: Relationship[];  // Can use placeholder IDs like 'will-be-assigned-0'
   description: string;
-  placementStrategies?: string[];  // Optional - for debugging, parallel to entities array
-  derivedTagsList?: Record<string, string | boolean>[];  // Tags derived from placement per entity
-  placementDebugList?: PlacementDebug[];  // Detailed placement debug info per entity
+  placementStrategies: string[];  // Optional - for debugging, parallel to entities array
+  derivedTagsList: Record<string, string | boolean>[];  // Tags derived from placement per entity
+  placementDebugList: PlacementDebug[];  // Detailed placement debug info per entity
   /**
    * Resolved context variables from template execution.
    * These are passed to growthSystem for narration generation AFTER entities have names.
    * Keys include $target, $enemy, etc. - the variables resolved during template expansion.
    */
-  resolvedVariables?: Record<string, HardState | HardState[] | undefined>;
+  resolvedVariables: Record<string, HardState | HardState[] | undefined>;
   /**
    * Maps entityRef (like $spell) to index in entities array.
    * Needed because createChance can skip entities, misaligning indices.
    */
-  entityRefToIndex?: Record<string, number>;
+  entityRefToIndex: Record<string, number>;
 }
 
 // Simulation system interface
@@ -390,13 +402,13 @@ export interface SimulationSystem<TState = unknown> {
    * Examples: diffusion grids, accumulated statistics, cached computations.
    * This state persists for the lifetime of the simulation run.
    */
-  state?: TState;
+  state: TState;
 
   /**
    * Optional initialization function called once before the first tick.
    * Use this to set up initial state (e.g., allocate grid arrays).
    */
-  initialize?: () => void;
+  initialize: () => void;
 
   // Run one tick of this system
   // graphView provides access to graph queries AND coordinate context
@@ -413,60 +425,54 @@ export interface ActionContext {
   source: import('@canonry/world-schema').ExecutionSource;
   sourceId: string;
   /** For actions: whether the action succeeded (false = failed attempt) */
-  success?: boolean;
+  success: boolean;
 }
 
 export interface SystemResult {
   relationshipsAdded: Array<Relationship & {
     /** Action context for narrative attribution (e.g., action:raid instead of system:universal_catalyst) */
-    actionContext?: ActionContext;
+    actionContext: ActionContext;
     /** Narrative group ID for per-target event splitting (e.g., entity ID when clusterMode=individual) */
-    narrativeGroupId?: string;
+    narrativeGroupId: string;
   }>;
-  relationshipsAdjusted?: Array<{
+  relationshipsAdjusted: Array<{
     kind: string;
     src: string;
     dst: string;
     delta: number;
     /** Action context for narrative attribution */
-    actionContext?: ActionContext;
+    actionContext: ActionContext;
     /** Narrative group ID for per-target event splitting */
-    narrativeGroupId?: string;
+    narrativeGroupId: string;
   }>;
   /** Relationships to archive (deferred until worldEngine applies with proper context) */
-  relationshipsToArchive?: Array<{
+  relationshipsToArchive: Array<{
     kind: string;
     src: string;
     dst: string;
     /** Action context for narrative attribution */
-    actionContext?: ActionContext;
+    actionContext: ActionContext;
     /** Narrative group ID for per-target event splitting */
-    narrativeGroupId?: string;
+    narrativeGroupId: string;
   }>;
   entitiesModified: Array<{
     id: string;
     changes: Partial<HardState>;
     /** Action context for narrative attribution */
-    actionContext?: ActionContext;
+    actionContext: ActionContext;
     /** Narrative group ID for per-target event splitting (e.g., entity ID when clusterMode=individual) */
-    narrativeGroupId?: string;
+    narrativeGroupId: string;
   }>;
   pressureChanges: Record<string, number>;
   description: string;
   /** Optional structured details for system-specific information (e.g., era transitions) */
-  details?: Record<string, unknown>;
-  /**
-   * Domain-controlled narration texts generated from rule narrationTemplates.
-   * Each entry represents a narration for a specific rule application.
-   * @deprecated Use narrationsByGroup for proper per-entity attribution
-   */
-  narrations?: string[];
+  details: Record<string, unknown>;
   /**
    * Domain-controlled narrations keyed by narrative group ID.
    * Key is the narrativeGroupId (usually entity ID), value is the narration text.
    * This ensures proper attribution when a system affects multiple entities.
    */
-  narrationsByGroup?: Record<string, string>;
+  narrationsByGroup: Record<string, string>;
 }
 
 // Component Purpose Taxonomy
@@ -497,12 +503,12 @@ export enum ComponentPurpose {
  */
 export interface AncestorFilter {
   kind: string;
-  subtype?: string;
-  status?: string;
+  subtype: string;
+  status: string;
   /** If true, prefer ancestors with same culture as the new entity */
-  sameCulture?: boolean;
+  sameCulture: boolean;
   /** If true, exclude the new entity itself from results */
-  excludeSelf?: boolean;
+  excludeSelf: boolean;
 }
 
 // Pressure Contract
@@ -513,30 +519,30 @@ export interface PressureContract {
   // What creates this pressure
   sources: Array<{
     component: string;  // e.g., 'template.faction_splinter'
-    delta?: number;     // Fixed amount
-    formula?: string;   // Dynamic calculation
+    delta: number;     // Fixed amount
+    formula: string;   // Dynamic calculation
   }>;
 
   // What reduces this pressure
   sinks: Array<{
     component: string;  // e.g., 'system.peace_treaty'
-    delta?: number;     // Fixed amount
-    formula?: string;   // Dynamic calculation (e.g., 'value * 0.05')
+    delta: number;     // Fixed amount
+    formula: string;   // Dynamic calculation (e.g., 'value * 0.05')
   }>;
 
   // Override affects to be an array for pressures
-  affects?: Array<{
+  affects: Array<{
     component: string;
     effect: 'enabler' | 'amplifier' | 'suppressor';
-    threshold?: number;
-    factor?: number;
+    threshold: number;
+    factor: number;
   }>;
 
   // Expected equilibrium behavior
   equilibrium: {
     expectedRange: [number, number];  // [min, max] under normal operation (now [-100, 100])
     restingPoint: number;             // Where pressure settles with no stimuli (required: 0)
-    oscillationPeriod?: number;       // Ticks for one cycle (if oscillating)
+    oscillationPeriod: number;       // Ticks for one cycle (if oscillating)
   };
 }
 
@@ -545,13 +551,13 @@ export interface PressureContract {
 // Can be at kind-level (e.g., 'npc') or subtype-level (e.g., 'npc:hero')
 export interface EntityOperatorRegistry {
   kind: string;      // e.g., 'npc', 'faction', 'ability'
-  subtype?: string;  // Optional: e.g., 'hero', 'cult', 'merchant' (for subtype-specific registries)
+  subtype: string;  // Optional: e.g., 'hero', 'cult', 'merchant' (for subtype-specific registries)
 
   // Templates that create this entity
   creators: Array<{
     templateId: string;
     primary: boolean;        // Is this a primary creator or incidental?
-    targetCount?: number;    // Expected entities created per activation
+    targetCount: number;    // Expected entities created per activation
   }>;
 
   // Systems that modify this entity
@@ -582,7 +588,7 @@ export interface Pressure {
   value: number;  // -100 to 100
   growth: (graph: Graph) => number;  // feedback delta per tick
   homeostasis: number;  // pull toward equilibrium (0)
-  contract?: PressureContract;
+  contract: PressureContract;
 }
 
 // Engine configuration
@@ -605,64 +611,45 @@ export interface EngineConfig {
   pressures: import('./declarativePressureTypes').DeclarativePressure[];
 
   // Actions - declarative JSON format from UI
-  // WorldEngine converts these to runtime ExecutableAction objects for universalCatalyst
-  actions?: import('./actionInterpreter').DeclarativeAction[];
+  actions: import('./actionInterpreter').DeclarativeAction[];
 
   // Runtime executable actions - populated by WorldEngine from declarative actions
-  // Used by universalCatalyst system to execute agent actions
-  executableActions?: import('./actionInterpreter').ExecutableAction[];
+  executableActions: import('./actionInterpreter').ExecutableAction[];
 
-  // Action usage tracking - populated by universalCatalyst when actions succeed
-  // Used for diagnostics and validity checks (success-only)
-  actionUsageTracker?: ActionUsageTracker;
+  // Action usage tracking
+  actionUsageTracker: ActionUsageTracker;
 
-  entityRegistries?: EntityOperatorRegistry[];
+  entityRegistries: EntityOperatorRegistry[];
 
   // Configuration
-  ticksPerEpoch: number;  // simulation ticks per epoch
-  maxEpochs: number;      // maximum epochs to run
+  ticksPerEpoch: number;
+  maxEpochs: number;
   maxTicks: number;
-  maxRelationshipsPerType: number;  // max relationships of same type per entity
-  relationshipBudget?: {
-    maxPerSimulationTick: number;  // Hard cap on relationships per simulation tick
-    maxPerGrowthPhase: number;     // Hard cap on relationships per growth phase
+  maxRelationshipsPerType: number;
+  relationshipBudget: {
+    maxPerSimulationTick: number;
+    maxPerGrowthPhase: number;
   };
 
-  // Scaling configuration
-  scaleFactor?: number;  // Master scale multiplier for world size (default: 1.0)
+  scaleFactor: number;
+  defaultMinDistance: number;
+  pressureDeltaSmoothing: number;
+  distributionTargets: DistributionTargets;
 
-  // Default minimum distance between entities on semantic planes
-  // Lower values = denser placement, higher values = sparser placement
-  // Default: 5 (units on 0-100 normalized coordinate space)
-  defaultMinDistance?: number;
+  // Name generation service - created by WorldEngine from cultures
+  nameForgeService: NameGenerationService;
 
-  // Pressure delta smoothing limits max pressure change per tick
-  // Higher values = faster pressure swings, lower values = smoother transitions
-  // Default: 10 (max ±10 pressure change per tick from feedback)
-  pressureDeltaSmoothing?: number;
-  // LLM configuration moved to @illuminator
-  // llmConfig?: LLMConfig;
-  // enrichmentConfig?: EnrichmentConfig;
-  // loreIndex?: LoreIndex;
-  distributionTargets?: DistributionTargets;  // Optional per-subtype targets for homeostatic template weighting
+  // Seed relationships (loaded alongside initial entities)
+  seedRelationships: Relationship[];
 
-  // Name generation service - created by WorldEngine from cultures, then set here
-  // Graph uses this for entity name generation
-  nameForgeService?: NameGenerationService;
-
-  // Seed relationships (optional - loaded alongside initial entities)
-  // Populates relationships at load time
-  seedRelationships?: Relationship[];
-
-  // Simulation event emitter (REQUIRED - no fallback)
-  // Used to emit progress, logs, stats, and completion events
+  // Simulation event emitter
   emitter: ISimulationEmitter;
 
-  // Debug configuration (optional - defaults to all debug disabled)
-  debugConfig?: DebugConfig;
+  // Debug configuration
+  debugConfig: DebugConfig;
 
-  // Narrative event tracking configuration (optional - defaults to disabled)
-  narrativeConfig?: NarrativeConfig;
+  // Narrative event tracking configuration
+  narrativeConfig: NarrativeConfig;
 }
 
 export interface ActionUsageTracker {
@@ -694,13 +681,13 @@ export interface TagMetadata {
   entityKinds: string[];                // Which entity kinds can have this tag
 
   // Governance rules
-  minUsage?: number;                    // Minimum occurrences before tag is considered healthy
-  maxUsage?: number;                    // Maximum occurrences (soft cap, for warnings)
+  minUsage: number;                    // Minimum occurrences before tag is considered healthy
+  maxUsage: number;                    // Maximum occurrences (soft cap, for warnings)
 
   // Relationships with other tags
-  relatedTags?: string[];               // Tags that commonly appear together
-  conflictingTags?: string[];           // Tags that shouldn't coexist on same entity
-  consolidateInto?: string;             // If set, this tag should be merged into another tag
+  relatedTags: string[];               // Tags that commonly appear together
+  conflictingTags: string[];           // Tags that shouldn't coexist on same entity
+  consolidateInto: string;             // If set, this tag should be merged into another tag
 }
 
 export interface TagHealthReport {
@@ -758,7 +745,7 @@ export class GraphStore implements Graph {
   narrativeHistory: NarrativeEvent[] = [];
   relationshipCooldowns: Map<string, Map<string, number>> = new Map();
   // LLM fields moved to @illuminator
-  // loreIndex?: LoreIndex;
+  // loreIndex: LoreIndex;
   // loreRecords: LoreRecord[] = [];
   rateLimitState: import('../core/worldTypes').RateLimitState = {
     currentThreshold: 0.5,
@@ -770,8 +757,8 @@ export class GraphStore implements Graph {
     relationshipsPerTick: [],
     averageGrowthRate: 0
   };
-  subtypeMetrics?: Map<string, number>;
-  protectedRelationshipViolations?: Array<{
+  subtypeMetrics: Map<string, number>;
+  protectedRelationshipViolations: Array<{
     tick: number;
     violations: Array<{ kind: string; strength: number }>;
   }>;
@@ -781,7 +768,7 @@ export class GraphStore implements Graph {
    * Part of the unified lineage system - see LINEAGE.md.
    * When set, entity and relationship creation will stamp createdBy from current context.
    */
-  mutationTracker?: MutationTracker;
+  mutationTracker: MutationTracker;
 
   // ===========================================================================
   // ENTITY READ METHODS
@@ -849,23 +836,26 @@ export class GraphStore implements Graph {
     return this.entityMatchesFieldCriteria(entity, criteria);
   }
 
+  private static readonly ENTITY_CRITERIA_CHECKS: Array<(e: HardState, c: EntityCriteria) => boolean> = [
+    (e, c) => !c.kind || c.kind === 'any' || e.kind === c.kind,
+    (e, c) => !c.subtype || e.subtype === c.subtype,
+    (e, c) => !c.status || e.status === c.status,
+    (e, c) => !c.prominence || prominenceLabel(e.prominence) === c.prominence,
+    (e, c) => !c.culture || e.culture === c.culture,
+    (e, c) => !c.tag || c.tag in e.tags,
+  ];
+
   private entityMatchesFieldCriteria(entity: HardState, criteria: EntityCriteria): boolean {
-    if (criteria.kind && criteria.kind !== 'any' && entity.kind !== criteria.kind) return false;
-    if (criteria.subtype && entity.subtype !== criteria.subtype) return false;
-    if (criteria.status && entity.status !== criteria.status) return false;
-    if (criteria.prominence && prominenceLabel(entity.prominence) !== criteria.prominence) return false;
-    if (criteria.culture && entity.culture !== criteria.culture) return false;
-    if (criteria.tag && !(criteria.tag in entity.tags)) return false;
-    return true;
+    return GraphStore.ENTITY_CRITERIA_CHECKS.every(check => check(entity, criteria));
   }
 
   getEntitiesByKind(kind: string, options?: { includeHistorical?: boolean }): HardState[] {
-    return this.findEntities({ kind, includeHistorical: options?.includeHistorical });
+    return this.findEntities(entityCriteria({ kind, includeHistorical: options?.includeHistorical }));
   }
 
   getConnectedEntities(
     entityId: string,
-    relationKind?: string,
+    relationKind: string,
     direction: 'src' | 'dst' | 'both' = 'both',
     options?: { includeHistorical?: boolean }
   ): HardState[] {
@@ -924,9 +914,7 @@ export class GraphStore implements Graph {
     if (this.#entities.has(settings.id)) {
       throw new Error(`createEntity: id "${settings.id}" already exists. ${label}.`);
     }
-    if (!settings.coordinates) {
-      throw new Error(`createEntity: coordinates are required for all entities. ${label}. Provide coordinates explicitly.`);
-    }
+    // coordinates is always SemanticCoordinates {x: number, y: number, z: number}
     const { x, y, z } = settings.coordinates;
     if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
       throw new Error(`createEntity: coordinates must include numeric x, y, z values. ${label}. Received: ${JSON.stringify(settings.coordinates)}.`);
@@ -943,19 +931,17 @@ export class GraphStore implements Graph {
     if (!settings.status) {
       throw new Error(`createEntity: status is required for all entities. ${label}.`);
     }
-    if (settings.prominence == null) {
-      throw new Error(`createEntity: prominence is required for all entities. ${label}.`);
-    }
+    // prominence is always a number — enforced by type system
   }
 
   private buildEntityFromSettings(settings: CreateEntitySettings): HardState {
-    const tags: EntityTags = { ...(settings.tags || {}) };
+    const tags: EntityTags = { ...(settings.tags) };
     return {
       id: settings.id,
       kind: settings.kind,
       subtype: settings.subtype,
-      name: settings.name!,
-      description: settings.description || '',
+      name: settings.name,
+      description: settings.description,
       narrativeHint: settings.narrativeHint,
       status: settings.status,
       prominence: settings.prominence,
@@ -968,7 +954,7 @@ export class GraphStore implements Graph {
       allRegionIds: settings.allRegionIds,
       createdAt: this.tick,
       updatedAt: this.tick,
-      createdBy: this.mutationTracker?.getCurrentContext() ?? undefined,
+      createdBy: this.mutationTracker.getCurrentContext(),
     };
   }
 
@@ -985,7 +971,7 @@ export class GraphStore implements Graph {
     this.#entities.set(id, entity);
 
     // Record entity creation for context-based event generation
-    this.mutationTracker?.recordEntityCreated({
+    this.mutationTracker.recordEntityCreated({
       entityId: id,
       kind: entity.kind,
       subtype: entity.subtype,
@@ -1006,32 +992,16 @@ export class GraphStore implements Graph {
     const entity = this.#entities.get(id);
     if (!entity) return false;
 
-    this.debugProminenceChange(id, entity, changes);
     this.trackMutations(id, entity, changes);
 
     Object.assign(entity, changes, { updatedAt: this.tick });
     return true;
   }
 
-  private debugProminenceChange(id: string, entity: HardState, changes: Partial<HardState>): void {
-    if (!GraphStore.DEBUG_PROMINENCE || !('prominence' in changes)) return;
-    const oldProm = entity.prominence;
-    const newProm = changes.prominence!;
-    if (oldProm !== newProm) {
-      const oldLabel = prominenceLabel(oldProm);
-      const newLabel = prominenceLabel(newProm);
-      console.log(`[PROMINENCE] tick=${this.tick} entity=${entity.name} (${id}): ${oldLabel} (${oldProm.toFixed(2)}) -> ${newLabel} (${newProm.toFixed(2)})`);
-    } else {
-      console.log(`[PROMINENCE-NOOP] tick=${this.tick} entity=${entity.name} (${id}): ${oldProm.toFixed(2)} (no change)`);
-    }
-  }
+
 
   private trackMutations(id: string, entity: HardState, changes: Partial<HardState>): void {
-    if (!this.mutationTracker) return;
-
-    if (changes.tags !== undefined) {
-      this.trackTagChanges(id, entity.tags || {}, changes.tags || {});
-    }
+    this.trackTagChanges(id, entity.tags, changes.tags);
 
     const trackedFields = ['status', 'prominence', 'culture'] as const;
     for (const field of trackedFields) {
@@ -1049,12 +1019,12 @@ export class GraphStore implements Graph {
     // Track tag presence changes only - value updates are not narratively interesting
     for (const [tag, value] of Object.entries(newTags)) {
       if (!(tag in oldTags)) {
-        this.mutationTracker!.recordTagAdded(id, tag, value as string | boolean);
+        this.mutationTracker.recordTagAdded(id, tag, value as string | boolean);
       }
     }
     for (const tag of Object.keys(oldTags)) {
       if (!(tag in newTags)) {
-        this.mutationTracker!.recordTagRemoved(id, tag);
+        this.mutationTracker.recordTagRemoved(id, tag);
       }
     }
   }
@@ -1095,14 +1065,17 @@ export class GraphStore implements Graph {
     return this.#relationships.filter(rel => this.relationshipMatchesCriteria(rel, criteria));
   }
 
+  private static readonly RELATIONSHIP_CRITERIA_CHECKS: Array<(r: Relationship, c: RelationshipCriteria) => boolean> = [
+    (r, c) => c.includeHistorical || r.status !== FRAMEWORK_STATUS.HISTORICAL,
+    (r, c) => !c.kind || r.kind === c.kind,
+    (r, c) => !c.src || r.src === c.src,
+    (r, c) => !c.dst || r.dst === c.dst,
+    (r, c) => !c.category || r.category === c.category,
+    (r, c) => r.strength >= c.minStrength,
+  ];
+
   private relationshipMatchesCriteria(rel: Relationship, criteria: RelationshipCriteria): boolean {
-    if (!criteria.includeHistorical && rel.status === FRAMEWORK_STATUS.HISTORICAL) return false;
-    if (criteria.kind && rel.kind !== criteria.kind) return false;
-    if (criteria.src && rel.src !== criteria.src) return false;
-    if (criteria.dst && rel.dst !== criteria.dst) return false;
-    if (criteria.category && rel.category !== criteria.category) return false;
-    if (criteria.minStrength !== undefined && (rel.strength ?? 0) < criteria.minStrength) return false;
-    return true;
+    return GraphStore.RELATIONSHIP_CRITERIA_CHECKS.every(check => check(rel, criteria));
   }
 
   getEntityRelationships(entityId: string, direction: 'src' | 'dst' | 'both' = 'both', options?: { includeHistorical?: boolean }): Relationship[] {
@@ -1133,15 +1106,14 @@ export class GraphStore implements Graph {
    * Distance is ALWAYS computed from Euclidean distance between entity coordinates.
    * @returns true if relationship was added, false if duplicate or invalid
    */
-  private computeEntityDistance(src: HardState, dst: HardState): number | undefined {
-    if (!src.coordinates || !dst.coordinates) return undefined;
+  private computeEntityDistance(src: HardState, dst: HardState): number {
     const dx = src.coordinates.x - dst.coordinates.x;
     const dy = src.coordinates.y - dst.coordinates.y;
-    const dz = (src.coordinates.z ?? 0) - (dst.coordinates.z ?? 0);
+    const dz = src.coordinates.z - dst.coordinates.z;
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
-  addRelationship(kind: string, srcId: string, dstId: string, strength?: number, _distanceIgnored?: number, category?: string): boolean {
+  addRelationship(kind: string, srcId: string, dstId: string, strength: number, _distanceIgnored: number, category: string): boolean {
     const srcEntity = this.#entities.get(srcId);
     const dstEntity = this.#entities.get(dstId);
     if (!srcEntity || !dstEntity) return false;
@@ -1155,13 +1127,13 @@ export class GraphStore implements Graph {
 
     const relationship: Relationship = {
       kind, src: srcId, dst: dstId,
-      strength: strength ?? 0.5, distance, category,
+      strength, distance, category,
       status: 'active', createdAt: this.tick,
-      createdBy: this.mutationTracker?.getCurrentContext() ?? undefined,
+      createdBy: this.mutationTracker.getCurrentContext(),
     };
 
     this.#relationships.push(relationship);
-    this.mutationTracker?.recordRelationshipCreated({ srcId, dstId, kind, strength: relationship.strength });
+    this.mutationTracker.recordRelationshipCreated({ srcId, dstId, kind, strength: relationship.strength });
     srcEntity.updatedAt = this.tick;
     dstEntity.updatedAt = this.tick;
     return true;
@@ -1192,7 +1164,7 @@ export class GraphStore implements Graph {
   /**
    * Create a new GraphStore with initial configuration
    */
-  static create(initialEra: Era, pressures: Array<{ id: string; initialValue?: number }>): GraphStore {
+  static create(initialEra: Era, pressures: Array<{ id: string; initialValue: number }>): GraphStore {
     const store = new GraphStore();
     store.currentEra = initialEra;
 

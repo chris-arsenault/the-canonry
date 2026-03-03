@@ -4,7 +4,7 @@
  * Functions for creating and modifying entities.
  */
 
-import { Graph } from '../engine/types';
+import { Graph , entityCriteria } from '../engine/types';
 import { HardState, EntityTags } from '../core/worldTypes';
 import { arrayToTags } from '../utils/tagUtils';
 import {
@@ -30,11 +30,10 @@ export function slugifyName(name: string): string {
  */
 export function generateEntityIdFromName(
   name: string,
-  hasEntity?: (id: string) => boolean,
-  log?: (message: string, context?: Record<string, unknown>) => void
+  hasEntity: (id: string) => boolean,
+  log: (message: string, context: Record<string, unknown>) => void
 ): string {
   const baseId = slugifyName(name);
-  if (!hasEntity) return baseId;
   if (!hasEntity(baseId)) return baseId;
 
   let suffix = 2;
@@ -44,7 +43,7 @@ export function generateEntityIdFromName(
     candidate = `${baseId}-${suffix}`;
   }
 
-  log?.(`Entity id collision for "${name}". Using "${candidate}".`, {
+  log(`Entity id collision for "${name}". Using "${candidate}".`, {
     name,
     baseId,
     resolvedId: candidate
@@ -57,18 +56,18 @@ export function generateEntityIdFromName(
  * Initial state normalization
  */
 export interface RawEntityInput {
-  id?: string;
-  name?: string;
-  kind?: string;
-  subtype?: string;
-  status?: string;
-  prominence?: number;
-  culture?: string;
-  coordinates?: import('../coordinates/types').Point;
-  tags?: string[] | EntityTags;
-  description?: string;
-  summary?: string;
-  narrativeHint?: string;
+  id: string;
+  name: string;
+  kind: string;
+  subtype: string;
+  status: string;
+  prominence: number;
+  culture: string;
+  coordinates: import('../coordinates/types').Point;
+  tags: string[] | EntityTags;
+  description: string;
+  summary: string;
+  narrativeHint: string;
 }
 
 export function normalizeInitialState(entities: RawEntityInput[]): HardState[] {
@@ -85,12 +84,7 @@ export function normalizeInitialState(entities: RawEntityInput[]): HardState[] {
         `Initial state entities must have names defined in JSON.`
       );
     }
-    if (!entity.coordinates) {
-      throw new Error(
-        `normalizeInitialState: entity "${entity.name}" at index ${index} has no coordinates. ` +
-        `Initial state entities must have coordinates defined in JSON.`
-      );
-    }
+    // coordinates is always SemanticCoordinates — enforced by type system
     if (!entity.kind) {
       throw new Error(
         `normalizeInitialState: entity "${entity.name}" at index ${index} has no kind.`
@@ -122,10 +116,10 @@ export function normalizeInitialState(entities: RawEntityInput[]): HardState[] {
     if (Array.isArray(entity.tags)) {
       tags = arrayToTags(entity.tags);
     } else {
-      tags = entity.tags || {};
+      tags = entity.tags;
     }
 
-    const narrativeHint = entity.narrativeHint ?? entity.summary ?? (entity.description ? entity.description : undefined);
+    const narrativeHint = entity.narrativeHint || entity.summary;
 
     return {
       id: entity.id,
@@ -171,11 +165,11 @@ function validateEntityForAdd(entity: Partial<HardState>): void {
   }
 }
 
-export async function addEntity(graph: Graph, entity: Partial<HardState>, source?: string, placementStrategy?: string): Promise<string> {
+export async function addEntity(graph: Graph, entity: Partial<HardState>, source: string, placementStrategy: string): Promise<string> {
   validateEntityForAdd(entity);
 
   const coords = entity.coordinates!;
-  const tags: EntityTags = Array.isArray(entity.tags) ? arrayToTags(entity.tags) : { ...(entity.tags || {}) };
+  const tags: EntityTags = Array.isArray(entity.tags) ? arrayToTags(entity.tags) : { ...(entity.tags) };
 
   const entityId = generateEntityIdFromName(entity.name!, id => graph.hasEntity(id));
 
@@ -191,10 +185,10 @@ export async function addEntity(graph: Graph, entity: Partial<HardState>, source
   const validCoords = { x: coords.x, y: coords.y, z: coords.z };
 
   const currentEraEntity = entity.kind !== FRAMEWORK_ENTITY_KINDS.ERA
-    ? graph.findEntities({
+    ? graph.findEntities(entityCriteria({
         kind: FRAMEWORK_ENTITY_KINDS.ERA,
         status: FRAMEWORK_STATUS.CURRENT
-      })[0]
+      }))[0]
     : undefined;
   const explicitEraId = entity.eraId;
   let resolvedEraId: string | undefined;
@@ -206,7 +200,7 @@ export async function addEntity(graph: Graph, entity: Partial<HardState>, source
     resolvedEraId = currentEraEntity?.id;
   }
 
-  const narrativeHint = entity.narrativeHint ?? entity.summary ?? (entity.description ? entity.description : undefined);
+  const narrativeHint = entity.narrativeHint || entity.summary ?? (entity.description ? entity.description : undefined);
 
   const createdId = await graph.createEntity({
     id: entityId,

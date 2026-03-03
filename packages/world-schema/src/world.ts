@@ -7,6 +7,7 @@
 
 import type { CanonrySchemaSlice } from './mfeContracts.js';
 import type { SemanticRegion } from './entityKind.js';
+import type { TickStatus, EventCause } from './statusTypes.js';
 
 /**
  * Prominence label for display (derived from numeric value)
@@ -47,10 +48,10 @@ export interface ExecutionContext {
   source: ExecutionSource;
   /** Identifier for the specific template/system/action (e.g., "hero_emergence") */
   sourceId: string;
-  /** For actions: whether the action succeeded (false = failed attempt) */
-  success?: boolean;
-  /** In-world narrative description of what happened */
-  narration?: string;
+  /** For actions: whether the action succeeded (true for non-actions) */
+  success: boolean;
+  /** In-world narrative description of what happened (empty string if none) */
+  narration: string;
 }
 
 /**
@@ -67,28 +68,28 @@ export interface WorldEntity {
   culture: string;
   tags: EntityTags;
   /** Era identifier for the entity's creation era */
-  eraId?: string;
+  eraId: string;
   createdAt: number;
   updatedAt: number;
   coordinates: SemanticCoordinates;
-  temporal?: { startTick: number; endTick: number | null };
-  catalyst?: {
+  temporal: { startTick: number; end: TickStatus };
+  catalyst: {
     canAct: boolean;
   };
-  regionId?: string | null;
-  allRegionIds?: string[];
+  regionId: string;
+  allRegionIds: string[];
   /** Short user-defined summary (distinct from LLM-generated description) */
-  summary?: string;
+  summary: string;
   /** Brief narrative fragment to guide enrichment (set by lore-weave) */
-  narrativeHint?: string;
+  narrativeHint: string;
   /** If true, the summary field should not be overwritten by enrichment */
-  lockedSummary?: boolean;
+  lockedSummary: boolean;
   /**
    * Lineage: what created this entity.
    * Part of the unified lineage system - see LINEAGE.md.
    * Persistent on entities for debugging and causal queries.
    */
-  createdBy?: ExecutionContext;
+  createdBy: ExecutionContext;
 }
 
 /**
@@ -98,19 +99,19 @@ export interface WorldRelationship {
   kind: string;
   src: string;
   dst: string;
-  strength?: number;
-  distance?: number;
-  category?: string;
-  createdAt?: number;
-  catalyzedBy?: string;
-  status?: 'active' | 'historical';
-  archivedAt?: number;
+  strength: number;
+  distance: number;
+  category: string;
+  createdAt: number;
+  catalyzedBy: string;
+  status: 'active' | 'historical';
+  archived: TickStatus;
   /**
    * Lineage: what created this relationship.
    * Part of the unified lineage system - see LINEAGE.md.
    * Persistent on relationships for debugging and causal queries.
    */
-  createdBy?: ExecutionContext;
+  createdBy: ExecutionContext;
 }
 
 /**
@@ -185,34 +186,88 @@ export type SemanticEffectKind =
   | 'downfall';       // Status changed to negative polarity
 
 /**
- * A single effect that happened to an entity during an event.
- * Used to provide granular detail about what changed for each participant.
+ * Base fields shared by all entity effects.
  */
-export interface EntityEffect {
-  type: EntityEffectType;
-
-  // For relationship effects
-  relationshipKind?: string;
-  relatedEntity?: NarrativeEntityRef;
-
-  // For tag effects
-  tag?: string;
-
-  // For field effects (including status, prominence)
-  field?: string;
-  previousValue?: unknown;
-  newValue?: unknown;
-
+interface EntityEffectBase {
+  /** Human-readable description of this specific effect */
+  description: string;
   /**
    * Semantic interpretation derived from schema polarity metadata.
-   * Only present when the effect has narrative significance beyond the raw change.
+   * Empty string when the effect has no narrative significance beyond the raw change.
    */
-  semanticKind?: SemanticEffectKind;
-
-  // Human-readable description of this specific effect
-  // e.g., "joined Lotakik Spire", "became a practitioner of Frigid-Chill"
-  description: string;
+  semanticKind: SemanticEffectKind | '';
 }
+
+/**
+ * Entity was created during this event.
+ */
+export interface CreatedEffect extends EntityEffectBase {
+  type: 'created';
+}
+
+/**
+ * Entity ended (status became terminal/historical).
+ */
+export interface EndedEffect extends EntityEffectBase {
+  type: 'ended';
+}
+
+/**
+ * A relationship was formed involving this entity.
+ */
+export interface RelationshipFormedEffect extends EntityEffectBase {
+  type: 'relationship_formed';
+  relationshipKind: string;
+  relatedEntity: NarrativeEntityRef;
+}
+
+/**
+ * A relationship involving this entity was dissolved.
+ */
+export interface RelationshipEndedEffect extends EntityEffectBase {
+  type: 'relationship_ended';
+  relationshipKind: string;
+  relatedEntity: NarrativeEntityRef;
+}
+
+/**
+ * Entity gained a tag.
+ */
+export interface TagGainedEffect extends EntityEffectBase {
+  type: 'tag_gained';
+  tag: string;
+}
+
+/**
+ * Entity lost a tag.
+ */
+export interface TagLostEffect extends EntityEffectBase {
+  type: 'tag_lost';
+  tag: string;
+}
+
+/**
+ * A field on the entity changed value.
+ */
+export interface FieldChangedEffect extends EntityEffectBase {
+  type: 'field_changed';
+  field: string;
+  previousValue: unknown;
+  newValue: unknown;
+}
+
+/**
+ * A single effect that happened to an entity during an event.
+ * Discriminated union on `type` — each variant carries only the fields it needs.
+ */
+export type EntityEffect =
+  | CreatedEffect
+  | EndedEffect
+  | RelationshipFormedEffect
+  | RelationshipEndedEffect
+  | TagGainedEffect
+  | TagLostEffect
+  | FieldChangedEffect;
 
 /**
  * An entity's participation in an event, with all effects that happened to them.
@@ -258,13 +313,7 @@ export interface NarrativeEvent {
    */
   description: string;
 
-  causedBy?: {
-    eventId?: string;
-    entityId?: string;
-    actionType?: string;
-    /** For actions: whether the action succeeded (false = failed attempt) */
-    success?: boolean;
-  };
+  causedBy: EventCause;
 
   /** Tags for filtering: ['death', 'war', 'royal', 'recruitment'] */
   narrativeTags: string[];
@@ -299,7 +348,7 @@ export interface Validation {
  */
 export interface ReachabilityMetrics {
   connectedComponents: number;
-  fullyConnectedTick?: number | null;
+  fullyConnectedTick: number;
 }
 
 /**
@@ -311,19 +360,18 @@ export interface WorldMetadata {
   tick: number;
   epoch: number;
   era: string;
-  durationMs?: number;
-  isComplete?: boolean;
-  entityCount?: number;
-  relationshipCount?: number;
-  metaEntityCount?: number;
-  enriched?: boolean;
-  enrichedAt?: number;
-  metaEntityFormation?: {
+  durationMs: number;
+  isComplete: boolean;
+  entityCount: number;
+  relationshipCount: number;
+  metaEntityCount: number;
+  enrichment: TickStatus;
+  metaEntityFormation: {
     totalFormed: number;
     formations: Array<Record<string, unknown>>;
-    comment?: string;
+    comment: string;
   };
-  reachability?: ReachabilityMetrics;
+  reachability: ReachabilityMetrics;
 }
 
 /**
@@ -335,8 +383,8 @@ export interface WorldOutput {
   hardState: WorldEntity[];
   relationships: WorldRelationship[];
   pressures: Record<string, number>;
-  /** Narrative events for story generation (optional, enabled via config) */
-  narrativeHistory?: NarrativeEvent[];
-  coordinateState?: CoordinateState;
-  validation?: Validation;
+  /** Narrative events for story generation (empty array if disabled) */
+  narrativeHistory: NarrativeEvent[];
+  coordinateState: CoordinateState;
+  validation: Validation;
 }

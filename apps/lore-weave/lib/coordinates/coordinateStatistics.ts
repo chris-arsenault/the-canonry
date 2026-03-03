@@ -12,8 +12,8 @@ export interface PlacementEvent {
   tick: number;
   entityKind: string;
   method: 'deriveCoordinatesWithCulture' | 'placeWithCulture' | 'placeNearEntity' | 'placeInRegion' | 'spawnEmergent';
-  cultureId?: string;
-  regionId?: string | null;
+  cultureId: string;
+  regionId: string | null;
   hadReferenceEntities: boolean;
   coordinates: { x: number; y: number; z: number };
 }

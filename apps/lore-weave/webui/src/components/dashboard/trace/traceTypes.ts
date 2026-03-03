@@ -7,13 +7,16 @@
 // ---------------------------------------------------------------------------
 
 export interface PressureBreakdown {
-  positiveFeedback?: Array<{ label: string; contribution: number }>;
-  negativeFeedback?: Array<{ label: string; contribution: number }>;
+  positiveFeedback: Array<{ label: string; contribution: number }>;
+  negativeFeedback: Array<{ label: string; contribution: number }>;
   homeostasis: number;
   homeostaticDelta: number;
-  eraModifier?: number;
-  growthScaling?: number;
+  eraModifier: number;
+  growthScaling: number;
   smoothedDelta: number;
+  feedbackTotal: number;
+  scaledFeedback: number;
+  rawDelta: number;
 }
 
 export interface PressureEntry {
@@ -21,17 +24,18 @@ export interface PressureEntry {
   name: string;
   newValue: number;
   previousValue: number;
-  breakdown?: PressureBreakdown;
+  breakdown: PressureBreakdown;
 }
 
 export interface DiscreteMod {
   pressureId: string;
   delta: number;
-  source?: {
-    type?: string;
-    templateId?: string;
-    systemId?: string;
-    actionId?: string;
+  source: {
+    type: string;
+    templateId: string;
+    systemId: string;
+    actionId: string;
+    eraId: string;
   };
 }
 
@@ -39,25 +43,25 @@ export interface PressureUpdate {
   tick: number;
   epoch: number;
   pressures: PressureEntry[];
-  discreteModifications?: DiscreteMod[];
+  discreteModifications: DiscreteMod[];
 }
 
 export interface EpochStat {
   epoch: number;
-  era?: {
-    start?: { name: string };
-    end?: { name: string };
-    transitions?: unknown[];
+  era: {
+    start: { name: string };
+    end: { name: string };
+    transitions: unknown[];
   };
 }
 
 export interface PlacementTrace {
-  anchorType?: string;
-  resolvedVia?: string;
-  anchorEntity?: { name: string; kind: string };
-  anchorCulture?: string;
-  seedRegionsAvailable?: unknown[];
-  emergentRegionCreated?: { label: string };
+  anchorType: string;
+  resolvedVia: string;
+  anchorEntity: { name: string; kind: string };
+  anchorCulture: string;
+  seedRegionsAvailable: unknown[];
+  emergentRegionCreated: { label: string } | null;
 }
 
 export interface CreatedEntity {
@@ -66,21 +70,21 @@ export interface CreatedEntity {
   subtype: string;
   culture: string;
   prominence: string;
-  placement?: PlacementTrace;
-  placementStrategy?: string;
-  coordinates?: { x: number; y: number; z?: number };
-  regionId?: string;
-  tags?: Record<string, string | boolean>;
-  derivedTags?: Record<string, string | boolean>;
+  placement: PlacementTrace;
+  placementStrategy: string;
+  coordinates: { x: number; y: number; z: number };
+  regionId: string;
+  tags: Record<string, string | boolean>;
+  derivedTags: Record<string, string | boolean>;
 }
 
 export interface CreatedRelationship {
   kind: string;
-  srcId?: string;
-  dstId?: string;
-  srcName?: string;
-  dstName?: string;
-  strength?: number;
+  srcId: string;
+  dstId: string;
+  srcName: string;
+  dstName: string;
+  strength: number;
 }
 
 export interface TemplateApplication {
@@ -89,10 +93,10 @@ export interface TemplateApplication {
   templateId: string;
   targetEntityName: string;
   targetEntityKind: string;
-  description?: string;
-  entitiesCreated?: CreatedEntity[];
-  relationshipsCreated?: CreatedRelationship[];
-  pressureChanges?: Record<string, number>;
+  description: string;
+  entitiesCreated: CreatedEntity[];
+  relationshipsCreated: CreatedRelationship[];
+  pressureChanges: Record<string, number>;
 }
 
 export interface EraTransitionDetail {
@@ -101,15 +105,15 @@ export interface EraTransitionDetail {
   fromEraId: string;
   toEraId: string;
   tickInEra: number;
-  prominentEntitiesLinked?: number;
-  exitConditionsMet?: Array<{
+  prominentEntitiesLinked: number;
+  exitConditionsMet: Array<{
     type: string;
-    pressureId?: string;
-    entityKind?: string;
-    operator?: string;
-    threshold?: number;
-    currentAge?: number;
-    minTicks?: number;
+    pressureId: string;
+    entityKind: string;
+    operator: string;
+    threshold: number;
+    currentAge: number;
+    minTicks: number;
   }>;
 }
 
@@ -118,14 +122,14 @@ export interface SystemActionRecord {
   epoch: number;
   systemId: string;
   systemName: string;
-  description?: string;
+  description: string;
   relationshipsAdded: number;
   entitiesModified: number;
-  pressureChanges?: Record<string, number>;
-  details?: {
-    eraTransition?: EraTransitionDetail;
-    diffusionSnapshot?: unknown;
-    contagionSnapshot?: unknown;
+  pressureChanges: Record<string, number>;
+  details: {
+    eraTransition: EraTransitionDetail | null;
+    diffusionSnapshot: unknown;
+    contagionSnapshot: unknown;
   };
 }
 
@@ -143,11 +147,11 @@ export interface ProminenceChange {
 
 export interface ActionOutcome {
   status: string;
-  description?: string;
+  description: string;
   successChance: number;
   prominenceMultiplier: number;
-  relationshipsCreated?: CreatedRelationship[];
-  prominenceChanges?: ProminenceChange[];
+  relationshipsCreated: CreatedRelationship[];
+  prominenceChanges: ProminenceChange[];
 }
 
 export interface SelectionContext {
@@ -156,7 +160,7 @@ export interface SelectionContext {
   totalWeight: number;
   attemptChance: number;
   prominenceBonus: number;
-  pressureInfluences?: PressureInfluence[];
+  pressureInfluences: PressureInfluence[];
 }
 
 export interface ActionApplication {
@@ -168,13 +172,13 @@ export interface ActionApplication {
   actorName: string;
   actorKind: string;
   actorProminence: string;
-  instigatorId?: string;
-  instigatorName?: string;
-  targetId?: string;
-  targetName?: string;
-  targetKind?: string;
-  target2Id?: string;
-  target2Name?: string;
+  instigatorId: string;
+  instigatorName: string;
+  targetId: string;
+  targetName: string;
+  targetKind: string;
+  target2Id: string;
+  target2Name: string;
   outcome: ActionOutcome;
   selectionContext: SelectionContext;
 }
@@ -195,7 +199,7 @@ export interface TickBreakdownInfo {
   value: number;
   previousValue: number;
   delta: number;
-  breakdown?: PressureBreakdown;
+  breakdown: PressureBreakdown;
   discreteModifications: DiscreteMod[];
   discreteTotal: number;
 }
@@ -248,7 +252,7 @@ export interface EventData {
 
 export interface EraBoundary {
   era: string;
-  eraId?: string;
+  eraId: string;
   epoch: number;
   startTick: number;
   endTick: number;
@@ -257,7 +261,7 @@ export interface EraBoundary {
 export interface SelectedEvent {
   type: "template" | "action" | "system";
   data: TemplateApplication | ActionApplication | SystemActionRecord;
-  isEraTransition?: boolean;
+  isEraTransition: boolean;
 }
 
 export interface SystemIdName {

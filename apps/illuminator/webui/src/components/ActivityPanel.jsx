@@ -7,7 +7,7 @@
  * - Recent completed/errored tasks
  */
 
-import React, { useMemo, useState, useRef, useCallback } from "react";
+import React, { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useThinkingStore } from "../lib/db/thinkingStore";
 import { ErrorMessage } from "@the-canonry/shared-components";
@@ -15,9 +15,6 @@ import "./ActivityPanel.css";
 function formatDuration(ms) {
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
-}
-function formatTime(timestamp) {
-  return new Date(timestamp).toLocaleTimeString();
 }
 function extractAnthropicErrorMessage(debug) {
   if (!debug?.response) return null;
@@ -69,9 +66,16 @@ function TaskRow({
   const streamEntry = useThinkingStore(s => s.entries.get(item.id));
   const hasStream = Boolean(streamEntry);
   const openThinking = useThinkingStore(s => s.openViewer);
+  const [now, setNow] = useState(() => Date.now());
+  const isRunning = item.startedAt && !item.completedAt;
+  useEffect(() => {
+    if (!isRunning) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [isRunning]);
   let duration = null;
   if (item.startedAt) {
-    duration = item.completedAt ? item.completedAt - item.startedAt : Date.now() - item.startedAt;
+    duration = item.completedAt ? item.completedAt - item.startedAt : now - item.startedAt;
   }
   const statusIcons = TASK_STATUS_ICONS;
   const hasDebug = Boolean(item.debug && (item.debug.request || item.debug.response));

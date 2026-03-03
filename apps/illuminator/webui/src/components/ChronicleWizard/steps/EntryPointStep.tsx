@@ -50,6 +50,97 @@ interface UsageMetrics {
   prominence: number;
 }
 
+function buildAdjacency(
+  entityIds: string[],
+  relationships: Array<{ src: string; dst: string }>
+): Map<string, Set<string>> {
+  const adjacency = new Map<string, Set<string>>();
+  for (const id of entityIds) adjacency.set(id, new Set());
+  for (const rel of relationships) {
+    if (!adjacency.has(rel.src) || !adjacency.has(rel.dst)) continue;
+    adjacency.get(rel.src)?.add(rel.dst);
+    adjacency.get(rel.dst)?.add(rel.src);
+  }
+  return adjacency;
+}
+
+function countNeighbors(
+  neighbors: Iterable<string>,
+  visitStamp: Map<string, number>,
+  stamp: number,
+  usageCounts: Map<string, number>
+): { total: number; unused: number } {
+  let total = 0, unused = 0;
+  for (const id of neighbors) {
+    if (visitStamp.get(id) === stamp) continue;
+    visitStamp.set(id, stamp);
+    total += 1;
+    if ((usageCounts.get(id) ?? 0) === 0) unused += 1;
+  }
+  return { total, unused };
+}
+
+function collectSecondHopNeighbors(
+  firstHop: Set<string>,
+  adjacency: Map<string, Set<string>>
+): string[] {
+  const secondHop: string[] = [];
+  for (const neighbor of firstHop) {
+    const neighborHops = adjacency.get(neighbor);
+    if (neighborHops) secondHop.push(...neighborHops);
+  }
+  return secondHop;
+}
+
+function countHops(
+  firstHop: Set<string>,
+  adjacency: Map<string, Set<string>>,
+  visitStamp: Map<string, number>,
+  stamp: number,
+  usageCounts: Map<string, number>
+): { hop1Total: number; hop1Unused: number; hop2Total: number; hop2Unused: number } {
+  const hop1 = countNeighbors(firstHop, visitStamp, stamp, usageCounts);
+  const secondHopNeighbors = collectSecondHopNeighbors(firstHop, adjacency);
+  const hop2 = countNeighbors(secondHopNeighbors, visitStamp, stamp, usageCounts);
+  return { hop1Total: hop1.total, hop1Unused: hop1.unused, hop2Total: hop2.total, hop2Unused: hop2.unused };
+}
+
+function computeUsageMetrics(
+  entityPotentials: Map<string, { prominence: unknown }>,
+  relationships: Array<{ src: string; dst: string }>,
+  usageCounts: Map<string, number>
+): Map<string, UsageMetrics> {
+  if (entityPotentials.size === 0) return new Map();
+
+  const entityIds = Array.from(entityPotentials.keys());
+  const adjacency = buildAdjacency(entityIds, relationships);
+  const visitStamp = new Map<string, number>();
+  let stamp = 1;
+  const result = new Map<string, UsageMetrics>();
+
+  for (const id of entityIds) {
+    const usageCount = usageCounts.get(id) ?? 0;
+    const entity = entityPotentials.get(id);
+    const rawProminence = entity ? Number(entity.prominence) : 0;
+    const prominence = Number.isFinite(rawProminence) ? Math.max(0, rawProminence) : 0;
+
+    const firstHop = adjacency.get(id) || new Set<string>();
+    stamp += 1;
+    visitStamp.set(id, stamp);
+
+    const hops = countHops(firstHop, adjacency, visitStamp, stamp, usageCounts);
+    result.set(id, {
+      usageCount,
+      unusedSelf: usageCount === 0,
+      ...hops,
+      underusedScore: prominence / (usageCount + 1),
+      prominence,
+    });
+  }
+
+  return result;
+}
+
 export default function EntryPointStep({ entities, relationships, events }: Readonly<EntryPointStepProps>) {
   const {
     state,
@@ -64,22 +155,20 @@ export default function EntryPointStep({ entities, relationships, events }: Read
   const [hoveredEntityId, setHoveredEntityId] = useState<string | null>(null);
   const [onlyUnused, setOnlyUnused] = useState(false);
   const [usageStats, setUsageStats] = useState<Map<string, { usageCount: number }>>(new Map());
-  const [usageLoading, setUsageLoading] = useState(false);
+  const [usageLoading, setUsageLoading] = useState(!!simulationRunId);
+  const [prevRunId, setPrevRunId] = useState(simulationRunId);
 
-  // Clear usage stats when no simulationRunId
-  useEffect(() => {
-    if (simulationRunId) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
+  // Clear usage stats during render when simulationRunId is removed
+  if (!simulationRunId && prevRunId) {
+    setPrevRunId(simulationRunId);
     setUsageStats(new Map());
-     
     setUsageLoading(false);
-  }, [simulationRunId]);
+  }
 
   useEffect(() => {
     if (!simulationRunId) return;
 
     let isActive = true;
-    setUsageLoading(true);
 
     getEntityUsageStats(simulationRunId)
       .then((stats) => {
@@ -111,70 +200,10 @@ export default function EntryPointStep({ entities, relationships, events }: Read
     return counts;
   }, [usageStats]);
 
-  const usageMetrics = useMemo(() => {
-    if (entityPotentials.size === 0) return new Map<string, UsageMetrics>();
-
-    const entityIds = Array.from(entityPotentials.keys());
-    const adjacency = new Map<string, Set<string>>();
-    for (const id of entityIds) adjacency.set(id, new Set());
-
-    for (const rel of relationships) {
-      if (!adjacency.has(rel.src) || !adjacency.has(rel.dst)) continue;
-      adjacency.get(rel.src).add(rel.dst);
-      adjacency.get(rel.dst).add(rel.src);
-    }
-
-    const visitStamp = new Map<string, number>();
-    let stamp = 1;
-    const result = new Map<string, UsageMetrics>();
-
-    for (const id of entityIds) {
-      const usageCount = usageCounts.get(id) ?? 0;
-      const entity = entityPotentials.get(id);
-      const rawProminence = entity ? Number(entity.prominence) : 0;
-      const prominence = Number.isFinite(rawProminence) ? Math.max(0, rawProminence) : 0;
-
-      const firstHop = adjacency.get(id) || new Set<string>();
-      stamp += 1;
-      visitStamp.set(id, stamp);
-
-      let hop1Total = 0;
-      let hop1Unused = 0;
-      for (const neighbor of firstHop) {
-        if (visitStamp.get(neighbor) === stamp) continue;
-        visitStamp.set(neighbor, stamp);
-        hop1Total += 1;
-        if ((usageCounts.get(neighbor) ?? 0) === 0) hop1Unused += 1;
-      }
-
-      let hop2Total = 0;
-      let hop2Unused = 0;
-      for (const neighbor of firstHop) {
-        const neighborHops = adjacency.get(neighbor);
-        if (!neighborHops) continue;
-
-        for (const secondHop of neighborHops) {
-          if (visitStamp.get(secondHop) === stamp) continue;
-          visitStamp.set(secondHop, stamp);
-          hop2Total += 1;
-          if ((usageCounts.get(secondHop) ?? 0) === 0) hop2Unused += 1;
-        }
-      }
-
-      result.set(id, {
-        usageCount,
-        unusedSelf: usageCount === 0,
-        hop1Unused,
-        hop1Total,
-        hop2Unused,
-        hop2Total,
-        underusedScore: prominence / (usageCount + 1),
-        prominence,
-      });
-    }
-
-    return result;
-  }, [entityPotentials, relationships, usageCounts]);
+  const usageMetrics = useMemo(
+    () => computeUsageMetrics(entityPotentials, relationships, usageCounts),
+    [entityPotentials, relationships, usageCounts]
+  );
 
   // Get available kinds for filter chips
   const availableKinds = useMemo(() => {
@@ -257,9 +286,10 @@ export default function EntryPointStep({ entities, relationships, events }: Read
       clearEntryPoint();
       return;
     }
-    // Convert back to EntityContext for the wizard
-    const { potential, connectionCount, eventCount, connectedKinds, eraIds, ...baseEntity } =
-      entity;
+    // Strip computed analysis fields for EntityContext
+    const baseEntity = Object.fromEntries(
+      Object.entries(entity).filter(([k]) => k !== 'potential' && k !== 'connectionCount' && k !== 'eventCount' && k !== 'connectedKinds' && k !== 'eraIds')
+    );
     selectEntryPoint(baseEntity as EntityContext, entities, relationships, events);
   };
 

@@ -507,7 +507,7 @@ export class TagHealthAnalyzer {
   public validateTagTaxonomy(entity: HardState): Array<{ tag1: string; tag2: string; reason: string }> {
     const conflicts: Array<{ tag1: string; tag2: string; reason: string }> = [];
 
-    if (!entity.tags) {
+    if (Object.keys(entity.tags).length === 0) {
       return conflicts;
     }
 

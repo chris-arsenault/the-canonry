@@ -95,8 +95,8 @@ export type Region = SemanticRegion;
  */
 export interface EmergentRegionResult {
   success: boolean;
-  region?: Region;
-  failureReason?: string;
+  region: Region;
+  failureReason: string;
 }
 
 /**
@@ -104,10 +104,10 @@ export interface EmergentRegionResult {
  */
 export interface SparseAreaResult {
   success: boolean;
-  coordinates?: Point;
+  coordinates: Point;
   /** Minimum distance to nearest entity (score of how "sparse" the area is) */
-  minDistanceToEntity?: number;
-  failureReason?: string;
+  minDistanceToEntity: number;
+  failureReason: string;
 }
 
 /**
@@ -119,7 +119,7 @@ export interface SparseAreaOptions {
   /** Bias toward plane edges/periphery (default: false) */
   preferPeriphery: boolean;
   /** Maximum sampling attempts (default: 50) */
-  maxAttempts?: number;
+  maxAttempts: number;
   /** Existing entity positions to avoid */
   existingPositions: Point[];
 }
@@ -135,7 +135,7 @@ export interface RegionLookupResult {
   all: Region[];
 
   /** Nearest region if not in any */
-  nearest?: {
+  nearest: {
     region: Region;
     distance: number;
   };

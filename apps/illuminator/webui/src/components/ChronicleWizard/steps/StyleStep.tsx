@@ -32,22 +32,20 @@ export default function StyleStep({ styles }: Readonly<StyleStepProps>) {
   const [searchText, setSearchText] = useState("");
   const [formatFilter, setFormatFilter] = useState<"all" | "story" | "document">("all");
   const [styleUsage, setStyleUsage] = useState<Map<string, { usageCount: number }>>(new Map());
-  const [usageLoading, setUsageLoading] = useState(false);
+  const [usageLoading, setUsageLoading] = useState(!!simulationRunId);
+  const [prevRunId, setPrevRunId] = useState(simulationRunId);
 
-  // Clear usage when no simulationRunId
-  useEffect(() => {
-    if (simulationRunId) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear async usage state when simulation is unset
+  // Clear usage during render when simulationRunId is removed
+  if (!simulationRunId && prevRunId) {
+    setPrevRunId(simulationRunId);
     setStyleUsage(new Map());
-     
     setUsageLoading(false);
-  }, [simulationRunId]);
+  }
 
   useEffect(() => {
     if (!simulationRunId) return;
 
     let isActive = true;
-    setUsageLoading(true);
 
     getNarrativeStyleUsageStats(simulationRunId)
       .then((stats) => {

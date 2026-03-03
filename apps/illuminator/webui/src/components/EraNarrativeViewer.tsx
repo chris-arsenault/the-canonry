@@ -675,9 +675,10 @@ function usePolling(
 // ---------------------------------------------------------------------------
 
 function useImageRefsConversion(record: EraNarrativeRecord | null) {
+  const imageRefs = record?.imageRefs;
   return useMemo(() => {
     const emptyEntities = new Map<string, never>();
-    if (!record?.imageRefs) {
+    if (!imageRefs) {
       return {
         chronicleCompatibleImageRefs: null as ChronicleImageRefs | null,
         chronicleRefImages: [] as NarrativeChronicleRef[],
@@ -688,7 +689,7 @@ function useImageRefsConversion(record: EraNarrativeRecord | null) {
     const promptRefs: PromptRequestRef[] = [];
     const chronicleRefImages: NarrativeChronicleRef[] = [];
 
-    for (const ref of record.imageRefs.refs) {
+    for (const ref of imageRefs.refs) {
       if (ref.type === "prompt_request") {
         promptRefs.push(ref as unknown as PromptRequestRef);
       } else if (ref.type === "chronicle_ref") {
@@ -700,13 +701,43 @@ function useImageRefsConversion(record: EraNarrativeRecord | null) {
       promptRefs.length > 0
         ? {
             refs: promptRefs,
-            generatedAt: record.imageRefs.generatedAt,
-            model: record.imageRefs.model,
+            generatedAt: imageRefs.generatedAt,
+            model: imageRefs.model,
           }
         : null;
 
     return { chronicleCompatibleImageRefs, chronicleRefImages, emptyEntities };
-  }, [record?.imageRefs]);
+  }, [imageRefs]);
+}
+
+/** Collect cover and scene images from a chronicle into the available images list. */
+function collectAvailableImages(
+  brief: { chronicleId: string; chronicleTitle: string },
+  chronicle: { coverImage?: { generatedImageId?: string; sceneDescription?: string }; imageRefs?: { refs: Array<{ type: string; refId: string; generatedImageId?: string; sceneDescription?: string }> } },
+  available: AvailableChronicleImage[]
+): void {
+  if (chronicle.coverImage?.generatedImageId && chronicle.coverImage?.sceneDescription) {
+    available.push({
+      chronicleId: brief.chronicleId,
+      chronicleTitle: brief.chronicleTitle,
+      imageSource: "cover",
+      imageId: chronicle.coverImage.generatedImageId,
+      sceneDescription: chronicle.coverImage.sceneDescription,
+    });
+  }
+  if (!chronicle.imageRefs?.refs) return;
+  for (const ref of chronicle.imageRefs.refs) {
+    if (ref.type === "prompt_request" && ref.generatedImageId && ref.sceneDescription) {
+      available.push({
+        chronicleId: brief.chronicleId,
+        chronicleTitle: brief.chronicleTitle,
+        imageSource: "image_ref",
+        imageRefId: ref.refId,
+        imageId: ref.generatedImageId,
+        sceneDescription: ref.sceneDescription,
+      });
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -745,7 +776,6 @@ export default function EraNarrativeViewer({
   // Load record from IndexedDB
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     void getEraNarrative(narrativeId).then((r) => {
       if (cancelled) return;
       setRecord(r ?? null);
@@ -762,14 +792,15 @@ export default function EraNarrativeViewer({
     };
   }, [narrativeId, startPolling]);
 
+  const threadSynthesis = record?.threadSynthesis;
   const threadNameMap = useMemo(() => {
-    if (!record?.threadSynthesis) return {};
+    if (!threadSynthesis) return {};
     const map: Record<string, string> = {};
-    for (const t of record.threadSynthesis.threads) {
+    for (const t of threadSynthesis.threads) {
       map[t.threadId] = t.name;
     }
     return map;
-  }, [record?.threadSynthesis]);
+  }, [threadSynthesis]);
 
   // Resolve versioned content
   const resolved = useMemo(() => {
@@ -777,14 +808,12 @@ export default function EraNarrativeViewer({
     return resolveActiveContent(record);
   }, [record]);
 
-  // Sync selectedVersionId to activeVersionId
-  useEffect(() => {
-    if (resolved.activeVersionId) {
-      if (!selectedVersionId || !resolved.versions.some((v) => v.versionId === selectedVersionId)) {
-        setSelectedVersionId(resolved.activeVersionId);
-      }
+  // Sync selectedVersionId to activeVersionId during render
+  if (resolved.activeVersionId) {
+    if (!selectedVersionId || !resolved.versions.some((v) => v.versionId === selectedVersionId)) {
+      setSelectedVersionId(resolved.activeVersionId);
     }
-  }, [resolved.activeVersionId, resolved.versions.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   const viewedVersion =
     resolved.versions.find((v) => v.versionId === selectedVersionId) ||
@@ -955,31 +984,7 @@ export default function EraNarrativeViewer({
     for (const brief of record.prepBriefs) {
       const chronicle = await store.loadChronicle(brief.chronicleId);
       if (!chronicle) continue;
-
-      if (chronicle.coverImage?.generatedImageId && chronicle.coverImage?.sceneDescription) {
-        available.push({
-          chronicleId: brief.chronicleId,
-          chronicleTitle: brief.chronicleTitle,
-          imageSource: "cover",
-          imageId: chronicle.coverImage.generatedImageId,
-          sceneDescription: chronicle.coverImage.sceneDescription,
-        });
-      }
-
-      if (chronicle.imageRefs?.refs) {
-        for (const ref of chronicle.imageRefs.refs) {
-          if (ref.type === "prompt_request" && ref.generatedImageId && ref.sceneDescription) {
-            available.push({
-              chronicleId: brief.chronicleId,
-              chronicleTitle: brief.chronicleTitle,
-              imageSource: "image_ref",
-              imageRefId: ref.refId,
-              imageId: ref.generatedImageId,
-              sceneDescription: ref.sceneDescription,
-            });
-          }
-        }
-      }
+      collectAvailableImages(brief, chronicle, available);
     }
 
     dispatchEraNarrativeStep("image_refs", { availableChronicleImages: available });

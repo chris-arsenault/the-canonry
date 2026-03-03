@@ -13,7 +13,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useChronicleStore } from "../lib/db/chronicleStore";
 import { useEraNarrative } from "../hooks/useEraNarrative";
-import type { UseEraNarrativeReturn, EraNarrativeConfig } from "../hooks/useEraNarrative";
+import type { EraNarrativeConfig } from "../hooks/useEraNarrative";
 import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
 import { useEraTemporalInfo } from "../lib/db/indexSelectors";
 import { useFloatingPillStore } from "../lib/db/floatingPillStore";
@@ -100,7 +100,7 @@ interface EraNarrativeModalProps {
   projectId: string;
   simulationRunId: string;
   historianConfig: HistorianConfig;
-  onEnqueue: UseEraNarrativeReturn extends { startNarrative: infer F } ? Parameters<typeof useEraNarrative>[0] : never;
+  onEnqueue: Parameters<typeof useEraNarrative>[0];
   resumeNarrativeId?: string;
   styleLibrary?: StyleLibrary;
 }

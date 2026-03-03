@@ -3,10 +3,19 @@
  */
 
 import React, { useState, useMemo } from "react";
-import PropTypes from "prop-types";
 import "./LogStream.css";
 
-export default function LogStream({ logs, onClear }) {
+interface LogEntry {
+  level: string;
+  message: string;
+}
+
+interface LogStreamProps {
+  logs: LogEntry[];
+  onClear: () => void;
+}
+
+export default function LogStream({ logs, onClear }: Readonly<LogStreamProps>) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [filter, setFilter] = useState("all");
 
@@ -58,13 +67,13 @@ export default function LogStream({ logs, onClear }) {
         <>
           <div className="ls-filter-bar">
             <div className="lw-filter-tabs">
-              {["all", "info", "warn", "error"].map((f) => (
+              {(["all", "info", "warn", "error"] as const).map((f) => (
                 <button
                   key={f}
                   className={`lw-filter-tab ${filter === f ? "active" : ""}`}
                   onClick={() => setFilter(f)}
                 >
-                  {f} ({logCounts[f] || 0})
+                  {f} ({logCounts[f]})
                 </button>
               ))}
             </div>
@@ -81,8 +90,3 @@ export default function LogStream({ logs, onClear }) {
     </div>
   );
 }
-
-LogStream.propTypes = {
-  logs: PropTypes.array,
-  onClear: PropTypes.func,
-};

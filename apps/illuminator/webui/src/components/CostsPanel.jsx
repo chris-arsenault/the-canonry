@@ -119,7 +119,6 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
   const [simulationCosts, setSimulationCosts] = useState(null);
   const [projectCosts, setProjectCosts] = useState(null);
   const [allTimeCosts, setAllTimeCosts] = useState(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Track running tasks to know when to refresh
   const runningTaskCount = useMemo(() => {
@@ -153,19 +152,13 @@ export default function CostsPanel({ queue, projectId, simulationRunId }) {
     }
   }, [projectId, simulationRunId]);
 
-  // Fetch on mount and when dependencies change
+  // Fetch on mount and debounced when queue changes (task completes)
   useEffect(() => {
-    fetchCosts();
-  }, [fetchCosts, refreshTrigger]);
-
-  // Refresh when queue changes (tasks complete)
-  useEffect(() => {
-    // Only refresh when queue length decreases (task completed)
     const timer = setTimeout(() => {
-      setRefreshTrigger((prev) => prev + 1);
+      void fetchCosts();
     }, 500);
     return () => clearTimeout(timer);
-  }, [queue.length, runningTaskCount]);
+  }, [fetchCosts, queue.length, runningTaskCount]);
 
   // Calculate pending queue costs (estimated)
   const queueCosts = useMemo(() => {

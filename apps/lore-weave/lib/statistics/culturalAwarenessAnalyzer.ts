@@ -127,7 +127,7 @@ export class CulturalAwarenessAnalyzer {
 
     let sameCulture = 0;
     let crossCulture = 0;
-    const byKind: Record<string, { same: number; cross: number }> = {};
+    const byKind: Partial<Record<string, { same: number; cross: number }>> = {};
 
     for (const rel of socialRels) {
       const src = graph.getEntity(rel.src);
@@ -307,7 +307,7 @@ export class CulturalAwarenessAnalyzer {
     const entities = graph.getEntities();
 
     const byCulture: Record<string, number> = {};
-    const byKindAndCulture: Record<string, Record<string, number>> = {};
+    const byKindAndCulture: Partial<Record<string, Record<string, number>>> = {};
 
     for (const entity of entities) {
       const culture = entity.culture || 'unknown';

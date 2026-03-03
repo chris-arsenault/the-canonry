@@ -18,7 +18,7 @@ function describeSimpleCount(metric: SimpleCountMetric): string {
       return parts.join('');
     }
     case 'relationship_count':
-      return metric.relationshipKinds?.join('/') ?? 'relationships';
+      return metric.relationshipKinds.join('/');
     case 'tag_count':
       return `tags:${metric.tags.join('/')}`;
     case 'total_entities':
@@ -39,7 +39,7 @@ function describeCountMetric(metric: Metric): string | undefined {
       return `${parts.join('')} count`;
     }
     case 'relationship_count':
-      return `${metric.relationshipKinds?.join('/') ?? 'all'} relationships`;
+      return `${metric.relationshipKinds.join('/')} relationships`;
     case 'tag_count':
       return `entities with ${metric.tags.join('/')} tags`;
     case 'total_entities':
@@ -47,7 +47,7 @@ function describeCountMetric(metric: Metric): string | undefined {
     case 'constant':
       return 'constant';
     case 'connection_count':
-      return `${metric.relationshipKinds?.join('/') ?? 'all'} connections`;
+      return `${metric.relationshipKinds.join('/')} connections`;
     default:
       return undefined;
   }
@@ -77,9 +77,9 @@ function describeEvolutionMetric(metric: Metric): string | undefined {
 function describeProminenceMetric(metric: Metric): string | undefined {
   switch (metric.type) {
     case 'prominence_multiplier':
-      return `prominence multiplier (${metric.mode ?? 'success_chance'})`;
+      return `prominence multiplier (${metric.mode})`;
     case 'neighbor_prominence':
-      return `neighbor prominence (${metric.relationshipKinds?.join('/') ?? 'all'} connections)`;
+      return `neighbor prominence (${metric.relationshipKinds.join('/')} connections)`;
     default:
       return undefined;
   }

@@ -19,49 +19,49 @@ import type { DomainUIConfig } from './ui.js';
 
 export interface TagDefinition {
   tag: string;
-  category?: string;
-  rarity?: string;
-  description?: string;
+  category: string;
+  rarity: string;
+  description: string;
   /** True if this tag is defined by the framework and is read-only in editors */
-  isFramework?: boolean;
-  usageCount?: number;
-  templates?: string[];
-  entityKinds?: string[];
-  minUsage?: number;
-  maxUsage?: number;
-  relatedTags?: string[];
-  conflictingTags?: string[];
+  isFramework: boolean;
+  usageCount: number;
+  templates: string[];
+  entityKinds: string[];
+  minUsage: number;
+  maxUsage: number;
+  relatedTags: string[];
+  conflictingTags: string[];
 }
 
 export interface AxisDefinition {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   lowTag: string;
   highTag: string;
 }
 
 export interface CanonrySchemaSlice {
-  id?: string;
-  name?: string;
-  version?: string;
+  id: string;
+  name: string;
+  version: string;
   entityKinds: EntityKindDefinition[];
   relationshipKinds: RelationshipKindDefinition[];
   cultures: CultureDefinition[];
-  tagRegistry?: TagDefinition[];
-  axisDefinitions?: AxisDefinition[];
-  uiConfig?: DomainUIConfig;
+  tagRegistry: TagDefinition[];
+  axisDefinitions: AxisDefinition[];
+  uiConfig: DomainUIConfig;
 }
 
 export interface CanonryProject extends CanonrySchemaSlice {
-  seedEntities?: SeedEntity[];
-  seedRelationships?: SeedRelationship[];
-  eras?: CanonryEraConfig[];
-  pressures?: CanonryPressureConfig[];
-  generators?: CanonryGeneratorConfig[];
-  systems?: CanonrySystemConfig[];
-  actions?: CanonryActionConfig[];
-  distributionTargets?: CanonryDistributionTargets | null;
+  seedEntities: SeedEntity[];
+  seedRelationships: SeedRelationship[];
+  eras: CanonryEraConfig[];
+  pressures: CanonryPressureConfig[];
+  generators: CanonryGeneratorConfig[];
+  systems: CanonrySystemConfig[];
+  actions: CanonryActionConfig[];
+  distributionTargets: CanonryDistributionTargets;
 }
 
 // =============================================================================
@@ -70,20 +70,20 @@ export interface CanonryProject extends CanonrySchemaSlice {
 
 export interface CanonryConfigItem {
   id: string;
-  name?: string;
-  description?: string;
-  enabled?: boolean;
-  metadata?: Record<string, unknown>;
+  name: string;
+  description: string;
+  enabled: boolean;
+  metadata: Record<string, unknown>;
   [key: string]: unknown;
 }
 
 /** Era config uses 'summary' instead of 'description' - user-entered, not LLM-generated */
 export interface CanonryEraConfig {
   id: string;
-  name?: string;
-  summary?: string;
-  enabled?: boolean;
-  metadata?: Record<string, unknown>;
+  name: string;
+  summary: string;
+  enabled: boolean;
+  metadata: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -101,25 +101,25 @@ export type CanonryDistributionTargets = Record<string, unknown>;
 export type CanonrySimulationResults = WorldOutput;
 
 export interface CanonrySimulationState {
-  status?: string;
-  logs?: unknown[];
-  result?: CanonrySimulationResults | null;
-  stateExport?: CanonrySimulationResults | null;
-  error?: { message?: string; phase?: string } | null;
+  status: string;
+  logs: unknown[];
+  result: CanonrySimulationResults | null;
+  stateExport: CanonrySimulationResults | null;
+  error: { message: string; phase: string } | null;
   [key: string]: unknown;
 }
 
 export interface LoreWeaveRunScorePayload {
-  attempt?: number;
+  attempt: number;
   runScore: number;
-  runScoreMax?: number;
-  runScoreDetails?: {
-    templates?: { used: number; total: number; weight: number };
-    actions?: { used: number; total: number; weight: number };
-    systems?: { used: number; total: number; weight: number };
+  runScoreMax: number;
+  runScoreDetails: {
+    templates: { used: number; total: number; weight: number };
+    actions: { used: number; total: number; weight: number };
+    systems: { used: number; total: number; weight: number };
   };
-  simulationResults?: CanonrySimulationResults | null;
-  simulationState?: CanonrySimulationState | null;
+  simulationResults: CanonrySimulationResults | null;
+  simulationState: CanonrySimulationState | null;
 }
 
 // =============================================================================
@@ -127,68 +127,68 @@ export interface LoreWeaveRunScorePayload {
 // =============================================================================
 
 export interface MfeNavProps {
-  projectId?: string;
-  activeSection?: string | null;
-  onSectionChange?: (section: string) => void;
+  projectId: string;
+  activeSection: string;
+  onSectionChange: (section: string) => void;
 }
 
 export interface NameForgeRemoteProps extends MfeNavProps {
   schema: CanonrySchemaSlice;
-  generators?: CanonryGeneratorConfig[];
-  onNamingDataChange?: (cultureId: string, naming: CultureNamingData) => void;
-  onAddTag?: (tag: TagDefinition) => void;
+  generators: CanonryGeneratorConfig[];
+  onNamingDataChange: (cultureId: string, naming: CultureNamingData) => void;
+  onAddTag: (tag: TagDefinition) => void;
 }
 
 export interface CosmographerRemoteProps extends MfeNavProps {
   schema: CanonrySchemaSlice;
-  axisDefinitions?: AxisDefinition[];
-  seedEntities?: SeedEntity[];
-  seedRelationships?: SeedRelationship[];
-  onEntityKindsChange?: (entityKinds: EntityKindDefinition[]) => void;
-  onCulturesChange?: (cultures: CultureDefinition[]) => void;
-  onAxisDefinitionsChange?: (axisDefinitions: AxisDefinition[]) => void;
-  onTagRegistryChange?: (tagRegistry: TagDefinition[]) => void;
-  onSeedEntitiesChange?: (seedEntities: SeedEntity[]) => void;
-  onSeedRelationshipsChange?: (seedRelationships: SeedRelationship[]) => void;
-  onAddTag?: (tag: TagDefinition) => void;
-  schemaUsage?: Record<string, unknown>;
+  axisDefinitions: AxisDefinition[];
+  seedEntities: SeedEntity[];
+  seedRelationships: SeedRelationship[];
+  onEntityKindsChange: (entityKinds: EntityKindDefinition[]) => void;
+  onCulturesChange: (cultures: CultureDefinition[]) => void;
+  onAxisDefinitionsChange: (axisDefinitions: AxisDefinition[]) => void;
+  onTagRegistryChange: (tagRegistry: TagDefinition[]) => void;
+  onSeedEntitiesChange: (seedEntities: SeedEntity[]) => void;
+  onSeedRelationshipsChange: (seedRelationships: SeedRelationship[]) => void;
+  onAddTag: (tag: TagDefinition) => void;
+  schemaUsage: Record<string, unknown>;
 }
 
 export interface CoherenceEngineRemoteProps extends MfeNavProps {
   schema: CanonrySchemaSlice;
-  eras?: CanonryEraConfig[];
-  pressures?: CanonryPressureConfig[];
-  generators?: CanonryGeneratorConfig[];
-  actions?: CanonryActionConfig[];
-  systems?: CanonrySystemConfig[];
-  onErasChange?: (eras: CanonryEraConfig[]) => void;
-  onPressuresChange?: (pressures: CanonryPressureConfig[]) => void;
-  onGeneratorsChange?: (generators: CanonryGeneratorConfig[]) => void;
-  onActionsChange?: (actions: CanonryActionConfig[]) => void;
-  onSystemsChange?: (systems: CanonrySystemConfig[]) => void;
+  eras: CanonryEraConfig[];
+  pressures: CanonryPressureConfig[];
+  generators: CanonryGeneratorConfig[];
+  actions: CanonryActionConfig[];
+  systems: CanonrySystemConfig[];
+  onErasChange: (eras: CanonryEraConfig[]) => void;
+  onPressuresChange: (pressures: CanonryPressureConfig[]) => void;
+  onGeneratorsChange: (generators: CanonryGeneratorConfig[]) => void;
+  onActionsChange: (actions: CanonryActionConfig[]) => void;
+  onSystemsChange: (systems: CanonrySystemConfig[]) => void;
 }
 
 export interface LoreWeaveRemoteProps extends MfeNavProps {
   schema: CanonrySchemaSlice;
-  eras?: CanonryEraConfig[];
-  pressures?: CanonryPressureConfig[];
-  generators?: CanonryGeneratorConfig[];
-  systems?: CanonrySystemConfig[];
-  actions?: CanonryActionConfig[];
-  seedEntities?: SeedEntity[];
-  seedRelationships?: SeedRelationship[];
-  distributionTargets?: CanonryDistributionTargets | null;
-  onDistributionTargetsChange?: (targets: CanonryDistributionTargets | null) => void;
-  onViewInArchivist?: (results: CanonrySimulationResults) => void;
-  simulationResults?: CanonrySimulationResults | null;
-  onSimulationResultsChange?: (results: CanonrySimulationResults | null) => void;
-  simulationState?: CanonrySimulationState | null;
-  onSimulationStateChange?: (state: CanonrySimulationState | null) => void;
-  onSearchRunScored?: (payload: LoreWeaveRunScorePayload) => void;
+  eras: CanonryEraConfig[];
+  pressures: CanonryPressureConfig[];
+  generators: CanonryGeneratorConfig[];
+  systems: CanonrySystemConfig[];
+  actions: CanonryActionConfig[];
+  seedEntities: SeedEntity[];
+  seedRelationships: SeedRelationship[];
+  distributionTargets: CanonryDistributionTargets;
+  onDistributionTargetsChange: (targets: CanonryDistributionTargets) => void;
+  onViewInArchivist: (results: CanonrySimulationResults) => void;
+  simulationResults: CanonrySimulationResults | null;
+  onSimulationResultsChange: (results: CanonrySimulationResults | null) => void;
+  simulationState: CanonrySimulationState | null;
+  onSimulationStateChange: (state: CanonrySimulationState | null) => void;
+  onSearchRunScored: (payload: LoreWeaveRunScorePayload) => void;
 }
 
 export interface ArchivistRemoteProps {
-  worldData?: Record<string, unknown> | null;
-  loreData?: Record<string, unknown> | null;
-  imageData?: Record<string, unknown> | null;
+  worldData: Record<string, unknown>;
+  loreData: Record<string, unknown>;
+  imageData: Record<string, unknown>;
 }

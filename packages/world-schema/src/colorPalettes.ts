@@ -15,11 +15,11 @@ export interface ColorPalette {
   /** Display name */
   name: string;
   /** Human-readable description */
-  description?: string;
+  description: string;
   /** Prompt fragment for color direction (injected into image prompt) */
   promptFragment: string;
   /** Representative hex colors for UI swatch display (3-5 colors) */
-  swatchColors?: string[];
+  swatchColors: string[];
 }
 
 export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [

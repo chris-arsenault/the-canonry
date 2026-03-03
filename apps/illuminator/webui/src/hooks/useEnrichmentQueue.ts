@@ -208,9 +208,9 @@ function maybeAutoReconnect(
   attemptsMap: Map<string, number>,
   pendingRetries: Set<string>,
   config: unknown,
-  reconnectInProgressRef: React.MutableRefObject<boolean>,
+  reconnectInProgressRef: React.RefObject<boolean>,
   resetWorkerPool: () => void,
-  initializeRef: React.MutableRefObject<((config: unknown) => void) | null>
+  initializeRef: React.RefObject<((config: unknown) => void) | null>
 ): void {
   if (!message.error?.includes("Worker not initialized")) return;
   const attempts = attemptsMap.get(message.taskId) || 0;
@@ -588,7 +588,7 @@ export function useEnrichmentQueue(
         }
       }
     },
-    [handleMessage]
+    [handleMessage, processNextForWorker]
   );
 
   useEffect(() => {

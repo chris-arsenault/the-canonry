@@ -1,4 +1,4 @@
-import type { ImageBackend, ImageEntryMetadata, ImageSize } from '../types';
+import type { ImageBackend, ImageDimensions, ImageEntryMetadata, ImageGenerationInfo, ImageEntityInfo, ImageSize } from '../types';
 
 const DB_NAME = 'illuminator';
 const IMAGES_STORE = 'images';
@@ -36,21 +36,53 @@ interface BlobRecord {
   blob: Blob;
 }
 
+/** Raw shape stored in IDB — flat fields from Illuminator's Dexie writes. */
 interface ImageRecord {
   imageId: string;
-  entityId?: string;
-  entityName?: string;
-  entityKind?: string;
-  entityCulture?: string;
-  width?: number;
-  height?: number;
-  aspect?: 'portrait' | 'landscape' | 'square';
-  originalPrompt?: string;
-  finalPrompt?: string;
-  revisedPrompt?: string;
-  generatedAt?: number;
-  model?: string;
-  size?: number;
+  entityId: string | null;
+  entityName: string | null;
+  entityKind: string | null;
+  entityCulture: string | null;
+  width: number | null;
+  height: number | null;
+  aspect: 'portrait' | 'landscape' | 'square' | null;
+  originalPrompt: string | null;
+  finalPrompt: string | null;
+  revisedPrompt: string | null;
+  generatedAt: number | null;
+  model: string | null;
+  size: number | null;
+}
+
+function buildEntity(r: ImageRecord): ImageEntityInfo | null {
+  if (!r.entityId || !r.entityName || !r.entityKind) return null;
+  return { id: r.entityId, name: r.entityName, kind: r.entityKind, culture: r.entityCulture ?? '' };
+}
+
+function buildDimensions(r: ImageRecord): ImageDimensions | null {
+  if (r.width == null || r.height == null || !r.aspect) return null;
+  return { width: r.width, height: r.height, aspect: r.aspect };
+}
+
+function buildGeneration(r: ImageRecord): ImageGenerationInfo | null {
+  if (!r.originalPrompt && !r.finalPrompt) return null;
+  return {
+    originalPrompt: r.originalPrompt ?? '',
+    finalPrompt: r.finalPrompt ?? '',
+    revisedPrompt: r.revisedPrompt ?? '',
+    generatedAt: r.generatedAt ?? 0,
+    model: r.model ?? '',
+  };
+}
+
+function recordToMetadata(r: ImageRecord): ImageEntryMetadata {
+  return {
+    imageId: r.imageId,
+    entity: buildEntity(r),
+    dimensions: buildDimensions(r),
+    generation: buildGeneration(r),
+    size: r.size,
+  };
 }
 
 function getRecord<T>(db: IDBDatabase, storeName: string, key: string): Promise<T | null> {
@@ -160,22 +192,7 @@ export class IndexedDBBackend implements ImageBackend {
     for (let i = 0; i < imageIds.length; i++) {
       const record = records[i];
       if (record) {
-        result.set(imageIds[i], {
-          imageId: record.imageId,
-          entityId: record.entityId,
-          entityName: record.entityName,
-          entityKind: record.entityKind,
-          entityCulture: record.entityCulture,
-          width: record.width,
-          height: record.height,
-          aspect: record.aspect,
-          originalPrompt: record.originalPrompt,
-          finalPrompt: record.finalPrompt,
-          revisedPrompt: record.revisedPrompt,
-          generatedAt: record.generatedAt,
-          model: record.model,
-          size: record.size,
-        });
+        result.set(imageIds[i], recordToMetadata(record));
       }
     }
 

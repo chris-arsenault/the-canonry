@@ -72,10 +72,10 @@ AVOID: Redemption arcs. Last-minute saves. Villains to blame. The tragedy is tha
     titleGuidance: 'The title carries the weight of a thing already decided. It names the fall, the figure, or the flaw — often compressed into a single phrase. Elegiac register: the sound of aftermath, not anticipation. Tragedy is not about surprise; the title is the spoiler the reader accepts because watching the inevitable arrive is the point.',
 
     roles: [
-      { role: 'doomed', count: { min: 1, max: 1 }, description: 'The great figure who will fall - their greatness and their flaw must both be real' },
-      { role: 'flaw', count: { min: 0, max: 1 }, description: 'The fatal weakness - hubris, rigidity, blind spot. May be embodied in a choice, belief, or relationship' },
-      { role: 'enabler', count: { min: 0, max: 1 }, description: 'Those who feed the destruction - sycophants, or simply those who don\'t say no' },
-      { role: 'witness', count: { min: 0, max: 1 }, description: 'Who survives to tell the tale, to carry the memory' },
+      { role: 'doomed', count: { min: 1, max: 1 }, description: 'The great figure who will fall - their greatness and their flaw must both be real', selectionCriteria: '' },
+      { role: 'flaw', count: { min: 0, max: 1 }, description: 'The fatal weakness - hubris, rigidity, blind spot. May be embodied in a choice, belief, or relationship', selectionCriteria: '' },
+      { role: 'enabler', count: { min: 0, max: 1 }, description: 'Those who feed the destruction - sycophants, or simply those who don\'t say no', selectionCriteria: '' },
+      { role: 'witness', count: { min: 0, max: 1 }, description: 'Who survives to tell the tale, to carry the memory', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -146,10 +146,10 @@ AVOID: Cheating. Clues the reader couldn't have noticed. Revelations that come f
     titleGuidance: 'The title should function twice: innocently on first encounter, devastatingly on re-read. Name the clue hidden in plain sight, the detail that seemed ordinary, the phrase that turns out to mean something else. Simple surface, specific enough to be the key. After the revelation, the reader should look at the title and feel it click.',
 
     roles: [
-      { role: 'investigator', count: { min: 1, max: 1 }, description: 'The seeker of truth - we follow their attention, share their mistakes' },
-      { role: 'mystery', count: { min: 1, max: 1 }, description: 'What must be solved - crime, disappearance, inexplicable event' },
-      { role: 'suspect', count: { min: 1, max: 2 }, description: 'Plausible but wrong answers - red herrings that feel real' },
-      { role: 'culprit', count: { min: 1, max: 1 }, description: 'The true answer - present from the start, hidden in plain sight' },
+      { role: 'investigator', count: { min: 1, max: 1 }, description: 'The seeker of truth - we follow their attention, share their mistakes', selectionCriteria: '' },
+      { role: 'mystery', count: { min: 1, max: 1 }, description: 'What must be solved - crime, disappearance, inexplicable event', selectionCriteria: '' },
+      { role: 'suspect', count: { min: 1, max: 2 }, description: 'Plausible but wrong answers - red herrings that feel real', selectionCriteria: '' },
+      { role: 'culprit', count: { min: 1, max: 1 }, description: 'The true answer - present from the start, hidden in plain sight', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -225,12 +225,12 @@ AVOID: Easy victories. Luck over virtue. Anticlimactic discovery. Treasure that'
     titleGuidance: 'The title should carry the pull of the thing sought — name the treasure, the legendary place, or the threshold that must be crossed. The register is reverent and hungry: the way seekers speak about what they have spent their lives pursuing. A named object is more compelling than a category; specificity creates desire.',
 
     roles: [
-      { role: 'treasure', count: { min: 1, max: 1 }, description: 'The artifact sought - not just valuable but meaningful, with history and power' },
-      { role: 'seeker', count: { min: 1, max: 2 }, description: 'Those who pursue - defined by why they seek and what they\'ll sacrifice' },
-      { role: 'guardian', count: { min: 0, max: 1 }, description: 'What protects the treasure - may be creature, trap, curse, or test' },
-      { role: 'rival', count: { min: 0, max: 1 }, description: 'Competing seeker - their presence raises stakes and reveals character' },
-      { role: 'resting-place', count: { min: 0, max: 1 }, description: 'Where the treasure waits - the final destination, earned' },
-      { role: 'the-price', count: { min: 0, max: 1 }, description: 'The rule, curse, ability, or consequence bound to the treasure. What possessing it demands. The cost that makes the seeker hesitate' },
+      { role: 'treasure', count: { min: 1, max: 1 }, description: 'The artifact sought - not just valuable but meaningful, with history and power', selectionCriteria: '' },
+      { role: 'seeker', count: { min: 1, max: 2 }, description: 'Those who pursue - defined by why they seek and what they\'ll sacrifice', selectionCriteria: '' },
+      { role: 'guardian', count: { min: 0, max: 1 }, description: 'What protects the treasure - may be creature, trap, curse, or test', selectionCriteria: '' },
+      { role: 'rival', count: { min: 0, max: 1 }, description: 'Competing seeker - their presence raises stakes and reveals character', selectionCriteria: '' },
+      { role: 'resting-place', count: { min: 0, max: 1 }, description: 'Where the treasure waits - the final destination, earned', selectionCriteria: '' },
+      { role: 'the-price', count: { min: 0, max: 1 }, description: 'The rule, curse, ability, or consequence bound to the treasure. What possessing it demands. The cost that makes the seeker hesitate', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -301,11 +301,11 @@ AVOID: Jump scares. Gore without meaning. Easy cures. Heroes who don't suffer. T
     titleGuidance: 'Name the specific thing that carries the curse — the object, the place, or the sensation of wrongness. Concrete nouns are more unsettling than abstract ones. The title should feel inert on the surface, the way a cursed object looks harmless on a shelf. The dread is in what the reader brings back to it after reading.',
 
     roles: [
-      { role: 'artifact', count: { min: 1, max: 1 }, description: 'The cursed object - beautiful and terrible, its appeal is part of the trap' },
-      { role: 'victim', count: { min: 1, max: 1 }, description: 'Present-day possessor - we watch them enter the pattern' },
-      { role: 'origin', count: { min: 0, max: 1 }, description: 'Who or what created the curse - the wronged, the sacrifice, the malevolence' },
-      { role: 'previous-owner', count: { min: 1, max: 2 }, description: 'Past victims whose fate foreshadows the present' },
-      { role: 'the-binding', count: { min: 0, max: 1 }, description: 'The rule, power, or event that created the curse - not a person but the mechanism itself. The logic that makes the pattern repeat' },
+      { role: 'artifact', count: { min: 1, max: 1 }, description: 'The cursed object - beautiful and terrible, its appeal is part of the trap', selectionCriteria: '' },
+      { role: 'victim', count: { min: 1, max: 1 }, description: 'Present-day possessor - we watch them enter the pattern', selectionCriteria: '' },
+      { role: 'origin', count: { min: 0, max: 1 }, description: 'Who or what created the curse - the wronged, the sacrifice, the malevolence', selectionCriteria: '' },
+      { role: 'previous-owner', count: { min: 1, max: 2 }, description: 'Past victims whose fate foreshadows the present', selectionCriteria: '' },
+      { role: 'the-binding', count: { min: 0, max: 1 }, description: 'The rule, power, or event that created the curse - not a person but the mechanism itself. The logic that makes the pattern repeat', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -373,11 +373,11 @@ AVOID: Privileging one generation as "the real story." Sentimentality about ance
     titleGuidance: 'The title names what endured across generations — a place, a family name, an object, a tradition. It should carry the particular melancholy of things that outlast the people who made them. Retrospective and institutional register, like a plaque on a building or the name of an estate. Time should be felt in the title even if no time word appears.',
 
     roles: [
-      { role: 'artifact', count: { min: 1, max: 1 }, description: 'The object that passes through time - the true protagonist, carrying accumulated meaning' },
-      { role: 'first-generation', count: { min: 1, max: 1 }, description: 'Origin point - who made it, found it, first held it' },
-      { role: 'middle-generation', count: { min: 1, max: 2 }, description: 'Those between - who carried, changed, lost, or saved it' },
-      { role: 'current-holder', count: { min: 1, max: 1 }, description: 'Present moment - facing the choice of what to do with inherited meaning' },
-      { role: 'the-obligation', count: { min: 0, max: 1 }, description: 'The law, tradition, ability, or historical event bound to the artifact. What each generation inherits alongside the object - duty, prohibition, or power' },
+      { role: 'artifact', count: { min: 1, max: 1 }, description: 'The object that passes through time - the true protagonist, carrying accumulated meaning', selectionCriteria: '' },
+      { role: 'first-generation', count: { min: 1, max: 1 }, description: 'Origin point - who made it, found it, first held it', selectionCriteria: '' },
+      { role: 'middle-generation', count: { min: 1, max: 2 }, description: 'Those between - who carried, changed, lost, or saved it', selectionCriteria: '' },
+      { role: 'current-holder', count: { min: 1, max: 1 }, description: 'Present moment - facing the choice of what to do with inherited meaning', selectionCriteria: '' },
+      { role: 'the-obligation', count: { min: 0, max: 1 }, description: 'The law, tradition, ability, or historical event bound to the artifact. What each generation inherits alongside the object - duty, prohibition, or power', selectionCriteria: '' },
     ],
 
     pacing: {

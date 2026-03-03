@@ -105,10 +105,10 @@ function encodeConfig(domain: NamingDomain): ConfigPoint {
     vowels,
     templates,
     clusters,
-    apostropheRate: domain.style?.apostropheRate ?? 0,
-    hyphenRate: domain.style?.hyphenRate ?? 0,
-    lengthMin: domain.phonology.lengthRange?.[0] ?? 4,
-    lengthMax: domain.phonology.lengthRange?.[1] ?? 12,
+    apostropheRate: domain.style.apostropheRate,
+    hyphenRate: domain.style.hyphenRate,
+    lengthMin: domain.phonology.lengthRange[0],
+    lengthMax: domain.phonology.lengthRange[1],
   };
 }
 
@@ -405,7 +405,7 @@ export async function bayesianOptimization(
   };
 
   const totalIterations = optimizationSettings.iterations ?? 50;
-  const useSeparation = siblingDomains.length > 0 && (fitnessWeights.separation ?? 0) > 0;
+  const useSeparation = siblingDomains.length > 0 && (fitnessWeights.separation) > 0;
 
   console.log("\n=== Bayesian Optimization (TPE) ===");
   console.log(`Initial samples: ${tpeSettings.nInitial}`);
@@ -443,32 +443,26 @@ export async function bayesianOptimization(
   let bestFitness = initialFitness;
   let bestDomain = initialDomain;
 
+  const evalDomains: NamingDomain[] = useSeparation ? siblingDomains : [];
+  const emptyTheta: ParameterVector = { consonantWeights: [], vowelWeights: [], templateWeights: [], structureWeights: [], apostropheRate: 0, hyphenRate: 0, lengthMin: 0, lengthMax: 0 };
+
+  async function evaluate(domain: NamingDomain, iter: number): Promise<EvaluationResult> {
+    return computeFitness(domain, emptyTheta, validationSettings, fitnessWeights, evalDomains, iter, false);
+  }
+
+  const track = (point: ParameterVector, domain: NamingDomain, result: EvaluationResult) => {
+    observations.push({ point, fitness: result.fitness, domain });
+    evaluations.push(result);
+    convergenceHistory.push(Math.max(bestFitness, result.fitness));
+    if (result.fitness > bestFitness) { bestFitness = result.fitness; bestDomain = domain; }
+  };
+
   // Phase 1: Random exploration
   console.log("\nPhase 1: Random exploration...");
   for (let i = 0; i < tpeSettings.nInitial - 1; i++) {
     const point = sampleRandom(initialDomain, rng);
     const domain = decodeConfig(point, initialDomain);
-
-    const evalResult = await computeFitness(
-      domain,
-      { consonantWeights: [], vowelWeights: [], templateWeights: [], structureWeights: [], apostropheRate: 0, hyphenRate: 0, lengthMin: 0, lengthMax: 0 },
-      validationSettings,
-      fitnessWeights,
-      useSeparation ? siblingDomains : [],
-      i + 1,
-      false
-    );
-
-    observations.push({ point, fitness: evalResult.fitness, domain });
-    evaluations.push(evalResult);
-    convergenceHistory.push(Math.max(bestFitness, evalResult.fitness));
-
-    if (evalResult.fitness > bestFitness) {
-      bestFitness = evalResult.fitness;
-      bestDomain = domain;
-      console.log(`  [${i + 1}] New best: ${bestFitness.toFixed(4)}`);
-    }
-
+    track(point, domain, await evaluate(domain, i + 1));
     process.stdout.write(`\r  Exploring ${i + 1}/${tpeSettings.nInitial - 1}`);
   }
   console.log();
@@ -478,33 +472,11 @@ export async function bayesianOptimization(
   for (let iter = tpeSettings.nInitial; iter < totalIterations; iter++) {
     const sorted = [...observations].sort((a, b) => b.fitness - a.fitness);
     const splitIdx = Math.max(1, Math.floor(sorted.length * tpeSettings.gamma));
-    const goodObs = sorted.slice(0, splitIdx);
-    const badObs = sorted.slice(splitIdx);
-
-    const bestCandidate = selectBestTPECandidate(goodObs, badObs, initialDomain, rng, tpeSettings.nCandidates);
-    const domain = decodeConfig(bestCandidate.point, initialDomain);
-
-    const evalResult = await computeFitness(
-      domain,
-      { consonantWeights: [], vowelWeights: [], templateWeights: [], structureWeights: [], apostropheRate: 0, hyphenRate: 0, lengthMin: 0, lengthMax: 0 },
-      validationSettings,
-      fitnessWeights,
-      useSeparation ? siblingDomains : [],
-      iter,
-      false
-    );
-
-    observations.push({ point: bestCandidate.point, fitness: evalResult.fitness, domain });
-    evaluations.push(evalResult);
-    convergenceHistory.push(Math.max(bestFitness, evalResult.fitness));
-
-    if (evalResult.fitness > bestFitness) {
-      bestFitness = evalResult.fitness;
-      bestDomain = domain;
-      console.log(`[${iter + 1}/${totalIterations}] New best: ${bestFitness.toFixed(4)} (EI: ${bestCandidate.ei.toFixed(2)})`);
-    } else if ((iter + 1) % 10 === 0) {
-      console.log(`[${iter + 1}/${totalIterations}] Best: ${bestFitness.toFixed(4)}, Current: ${evalResult.fitness.toFixed(4)}`);
-    }
+    const candidate = selectBestTPECandidate(sorted.slice(0, splitIdx), sorted.slice(splitIdx), initialDomain, rng, tpeSettings.nCandidates);
+    const domain = decodeConfig(candidate.point, initialDomain);
+    const result = await evaluate(domain, iter);
+    track(candidate.point, domain, result);
+    if (result.fitness >= bestFitness && (iter + 1) % 10 === 0) console.log(`[${iter + 1}/${totalIterations}] Best: ${bestFitness.toFixed(4)}`);
   }
 
   const improvement = bestFitness - initialFitness;

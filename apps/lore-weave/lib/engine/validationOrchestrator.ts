@@ -78,7 +78,7 @@ export class ValidationOrchestrator {
     }
 
     // Meta-entity formation
-    if (metaEntityConfigs && metaEntityConfigs.length > 0) {
+    if (metaEntityConfigs.length > 0) {
       console.log('✓ Meta-entity formation system initialized');
       metaEntityConfigs.forEach((cfg) => {
         console.log(`  - Registered ${cfg.name} formation`);

@@ -116,7 +116,7 @@ export function findSimilarClusters(
 export function analyzeDiversity(
   domain: NamingDomain,
   sampleSize: number = 500,
-  seed?: string
+  seed: string
 ): {
   uniqueStarts: number;
   uniqueEndings: number;

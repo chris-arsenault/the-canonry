@@ -45,16 +45,16 @@ export interface ClusterCriterion {
   weight: number;
 
   /** Optional threshold for this criterion */
-  threshold?: number;
+  threshold: number;
 
   /** For 'shared_relationship': the relationship kind to check */
-  relationshipKind?: string;
+  relationshipKind: string;
 
   /** For 'shared_relationship': direction to check ('src' = this entity is src, 'dst' = this entity is dst) */
-  direction?: 'src' | 'dst';
+  direction: 'src' | 'dst';
 
   /** For 'custom': custom predicate function */
-  predicate?: (e1: HardState, e2: HardState, graphView: WorldRuntime) => boolean;
+  predicate: (e1: HardState, e2: HardState, graphView: WorldRuntime) => boolean;
 }
 
 /**
@@ -65,7 +65,7 @@ export interface ClusterConfig {
   minSize: number;
 
   /** Maximum entities in a cluster (optional) */
-  maxSize?: number;
+  maxSize: number;
 
   /** Criteria for calculating similarity */
   criteria: ClusterCriterion[];
@@ -74,12 +74,42 @@ export interface ClusterConfig {
   minimumScore: number;
 
   /** Similarity threshold multiplier for adding to existing cluster (default: 0.7) */
-  clusterJoinThreshold?: number;
+  clusterJoinThreshold: number;
 }
 
 /**
  * Calculate similarity score between two entities based on criteria
  */
+type CriterionMatcher = (
+  e1: HardState, e2: HardState, criterion: ClusterCriterion, graphView: WorldRuntime
+) => boolean;
+
+const CRITERION_MATCHERS: Record<ClusterCriterionType, CriterionMatcher> = {
+  shared_relationship: (e1, e2, criterion, graphView) => {
+    const direction = criterion.direction;
+    const e1Related = graphView.getConnectedEntities(e1.id, criterion.relationshipKind, direction);
+    const e2Related = graphView.getConnectedEntities(e2.id, criterion.relationshipKind, direction);
+    const e1RelatedIds = new Set(e1Related.map(r => r.id));
+    return e2Related.some(r => e1RelatedIds.has(r.id));
+  },
+  shared_tags: (e1, e2, criterion) => {
+    const e1Tags = new Set(Object.keys(e1.tags));
+    const e2Tags = new Set(Object.keys(e2.tags));
+    const intersection = Array.from(e1Tags).filter(t => e2Tags.has(t)).length;
+    const union = new Set([...e1Tags, ...e2Tags]).size;
+    const jaccard = union > 0 ? intersection / union : 0;
+    return jaccard >= (criterion.threshold || 0.3);
+  },
+  temporal_proximity: (e1, e2, criterion) => {
+    const timeDiff = Math.abs(e1.createdAt - e2.createdAt);
+    return timeDiff <= (criterion.threshold || 30);
+  },
+  same_subtype: (e1, e2) => e1.subtype === e2.subtype,
+  same_culture: (e1, e2) => e1.culture === e2.culture,
+  custom: (e1, e2, criterion, graphView) =>
+    criterion.predicate(e1, e2, graphView),
+};
+
 export function calculateSimilarity(
   e1: HardState,
   e2: HardState,
@@ -90,55 +120,8 @@ export function calculateSimilarity(
   const matchedCriteria: string[] = [];
 
   for (const criterion of criteria) {
-    let matches = false;
-
-    switch (criterion.type) {
-      case 'shared_relationship': {
-        if (!criterion.relationshipKind) break;
-        const direction = criterion.direction || 'src';
-
-        const e1Related = graphView.getConnectedEntities(e1.id, criterion.relationshipKind, direction);
-        const e2Related = graphView.getConnectedEntities(e2.id, criterion.relationshipKind, direction);
-        const e1RelatedIds = new Set(e1Related.map(r => r.id));
-        matches = e2Related.some(r => e1RelatedIds.has(r.id));
-        break;
-      }
-
-      case 'shared_tags': {
-        const e1Tags = new Set(Object.keys(e1.tags || {}));
-        const e2Tags = new Set(Object.keys(e2.tags || {}));
-        const intersection = Array.from(e1Tags).filter(t => e2Tags.has(t)).length;
-        const union = new Set([...e1Tags, ...e2Tags]).size;
-        const jaccard = union > 0 ? intersection / union : 0;
-        matches = jaccard >= (criterion.threshold || 0.3);
-        break;
-      }
-
-      case 'temporal_proximity': {
-        const timeDiff = Math.abs(e1.createdAt - e2.createdAt);
-        matches = timeDiff <= (criterion.threshold || 30);
-        break;
-      }
-
-      case 'same_subtype': {
-        matches = e1.subtype === e2.subtype;
-        break;
-      }
-
-      case 'same_culture': {
-        matches = e1.culture === e2.culture;
-        break;
-      }
-
-      case 'custom': {
-        if (criterion.predicate) {
-          matches = criterion.predicate(e1, e2, graphView);
-        }
-        break;
-      }
-    }
-
-    if (matches) {
+    const matcher = CRITERION_MATCHERS[criterion.type];
+    if (matcher(e1, e2, criterion, graphView)) {
       score += criterion.weight;
       matchedCriteria.push(criterion.type);
     }
@@ -208,7 +191,7 @@ export function detectClusters(
 
   // Greedy clustering: try to add each entity to an existing cluster or create new one
   const clusters: Cluster[] = [];
-  const clusterJoinThreshold = config.clusterJoinThreshold ?? 0.7;
+  const clusterJoinThreshold = config.clusterJoinThreshold;
 
   for (const entity of sorted) {
     const matched = tryAddToExistingCluster(entity, clusters, config, clusterJoinThreshold, graphView);

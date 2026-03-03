@@ -21,6 +21,7 @@ import {
   prominenceThreshold,
   prominenceLabel,
 } from '../types';
+import { entityCriteria } from '../../engine/types';
 import type {
   Condition,
   ConditionResult,
@@ -59,7 +60,7 @@ export * from './types';
  * @param entity - Optional entity for per-entity conditions (uses ctx.self if not provided)
  * @returns ConditionResult with passed status and diagnostic info
  */
-type ConditionHandler = (condition: Condition, ctx: RuleContext, self?: HardState) => ConditionResult;
+type ConditionHandler = (condition: Condition, ctx: RuleContext, self: HardState) => ConditionResult;
 
 const CONDITION_HANDLERS: Record<string, ConditionHandler> = {
   pressure: (c, ctx) => evaluatePressure(c as PressureCondition, ctx),
@@ -90,11 +91,11 @@ const CONDITION_HANDLERS: Record<string, ConditionHandler> = {
 export function evaluateCondition(
   condition: Condition,
   ctx: RuleContext,
-  entity?: HardState
+  entity: HardState
 ): ConditionResult {
-  const self = entity ?? ctx.self;
+  const self = entity;
   const handler = CONDITION_HANDLERS[condition.type];
-  if (handler) return handler(condition, ctx, self);
+  return handler(condition, ctx, self);
 
   return {
     passed: false,
@@ -112,11 +113,11 @@ function evaluatePressure(
   ctx: RuleContext
 ): ConditionResult {
   const value = ctx.graph.getPressure(condition.pressureId);
-  const minOk = condition.min === undefined || value >= condition.min;
-  const maxOk = condition.max === undefined || value <= condition.max;
+  const minOk = value >= condition.min;
+  const maxOk = value <= condition.max;
   const passed = minOk && maxOk;
 
-  const range = `${condition.min ?? '-∞'} to ${condition.max ?? '∞'}`;
+  const range = `${String(condition.min)} to ${String(condition.max)}`;
   return {
     passed,
     diagnostic: `pressure ${condition.pressureId}=${value.toFixed(1)} (${range})`,
@@ -181,7 +182,7 @@ function evaluateEntityCount(
   condition: EntityCountCondition,
   ctx: RuleContext
 ): ConditionResult {
-  let entities = ctx.graph.findEntities({ kind: condition.kind });
+  let entities = ctx.graph.findEntities(entityCriteria({ kind: condition.kind }));
   if (condition.subtype) {
     entities = entities.filter((e) => e.subtype === condition.subtype);
   }
@@ -190,21 +191,18 @@ function evaluateEntityCount(
   }
 
   const count = entities.length;
-  const minOk = condition.min === undefined || count >= condition.min;
+  const minOk = count >= condition.min;
 
   // Apply overshoot factor for max check
-  const effectiveMax =
-    condition.max !== undefined
-      ? Math.floor(condition.max * (condition.overshootFactor ?? 1.5))
-      : undefined;
-  const maxOk = effectiveMax === undefined || count < effectiveMax;
+  const effectiveMax = Math.floor(condition.max * condition.overshootFactor);
+  const maxOk = count < effectiveMax;
 
   const passed = minOk && maxOk;
 
   const desc = `${condition.kind}${condition.subtype ? ':' + condition.subtype : ''}`;
   return {
     passed,
-    diagnostic: `${desc} count=${count} (${condition.min ?? 0} to ${effectiveMax ?? '∞'})`,
+    diagnostic: `${desc} count=${count} (${condition.min} to ${effectiveMax})`,
     details: {
       kind: condition.kind,
       subtype: condition.subtype,
@@ -224,12 +222,8 @@ function evaluateEntityCount(
 function evaluateRelationshipCount(
   condition: RelationshipCountCondition,
   ctx: RuleContext,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
-  if (!self) {
-    return { passed: false, diagnostic: 'no entity for relationship count', details: {} };
-  }
-
   const direction = normalizeDirection(condition.direction);
   let count = 0;
 
@@ -255,13 +249,13 @@ function evaluateRelationshipCount(
     }
   }
 
-  const minOk = condition.min === undefined || count >= condition.min;
-  const maxOk = condition.max === undefined || count <= condition.max;
+  const minOk = count >= condition.min;
+  const maxOk = count <= condition.max;
   const passed = minOk && maxOk;
 
   return {
     passed,
-    diagnostic: `relationship count=${count} (${condition.min ?? 0} to ${condition.max ?? '∞'})`,
+    diagnostic: `relationship count=${count} (${condition.min} to ${String(condition.max)})`,
     details: {
       relationshipKind: condition.relationshipKind,
       direction,
@@ -295,12 +289,8 @@ function matchesTargetCriteria(
 function evaluateRelationshipExists(
   condition: RelationshipExistsCondition,
   ctx: RuleContext,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
-  if (!self) {
-    return { passed: false, diagnostic: 'no entity for relationship exists', details: {} };
-  }
-
   const direction = normalizeDirection(condition.direction);
   const withEntityId = condition.with ? resolveEntityRef(condition.with, ctx, self)?.id : undefined;
 
@@ -332,7 +322,7 @@ function evaluateRelationshipExists(
 function evaluateTagExists(
   condition: TagExistsCondition,
   ctx: RuleContext,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
   const entity = resolveEntityRef(condition.entity, ctx, self);
 
@@ -347,14 +337,14 @@ function evaluateTagExists(
   const has = hasTag(entity.tags, condition.tag);
   let passed = has;
 
-  if (has && condition.value !== undefined) {
+  if (has) {
     const actualValue = getTagValue(entity.tags, condition.tag);
     passed = actualValue === condition.value;
   }
 
   return {
     passed,
-    diagnostic: `tag '${condition.tag}' ${passed ? 'exists' : 'missing'}${condition.value !== undefined ? ' (value=' + condition.value + ')' : ''}`,
+    diagnostic: `tag '${condition.tag}' ${passed ? 'exists' : 'missing'} (value=${condition.value})`,
     details: {
       tag: condition.tag,
       value: condition.value,
@@ -368,7 +358,7 @@ function evaluateTagExists(
 function resolveEntityRef(
   ref: string | undefined,
   ctx: RuleContext,
-  self?: HardState
+  self: HardState
 ): HardState | undefined {
   if (!ref) return self;
 
@@ -378,7 +368,7 @@ function resolveEntityRef(
 
   if (ref.startsWith('$')) {
     const name = ref.slice(1);
-    const bound = ctx.entities?.[name];
+    const bound = ctx.entities[name];
     if (bound) return bound;
   }
 
@@ -388,7 +378,7 @@ function resolveEntityRef(
 function evaluateLacksTag(
   condition: LacksTagCondition,
   ctx: RuleContext,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
   const entity = resolveEntityRef(condition.entity, ctx, self);
 
@@ -416,12 +406,8 @@ function evaluateLacksTag(
 
 function evaluateStatus(
   condition: StatusCondition,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
-  if (!self) {
-    return { passed: false, diagnostic: 'no entity for status check', details: {} };
-  }
-
   const matches = self.status === condition.status;
   const passed = condition.not ? !matches : matches;
 
@@ -434,24 +420,20 @@ function evaluateStatus(
 
 function evaluateProminence(
   condition: ProminenceCondition,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
-  if (!self) {
-    return { passed: false, diagnostic: 'no entity for prominence check', details: {} };
-  }
-
   const currentValue = self.prominence;
   const currentLabel = prominenceLabel(currentValue);
 
   // Convert string labels to thresholds
-  const minValue = condition.min ? prominenceThreshold(condition.min) : 0;
-  const maxValue = condition.max ? prominenceThreshold(condition.max) + 1 : 5; // upper bound of range
+  const minValue = prominenceThreshold(condition.min);
+  const maxValue = prominenceThreshold(condition.max) + 1; // upper bound of range
 
   const passed = currentValue >= minValue && currentValue < maxValue;
 
   return {
     passed,
-    diagnostic: `prominence ${currentLabel} (${currentValue.toFixed(2)}) in [${condition.min ?? 'forgotten'}, ${condition.max ?? 'mythic'}]: ${passed}`,
+    diagnostic: `prominence ${currentLabel} (${currentValue.toFixed(2)}) in [${condition.min}, ${condition.max}]: ${passed}`,
     details: {
       prominence: currentValue,
       prominenceLabel: currentLabel,
@@ -468,13 +450,9 @@ function evaluateProminence(
 function evaluateTimeElapsed(
   condition: TimeElapsedCondition,
   ctx: RuleContext,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
-  if (!self) {
-    return { passed: false, diagnostic: 'no entity for time check', details: {} };
-  }
-
-  const since = condition.since ?? 'updated';
+  const since = condition.since;
   const timestamp = since === 'created' ? self.createdAt : self.updatedAt;
   const elapsed = ctx.tick - timestamp;
   const passed = elapsed >= condition.minTicks;
@@ -491,7 +469,7 @@ function evaluateCooldownElapsed(
   ctx: RuleContext
 ): ConditionResult {
   const rateLimitState = ctx.graph.rateLimitState;
-  const lastTick = rateLimitState?.lastCreationTick ?? 0;
+  const lastTick = rateLimitState.lastCreationTick;
   const elapsed = ctx.tick - lastTick;
   const passed = elapsed >= condition.cooldownTicks;
 
@@ -507,7 +485,7 @@ function evaluateCreationsPerEpoch(
   ctx: RuleContext
 ): ConditionResult {
   const rateLimitState = ctx.graph.rateLimitState;
-  const count = rateLimitState?.creationsThisEpoch ?? 0;
+  const count = rateLimitState.creationsThisEpoch;
   const passed = count < condition.maxPerEpoch;
 
   return {
@@ -521,8 +499,8 @@ function evaluateGrowthPhasesComplete(
   condition: GrowthPhasesCompleteCondition,
   ctx: RuleContext
 ): ConditionResult {
-  const eraId = condition.eraId ?? ctx.graph.currentEra?.id ?? '';
-  const history = ctx.graph.growthPhaseHistory ?? [];
+  const eraId = condition.eraId || ctx.graph.currentEra.id;
+  const history = ctx.graph.growthPhaseHistory;
   const count = history.filter(entry => entry.eraId === eraId).length;
   const passed = count >= condition.minPhases;
 
@@ -541,7 +519,7 @@ function evaluateEraMatch(
   condition: EraMatchCondition,
   ctx: RuleContext
 ): ConditionResult {
-  const currentEraId = ctx.graph.currentEra?.id ?? '';
+  const currentEraId = ctx.graph.currentEra.id;
   const passed = condition.eras.includes(currentEraId);
 
   return {
@@ -574,12 +552,8 @@ function evaluateRandomChance(condition: RandomChanceCondition): ConditionResult
 function evaluateGraphPathCondition(
   condition: GraphPathCondition,
   ctx: RuleContext,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
-  if (!self) {
-    return { passed: false, diagnostic: 'no entity for graph path', details: {} };
-  }
-
   const passed = evaluateGraphPath(self, condition.assert, ctx.resolver, {
     filterEvaluator: (entities, filters, resolver, options) =>
       applySelectionFilters(entities, filters, resolver, options)
@@ -603,14 +577,14 @@ function evaluateGraphPathCondition(
  * relationship kind(s), treating the subgraph as undirected.
  */
 function buildComponentAdjacency(
-  rels: Array<{ kind: string; src: string; dst: string; strength?: number }>,
+  rels: Array<{ kind: string; src: string; dst: string; strength: number }>,
   kinds: string[],
   minStrength: number
 ): Map<string, Set<string>> {
   const adjacency = new Map<string, Set<string>>();
   for (const link of rels) {
     if (!kinds.includes(link.kind)) continue;
-    if ((link.strength ?? 0) < minStrength) continue;
+    if (link.strength < minStrength) continue;
     if (!adjacency.has(link.src)) adjacency.set(link.src, new Set());
     if (!adjacency.has(link.dst)) adjacency.set(link.dst, new Set());
     adjacency.get(link.src)!.add(link.dst);
@@ -639,23 +613,19 @@ function dfsComponentSize(startId: string, adjacency: Map<string, Set<string>>):
 function evaluateComponentSize(
   condition: ComponentSizeCondition,
   ctx: RuleContext,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
-  if (!self) {
-    return { passed: false, diagnostic: 'no entity for component size', details: {} };
-  }
-
-  const minStrength = condition.minStrength ?? 0;
+  const minStrength = condition.minStrength;
   const adjacency = buildComponentAdjacency(ctx.graph.getAllRelationships(), condition.relationshipKinds, minStrength);
   const componentSize = dfsComponentSize(self.id, adjacency);
 
-  const minOk = condition.min === undefined || componentSize >= condition.min;
-  const maxOk = condition.max === undefined || componentSize <= condition.max;
+  const minOk = componentSize >= condition.min;
+  const maxOk = componentSize <= condition.max;
   const passed = minOk && maxOk;
 
   return {
     passed,
-    diagnostic: `component size via ${condition.relationshipKinds.join('/')} = ${componentSize} (${condition.min ?? 1} to ${condition.max ?? '∞'})`,
+    diagnostic: `component size via ${condition.relationshipKinds.join('/')} = ${componentSize} (${condition.min} to ${String(condition.max)})`,
     details: { entityId: self.id, relationshipKinds: condition.relationshipKinds, minStrength, componentSize, min: condition.min, max: condition.max },
   };
 }
@@ -722,7 +692,7 @@ function evaluateEntityHasRelationship(
 function evaluateAnd(
   condition: AndCondition,
   ctx: RuleContext,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
   const results = condition.conditions.map((c) => evaluateCondition(c, ctx, self));
   const passed = results.every((r) => r.passed);
@@ -737,7 +707,7 @@ function evaluateAnd(
 function evaluateOr(
   condition: OrCondition,
   ctx: RuleContext,
-  self?: HardState
+  self: HardState
 ): ConditionResult {
   const results = condition.conditions.map((c) => evaluateCondition(c, ctx, self));
   const passed = results.some((r) => r.passed);

@@ -70,6 +70,29 @@ function determineSaturation(
   return category?.defaultSaturation ?? 0.8;
 }
 
+/** Score a candidate child node relative to the parent. */
+function scoreChildCandidate(
+  parentCategory: string,
+  parentPriority: number,
+  candidateNode: PlaneNode,
+): number {
+  const candidateCategory = candidateNode.classification.bestMatch;
+  let score = (candidateNode.priority - parentPriority) * 0.3;
+  if (canBeChildOf(candidateCategory, parentCategory)) score += 0.5;
+  score += Math.max(0, 1 - categoryDistance(parentCategory, candidateCategory) * 0.2);
+  return score;
+}
+
+function getExplicitChildren(node: PlaneNode, allNodes: Map<string, PlaneNode>): string[] | null {
+  const cascadeTo = node.spec.hints?.cascadeTo;
+  if (cascadeTo && cascadeTo.length > 0) return cascadeTo.filter(id => allNodes.has(id));
+  return null;
+}
+
+function isValidChildCandidate(id: string, node: PlaneNode, candidate: PlaneNode, neverCascade: Set<string>): boolean {
+  return id !== node.id && !neverCascade.has(id) && candidate.priority > node.priority;
+}
+
 /**
  * Determine valid children for a plane based on category and hints.
  */
@@ -77,54 +100,20 @@ function determineChildren(
   node: PlaneNode,
   allNodes: Map<string, PlaneNode>
 ): string[] {
-  const spec = node.spec;
-  const classification = node.classification;
+  const explicit = getExplicitChildren(node, allNodes);
+  if (explicit) return explicit;
 
-  // Explicit cascadeTo hint takes precedence
-  if (spec.hints?.cascadeTo && spec.hints.cascadeTo.length > 0) {
-    return spec.hints.cascadeTo.filter(id => allNodes.has(id));
-  }
-
+  const neverCascade = new Set(node.spec.hints?.neverCascadeTo ?? []);
+  const parentCategory = node.classification.bestMatch;
   const candidates: Array<{ id: string; score: number }> = [];
-  const neverCascade = new Set(spec.hints?.neverCascadeTo ?? []);
 
   for (const [id, candidateNode] of allNodes) {
-    // Skip self
-    if (id === node.id) continue;
-
-    // Skip if explicitly excluded
-    if (neverCascade.has(id)) continue;
-
-    // Skip if already higher priority (would be parent, not child)
-    if (candidateNode.priority <= node.priority) continue;
-
-    // Check category compatibility
-    const nodeCategory = classification.bestMatch;
-    const candidateCategory = candidateNode.classification.bestMatch;
-
-    let score = 0;
-
-    // Higher priority difference = better child candidate
-    score += (candidateNode.priority - node.priority) * 0.3;
-
-    // Category relationship compatibility
-    if (canBeChildOf(candidateCategory, nodeCategory)) {
-      score += 0.5;
-    }
-
-    // Category semantic distance (closer = better child)
-    const catDist = categoryDistance(nodeCategory, candidateCategory);
-    score += Math.max(0, 1 - catDist * 0.2);
-
-    if (score > 0) {
-      candidates.push({ id, score });
-    }
+    if (!isValidChildCandidate(id, node, candidateNode, neverCascade)) continue;
+    const score = scoreChildCandidate(parentCategory, node.priority, candidateNode);
+    if (score > 0) candidates.push({ id, score });
   }
 
-  // Sort by score and take top candidates
   candidates.sort((a, b) => b.score - a.score);
-
-  // Limit children to reasonable number (max 3)
   return candidates.slice(0, 3).map(c => c.id);
 }
 
@@ -299,7 +288,7 @@ export function generateDistances(
 
   // Build hint lookup
   const hintMap = new Map<string, number>();
-  for (const hint of input.distanceHints ?? []) {
+  for (const hint of input.distanceHints) {
     const key = `${hint.from}:${hint.to}`;
     const value = typeof hint.hint === 'number'
       ? hint.hint

@@ -43,11 +43,11 @@ export interface DeclarativeClusterCriterion {
   /** Weight contribution to similarity score */
   weight: number;
   /** Optional threshold for this criterion */
-  threshold?: number;
+  threshold: number;
   /** For 'shared_relationship': the relationship kind to check */
-  relationshipKind?: string;
+  relationshipKind: string;
   /** For 'shared_relationship': direction to check */
-  direction?: 'src' | 'dst';
+  direction: 'src' | 'dst';
 }
 
 /**
@@ -57,7 +57,7 @@ export interface DeclarativeClusterConfig {
   /** Minimum entities required to form a cluster */
   minSize: number;
   /** Maximum entities in a cluster (optional) */
-  maxSize?: number;
+  maxSize: number;
   /** Criteria for calculating similarity */
   criteria: DeclarativeClusterCriterion[];
   /** Minimum total similarity score to be clustered together */
@@ -73,7 +73,7 @@ export interface MetaEntityConfig {
   /** If true, use majority subtype from cluster */
   subtypeFromMajority: boolean;
   /** Fixed subtype if subtypeFromMajority is false */
-  fixedSubtype?: string;
+  fixedSubtype: string;
   /** Status for the meta-entity */
   status: string;
   /** Prominence thresholds based on cluster size */
@@ -86,9 +86,9 @@ export interface MetaEntityConfig {
     renowned: number;
   };
   /** Tags to add to meta-entity */
-  additionalTags?: string[];
+  additionalTags: string[];
   /** Description template (use {count} for cluster size, {names} for entity names) */
-  descriptionTemplate?: string;
+  descriptionTemplate: string;
 }
 
 /**
@@ -96,22 +96,22 @@ export interface MetaEntityConfig {
  */
 export interface PostProcessConfig {
   /** Whether to create a governance faction (for legal codes) */
-  createGovernanceFaction?: boolean;
+  createGovernanceFaction: boolean;
   /** Faction subtype if creating governance faction */
-  governanceFactionSubtype?: string;
+  governanceFactionSubtype: string;
   /** Relationship kind for faction→meta-entity */
-  governanceRelationship?: string;
+  governanceRelationship: string;
   /** Pressure changes after formation */
-  pressureChanges?: Record<string, number>;
+  pressureChanges: Record<string, number>;
   /**
    * Whether to create an emergent region at the meta-entity's location.
    * This marks the semantic area where similar entities clustered.
    */
-  createEmergentRegion?: boolean;
+  createEmergentRegion: boolean;
   /** Label template for the emergent region (use {name} for meta-entity name) */
-  emergentRegionLabel?: string;
+  emergentRegionLabel: string;
   /** Description template for the emergent region */
-  emergentRegionDescription?: string;
+  emergentRegionDescription: string;
 }
 
 /**
@@ -137,7 +137,7 @@ export interface ClusterFormationConfig {
   /** Human-readable name */
   name: string;
   /** Optional description */
-  description?: string;
+  description: string;
 
   /** Selection rule for clustering candidates */
   selection: SelectionRule;
@@ -152,7 +152,7 @@ export interface ClusterFormationConfig {
   metaEntity: MetaEntityConfig;
 
   /** Optional post-processing */
-  postProcess?: PostProcessConfig;
+  postProcess: PostProcessConfig;
 
   /**
    * Optional master selection configuration.
@@ -160,14 +160,14 @@ export interface ClusterFormationConfig {
    * to the meta-entity. Non-masters retain their relationships to absorbed abilities.
    * This reduces graph hub formation while preserving narrative structure.
    */
-  masterSelection?: MasterSelectionConfig;
+  masterSelection: MasterSelectionConfig;
 
   /**
    * Optional mutations to apply to each absorbed cluster member.
    * $member is bound to each absorbed entity during mutation application.
    * Example: [{ type: 'change_status', entity: '$member', newStatus: 'subsumed' }]
    */
-  memberUpdates?: Mutation[];
+  memberUpdates: Mutation[];
 
   /**
    * Narration template for cluster formation events.
@@ -177,7 +177,7 @@ export interface ClusterFormationConfig {
    * - {names} - Names of clustered entities
    * Example: "{$self.name} emerged, unifying {count} traditions."
    */
-  narrationTemplate?: string;
+  narrationTemplate: string;
 }
 
 // =============================================================================
@@ -333,7 +333,7 @@ async function createMetaEntity(
   // Aggregate tags from cluster (top 4 to leave room for meta-entity tag)
   const allTags = new Set<string>();
   cluster.forEach(e => {
-    Object.keys(e.tags || {}).forEach(tag => {
+    Object.keys(e.tags).forEach(tag => {
       // Skip meta-entity and temp tags
       if (!tag.startsWith(FRAMEWORK_TAGS.META_ENTITY) && !tag.startsWith('temp:')) {
         allTags.add(tag);
@@ -346,7 +346,7 @@ async function createMetaEntity(
   const tags: Record<string, boolean> = {};
   tagArray.forEach(tag => tags[tag] = true);
   tags[FRAMEWORK_TAGS.META_ENTITY] = true;
-  if (config.additionalTags) {
+  {
     config.additionalTags.forEach(tag => tags[tag] = true);
   }
 
@@ -480,8 +480,8 @@ async function createGovernanceFaction(
  * Create a SimulationSystem from a ClusterFormationConfig
  */
 interface ClusterAccumulator {
-  relationshipsAdded: Array<Relationship & { narrativeGroupId?: string }>;
-  entitiesModified: Array<{ id: string; changes: Partial<HardState>; narrativeGroupId?: string }>;
+  relationshipsAdded: Array<Relationship & { narrativeGroupId: string }>;
+  entitiesModified: Array<{ id: string; changes: Partial<HardState>; narrativeGroupId: string }>;
   metaEntitiesCreated: string[];
   factionsCreated: string[];
   narrationsByGroup: Record<string, string>;
@@ -522,7 +522,7 @@ function applyMasterSelectionRelationships(
   acc: ClusterAccumulator
 ): void {
   const allPractitioners = collectUniquePractitioners(clusterIds, graphView);
-  const masters = selectMasters(allPractitioners, metaEntity, config.masterSelection!);
+  const masters = selectMasters(allPractitioners, metaEntity, config.masterSelection);
 
   for (const master of masters) {
     graphView.createRelationship('practitioner_of', master.id, metaEntityId);
@@ -561,7 +561,6 @@ function generateNarrationText(
   metaEntityId: string,
   acc: ClusterAccumulator
 ): void {
-  if (!config.narrationTemplate || !tracker) return;
   const entityNames = cluster.entities.map(e => e.name).join(', ');
   const tmpl = config.narrationTemplate
     .replace('{count}', String(cluster.entities.length))
@@ -585,7 +584,7 @@ async function applyPostProcessing(
   graphView: WorldRuntime,
   acc: ClusterAccumulator
 ): Promise<void> {
-  if (config.postProcess?.createEmergentRegion && metaEntityPartial.coordinates) {
+  if (config.postProcess.createEmergentRegion && metaEntityPartial.coordinates) {
     const regionLabel = (config.postProcess.emergentRegionLabel || '{name} Region')
       .replace('{name}', metaEntity.name);
     const regionDescription = (config.postProcess.emergentRegionDescription || 'A semantic cluster formed around {name}')
@@ -598,11 +597,11 @@ async function applyPostProcessing(
       metaEntity.culture,
       metaEntityId
     );
-    if (regionResult.success && regionResult.region) {
+    if (regionResult.success) {
       graphView.log('info', `Created emergent region "${regionResult.region.label}" for meta-entity "${metaEntity.name}"`);
     }
   }
-  if (config.postProcess?.createGovernanceFaction) {
+  if (config.postProcess.createGovernanceFaction) {
     const { factionId, relationships } = await createGovernanceFaction(
       graphView,
       metaEntityId,
@@ -622,7 +621,7 @@ function applyMemberChanges(
   graphView: WorldRuntime,
   acc: ClusterAccumulator
 ): void {
-  if (config.memberUpdates && config.memberUpdates.length > 0) {
+  if (config.memberUpdates.length > 0) {
     const statusMutation = config.memberUpdates.find(
       m => m.type === 'change_status'
     ) as { type: 'change_status'; newStatus: string } | undefined;
@@ -652,15 +651,13 @@ async function processCluster(
   const metaEntityPartial = await createMetaEntity(cluster.entities, config.metaEntity, graphView);
   const tracker = graphView.mutationTracker;
   const contextId = `${config.id}:${clusterIndex}`;
-  if (config.narrationTemplate && tracker) {
-    tracker.enterContext('system', contextId);
-  }
+  tracker.enterContext('system', contextId);
   const metaEntityId = await graphView.addEntity(metaEntityPartial);
   const metaEntity = graphView.getEntity(metaEntityId)!;
   acc.metaEntitiesCreated.push(metaEntityId);
   generateNarrationText(cluster, config, tracker, metaEntity, metaEntityId, acc);
   const clusterIds = cluster.entities.map(e => e.id);
-  if (config.masterSelection) {
+  if (config.masterSelection.strategy) {
     applyMasterSelectionRelationships(clusterIds, metaEntityId, metaEntity, config, graphView, acc);
   } else {
     graphView.transferRelationships(
@@ -681,7 +678,7 @@ async function processCluster(
   });
   await applyPostProcessing(config, metaEntityPartial, metaEntity, metaEntityId, graphView, acc);
   applyMemberChanges(clusterIds, config, graphView, acc);
-  if (config.narrationTemplate && tracker) {
+  {
     tracker.exitContext();
   }
 }
@@ -746,7 +743,7 @@ export function createClusterFormationSystem(
       }
 
       const pressureChanges = acc.metaEntitiesCreated.length > 0
-        ? (config.postProcess?.pressureChanges ?? { stability: 2 })
+        ? config.postProcess.pressureChanges
         : {};
 
       return {

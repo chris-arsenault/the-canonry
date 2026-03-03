@@ -2267,6 +2267,36 @@ ${chunksDisplay}`;
 /**
  * Parse the LLM response for image refs into structured ChronicleImageRef array
  */
+function parseEntityRef(
+  ref: Record<string, unknown>,
+  index: number,
+  common: { refId: string; anchorText: string; size: ChronicleImageSize; caption: string | undefined }
+): EntityImageRef {
+  const entityId = typeof ref.entityId === "string" ? ref.entityId : "";
+  if (!entityId) throw new Error(`entity_ref at index ${index} missing entityId`);
+  return { ...common, type: "entity_ref", entityId } as EntityImageRef;
+}
+
+function parseInvolvedEntityIds(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const ids = (raw as unknown[]).filter((id): id is string => typeof id === "string" && id.length > 0);
+  return ids.length > 0 ? ids : undefined;
+}
+
+function parsePromptRequestRef(
+  ref: Record<string, unknown>,
+  index: number,
+  common: { refId: string; anchorText: string; size: ChronicleImageSize; caption: string | undefined }
+): PromptRequestRef {
+  const sceneDescription = typeof ref.sceneDescription === "string" ? ref.sceneDescription : "";
+  if (!sceneDescription) throw new Error(`prompt_request at index ${index} missing sceneDescription`);
+  return {
+    ...common, type: "prompt_request", sceneDescription,
+    involvedEntityIds: parseInvolvedEntityIds(ref.involvedEntityIds),
+    status: "pending",
+  } as PromptRequestRef;
+}
+
 function parseOneImageRef(
   ref: Record<string, unknown>,
   index: number,
@@ -2276,33 +2306,12 @@ function parseOneImageRef(
   const anchorText = typeof ref.anchorText === "string" ? ref.anchorText : "";
   const rawSize = typeof ref.size === "string" ? ref.size : "medium";
   const size: ChronicleImageSize = validSizes.includes(rawSize as ChronicleImageSize)
-    ? (rawSize as ChronicleImageSize)
-    : "medium";
+    ? (rawSize as ChronicleImageSize) : "medium";
   const caption = typeof ref.caption === "string" ? ref.caption : undefined;
+  const common = { refId, anchorText, size, caption };
 
-  if (ref.type === "entity_ref") {
-    const entityId = typeof ref.entityId === "string" ? ref.entityId : "";
-    if (!entityId) {
-      throw new Error(`entity_ref at index ${index} missing entityId`);
-    }
-    return { refId, type: "entity_ref", entityId, anchorText, size, caption } as EntityImageRef;
-  } else if (ref.type === "prompt_request") {
-    const sceneDescription = typeof ref.sceneDescription === "string" ? ref.sceneDescription : "";
-    if (!sceneDescription) {
-      throw new Error(`prompt_request at index ${index} missing sceneDescription`);
-    }
-    let involvedEntityIds: string[] | undefined;
-    if (Array.isArray(ref.involvedEntityIds)) {
-      involvedEntityIds = (ref.involvedEntityIds as unknown[]).filter(
-        (id): id is string => typeof id === "string" && id.length > 0
-      );
-      if (involvedEntityIds.length === 0) involvedEntityIds = undefined;
-    }
-    return {
-      refId, type: "prompt_request", sceneDescription, involvedEntityIds,
-      anchorText, size, caption, status: "pending",
-    } as PromptRequestRef;
-  }
+  if (ref.type === "entity_ref") return parseEntityRef(ref, index, common);
+  if (ref.type === "prompt_request") return parsePromptRequestRef(ref, index, common);
   const typeStr = typeof ref.type === "string" ? ref.type : "unknown";
   throw new Error(`Unknown image ref type at index ${index}: ${typeStr}`);
 }

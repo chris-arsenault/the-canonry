@@ -4,6 +4,13 @@
  * Types for input specifications, output formats, and internal structures.
  */
 
+/**
+ * Intentional optionality — property is genuinely optional by design.
+ * Re-declared locally to avoid a cross-package dependency on shared-components.
+ * See packages/shared-components/src/types/optionality.ts for canonical definition.
+ */
+type Optional<T> = T | undefined;
+
 // ============================================================================
 // DOMAIN CLASSIFICATION
 // ============================================================================
@@ -51,7 +58,7 @@ export interface CategoryDefinition {
   keywords: string[];
 
   /** Alternative spellings/synonyms for fuzzy matching */
-  synonyms?: string[];
+  synonyms: string[];
 
   // Hierarchy properties
   /** Base priority (lower = fills first, 1 = primary) */
@@ -88,8 +95,8 @@ export interface CategoryRelationship {
   /** Valid child categories */
   validChildren: CategoryId[];
 
-  /** Distance multiplier for this parent-child relationship */
-  distanceMultiplier?: number;
+  /** Distance multiplier for this parent-child relationship (absent = use default 1.0) */
+  distanceMultiplier: Optional<number>;
 }
 
 // ============================================================================
@@ -100,23 +107,23 @@ export interface CategoryRelationship {
  * Hints that override automatic classification.
  */
 export interface PlaneHints {
-  /** Force this plane as primary (fills first) */
-  isPrimary?: boolean;
+  /** Force this plane as primary (fills first) — absent = auto-detect */
+  isPrimary: Optional<boolean>;
 
-  /** Override automatic category classification */
-  category?: CategoryId;
+  /** Override automatic category classification — absent = auto-classify */
+  category: Optional<CategoryId>;
 
-  /** Explicit cascade targets (children) */
-  cascadeTo?: string[];
+  /** Explicit cascade targets (children) — absent = auto-generate */
+  cascadeTo: Optional<string[]>;
 
-  /** Planes this should never cascade to */
-  neverCascadeTo?: string[];
+  /** Planes this should never cascade to — absent = no exclusions */
+  neverCascadeTo: Optional<string[]>;
 
-  /** Custom saturation threshold override */
-  saturationThreshold?: number;
+  /** Custom saturation threshold override — absent = use category default */
+  saturationThreshold: Optional<number>;
 
-  /** Custom priority override */
-  priority?: number;
+  /** Custom priority override — absent = use category default */
+  priority: Optional<number>;
 }
 
 /**
@@ -130,10 +137,10 @@ export interface PlaneSpecification {
   label: string;
 
   /** Description (used for semantic analysis) */
-  description?: string;
+  description: string;
 
-  /** Optional hints to guide/override generation */
-  hints?: PlaneHints;
+  /** Hints to guide/override generation — absent = fully automatic */
+  hints: Optional<PlaneHints>;
 }
 
 /**
@@ -155,8 +162,8 @@ export interface DistanceHint {
  * Allows domains to extend the ontology.
  */
 export interface CustomCategoryDefinition extends Omit<CategoryDefinition, 'domainClass'> {
-  /** Inherit from an existing category (optional) */
-  extends?: CategoryId;
+  /** Inherit from an existing category — absent = standalone definition */
+  extends: Optional<CategoryId>;
 }
 
 /**
@@ -172,38 +179,38 @@ export interface CosmographerInput {
   /** Plane specifications */
   planes: PlaneSpecification[];
 
-  /** Optional distance hints */
-  distanceHints?: DistanceHint[];
+  /** Distance hints between planes (empty = auto-generated) */
+  distanceHints: DistanceHint[];
 
-  /** Optional custom category definitions */
-  customCategories?: CustomCategoryDefinition[];
+  /** Custom category definitions (empty = use built-in ontology only) */
+  customCategories: CustomCategoryDefinition[];
 
   /** Generation options */
-  options?: GenerationOptions;
+  options: GenerationOptions;
 }
 
 /**
  * Options controlling generation behavior.
  */
 export interface GenerationOptions {
-  /** Strategy weights (must sum to 1.0) */
-  weights?: {
+  /** Strategy weights (must sum to 1.0) — absent = use defaults (0.5/0.3/0.2) */
+  weights: Optional<{
     /** Weight for semantic pattern matching */
     semantic: number;
     /** Weight for embedding similarity */
     embedding: number;
     /** Weight for distance graph analysis */
     distance: number;
-  };
+  }>;
 
-  /** Saturation strategy for the output */
-  saturationStrategy?: 'density' | 'count' | 'failures';
+  /** Saturation strategy for the output — absent = 'density' */
+  saturationStrategy: Optional<'density' | 'count' | 'failures'>;
 
-  /** Default density threshold */
-  densityThreshold?: number;
+  /** Default density threshold — absent = 0.7 */
+  densityThreshold: Optional<number>;
 
-  /** Include detailed classification metadata */
-  includeMetadata?: boolean;
+  /** Include detailed classification metadata — absent = true */
+  includeMetadata: Optional<boolean>;
 }
 
 // ============================================================================
@@ -254,14 +261,14 @@ export interface PlaneClassification {
   /** Keywords that matched */
   matchedPatterns: string[];
 
-  /** Embedding similarity score (if used) */
-  embeddingSimilarity?: number;
+  /** Embedding similarity score — absent when embeddings not available */
+  embeddingSimilarity: Optional<number>;
 
-  /** All candidate categories considered */
-  candidates?: Array<{
+  /** All candidate categories considered — absent when metadata not requested */
+  candidates: Optional<Array<{
     category: CategoryId;
     score: number;
-  }>;
+  }>>;
 }
 
 /**
@@ -289,11 +296,11 @@ export interface CosmographerOutput {
   /** Saturation strategy */
   saturationStrategy: 'density' | 'count' | 'failures';
 
-  /** Density threshold (if strategy is 'density') */
-  densityThreshold?: number;
+  /** Density threshold — always resolved from options or default */
+  densityThreshold: number;
 
-  /** Classification metadata (if includeMetadata was true) */
-  classifications?: Record<string, PlaneClassification>;
+  /** Classification metadata — absent when includeMetadata was false */
+  classifications: Optional<Record<string, PlaneClassification>>;
 }
 
 // ============================================================================

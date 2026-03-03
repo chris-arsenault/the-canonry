@@ -108,7 +108,7 @@ export default function CreateEntityModal({
     return "";
   });
   const [endTick, setEndTick] = useState(() => {
-    if (editEntity?.temporal?.endTick != null) return String(editEntity.temporal.endTick);
+    if (editEntity?.temporal?.end.occurred) return String(editEntity.temporal.end.tick);
     if (d?.endTick != null) return String(d.endTick);
     return "";
   });

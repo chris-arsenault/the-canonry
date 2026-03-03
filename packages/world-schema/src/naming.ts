@@ -13,30 +13,30 @@ export interface PhonologyProfile {
   vowels: string[];
   syllableTemplates: string[];
   lengthRange: [number, number];
-  forbiddenClusters?: string[];
-  favoredClusters?: string[];
-  favoredClusterBoost?: number;
-  consonantWeights?: number[];
-  vowelWeights?: number[];
-  templateWeights?: number[];
-  maxConsonantCluster?: number;
-  minVowelSpacing?: number;
-  sonorityRanks?: Record<string, number>;
+  forbiddenClusters: string[];
+  favoredClusters: string[];
+  favoredClusterBoost: number;
+  consonantWeights: number[];
+  vowelWeights: number[];
+  templateWeights: number[];
+  maxConsonantCluster: number;
+  minVowelSpacing: number;
+  sonorityRanks: Record<string, number>;
 }
 
 /**
  * Morphology profile controls prefixes, suffixes, and word structure
  */
 export interface MorphologyProfile {
-  prefixes?: string[];
-  suffixes?: string[];
-  infixes?: string[];
-  wordRoots?: string[];
-  honorifics?: string[];
+  prefixes: string[];
+  suffixes: string[];
+  infixes: string[];
+  wordRoots: string[];
+  honorifics: string[];
   structure: string[];
-  prefixWeights?: number[];
-  suffixWeights?: number[];
-  structureWeights?: number[];
+  prefixWeights: number[];
+  suffixWeights: number[];
+  structureWeights: number[];
 }
 
 /**
@@ -53,14 +53,14 @@ export type RhythmBias = 'soft' | 'harsh' | 'staccato' | 'flowing' | 'neutral';
  * Style rules control fine-grained stylistic transforms
  */
 export interface StyleRules {
-  apostropheRate?: number;
-  hyphenRate?: number;
-  capitalization?: Capitalization;
-  preferredEndings?: string[];
-  preferredEndingBoost?: number;
-  rhythmBias?: RhythmBias;
-  targetLength?: number;
-  lengthTolerance?: number;
+  apostropheRate: number;
+  hyphenRate: number;
+  capitalization: Capitalization;
+  preferredEndings: string[];
+  preferredEndingBoost: number;
+  rhythmBias: RhythmBias;
+  targetLength: number;
+  lengthTolerance: number;
 }
 
 /**
@@ -78,9 +78,9 @@ export interface NamingDomain {
  */
 export interface LexemeList {
   id: string;
-  description?: string;
+  description: string;
   entries: string[];
-  source?: string;
+  source: string;
 }
 
 /**
@@ -96,39 +96,39 @@ export interface LexemeSpec {
  */
 export interface Grammar {
   id: string;
-  description?: string;
+  description: string;
   start: string;
   rules: Record<string, string[][]>;
-  capitalization?: Capitalization;
+  capitalization: Capitalization;
 }
 
 /**
- * A naming strategy defines how to generate a single name
+ * A naming strategy defines how to generate a single name.
+ * Discriminated on `type`: grammar strategies require grammarId,
+ * phonotactic strategies require domainId.
  */
-export interface NamingStrategy {
-  type: 'grammar' | 'phonotactic';
-  weight: number;
-  grammarId?: string;
-  domainId?: string;
-}
+export type NamingStrategy =
+  | { type: 'grammar'; weight: number; grammarId: string }
+  | { type: 'phonotactic'; weight: number; domainId: string };
 
 /**
  * Conditions for strategy group activation
  */
 export interface StrategyGroupConditions {
-  entityKinds?: string[];
-  subtypes?: string[];
-  subtypeMatchAll?: boolean;
-  prominence?: string[];
-  tags?: string[];
-  tagMatchAll?: boolean;
+  entityKinds: string[];
+  subtypes: string[];
+  subtypeMatchAll: boolean;
+  prominence: string[];
+  tags: string[];
+  tagMatchAll: boolean;
 }
 
 /**
- * A strategy group is a set of strategies with shared activation conditions
+ * A strategy group is a set of strategies with shared activation conditions.
+ * A null conditions means "always active" (default/fallback group).
  */
 export interface StrategyGroup {
-  name?: string;
+  name: string;
   priority: number;
   conditions: StrategyGroupConditions | null;
   strategies: NamingStrategy[];
@@ -139,7 +139,7 @@ export interface StrategyGroup {
  */
 export interface NamingProfile {
   id: string;
-  name?: string;
+  name: string;
   strategyGroups: StrategyGroup[];
 }
 
@@ -149,7 +149,7 @@ export interface NamingProfile {
 export interface CultureNamingData {
   domains: NamingDomain[];
   lexemeLists: Record<string, LexemeList>;
-  lexemeSpecs?: LexemeSpec[];
+  lexemeSpecs: LexemeSpec[];
   grammars: Grammar[];
   profiles: NamingProfile[];
 }

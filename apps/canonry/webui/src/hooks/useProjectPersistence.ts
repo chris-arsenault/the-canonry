@@ -5,7 +5,7 @@
  * debounced saves, and search-run scoring.
  */
 
-import { useEffect, type MutableRefObject, type Dispatch, type SetStateAction } from "react";
+import { useEffect, type RefObject, type Dispatch, type SetStateAction } from "react";
 import {
   loadWorldStore,
   saveWorldData,
@@ -51,11 +51,11 @@ interface UseProjectPersistenceParams {
   setStyleSelection: Dispatch<SetStateAction<unknown>>;
   historianConfig: unknown;
   setHistorianConfig: Dispatch<SetStateAction<unknown>>;
-  simulationOwnerRef: MutableRefObject<string | null>;
-  isLoadingSlotRef: MutableRefObject<boolean>;
-  lastSavedResultsRef: MutableRefObject<unknown>;
-  bestRunScoreRef: MutableRefObject<number>;
-  bestRunSaveQueueRef: MutableRefObject<Promise<void>>;
+  simulationOwnerRef: RefObject<string | null>;
+  isLoadingSlotRef: RefObject<boolean>;
+  lastSavedResultsRef: RefObject<unknown>;
+  bestRunScoreRef: RefObject<number>;
+  bestRunSaveQueueRef: RefObject<Promise<void>>;
   reloadProjectFromDefaults: () => Promise<void>;
   save: (data: Record<string, unknown>) => void | Promise<void>;
 }

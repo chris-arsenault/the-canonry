@@ -122,7 +122,7 @@ export async function executeBrowserTask(
       await persistResult(task, result.result);
       console.log("[BrowserTask] Complete", { taskId: task.id, type: task.type });
     } else {
-      console.warn("[BrowserTask] Failed", { taskId: task.id, error: result.error });
+      console.warn("[BrowserTask] Failed", { taskId: task.id, error: String(result.error) });
     }
 
     return result;

@@ -38,7 +38,7 @@ interface PendingStateChange {
   field: string;
   previousValue: unknown;
   newValue: unknown;
-  catalyst?: { entityId: string; actionType: string; success?: boolean };
+  catalyst: { entityId: string; actionType: string; success: boolean };
 }
 
 /**
@@ -49,7 +49,7 @@ interface RelationshipSnapshot {
   src: string;
   dst: string;
   createdAt: number;
-  polarity?: Polarity;
+  polarity: Polarity;
 }
 
 /**
@@ -67,8 +67,8 @@ interface PendingTagChange {
   entityId: string;
   tag: string;
   changeType: 'added' | 'removed';
-  value?: string | boolean;
-  catalyst?: { entityId: string; actionType: string; success?: boolean };
+  value: string | boolean;
+  catalyst: { entityId: string; actionType: string; success: boolean };
 }
 
 /**
@@ -87,9 +87,9 @@ interface PendingCreationBatch {
   templateName: string;
   entityIds: string[];
   relationships: RelationshipSummary[];
-  description?: string;
+  description: string;
   /** Domain-controlled narration from narrationTemplate */
-  narration?: string;
+  narration: string;
 }
 
 /**
@@ -98,7 +98,7 @@ interface PendingCreationBatch {
 export interface NarrativeSchemaSlice {
   relationshipKinds: RelationshipKindDefinition[];
   entityKinds: EntityKindDefinition[];
-  tagRegistry?: TagDefinition[];
+  tagRegistry: TagDefinition[];
 }
 
 /**
@@ -153,9 +153,9 @@ export class StateChangeTracker {
    */
   private systemNames: Map<string, string> = new Map();
 
-  constructor(config: NarrativeConfig, mutationTracker?: MutationTracker) {
+  constructor(config: NarrativeConfig, mutationTracker: MutationTracker) {
     this.config = config;
-    this.mutationTracker = mutationTracker ?? null;
+    this.mutationTracker = mutationTracker;
   }
 
   /**
@@ -205,7 +205,7 @@ export class StateChangeTracker {
   private buildRelationshipPolarityCache(schema: NarrativeSchemaSlice): void {
     this.relationshipPolarityCache.clear();
     for (const rel of schema.relationshipKinds) {
-      if (rel.polarity) {
+      if (rel.polarity !== 'neutral') {
         this.relationshipPolarityCache.set(rel.kind, rel.polarity);
       }
     }
@@ -216,7 +216,7 @@ export class StateChangeTracker {
     this.authoritySubtypeCache.clear();
     for (const entityKind of schema.entityKinds) {
       for (const status of entityKind.statuses) {
-        if (status.polarity) {
+        if (status.polarity !== 'neutral') {
           this.statusPolarityCache.set(`${entityKind.kind}:${status.id}`, status.polarity);
         }
       }
@@ -230,10 +230,8 @@ export class StateChangeTracker {
 
   private buildTagRegistryCache(schema: NarrativeSchemaSlice): void {
     this.tagRegistry.clear();
-    if (schema.tagRegistry) {
-      for (const tag of schema.tagRegistry) {
-        this.tagRegistry.set(tag.tag, tag);
-      }
+    for (const tag of schema.tagRegistry) {
+      this.tagRegistry.set(tag.tag, tag);
     }
   }
 
@@ -293,7 +291,7 @@ export class StateChangeTracker {
         kind: rel.kind,
         src: rel.src,
         dst: rel.dst,
-        createdAt: rel.createdAt ?? 0,
+        createdAt: rel.createdAt,
         polarity: this.getRelationshipPolarity(rel.kind),
       });
     }
@@ -347,7 +345,7 @@ export class StateChangeTracker {
       getStatusPolarity: (entityKind: string, status: string) => this.getStatusPolarity(entityKind, status),
       getRelationshipVerb: (kind: string, action: 'formed' | 'ended' | 'inverseFormed' | 'inverseEnded') => {
         const relDef = this.schema?.relationshipKinds.find(r => r.kind === kind);
-        return relDef?.verbs?.[action];
+        return relDef?.verbs[action];
       },
     };
 
@@ -396,17 +394,9 @@ export class StateChangeTracker {
     field: string,
     previousValue: unknown,
     newValue: unknown,
-    catalyst?: { entityId: string; actionType: string }
+    catalyst: { entityId: string; actionType: string }
   ): void {
     if (!this.config.enabled) return;
-
-    // Debug logging for prominence tracking
-    if (StateChangeTracker.DEBUG_PROMINENCE && field === 'prominence') {
-      console.log(`[PROMINENCE-TRACK] entityId=${entityId} prev=${String(previousValue)} new=${String(newValue)} catalyst=${catalyst?.actionType}`);
-      if (previousValue === newValue) {
-        console.log(`  SKIPPED: previousValue === newValue`);
-      }
-    }
 
     if (previousValue === newValue) return; // No actual change
 
@@ -426,10 +416,6 @@ export class StateChangeTracker {
     existing.push(pending);
     this.pendingChanges.set(entityId, existing);
 
-    // Debug: confirm recording
-    if (StateChangeTracker.DEBUG_PROMINENCE && field === 'prominence') {
-      console.log(`  RECORDED: ${String(previousValue)} -> ${String(newValue)}`);
-    }
   }
 
   /**
@@ -439,7 +425,7 @@ export class StateChangeTracker {
   recordEntityChange(
     entity: HardState,
     changes: Partial<HardState>,
-    catalyst?: { entityId: string; actionType: string; success?: boolean }
+    catalyst: { entityId: string; actionType: string; success: boolean }
   ): void {
     if (!this.config.enabled) return;
 
@@ -464,7 +450,7 @@ export class StateChangeTracker {
     tag: string,
     changeType: 'added' | 'removed',
     value: string | boolean | undefined,
-    catalyst?: { entityId: string; actionType: string; success?: boolean }
+    catalyst: { entityId: string; actionType: string; success: boolean }
   ): void {
     if (!this.config.enabled) return;
 
@@ -503,8 +489,8 @@ export class StateChangeTracker {
     templateName: string,
     entityIds: string[],
     relationships: RelationshipSummary[],
-    description?: string,
-    narration?: string
+    description: string,
+    narration: string
   ): void {
     if (!this.config.enabled) return;
 
@@ -534,21 +520,7 @@ export class StateChangeTracker {
     this.pendingNarrations.set(key, narration);
   }
 
-  /**
-   * Record narrations from a system result.
-   * Each narration is recorded with the system context.
-   *
-   * @param systemId - The system identifier
-   * @param narrations - Array of narration texts from the system
-   * @deprecated Use recordNarrationsByGroup for proper per-entity attribution
-   */
-  recordSystemNarrations(systemId: string, narrations: string[]): void {
-    if (!this.config.enabled || narrations.length === 0) return;
 
-    // Join multiple narrations into one (or use the first one)
-    const combinedNarration = narrations.join(' ');
-    this.recordNarration('system', systemId, combinedNarration);
-  }
 
   /**
    * Record narrations keyed by narrative group ID.
@@ -689,60 +661,25 @@ export class StateChangeTracker {
 
     const { context, entitiesCreated, relationshipsCreated, tagsAdded, tagsRemoved, fieldsChanged } = group;
 
-    // If nothing happened, skip
     if (entitiesCreated.length === 0 && relationshipsCreated.length === 0) return null;
 
-    // Build participant effects using the event builder
     const participantEffects = this.eventBuilder.buildParticipantEffects(
-      entitiesCreated,
-      relationshipsCreated,
-      [], // templates don't typically archive relationships
-      tagsAdded,
-      tagsRemoved,
-      fieldsChanged
+      entitiesCreated, relationshipsCreated, [], tagsAdded, tagsRemoved, fieldsChanged
     );
-
     if (participantEffects.length === 0) return null;
 
-    // Primary entity is the first created entity, or first affected if none created
-    const primaryEntity = entitiesCreated.length > 0
-      ? participantEffects.find(p => p.effects.some(e => e.type === 'created'))?.entity
-      : participantEffects[0]?.entity;
-
+    const primaryEntity = this.findPrimaryEntity(participantEffects, entitiesCreated.length > 0);
     if (!primaryEntity) return null;
 
-    // Check for domain-controlled narration from the pending creation batch
-    const creationBatch = this.pendingCreationBatches.find(b => b.templateId === context.sourceId);
-    const narration = creationBatch?.narration;
-
-    // Debug: log narration lookup
-    if (!narration) {
-      const matchingBatch = this.pendingCreationBatches.find(b => b.templateId === context.sourceId);
-      if (!matchingBatch && this.pendingCreationBatches.length > 0) {
-        console.warn(`[StateChangeTracker] No batch found for template "${context.sourceId}". Available: [${this.pendingCreationBatches.map(b => b.templateId).join(', ')}]`);
-      } else if (matchingBatch && !matchingBatch.narration) {
-        console.debug(`[StateChangeTracker] Batch "${context.sourceId}" has no narration (template lacks narrationTemplate)`);
-      }
-    } else {
-      console.debug(`[StateChangeTracker] Using narration for "${context.sourceId}": ${narration.slice(0, 60)}...`);
-    }
-
-    // Use narration if available, otherwise build description summarizing what happened
+    const narration = this.resolveTemplateNarration(context.sourceId);
     const description = narration || this.buildTemplateDescription(
-      entitiesCreated,
-      relationshipsCreated,
-      participantEffects,
-      context.sourceId
+      entitiesCreated, relationshipsCreated, participantEffects, context.sourceId
     );
 
-    // Calculate significance
     const significance = Math.min(1.0,
-      (entitiesCreated.length * 0.3) +
-      (relationshipsCreated.length * 0.1) +
-      0.2 // base significance for template execution
+      (entitiesCreated.length * 0.3) + (relationshipsCreated.length * 0.1) + 0.2
     );
 
-    // Build narrative tags
     const entityKinds = new Set(participantEffects.map(p => p.entity.kind));
     const narrativeTags = ['creation', ...entityKinds];
     if (participantEffects.some(p => p.effects.every(e => e.type !== 'created'))) {
@@ -752,7 +689,7 @@ export class StateChangeTracker {
     return {
       id: `tpl-${context.sourceId}-${context.tick}`,
       tick: context.tick,
-      era: this.graph.currentEra?.id || 'unknown',
+      era: this.graph.currentEra.id,
       eventKind: 'creation_batch',
       significance,
       subject: primaryEntity,
@@ -760,11 +697,42 @@ export class StateChangeTracker {
       participantEffects,
       description,
       causedBy: {
+        hasCause: true,
+        eventId: '',
         entityId: context.sourceId,
         actionType: context.sourceId,
+        success: context.success,
       },
       narrativeTags,
     };
+  }
+
+  private findPrimaryEntity(
+    participantEffects: Array<{ entity: HardState; effects: Array<{ type: string }> }>,
+    hasCreatedEntities: boolean
+  ): HardState | undefined {
+    if (hasCreatedEntities) {
+      return participantEffects.find(p => p.effects.some(e => e.type === 'created'))?.entity;
+    }
+    return participantEffects[0]?.entity;
+  }
+
+  private resolveTemplateNarration(sourceId: string): string | undefined {
+    const creationBatch = this.pendingCreationBatches.find(b => b.templateId === sourceId);
+    const narration = creationBatch?.narration;
+
+    if (!narration) {
+      const matchingBatch = this.pendingCreationBatches.find(b => b.templateId === sourceId);
+      if (!matchingBatch && this.pendingCreationBatches.length > 0) {
+        console.warn(`[StateChangeTracker] No batch found for template "${sourceId}". Available: [${this.pendingCreationBatches.map(b => b.templateId).join(', ')}]`);
+      } else if (matchingBatch && !matchingBatch.narration) {
+        console.debug(`[StateChangeTracker] Batch "${sourceId}" has no narration (template lacks narrationTemplate)`);
+      }
+    } else {
+      console.debug(`[StateChangeTracker] Using narration for "${sourceId}": ${narration.slice(0, 60)}...`);
+    }
+
+    return narration;
   }
 
   /**
@@ -875,7 +843,7 @@ export class StateChangeTracker {
     return {
       id: `sys-${context.sourceId}-${context.tick}`,
       tick: context.tick,
-      era: this.graph.currentEra?.id || 'unknown',
+      era: this.graph.currentEra.id,
       eventKind: 'state_change',
       significance,
       subject: primaryEntity,
@@ -883,7 +851,11 @@ export class StateChangeTracker {
       participantEffects,
       description,
       causedBy: {
+        hasCause: true,
+        eventId: '',
+        entityId: '',
         actionType: `system:${context.sourceId}`,
+        success: context.success,
       },
       narrativeTags,
     };
@@ -958,7 +930,7 @@ export class StateChangeTracker {
     return {
       id: `act-${context.sourceId}-${context.tick}`,
       tick: context.tick,
-      era: this.graph.currentEra?.id || 'unknown',
+      era: this.graph.currentEra.id,
       eventKind: 'state_change',
       significance,
       subject: primaryEntity,
@@ -966,6 +938,9 @@ export class StateChangeTracker {
       participantEffects,
       description,
       causedBy: {
+        hasCause: true,
+        eventId: '',
+        entityId: '',
         actionType: `action:${context.sourceId}`,
         success: context.success,
       },
@@ -1018,13 +993,14 @@ export class StateChangeTracker {
     return {
       id: `fw-${context.tick}-${crypto.randomUUID().slice(0, 11)}`,
       tick: context.tick,
-      era: this.graph.currentEra?.id || 'unknown',
+      era: this.graph.currentEra.id,
       eventKind: 'state_change',
       significance: 0.3,
       subject: primaryEntity,
       action: 'framework_update',
       participantEffects,
       description,
+      causedBy: { hasCause: false, eventId: '', entityId: '', actionType: '', success: true },
       narrativeTags,
     };
   }

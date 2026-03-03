@@ -55,7 +55,7 @@ export interface DiffusionSourceConfig {
   /** Tag that marks an entity as a source */
   tagFilter: string;
   /** Optional tag containing numeric strength value (e.g., "strength:0.5") */
-  strengthTag?: string;
+  strengthTag: string;
   /** Default strength if strengthTag not present */
   defaultStrength: number;
 }
@@ -67,7 +67,7 @@ export interface DiffusionSinkConfig {
   /** Tag that marks an entity as a sink */
   tagFilter: string;
   /** Optional tag containing numeric strength value */
-  strengthTag?: string;
+  strengthTag: string;
   /** Default strength if strengthTag not present */
   defaultStrength: number;
 }
@@ -79,13 +79,13 @@ export interface DiffusionParams {
   /** Diffusion rate: how fast values spread (0-1, default 0.2) */
   rate: number;
   /** Source radius: cells around source that are directly set (default 1) */
-  sourceRadius?: number;
+  sourceRadius: number;
   /** Decay rate: how fast values decay toward zero each tick (0-1, default 0) */
-  decayRate?: number;
+  decayRate: number;
   /** Falloff type for source influence within sourceRadius (default 'linear') */
-  falloffType?: FalloffType;
+  falloffType: FalloffType;
   /** Iterations per tick: run diffusion this many times per tick for faster spreading (default 20) */
-  iterationsPerTick?: number;
+  iterationsPerTick: number;
 }
 
 /**
@@ -96,23 +96,23 @@ export interface DiffusionOutputTag {
   /** Tag to set on entity */
   tag: string;
   /** Minimum field value to set this tag (inclusive) */
-  minValue?: number;
+  minValue: number;
   /** Maximum field value to set this tag (exclusive) */
-  maxValue?: number;
+  maxValue: number;
   /**
    * Narration template for narrative-quality text when this tag is gained.
    * Uses the template syntax:
    * - {$self.name} - The entity gaining the tag
    * Example: "{$self.name} became dangerously hot."
    */
-  narrationTemplate?: string;
+  narrationTemplate: string;
   /**
    * Narration template for narrative-quality text when this tag is lost.
    * Uses the template syntax:
    * - {$self.name} - The entity losing the tag
    * Example: "{$self.name} cooled down and became safe again."
    */
-  lostNarrationTemplate?: string;
+  lostNarrationTemplate: string;
 }
 
 /**
@@ -124,7 +124,7 @@ export interface PlaneDiffusionConfig {
   /** Human-readable name */
   name: string;
   /** Optional description */
-  description?: string;
+  description: string;
 
   /** Selection rule for entities on this semantic plane */
   selection: SelectionRule;
@@ -133,7 +133,7 @@ export interface PlaneDiffusionConfig {
   sources: DiffusionSourceConfig;
 
   /** Optional sink configuration: entities that absorb from the field */
-  sinks?: DiffusionSinkConfig;
+  sinks: DiffusionSinkConfig;
 
   /** Diffusion parameters */
   diffusion: DiffusionParams;
@@ -142,13 +142,13 @@ export interface PlaneDiffusionConfig {
   outputTags: DiffusionOutputTag[];
 
   /** Optional: store raw field value as a tag (e.g., "field_value" → "field_value:25.5") */
-  valueTag?: string;
+  valueTag: string;
 
   /** Throttle: only run on some ticks (0-1, default: 1.0 = every tick) */
-  throttleChance?: number;
+  throttleChance: number;
 
   /** Pressure changes when field computation produces significant values */
-  pressureChanges?: Record<string, number>;
+  pressureChanges: Record<string, number>;
 }
 
 // =============================================================================
@@ -255,7 +255,7 @@ function clampToOutput(value: number): number {
 // PLANE DIFFUSION HELPERS
 // =============================================================================
 
-type DiffusionEntityMod = { id: string; changes: Partial<HardState>; narrativeGroupId?: string };
+type DiffusionEntityMod = { id: string; changes: Partial<HardState>; narrativeGroupId: string };
 
 function computeFalloff(
   distance: number,
@@ -350,7 +350,7 @@ function applySinkValues(
   for (const sink of sinks) {
     const gx = coordToGrid(sink.coordinates.x);
     const gy = coordToGrid(sink.coordinates.y);
-    const strength = getStrength(sink, config.sinks!.strengthTag, config.sinks!.defaultStrength);
+    const strength = getStrength(sink, config.sinks.strengthTag, config.sinks.defaultStrength);
     for (let dy = -sourceRadius; dy <= sourceRadius; dy++) {
       for (let dx = -sourceRadius; dx <= sourceRadius; dx++) {
         const nx = gx + dx;
@@ -424,9 +424,9 @@ function clearOldOutputTags(
 
 interface ApplyOutputTagsResult {
   newOutputTagAdded: boolean;
-  gainedOutputTag?: DiffusionOutputTag;
+  gainedOutputTag: DiffusionOutputTag;
   outputTagLost: boolean;
-  lostOutputTag?: DiffusionOutputTag;
+  lostOutputTag: DiffusionOutputTag;
   tagsChanged: boolean;
 }
 
@@ -441,8 +441,8 @@ function applyNewOutputTags(
   let gainedOutputTag: DiffusionOutputTag | undefined;
   const newOutputTags = new Set<string>();
   for (const outputTag of config.outputTags) {
-    const minOk = outputTag.minValue === undefined || fieldValue >= outputTag.minValue;
-    const maxOk = outputTag.maxValue === undefined || fieldValue < outputTag.maxValue;
+    const minOk = fieldValue >= outputTag.minValue;
+    const maxOk = fieldValue < outputTag.maxValue;
     if (minOk && maxOk) {
       newTags[outputTag.tag] = true;
       newOutputTags.add(outputTag.tag);
@@ -560,7 +560,7 @@ function buildDiffusionVizSnapshot(
     })),
     sinks: sinks.map(k => ({
       id: k.id, name: k.name, x: k.coordinates.x, y: k.coordinates.y,
-      strength: getStrength(k, config.sinks!.strengthTag, config.sinks!.defaultStrength),
+      strength: getStrength(k, config.sinks.strengthTag, config.sinks.defaultStrength),
     })),
     entities: entitiesWithCoords.map(e => ({
       id: e.id, name: e.name, x: e.coordinates.x, y: e.coordinates.y,
@@ -570,113 +570,81 @@ function buildDiffusionVizSnapshot(
   };
 }
 
-export function createPlaneDiffusionSystem(
-  config: PlaneDiffusionConfig
-): SimulationSystem<DiffusionState> {
-  const diffusionRate = config.diffusion.rate;
-  const sourceRadius = config.diffusion.sourceRadius ?? 1;
-  const decayRate = config.diffusion.decayRate ?? 0; // Default to 0
-  const falloffType = config.diffusion.falloffType ?? 'absolute';
-  const iterationsPerTick = config.diffusion.iterationsPerTick ?? 20; // Default 20 for fast spreading
+class PlaneDiffusionSystem implements SimulationSystem<DiffusionState> {
+  readonly id: string;
+  readonly name: string;
+  state: DiffusionState | undefined;
+  private readonly config: PlaneDiffusionConfig;
+  private readonly diffusionRate: number;
+  private readonly sourceRadius: number;
+  private readonly decayRate: number;
+  private readonly falloffType: string;
+  private readonly iterationsPerTick: number;
 
-  // Validate ranges
-  if (diffusionRate < 0 || diffusionRate > 1) {
-    throw new Error(`[${config.id}] Diffusion rate must be between 0 and 1, got ${diffusionRate}`);
+  constructor(config: PlaneDiffusionConfig) {
+    this.id = config.id;
+    this.name = config.name;
+    this.config = config;
+    this.diffusionRate = config.diffusion.rate;
+    this.sourceRadius = config.diffusion.sourceRadius;
+    this.decayRate = config.diffusion.decayRate;
+    this.falloffType = config.diffusion.falloffType;
+    this.iterationsPerTick = config.diffusion.iterationsPerTick;
+    this.validateConfig();
   }
-  if (decayRate < 0 || decayRate > 1) {
-    throw new Error(`[${config.id}] Decay rate must be between 0 and 1, got ${decayRate}`);
-  }
-  if (sourceRadius < 0 || sourceRadius > 50) {
-    throw new Error(`[${config.id}] Source radius must be between 0 and 50, got ${sourceRadius}`);
-  }
-  if (!config.selection.kind) {
-    throw new Error(`[${config.id}] Plane diffusion requires selection.kind to define the semantic plane.`);
+
+  private validateConfig(): void {
+    if (this.diffusionRate < 0 || this.diffusionRate > 1) throw new Error(`[${this.id}] Diffusion rate must be 0-1, got ${this.diffusionRate}`);
+    if (this.decayRate < 0 || this.decayRate > 1) throw new Error(`[${this.id}] Decay rate must be 0-1, got ${this.decayRate}`);
+    if (this.sourceRadius < 0 || this.sourceRadius > 50) throw new Error(`[${this.id}] Source radius must be 0-50, got ${this.sourceRadius}`);
+    if (!this.config.selection.kind) throw new Error(`[${this.id}] Plane diffusion requires selection.kind`);
   }
 
-  // Create the system with internal state
-  const system: SimulationSystem<DiffusionState> = {
-    id: config.id,
-    name: config.name,
+  initialize(): void {
+    this.state = { grid: new Float32Array(GRID_SIZE * GRID_SIZE), tempGrid: new Float32Array(GRID_SIZE * GRID_SIZE), initialized: true };
+  }
 
-    // Internal state - will be initialized by initialize()
-    state: undefined,
+  apply(graphView: WorldRuntime, _modifier: number = 1.0): SystemResult {
+    if (!this.state?.initialized) this.initialize();
+    const state = this.state!;
 
-    // Initialize the grid on first use
-    initialize: function() {
-      this.state = {
-        grid: new Float32Array(GRID_SIZE * GRID_SIZE),
-        tempGrid: new Float32Array(GRID_SIZE * GRID_SIZE),
-        initialized: true,
-      };
-    },
-
-    apply: function(graphView: WorldRuntime, _modifier: number = 1.0): SystemResult {
-      if (!this.state?.initialized) {
-        this.initialize!();
+    if (this.config.throttleChance < 1.0) {
+      // eslint-disable-next-line sonarjs/pseudo-random -- simulation throttle
+      if (Math.random() > this.config.throttleChance) {
+        return this.dormantResult(state);
       }
-      const state = this.state!;
-
-      // Throttle check
-      if (config.throttleChance !== undefined && config.throttleChance < 1.0) {
-        // eslint-disable-next-line sonarjs/pseudo-random -- simulation throttle check
-        if (Math.random() > config.throttleChance) {
-          return {
-            relationshipsAdded: [],
-            entitiesModified: [],
-            pressureChanges: {},
-            description: `${config.name}: dormant`,
-            details: {
-              diffusionSnapshot: {
-                grid: Array.from(state.grid),
-                gridSize: GRID_SIZE,
-                sources: [],
-                sinks: [],
-                entities: [],
-              },
-            },
-          };
-        }
-      }
-
-      const metricCtx = createSystemContext(graphView);
-      const entities = selectEntities(config.selection, metricCtx);
-      const entitiesWithCoords = entities.filter(hasCoordinates);
-      const sources = entitiesWithCoords.filter(e => hasTag(e.tags, config.sources.tagFilter));
-      const sinks = config.sinks
-        ? entitiesWithCoords.filter(e => hasTag(e.tags, config.sinks!.tagFilter))
-        : [];
-
-      const fixedCells = buildFixedBoundaryCells(sources, sourceRadius, decayRate);
-      injectSourceValues(state, sources, config, sourceRadius, decayRate, metricCtx, falloffType);
-      applySinkValues(state, sinks, config, sourceRadius, metricCtx, falloffType);
-      runDiffusionIterations(state, fixedCells, iterationsPerTick, diffusionRate);
-      applyDecayToGrid(state, fixedCells, decayRate);
-
-      const { modifications, narrationsByGroup, significantModificationCount } =
-        processAllEntityTagUpdates(entitiesWithCoords, state, config);
-
-      const pressureChanges = (sources.length > 0 || sinks.length > 0)
-        ? (config.pressureChanges ?? {})
-        : {};
-
-      const visualizationSnapshot = buildDiffusionVizSnapshot(
-        state, sources, sinks, entitiesWithCoords, config,
-        { diffusionRate, sourceRadius, decayRate, falloffType, iterationsPerTick }
-      );
-
-      return {
-        relationshipsAdded: [],
-        entitiesModified: modifications,
-        pressureChanges,
-        description: `${config.name}: ${sources.length} sources, ${sinks.length} sinks, ${significantModificationCount} entities gained output tags`,
-        narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : undefined,
-        details: {
-          diffusionSnapshot: visualizationSnapshot,
-          significantModificationCount,
-        },
-      };
     }
-  };
 
-  return system;
+    const metricCtx = createSystemContext(graphView);
+    const entities = selectEntities(this.config.selection, metricCtx);
+    const withCoords = entities.filter(hasCoordinates);
+    const sources = withCoords.filter(e => hasTag(e.tags, this.config.sources.tagFilter));
+    const sinks = withCoords.filter(e => hasTag(e.tags, this.config.sinks.tagFilter));
+
+    const fixedCells = buildFixedBoundaryCells(sources, this.sourceRadius, this.decayRate);
+    injectSourceValues(state, sources, this.config, this.sourceRadius, this.decayRate, metricCtx, this.falloffType);
+    applySinkValues(state, sinks, this.config, this.sourceRadius, metricCtx, this.falloffType);
+    runDiffusionIterations(state, fixedCells, this.iterationsPerTick, this.diffusionRate);
+    applyDecayToGrid(state, fixedCells, this.decayRate);
+
+    const { modifications, narrationsByGroup, significantModificationCount } = processAllEntityTagUpdates(withCoords, state, this.config);
+    const pressureChanges = (sources.length > 0 || sinks.length > 0) ? this.config.pressureChanges : {};
+
+    return {
+      relationshipsAdded: [],
+      entitiesModified: modifications,
+      pressureChanges,
+      description: `${this.name}: ${sources.length} sources, ${sinks.length} sinks, ${significantModificationCount} entities gained output tags`,
+      narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : undefined,
+      details: { diffusionSnapshot: buildDiffusionVizSnapshot(state, sources, sinks, withCoords, this.config, { diffusionRate: this.diffusionRate, sourceRadius: this.sourceRadius, decayRate: this.decayRate, falloffType: this.falloffType, iterationsPerTick: this.iterationsPerTick }), significantModificationCount },
+    };
+  }
+
+  private dormantResult(state: DiffusionState): SystemResult {
+    return { relationshipsAdded: [], entitiesModified: [], pressureChanges: {}, description: `${this.name}: dormant`, details: { diffusionSnapshot: { grid: Array.from(state.grid), gridSize: GRID_SIZE, sources: [], sinks: [], entities: [] } } };
+  }
+}
+
+export function createPlaneDiffusionSystem(config: PlaneDiffusionConfig): SimulationSystem<DiffusionState> {
+  return new PlaneDiffusionSystem(config);
 }

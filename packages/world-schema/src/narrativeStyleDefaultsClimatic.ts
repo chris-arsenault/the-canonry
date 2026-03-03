@@ -72,10 +72,10 @@ AVOID: Nihilism. Destruction without meaning. Modern apocalyptic cliches (zombie
     titleGuidance: 'The title should sound like scripture naming an event that has been foretold. Prophetic register: absolute, vast, carrying the weight of cosmic certainty. It names the transformation, the judgment, or the era ending. Short — prophetic titles compress enormity into two or three words that feel like they were always the name of this reckoning.',
 
     roles: [
-      { role: 'prophet', count: { min: 1, max: 1 }, description: 'The one who sees - unwilling, overwhelmed, transformed by the vision' },
-      { role: 'the-guide', count: { min: 0, max: 1 }, description: 'Angelic, divine, or cosmic presence that frames and explains the vision' },
-      { role: 'the-old-world', count: { min: 1, max: 1 }, description: 'What is ending - the world the prophet knew, made specific and beloved so its loss wounds' },
-      { role: 'the-new-world', count: { min: 0, max: 1 }, description: 'What rises from the ashes - strange, beautiful, not yet understood' },
+      { role: 'prophet', count: { min: 1, max: 1 }, description: 'The one who sees - unwilling, overwhelmed, transformed by the vision', selectionCriteria: '' },
+      { role: 'the-guide', count: { min: 0, max: 1 }, description: 'Angelic, divine, or cosmic presence that frames and explains the vision', selectionCriteria: '' },
+      { role: 'the-old-world', count: { min: 1, max: 1 }, description: 'What is ending - the world the prophet knew, made specific and beloved so its loss wounds', selectionCriteria: '' },
+      { role: 'the-new-world', count: { min: 0, max: 1 }, description: 'What rises from the ashes - strange, beautiful, not yet understood', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -170,11 +170,11 @@ AVOID: Heroic speeches. Slow-motion deaths. The enemy as evil or monstrous — t
     titleGuidance: 'The title names the ground — the position, the corridor, the ridge, the terrace. Military and concrete. It should sound like what survivors call this fight when they talk about it years later: not the official name, not the strategic significance, just the place where it happened. The register is tired, specific, earned. Two to four words. No glory in it. If the title sounds like it belongs on a memorial wall where someone has traced the letters with a flipper, it fits.',
 
     roles: [
-      { role: 'the-line', count: { min: 1, max: 1 }, description: 'What is being held — a location, a faction, an artifact, a principle. The thing that makes the stand necessary. Not a person but what people are willing to die for' },
-      { role: 'squad-member', count: { min: 2, max: 3 }, description: 'Members of the unit — defined by how they talk, what they carry, and how they relate to each other under pressure. Named through action and dialog, not backstory. At least one will not survive' },
-      { role: 'the-tide', count: { min: 1, max: 1 }, description: 'The opposing force — a faction, a commander, an occurrence bearing down. Treated with the same dignity as the unit. They have their own bonds, their own reasons, their own cost to pay' },
-      { role: 'the-price', count: { min: 1, max: 1 }, description: 'What the sacrifice costs or what is sacrificed — may be an ability, an artifact, a bond, or a person. The thing that ends this battle but scars everything it touches. Described by what it does, not what it means' },
-      { role: 'the-weight', count: { min: 0, max: 1 }, description: 'What survivors carry after — an ideology born from the cost, a corruption that won\'t cleanse, a sound that won\'t stop. Not present in the battle itself; felt only in the silence after. The thing the story was really about, visible only from the far side of violence' },
+      { role: 'the-line', count: { min: 1, max: 1 }, description: 'What is being held — a location, a faction, an artifact, a principle. The thing that makes the stand necessary. Not a person but what people are willing to die for', selectionCriteria: '' },
+      { role: 'squad-member', count: { min: 2, max: 3 }, description: 'Members of the unit — defined by how they talk, what they carry, and how they relate to each other under pressure. Named through action and dialog, not backstory. At least one will not survive', selectionCriteria: '' },
+      { role: 'the-tide', count: { min: 1, max: 1 }, description: 'The opposing force — a faction, a commander, an occurrence bearing down. Treated with the same dignity as the unit. They have their own bonds, their own reasons, their own cost to pay', selectionCriteria: '' },
+      { role: 'the-price', count: { min: 1, max: 1 }, description: 'What the sacrifice costs or what is sacrificed — may be an ability, an artifact, a bond, or a person. The thing that ends this battle but scars everything it touches. Described by what it does, not what it means', selectionCriteria: '' },
+      { role: 'the-weight', count: { min: 0, max: 1 }, description: 'What survivors carry after — an ideology born from the cost, a corruption that won\'t cleanse, a sound that won\'t stop. Not present in the battle itself; felt only in the silence after. The thing the story was really about, visible only from the far side of violence', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -250,10 +250,10 @@ AVOID: Montage. Time-skips that compress the work into a sentence — the work I
     titleGuidance: 'Name the thing made, the material worked, or the problem solved — concrete and specific. The register is workshop-practical, not grandiose. If the title sounds like what a maker would call their own work when describing it to a colleague, it fits. One to four words. No triumph announced; the title trusts the reader to understand what the making cost.',
 
     roles: [
-      { role: 'maker', count: { min: 1, max: 2 }, description: 'The craftsperson, scholar, or engineer — defined by competence and attention. Not a hero; a person who knows their craft and has hit its limits' },
-      { role: 'the-problem', count: { min: 1, max: 1 }, description: 'What resists solution — a material property, a theoretical gap, a technique that should work and doesn\'t. The problem is the antagonist, and it is honest' },
-      { role: 'the-material', count: { min: 1, max: 1 }, description: 'What they work with — the substance or medium whose properties must be understood, not overcome' },
-      { role: 'witness', count: { min: 0, max: 1 }, description: 'Someone present for the proof who understands what it means' },
+      { role: 'maker', count: { min: 1, max: 2 }, description: 'The craftsperson, scholar, or engineer — defined by competence and attention. Not a hero; a person who knows their craft and has hit its limits', selectionCriteria: '' },
+      { role: 'the-problem', count: { min: 1, max: 1 }, description: 'What resists solution — a material property, a theoretical gap, a technique that should work and doesn\'t. The problem is the antagonist, and it is honest', selectionCriteria: '' },
+      { role: 'the-material', count: { min: 1, max: 1 }, description: 'What they work with — the substance or medium whose properties must be understood, not overcome', selectionCriteria: '' },
+      { role: 'witness', count: { min: 0, max: 1 }, description: 'Someone present for the proof who understands what it means', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -327,11 +327,11 @@ AVOID: Resolution of cultural difference — they do not become the same, they d
     titleGuidance: 'Name the thing built, the place where they met, or the problem they solved together. The register is practical and cross-cultural — the kind of name that gets used by both sides, possibly meaning slightly different things to each. If the title sounds like what historians call this collaboration when they cite it as precedent, it fits.',
 
     roles: [
-      { role: 'party-a', count: { min: 1, max: 1 }, description: 'Representative of one culture — competent in their own tradition, genuinely baffled or frustrated by the other\'s approach' },
-      { role: 'party-b', count: { min: 1, max: 1 }, description: 'Representative of the other culture — equally competent, equally frustrated. Not the student; the counterpart' },
-      { role: 'the-need', count: { min: 1, max: 1 }, description: 'The problem that requires both cultures\' capabilities — a location, a material, a crisis that spans both domains' },
-      { role: 'the-work', count: { min: 1, max: 1 }, description: 'What they build together — the hybrid result, the thing that belongs to neither tradition alone' },
-      { role: 'catalyst', count: { min: 0, max: 1 }, description: 'What forces the collaboration — a shared threat, a resource neither controls, an authority that mandates cooperation' },
+      { role: 'party-a', count: { min: 1, max: 1 }, description: 'Representative of one culture — competent in their own tradition, genuinely baffled or frustrated by the other\'s approach', selectionCriteria: '' },
+      { role: 'party-b', count: { min: 1, max: 1 }, description: 'Representative of the other culture — equally competent, equally frustrated. Not the student; the counterpart', selectionCriteria: '' },
+      { role: 'the-need', count: { min: 1, max: 1 }, description: 'The problem that requires both cultures\' capabilities — a location, a material, a crisis that spans both domains', selectionCriteria: '' },
+      { role: 'the-work', count: { min: 1, max: 1 }, description: 'What they build together — the hybrid result, the thing that belongs to neither tradition alone', selectionCriteria: '' },
+      { role: 'catalyst', count: { min: 0, max: 1 }, description: 'What forces the collaboration — a shared threat, a resource neither controls, an authority that mandates cooperation', selectionCriteria: '' },
     ],
 
     pacing: {

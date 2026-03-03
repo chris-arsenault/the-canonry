@@ -261,37 +261,6 @@ function formatDynamicsAndIdentities(wc: EraNarrativeRecord["worldContext"]): st
 
 type PrepBrief = EraNarrativeRecord["prepBriefs"][0];
 
-function formatSourceBriefs(prepBriefs: PrepBrief[]): string[] {
-  const sections: string[] = [];
-  const byYear = (a: PrepBrief, b: PrepBrief) => (a.eraYear || 0) - (b.eraYear || 0);
-
-  const structural = prepBriefs.filter((b) => b.weight === "structural").sort(byYear);
-  const contextual = prepBriefs.filter((b) => b.weight === "contextual").sort(byYear);
-  const unclassified = prepBriefs.filter((b) => !b.weight).sort(byYear);
-
-  const formatBrief = (brief: PrepBrief) => {
-    const yearLabel = brief.eraYear ? ` [Year ${brief.eraYear}]` : "";
-    return `--- ${brief.chronicleTitle}${yearLabel} (${brief.chronicleId}) ---\n${brief.prep}`;
-  };
-
-  if (structural.length > 0) {
-    sections.push(
-      `=== STRUCTURAL SOURCES (${structural.length} — define this era's arc) ===\n${structural.map(formatBrief).join("\n\n")}`
-    );
-  }
-  if (contextual.length > 0) {
-    sections.push(
-      `=== CONTEXTUAL SOURCES (${contextual.length} — cultural identity and framing, not events) ===\n${contextual.map(formatBrief).join("\n\n")}`
-    );
-  }
-  if (unclassified.length > 0) {
-    sections.push(
-      `=== UNCLASSIFIED SOURCES (${unclassified.length} — treat as structural unless content suggests otherwise) ===\n${unclassified.map(formatBrief).join("\n\n")}`
-    );
-  }
-
-  return { sections, structural, contextual, unclassified } as unknown as string[];
-}
 
 interface SourceBriefsResult {
   sections: string[];

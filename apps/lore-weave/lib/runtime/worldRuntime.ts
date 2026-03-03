@@ -1,4 +1,4 @@
-import { Graph, DebugCategory, DEFAULT_DEBUG_CONFIG, EngineConfig } from '../engine/types';
+import { Graph, DebugCategory, EngineConfig , entityCriteria } from '../engine/types';
 import type { CreateEntitySettings, EntityCriteria, RelationshipCriteria } from '../engine/types';
 import { HardState, Relationship, EntityTags } from '../core/worldTypes';
 import { TargetSelector } from '../selection/targetSelector';
@@ -32,18 +32,29 @@ import type { PressureModificationSource } from '../observer/types';
 import { prominenceLabel } from '../rules/types';
 
 /** Result of placement with debug info */
+/** Shared context for a single placement operation's helper methods. */
+interface PlacementSession {
+  entityKind: string;
+  cultureId: string;
+  spacingMin: number;
+  existingPoints: Point[];
+  baseDebug: { anchorType: string; anchorCulture: string };
+  regionPolicy: PlacementRegionPolicy;
+  tick: number;
+}
+
 export interface PlacementResultWithDebug {
   coordinates: Point;
-  regionId?: string | null;
-  allRegionIds?: string[];
-  derivedTags?: Record<string, string | boolean>;
+  regionId: string | null;
+  allRegionIds: string[];
+  derivedTags: Record<string, string | boolean>;
   debug: {
     anchorType: string;
-    anchorEntity?: { id: string; name: string; kind: string };
-    anchorCulture?: string;
+    anchorEntity: { id: string; name: string; kind: string };
+    anchorCulture: string;
     resolvedVia: string;
-    seedRegionsAvailable?: string[];
-    emergentRegionCreated?: { id: string; label: string };
+    seedRegionsAvailable: string[];
+    emergentRegionCreated: { id: string; label: string };
   };
 }
 
@@ -72,10 +83,10 @@ export class WorldRuntime implements Graph {
   private readonly coordinateContext: CoordinateContext;
 
   // Optional callback for tracking pressure modifications with source
-  private onPressureModify?: PressureModificationCallback;
+  private onPressureModify: PressureModificationCallback;
 
   // Current source context for pressure modifications (set before template/system execution)
-  private currentSource?: PressureModificationSource;
+  private currentSource: PressureModificationSource | undefined;
 
   constructor(
     graph: Graph,
@@ -239,8 +250,8 @@ export class WorldRuntime implements Graph {
    * Log a message via the emitter (if available).
    * Convenience method for systems to emit debug/info/warn messages.
    */
-  log(level: 'debug' | 'info' | 'warn' | 'error', message: string, context?: Record<string, unknown>): void {
-    this.config.emitter?.log(level, message, context);
+  log(level: 'debug' | 'info' | 'warn' | 'error', message: string, context: Record<string, unknown>): void {
+    this.config.emitter.log(level, message, context);
   }
 
   /**
@@ -251,11 +262,11 @@ export class WorldRuntime implements Graph {
    * @param message - Debug message to emit
    * @param context - Optional additional context
    */
-  debug(category: DebugCategory, message: string, context?: Record<string, unknown>): void {
+  debug(category: DebugCategory, message: string, context: Record<string, unknown>): void {
     const debugConfig = this.config.debugConfig;
 
     // If debug is disabled globally or no config, skip
-    if (!debugConfig?.enabled) {
+    if (!debugConfig.enabled) {
         return;
     }
 
@@ -266,7 +277,7 @@ export class WorldRuntime implements Graph {
     }
 
     // Emit with category prefix
-    this.config.emitter?.log('debug', `[${category.toUpperCase()}] ${message}`, context);
+    this.config.emitter.log('debug', `[${category.toUpperCase()}] ${message}`, context);
   }
 
   /**
@@ -274,7 +285,7 @@ export class WorldRuntime implements Graph {
    * Useful for avoiding expensive string formatting when debug is disabled.
    */
   isDebugEnabled(category: DebugCategory): boolean {
-    const debugConfig = this.config.debugConfig ?? DEFAULT_DEBUG_CONFIG;
+    const debugConfig = this.config.debugConfig;
     if (!debugConfig.enabled) return false;
     if (debugConfig.enabledCategories.length === 0) return true;
     return debugConfig.enabledCategories.includes(category);
@@ -310,9 +321,9 @@ export class WorldRuntime implements Graph {
   /**
    * Get total entity count (useful for canApply checks)
    */
-  getEntityCount(options?: { includeHistorical?: boolean }): number;
-  getEntityCount(kind?: string, subtype?: string): number;
-  getEntityCount(kindOrOptions?: string | { includeHistorical?: boolean }, subtype?: string): number {
+  getEntityCount(options: { includeHistorical: boolean }): number;
+  getEntityCount(kind: string, subtype: string): number;
+  getEntityCount(kindOrOptions: string | { includeHistorical: boolean }, subtype: string): number {
     if (typeof kindOrOptions === 'object') {
       return this.graph.getEntityCount(kindOrOptions);
     }
@@ -345,14 +356,14 @@ export class WorldRuntime implements Graph {
   /**
    * Get entities by kind.
    */
-  getEntitiesByKind(kind: string, options?: { includeHistorical?: boolean }): HardState[] {
+  getEntitiesByKind(kind: string, options: { includeHistorical: boolean }): HardState[] {
     return this.graph.getEntitiesByKind(kind, options);
   }
 
   /**
    * Get entity IDs.
    */
-  getEntityIds(options?: { includeHistorical?: boolean }): string[] {
+  getEntityIds(options: { includeHistorical: boolean }): string[] {
     return this.graph.getEntityIds(options);
   }
 
@@ -362,9 +373,9 @@ export class WorldRuntime implements Graph {
    */
   getConnectedEntities(
     entityId: string,
-    relationKind?: string,
+    relationKind: string,
     direction: 'src' | 'dst' | 'both' = 'both',
-    options?: { includeHistorical?: boolean }
+    options: { includeHistorical: boolean }
   ): HardState[] {
     return this.graph.getConnectedEntities(entityId, relationKind, direction, options);
   }
@@ -374,12 +385,12 @@ export class WorldRuntime implements Graph {
    * Excludes historical by default.
    */
   getRelationships(): Relationship[];
-  getRelationships(options?: { includeHistorical?: boolean }): Relationship[];
-  getRelationships(entityId: string, kind?: string, options?: { includeHistorical?: boolean }): Relationship[];
+  getRelationships(options: { includeHistorical: boolean }): Relationship[];
+  getRelationships(entityId: string, kind: string, options: { includeHistorical: boolean }): Relationship[];
   getRelationships(
-    entityIdOrOptions?: string | { includeHistorical?: boolean },
-    kind?: string,
-    options?: { includeHistorical?: boolean }
+    entityIdOrOptions: string | { includeHistorical: boolean },
+    kind: string,
+    options: { includeHistorical: boolean }
   ): Relationship[] {
     if (typeof entityIdOrOptions === 'string') {
       if (!this.graph.getEntity(entityIdOrOptions)) return [];
@@ -397,7 +408,7 @@ export class WorldRuntime implements Graph {
   /**
    * Alias for getRelationships() returning all relationships.
    */
-  getAllRelationships(options?: { includeHistorical?: boolean }): Relationship[] {
+  getAllRelationships(options: { includeHistorical: boolean }): Relationship[] {
     return this.graph.getRelationships(options);
   }
 
@@ -414,7 +425,7 @@ export class WorldRuntime implements Graph {
   getEntityRelationships(
     entityId: string,
     direction: 'src' | 'dst' | 'both' = 'both',
-    options?: { includeHistorical?: boolean }
+    options: { includeHistorical: boolean }
   ): Relationship[] {
     return this.graph.getEntityRelationships(entityId, direction, options);
   }
@@ -422,7 +433,7 @@ export class WorldRuntime implements Graph {
   /**
    * Check if a relationship exists between two entities
    */
-  hasRelationship(srcId: string, dstId: string, kind?: string): boolean {
+  hasRelationship(srcId: string, dstId: string, kind: string): boolean {
     return this.graph.hasRelationship(srcId, dstId, kind);
   }
 
@@ -475,8 +486,8 @@ export class WorldRuntime implements Graph {
    * (respects cooldowns)
    * @param cooldown Optional cooldown period in ticks (defaults to 10)
    */
-  canFormRelationship(entityId: string, relationshipType: string, cooldown?: number): boolean {
-    const cooldownPeriod = cooldown ?? 10;
+  canFormRelationship(entityId: string, relationshipType: string, cooldown: number): boolean {
+    const cooldownPeriod = cooldown;
     const cooldownMap = this.graph.relationshipCooldowns.get(entityId);
     if (!cooldownMap) return true;
 
@@ -498,7 +509,7 @@ export class WorldRuntime implements Graph {
    * Use sparingly - prefer findEntities() with criteria for filtering.
    * Excludes historical by default.
    */
-  getEntities(options?: { includeHistorical?: boolean }): HardState[] {
+  getEntities(options: { includeHistorical: boolean }): HardState[] {
     return this.graph.getEntities(options);
   }
 
@@ -506,7 +517,7 @@ export class WorldRuntime implements Graph {
    * Iterate over all entities.
    * Excludes historical by default.
    */
-  forEachEntity(callback: (entity: HardState, id: string) => void, options?: { includeHistorical?: boolean }): void {
+  forEachEntity(callback: (entity: HardState, id: string) => void, options: { includeHistorical: boolean }): void {
     this.graph.forEachEntity(callback, options);
   }
 
@@ -527,7 +538,7 @@ export class WorldRuntime implements Graph {
     if (!partial.culture) throw new Error(`createEntity: culture is required for kind "${partial.kind}".`);
 
     const validCoords = { x: coords.x, y: coords.y, z: coords.z };
-    const tags: EntityTags = Array.isArray(partial.tags) ? arrayToTags(partial.tags) : { ...(partial.tags || {}) };
+    const tags: EntityTags = Array.isArray(partial.tags) ? arrayToTags(partial.tags) : { ...partial.tags };
     return { validCoords, tags };
   }
 
@@ -541,7 +552,7 @@ export class WorldRuntime implements Graph {
       const dz = existing.coordinates.z - coords.z;
       const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (distance < overlapThreshold) {
-        this.engineConfig.emitter?.log(
+        this.engineConfig.emitter.log(
           'warn',
           `Coordinate overlap: ${kind}:${subtype} "${name}" ` +
           `placed at (${coords.x.toFixed(1)}, ${coords.y.toFixed(1)}, ${coords.z.toFixed(1)}) ` +
@@ -558,28 +569,30 @@ export class WorldRuntime implements Graph {
    * For coordinate-aware placement, use placeWithCulture() instead.
    */
   async createEntity(settings: CreateEntitySettings): Promise<string>;
-  async createEntity(partial: Partial<HardState>, source?: string, placementStrategy?: string): Promise<string>;
+
+  private resolveEraId(partial: Partial<HardState>, explicitEraId: string | undefined): string | undefined {
+    if (typeof explicitEraId === 'string' && explicitEraId) return explicitEraId;
+    if (typeof partial.eraId === 'string' && partial.eraId) return partial.eraId;
+    if (partial.kind === FRAMEWORK_ENTITY_KINDS.ERA) return partial.subtype;
+    const currentEra: HardState | undefined = this.graph.findEntities(entityCriteria({ kind: FRAMEWORK_ENTITY_KINDS.ERA, status: FRAMEWORK_STATUS.CURRENT }))[0];
+    return currentEra?.id;
+  }
+  async createEntity(partial: Partial<HardState>, source: string, placementStrategy: string): Promise<string>;
   async createEntity(
     settingsOrPartial: CreateEntitySettings | Partial<HardState>,
-    source?: string,
-    placementStrategy?: string
+    source: string,
+    placementStrategy: string
   ): Promise<string> {
     const partial = settingsOrPartial as Partial<HardState>;
-    const resolvedSource = (settingsOrPartial as CreateEntitySettings).source ?? source;
-    const resolvedPlacementStrategy = (settingsOrPartial as CreateEntitySettings).placementStrategy ?? placementStrategy;
-    const namingContext = (settingsOrPartial as Partial<HardState> & { namingContext?: Record<string, string> }).namingContext;
+    const resolvedSource = (settingsOrPartial as CreateEntitySettings).source || source;
+    const resolvedPlacementStrategy = (settingsOrPartial as CreateEntitySettings).placementStrategy || placementStrategy;
+    const namingContext = (settingsOrPartial as Partial<HardState> & { namingContext: Record<string, string> }).namingContext;
 
     const { validCoords, tags } = this.validateCreateEntityInput(partial);
 
     let name = partial.name;
     if (!name) {
       const nameForge = this.engineConfig.nameForgeService;
-      if (!nameForge) {
-        throw new Error(
-          `createEntity: name not provided and no NameForgeService configured. ` +
-          `Either provide a name or configure nameForgeService in EngineConfig.`
-        );
-      }
 
       const tagArray = Object.keys(tags);
       // Convert numeric prominence to label for name-forge
@@ -608,21 +621,7 @@ export class WorldRuntime implements Graph {
 
     this.warnCoordinateOverlap(partial.kind, partial.subtype, name, validCoords);
 
-    const currentEraEntity = partial.kind !== FRAMEWORK_ENTITY_KINDS.ERA
-      ? this.graph.findEntities({
-          kind: FRAMEWORK_ENTITY_KINDS.ERA,
-          status: FRAMEWORK_STATUS.CURRENT
-        })[0]
-      : undefined;
-    const explicitEraId = (settingsOrPartial as CreateEntitySettings).eraId ?? partial.eraId;
-    let resolvedEraId: string | undefined;
-    if (typeof explicitEraId === 'string' && explicitEraId) {
-      resolvedEraId = explicitEraId;
-    } else if (partial.kind === FRAMEWORK_ENTITY_KINDS.ERA) {
-      resolvedEraId = partial.subtype;
-    } else {
-      resolvedEraId = currentEraEntity?.id;
-    }
+    const resolvedEraId = this.resolveEraId(partial, (settingsOrPartial as CreateEntitySettings).eraId);
 
     const entityId = await this.graph.createEntity({
       id: resolvedId,
@@ -644,13 +643,14 @@ export class WorldRuntime implements Graph {
       allRegionIds: partial.allRegionIds
     });
 
-    if (partial.kind !== FRAMEWORK_ENTITY_KINDS.ERA && currentEraEntity) {
-      this.graph.addRelationship(
-        FRAMEWORK_RELATIONSHIP_KINDS.CREATED_DURING,
-        entityId,
-        currentEraEntity.id,
-        FRAMEWORK_RELATIONSHIP_PROPERTIES[FRAMEWORK_RELATIONSHIP_KINDS.CREATED_DURING].defaultStrength
-      );
+    if (partial.kind !== FRAMEWORK_ENTITY_KINDS.ERA && resolvedEraId) {
+      const eraEntity: HardState | undefined = this.graph.findEntities(entityCriteria({ kind: FRAMEWORK_ENTITY_KINDS.ERA, status: FRAMEWORK_STATUS.CURRENT }))[0];
+      if (eraEntity) {
+        this.graph.addRelationship(
+          FRAMEWORK_RELATIONSHIP_KINDS.CREATED_DURING, entityId, eraEntity.id,
+          FRAMEWORK_RELATIONSHIP_PROPERTIES[FRAMEWORK_RELATIONSHIP_KINDS.CREATED_DURING].defaultStrength
+        );
+      }
     }
 
     return entityId;
@@ -668,9 +668,9 @@ export class WorldRuntime implements Graph {
     kind: string,
     srcId: string,
     dstId: string,
-    strength?: number,
-    distanceIgnored?: number,
-    category?: string
+    strength: number,
+    distanceIgnored: number,
+    category: string
   ): boolean {
     return this.graph.addRelationship(kind, srcId, dstId, strength, distanceIgnored, category);
   }
@@ -687,7 +687,7 @@ export class WorldRuntime implements Graph {
     kind: string,
     srcId: string,
     dstId: string,
-    strength?: number
+    strength: number
   ): void {
     // Distance is computed from coordinates
     addRelationship(this.graph, kind, srcId, dstId, strength);
@@ -734,7 +734,7 @@ export class WorldRuntime implements Graph {
     entityId: string,
     relationshipKind: string,
     direction: 'src' | 'dst',
-    options?: { minStrength?: number }
+    options: { minStrength: number }
   ): HardState[] {
     return getRelatedUtil(this.graph, entityId, relationshipKind, direction, options);
   }
@@ -772,7 +772,7 @@ export class WorldRuntime implements Graph {
   /**
    * Get total relationship count.
    */
-  getRelationshipCount(options?: { includeHistorical?: boolean }): number {
+  getRelationshipCount(options: { includeHistorical: boolean }): number {
     return this.graph.getRelationshipCount(options);
   }
 
@@ -795,7 +795,7 @@ export class WorldRuntime implements Graph {
    * Get protected relationship violations (for diagnostics).
    */
   getProtectedRelationshipViolations(): Array<{ tick: number; violations: Array<{ kind: string; strength: number }> }> {
-    return this.graph.protectedRelationshipViolations || [];
+    return this.graph.protectedRelationshipViolations;
   }
 
   /**
@@ -803,7 +803,7 @@ export class WorldRuntime implements Graph {
    * Used by relationship culling system for diagnostics.
    */
   recordProtectedRelationshipViolation(tick: number, violations: Array<{ kind: string; strength: number }>): void {
-    if (!this.graph.protectedRelationshipViolations) {
+    if (this.graph.protectedRelationshipViolations.length === 0) {
       this.graph.protectedRelationshipViolations = [];
     }
     this.graph.protectedRelationshipViolations.push({ tick, violations });
@@ -879,7 +879,7 @@ export class WorldRuntime implements Graph {
     this.graph.pressures.set(pressureId, Math.max(-100, Math.min(100, current + delta)));
 
     // Track modification if callback and source are set
-    if (delta !== 0 && this.onPressureModify && this.currentSource) {
+    if (delta !== 0 && this.currentSource) {
       this.onPressureModify(pressureId, delta, this.currentSource);
     }
   }
@@ -903,7 +903,7 @@ export class WorldRuntime implements Graph {
    */
   archiveEntities(
     entityIds: string[],
-    options: { archiveRelationships?: boolean; excludeRelationshipKinds?: string[] } = {}
+    options: { archiveRelationships: boolean; excludeRelationshipKinds: string[] } = {}
   ): void {
     archiveEnts(this.graph, entityIds, options);
   }
@@ -915,7 +915,7 @@ export class WorldRuntime implements Graph {
   transferRelationships(
     sourceIds: string[],
     targetId: string,
-    options: { excludeKinds?: string[]; archiveOriginals?: boolean } = {}
+    options: { excludeKinds: string[]; archiveOriginals: boolean } = {}
   ): number {
     return transferRels(this.graph, sourceIds, targetId, options);
   }
@@ -932,7 +932,7 @@ export class WorldRuntime implements Graph {
    * Add an entity to the graph (async).
    * Wrapper for createEntity to support optional source metadata.
    */
-  async addEntity(partial: Partial<HardState>, source?: string, placementStrategy?: string): Promise<string> {
+  async addEntity(partial: Partial<HardState>, source: string, placementStrategy: string): Promise<string> {
     return await this.createEntity(partial, source, placementStrategy);
   }
 
@@ -946,9 +946,7 @@ export class WorldRuntime implements Graph {
   getDistance(entity1: HardState, entity2: HardState): number {
     const c1 = entity1.coordinates;
     const c2 = entity2.coordinates;
-    if (!c1 || !c2) {
-      throw new Error(`getDistance: entities must have coordinates (${entity1.id}, ${entity2.id}).`);
-    }
+    // coordinates are always present on WorldEntity
     const dx = c1.x - c2.x;
     const dy = c1.y - c2.y;
     const dz = c1.z - c2.z;
@@ -962,13 +960,8 @@ export class WorldRuntime implements Graph {
   findNearestEntities(
     referenceEntity: HardState,
     targetKind: string,
-    limit?: number
+    limit: number
   ): Array<{ entity: HardState; distance: number }> {
-    const refCoord = referenceEntity.coordinates;
-    if (!refCoord) {
-      throw new Error(`findNearestEntities: reference entity "${referenceEntity.name}" has no coordinates.`);
-    }
-
     const results: Array<{ entity: HardState; distance: number }> = [];
 
     for (const entity of this.graph.getEntities()) {
@@ -989,11 +982,8 @@ export class WorldRuntime implements Graph {
   findEntitiesInRadius(
     referenceEntity: HardState,
     radius: number,
-    targetKind?: string
+    targetKind: string
   ): Array<{ entity: HardState; distance: number }> {
-    const refCoord = referenceEntity.coordinates;
-    if (!refCoord || typeof refCoord.x !== 'number') return [];
-
     const results: Array<{ entity: HardState; distance: number }> = [];
 
     for (const entity of this.graph.getEntities()) {
@@ -1027,8 +1017,8 @@ export class WorldRuntime implements Graph {
   async deriveCoordinatesWithCulture(
     cultureId: string,
     entityKind: string,
-    referenceEntities?: HardState[]
-  ): Promise<{ coordinates: Point; regionId?: string | null; derivedTags?: Record<string, string | boolean> }> {
+    referenceEntities: HardState[]
+  ): Promise<{ coordinates: Point; regionId: string | null; derivedTags: Record<string, string | boolean> }> {
     // Build context from culture and entity kind
     const context = this.coordinateContext.buildPlacementContext(cultureId, entityKind);
 
@@ -1036,7 +1026,7 @@ export class WorldRuntime implements Graph {
     const existingPoints = this.getAllRegionPoints();
 
     // If reference entities provided, bias toward their location
-    if (referenceEntities && referenceEntities.length > 0) {
+    if (referenceEntities.length > 0) {
       const validRefs = referenceEntities;
       const centroid = {
         x: validRefs.reduce((sum, e) => sum + e.coordinates.x, 0) / validRefs.length,
@@ -1059,7 +1049,7 @@ export class WorldRuntime implements Graph {
       existingPoints
     );
 
-    if (!placementResult.success || !placementResult.coordinates) {
+    if (!placementResult.success) {
       throw new Error(
         `deriveCoordinatesWithCulture: could not find placement for "${entityKind}" in culture "${cultureId}".`
       );
@@ -1072,7 +1062,7 @@ export class WorldRuntime implements Graph {
       method: 'deriveCoordinatesWithCulture',
       cultureId,
       regionId: placementResult.regionId,
-      hadReferenceEntities: (referenceEntities?.length ?? 0) > 0,
+      hadReferenceEntities: (referenceEntities.length) > 0,
       coordinates: placementResult.coordinates
     });
 
@@ -1094,10 +1084,6 @@ export class WorldRuntime implements Graph {
    * @returns Semantic interpretation or undefined if no semantic config
    */
   getSemanticProperties(entity: HardState): Record<string, { value: number; concept: string }> | undefined {
-    if (!entity.coordinates) {
-      return undefined;
-    }
-
     const semanticPlane = this.coordinateContext.getSemanticPlane(entity.kind);
     if (!semanticPlane) {
       return undefined;
@@ -1105,12 +1091,9 @@ export class WorldRuntime implements Graph {
 
     const axes = semanticPlane.axes;
     const coords = entity.coordinates;
-    if (!coords) {
-      throw new Error(`getSemanticProperties: entity "${entity.name}" has no coordinates.`);
-    }
     const result: Record<string, { value: number; concept: string }> = {};
     const axisById = new Map(
-      (this.engineConfig.schema.axisDefinitions || []).map(axis => [axis.id, axis])
+      this.engineConfig.schema.axisDefinitions.map(axis => [axis.id, axis])
     );
 
     const resolveAxisConcept = (value: number, axis: { lowTag: string; highTag: string }): string => {
@@ -1120,21 +1103,21 @@ export class WorldRuntime implements Graph {
     };
 
     // Interpret x-axis
-    const xAxis = axes.x?.axisId ? axisById.get(axes.x.axisId) : undefined;
+    const xAxis = axes.x.axisId ? axisById.get(axes.x.axisId) : undefined;
     if (xAxis) {
       const xValue = coords.x;
       result[xAxis.name] = { value: xValue, concept: resolveAxisConcept(xValue, xAxis) };
     }
 
     // Interpret y-axis
-    const yAxis = axes.y?.axisId ? axisById.get(axes.y.axisId) : undefined;
+    const yAxis = axes.y.axisId ? axisById.get(axes.y.axisId) : undefined;
     if (yAxis) {
       const yValue = coords.y;
       result[yAxis.name] = { value: yValue, concept: resolveAxisConcept(yValue, yAxis) };
     }
 
-    // Interpret z-axis (optional in semantic plane)
-    const zAxis = axes.z?.axisId ? axisById.get(axes.z.axisId) : undefined;
+    // Interpret z-axis
+    const zAxis = axes.z.axisId ? axisById.get(axes.z.axisId) : undefined;
     if (zAxis) {
       const zValue = coords.z;
       result[zAxis.name] = { value: zValue, concept: resolveAxisConcept(zValue, zAxis) };
@@ -1231,7 +1214,7 @@ export class WorldRuntime implements Graph {
     label: string,
     description: string,
     cultureId: string,
-    createdBy?: string
+    createdBy: string
   ): EmergentRegionResult {
     return this.coordinateContext.createEmergentRegion(
       entityKind,
@@ -1287,24 +1270,24 @@ export class WorldRuntime implements Graph {
   findSparseArea(
     entityKind: string,
     options: {
-      minDistanceFromEntities?: number;
-      preferPeriphery?: boolean;
-      maxAttempts?: number;
+      minDistanceFromEntities: number;
+      preferPeriphery: boolean;
+      maxAttempts: number;
     }
   ): import('../coordinates/types').SparseAreaResult {
     // Gather existing entity positions for this kind
     const existingPositions: Point[] = [];
     for (const entity of this.graph.getEntities()) {
-      if (entity.kind === entityKind && entity.coordinates) {
+      if (entity.kind === entityKind) {
         existingPositions.push(entity.coordinates);
       }
     }
 
     return this.coordinateContext.findSparseArea({
       existingPositions,
-      minDistanceFromEntities: options.minDistanceFromEntities ?? 15,
-      preferPeriphery: options.preferPeriphery ?? false,
-      maxAttempts: options.maxAttempts ?? 50
+      minDistanceFromEntities: options.minDistanceFromEntities,
+      preferPeriphery: options.preferPeriphery,
+      maxAttempts: options.maxAttempts
     });
   }
 
@@ -1324,221 +1307,150 @@ export class WorldRuntime implements Graph {
     cultureId: string,
     placement: {
       anchor: PlacementAnchor;
-      spacing?: PlacementSpacing;
-      regionPolicy?: PlacementRegionPolicy;
-      steps?: PlacementStep[];
+      spacing: PlacementSpacing;
+      regionPolicy: PlacementRegionPolicy;
+      steps: PlacementStep[];
     },
     resolvedAnchors: import('../core/worldTypes').HardState[] = [],
     avoidEntities: import('../core/worldTypes').HardState[] = [],
     tick: number = this.graph.tick
   ): Promise<PlacementResultWithDebug | null> {
-    const spacing = placement.spacing || {};
-    const regionPolicy = placement.regionPolicy || {};
-    const steps = placement.steps ?? [];
-
-    const spacingMin = spacing.minDistance ?? ((this.coordinateContext as unknown as { defaultMinDistance?: number }).defaultMinDistance ?? 5);
-    const avoidPoints = avoidEntities.map(e => e.coordinates);
-    const existingPoints = [...this.getAllRegionPoints(), ...avoidPoints];
-
-    const anchor = placement.anchor;
-
-    // Build base debug info
-    const baseDebug = {
-      anchorType: anchor.type,
-      anchorCulture: anchor.type === 'culture' ? (anchor as { id: string }).id : cultureId,
+    const session: PlacementSession = {
+      entityKind,
+      cultureId,
+      spacingMin: placement.spacing.minDistance,
+      existingPoints: [...this.getAllRegionPoints(), ...avoidEntities.map(e => e.coordinates)],
+      baseDebug: {
+        anchorType: placement.anchor.type,
+        anchorCulture: placement.anchor.type === 'culture' ? (placement.anchor as { id: string }).id : cultureId,
+      },
+      regionPolicy: placement.regionPolicy,
+      tick,
     };
 
-    const deriveInfo = (point: Point) => {
-      const regions = this.getRegionsAtPoint(entityKind, point);
-      const derived = this.coordinateContext.deriveTagsFromPlacement(entityKind, point, regions);
-      const derivedTags: Record<string, string | boolean> = {};
-      for (const tag of derived) derivedTags[tag] = true;
-      derivedTags.culture = cultureId;
-      return {
-        regionId: regions[0]?.id ?? null,
-        allRegionIds: regions.map(r => r.id),
-        derivedTags
-      };
-    };
-
-    const tryPlaceWithContext = async (
-      ctx: PlacementContext,
-      resolvedVia?: string
-    ): Promise<PlacementResultWithDebug | null> => {
-      ctx.allowEmergent = regionPolicy.allowEmergent;
-      ctx.preferSparse = regionPolicy.preferSparse;
-      const result = await this.coordinateContext.placeWithCulture(entityKind, 'placement', tick, ctx, existingPoints);
-      if (result.success && result.coordinates) {
-        return {
-          coordinates: result.coordinates,
-          regionId: result.regionId ?? null,
-          allRegionIds: result.allRegionIds,
-          derivedTags: result.derivedTags,
-          debug: {
-            ...baseDebug,
-            resolvedVia: resolvedVia ?? result.resolvedVia ?? 'anchor',
-            seedRegionsAvailable: ctx.seedRegionIds,
-            emergentRegionCreated: result.emergentRegionCreated
-          }
-        };
-      }
-      return null;
-    };
-
-    const trySparse = (
-      preferPeriphery: boolean,
-      resolvedVia: string
-    ): PlacementResultWithDebug | null => {
-      const sparseResult = this.findSparseArea(entityKind, {
-        minDistanceFromEntities: spacingMin,
-        preferPeriphery
-      });
-      if (!sparseResult.success || !sparseResult.coordinates) return null;
-
-      const derived = deriveInfo(sparseResult.coordinates);
-      return {
-        coordinates: sparseResult.coordinates,
-        regionId: derived.regionId,
-        allRegionIds: derived.allRegionIds,
-        derivedTags: derived.derivedTags,
-        debug: { ...baseDebug, resolvedVia }
-      };
-    };
-
-    const tryBounds = (
-      bounds: { x?: [number, number]; y?: [number, number]; z?: [number, number] } | undefined,
-      resolvedVia: string
-    ): PlacementResultWithDebug => {
-      const b = bounds || { x: [0, 100], y: [0, 100] };
-      /* eslint-disable sonarjs/pseudo-random -- simulation coordinate generation */
-      const coords: Point = {
-        x: (b.x?.[0] ?? 0) + Math.random() * ((b.x?.[1] ?? 100) - (b.x?.[0] ?? 0)),
-        y: (b.y?.[0] ?? 0) + Math.random() * ((b.y?.[1] ?? 100) - (b.y?.[0] ?? 0)),
-        z: b.z ? (b.z[0] + Math.random() * (b.z[1] - b.z[0])) : 50
-      };
-      /* eslint-enable sonarjs/pseudo-random */
-      const derived = deriveInfo(coords);
-      return {
-        coordinates: coords,
-        regionId: derived.regionId,
-        allRegionIds: derived.allRegionIds,
-        derivedTags: derived.derivedTags,
-        debug: { ...baseDebug, resolvedVia }
-      };
-    };
-
-    const toAnchorDebug = (entity: import('../core/worldTypes').HardState) => ({
-      id: entity.id,
-      name: entity.name,
-      kind: entity.kind
-    });
-
-    const tryNearPoint = (
-      reference: Point,
-      resolvedVia: string,
-      anchorEntity?: import('../core/worldTypes').HardState
-    ): PlacementResultWithDebug | null => {
-      const point = this.coordinateContext.sampleNearPoint(reference, existingPoints);
-      if (!point) return null;
-      const derived = deriveInfo(point);
-      const result: PlacementResultWithDebug = {
-        coordinates: point,
-        regionId: derived.regionId,
-        allRegionIds: derived.allRegionIds,
-        derivedTags: derived.derivedTags,
-        debug: { ...baseDebug, resolvedVia }
-      };
-      if (anchorEntity) {
-        result.debug.anchorEntity = toAnchorDebug(anchorEntity);
-      }
-      return result;
-    };
-
-    const tryAnchorRegion = async (
-      refEntity: import('../core/worldTypes').HardState,
-      resolvedVia: string
-    ): Promise<PlacementResultWithDebug | null> => {
-      const regions = this.getRegionsAtPoint(entityKind, refEntity.coordinates);
-      if (regions.length === 0) return null;
-      const anchorCulture = refEntity.culture || cultureId;
-      if (!anchorCulture) return null;
-      const ctx = this.coordinateContext.buildPlacementContext(anchorCulture, entityKind);
-      ctx.referenceEntity = { id: refEntity.id, coordinates: refEntity.coordinates };
-      ctx.seedRegionIds = regions.map(r => r.id);
-      ctx.stickToRegion = true;
-      ctx.axisBiases = undefined;
-      const result = await tryPlaceWithContext(ctx, resolvedVia);
-      if (result) {
-        result.debug.anchorEntity = toAnchorDebug(refEntity);
-      }
-      return result;
-    };
-
-    const trySeedRegion = async (
-      seedCultureId: string | undefined,
-      resolvedVia: string
-    ): Promise<PlacementResultWithDebug | null> => {
-      if (!seedCultureId) return null;
-      const ctx = this.coordinateContext.buildPlacementContext(seedCultureId, entityKind);
-      ctx.stickToRegion = true;
-      ctx.axisBiases = undefined;
-      return await tryPlaceWithContext(ctx, resolvedVia);
-    };
-
-    // Try anchor placement first
     let result = await this.tryAnchorPlacement(
-      anchor, resolvedAnchors, entityKind, cultureId,
-      tryAnchorRegion, tryNearPoint, trySeedRegion, trySparse, tryBounds
+      placement.anchor, resolvedAnchors, session,
+      (ctx, via) => this.sessionPlaceWithContext(session, ctx, via),
+      (ref, via, entity) => this.sessionNearPoint(session, ref, via, entity),
+      (seedCulture, via) => this.sessionSeedRegion(session, seedCulture, via),
+      (pref, via) => this.sessionSparse(session, pref, via),
+      (bounds, via) => this.sessionBounds(session, bounds, via),
     );
 
-    if (!result && steps.length > 0) {
+    if (!result && placement.steps.length > 0) {
       result = await this.tryFallbackSteps(
-        steps, anchor, resolvedAnchors, entityKind, cultureId,
-        tryAnchorRegion, trySeedRegion, trySparse, tryBounds
+        placement.steps, placement.anchor, resolvedAnchors, session,
+        (ctx, via) => this.sessionPlaceWithContext(session, ctx, via),
+        (seedCulture, via) => this.sessionSeedRegion(session, seedCulture, via),
+        (pref, via) => this.sessionSparse(session, pref, via),
+        (bounds, via) => this.sessionBounds(session, bounds, via),
       );
     }
 
-    // If placement succeeded and createRegion is requested, create an emergent region at the location
-    if (result && regionPolicy.createRegion) {
-      const regionResult = await this.coordinateContext.createNamedEmergentRegion(
-        entityKind,
-        result.coordinates,
-        cultureId,
-        tick
-      );
-      if (regionResult.success && regionResult.region) {
-        result.debug.emergentRegionCreated = {
-          id: regionResult.region.id,
-          label: regionResult.region.label
-        };
-        // Update region info to include the newly created region
-        result.regionId = regionResult.region.id;
-        if (!result.allRegionIds) {
-          result.allRegionIds = [];
-        }
-        result.allRegionIds.push(regionResult.region.id);
-      }
+    if (result && session.regionPolicy.createRegion) {
+      await this.applyEmergentRegion(result, session);
     }
 
     return result;
+  }
+
+  private sessionDeriveInfo(session: PlacementSession, point: Point) {
+    const regions = this.getRegionsAtPoint(session.entityKind, point);
+    const derived = this.coordinateContext.deriveTagsFromPlacement(session.entityKind, point, regions);
+    const derivedTags: Record<string, string | boolean> = {};
+    for (const tag of derived) derivedTags[tag] = true;
+    derivedTags.culture = session.cultureId;
+    return { regionId: regions[0]?.id ?? null, allRegionIds: regions.map(r => r.id), derivedTags };
+  }
+
+  private async sessionPlaceWithContext(
+    session: PlacementSession, ctx: PlacementContext, resolvedVia: string
+  ): Promise<PlacementResultWithDebug | null> {
+    ctx.allowEmergent = session.regionPolicy.allowEmergent;
+    ctx.preferSparse = session.regionPolicy.preferSparse;
+    const result = await this.coordinateContext.placeWithCulture(session.entityKind, 'placement', session.tick, ctx, session.existingPoints);
+    if (!result.success) return null;
+    return {
+      coordinates: result.coordinates, regionId: result.regionId,
+      allRegionIds: result.allRegionIds, derivedTags: result.derivedTags,
+      debug: { ...session.baseDebug, resolvedVia: resolvedVia || result.resolvedVia || 'anchor',
+        seedRegionsAvailable: ctx.seedRegionIds, emergentRegionCreated: result.emergentRegionCreated }
+    };
+  }
+
+  private sessionSparse(session: PlacementSession, preferPeriphery: boolean, resolvedVia: string): PlacementResultWithDebug | null {
+    const sparseResult = this.findSparseArea(session.entityKind, { minDistanceFromEntities: session.spacingMin, preferPeriphery });
+    if (!sparseResult.success) return null;
+    const derived = this.sessionDeriveInfo(session, sparseResult.coordinates);
+    return { coordinates: sparseResult.coordinates, ...derived, debug: { ...session.baseDebug, resolvedVia } };
+  }
+
+  private sessionBounds(
+    session: PlacementSession,
+    bounds: { x: [number, number]; y: [number, number]; z: [number, number] } | undefined,
+    resolvedVia: string
+  ): PlacementResultWithDebug {
+    const b = bounds || { x: [0, 100] as [number, number], y: [0, 100] as [number, number], z: [0, 100] as [number, number] };
+    /* eslint-disable sonarjs/pseudo-random -- simulation coordinate generation */
+    const coords: Point = {
+      x: b.x[0] + Math.random() * (b.x[1] - b.x[0]),
+      y: b.y[0] + Math.random() * (b.y[1] - b.y[0]),
+      z: b.z[0] + Math.random() * (b.z[1] - b.z[0]),
+    };
+    /* eslint-enable sonarjs/pseudo-random */
+    const derived = this.sessionDeriveInfo(session, coords);
+    return { coordinates: coords, ...derived, debug: { ...session.baseDebug, resolvedVia } };
+  }
+
+  private sessionNearPoint(
+    session: PlacementSession, reference: Point, resolvedVia: string,
+    anchorEntity: import('../core/worldTypes').HardState
+  ): PlacementResultWithDebug | null {
+    const point = this.coordinateContext.sampleNearPoint(reference, session.existingPoints);
+    if (!point) return null;
+    const derived = this.sessionDeriveInfo(session, point);
+    const result: PlacementResultWithDebug = { coordinates: point, ...derived, debug: { ...session.baseDebug, resolvedVia } };
+    result.debug.anchorEntity = { id: anchorEntity.id, name: anchorEntity.name, kind: anchorEntity.kind };
+    return result;
+  }
+
+  private async sessionSeedRegion(
+    session: PlacementSession, seedCultureId: string | undefined, resolvedVia: string
+  ): Promise<PlacementResultWithDebug | null> {
+    if (!seedCultureId) return null;
+    const ctx = this.coordinateContext.buildPlacementContext(seedCultureId, session.entityKind);
+    ctx.stickToRegion = true;
+    ctx.axisBiases = undefined;
+    return await this.sessionPlaceWithContext(session, ctx, resolvedVia);
+  }
+
+  private async applyEmergentRegion(result: PlacementResultWithDebug, session: PlacementSession): Promise<void> {
+    const regionResult = await this.coordinateContext.createNamedEmergentRegion(
+      session.entityKind, result.coordinates, session.cultureId, session.tick
+    );
+    if (regionResult.success) {
+      result.debug.emergentRegionCreated = { id: regionResult.region.id, label: regionResult.region.label };
+      result.regionId = regionResult.region.id;
+      if (result.allRegionIds.length === 0) result.allRegionIds = [];
+      result.allRegionIds.push(regionResult.region.id);
+    }
   }
 
   /** Try primary anchor placement based on anchor type. */
   private async tryAnchorPlacement(
     anchor: PlacementAnchor,
     resolvedAnchors: HardState[],
-    entityKind: string,
-    _cultureId: string,
+    session: PlacementSession,
     tryAnchorRegion: (e: HardState, via: string) => Promise<PlacementResultWithDebug | null>,
-    tryNearPoint: (p: Point, via: string, e?: HardState) => PlacementResultWithDebug | null,
+    tryNearPoint: (p: Point, via: string, e: HardState) => PlacementResultWithDebug | null,
     trySeedRegion: (c: string | undefined, via: string) => Promise<PlacementResultWithDebug | null>,
     trySparse: (periphery: boolean, via: string) => PlacementResultWithDebug | null,
-    tryBounds: (b: { x?: [number, number]; y?: [number, number]; z?: [number, number] } | undefined, via: string) => PlacementResultWithDebug,
+    tryBounds: (b: { x: [number, number]; y: [number, number]; z: [number, number] } | undefined, via: string) => PlacementResultWithDebug,
   ): Promise<PlacementResultWithDebug | null> {
     switch (anchor.type) {
       case 'entity': {
-        const refEntity = resolvedAnchors.find(e => e.id === anchor.ref || e.name === anchor.ref) || resolvedAnchors[0];
-        if (refEntity && refEntity.coordinates && refEntity.kind === entityKind) {
+        const refEntity = resolvedAnchors.find(e => e.id === anchor.ref || e.name === anchor.ref) ?? resolvedAnchors[0] as HardState | undefined;
+        if (refEntity && refEntity.kind === session.entityKind) {
           return anchor.stickToRegion
             ? await tryAnchorRegion(refEntity, 'anchor_region')
             : tryNearPoint(refEntity.coordinates, 'anchor', refEntity);
@@ -1549,7 +1461,7 @@ export class WorldRuntime implements Graph {
         return await trySeedRegion(anchor.id, 'seed_region');
       case 'refs_centroid': {
         const refs = resolvedAnchors.filter(e => anchor.refs.includes(e.id) || anchor.refs.includes(e.name || ''));
-        const withCoords = refs.filter(r => r.kind === entityKind);
+        const withCoords = refs.filter(r => r.kind === session.entityKind);
         if (withCoords.length === 0) return null;
         const centroid: Point = {
           x: withCoords.reduce((s, r) => s + r.coordinates.x, 0) / withCoords.length,
@@ -1565,7 +1477,7 @@ export class WorldRuntime implements Graph {
         return tryNearPoint(centroid, 'anchor');
       }
       case 'sparse':
-        return trySparse(anchor.preferPeriphery ?? false, 'sparse');
+        return trySparse(anchor.preferPeriphery, 'sparse');
       case 'bounds':
         return tryBounds(anchor.bounds, 'bounds');
       default:
@@ -1578,24 +1490,23 @@ export class WorldRuntime implements Graph {
     steps: PlacementStep[],
     anchor: PlacementAnchor,
     resolvedAnchors: HardState[],
-    entityKind: string,
-    cultureId: string,
-    tryAnchorRegion: (e: HardState, via: string) => Promise<PlacementResultWithDebug | null>,
+    session: PlacementSession,
+    tryPlaceCtx: (ctx: PlacementContext, via: string) => Promise<PlacementResultWithDebug | null>,
     trySeedRegion: (c: string | undefined, via: string) => Promise<PlacementResultWithDebug | null>,
     trySparse: (periphery: boolean, via: string) => PlacementResultWithDebug | null,
-    tryBounds: (b: { x?: [number, number]; y?: [number, number]; z?: [number, number] } | undefined, via: string) => PlacementResultWithDebug,
+    tryBounds: (b: { x: [number, number]; y: [number, number]; z: [number, number] } | undefined, via: string) => PlacementResultWithDebug,
   ): Promise<PlacementResultWithDebug | null> {
     for (const step of steps) {
       let result: PlacementResultWithDebug | null = null;
       switch (step) {
         case 'anchor_region':
-          result = await this.tryAnchorRegionStep(anchor, resolvedAnchors, entityKind, tryAnchorRegion, trySeedRegion);
+          result = await this.tryAnchorRegionStep(anchor, resolvedAnchors, session, trySeedRegion);
           break;
         case 'seed_region':
-          result = await trySeedRegion(cultureId, 'seed_region');
+          result = await trySeedRegion(session.cultureId, 'seed_region');
           break;
         case 'sparse': {
-          const preferPeriphery = anchor.type === 'sparse' ? (anchor.preferPeriphery ?? false) : false;
+          const preferPeriphery = anchor.type === 'sparse' ? (anchor.preferPeriphery) : false;
           result = trySparse(preferPeriphery, 'sparse');
           break;
         }
@@ -1612,14 +1523,26 @@ export class WorldRuntime implements Graph {
   private async tryAnchorRegionStep(
     anchor: PlacementAnchor,
     resolvedAnchors: HardState[],
-    entityKind: string,
-    tryAnchorRegion: (e: HardState, via: string) => Promise<PlacementResultWithDebug | null>,
+    session: PlacementSession,
     trySeedRegion: (c: string | undefined, via: string) => Promise<PlacementResultWithDebug | null>,
   ): Promise<PlacementResultWithDebug | null> {
     if (anchor.type === 'entity') {
-      const refEntity = resolvedAnchors.find(e => e.id === anchor.ref || e.name === anchor.ref) || resolvedAnchors[0];
-      if (refEntity && refEntity.coordinates && refEntity.kind === entityKind) {
-        return await tryAnchorRegion(refEntity, 'anchor_region');
+      const refEntity: HardState | undefined = resolvedAnchors.find(e => e.id === anchor.ref || e.name === anchor.ref) || resolvedAnchors[0];
+      if (refEntity && refEntity.kind === session.entityKind) {
+        // Build context for anchor region placement
+        const regions = this.getRegionsAtPoint(session.entityKind, refEntity.coordinates);
+        if (regions.length === 0) return null;
+        const anchorCulture = refEntity.culture || session.cultureId;
+        const ctx = this.coordinateContext.buildPlacementContext(anchorCulture, session.entityKind);
+        ctx.referenceEntity = { id: refEntity.id, coordinates: refEntity.coordinates };
+        ctx.seedRegionIds = regions.map(r => r.id);
+        ctx.stickToRegion = true;
+        ctx.axisBiases = undefined;
+        const result = await this.sessionPlaceWithContext(session, ctx, 'anchor_region');
+        if (result) {
+          result.debug.anchorEntity = { id: refEntity.id, name: refEntity.name, kind: refEntity.kind };
+        }
+        return result;
       }
     } else if (anchor.type === 'culture') {
       return await trySeedRegion(anchor.id, 'anchor_region');
@@ -1660,7 +1583,7 @@ export class WorldRuntime implements Graph {
     if (!kind) {
       throw new Error('placeInRegion: entity.kind is required.');
     }
-    const cultureId = context.cultureId ?? entity.culture;
+    const cultureId = context.cultureId || entity.culture;
     if (!cultureId) {
       throw new Error(`placeInRegion: cultureId is required for kind "${kind}".`);
     }
@@ -1675,7 +1598,7 @@ export class WorldRuntime implements Graph {
       existingPoints
     );
 
-    if (!placementResult.success || !placementResult.coordinates) {
+    if (!placementResult.success) {
       throw new Error(
         `placeInRegion: could not place "${kind}" in region "${regionId}".`
       );
@@ -1710,17 +1633,11 @@ export class WorldRuntime implements Graph {
     referenceEntity: HardState,
     context: PlacementContext
   ): Promise<string> {
-    if (!referenceEntity.coordinates) {
-      throw new Error(
-        `placeNearEntity: Reference entity "${referenceEntity.name}" has no coordinates.`
-      );
-    }
-
     const kind = entity.kind;
     if (!kind) {
       throw new Error('placeNearEntity: entity.kind is required.');
     }
-    const cultureId = context.cultureId ?? referenceEntity.culture ?? entity.culture;
+    const cultureId = context.cultureId || referenceEntity.culture || entity.culture;
     if (!cultureId) {
       throw new Error(`placeNearEntity: cultureId is required for kind "${kind}".`);
     }
@@ -1743,7 +1660,7 @@ export class WorldRuntime implements Graph {
       existingPoints
     );
 
-    if (!placementResult.success || !placementResult.coordinates) {
+    if (!placementResult.success) {
       throw new Error(
         `placeNearEntity: could not place "${kind}" near "${referenceEntity.name}".`
       );
@@ -1784,7 +1701,7 @@ export class WorldRuntime implements Graph {
     if (!kind) {
       throw new Error('spawnEmergentRegionAndPlace: entity.kind is required.');
     }
-    const cultureId = context.cultureId ?? entity.culture;
+    const cultureId = context.cultureId || entity.culture;
     if (!cultureId) {
       throw new Error(`spawnEmergentRegionAndPlace: cultureId is required for kind "${kind}".`);
     }
@@ -1799,7 +1716,7 @@ export class WorldRuntime implements Graph {
       existingPoints
     );
 
-    if (!placementResult.success || !placementResult.coordinates) {
+    if (!placementResult.success) {
       throw new Error(
         `spawnEmergentRegionAndPlace: could not place "${kind}" with emergent region.`
       );
@@ -1856,7 +1773,7 @@ export class WorldRuntime implements Graph {
       existingPoints
     );
 
-    if (!placementResult.success || !placementResult.coordinates) {
+    if (!placementResult.success) {
       throw new Error(
         `placeWithCulture: could not place "${kind}" for culture "${cultureId}".`
       );

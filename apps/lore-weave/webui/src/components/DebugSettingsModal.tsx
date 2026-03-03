@@ -7,47 +7,42 @@
  */
 
 import React, { useRef } from "react";
-import PropTypes from "prop-types";
 
 // Debug category metadata - matches types.ts DEBUG_CATEGORY_INFO
 const DEBUG_CATEGORIES = [
-  {
-    id: "placement",
-    label: "Placement",
-    description: "Entity placement and coordinate resolution",
-  },
-  {
-    id: "coordinates",
-    label: "Coordinates",
-    description: "Coordinate context, regions, culture mapping",
-  },
-  {
-    id: "templates",
-    label: "Templates",
-    description: "Template expansion and variable resolution",
-  },
+  { id: "placement", label: "Placement", description: "Entity placement and coordinate resolution" },
+  { id: "coordinates", label: "Coordinates", description: "Coordinate context, regions, culture mapping" },
+  { id: "templates", label: "Templates", description: "Template expansion and variable resolution" },
   { id: "systems", label: "Systems", description: "System execution and effects" },
-  {
-    id: "relationships",
-    label: "Relationships",
-    description: "Relationship creation and mutations",
-  },
+  { id: "relationships", label: "Relationships", description: "Relationship creation and mutations" },
   { id: "selection", label: "Selection", description: "Target and template selection" },
   { id: "eras", label: "Eras", description: "Era transitions and epoch events" },
   { id: "entities", label: "Entities", description: "Entity creation and state changes" },
   { id: "pressures", label: "Pressures", description: "Pressure changes and thresholds" },
   { id: "naming", label: "Naming", description: "Name generation" },
   { id: "prominence", label: "Prominence", description: "Prominence mutations and state tracking" },
-];
+] as const;
 
-export default function DebugSettingsModal({ isOpen, onClose, debugConfig, onDebugConfigChange }) {
+interface DebugConfig {
+  enabled: boolean;
+  enabledCategories: string[];
+}
+
+interface DebugSettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  debugConfig: DebugConfig;
+  onDebugConfigChange: (config: DebugConfig) => void;
+}
+
+export default function DebugSettingsModal({ isOpen, onClose, debugConfig, onDebugConfigChange }: Readonly<DebugSettingsModalProps>) {
   const mouseDownOnOverlay = useRef(false);
 
-  const handleOverlayMouseDown = (e) => {
+  const handleOverlayMouseDown = (e: React.MouseEvent) => {
     mouseDownOnOverlay.current = e.target === e.currentTarget;
   };
 
-  const handleOverlayClick = (e) => {
+  const handleOverlayClick = (e: React.MouseEvent | React.KeyboardEvent) => {
     if (mouseDownOnOverlay.current && e.target === e.currentTarget) {
       onClose();
     }
@@ -62,10 +57,10 @@ export default function DebugSettingsModal({ isOpen, onClose, debugConfig, onDeb
     });
   };
 
-  const handleCategoryToggle = (categoryId) => {
+  const handleCategoryToggle = (categoryId: string) => {
     if (!debugConfig.enabled) return;
 
-    const currentCategories = debugConfig.enabledCategories || [];
+    const currentCategories = debugConfig.enabledCategories;
     const newCategories = currentCategories.includes(categoryId)
       ? currentCategories.filter((c) => c !== categoryId)
       : [...currentCategories, categoryId];
@@ -91,7 +86,7 @@ export default function DebugSettingsModal({ isOpen, onClose, debugConfig, onDeb
     });
   };
 
-  const isCategoryEnabled = (categoryId) => {
+  const isCategoryEnabled = (categoryId: string) => {
     // If no categories are explicitly enabled, all are shown (when master is on)
     if (debugConfig.enabledCategories.length === 0) return true;
     return debugConfig.enabledCategories.includes(categoryId);
@@ -169,13 +164,3 @@ export default function DebugSettingsModal({ isOpen, onClose, debugConfig, onDeb
     </div>
   );
 }
-
-DebugSettingsModal.propTypes = {
-  isOpen: PropTypes.bool,
-  onClose: PropTypes.func,
-  debugConfig: PropTypes.shape({
-    enabled: PropTypes.bool,
-    enabledCategories: PropTypes.arrayOf(PropTypes.string),
-  }),
-  onDebugConfigChange: PropTypes.func,
-};

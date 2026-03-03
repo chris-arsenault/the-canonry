@@ -100,7 +100,7 @@ export class PopulationTracker {
     // Otherwise count from graph.entities
     const entityCounts = new Map<string, number>();
 
-    if (graph.subtypeMetrics && graph.subtypeMetrics.size > 0) {
+    if (graph.subtypeMetrics.size > 0) {
       // Use pre-computed subtype metrics
       graph.subtypeMetrics.forEach((count, key) => {
         entityCounts.set(key, count);
@@ -242,7 +242,10 @@ export class PopulationTracker {
   }
 
   private getEntityTarget(kind: string, subtype: string): number {
-    return this.distributionTargets.entities[kind]?.[subtype]?.target || 0;
+    const kindTargets = this.distributionTargets.entities[kind];
+    if (!kindTargets) return 0;
+    const subtypeTarget = kindTargets[subtype];
+    return subtypeTarget ? subtypeTarget.target : 0;
   }
 
   private getRelationshipTarget(_kind: string): number {

@@ -57,9 +57,9 @@ export interface SetTagMutation {
   /** Tag name */
   tag: string;
   /** Tag value (default: true) */
-  value?: string | boolean;
+  value: string | boolean;
   /** Optional value source key from RuleContext.values */
-  valueFrom?: string;
+  valueFrom: string;
 }
 
 /**
@@ -89,11 +89,11 @@ export interface CreateRelationshipMutation {
   /** Relationship kind */
   kind: string;
   /** Relationship strength (default: 1.0) */
-  strength?: number;
+  strength: number;
   /** Create bidirectional relationship */
-  bidirectional?: boolean;
+  bidirectional: boolean;
   /** Optional category for the relationship */
-  category?: string;
+  category: string;
 }
 
 /**
@@ -107,9 +107,9 @@ export interface ArchiveRelationshipMutation {
   /** Relationship kind to archive */
   relationshipKind: string;
   /** Other entity reference (optional - if not provided, archives all of this kind) */
-  with?: string;
+  with: string;
   /** Direction: 'src', 'dst', or 'both' (default: 'both') */
-  direction?: Direction;
+  direction: Direction;
 }
 
 /**
@@ -123,7 +123,7 @@ export interface ArchiveAllRelationshipsMutation {
   /** Relationship kind to archive */
   relationshipKind: string;
   /** Direction: 'src', 'dst', or 'both' (default: 'both') */
-  direction?: Direction;
+  direction: Direction;
 }
 
 /**
@@ -140,7 +140,7 @@ export interface AdjustRelationshipStrengthMutation {
   /** Delta to apply (positive or negative) */
   delta: number;
   /** If true, apply adjustment in both directions */
-  bidirectional?: boolean;
+  bidirectional: boolean;
 }
 
 /**
@@ -158,7 +158,7 @@ export interface TransferRelationshipMutation {
   /** Entity to transfer to */
   to: string;
   /** Optional condition for the transfer */
-  condition?: Condition;
+  condition: Condition;
 }
 
 // =============================================================================
@@ -176,9 +176,9 @@ export interface ForEachRelatedAction {
   /** Direction to traverse */
   direction: Direction;
   /** Filter to target kind (optional) */
-  targetKind?: string;
+  targetKind: string;
   /** Filter to target subtype (optional) */
-  targetSubtype?: string;
+  targetSubtype: string;
   /** Actions to execute for each related entity */
   actions: Mutation[];
 }
@@ -193,7 +193,7 @@ export interface ConditionalAction {
   /** Actions to execute if condition is true */
   thenActions: Mutation[];
   /** Actions to execute if condition is false (optional) */
-  elseActions?: Mutation[];
+  elseActions: Mutation[];
 }
 
 // =============================================================================
@@ -292,10 +292,10 @@ export interface EntityModification {
   id: string;
   /** Changes to apply */
   changes: {
-    status?: string;
-    prominence?: number;
+    status: string;
+    prominence: number;
     // Tag patch: set values; use undefined to remove.
-    tags?: Record<string, string | boolean | undefined>;
+    tags: Record<string, string | boolean | undefined>;
   };
 }
 
@@ -307,7 +307,7 @@ export interface RelationshipToCreate {
   src: string;
   dst: string;
   strength: number;
-  category?: string;
+  category: string;
 }
 
 /**

@@ -293,102 +293,100 @@ const PROMINENCE_OPTIONS = [{
 // Core analysis computation
 // ============================================================================
 
-function computeCoreAnalysis(entities, chronicles, events, _relationships) {
-  const nonEraEntities = entities.filter(e => e.kind !== "era");
-  const activeChronicles = chronicles.filter(c => c.status !== "generating");
+function trackEntityRef(entities, id, name, kind) {
+  const ent = entities.get(id) || { name: name || id, kind, count: 0 };
+  ent.count += 1;
+  entities.set(id, ent);
+}
 
-  // Entity usage map: entityId -> { total, primary, supporting, chronicleIds }
+function accumulateEventEntityRefs(entities, event) {
+  if (event.subject?.id) {
+    trackEntityRef(entities, event.subject.id, event.subject.name, event.subject.kind);
+  }
+  for (const p of event.participantEffects || []) {
+    if (p.entity?.id && p.entity.id !== event.subject?.id) {
+      trackEntityRef(entities, p.entity.id, p.entity.name, p.entity.kind);
+    }
+  }
+}
+
+function computeEntityUsage(activeChronicles) {
   const entityUsage = new Map();
   for (const chronicle of activeChronicles) {
     const primaryIds = new Set((chronicle.roleAssignments || []).filter(r => r.isPrimary).map(r => r.entityId));
     for (const entityId of chronicle.selectedEntityIds || []) {
-      const existing = entityUsage.get(entityId) || {
-        total: 0,
-        primary: 0,
-        supporting: 0,
-        chronicleIds: []
-      };
+      const existing = entityUsage.get(entityId) || { total: 0, primary: 0, supporting: 0, chronicleIds: [] };
       existing.total += 1;
       existing.chronicleIds.push(chronicle.chronicleId);
-      if (primaryIds.has(entityId)) existing.primary += 1;else existing.supporting += 1;
+      if (primaryIds.has(entityId)) existing.primary += 1; else existing.supporting += 1;
       entityUsage.set(entityId, existing);
     }
   }
+  return entityUsage;
+}
 
-  // Event coverage map: eventId -> chronicleCount
+function computeEventCoverage(activeChronicles) {
   const eventCoverage = new Map();
   for (const chronicle of activeChronicles) {
     for (const eventId of chronicle.selectedEventIds || []) {
       eventCoverage.set(eventId, (eventCoverage.get(eventId) || 0) + 1);
     }
   }
+  return eventCoverage;
+}
 
-  // Era chronicle map: eraId -> { total, completed, backported }
+function computeEraChronicles(activeChronicles) {
   const eraChronicles = new Map();
   for (const chronicle of activeChronicles) {
     const eraId = chronicle.temporalContext?.focalEra?.id;
     if (!eraId) continue;
-    const existing = eraChronicles.get(eraId) || {
-      total: 0,
-      completed: 0,
-      backported: 0
-    };
+    const existing = eraChronicles.get(eraId) || { total: 0, completed: 0, backported: 0 };
     existing.total += 1;
     if (chronicle.status === "complete") existing.completed += 1;
     if (chronicle.entityBackportStatus && Object.keys(chronicle.entityBackportStatus).length > 0) existing.backported += 1;
     eraChronicles.set(eraId, existing);
   }
+  return eraChronicles;
+}
 
-  // Era entity counts: eraId -> count
-  const eraEntityCounts = new Map();
-  for (const entity of nonEraEntities) {
-    if (entity.eraId) {
-      eraEntityCounts.set(entity.eraId, (eraEntityCounts.get(entity.eraId) || 0) + 1);
-    }
+function computeFieldCounts(items, keyField) {
+  const counts = new Map();
+  for (const item of items) {
+    const key = item[keyField];
+    if (key) counts.set(key, (counts.get(key) || 0) + 1);
   }
+  return counts;
+}
 
-  // Era event counts: eraId -> count
-  const eraEventCounts = new Map();
-  for (const event of events) {
-    if (event.era) {
-      eraEventCounts.set(event.era, (eraEventCounts.get(event.era) || 0) + 1);
-    }
-  }
-
-  // Culture stats from role assignments
-  const cultureRoles = new Map(); // culture -> { primary, supporting, entityIds set }
+function computeCultureRoles(activeChronicles, nonEraEntities) {
+  const cultureRoles = new Map();
   for (const chronicle of activeChronicles) {
     for (const role of chronicle.roleAssignments || []) {
       const entity = nonEraEntities.find(e => e.id === role.entityId);
       if (!entity?.culture) continue;
-      const c = entity.culture;
-      const existing = cultureRoles.get(c) || {
-        primary: 0,
-        supporting: 0,
-        entityIds: new Set()
-      };
-      if (role.isPrimary) existing.primary += 1;else existing.supporting += 1;
+      const existing = cultureRoles.get(entity.culture) || { primary: 0, supporting: 0, entityIds: new Set() };
+      if (role.isPrimary) existing.primary += 1; else existing.supporting += 1;
       existing.entityIds.add(role.entityId);
-      cultureRoles.set(c, existing);
+      cultureRoles.set(entity.culture, existing);
     }
   }
+  return cultureRoles;
+}
 
-  // Culture entity counts and avg prominence
-  const cultureEntities = new Map(); // culture -> { count, totalProminence, entityIds set }
+function computeCultureEntities(nonEraEntities) {
+  const cultureEntities = new Map();
   for (const entity of nonEraEntities) {
     if (!entity.culture) continue;
-    const existing = cultureEntities.get(entity.culture) || {
-      count: 0,
-      totalProminence: 0,
-      entityIds: new Set()
-    };
+    const existing = cultureEntities.get(entity.culture) || { count: 0, totalProminence: 0, entityIds: new Set() };
     existing.count += 1;
     existing.totalProminence += Number(entity.prominence) || 0;
     existing.entityIds.add(entity.id);
     cultureEntities.set(entity.culture, existing);
   }
+  return cultureEntities;
+}
 
-  // Backported chronicle counts per entity (count chronicles where this entity has been backported)
+function computeEntityBackportedCount(activeChronicles) {
   const entityBackportedCount = new Map();
   for (const chronicle of activeChronicles) {
     const statusMap = chronicle.entityBackportStatus;
@@ -399,17 +397,23 @@ function computeCoreAnalysis(entities, chronicles, events, _relationships) {
       }
     }
   }
+  return entityBackportedCount;
+}
+
+function computeCoreAnalysis(entities, chronicles, events, _relationships) {
+  const nonEraEntities = entities.filter(e => e.kind !== "era");
+  const activeChronicles = chronicles.filter(c => c.status !== "generating");
   return {
     nonEraEntities,
     activeChronicles,
-    entityUsage,
-    eventCoverage,
-    eraChronicles,
-    eraEntityCounts,
-    eraEventCounts,
-    cultureRoles,
-    cultureEntities,
-    entityBackportedCount
+    entityUsage: computeEntityUsage(activeChronicles),
+    eventCoverage: computeEventCoverage(activeChronicles),
+    eraChronicles: computeEraChronicles(activeChronicles),
+    eraEntityCounts: computeFieldCounts(nonEraEntities, "eraId"),
+    eraEventCounts: computeFieldCounts(events, "era"),
+    cultureRoles: computeCultureRoles(activeChronicles, nonEraEntities),
+    cultureEntities: computeCultureEntities(nonEraEntities),
+    entityBackportedCount: computeEntityBackportedCount(activeChronicles)
   };
 }
 
@@ -1281,26 +1285,7 @@ function EventsSection({
       if (groupBy === "action") existing.eventKinds.add(event.eventKind);
       if (event.era) existing.eras.add(event.era);
       // Track involved entities
-      if (event.subject?.id) {
-        const ent = existing.entities.get(event.subject.id) || {
-          name: event.subject.name || event.subject.id,
-          kind: event.subject.kind,
-          count: 0
-        };
-        ent.count += 1;
-        existing.entities.set(event.subject.id, ent);
-      }
-      for (const p of event.participantEffects || []) {
-        if (p.entity?.id && p.entity.id !== event.subject?.id) {
-          const ent = existing.entities.get(p.entity.id) || {
-            name: p.entity.name || p.entity.id,
-            kind: p.entity.kind,
-            count: 0
-          };
-          ent.count += 1;
-          existing.entities.set(p.entity.id, ent);
-        }
-      }
+      accumulateEventEntityRefs(existing.entities, event);
       groups.set(key, existing);
     }
     const computed = [...groups.values()].map(g => {

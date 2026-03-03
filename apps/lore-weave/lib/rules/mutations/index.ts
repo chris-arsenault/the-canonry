@@ -22,6 +22,7 @@ import type {
   RemoveTagMutation,
   CreateRelationshipMutation,
   ArchiveRelationshipMutation,
+  ArchiveAllRelationshipsMutation,
   AdjustRelationshipStrengthMutation,
   TransferRelationshipMutation,
   ChangeStatusMutation,
@@ -101,7 +102,7 @@ function resolveEntityRef(ref: string, ctx: RuleContext): HardState | undefined 
 
   if (ref.startsWith('$')) {
     const name = ref.slice(1);
-    const bound = ctx.entities?.[name];
+    const bound = ctx.entities[name];
     if (bound) return bound;
   }
 
@@ -119,6 +120,30 @@ function resolveEntityRef(ref: string, ctx: RuleContext): HardState | undefined 
  * @param ctx - The rule context
  * @returns MutationResult with prepared changes
  */
+type MutationHandler = (mutation: Mutation, ctx: RuleContext, result: MutationResult) => MutationResult;
+
+const MUTATION_DISPATCH: Record<Mutation['type'], MutationHandler> = {
+  set_tag: (m, ctx, r) => prepareSetTag(m as SetTagMutation, ctx, r),
+  remove_tag: (m, ctx, r) => prepareRemoveTag(m as RemoveTagMutation, ctx, r),
+  create_relationship: (m, ctx, r) => prepareCreateRelationship(m as CreateRelationshipMutation, ctx, r),
+  archive_relationship: (m, ctx, r) => prepareArchiveRelationship(m as ArchiveRelationshipMutation, ctx, r),
+  archive_all_relationships: (m, ctx, r) => {
+    const mut = m as ArchiveAllRelationshipsMutation;
+    return prepareArchiveRelationship(
+      { type: 'archive_relationship', entity: mut.entity, relationshipKind: mut.relationshipKind, direction: mut.direction },
+      ctx, r
+    );
+  },
+  adjust_relationship_strength: (m, ctx, r) => prepareAdjustRelationshipStrength(m as AdjustRelationshipStrengthMutation, ctx, r),
+  transfer_relationship: (m, ctx, r) => prepareTransferRelationship(m as TransferRelationshipMutation, ctx, r),
+  change_status: (m, ctx, r) => prepareChangeStatus(m as ChangeStatusMutation, ctx, r),
+  adjust_prominence: (m, ctx, r) => prepareAdjustProminence(m as AdjustProminenceMutation, ctx, r),
+  modify_pressure: (m, _ctx, r) => prepareModifyPressure(m as ModifyPressureMutation, r),
+  update_rate_limit: (_m, _ctx, r) => { r.rateLimitUpdated = true; r.diagnostic = 'rate limit updated'; return r; },
+  for_each_related: (m, ctx, r) => prepareForEachRelated(m as ForEachRelatedAction, ctx, r),
+  conditional: (m, ctx, r) => prepareConditional(m as ConditionalAction, ctx, r),
+};
+
 export function prepareMutation(
   mutation: Mutation,
   ctx: RuleContext
@@ -134,87 +159,7 @@ export function prepareMutation(
     rateLimitUpdated: false,
   };
 
-  switch (mutation.type) {
-    // =========================================================================
-    // TAG MUTATIONS
-    // =========================================================================
-
-    case 'set_tag':
-      return prepareSetTag(mutation, ctx, result);
-
-    case 'remove_tag':
-      return prepareRemoveTag(mutation, ctx, result);
-
-    // =========================================================================
-    // RELATIONSHIP MUTATIONS
-    // =========================================================================
-
-    case 'create_relationship':
-      return prepareCreateRelationship(mutation, ctx, result);
-
-    case 'archive_relationship':
-      return prepareArchiveRelationship(mutation, ctx, result);
-
-    case 'archive_all_relationships':
-      // Convert to archive_relationship format (without 'with' = archives all)
-      return prepareArchiveRelationship(
-        {
-          type: 'archive_relationship',
-          entity: mutation.entity,
-          relationshipKind: mutation.relationshipKind,
-          direction: mutation.direction,
-        },
-        ctx,
-        result
-      );
-
-    case 'adjust_relationship_strength':
-      return prepareAdjustRelationshipStrength(mutation, ctx, result);
-
-    case 'transfer_relationship':
-      return prepareTransferRelationship(mutation, ctx, result);
-
-    // =========================================================================
-    // ENTITY MUTATIONS
-    // =========================================================================
-
-    case 'change_status':
-      return prepareChangeStatus(mutation, ctx, result);
-
-    case 'adjust_prominence':
-      return prepareAdjustProminence(mutation, ctx, result);
-
-    // =========================================================================
-    // PRESSURE MUTATIONS
-    // =========================================================================
-
-    case 'modify_pressure':
-      return prepareModifyPressure(mutation, result);
-
-    // =========================================================================
-    // RATE LIMIT MUTATIONS
-    // =========================================================================
-
-    case 'update_rate_limit':
-      result.rateLimitUpdated = true;
-      result.diagnostic = 'rate limit updated';
-      return result;
-
-    // =========================================================================
-    // COMPOUND ACTIONS
-    // =========================================================================
-
-    case 'for_each_related':
-      return prepareForEachRelated(mutation, ctx, result);
-
-    case 'conditional':
-      return prepareConditional(mutation, ctx, result);
-
-    default:
-      result.applied = false;
-      result.diagnostic = `unknown mutation type: ${(mutation as Mutation).type}`;
-      return result;
-  }
+  return MUTATION_DISPATCH[mutation.type](mutation, ctx, result);
 }
 
 /**
@@ -229,15 +174,15 @@ export function applyMutationResult(result: MutationResult, ctx: RuleContext): v
     const entity = ctx.graph.getEntity(mod.id);
     if (!entity) continue;
 
-    if (mod.changes.status !== undefined) {
+    if (mod.true) {
       ctx.graph.updateEntityStatus(mod.id, mod.changes.status);
     }
 
-    if (mod.changes.prominence !== undefined) {
+    if (mod.true) {
       ctx.graph.updateEntity(mod.id, { prominence: mod.changes.prominence });
     }
 
-    if (mod.changes.tags !== undefined) {
+    if (mod.true) {
       const newTags = applyTagPatch(entity.tags, mod.changes.tags);
       ctx.graph.updateEntity(mod.id, { tags: newTags });
     }
@@ -264,7 +209,7 @@ export function applyMutationResult(result: MutationResult, ctx: RuleContext): v
   }
 
   // Update rate limit state if needed
-  if (result.rateLimitUpdated && ctx.graph.rateLimitState) {
+  if (result.rateLimitUpdated) {
     ctx.graph.rateLimitState.lastCreationTick = ctx.tick;
     ctx.graph.rateLimitState.creationsThisEpoch++;
   }
@@ -314,12 +259,12 @@ function prepareSetTag(
 
   let value: string | boolean;
   if (mutation.valueFrom) {
-    const sourceValue = ctx.values?.[mutation.valueFrom];
-    if (sourceValue === undefined) {
+    if (!(mutation.valueFrom in ctx.values)) {
       result.applied = false;
       result.diagnostic = `value source ${mutation.valueFrom} not found`;
       return result;
     }
+    const sourceValue = ctx.values[mutation.valueFrom];
     if (typeof sourceValue === 'number') {
       result.applied = false;
       result.diagnostic = `value source ${mutation.valueFrom} is a number, not a valid tag value`;
@@ -327,7 +272,7 @@ function prepareSetTag(
     }
     value = sourceValue;
   } else {
-    value = mutation.value ?? true;
+    value = mutation.value;
   }
 
   result.entityModifications.push({
@@ -401,7 +346,7 @@ function prepareCreateRelationship(
     return result;
   }
 
-  const strength = mutation.strength ?? 1.0;
+  const strength = mutation.strength;
 
   result.relationshipsCreated.push({
     kind: mutation.kind,
@@ -425,7 +370,7 @@ function prepareCreateRelationship(
   return result;
 }
 
-type RelGraphItem = { kind: string; status?: string; src: string; dst: string };
+type RelGraphItem = { kind: string; status: string; src: string; dst: string };
 
 function archivePairRelationships(
   rels: RelGraphItem[],
@@ -680,9 +625,9 @@ function prepareTransferRelationship(
   if (checkEntityRef(from, mutation.from, 'transfer_relationship', 'from entity', result)) return result;
   if (checkEntityRef(to, mutation.to, 'transfer_relationship', 'to entity', result)) return result;
 
-  if (mutation.condition) {
+  {
     const conditionMet = evaluateCondition(mutation.condition, ctx);
-    if (!conditionMet) {
+    if (!conditionMet.passed) {
       result.diagnostic = `transfer_relationship condition not met`;
       return result;
     }
@@ -743,12 +688,6 @@ function prepareForEachRelated(
   result: MutationResult
 ): MutationResult {
   const self = ctx.self;
-  if (!self) {
-    result.applied = false;
-    result.diagnostic = 'for_each_related requires $self context';
-    return result;
-  }
-
   // Find related entities
   const direction = normalizeDirection(mutation.direction);
   const relationships = ctx.graph.getAllRelationships().filter((rel) => {
@@ -795,7 +734,7 @@ function prepareConditional(
   result: MutationResult
 ): MutationResult {
   const conditionResult = evaluateCondition(mutation.condition, ctx);
-  const actionsToExecute = conditionResult.passed ? mutation.thenActions : mutation.elseActions || [];
+  const actionsToExecute = conditionResult.passed ? mutation.thenActions : mutation.elseActions;
 
   const diagnostics: string[] = [];
   for (const action of actionsToExecute) {

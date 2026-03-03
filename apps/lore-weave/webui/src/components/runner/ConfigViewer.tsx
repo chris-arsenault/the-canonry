@@ -2,22 +2,33 @@
  * ConfigViewer - Collapsible engine config display
  */
 
-import React, { useState, useCallback } from "react";
-import PropTypes from "prop-types";
+import React from "react";
+import { useState, useCallback } from "react";
 import "./ConfigViewer.css";
 
-export default function ConfigViewer({ engineConfig, debugConfig, onShowDebugModal }) {
+interface DebugConfig {
+  enabled: boolean;
+  enabledCategories: string[];
+}
+
+interface ConfigViewerProps {
+  engineConfig: Record<string, unknown>;
+  debugConfig: DebugConfig;
+  onShowDebugModal: () => void;
+}
+
+export default function ConfigViewer({ engineConfig, debugConfig, onShowDebugModal }: Readonly<ConfigViewerProps>) {
   const [showConfig, setShowConfig] = useState(false);
 
   const copyConfig = useCallback(() => {
-    navigator.clipboard.writeText(JSON.stringify(engineConfig, null, 2));
+    void navigator.clipboard.writeText(JSON.stringify(engineConfig, null, 2));
   }, [engineConfig]);
 
   return (
     <>
       <div className="cv-row">
         <div
-          className="lw-config-toggle cv-toggle-flush"
+          className="config-expand"
           onClick={() => setShowConfig(!showConfig)}
           role="button"
           tabIndex={0}
@@ -48,9 +59,3 @@ export default function ConfigViewer({ engineConfig, debugConfig, onShowDebugMod
     </>
   );
 }
-
-ConfigViewer.propTypes = {
-  engineConfig: PropTypes.object,
-  debugConfig: PropTypes.object,
-  onShowDebugModal: PropTypes.func,
-};

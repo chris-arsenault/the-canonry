@@ -30,13 +30,13 @@ export interface RuleContext {
   readonly resolver: EntityResolver;
 
   /** Current entity being evaluated (for per-entity conditions) */
-  readonly self?: HardState;
+  readonly self: HardState;
 
   /** Named entity bindings for context-specific references (e.g., $source) */
-  readonly entities?: Record<string, HardState | undefined>;
+  readonly entities: Record<string, HardState | undefined>;
 
   /** Named values for context-specific lookups (e.g., tag value sources) */
-  readonly values?: Record<string, string | number | boolean>;
+  readonly values: Record<string, string | number | boolean>;
 
   /** Path sets for graph traversal (used by graph_path filter) */
   readonly pathSets: Map<string, Set<string>>;
@@ -52,7 +52,7 @@ export interface RuleContext {
 export function createRuleContext(
   graph: WorldRuntime,
   resolver: EntityResolver,
-  self?: HardState
+  self: HardState
 ): RuleContext {
   return {
     graph,
@@ -94,8 +94,8 @@ export function createSystemContext(graph: WorldRuntime): RuleContext {
 export function createActionContext(
   graph: WorldRuntime,
   bindings: Record<string, HardState | undefined>,
-  self?: HardState,
-  values?: Record<string, string | number | boolean>
+  self: HardState,
+  values: Record<string, string | number | boolean>
 ): RuleContext {
   const resolver = new ActionEntityResolver(graph, bindings);
 
@@ -105,7 +105,7 @@ export function createActionContext(
     resolver,
     self,
     entities: bindings,
-    values: values ?? {},
+    values: values,
     pathSets: new Map(),
   };
 }

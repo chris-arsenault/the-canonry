@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 import { ErrorMessage } from "@the-canonry/shared-components";
 import "./IlluminatorTabContent.css";
 import EntityBrowser from "./EntityBrowser";
-import ChroniclePanel from "./ChroniclePanel";
+import ChroniclePanel from "./chronicle-panel";
 import WorldContextEditor from "./WorldContextEditor";
 import EntityGuidanceEditor from "./EntityGuidanceEditor";
 import VisualIdentityPanel from "./VisualIdentityPanel";

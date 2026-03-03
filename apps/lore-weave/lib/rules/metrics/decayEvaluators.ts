@@ -46,7 +46,7 @@ function computeFalloffValue(falloffType: FalloffMetric['falloffType'], normaliz
 }
 
 export function evaluateFalloff(metric: FalloffMetric): MetricResult {
-  const maxDist = metric.maxDistance ?? 100;
+  const maxDist = metric.maxDistance;
   const distance = metric.distance;
   const normalizedDist = maxDist > 0 ? distance / maxDist : 0;
 

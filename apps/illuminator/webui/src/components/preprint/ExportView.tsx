@@ -269,7 +269,7 @@ export default function ExportView({
     } finally {
       setExporting(false);
     }
-  }, [treeState, entities, chronicles, images, staticPages, eraNarratives, projectId, simulationRunId, s3, exportFormat, idmlLayout]);
+  }, [treeState, entities, chronicles, images, staticPages, eraNarratives, projectId, simulationRunId, s3, exportFormat, idmlLayout, setExportError]);
 
   const handleDownloadScript = useCallback(() => {
     const script = buildIdmlImageScript({ treeState, entities, chronicles, images, staticPages, eraNarratives, projectId, simulationRunId, s3Config: s3 });

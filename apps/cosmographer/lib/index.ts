@@ -95,6 +95,35 @@ export {
  */
 export const VERSION = '0.1.0';
 
+function resolveWeights(options: import('./types/index.js').GenerationOptions) {
+  const semantic = options.weights?.semantic ?? 0.5;
+  const embedding = options.weights?.embedding ?? 0.3;
+  return { keywordWeight: semantic, embeddingWeight: embedding, fuzzyWeight: 1 - semantic - embedding };
+}
+
+function buildClassificationMetadata(
+  planes: import('./types/index.js').PlaneSpecification[],
+  classifications: Map<string, import('./types/index.js').SemanticAnalysisResult>,
+): Record<string, PlaneClassification> {
+  const metadata: Record<string, PlaneClassification> = {};
+  for (const [planeId, result] of classifications) {
+    const matchedPatterns = getMatchedKeywords(
+      planes.find(p => p.id === planeId)!,
+      result.bestMatch
+    );
+    metadata[planeId] = {
+      category: result.bestMatch,
+      confidence: result.confidence,
+      matchedPatterns,
+      candidates: Array.from(result.scores.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([category, score]) => ({ category, score }))
+    };
+  }
+  return metadata;
+}
+
 /**
  * Generate a complete manifold configuration from input.
  *
@@ -106,58 +135,20 @@ export const VERSION = '0.1.0';
 export function generateManifold(
   input: CosmographerInput
 ): CosmographerOutput {
-  const options = input.options ?? {};
+  const options = input.options;
 
-  // Register any custom categories
-  if (input.customCategories) {
-    for (const custom of input.customCategories) {
-      registerCustomCategory({
-        ...custom,
-        domainClass: input.spaceType === 'hybrid' ? 'conceptual' : input.spaceType
-      });
-    }
+  for (const custom of input.customCategories) {
+    registerCustomCategory({
+      ...custom,
+      domainClass: input.spaceType === 'hybrid' ? 'conceptual' : input.spaceType
+    });
   }
 
-  // Classify all planes
-  const classifications = classifyPlanes(input.planes, {
-    domainClass: input.spaceType,
-    keywordWeight: options.weights?.semantic ?? 0.5,
-    embeddingWeight: options.weights?.embedding ?? 0.3,
-    fuzzyWeight: 1 - (options.weights?.semantic ?? 0.5) - (options.weights?.embedding ?? 0.3)
-  });
-
-  // Generate hierarchy
+  const weights = resolveWeights(options);
+  const classifications = classifyPlanes(input.planes, { domainClass: input.spaceType, ...weights });
   const planeHierarchy = generateHierarchy(input, classifications);
-
-  // Generate distances
   const crossPlaneDistances = generateDistances(input, classifications);
-
-  // Generate axis weights
   const defaultAxisWeights = generateAxisWeights(input);
-
-  // Build classification metadata if requested
-  let classificationMetadata: Record<string, PlaneClassification> | undefined;
-
-  if (options.includeMetadata !== false) {
-    classificationMetadata = {};
-
-    for (const [planeId, result] of classifications) {
-      const matchedPatterns = getMatchedKeywords(
-        input.planes.find(p => p.id === planeId)!,
-        result.bestMatch
-      );
-
-      classificationMetadata[planeId] = {
-        category: result.bestMatch,
-        confidence: result.confidence,
-        matchedPatterns,
-        candidates: Array.from(result.scores.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([category, score]) => ({ category, score }))
-      };
-    }
-  }
 
   return {
     domainId: input.domainId,
@@ -168,7 +159,9 @@ export function generateManifold(
     crossPlaneDistances,
     saturationStrategy: options.saturationStrategy ?? 'density',
     densityThreshold: options.densityThreshold ?? 0.7,
-    classifications: classificationMetadata
+    classifications: options.includeMetadata !== false
+      ? buildClassificationMetadata(input.planes, classifications)
+      : undefined,
   };
 }
 

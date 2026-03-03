@@ -58,11 +58,8 @@ export class StatisticsCollector {
 
     // Store subtype counts for feedback loop tracking
     // This ensures metrics like "npc:merchant.count" are available
-    if (!graph.subtypeMetrics) {
-      graph.subtypeMetrics = new Map();
-    }
     Object.entries(entitiesBySubtype).forEach(([key, count]) => {
-      graph.subtypeMetrics!.set(key, count);
+      graph.subtypeMetrics.set(key, count);
     });
 
     // Count relationships by type
@@ -126,7 +123,7 @@ export class StatisticsCollector {
   /**
    * Record warning
    */
-  public recordWarning(warningType: 'budget' | 'aggressive' | 'growth', systemId?: string): void {
+  public recordWarning(warningType: 'budget' | 'aggressive' | 'growth', systemId: string): void {
     this.warningCount++;
 
     if (warningType === 'budget') {
@@ -297,7 +294,7 @@ export class StatisticsCollector {
     const fitnessMetrics = this.calculateFitnessMetrics(distributionStats, config);
 
     // Calculate protected relationship violation stats
-    const violationData = graph.protectedRelationshipViolations || [];
+    const violationData = graph.protectedRelationshipViolations;
     let totalViolations = 0;
     const violationsByKind: Record<string, number> = {};
     let totalStrength = 0;

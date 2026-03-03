@@ -36,12 +36,8 @@ export function getProminenceMultiplierValue(
 
 export function evaluateProminenceMultiplier(
   metric: ProminenceMultiplierMetric,
-  entity?: HardState
+  entity: HardState
 ): MetricResult {
-  if (!entity) {
-    return { value: 1.0, diagnostic: 'no entity (default multiplier=1)', details: {} };
-  }
-
   const value = getProminenceMultiplierValue(entity.prominence, metric.mode);
   const label = prominenceLabel(entity.prominence);
 
@@ -51,7 +47,7 @@ export function evaluateProminenceMultiplier(
     details: {
       prominence: entity.prominence,
       prominenceLabel: label,
-      mode: metric.mode ?? 'success_chance',
+      mode: metric.mode,
       multiplier: value,
     },
   };
@@ -75,10 +71,10 @@ function collectNeighborIds(
 ): Set<string> {
   const neighborIds = new Set<string>();
   for (const link of rels) {
-    if (metric.relationshipKinds?.length && !metric.relationshipKinds.includes(link.kind)) {
+    if (metric.relationshipKinds.length && !metric.relationshipKinds.includes(link.kind)) {
       continue;
     }
-    if ((link.strength ?? 0) < minStrength) continue;
+    if (link.strength < minStrength) continue;
     for (const id of resolveDirectional(link, entity.id, direction)) neighborIds.add(id);
   }
   return neighborIds;
@@ -110,14 +106,10 @@ function calcAvgProminence(
 export function evaluateNeighborProminence(
   metric: NeighborProminenceMetric,
   ctx: MetricContext,
-  entity?: HardState
+  entity: HardState
 ): MetricResult {
-  if (!entity) {
-    return { value: 0, diagnostic: 'no entity for neighbor prominence', details: {} };
-  }
-
   const direction = normalizeDirection(metric.direction);
-  const minStrength = metric.minStrength ?? 0;
+  const minStrength = metric.minStrength;
   const rels = ctx.graph.getAllRelationships();
 
   const neighborIds = collectNeighborIds(entity, rels, metric, direction, minStrength);
@@ -132,10 +124,8 @@ export function evaluateNeighborProminence(
 
   const { avgProminence, validNeighbors, totalProminence } = calcAvgProminence(neighborIds, ctx);
 
-  let value = avgProminence * (metric.coefficient ?? 1);
-  if (metric.cap !== undefined) {
-    value = Math.min(value, metric.cap);
-  }
+  let value = avgProminence * (metric.coefficient);
+  value = Math.min(value, metric.cap);
 
   return {
     value,

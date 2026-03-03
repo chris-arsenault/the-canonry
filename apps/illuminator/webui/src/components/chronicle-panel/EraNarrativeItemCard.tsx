@@ -41,7 +41,7 @@ function buildInlineSymbols(item: EraNarrativeNavItem): InlineSymbol[] {
 export function EraNarrativeItemCard({ item, isSelected, onClick }: Readonly<EraNarrativeItemCardProps>) {
   const inlineSymbols = useMemo(
     () => buildInlineSymbols(item),
-    [item.hasThesis, item.threadCount],
+    [item],
   );
 
   const handleKeyDown = useCallback(

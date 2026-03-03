@@ -55,6 +55,127 @@ const TONE_OPTIONS = [{
   label: "Enthusiastic",
   description: "Thrilled by scale and ambition"
 }];
+const PILL_STATUS_COLORS = {
+  generating: "#f59e0b",
+  pending: "#f59e0b",
+  step_complete: "#3b82f6",
+  complete: "#10b981",
+  failed: "#ef4444",
+};
+const STEP_LABELS = { threads: "Threads", generate: "Writing", edit: "Editing" };
+
+const STATUS_TEXT_OVERRIDES = { complete: "Complete", failed: "Failed" };
+
+function resolvePillStatus(narrative) {
+  const statusColor = PILL_STATUS_COLORS[narrative.status] || "#6b7280";
+  const statusText = STATUS_TEXT_OVERRIDES[narrative.status]
+    || STEP_LABELS[narrative.currentStep]
+    || narrative.currentStep;
+  return { statusText, statusColor };
+}
+
+function buildNarrativeWeightMap(styleLibrary) {
+  const map = {};
+  const styles = styleLibrary?.narrativeStyles || [];
+  for (const s of styles) {
+    if (s.eraNarrativeWeight) map[s.id] = s.eraNarrativeWeight;
+  }
+  return map;
+}
+
+function useEraNarrativeData(selectedEraId, simulationRunId, setExistingNarratives, setPreviousEraThesis) {
+  const eraTemporalInfo = useEraTemporalInfo();
+
+  const prevEraInfo = useMemo(() => {
+    if (!selectedEraId) return undefined;
+    const focalInfo = eraTemporalInfo.find(e => e.id === selectedEraId);
+    const focalOrder = focalInfo?.order ?? -1;
+    return focalOrder > 0 ? eraTemporalInfo.find(e => e.order === focalOrder - 1) : undefined;
+  }, [selectedEraId, eraTemporalInfo]);
+
+  useEffect(() => {
+    if (!selectedEraId || !simulationRunId) {
+      setExistingNarratives([]);
+      setPreviousEraThesis(null);
+      return;
+    }
+    getEraNarrativesForEra(simulationRunId, selectedEraId).then(records => {
+      const resumable = records.filter(r => r.status !== "cancelled").sort((a, b) => b.updatedAt - a.updatedAt);
+      setExistingNarratives(resumable);
+    });
+  }, [selectedEraId, simulationRunId, setExistingNarratives, setPreviousEraThesis]);
+
+  useEffect(() => {
+    if (!prevEraInfo || !simulationRunId) return;
+    getEraNarrativesForEra(simulationRunId, prevEraInfo.id).then(prevRecords => {
+      const completed = prevRecords.filter(r => r.status === "complete" && r.threadSynthesis?.thesis).sort((a, b) => b.updatedAt - a.updatedAt);
+      setPreviousEraThesis(completed.length > 0 ? {
+        eraName: prevEraInfo.name,
+        thesis: completed[0].threadSynthesis.thesis
+      } : null);
+    });
+  }, [prevEraInfo, simulationRunId, setPreviousEraThesis]);
+
+  return { eraTemporalInfo };
+}
+
+async function loadPrepBriefs(chronicleItems, era, narrativeWeightMap) {
+  const store = useChronicleStore.getState();
+  const eraChronicles = chronicleItems.filter(c => c.focalEraName === era.name);
+  const prepBriefs = [];
+  for (const item of eraChronicles) {
+    const record = await store.loadChronicle(item.chronicleId);
+    if (!record?.historianPrep) continue;
+    prepBriefs.push({
+      chronicleId: record.chronicleId,
+      chronicleTitle: record.title || item.name,
+      eraYear: record.eraYear,
+      weight: record.narrativeStyle?.eraNarrativeWeight || narrativeWeightMap[record.narrativeStyleId] || undefined,
+      prep: record.historianPrep
+    });
+  }
+  return prepBriefs;
+}
+
+function toEraSummary(info) {
+  return info ? { id: info.id, name: info.name, summary: info.summary || "" } : undefined;
+}
+
+async function buildWorldContext(era, eraTemporalInfo, simulationRunId) {
+  const configStore = useIlluminatorConfigStore.getState();
+  const worldDynamics = configStore.worldContext?.worldDynamics || [];
+  const cultureIds = configStore.cultureIdentities || {};
+
+  const resolvedDynamics = worldDynamics.filter(d => d.eraOverrides?.[era.id]).map(d => {
+    const override = d.eraOverrides[era.id];
+    return override.replace ? override.text : `${d.text || ""} ${override.text}`;
+  }).filter(Boolean);
+
+  const focalEraInfo = eraTemporalInfo.find(e => e.id === era.id);
+  const focalOrder = focalEraInfo?.order ?? -1;
+  const previousEraInfo = focalOrder > 0 ? eraTemporalInfo.find(e => e.order === focalOrder - 1) : undefined;
+  const nextEraInfo = eraTemporalInfo.find(e => e.order === focalOrder + 1);
+
+  let previousEraThesis;
+  if (previousEraInfo) {
+    const prevNarratives = await getEraNarrativesForEra(simulationRunId, previousEraInfo.id);
+    const completedPrev = prevNarratives.filter(r => r.status === "complete" && r.threadSynthesis?.thesis).sort((a, b) => b.updatedAt - a.updatedAt);
+    if (completedPrev.length > 0) {
+      previousEraThesis = completedPrev[0].threadSynthesis.thesis;
+    }
+  }
+
+  if (!focalEraInfo) return undefined;
+  return {
+    focalEra: toEraSummary(focalEraInfo),
+    previousEra: toEraSummary(previousEraInfo),
+    nextEra: toEraSummary(nextEraInfo),
+    previousEraThesis,
+    resolvedDynamics,
+    culturalIdentities: cultureIds
+  };
+}
+
 export default function EraNarrativeModal({
   isOpen,
   onClose,
@@ -89,38 +210,10 @@ export default function EraNarrativeModal({
   } = useEraNarrative(onEnqueue);
   const isMinimized = useFloatingPillStore(s => s.isMinimized(PILL_ID));
 
-  // Access world context stores (must be before effects that reference it)
-  const eraTemporalInfo = useEraTemporalInfo();
-
-  // Check for existing narratives when era selection changes + look up previous era thesis
-  useEffect(() => {
-    if (!selectedEraId || !simulationRunId) {
-      setExistingNarratives([]);
-      setPreviousEraThesis(null);
-      return;
-    }
-    getEraNarrativesForEra(simulationRunId, selectedEraId).then(records => {
-      // Show non-complete records (resumable) and recent completed ones
-      const resumable = records.filter(r => r.status !== "cancelled").sort((a, b) => b.updatedAt - a.updatedAt);
-      setExistingNarratives(resumable);
-    });
-
-    // Look up thesis from previous era's completed narrative
-    const focalInfo = eraTemporalInfo.find(e => e.id === selectedEraId);
-    const focalOrder = focalInfo?.order ?? -1;
-    const prevInfo = focalOrder > 0 ? eraTemporalInfo.find(e => e.order === focalOrder - 1) : undefined;
-    if (prevInfo) {
-      getEraNarrativesForEra(simulationRunId, prevInfo.id).then(prevRecords => {
-        const completed = prevRecords.filter(r => r.status === "complete" && r.threadSynthesis?.thesis).sort((a, b) => b.updatedAt - a.updatedAt);
-        setPreviousEraThesis(completed.length > 0 ? {
-          eraName: prevInfo.name,
-          thesis: completed[0].threadSynthesis.thesis
-        } : null);
-      });
-    } else {
-      setPreviousEraThesis(null);
-    }
-  }, [selectedEraId, simulationRunId, eraTemporalInfo]);
+  // Data loading for era context — extracted to reduce component complexity
+  const { eraTemporalInfo } = useEraNarrativeData(
+    selectedEraId, simulationRunId, setExistingNarratives, setPreviousEraThesis
+  );
 
   // Group chronicles by era and count prep coverage
   const eraOptions = useMemo(() => {
@@ -138,84 +231,25 @@ export default function EraNarrativeModal({
   const selectedEra = eraOptions.find(e => e.id === selectedEraId);
 
   // Build a weight lookup from the live style library (record snapshots may be stale)
-  const narrativeWeightMap = useMemo(() => {
-    const map = {};
-    if (styleLibrary?.narrativeStyles) {
-      for (const s of styleLibrary.narrativeStyles) {
-        if (s.eraNarrativeWeight) map[s.id] = s.eraNarrativeWeight;
-      }
-    }
-    return map;
-  }, [styleLibrary]);
+  const narrativeWeightMap = useMemo(
+    () => buildNarrativeWeightMap(styleLibrary),
+    [styleLibrary]
+  );
 
   // Chronicles for the selected era — for the setup enumeration
+  const selectedEraName = selectedEra ? wizardEras.find(e => e.id === selectedEraId)?.name : undefined;
   const eraChronicles = useMemo(() => {
-    if (!selectedEra) return [];
-    const era = wizardEras.find(e => e.id === selectedEraId);
-    if (!era) return [];
-    return chronicleItems.filter(c => c.focalEraName === era.name).sort((a, b) => (a.eraYear ?? Infinity) - (b.eraYear ?? Infinity));
-  }, [chronicleItems, wizardEras, selectedEraId, selectedEra]);
+    if (!selectedEraName) return [];
+    return chronicleItems.filter(c => c.focalEraName === selectedEraName).sort((a, b) => (a.eraYear ?? Infinity) - (b.eraYear ?? Infinity));
+  }, [chronicleItems, selectedEraName]);
 
   // Build the narrative config (shared by interactive and headless start)
-  const buildConfig = useCallback(async () => {
+  const buildConfig = async () => {
     const era = wizardEras.find(e => e.id === selectedEraId);
     if (!era) return null;
 
-    // Load prep briefs from chronicles in this era
-    const store = useChronicleStore.getState();
-    const eraChronicles = chronicleItems.filter(c => c.focalEraName === era.name);
-    const prepBriefs = [];
-    for (const item of eraChronicles) {
-      const record = await store.loadChronicle(item.chronicleId);
-      if (!record?.historianPrep) continue;
-      prepBriefs.push({
-        chronicleId: record.chronicleId,
-        chronicleTitle: record.title || item.name,
-        eraYear: record.eraYear,
-        weight: record.narrativeStyle?.eraNarrativeWeight || narrativeWeightMap[record.narrativeStyleId] || undefined,
-        prep: record.historianPrep
-      });
-    }
-
-    // Build world-level context
-    const configStore = useIlluminatorConfigStore.getState();
-    const worldDynamics = configStore.worldContext?.worldDynamics || [];
-    const cultureIds = configStore.cultureIdentities || {};
-
-    // Resolve dynamics for focal era — only include dynamics that have an override for this era
-    const resolvedDynamics = worldDynamics.filter(d => d.eraOverrides?.[era.id]).map(d => {
-      const override = d.eraOverrides[era.id];
-      return override.replace ? override.text : `${d.text || ""} ${override.text}`;
-    }).filter(Boolean);
-
-    // Find focal + adjacent eras from temporal info
-    const focalEraInfo = eraTemporalInfo.find(e => e.id === era.id);
-    const focalOrder = focalEraInfo?.order ?? -1;
-    const previousEraInfo = focalOrder > 0 ? eraTemporalInfo.find(e => e.order === focalOrder - 1) : undefined;
-    const nextEraInfo = eraTemporalInfo.find(e => e.order === focalOrder + 1);
-    const toSummary = info => info ? {
-      id: info.id,
-      name: info.name,
-      summary: info.summary || ""
-    } : undefined;
-
-    // Look up the previous era's completed narrative thesis for continuity
-    let previousEraThesis;
-    if (previousEraInfo) {
-      const prevNarratives = await getEraNarrativesForEra(simulationRunId, previousEraInfo.id);
-      const completedPrev = prevNarratives.filter(r => r.status === "complete" && r.threadSynthesis?.thesis).sort((a, b) => b.updatedAt - a.updatedAt);
-      if (completedPrev.length > 0) {
-        previousEraThesis = completedPrev[0].threadSynthesis.thesis;
-      }
-    }
-    const worldContext = focalEraInfo ? {
-      focalEra: toSummary(focalEraInfo),
-      previousEra: toSummary(previousEraInfo),
-      nextEra: toSummary(nextEraInfo),
-      previousEraThesis,
-      resolvedDynamics,
-      culturalIdentities: cultureIds
-    } : undefined;
+    const prepBriefs = await loadPrepBriefs(chronicleItems, era, narrativeWeightMap);
+    const worldContext = buildWorldContext(era, eraTemporalInfo, simulationRunId);
     return {
       projectId,
       simulationRunId,
@@ -227,7 +261,7 @@ export default function EraNarrativeModal({
       prepBriefs,
       worldContext
     };
-  }, [selectedEraId, wizardEras, chronicleItems, projectId, simulationRunId, historianConfig, tone, arcDirection, eraTemporalInfo]);
+  };
 
   // Start interactive narrative
   const handleStart = useCallback(async () => {
@@ -254,39 +288,26 @@ export default function EraNarrativeModal({
     setExistingNarratives(prev => prev.filter(r => r.narrativeId !== narrativeId));
   }, []);
   const handleClose = useCallback(() => {
-    if (isActive && narrative?.status !== "complete") {
-      if (narrative?.status === "generating" || narrative?.status === "pending") {
-        // Minimize instead of closing — keep isOpen true so pill can restore
-        useFloatingPillStore.getState().minimize({
-          id: PILL_ID,
-          label: `Era: ${narrative?.eraName || "Narrative"}`,
-          statusText: narrative?.currentStep || "Working",
-          statusColor: "#f59e0b",
-          tabId: "chronicle"
-        });
-        return;
-      }
-      cancel();
+    const inProgress = isActive && narrative?.status !== "complete";
+    const shouldMinimize = inProgress && (narrative?.status === "generating" || narrative?.status === "pending");
+    if (shouldMinimize) {
+      useFloatingPillStore.getState().minimize({
+        id: PILL_ID,
+        label: `Era: ${narrative?.eraName || "Narrative"}`,
+        statusText: narrative?.currentStep || "Working",
+        statusColor: "#f59e0b",
+        tabId: "chronicle"
+      });
+      return;
     }
+    if (inProgress) cancel();
     onClose();
   }, [isActive, narrative, cancel, onClose]);
 
   // Update pill status when state changes while minimized
   useEffect(() => {
     if (!isMinimized || !narrative) return;
-    const stepLabel = {
-      threads: "Threads",
-      generate: "Writing",
-      edit: "Editing"
-    };
-    let statusColor;
-    if (narrative.status === "generating" || narrative.status === "pending") statusColor = "#f59e0b";else if (narrative.status === "step_complete") statusColor = "#3b82f6";else if (narrative.status === "complete") statusColor = "#10b981";else if (narrative.status === "failed") statusColor = "#ef4444";else statusColor = "#6b7280";
-    let statusText;
-    if (narrative.status === "complete") statusText = "Complete";else if (narrative.status === "failed") statusText = "Failed";else statusText = stepLabel[narrative.currentStep] || narrative.currentStep;
-    useFloatingPillStore.getState().updatePill(PILL_ID, {
-      statusText,
-      statusColor
-    });
+    useFloatingPillStore.getState().updatePill(PILL_ID, resolvePillStatus(narrative));
   }, [isMinimized, narrative?.status, narrative?.currentStep]);
 
   // Clean up pill when process reaches terminal state
@@ -331,16 +352,12 @@ export default function EraNarrativeModal({
     return resolveActiveContent(narrative);
   }, [narrative]);
 
-  // Sync selectedVersionId to activeVersionId when versions change
-  useEffect(() => {
-    if (resolved.activeVersionId) {
-      // Reset selection when active version changes (e.g., after re-run edit completes)
-      // or when no version is selected yet
-      if (!selectedVersionId || !resolved.versions.some(v => v.versionId === selectedVersionId)) {
-        setSelectedVersionId(resolved.activeVersionId);
-      }
+  // Sync selectedVersionId to activeVersionId during render when versions change
+  if (resolved.activeVersionId) {
+    if (!selectedVersionId || !resolved.versions.some(v => v.versionId === selectedVersionId)) {
+      setSelectedVersionId(resolved.activeVersionId);
     }
-  }, [resolved.activeVersionId, resolved.versions.length]);
+  }
   if (!isOpen) return null;
   if (isMinimized) return null;
   const isGenerating = narrative?.status === "pending" || narrative?.status === "generating";

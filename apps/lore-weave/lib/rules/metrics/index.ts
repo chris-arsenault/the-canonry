@@ -45,11 +45,11 @@ import { evaluateDecayRate, evaluateFalloff } from './decayEvaluators';
 // Re-export types
 export interface MetricGraph {
   findEntities(criteria: {
-    kind?: string;
-    subtype?: string;
-    status?: string;
-    prominence?: string;
-    tag?: string;
+    kind: string;
+    subtype: string;
+    status: string;
+    prominence: string;
+    tag: string;
   }): HardState[];
   getEntities(): HardState[];
   getAllRelationships(): readonly Relationship[];
@@ -75,49 +75,31 @@ export { getProminenceMultiplierValue } from './prominenceEvaluators';
  * @param entity - Optional entity for per-entity metrics
  * @returns MetricResult with value and diagnostic info
  */
+type MetricHandler = (metric: Metric, ctx: MetricContext, entity: HardState) => MetricResult;
+
+const METRIC_DISPATCH: Record<Metric['type'], MetricHandler> = {
+  entity_count: (metric, ctx) => evaluateEntityCount(metric, ctx),
+  relationship_count: (metric, ctx, entity) => evaluateRelationshipCount(metric, ctx, entity),
+  tag_count: (metric, ctx) => evaluateTagCount(metric, ctx),
+  total_entities: (metric, ctx) => evaluateTotalEntities(metric, ctx),
+  constant: (metric) => evaluateConstant(metric),
+  connection_count: (metric, ctx, entity) => evaluateConnectionCount(metric, ctx, entity),
+  ratio: (metric, ctx) => evaluateRatio(metric, ctx),
+  status_ratio: (metric, ctx) => evaluateStatusRatio(metric, ctx),
+  cross_culture_ratio: (metric, ctx) => evaluateCrossCultureRatio(metric, ctx),
+  shared_relationship: (metric, ctx, entity) => evaluateSharedRelationship(metric, ctx, entity),
+  prominence_multiplier: (metric, _ctx, entity) => evaluateProminenceMultiplier(metric, entity),
+  neighbor_prominence: (metric, ctx, entity) => evaluateNeighborProminence(metric, ctx, entity),
+  neighbor_kind_count: (metric, ctx, entity) => evaluateNeighborKindCount(metric, ctx, entity),
+  component_size: (metric, ctx, entity) => evaluateComponentSize(metric, ctx, entity),
+  decay_rate: (metric) => evaluateDecayRate(metric),
+  falloff: (metric) => evaluateFalloff(metric),
+};
+
 export function evaluateMetric(
   metric: Metric,
   ctx: MetricContext,
-  entity?: HardState
+  entity: HardState
 ): MetricResult {
-  switch (metric.type) {
-    case 'entity_count':
-      return evaluateEntityCount(metric, ctx);
-    case 'relationship_count':
-      return evaluateRelationshipCount(metric, ctx, entity);
-    case 'tag_count':
-      return evaluateTagCount(metric, ctx);
-    case 'total_entities':
-      return evaluateTotalEntities(metric, ctx);
-    case 'constant':
-      return evaluateConstant(metric);
-    case 'connection_count':
-      return evaluateConnectionCount(metric, ctx, entity);
-    case 'ratio':
-      return evaluateRatio(metric, ctx);
-    case 'status_ratio':
-      return evaluateStatusRatio(metric, ctx);
-    case 'cross_culture_ratio':
-      return evaluateCrossCultureRatio(metric, ctx);
-    case 'shared_relationship':
-      return evaluateSharedRelationship(metric, ctx, entity);
-    case 'prominence_multiplier':
-      return evaluateProminenceMultiplier(metric, entity);
-    case 'neighbor_prominence':
-      return evaluateNeighborProminence(metric, ctx, entity);
-    case 'neighbor_kind_count':
-      return evaluateNeighborKindCount(metric, ctx, entity);
-    case 'component_size':
-      return evaluateComponentSize(metric, ctx, entity);
-    case 'decay_rate':
-      return evaluateDecayRate(metric);
-    case 'falloff':
-      return evaluateFalloff(metric);
-    default:
-      return {
-        value: 0,
-        diagnostic: `unknown metric type: ${(metric as { type: string }).type}`,
-        details: { metric },
-      };
-  }
+  return METRIC_DISPATCH[metric.type](metric, ctx, entity);
 }

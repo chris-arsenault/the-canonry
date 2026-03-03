@@ -27,7 +27,7 @@ export interface LogPayload {
   level: 'info' | 'warn' | 'error' | 'debug';
   message: string;
   timestamp: number;
-  context?: Record<string, unknown>;
+  context: Record<string, unknown>;
 }
 
 export interface ValidationPayload {
@@ -99,7 +99,7 @@ export interface TemplateUsagePayload {
     failedRules: string[];
     selectionCount: number;
     summary: string;
-    selectionDiagnosis?: {
+    selectionDiagnosis: {
       strategy: string;
       targetKind: string;
       filterSteps: Array<{
@@ -107,12 +107,12 @@ export interface TemplateUsagePayload {
         remaining: number;
       }>;
     };
-    variableDiagnoses?: Array<{
+    variableDiagnoses: Array<{
       name: string;
       fromType: 'graph' | 'related' | 'path';
-      kind?: string;
-      relationshipKind?: string;
-      relatedTo?: string;
+      kind: string;
+      relationshipKind: string;
+      relatedTo: string;
       filterSteps: Array<{
         description: string;
         remaining: number;
@@ -126,19 +126,19 @@ export interface PlacementDebugInfo {
   /** The anchor type requested (e.g., 'entity', 'culture', 'sparse') */
   anchorType: string;
   /** For entity anchors: the resolved anchor entity */
-  anchorEntity?: { id: string; name: string; kind: string };
+  anchorEntity: { id: string; name: string; kind: string };
   /** For culture anchors: the culture ID used */
-  anchorCulture?: string;
+  anchorCulture: string;
   /** Which method actually succeeded: 'anchor', 'anchor_region', 'seed_region', 'sparse', 'bounds', 'random' */
   resolvedVia: string;
   /** Seed regions that were available for this culture/kind */
-  seedRegionsAvailable?: string[];
+  seedRegionsAvailable: string[];
   /** Regions that were tried before finding a spot */
-  regionsTried?: string[];
+  regionsTried: string[];
   /** If an emergent region was created */
-  emergentRegionCreated?: { id: string; label: string };
+  emergentRegionCreated: { id: string; label: string };
   /** If placement failed, why */
-  failureReason?: string;
+  failureReason: string;
 }
 
 export interface TemplateApplicationPayload {
@@ -160,18 +160,18 @@ export interface TemplateApplicationPayload {
     placementStrategy: string;
     coordinates: { x: number; y: number; z: number };
     // Placement info
-    regionId?: string | null;
-    allRegionIds?: string[];
+    regionId: string | null;
+    allRegionIds: string[];
     /** Tags derived from placement (e.g., from region) before merging with entity tags */
-    derivedTags?: Record<string, string | boolean>;
+    derivedTags: Record<string, string | boolean>;
     /** Detailed placement debug info */
-    placement?: PlacementDebugInfo;
+    placement: PlacementDebugInfo;
   }>;
   relationshipsCreated: Array<{
     kind: string;
     srcId: string;
     dstId: string;
-    strength?: number;
+    strength: number;
   }>;
   pressureChanges: Record<string, number>;
 }
@@ -200,15 +200,15 @@ export interface ActionApplicationPayload {
   actorName: string;
   actorKind: string;
   actorProminence: string;
-  instigatorId?: string;
-  instigatorName?: string;
+  instigatorId: string;
+  instigatorName: string;
 
   // Target(s) - populated if action handler was called
-  targetId?: string;
-  targetName?: string;
-  targetKind?: string;
-  target2Id?: string;
-  target2Name?: string;
+  targetId: string;
+  targetName: string;
+  targetKind: string;
+  target2Id: string;
+  target2Name: string;
 
   // Why this action was selected
   selectionContext: {
@@ -232,14 +232,14 @@ export interface ActionApplicationPayload {
     prominenceMultiplier: number;
     description: string;
     /** Domain-controlled narration from narrationTemplate */
-    narration?: string;
+    narration: string;
     relationshipsCreated: Array<{
       kind: string;
       srcId: string;
       dstId: string;
       srcName: string;
       dstName: string;
-      strength?: number;
+      strength: number;
     }>;
     relationshipsStrengthened: Array<{
       kind: string;
@@ -261,9 +261,9 @@ export type SimulationResultPayload = WorldOutput;
 
 export interface ErrorPayload {
   message: string;
-  stack?: string;
+  stack: string;
   phase: string;
-  context?: Record<string, unknown>;
+  context: Record<string, unknown>;
 }
 
 export interface TagHealthPayload {
@@ -424,7 +424,7 @@ export interface SystemActionPayload {
   description: string;
 
   // Loosely typed details for system-specific information
-  details?: Record<string, unknown>;
+  details: Record<string, unknown>;
 }
 
 /**
@@ -477,7 +477,7 @@ export interface ISimulationEmitter {
 
   // Convenience methods that construct events
   progress(payload: ProgressPayload): void;
-  log(level: LogPayload['level'], message: string, context?: Record<string, unknown>): void;
+  log(level: LogPayload['level'], message: string, context: Record<string, unknown>): void;
   validation(payload: ValidationPayload): void;
   epochStart(payload: EpochStartPayload): void;
   epochStats(payload: EpochStatsPayload): void;

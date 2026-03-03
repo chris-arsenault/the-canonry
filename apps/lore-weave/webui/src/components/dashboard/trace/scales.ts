@@ -4,10 +4,21 @@
 
 import { scaleLinear } from "@visx/scale";
 
+interface Margin {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+interface TickDataPoint {
+  tick: number;
+}
+
 /**
  * Create X scale for tick values
  */
-export function createXScale(data, width, margin) {
+export function createXScale(data: TickDataPoint[], width: number, margin: Margin) {
   if (!data?.length) {
     return scaleLinear({
       domain: [0, 100],
@@ -28,7 +39,7 @@ export function createXScale(data, width, margin) {
  * Note: `chartBottom` is the y-coordinate of the bottom of the chart area.
  * This is NOT height - margin.bottom; the caller passes the actual bottom coordinate.
  */
-export function createPressureYScale(data, pressureIds, chartBottom, margin) {
+export function createPressureYScale(_data: TickDataPoint[], _pressureIds: string[], chartBottom: number, margin: Margin) {
   return scaleLinear({
     domain: [-100, 100],
     range: [chartBottom, margin.top],
@@ -39,7 +50,7 @@ export function createPressureYScale(data, pressureIds, chartBottom, margin) {
 /**
  * Default margins
  */
-export const DEFAULT_MARGIN = {
+export const DEFAULT_MARGIN: Margin = {
   top: 20,
   right: 30,
   bottom: 80, // Extra space for swimlanes and era timeline
@@ -52,7 +63,7 @@ export const DEFAULT_MARGIN = {
 export const SWIMLANE_CONFIG = {
   height: 24,
   gap: 2,
-  types: ["template", "system", "action"],
+  types: ["template", "system", "action"] as const,
 };
 
 /**

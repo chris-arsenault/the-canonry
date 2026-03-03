@@ -22,10 +22,10 @@ export interface GraphPathAssertion {
   path: PathStep[];
 
   /** For count assertions */
-  count?: number;
+  count: number;
 
   /** Additional constraints on the final target */
-  where?: PathConstraint[];
+  where: PathConstraint[];
 }
 
 /**
@@ -38,15 +38,15 @@ export interface PathStep {
   direction: 'out' | 'in' | 'any';
 
   /** Filter targets at this step */
-  targetKind?: string;
-  targetSubtype?: string;
-  targetStatus?: string;
+  targetKind: string;
+  targetSubtype: string;
+  targetStatus: string;
 
   /** Optional filters applied to entities reached at this step */
-  filters?: SelectionFilter[];
+  filters: SelectionFilter[];
 
   /** Store intermediate result for reference */
-  as?: string;  // e.g., "$controlled", "$adjacent"
+  as: string;  // e.g., "$controlled", "$adjacent"
 }
 
 /**
@@ -55,8 +55,8 @@ export interface PathStep {
 export type PathConstraint =
   | { type: 'not_in'; set: string }           // Target not in a stored set (e.g., "$controlled")
   | { type: 'in'; set: string }               // Target in a stored set
-  | { type: 'lacks_relationship'; kind: string; with: string; direction?: 'out' | 'in' | 'any' }
-  | { type: 'has_relationship'; kind: string; with: string; direction?: 'out' | 'in' | 'any' }
+  | { type: 'lacks_relationship'; kind: string; with: string; direction: 'out' | 'in' | 'any' }
+  | { type: 'has_relationship'; kind: string; with: string; direction: 'out' | 'in' | 'any' }
   | { type: 'not_self' }                      // Target is not the starting entity
   | { type: 'kind_equals'; kind: string }
   | { type: 'subtype_equals'; subtype: string };
@@ -103,20 +103,20 @@ export interface ExcludeEntitiesFilter {
 export interface HasRelationshipFilter {
   type: 'has_relationship';
   kind: string;
-  with?: string;  // Variable reference (optional)
-  direction?: 'src' | 'dst' | 'both';
+  with: string;  // Variable reference (optional)
+  direction: 'src' | 'dst' | 'both';
 }
 
 export interface LacksRelationshipFilter {
   type: 'lacks_relationship';
   kind: string;
-  with?: string;  // Variable reference (optional)
+  with: string;  // Variable reference (optional)
 }
 
 export interface HasTagSelectionFilter {
   type: 'has_tag';
   tag: string;
-  value?: string | boolean;
+  value: string | boolean;
 }
 
 /**
@@ -136,7 +136,7 @@ export interface HasAnyTagSelectionFilter {
 export interface LacksTagSelectionFilter {
   type: 'lacks_tag';
   tag: string;
-  value?: string | boolean;  // If specified, only excludes if tag has this value
+  value: string | boolean;  // If specified, only excludes if tag has this value
 }
 
 export interface LacksAnyTagSelectionFilter {
@@ -197,9 +197,9 @@ export interface ComponentSizeFilter {
   /** Relationship kind(s) defining the subgraph edges */
   relationshipKinds: string[];
   /** Minimum component size (inclusive) */
-  min?: number;
+  min: number;
   /** Maximum component size (inclusive) */
-  max?: number;
+  max: number;
   /** Minimum relationship strength to follow (default: 0) */
-  minStrength?: number;
+  minStrength: number;
 }

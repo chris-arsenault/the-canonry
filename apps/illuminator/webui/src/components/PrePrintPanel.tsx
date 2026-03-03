@@ -26,6 +26,60 @@ import "./PrePrintPanel.css";
 
 type SubTab = "stats" | "tree" | "export";
 
+function collectChronicleImageIds(
+  chronicles: ChronicleRecord[],
+  ids: Set<string>
+): void {
+  const publishable = chronicles.filter(
+    (c) => c.status === "complete" || c.status === "assembly_ready"
+  );
+  for (const chronicle of publishable) {
+    const coverId = chronicle.coverImage?.generatedImageId;
+    if (coverId && chronicle.coverImage?.status === "complete") {
+      ids.add(coverId);
+    }
+    if (!chronicle.imageRefs?.refs) continue;
+    for (const ref of chronicle.imageRefs.refs) {
+      if (ref.type === "prompt_request" && ref.status === "complete" && ref.generatedImageId) {
+        ids.add(ref.generatedImageId);
+      }
+    }
+  }
+}
+
+function collectEraNarrativeImageIds(
+  eraNarratives: EraNarrativeRecord[],
+  ids: Set<string>
+): void {
+  for (const narr of eraNarratives) {
+    if (narr.coverImage?.status === "complete" && narr.coverImage.generatedImageId) {
+      ids.add(narr.coverImage.generatedImageId);
+    }
+    if (!narr.imageRefs?.refs) continue;
+    for (const ref of narr.imageRefs.refs) {
+      if (ref.type === "chronicle_ref") {
+        ids.add(ref.imageId);
+      } else if (ref.type === "prompt_request" && ref.status === "complete" && ref.generatedImageId) {
+        ids.add(ref.generatedImageId);
+      }
+    }
+  }
+}
+
+function collectReferencedImageIds(
+  navEntities: Array<{ imageId?: string }>,
+  chronicles: ChronicleRecord[],
+  eraNarratives: EraNarrativeRecord[]
+): Set<string> {
+  const ids = new Set<string>();
+  for (const entity of navEntities) {
+    if (entity.imageId) ids.add(entity.imageId);
+  }
+  collectChronicleImageIds(chronicles, ids);
+  collectEraNarrativeImageIds(eraNarratives, ids);
+  return ids;
+}
+
 interface PrePrintPanelProps {
   projectId: string;
   simulationRunId: string;
@@ -40,13 +94,11 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
   const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
   const [eraNarratives, setEraNarratives] = useState<EraNarrativeRecord[]>([]);
   const [treeState, setTreeState] = useState<ContentTreeState | null>(null);
-  const [loading, setLoading] = useState(true);
+  const hasIds = !!projectId && !!simulationRunId;
+  const [loading, setLoading] = useState(hasIds);
 
   useEffect(() => {
-    if (!projectId || !simulationRunId) {
-      setLoading(false);
-      return;
-    }
+    if (!projectId || !simulationRunId) return;
 
     let cancelled = false;
 
@@ -95,52 +147,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
 
   const images = useMemo(() => {
     if (allImages.length === 0) return [];
-
-    const referencedIds = new Set<string>();
-
-    for (const entity of navEntities) {
-      if (entity.imageId) referencedIds.add(entity.imageId);
-    }
-
-    const publishableChronicles = chronicles.filter(
-      (c) => c.status === "complete" || c.status === "assembly_ready"
-    );
-
-    for (const chronicle of publishableChronicles) {
-      const coverId = chronicle.coverImage?.generatedImageId;
-      if (coverId && chronicle.coverImage?.status === "complete") {
-        referencedIds.add(coverId);
-      }
-
-      if (chronicle.imageRefs?.refs) {
-        for (const ref of chronicle.imageRefs.refs) {
-          if (ref.type === "prompt_request" && ref.status === "complete" && ref.generatedImageId) {
-            referencedIds.add(ref.generatedImageId);
-          }
-        }
-      }
-    }
-
-    // Era narrative images
-    for (const narr of eraNarratives) {
-      if (narr.coverImage?.status === "complete" && narr.coverImage.generatedImageId) {
-        referencedIds.add(narr.coverImage.generatedImageId);
-      }
-      if (narr.imageRefs?.refs) {
-        for (const ref of narr.imageRefs.refs) {
-          if (ref.type === "chronicle_ref") {
-            referencedIds.add(ref.imageId);
-          } else if (
-            ref.type === "prompt_request" &&
-            ref.status === "complete" &&
-            ref.generatedImageId
-          ) {
-            referencedIds.add(ref.generatedImageId);
-          }
-        }
-      }
-    }
-
+    const referencedIds = collectReferencedImageIds(navEntities, chronicles, eraNarratives);
     if (referencedIds.size === 0) return [];
     return allImages.filter((img) => referencedIds.has(img.imageId));
   }, [allImages, navEntities, chronicles, eraNarratives]);

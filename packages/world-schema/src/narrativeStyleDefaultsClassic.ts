@@ -66,11 +66,11 @@ AVOID: The chronicler explaining what events "meant." Losses described at a dist
     titleGuidance: 'Retrospective and weighted. The title names the event as history — something already concluded, already grieved. It should sound like what survivors call this era when they speak of it years later. Concrete over abstract: a place, a name, a cost.',
 
     roles: [
-      { role: 'chronicler', count: { min: 1, max: 1 }, description: 'The witness who survived to tell this - they frame everything, but tell the story rather than comment on telling it' },
-      { role: 'protagonist', count: { min: 1, max: 1 }, description: 'The central figure - ground them in physical presence, not conceptual traits' },
-      { role: 'antagonist', count: { min: 1, max: 1 }, description: 'The opposing force - villain, rival power, or circumstance' },
-      { role: 'the-lost', count: { min: 0, max: 2 }, description: 'Those who did not survive - their loss should land, not be reported' },
-      { role: 'the-weight', count: { min: 0, max: 1 }, description: 'The force that shaped events - a law, a power, an occurrence. Present in effects, not explained' },
+      { role: 'chronicler', count: { min: 1, max: 1 }, description: 'The witness who survived to tell this - they frame everything, but tell the story rather than comment on telling it', selectionCriteria: '' },
+      { role: 'protagonist', count: { min: 1, max: 1 }, description: 'The central figure - ground them in physical presence, not conceptual traits', selectionCriteria: '' },
+      { role: 'antagonist', count: { min: 1, max: 1 }, description: 'The opposing force - villain, rival power, or circumstance', selectionCriteria: '' },
+      { role: 'the-lost', count: { min: 0, max: 2 }, description: 'Those who did not survive - their loss should land, not be reported', selectionCriteria: '' },
+      { role: 'the-weight', count: { min: 0, max: 1 }, description: 'The force that shaped events - a law, a power, an occurrence. Present in effects, not explained', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -136,10 +136,10 @@ AVOID: Scenes where people stand and talk. Internal monologue. Reflection. Any s
     titleGuidance: 'Short and physical. Name something you can see or feel — a place, a distance, a weapon, a threshold. Momentum lives in concrete nouns and active verbs. The register is immediate, not reflective. If the title could be shouted across a room, it fits.',
 
     roles: [
-      { role: 'hero', count: { min: 1, max: 2 }, description: 'Racing the clock - defined by what they do, not what they think' },
-      { role: 'deadline', count: { min: 1, max: 1 }, description: 'The ticking clock - tide, ritual, collapse, arrival. Must be concrete and visible' },
-      { role: 'objective', count: { min: 1, max: 1 }, description: 'What must be reached, retrieved, stopped, or saved before time runs out' },
-      { role: 'obstacle', count: { min: 1, max: 2 }, description: 'What blocks the path and costs precious time to overcome' },
+      { role: 'hero', count: { min: 1, max: 2 }, description: 'Racing the clock - defined by what they do, not what they think', selectionCriteria: '' },
+      { role: 'deadline', count: { min: 1, max: 1 }, description: 'The ticking clock - tide, ritual, collapse, arrival. Must be concrete and visible', selectionCriteria: '' },
+      { role: 'objective', count: { min: 1, max: 1 }, description: 'What must be reached, retrieved, stopped, or saved before time runs out', selectionCriteria: '' },
+      { role: 'obstacle', count: { min: 1, max: 2 }, description: 'What blocks the path and costs precious time to overcome', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -209,10 +209,10 @@ AVOID: Love at first sight without complication. External plot overwhelming the 
     titleGuidance: 'The title lives in the space between two people. Name the thing that connects or separates them — a shared place, a private gesture, the quality of their particular distance. Intimate register: the voice of someone remembering. Sonic warmth matters; the title should be pleasant to say quietly.',
 
     roles: [
-      { role: 'lover-a', count: { min: 1, max: 1 }, description: 'First perspective - we live in their world before the meeting' },
-      { role: 'lover-b', count: { min: 1, max: 1 }, description: 'Second perspective - different world, different lack' },
-      { role: 'obstacle', count: { min: 0, max: 1 }, description: 'What makes connection difficult - not villain, but genuine barrier (duty, history, fear)' },
-      { role: 'catalyst', count: { min: 0, max: 1 }, description: 'What brings them into contact - place, event, person, circumstance' },
+      { role: 'lover-a', count: { min: 1, max: 1 }, description: 'First perspective - we live in their world before the meeting', selectionCriteria: '' },
+      { role: 'lover-b', count: { min: 1, max: 1 }, description: 'Second perspective - different world, different lack', selectionCriteria: '' },
+      { role: 'obstacle', count: { min: 0, max: 1 }, description: 'What makes connection difficult - not villain, but genuine barrier (duty, history, fear)', selectionCriteria: '' },
+      { role: 'catalyst', count: { min: 0, max: 1 }, description: 'What brings them into contact - place, event, person, circumstance', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -271,9 +271,9 @@ AVOID: Dramatic events. Conflict requiring resolution. Backstory dumps. Realizat
     titleGuidance: 'Particular and unhurried. The title names the ordinary thing — a place, a time of day, a task, a season. Specific enough to be someone\'s real life, quiet enough to almost miss. One to four words. No drama, no significance announced; the title trusts the reader to find what matters.',
 
     roles: [
-      { role: 'focal-point', count: { min: 1, max: 1 }, description: 'The consciousness we inhabit - person, place, or moment' },
-      { role: 'passing-through', count: { min: 0, max: 2 }, description: 'Brief presences - someone who shares the space temporarily' },
-      { role: 'the-moment', count: { min: 0, max: 1 }, description: 'The bounded time - the meal, the walk, the morning' },
+      { role: 'focal-point', count: { min: 1, max: 1 }, description: 'The consciousness we inhabit - person, place, or moment', selectionCriteria: '' },
+      { role: 'passing-through', count: { min: 0, max: 2 }, description: 'Brief presences - someone who shares the space temporarily', selectionCriteria: '' },
+      { role: 'the-moment', count: { min: 0, max: 1 }, description: 'The bounded time - the meal, the walk, the morning', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -353,11 +353,11 @@ AVOID: Mustache-twirling villains. Characters who state their true motives. Easy
     titleGuidance: 'The title should operate the way its characters do — saying one thing while meaning another. Institutional language that carries threat. Positions, courtesies, and formalities that are really weapons. The register is controlled and public-facing, with pressure underneath.',
 
     roles: [
-      { role: 'player-a', count: { min: 1, max: 1 }, description: 'The protagonist - observant, calculating, making moves through the political landscape' },
-      { role: 'player-b', count: { min: 1, max: 1 }, description: 'Current authority figure or primary opposition - has something player-a needs or threatens' },
-      { role: 'player-c', count: { min: 0, max: 1 }, description: 'Representative of competing interest - offers alliance or opposition' },
-      { role: 'the-event', count: { min: 1, max: 1 }, description: 'The central occurrence that sets the machinations in motion' },
-      { role: 'the-prize', count: { min: 0, max: 1 }, description: 'What is being contested - position, resource, authentication, territory' },
+      { role: 'player-a', count: { min: 1, max: 1 }, description: 'The protagonist - observant, calculating, making moves through the political landscape', selectionCriteria: '' },
+      { role: 'player-b', count: { min: 1, max: 1 }, description: 'Current authority figure or primary opposition - has something player-a needs or threatens', selectionCriteria: '' },
+      { role: 'player-c', count: { min: 0, max: 1 }, description: 'Representative of competing interest - offers alliance or opposition', selectionCriteria: '' },
+      { role: 'the-event', count: { min: 1, max: 1 }, description: 'The central occurrence that sets the machinations in motion', selectionCriteria: '' },
+      { role: 'the-prize', count: { min: 0, max: 1 }, description: 'What is being contested - position, resource, authentication, territory', selectionCriteria: '' },
     ],
 
     pacing: {

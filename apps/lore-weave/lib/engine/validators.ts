@@ -9,7 +9,7 @@ export interface ValidationResult {
   passed: boolean;
   failureCount: number;
   details: string;
-  failedEntities?: HardState[];
+  failedEntities: HardState[];
 }
 
 /**
@@ -75,7 +75,7 @@ export function validateNPCStructure(graph: Graph, config: EngineConfig): Valida
   const invalidEntities: HardState[] = [];
   const missingByKindSubtype = new Map<string, Map<string, number>>();
   const kindsWithRequirements = config.schema.entityKinds.filter(
-    kindDef => kindDef.requiredRelationships && kindDef.requiredRelationships.length > 0
+    kindDef => kindDef.requiredRelationships.length > 0
   );
 
   if (kindsWithRequirements.length === 0) {

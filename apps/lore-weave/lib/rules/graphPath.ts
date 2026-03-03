@@ -12,11 +12,11 @@ import { Direction } from './types';
 import { EntityResolver } from './resolver';
 
 export interface GraphPathOptions {
-  filterEvaluator?: (
+  filterEvaluator: (
     entities: HardState[],
     filters: PathStep['filters'],
     resolver: EntityResolver,
-    options?: GraphPathOptions
+    options: GraphPathOptions
   ) => HardState[];
 }
 
@@ -28,10 +28,10 @@ export function evaluateGraphPath(
   startEntity: HardState,
   assertion: GraphPathAssertion,
   resolver: EntityResolver,
-  options?: GraphPathOptions
+  options: GraphPathOptions
 ): boolean {
   const graphView = resolver.getGraphView();
-  const filterEvaluator = options?.filterEvaluator;
+  const filterEvaluator = options.filterEvaluator;
 
   // Traverse the path, collecting entities at each step
   let currentEntities: HardState[] = [startEntity];
@@ -45,7 +45,7 @@ export function evaluateGraphPath(
     }
 
     let filteredEntities = nextEntities;
-    if (step.filters && step.filters.length > 0 && filterEvaluator) {
+    if (step.filters.length > 0) {
       filteredEntities = filterEvaluator(nextEntities, step.filters, resolver, options);
     }
 
@@ -57,9 +57,9 @@ export function evaluateGraphPath(
   }
 
   // Apply constraints to filter final entities
-  if (assertion.where) {
+  if (assertion.where.length > 0) {
     currentEntities = currentEntities.filter(entity =>
-      evaluatePathConstraints(entity, startEntity, assertion.where!, resolver)
+      evaluatePathConstraints(entity, startEntity, assertion.where, resolver)
     );
   }
 
@@ -72,10 +72,10 @@ export function evaluateGraphPath(
       return currentEntities.length === 0;
 
     case 'count_min':
-      return currentEntities.length >= (assertion.count ?? 1);
+      return currentEntities.length >= assertion.count;
 
     case 'count_max':
-      return currentEntities.length <= (assertion.count ?? 0);
+      return currentEntities.length <= assertion.count;
 
     default:
       return false;
@@ -168,7 +168,7 @@ function evaluateSingleConstraint(
 function evaluateRelConstraint(
   entity: HardState,
   startEntity: HardState,
-  constraint: PathConstraint & { kind: string; with: string; direction?: string },
+  constraint: PathConstraint & { kind: string; with: string; direction: string },
   graphView: WorldRuntime,
   resolver: EntityResolver,
   requireExists: boolean

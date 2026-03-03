@@ -65,8 +65,8 @@ export interface RelationshipCreatedData {
   srcId: string;
   dstId: string;
   kind: string;
-  strength?: number;
-  polarity?: Polarity;
+  strength: number;
+  polarity: Polarity;
 }
 
 /**
@@ -76,11 +76,11 @@ export interface RelationshipArchivedData {
   srcId: string;
   dstId: string;
   kind: string;
-  polarity?: Polarity;
+  polarity: Polarity;
   /** How long the relationship existed */
   age: number;
   /** Why it was archived (entity_ended, system_action, etc.) */
-  reason?: string;
+  reason: string;
 }
 
 /**
@@ -89,7 +89,7 @@ export interface RelationshipArchivedData {
 export interface TagChangeData {
   entityId: string;
   tag: string;
-  value?: string | boolean;
+  value: string | boolean;
 }
 
 /**
@@ -206,7 +206,7 @@ export class MutationTracker {
    * @param success - For actions: whether the action succeeded
    * @param narration - Optional in-world narrative description
    */
-  enterContext(source: ExecutionSource, sourceId: string, success?: boolean, narration?: string): void {
+  enterContext(source: ExecutionSource, sourceId: string, success: boolean, narration: string): void {
     this.contextStack.push({
       tick: this.currentTick,
       source,

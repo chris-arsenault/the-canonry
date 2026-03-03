@@ -220,22 +220,7 @@ export default function CoveragePanel({
     });
     const factTotals = new Map(facts.map(fact => [fact.id, 0]));
     const disabledFactIds = new Set(facts.filter(f => f.disabled).map(f => f.id));
-    let totalSelections = 0;
-    let unparsedTotal = 0;
-    let includedCount = 0;
     const processedRows = rows.map(row => {
-      if (row.isIncluded) {
-        includedCount += 1;
-        for (const factId of row.facetIds) {
-          factTotals.set(factId, (factTotals.get(factId) || 0) + 1);
-        }
-        let enabledHits = 0;
-        for (const factId of row.facetIds) {
-          if (!disabledFactIds.has(factId)) enabledHits += 1;
-        }
-        totalSelections += enabledHits;
-        unparsedTotal += row.unparsedCount || 0;
-      }
       let rowEnabledTotal = 0;
       for (const factId of row.facetIds) {
         if (!disabledFactIds.has(factId)) rowEnabledTotal += 1;
@@ -245,6 +230,20 @@ export default function CoveragePanel({
         rowTotal: rowEnabledTotal
       };
     });
+    // Aggregate totals in a separate pass to avoid mutating outer variables during .map()
+    let totalSelections = 0;
+    let unparsedTotal = 0;
+    let includedCount = 0;
+    for (const row of processedRows) {
+      if (row.isIncluded) {
+        includedCount += 1;
+        for (const factId of row.facetIds) {
+          factTotals.set(factId, (factTotals.get(factId) || 0) + 1);
+        }
+        totalSelections += row.rowTotal;
+        unparsedTotal += row.unparsedCount || 0;
+      }
+    }
     const chroniclesWithSynthesis = processedRows.filter(row => row.synthesis).length;
     const unusedFacts = enabledFacts.filter(fact => (factTotals.get(fact.id) || 0) === 0).length;
     const disabledFactCount = facts.filter(fact => fact.disabled).length;

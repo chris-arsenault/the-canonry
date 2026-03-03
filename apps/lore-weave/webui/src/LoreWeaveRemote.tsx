@@ -1,22 +1,8 @@
 /**
  * LoreWeaveRemote - Module Federation entry point for Lore Weave
- *
- * This component is loaded by The Canonry shell and receives:
- * - schema: Read-only world schema (entityKinds, relationshipKinds, cultures)
- * - eras: Array of era configurations
- * - pressures: Array of pressure configurations
- * - generators: Array of growth template configurations
- * - seedEntities: Initial entities for the world
- * - seedRelationships: Initial relationships for the world
- * - activeSection: Current navigation section
- * - onSectionChange: Callback when navigation changes
- *
- * Lore Weave generates procedural world history by running growth templates
- * and simulation systems in alternating phases across multiple eras.
  */
 
 import React, { useState, useMemo } from "react";
-import PropTypes from "prop-types";
 import "./App.css";
 import ConfigurationSummary from "./components/config";
 import { DistributionTargetsEditor } from "./components/targets";
@@ -24,6 +10,41 @@ import ValidationPanel from "./components/validation/ValidationPanel";
 import { SimulationRunner } from "./components/runner";
 import ResultsViewer from "./components/results";
 import { useSimulationWorker } from "./hooks/useSimulationWorker";
+import type { SimulationState } from "./hooks/useSimulationWorker";
+import type { WorldOutput } from "@canonry/world-schema";
+
+interface Culture {
+  id: string;
+  naming: { profiles: unknown[] };
+  [key: string]: unknown;
+}
+
+interface DomainSchema {
+  entityKinds: Array<{ kind: string; subtypes: Array<{ id: string }>; [key: string]: unknown }>;
+  relationshipKinds: Array<{ kind: string; [key: string]: unknown }>;
+  cultures: Culture[];
+}
+
+interface LoreWeaveRemoteProps {
+  projectId: string;
+  schema: DomainSchema;
+  eras: unknown[];
+  pressures: unknown[];
+  generators: unknown[];
+  systems: unknown[];
+  actions: unknown[];
+  seedEntities: unknown[];
+  seedRelationships: unknown[];
+  distributionTargets: Record<string, unknown> | null;
+  onDistributionTargetsChange: (targets: Record<string, unknown>) => void;
+  activeSection: string;
+  onSectionChange: (section: string) => void;
+  simulationResults: WorldOutput | null;
+  onSimulationResultsChange: (results: WorldOutput | null) => void;
+  simulationState: SimulationState | null;
+  onSimulationStateChange: (state: SimulationState) => void;
+  onSearchRunScored: (data: Record<string, unknown>) => void;
+}
 
 const TABS = [
   { id: "configure", label: "Configure" },
@@ -35,15 +56,15 @@ const TABS = [
 
 export default function LoreWeaveRemote({
   projectId,
-  schema = { entityKinds: [], relationshipKinds: [], cultures: [] },
-  eras = [],
-  pressures = [],
-  generators = [],
-  systems = [],
-  actions = [],
-  seedEntities = [],
-  seedRelationships = [],
-  distributionTargets = null,
+  schema,
+  eras,
+  pressures,
+  generators,
+  systems,
+  actions,
+  seedEntities,
+  seedRelationships,
+  distributionTargets,
   onDistributionTargetsChange,
   activeSection,
   onSectionChange,
@@ -52,62 +73,36 @@ export default function LoreWeaveRemote({
   simulationState: externalSimulationState,
   onSimulationStateChange,
   onSearchRunScored,
-}) {
-  // Use passed-in section or default to 'configure'
-  const activeTab = activeSection || "configure";
-  const setActiveTab = onSectionChange || (() => {});
+}: Readonly<LoreWeaveRemoteProps>) {
+  const activeTab = activeSection;
+  const setActiveTab = onSectionChange;
 
-  // Simulation state - use external state if provided, otherwise use local state
-  const [localSimulationResults, setLocalSimulationResults] = useState(null);
-  const simulationResults =
-    externalSimulationResults !== undefined ? externalSimulationResults : localSimulationResults;
-  const setSimulationResults = onSimulationResultsChange || setLocalSimulationResults;
+  const simulationResults = externalSimulationResults;
+  const setSimulationResults = onSimulationResultsChange;
   const [isRunning, setIsRunning] = useState(false);
 
-  // Lift worker management to this level so it persists across tab navigation
-  // This allows stepping through epochs, exporting to Archivist, and returning to continue
   const simulationWorker = useSimulationWorker();
 
-  // Sync worker running state (only update if value actually changed, during render)
   const [prevIsRunning, setPrevIsRunning] = useState(simulationWorker.isRunning);
   if (prevIsRunning !== simulationWorker.isRunning) {
     setPrevIsRunning(simulationWorker.isRunning);
     setIsRunning(simulationWorker.isRunning);
   }
 
-  // Validate configuration completeness
   const configValidation = useMemo(() => {
-    const issues = [];
-    const warnings = [];
+    const issues: string[] = [];
+    const warnings: string[] = [];
 
-    // Required elements
-    if (schema.entityKinds.length === 0) {
-      issues.push("No entity kinds defined");
-    }
-    if (schema.relationshipKinds.length === 0) {
-      issues.push("No relationship kinds defined");
-    }
-    if (schema.cultures.length === 0) {
-      issues.push("No cultures defined");
-    }
-    if (eras.length === 0) {
-      issues.push("No eras defined");
-    }
-    if (generators.length === 0) {
-      issues.push("No generators (growth templates) defined");
-    }
+    if (schema.entityKinds.length === 0) issues.push("No entity kinds defined");
+    if (schema.relationshipKinds.length === 0) issues.push("No relationship kinds defined");
+    if (schema.cultures.length === 0) issues.push("No cultures defined");
+    if (eras.length === 0) issues.push("No eras defined");
+    if (generators.length === 0) issues.push("No generators (growth templates) defined");
 
-    // Warnings
-    if (pressures.length === 0) {
-      warnings.push("No pressures defined - simulation will have no dynamic feedback");
-    }
-    if (seedEntities.length === 0) {
-      warnings.push("No seed entities - world will start empty");
-    }
+    if (pressures.length === 0) warnings.push("No pressures defined - simulation will have no dynamic feedback");
+    if (seedEntities.length === 0) warnings.push("No seed entities - world will start empty");
     const hasNamingProfiles = schema.cultures.some((c) => c.naming?.profiles?.length);
-    if (!hasNamingProfiles) {
-      warnings.push("No naming data - entities will need explicit names");
-    }
+    if (!hasNamingProfiles) warnings.push("No naming data - entities will need explicit names");
 
     return {
       isValid: issues.length === 0,
@@ -126,11 +121,12 @@ export default function LoreWeaveRemote({
     };
   }, [schema, eras, pressures, generators, seedEntities, seedRelationships]);
 
-  // Handle simulation completion (don't auto-navigate - let user review logs first)
-  const handleSimulationComplete = (results) => {
+  const navigateToRun = React.useCallback(() => setActiveTab("run"), [setActiveTab]);
+  const navigateToResults = React.useCallback(() => setActiveTab("results"), [setActiveTab]);
+
+  const handleSimulationComplete = (results: WorldOutput | null) => {
     setSimulationResults(results);
     setIsRunning(false);
-    // Don't auto-navigate to results - user will click "View Results" button
   };
 
   const renderContent = () => {
@@ -145,15 +141,15 @@ export default function LoreWeaveRemote({
             seedEntities={seedEntities}
             seedRelationships={seedRelationships}
             validation={configValidation}
-            onNavigateToRun={() => setActiveTab("run")}
+            onNavigateToRun={navigateToRun}
           />
         );
       case "targets":
         return (
           <DistributionTargetsEditor
-            distributionTargets={distributionTargets}
-            schema={schema}
-            onDistributionTargetsChange={onDistributionTargetsChange}
+            distributionTargets={distributionTargets as Parameters<typeof DistributionTargetsEditor>[0]['distributionTargets']}
+            schema={schema as Parameters<typeof DistributionTargetsEditor>[0]['schema']}
+            onDistributionTargetsChange={onDistributionTargetsChange as Parameters<typeof DistributionTargetsEditor>[0]['onDistributionTargetsChange']}
           />
         );
       case "validate":
@@ -185,7 +181,7 @@ export default function LoreWeaveRemote({
             isRunning={isRunning}
             setIsRunning={setIsRunning}
             onComplete={handleSimulationComplete}
-            onViewResults={() => setActiveTab("results")}
+            onViewResults={navigateToResults}
             externalSimulationState={externalSimulationState}
             onSimulationStateChange={onSimulationStateChange}
             onSearchRunScored={onSearchRunScored}
@@ -197,7 +193,7 @@ export default function LoreWeaveRemote({
           <ResultsViewer
             results={simulationResults}
             schema={schema}
-            onNewRun={() => setActiveTab("run")}
+            onNewRun={navigateToRun}
           />
         );
       default:
@@ -207,7 +203,6 @@ export default function LoreWeaveRemote({
 
   return (
     <div className="lw-app-container">
-      {/* Left sidebar with nav */}
       <div className="lw-sidebar">
         <nav className="lw-sidebar-nav">
           {TABS.map((tab) => (
@@ -218,38 +213,16 @@ export default function LoreWeaveRemote({
             >
               {tab.label}
               {tab.id === "results" && simulationResults && (
-                <span className="lw-nav-badge">{simulationResults.metadata?.entityCount || 0}</span>
+                <span className="lw-nav-badge">{(simulationResults.metadata as Record<string, unknown>)?.entityCount as number || 0}</span>
               )}
             </button>
           ))}
         </nav>
       </div>
 
-      {/* Main content area */}
       <div className="lw-main-area">
         <div className="lw-content-area">{renderContent()}</div>
       </div>
     </div>
   );
 }
-
-LoreWeaveRemote.propTypes = {
-  projectId: PropTypes.string,
-  schema: PropTypes.object,
-  eras: PropTypes.array,
-  pressures: PropTypes.array,
-  generators: PropTypes.array,
-  systems: PropTypes.array,
-  actions: PropTypes.array,
-  seedEntities: PropTypes.array,
-  seedRelationships: PropTypes.array,
-  distributionTargets: PropTypes.object,
-  onDistributionTargetsChange: PropTypes.func,
-  activeSection: PropTypes.string,
-  onSectionChange: PropTypes.func,
-  simulationResults: PropTypes.object,
-  onSimulationResultsChange: PropTypes.func,
-  simulationState: PropTypes.object,
-  onSimulationStateChange: PropTypes.func,
-  onSearchRunScored: PropTypes.func,
-};

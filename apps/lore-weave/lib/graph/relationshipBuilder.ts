@@ -31,7 +31,7 @@ export class RelationshipBuilder {
    * @param destinations - Array of destination entity IDs
    * @param strength - Optional relationship strength
    */
-  addManyFrom(kind: string, src: string, destinations: string[], strength?: number): this {
+  addManyFrom(kind: string, src: string, destinations: string[], strength: number): this {
     destinations.forEach(dst => {
       this.add(kind, src, dst, strength);
     });
@@ -45,7 +45,7 @@ export class RelationshipBuilder {
    * @param dst - Destination entity ID
    * @param strength - Optional relationship strength
    */
-  addManyTo(kind: string, sources: string[], dst: string, strength?: number): this {
+  addManyTo(kind: string, sources: string[], dst: string, strength: number): this {
     sources.forEach(src => {
       this.add(kind, src, dst, strength);
     });
@@ -59,7 +59,7 @@ export class RelationshipBuilder {
    * @param entity2 - Second entity ID
    * @param strength - Optional relationship strength
    */
-  addBidirectional(kind: string, entity1: string, entity2: string, strength?: number): this {
+  addBidirectional(kind: string, entity1: string, entity2: string, strength: number): this {
     this.add(kind, entity1, entity2, strength);
     this.add(kind, entity2, entity1, strength);
     return this;
@@ -73,7 +73,7 @@ export class RelationshipBuilder {
    * @param dst - Destination entity ID
    * @param strength - Optional relationship strength
    */
-  addIfNotExists(graph: Graph, kind: string, src: string, dst: string, strength?: number): this {
+  addIfNotExists(graph: Graph, kind: string, src: string, dst: string, strength: number): this {
     const exists = graph.getRelationships().some(
       r => r.kind === kind && r.src === src && r.dst === dst
     );

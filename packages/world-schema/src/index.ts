@@ -24,7 +24,7 @@ export type {
 export { ENTITY_CATEGORIES } from './entityKind.js';
 
 // Relationship types
-export type { RelationshipKindDefinition, Polarity } from './relationship.js';
+export type { RelationshipKindDefinition, RelationshipVerbs, Polarity } from './relationship.js';
 
 // Culture types
 export type {
@@ -98,6 +98,16 @@ export type {
   SeedRelationship,
 } from './seed.js';
 
+// Status types (discriminated status patterns)
+export type { TickStatus, EventCause } from './statusTypes.js';
+export {
+  occurred,
+  notOccurred,
+  hasOccurred,
+  caused,
+  uncaused,
+} from './statusTypes.js';
+
 // World output types
 export type {
   WorldOutput,
@@ -110,6 +120,14 @@ export type {
   EntityEffectType,
   SemanticEffectKind,
   EntityEffect,
+  // EntityEffect discriminated union variants
+  CreatedEffect,
+  EndedEffect,
+  RelationshipFormedEffect,
+  RelationshipEndedEffect,
+  TagGainedEffect,
+  TagLostEffect,
+  FieldChangedEffect,
   ParticipantEffect,
   CoordinateState,
   ReachabilityMetrics,

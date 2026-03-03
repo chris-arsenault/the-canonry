@@ -9,7 +9,7 @@
  * ChronicleWorkspace needs. When adding props, update all three files.
  */
 
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { diffWords } from "diff";
 import type { Change } from "diff";
 import { useExpandBoolean } from "@the-canonry/shared-components";
@@ -344,33 +344,28 @@ function useVersionManagement(
   const [selectedVersionId, setSelectedVersionId] = useState(activeVersionId);
   const [compareToVersionId, setCompareToVersionId] = useState("");
 
-  // Reset selections when chronicle or active version changes
+  // Reset selections during render when chronicle or active version changes
   const activeKey = `${activeVersionId}|${item.chronicleId}`;
-  useEffect(() => {
+  const [prevActiveKey, setPrevActiveKey] = useState(activeKey);
+  if (activeKey !== prevActiveKey) {
+    setPrevActiveKey(activeKey);
     setSelectedVersionId(activeVersionId);
     setCompareToVersionId("");
-  }, [activeKey, activeVersionId]);
+  }
 
-  // Keep selected/compare versions valid when version list changes
-  const versionIds = useMemo(() => versions.map((v) => v.id), [versions]);
-  useEffect(() => {
-    if (versions.length === 0) return;
-
+  // Keep selected/compare versions valid during render when version list changes
+  if (versions.length > 0) {
     const hasSelected = versions.some((v) => v.id === selectedVersionId);
-    let nextSelected = selectedVersionId;
     if (!hasSelected) {
       const hasActive = versions.some((v) => v.id === activeVersionId);
-      nextSelected = hasActive ? activeVersionId : versions[versions.length - 1].id;
-      setSelectedVersionId(nextSelected);
-    }
-
-    if (compareToVersionId) {
+      const next = hasActive ? activeVersionId : versions[versions.length - 1].id;
+      setSelectedVersionId(next);
+      if (compareToVersionId && compareToVersionId === next) setCompareToVersionId("");
+    } else if (compareToVersionId) {
       const hasCompare = versions.some((v) => v.id === compareToVersionId);
-      if (!hasCompare || compareToVersionId === nextSelected) {
-        setCompareToVersionId("");
-      }
+      if (!hasCompare || compareToVersionId === selectedVersionId) setCompareToVersionId("");
     }
-  }, [versionIds, versions, selectedVersionId, activeVersionId, compareToVersionId]);
+  }
 
   const selectedVersion = useMemo(
     () => versions.find((v) => v.id === selectedVersionId) ?? versions[versions.length - 1],

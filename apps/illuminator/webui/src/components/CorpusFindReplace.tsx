@@ -725,6 +725,33 @@ async function applyEraNarrativeContent(
   return total;
 }
 
+function applyVariantToMatchingNotes(
+  variantMap: Map<string, string>,
+  match: CorpusMatch,
+  variant: string,
+  currentMatches: CorpusMatch[]
+): void {
+  for (const m of currentMatches) {
+    if (m.sourceId === match.sourceId && m.noteId === match.noteId) {
+      variantMap.set(m.id, variant);
+    }
+  }
+}
+
+function parseCompletionVariants(
+  description: string,
+  currentMatches: CorpusMatch[],
+  variantMap: Map<string, string>
+): void {
+  const results = JSON.parse(description) as MotifVariationResult[];
+  for (const r of results) {
+    const match = currentMatches.find((m) => m.batchIndex === r.index);
+    if (match) {
+      applyVariantToMatchingNotes(variantMap, match, r.variant, currentMatches);
+    }
+  }
+}
+
 function processQueueCompletions(
   completed: Array<{ result?: { description?: string } | null }>,
   currentMatches: CorpusMatch[]
@@ -733,17 +760,7 @@ function processQueueCompletions(
   for (const item of completed) {
     if (!item.result?.description) continue;
     try {
-      const results = JSON.parse(item.result.description) as MotifVariationResult[];
-      for (const r of results) {
-        const match = currentMatches.find((m) => m.batchIndex === r.index);
-        if (match) {
-          for (const m of currentMatches) {
-            if (m.sourceId === match.sourceId && m.noteId === match.noteId) {
-              variantMap.set(m.id, r.variant);
-            }
-          }
-        }
-      }
+      parseCompletionVariants(item.result.description, currentMatches, variantMap);
     } catch {
       // Skip unparseable results
     }
@@ -823,7 +840,7 @@ export default function CorpusFindReplace() {
   }, []);
 
   // --- Scan ---
-  const handleScan = useCallback(async () => {
+  const handleScan = async () => {
     if (!find || contexts.size === 0) return;
     setPhase("scanning");
     setError(null);
@@ -859,10 +876,10 @@ export default function CorpusFindReplace() {
     setExpandedGroups(firstKeys);
 
     setPhase(allMatches.length > 0 ? "preview" : "empty");
-  }, [find, caseSensitive, contexts, chronicleNavItems, navEntities]);
+  };
 
   // --- Generate LLM Variants ---
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = () => {
     setPhase("generating");
     setError(null);
 
@@ -932,7 +949,7 @@ export default function CorpusFindReplace() {
         return;
       }
     }
-  }, [matches, find]);
+  };
 
   // --- Watch queue for LLM completion ---
   useEffect(() => {
@@ -964,7 +981,7 @@ export default function CorpusFindReplace() {
       }));
       setPhase(variantMap.size > 0 ? "review" : "empty");
     }
-  }, [phase, queue]);
+  }, [phase, queue, setError]);
 
   // --- Apply ---
   const handleApply = useCallback(async () => {
@@ -1062,7 +1079,7 @@ export default function CorpusFindReplace() {
     });
   }, []);
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     setPhase("input");
     setMatches([]);
     setDecisions({});
@@ -1071,7 +1088,7 @@ export default function CorpusFindReplace() {
     setResultCount(0);
     setError(null);
     setScanProgress("");
-  }, []);
+  };
 
   // --- Stats ---
   const acceptCount = useMemo(() => Object.values(decisions).filter(Boolean).length, [decisions]);

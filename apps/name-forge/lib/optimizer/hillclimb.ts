@@ -63,6 +63,16 @@ function checkConvergence(
  * Run hill-climbing optimization
  * @param siblingDomains - Other domains to compare against for separation metric
  */
+function resolveHillclimbSettings(s: OptimizationSettings) {
+  return {
+    iterations: s.iterations ?? 100,
+    verbose: s.verbose ?? false,
+    convergenceThreshold: s.convergenceThreshold ?? 0.001,
+    convergenceWindow: s.convergenceWindow ?? 10,
+    stepSizes: s.stepSizes ?? { weights: 0.1, apostropheRate: 0.05, hyphenRate: 0.05, lengthRange: 1 },
+  };
+}
+
 export async function hillclimb(
   initialDomain: NamingDomain,
   validationSettings: ValidationSettings,
@@ -74,41 +84,17 @@ export async function hillclimb(
 ): Promise<OptimizationResult> {
   const rng = createRNG(seed);
 
-  // Use full fitness (with separation) if we have sibling domains, otherwise lightweight
   const useSeparation = siblingDomains.length > 0 && fitnessWeights.separation > 0;
+  const { iterations, verbose, convergenceThreshold, convergenceWindow, stepSizes } = resolveHillclimbSettings(optimizationSettings);
 
-  // Apply defaults
-  const iterations = optimizationSettings.iterations ?? 100;
-  const verbose = optimizationSettings.verbose ?? false;
-  const convergenceThreshold = optimizationSettings.convergenceThreshold ?? 0.001;
-  const convergenceWindow = optimizationSettings.convergenceWindow ?? 10;
-  const stepSizes = optimizationSettings.stepSizes ?? {
-    weights: 0.1,
-    apostropheRate: 0.05,
-    hyphenRate: 0.05,
-    lengthRange: 1,
-  };
-
-  // Encode initial parameters
   let currentTheta = encodeParameters(initialDomain);
   let currentDomain = initialDomain;
 
-  // Evaluate initial fitness
-  console.log("Evaluating initial configuration...");
   let currentEval = useSeparation
     ? await computeFitness(currentDomain, currentTheta, validationSettings, fitnessWeights, siblingDomains, 0, verbose)
     : await computeFitnessLight(currentDomain, currentTheta, validationSettings, fitnessWeights, 0, verbose);
-
   const initialFitness = currentEval.fitness;
-
-  // Always log initial fitness (regardless of verbose)
   console.log(`Initial fitness: ${initialFitness.toFixed(4)}`);
-  console.log(
-    `  Capacity: ${currentEval.scores.capacity.toFixed(3)}, ` +
-    `Diffuseness: ${currentEval.scores.diffuseness.toFixed(3)}, ` +
-    `Separation: ${currentEval.scores.separation.toFixed(3)}`
-  );
-  console.log(`Starting ${iterations} iterations (each takes ~${useSeparation ? '60-90' : '5-10'}s)...`);
   let bestEval = currentEval;
   const evaluations: EvaluationResult[] = [currentEval];
   const convergenceHistory: number[] = [currentEval.fitness];

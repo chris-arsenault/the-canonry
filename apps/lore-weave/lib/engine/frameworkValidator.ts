@@ -41,9 +41,8 @@ export class FrameworkValidator {
 
     // Run all validation checks
     this.validateCoverage(errors, warnings);
-    this.validateEquilibrium(errors, warnings);
+    this.validateEquilibrium(errors);
     this.validateAchievability(errors, warnings);
-    this.validateContracts(errors, warnings);
 
     return {
       valid: errors.length === 0,
@@ -61,7 +60,7 @@ export class FrameworkValidator {
    * - All referenced components exist
    */
   private validateCoverage(errors: string[], warnings: string[]): void {
-    if (!this.config.entityRegistries || this.config.entityRegistries.length === 0) {
+    if (this.config.entityRegistries.length === 0) {
       warnings.push('No entity registries defined - lineage enforcement disabled');
       return;
     }
@@ -71,7 +70,7 @@ export class FrameworkValidator {
     }
 
     for (const pressure of this.config.pressures) {
-      this.validatePressureCoverage(pressure, errors, warnings);
+      this.validatePressureCoverage(pressure, errors);
     }
   }
 
@@ -100,14 +99,8 @@ export class FrameworkValidator {
 
   private validatePressureCoverage(
     pressure: DeclarativePressure,
-    errors: string[],
-    warnings: string[]
+    errors: string[]
   ): void {
-    if (!pressure.contract) {
-      warnings.push(`Pressure '${pressure.name}' has no contract - validation skipped`);
-      return;
-    }
-
     if (pressure.contract.sources.length === 0) {
       errors.push(`Pressure '${pressure.name}' has no sources`);
     }
@@ -128,7 +121,7 @@ export class FrameworkValidator {
       errors
     );
 
-    if (pressure.contract.affects) {
+    if (pressure.contract.affects.length > 0) {
       this.validateComponentRefs(
         pressure.contract.affects.map(a => a.component),
         `Pressure '${pressure.name}' references non-existent affected component`,
@@ -155,42 +148,26 @@ export class FrameworkValidator {
    * For each pressure, calculates predicted equilibrium and compares to declared range.
    * This helps catch configuration errors where pressures won't reach expected values.
    */
-  private validateEquilibrium(errors: string[], _warnings: string[]): void {
+  private validateEquilibrium(errors: string[]): void {
     for (const pressure of this.config.pressures) {
-      if (!pressure.contract) {
-        continue; // Skip pressures without contracts
-      }
-
       // Enforce equilibrium centered at 0
       if (pressure.contract.equilibrium.restingPoint !== 0) {
         errors.push(
-          `Pressure '${pressure.name}' restingPoint must be 0 for the new homeostatic model (found ${pressure.contract.equilibrium.restingPoint}).`
+          `Pressure '${pressure.name}' restingPoint must be 0 for the homeostatic model (found ${pressure.contract.equilibrium.restingPoint}).`
         );
       }
 
-      // Check if equilibrium range is valid
       const [min, max] = pressure.contract.equilibrium.expectedRange;
       if (min < -100 || max > 100) {
         errors.push(`Pressure '${pressure.name}' has invalid equilibrium range: [${min}, ${max}]. Must be within [-100, 100].`);
       }
-
       if (min >= max) {
         errors.push(`Pressure '${pressure.name}' has invalid equilibrium range: min (${min}) >= max (${max})`);
       }
     }
   }
 
-  /**
-   * Validate Achievability
-   *
-   * For each entity kind, verifies that the target count is achievable
-   * given the number and frequency of creators.
-   */
   private validateAchievability(errors: string[], warnings: string[]): void {
-    if (!this.config.entityRegistries) {
-      return; // Skip if no registries
-    }
-
     for (const registry of this.config.entityRegistries) {
       // Calculate total capacity from primary creators
       const primaryCreators = registry.creators.filter(c => c.primary);
@@ -227,9 +204,7 @@ export class FrameworkValidator {
    * Note: Contract validation removed. Contracts are now empty.
    * Lineage attribution is handled by the mutation tracker; no contract validation needed.
    */
-  private validateContracts(_errors: string[], _warnings: string[]): void {
-    // Contracts are now empty - no validation needed
-  }
+  
 
   /**
    * Check if a component exists (template, system, or pressure)
@@ -263,7 +238,7 @@ export class FrameworkValidator {
    */
   private entityKindExists(kind: string): boolean {
     // Check entity registries first
-    if (this.config.entityRegistries) {
+    if (this.config.entityRegistries.length > 0) {
       if (this.config.entityRegistries.some(r => r.kind === kind)) {
         return true;
       }

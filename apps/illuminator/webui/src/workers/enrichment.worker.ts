@@ -163,7 +163,7 @@ async function executeTask(task: WorkerTask): Promise<WorkerResult> {
         entityId: task.entityId,
         type: task.type,
         success: false,
-        error: result.error,
+        error: String(result.error),
         debug: result.debug,
       };
     }

@@ -377,7 +377,7 @@ export async function executeCoverImageSceneStep(
     outputTokens: callResult.usage.outputTokens,
   };
 
-  await updateEraNarrativeCoverImage(record.narrativeId, coverImage, costs, callConfig.model);
+  await updateEraNarrativeCoverImage(record.narrativeId, coverImage, costs);
 
   await saveCostRecordWithDefaults({
     projectId: task.projectId,
@@ -476,7 +476,7 @@ export async function executeImageRefsStep(
     outputTokens: callResult.usage.outputTokens,
   };
 
-  await updateEraNarrativeImageRefs(record.narrativeId, imageRefs, costs, callConfig.model);
+  await updateEraNarrativeImageRefs(record.narrativeId, imageRefs, costs);
 
   await saveCostRecordWithDefaults({
     projectId: task.projectId,

@@ -14,11 +14,11 @@ export interface EventFilterOptions {
   /** Entity ID to filter events for */
   entityId: string;
   /** Minimum significance threshold (0, 0.25, 0.50, 0.75) */
-  minSignificance?: number;
-  /** Whether to exclude prominence-only events (default: true) */
-  excludeProminenceOnly?: boolean;
-  /** Maximum number of events to return */
-  limit?: number;
+  minSignificance: number;
+  /** Whether to exclude prominence-only events */
+  excludeProminenceOnly: boolean;
+  /** Maximum number of events to return (0 = unlimited) */
+  limit: number;
 }
 
 /**
@@ -38,7 +38,10 @@ export function isProminenceOnlyEvent(
 
   // Check if ALL effects are prominence field changes
   return participant.effects.every(
-    effect => effect.type === 'field_changed' && effect.field === 'prominence'
+    (effect): boolean => {
+      if (effect.type !== 'field_changed') return false;
+      return effect.field === 'prominence';
+    }
   );
 }
 
@@ -69,8 +72,8 @@ export function getEntityEvents(
 ): NarrativeEvent[] {
   const {
     entityId,
-    minSignificance = 0,
-    excludeProminenceOnly = true,
+    minSignificance,
+    excludeProminenceOnly,
     limit,
   } = options;
 
@@ -95,7 +98,7 @@ export function getEntityEvents(
     })
     .sort((a, b) => a.tick - b.tick); // Chronological order
 
-  return limit ? filtered.slice(0, limit) : filtered;
+  return limit > 0 ? filtered.slice(0, limit) : filtered;
 }
 
 /**

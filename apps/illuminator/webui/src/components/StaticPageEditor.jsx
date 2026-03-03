@@ -19,14 +19,16 @@ export default function StaticPageEditor({ page, projectId, onSave, onDelete, on
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const saveTimeoutRef = useRef(null);
+  const [prevPageId, setPrevPageId] = useState(page?.pageId);
 
-  // Reset state when page changes
-  useEffect(() => {
+  // Reset state during render when page changes (avoids setState-in-effect)
+  if (page?.pageId !== prevPageId) {
+    setPrevPageId(page?.pageId);
     setTitle(page?.title || "");
     setContent(page?.content || "");
     setSummary(page?.summary || "");
     setIsDirty(false);
-  }, [page?.pageId]);
+  }
 
   // Auto-save on changes (debounced)
   useEffect(() => {

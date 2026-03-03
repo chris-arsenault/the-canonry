@@ -141,21 +141,7 @@ function buildImageCountTitle(hasCover: boolean, sceneCount: number): string {
 export function ChronicleItemCard({ item, isSelected, onClick }: Readonly<ChronicleItemCardProps>) {
   const inlineSymbols = useMemo(
     () => buildInlineSymbols(item),
-    [
-      item.focusType,
-      item.primaryCount,
-      item.perspectiveSynthesis,
-      item.combineInstructions,
-      item.coverImageComplete,
-      item.backportDone,
-      item.backportTotal,
-      item.historianNoteCount,
-      item.lens,
-      item.hasTemporalNarrative,
-      item.hasTemporalCheck,
-      item.hasHistorianPrep,
-      item.assignedTone,
-    ],
+    [item],
   );
 
   const handleKeyDown = useCallback(

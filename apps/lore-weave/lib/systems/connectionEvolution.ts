@@ -58,7 +58,7 @@ export interface EvolutionRule {
     operator: ConditionOperator;
     threshold: ThresholdValue;
     /** Multiplier for prominence_scaled threshold (default: 6) */
-    multiplier?: number;
+    multiplier: number;
   };
   /** Probability of applying action when condition is met (0-1) */
   probability: number;
@@ -69,7 +69,7 @@ export interface EvolutionRule {
    * If true, pairs entities that both pass the condition.
    * If false/undefined, action applies to entity directly.
    */
-  betweenMatching?: boolean;
+  betweenMatching: boolean;
   /**
    * Narration template for narrative-quality text when this rule triggers.
    * Uses the full template syntax:
@@ -80,7 +80,7 @@ export interface EvolutionRule {
    *
    * Example: "{$member.name} and {$member2.name}, united by shared interests, forged an alliance."
    */
-  narrationTemplate?: string;
+  narrationTemplate: string;
   /**
    * Narration template for multi-party relationships (3+ entities forming a clique).
    * Used when betweenMatching creates relationships among 3+ entities that all connect.
@@ -91,7 +91,7 @@ export interface EvolutionRule {
    * Example: "{names} formed a mutual alliance."
    * If not provided, falls back to generating separate pair narrations.
    */
-  multiPartyNarrationTemplate?: string;
+  multiPartyNarrationTemplate: string;
 }
 
 export interface SubtypeBonus {
@@ -105,7 +105,7 @@ export interface ConnectionEvolutionConfig {
   /** Human-readable name */
   name: string;
   /** Optional description */
-  description?: string;
+  description: string;
 
   /** Selection rule for entities to evaluate */
   selection: SelectionRule;
@@ -117,25 +117,25 @@ export interface ConnectionEvolutionConfig {
   rules: EvolutionRule[];
 
   /** Subtype bonuses added to metric value */
-  subtypeBonuses?: SubtypeBonus[];
+  subtypeBonuses: SubtypeBonus[];
 
   /** Pressure changes when system runs and modifies entities */
-  pressureChanges?: Record<string, number>;
+  pressureChanges: Record<string, number>;
 
   /** Throttle: only run on some ticks (0-1, default: 1.0 = every tick) */
-  throttleChance?: number;
+  throttleChance: number;
 
   /**
    * For betweenMatching rules: exclude pairs that already have these relationship kinds.
    * Prevents creating alliances between factions that are at war, etc.
    */
-  pairExcludeRelationships?: string[];
+  pairExcludeRelationships: string[];
 
   /**
    * For betweenMatching rules: limit the combined component size when creating relationships.
    * If connecting two entities would create a component larger than this limit, skip the pair.
    */
-  pairComponentSizeLimit?: {
+  pairComponentSizeLimit: {
     /** Relationship kind(s) to calculate component size */
     relationshipKinds: string[];
     /** Maximum allowed component size after connecting the pair */
@@ -172,11 +172,11 @@ function resolveThreshold(
 
 function mergeMutationResult(
   result: MutationResult,
-  modifications: Array<EntityModification & { narrativeGroupId?: string }>,
-  relationships: Array<Relationship & { narrativeGroupId?: string }>,
-  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId?: string }>,
+  modifications: Array<EntityModification & { narrativeGroupId: string }>,
+  relationships: Array<Relationship & { narrativeGroupId: string }>,
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId: string }>,
   pressureChanges: Record<string, number>,
-  narrativeGroupId?: string
+  narrativeGroupId: string
 ): void {
   if (!result.applied) return;
 
@@ -216,9 +216,9 @@ function evaluateCondition(
 // APPLY HELPERS
 // =============================================================================
 
-type ModArray = Array<EntityModification & { narrativeGroupId?: string }>;
-type RelArray = Array<Relationship & { narrativeGroupId?: string }>;
-type AdjArray = Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId?: string }>;
+type ModArray = Array<EntityModification & { narrativeGroupId: string }>;
+type RelArray = Array<Relationship & { narrativeGroupId: string }>;
+type AdjArray = Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId: string }>;
 
 interface ApplyAccumulators {
   modifications: ModArray;
@@ -299,7 +299,7 @@ function buildAdjacencyMap(
   graphView: WorldRuntime,
   sizeLimit: ConnectionEvolutionConfig['pairComponentSizeLimit']
 ): Map<string, Set<string>> | undefined {
-  if (!sizeLimit) return undefined;
+  if (sizeLimit <= 0) return undefined;
 
   const adjacency = new Map<string, Set<string>>();
   const rels = graphView.getAllRelationships();
@@ -380,7 +380,7 @@ function checkComponentSizeLimit(
   config: ConnectionEvolutionConfig,
   adjacency: Map<string, Set<string>>
 ): boolean {
-  if (!config.pairComponentSizeLimit) return true;
+  if (config.pairComponentSizeLimit <= 0) return true;
   const combinedSize = getCombinedComponentSize(srcId, dstId, adjacency);
   if (combinedSize > config.pairComponentSizeLimit.max) return false;
   if (!adjacency.has(srcId)) adjacency.set(srcId, new Set());
@@ -502,7 +502,7 @@ function processCliques(
       for (let j = i + 1; j < clique.length; j++) {
         const pairCtx = {
           ...ruleCtx,
-          entities: { ...(ruleCtx.entities ?? {}), member: clique[i], member2: clique[j] },
+          entities: { ...(ruleCtx.entities), member: clique[i], member2: clique[j] },
         };
         const result = prepareMutation(rule.action as Mutation, pairCtx);
         mergeMutationResult(result, acc.modifications, acc.relationships, acc.relationshipsAdjusted, acc.pressureChanges, cliqueId);
@@ -539,7 +539,7 @@ function processNonCliquePairs(
   for (const { src, dst } of nonCliquePairs) {
     const pairCtx = {
       ...ruleCtx,
-      entities: { ...(ruleCtx.entities ?? {}), member: src, member2: dst },
+      entities: { ...(ruleCtx.entities), member: src, member2: dst },
     };
     const result = prepareMutation(rule.action as Mutation, pairCtx);
     mergeMutationResult(result, acc.modifications, acc.relationships, acc.relationshipsAdjusted, acc.pressureChanges, src.id);
@@ -585,7 +585,7 @@ function applyConnectionEvolution(
   graphView: WorldRuntime,
   modifier: number
 ): SystemResult {
-  if (config.throttleChance !== undefined && config.throttleChance < 1.0) {
+  if (config.throttleChance < 1.0) {
     // eslint-disable-next-line sonarjs/pseudo-random -- simulation throttle check
     if (Math.random() > config.throttleChance) {
       return createThrottledResult(config.name);
@@ -616,7 +616,7 @@ function applyConnectionEvolution(
   processBetweenMatchingRules(matchingByRule, config, graphView, ruleCtx, acc);
 
   if (acc.modifications.length > 0 || acc.relationships.length > 0 || acc.relationshipsAdjusted.length > 0) {
-    for (const [pressureId, delta] of Object.entries(config.pressureChanges ?? {})) {
+    for (const [pressureId, delta] of Object.entries(config.pressureChanges)) {
       acc.pressureChanges[pressureId] = (acc.pressureChanges[pressureId] || 0) + delta;
     }
   }

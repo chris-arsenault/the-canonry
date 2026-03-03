@@ -56,10 +56,10 @@ export type Metric =
 export interface EntityCountMetric {
   type: 'entity_count';
   kind: string;
-  subtype?: string;
-  status?: string;
-  coefficient?: number;
-  cap?: number;
+  subtype: string;
+  status: string;
+  coefficient: number;
+  cap: number;
 }
 
 /**
@@ -67,11 +67,11 @@ export interface EntityCountMetric {
  */
 export interface RelationshipCountMetric {
   type: 'relationship_count';
-  relationshipKinds?: string[];
-  direction?: Direction;
-  minStrength?: number;
-  coefficient?: number;
-  cap?: number;
+  relationshipKinds: string[];
+  direction: Direction;
+  minStrength: number;
+  coefficient: number;
+  cap: number;
 }
 
 /**
@@ -80,8 +80,8 @@ export interface RelationshipCountMetric {
 export interface TagCountMetric {
   type: 'tag_count';
   tags: string[];
-  coefficient?: number;
-  cap?: number;
+  coefficient: number;
+  cap: number;
 }
 
 /**
@@ -89,8 +89,8 @@ export interface TagCountMetric {
  */
 export interface TotalEntitiesMetric {
   type: 'total_entities';
-  coefficient?: number;
-  cap?: number;
+  coefficient: number;
+  cap: number;
 }
 
 /**
@@ -99,7 +99,7 @@ export interface TotalEntitiesMetric {
 export interface ConstantMetric {
   type: 'constant';
   value: number;
-  coefficient?: number;
+  coefficient: number;
 }
 
 /**
@@ -108,11 +108,11 @@ export interface ConstantMetric {
  */
 export interface ConnectionCountMetric {
   type: 'connection_count';
-  relationshipKinds?: string[];
-  direction?: Direction;
-  minStrength?: number;
-  coefficient?: number;
-  cap?: number;
+  relationshipKinds: string[];
+  direction: Direction;
+  minStrength: number;
+  coefficient: number;
+  cap: number;
 }
 
 // =============================================================================
@@ -123,8 +123,8 @@ export interface ConnectionCountMetric {
  * Simple count factor for use in ratios (no coefficient/cap).
  */
 export type SimpleCountMetric =
-  | { type: 'entity_count'; kind: string; subtype?: string; status?: string }
-  | { type: 'relationship_count'; relationshipKinds?: string[] }
+  | { type: 'entity_count'; kind: string; subtype: string; status: string }
+  | { type: 'relationship_count'; relationshipKinds: string[] }
   | { type: 'tag_count'; tags: string[] }
   | { type: 'total_entities' }
   | { type: 'constant'; value: number };
@@ -137,9 +137,9 @@ export interface RatioMetric {
   numerator: SimpleCountMetric;
   denominator: SimpleCountMetric;
   /** Value to use if denominator is 0 (default: 0) */
-  fallbackValue?: number;
-  coefficient?: number;
-  cap?: number;
+  fallbackValue: number;
+  coefficient: number;
+  cap: number;
 }
 
 /**
@@ -148,10 +148,10 @@ export interface RatioMetric {
 export interface StatusRatioMetric {
   type: 'status_ratio';
   kind: string;
-  subtype?: string;
+  subtype: string;
   aliveStatus: string;
-  coefficient?: number;
-  cap?: number;
+  coefficient: number;
+  cap: number;
 }
 
 /**
@@ -160,8 +160,8 @@ export interface StatusRatioMetric {
 export interface CrossCultureRatioMetric {
   type: 'cross_culture_ratio';
   relationshipKinds: string[];
-  coefficient?: number;
-  cap?: number;
+  coefficient: number;
+  cap: number;
 }
 
 // =============================================================================
@@ -189,23 +189,23 @@ export interface SharedRelationshipMetric {
   type: 'shared_relationship';
   /** Relationship kind(s) to check - single string or array */
   sharedRelationshipKind: string | string[];
-  sharedDirection?: 'src' | 'dst';
+  sharedDirection: 'src' | 'dst';
   /**
    * Optional intermediate relationship to traverse first.
    * Enables multi-hop detection: Entity → via → Intermediate → sharedRelationshipKind → Target
    */
-  via?: {
+  via: {
     /** Relationship kind to traverse to reach intermediate entities */
     relationshipKind: string;
     /** Direction of the via relationship from the source entity (default: 'src') */
-    direction?: 'src' | 'dst';
+    direction: 'src' | 'dst';
     /** Optional kind filter for intermediate entities */
-    intermediateKind?: string;
+    intermediateKind: string;
   };
   /** Minimum relationship strength to count */
-  minStrength?: number;
-  coefficient?: number;
-  cap?: number;
+  minStrength: number;
+  coefficient: number;
+  cap: number;
 }
 
 /**
@@ -219,7 +219,7 @@ export interface ProminenceMultiplierMetric {
    * - 'success_chance': For action success probability (0.6 - 1.5)
    * - 'action_rate': For action selection probability (0.3 - 2.0)
    */
-  mode?: 'success_chance' | 'action_rate';
+  mode: 'success_chance' | 'action_rate';
 }
 
 /**
@@ -230,15 +230,15 @@ export interface ProminenceMultiplierMetric {
 export interface NeighborProminenceMetric {
   type: 'neighbor_prominence';
   /** Relationship kinds to consider (all if not specified) */
-  relationshipKinds?: string[];
+  relationshipKinds: string[];
   /** Direction of relationships to consider */
-  direction?: Direction;
+  direction: Direction;
   /** Minimum relationship strength to count */
-  minStrength?: number;
+  minStrength: number;
   /** Coefficient to multiply the result */
-  coefficient?: number;
+  coefficient: number;
   /** Maximum value cap */
-  cap?: number;
+  cap: number;
 }
 
 // =============================================================================
@@ -264,25 +264,25 @@ export interface NeighborKindCountMetric {
   /** First relationship(s) to traverse from the entity - can be single kind or array */
   via: string | string[];
   /** Direction for first relationship */
-  viaDirection?: Direction;
+  viaDirection: Direction;
   /** Optional second relationship to traverse */
-  then?: string;
+  then: string;
   /** Direction for second relationship */
-  thenDirection?: Direction;
+  thenDirection: Direction;
   /** Entity kind to count */
   kind: string;
   /** Optional subtype filter */
-  subtype?: string;
+  subtype: string;
   /** Optional status filter */
-  status?: string;
+  status: string;
   /** Optional tag filter - entity must have this tag */
-  hasTag?: string;
+  hasTag: string;
   /** Minimum relationship strength for via */
-  minStrength?: number;
+  minStrength: number;
   /** Coefficient to multiply the result */
-  coefficient?: number;
+  coefficient: number;
   /** Maximum value cap */
-  cap?: number;
+  cap: number;
 }
 
 // =============================================================================
@@ -305,11 +305,11 @@ export interface ComponentSizeMetric {
   /** Relationship kind(s) defining the subgraph edges */
   relationshipKinds: string[];
   /** Minimum relationship strength to follow (default: 0) */
-  minStrength?: number;
+  minStrength: number;
   /** Coefficient to multiply the result */
-  coefficient?: number;
+  coefficient: number;
   /** Maximum value cap */
-  cap?: number;
+  cap: number;
 }
 
 // =============================================================================
@@ -331,7 +331,7 @@ export interface FalloffMetric {
   type: 'falloff';
   falloffType: 'absolute' | 'none' | 'linear' | 'inverse_square' | 'sqrt' | 'exponential';
   distance: number;
-  maxDistance?: number;
+  maxDistance: number;
 }
 
 // =============================================================================

@@ -175,7 +175,7 @@ interface PressureTogglesProps {
 
 function PressureToggles({ pressureIds, pressureData, hiddenPressures, onToggle }: Readonly<PressureTogglesProps>) {
   return (
-    <div className="lw-trace-view-pressure-toggles">
+    <div className="pressure-switches">
       {pressureIds.map((id, i) => {
         const name = (pressureData[0]?.[`${id}_name`] as string) ?? id;
         const isHidden = hiddenPressures.has(id);

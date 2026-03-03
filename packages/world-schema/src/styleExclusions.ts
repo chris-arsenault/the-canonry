@@ -28,7 +28,7 @@ export interface RandomExclusionRule {
   /** Composition IDs or "cat:<category>" patterns to exclude from */
   compositions: string[];
   /** Specific [styleId, compositionId] pairs that override this exclusion */
-  allow?: [string, string][];
+  allow: [string, string][];
 }
 
 export const DEFAULT_RANDOM_EXCLUSIONS: RandomExclusionRule[] = [
@@ -134,7 +134,7 @@ export function isExcludedPair(
 
     if (excludedStyles.has(styleId) && excludedCompositions.has(compositionId)) {
       // Check allow overrides
-      if (rule.allow?.some(([s, c]) => s === styleId && c === compositionId)) {
+      if (rule.allow.some(([s, c]) => s === styleId && c === compositionId)) {
         continue;
       }
       return true;

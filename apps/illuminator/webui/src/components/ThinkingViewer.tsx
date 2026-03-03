@@ -16,9 +16,14 @@ export function ThinkingViewer() {
   const viewingTaskId = useThinkingStore((s) => s.viewingTaskId);
   const entry = useThinkingStore((s) => (viewingTaskId ? s.entries.get(viewingTaskId) : undefined));
   const closeViewer = useThinkingStore((s) => s.closeViewer);
-  const [activeTab, setActiveTab] = useState<ViewerTab>("thinking");
+  const [userTab, setUserTab] = useState<ViewerTab>("thinking");
   const preRef = useRef<HTMLPreElement>(null);
   const mouseDownOnOverlay = useRef(false);
+
+  // Auto-switch to response when thinking finishes but text is still streaming
+  const thinkingDone = entry && !entry.thinking && !!entry.text;
+  const activeTab: ViewerTab = thinkingDone && userTab === "thinking" ? "response" : userTab;
+  const setActiveTab = setUserTab;
 
   const content = activeTab === "thinking" ? entry?.thinking : entry?.text;
 
@@ -28,13 +33,6 @@ export function ThinkingViewer() {
       preRef.current.scrollTop = preRef.current.scrollHeight;
     }
   }, [content, entry?.isActive]);
-
-  // Auto-switch to response tab when thinking finishes but text is still streaming
-  useEffect(() => {
-    if (entry && !entry.thinking && entry.text && activeTab === "thinking") {
-      setActiveTab("response");
-    }
-  }, [entry?.thinking, entry?.text, activeTab]);
 
   const handleCopy = useCallback(() => {
     if (content) {

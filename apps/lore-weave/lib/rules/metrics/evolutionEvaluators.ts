@@ -22,7 +22,7 @@ function collectSingleHopTargets(
   const targets = new Set<string>();
   for (const link of rels) {
     if (!kinds.includes(link.kind)) continue;
-    if ((link.strength ?? 0) < minStrength) continue;
+    if (link.strength < minStrength) continue;
     if (direction === 'src' && link.src === entity.id) targets.add(link.dst);
     if (direction === 'dst' && link.dst === entity.id) targets.add(link.src);
   }
@@ -41,7 +41,7 @@ function countSharedEntities(
   const sharedCount = new Set<string>();
   for (const link of rels) {
     if (!kinds.includes(link.kind)) continue;
-    if ((link.strength ?? 0) < minStrength) continue;
+    if (link.strength < minStrength) continue;
 
     let otherId: string | null = null;
     let targetId: string | null = null;
@@ -73,22 +73,20 @@ function buildRelIndex(
   kinds: string[],
   direction: 'src' | 'dst',
   minStrength: number,
-  kindFilter?: { ctx: MetricContext; intermediateKind: string }
+  kindFilter: { ctx: MetricContext; intermediateKind: string }
 ): { forward: Map<string, Set<string>>; reverse: Map<string, Set<string>> } {
   const forward = new Map<string, Set<string>>();
   const reverse = new Map<string, Set<string>>();
 
   for (const link of rels) {
     if (!kinds.includes(link.kind)) continue;
-    if ((link.strength ?? 0) < minStrength) continue;
+    if (link.strength < minStrength) continue;
 
     const sourceId = direction === 'src' ? link.src : link.dst;
     const targetId = direction === 'src' ? link.dst : link.src;
 
-    if (kindFilter) {
-      const target = kindFilter.ctx.graph.getEntity(targetId);
-      if (!target || target.kind !== kindFilter.intermediateKind) continue;
-    }
+    const target = kindFilter.ctx.graph.getEntity(targetId);
+    if (!target || target.kind !== kindFilter.intermediateKind) continue;
 
     addToMultiMap(forward, sourceId, targetId);
     addToMultiMap(reverse, targetId, sourceId);
@@ -162,9 +160,9 @@ function evaluateSharedRelationshipVia(
   rels: readonly Relationship[],
   ctx: MetricContext
 ): MetricResult {
-  const via = metric.via!;
+  const via = metric.via;
   const viaKind = via.relationshipKind;
-  const viaDirection = via.direction ?? 'src';
+  const viaDirection = via.direction;
 
   const kindFilter = via.intermediateKind
     ? { ctx, intermediateKind: via.intermediateKind }
@@ -202,10 +200,8 @@ function evaluateSharedRelationshipVia(
     sharedIndexes.reverse, viaIndexes.reverse
   );
 
-  let value = sharedEntities.size * (metric.coefficient ?? 1);
-  if (metric.cap !== undefined) {
-    value = Math.min(value, metric.cap);
-  }
+  let value = sharedEntities.size * (metric.coefficient);
+  value = Math.min(value, metric.cap);
 
   return {
     value,
@@ -229,31 +225,25 @@ function evaluateSharedRelationshipVia(
 export function evaluateSharedRelationship(
   metric: SharedRelationshipMetric,
   ctx: MetricContext,
-  entity?: HardState
+  entity: HardState
 ): MetricResult {
-  if (!entity) {
-    return { value: 0, diagnostic: 'no entity for shared relationship', details: {} };
-  }
-
   const kinds = Array.isArray(metric.sharedRelationshipKind)
     ? metric.sharedRelationshipKind
     : [metric.sharedRelationshipKind];
 
-  const direction = metric.sharedDirection ?? 'src';
-  const minStrength = metric.minStrength ?? 0;
+  const direction = metric.sharedDirection;
+  const minStrength = metric.minStrength;
   const rels = ctx.graph.getAllRelationships();
 
-  if (metric.via) {
+  if (metric.via.relationshipKind.length > 0) {
     return evaluateSharedRelationshipVia(entity, metric, kinds, direction, minStrength, rels, ctx);
   }
 
   const myTargets = collectSingleHopTargets(entity, kinds, direction, minStrength, rels);
   const sharedCount = countSharedEntities(entity, myTargets, kinds, direction, minStrength, rels);
 
-  let value = sharedCount.size * (metric.coefficient ?? 1);
-  if (metric.cap !== undefined) {
-    value = Math.min(value, metric.cap);
-  }
+  let value = sharedCount.size * (metric.coefficient);
+  value = Math.min(value, metric.cap);
 
   return {
     value,

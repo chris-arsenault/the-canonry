@@ -90,49 +90,29 @@ export async function simulatedAnnealing(
 ): Promise<OptimizationResult> {
   const rng = createRNG(seed);
 
-  // Use full fitness (with separation) if we have sibling domains, otherwise lightweight
   const useSeparation = siblingDomains.length > 0 && fitnessWeights.separation > 0;
-
-  // Apply defaults
   const iterations = optimizationSettings.iterations ?? 100;
   const verbose = optimizationSettings.verbose ?? false;
   const convergenceThreshold = optimizationSettings.convergenceThreshold ?? 0.001;
   const convergenceWindow = optimizationSettings.convergenceWindow ?? 10;
-  const stepSizes = optimizationSettings.stepSizes ?? {
-    weights: 0.1,
-    apostropheRate: 0.05,
-    hyphenRate: 0.05,
-    lengthRange: 1,
-  };
+  const stepSizes = optimizationSettings.stepSizes ?? { weights: 0.1, apostropheRate: 0.05, hyphenRate: 0.05, lengthRange: 1 };
 
-  // Annealing parameters
-  let temperature = optimizationSettings.initialTemperature ?? 1.0;
-  const coolingRate = optimizationSettings.coolingRate ?? 0.95;
-
-  // Encode initial parameters
   let currentTheta = encodeParameters(initialDomain);
   let currentDomain = initialDomain;
 
-  // Evaluate initial fitness
-  console.log("Evaluating initial configuration...");
   let currentEval = useSeparation
-    ? await computeFitness(currentDomain, currentTheta, validationSettings, fitnessWeights, siblingDomains, 0)
-    : await computeFitnessLight(currentDomain, currentTheta, validationSettings, fitnessWeights, 0);
-
+    ? await computeFitness(currentDomain, currentTheta, validationSettings, fitnessWeights, siblingDomains, 0, verbose)
+    : await computeFitnessLight(currentDomain, currentTheta, validationSettings, fitnessWeights, 0, verbose);
   const initialFitness = currentEval.fitness;
+  console.log(`Initial fitness: ${initialFitness.toFixed(4)}`);
+
   let bestEval = currentEval;
   const evaluations: EvaluationResult[] = [currentEval];
   const convergenceHistory: number[] = [currentEval.fitness];
 
-  if (verbose) {
-    console.log(`Initial fitness: ${initialFitness.toFixed(4)}`);
-    console.log(`Initial temperature: ${temperature.toFixed(3)}`);
-    console.log(
-      `  Capacity: ${currentEval.scores.capacity.toFixed(3)}, ` +
-        `Diffuseness: ${currentEval.scores.diffuseness.toFixed(3)}, ` +
-        `Separation: ${currentEval.scores.separation.toFixed(3)}`
-    );
-  }
+  // Temperature schedule
+  let temperature = optimizationSettings.initialTemperature ?? 1.0;
+  const coolingRate = optimizationSettings.coolingRate ?? 0.95;
 
   // Track convergence
   let noImprovementCount = 0;
@@ -146,8 +126,8 @@ export async function simulatedAnnealing(
     const proposedDomain = decodeParameters(proposedTheta, initialDomain, bounds);
 
     const proposedEval = useSeparation
-      ? await computeFitness(proposedDomain, proposedTheta, validationSettings, fitnessWeights, siblingDomains, i)
-      : await computeFitnessLight(proposedDomain, proposedTheta, validationSettings, fitnessWeights, i);
+      ? await computeFitness(proposedDomain, proposedTheta, validationSettings, fitnessWeights, siblingDomains, i, verbose)
+      : await computeFitnessLight(proposedDomain, proposedTheta, validationSettings, fitnessWeights, i, verbose);
 
     evaluations.push(proposedEval);
 

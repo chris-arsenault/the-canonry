@@ -58,11 +58,11 @@ function resolveImageResults(
   results: BundleImageResult[],
   resolveUrl: (value: string) => string,
 ): BundleImageResult[] {
-  return results.map((image) => ({
-    ...image,
-    localPath: image.localPath ? resolveUrl(image.localPath) : image.localPath,
-    thumbPath: image.thumbPath ? resolveUrl(image.thumbPath) : undefined,
-    fullPath: image.fullPath ? resolveUrl(image.fullPath) : undefined,
+  return results.map((img) => ({
+    ...img,
+    localPath: img.localPath ? resolveUrl(img.localPath) : null,
+    thumbPath: img.thumbPath ? resolveUrl(img.thumbPath) : null,
+    fullPath: img.fullPath ? resolveUrl(img.fullPath) : null,
   }));
 }
 

@@ -35,7 +35,7 @@ export interface GenerationContext {
   /** Currently selected domain */
   domain: NamingDomain;
   /** Optional knowledge graph for derivative names (Phase 4) */
-  kg?: KnowledgeGraph;
+  kg: KnowledgeGraph;
 }
 
 /**
@@ -48,12 +48,12 @@ export interface GenerationResult {
   /** Domain used for generation */
   domainId: string;
   /** Debug info: which phonemes/morphemes were used */
-  debug?: {
-    syllables?: string[];
-    structure?: string;
-    phonology?: string;
-    morphology?: string;
-    style?: string;
+  debug: {
+    syllables: string[];
+    structure: string;
+    phonology: string;
+    morphology: string;
+    style: string;
   };
 }
 

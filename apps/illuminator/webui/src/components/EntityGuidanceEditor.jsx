@@ -339,12 +339,9 @@ export default function EntityGuidanceEditor({
     return worldSchema?.entityKinds || [];
   }, [worldSchema]);
 
-  // Auto-select first kind if none selected
-  useMemo(() => {
-    if (!selectedKind && entityKinds.length > 0) {
-      setSelectedKind(entityKinds[0].kind);
-    }
-  }, [selectedKind, entityKinds]);
+  // selectedKind is initialized to "npc" and never reset to empty,
+  // so auto-selection is unnecessary. If the schema lacks "npc",
+  // the UI handles it by showing no guidance for the kind.
 
   const prominenceScale = useProminenceScale();
   const notableThreshold = useMemo(
@@ -384,14 +381,18 @@ export default function EntityGuidanceEditor({
   }, [selectedEntityId, entities, exampleEntities]);
 
   // Load full entity for preview (needs description, tags, visualThesis, etc.)
+  const selectedNavEntityId = selectedNavEntity?.id;
   useEffect(() => {
-    const entityId = selectedNavEntity?.id;
-    if (entityId) {
-      useEntityStore.getState().loadEntity(entityId).then(setSelectedFullEntity);
-    } else {
-      setSelectedFullEntity(null);
+    if (!selectedNavEntityId) {
+      const timer = setTimeout(() => setSelectedFullEntity(null), 0);
+      return () => clearTimeout(timer);
     }
-  }, [selectedNavEntity?.id]);
+    let cancelled = false;
+    useEntityStore.getState().loadEntity(selectedNavEntityId).then(entity => {
+      if (!cancelled) setSelectedFullEntity(entity);
+    });
+    return () => { cancelled = true; };
+  }, [selectedNavEntityId]);
 
   // Use full entity for context building, fall back to nav entity for display
   const selectedEntity = selectedFullEntity || selectedNavEntity;
@@ -445,7 +446,6 @@ export default function EntityGuidanceEditor({
     entityGuidance,
     cultureIdentities,
     selectedType,
-    selectedKind,
     selectedEntity,
     worldContext,
     prominentByCulture,

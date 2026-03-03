@@ -16,13 +16,13 @@ import { archiveRelationship, addRelationship } from '../utils';
  */
 export interface ArchiveEntityOptions {
   /** Archive all relationships involving this entity (default: true) */
-  archiveRelationships?: boolean;
+  archiveRelationships: boolean;
 
   /** Relationship kinds to exclude from archival */
-  excludeRelationshipKinds?: string[];
+  excludeRelationshipKinds: string[];
 
   /** Custom status to set (default: 'historical') */
-  status?: string;
+  status: string;
 }
 
 /**
@@ -30,16 +30,16 @@ export interface ArchiveEntityOptions {
  */
 export interface TransferRelationshipsOptions {
   /** Relationship kinds to exclude from transfer */
-  excludeKinds?: string[];
+  excludeKinds: string[];
 
   /** Only transfer relationships where entity is source */
-  sourceOnly?: boolean;
+  sourceOnly: boolean;
 
   /** Only transfer relationships where entity is destination */
-  destinationOnly?: boolean;
+  destinationOnly: boolean;
 
   /** Archive original relationships after transfer (default: true) */
-  archiveOriginals?: boolean;
+  archiveOriginals: boolean;
 }
 
 /**
@@ -285,10 +285,10 @@ export function getPartOfMembers(
  */
 export interface SupersedeEntityOptions extends TransferRelationshipsOptions {
   /** Archive the superseded entity (default: true) */
-  archiveSuperseded?: boolean;
+  archiveSuperseded: boolean;
 
   /** Create supersedes relationship (default: true) */
-  createSupersedes?: boolean;
+  createSupersedes: boolean;
 }
 
 /**
@@ -330,7 +330,7 @@ export function supersedeEntity(
     {
       ...transferOptions,
       excludeKinds: [
-        ...(transferOptions.excludeKinds || []),
+        ...transferOptions.excludeKinds,
         FRAMEWORK_RELATIONSHIP_KINDS.SUPERSEDES,
         FRAMEWORK_RELATIONSHIP_KINDS.PART_OF
       ]

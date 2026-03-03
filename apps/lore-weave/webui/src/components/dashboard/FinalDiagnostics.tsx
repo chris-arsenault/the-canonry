@@ -3,17 +3,80 @@
  */
 
 import React, { useState } from "react";
-import PropTypes from "prop-types";
 import "./FinalDiagnostics.css";
 
-const ACCENT_COLOR = "#a78bfa"; // Keep for JS template bar calculations
+const ACCENT_COLOR = "#a78bfa";
+
+interface EntityBreakdownData {
+  totalEntities: number;
+  byKind: Record<string, { total: number; bySubtype: Record<string, number> }>;
+}
+
+interface RelKind {
+  kind: string;
+  count: number;
+  percentage: number;
+}
+
+interface RelationshipBreakdownData {
+  totalRelationships: number;
+  byKind: RelKind[];
+}
+
+interface TopAgent {
+  id: string;
+  name: string;
+  kind: string;
+  actionCount: number;
+}
+
+interface UnusedAction {
+  actionId: string;
+  actionName: string;
+}
+
+interface CatalystStatsData {
+  totalAgents: number;
+  activeAgents: number;
+  totalActions: number;
+  uniqueActors: number;
+  topAgents: TopAgent[];
+  unusedActions: UnusedAction[];
+}
+
+interface NotableEntity {
+  id: string;
+  name: string;
+  kind: string;
+  subtype: string;
+}
+
+interface NotableEntitiesData {
+  mythic: NotableEntity[];
+  renowned: NotableEntity[];
+}
+
+interface FinalDiagnosticsProps {
+  entityBreakdown: EntityBreakdownData | null;
+  catalystStats: CatalystStatsData | null;
+  relationshipBreakdown: RelationshipBreakdownData | null;
+  notableEntities: NotableEntitiesData | null;
+}
+
+function ActiveTabContent({ activeTab, entityBreakdown, catalystStats, relationshipBreakdown, notableEntities }: Readonly<FinalDiagnosticsProps & { activeTab: string }>) {
+  if (activeTab === "entities" && entityBreakdown) return <EntityBreakdownTab entityBreakdown={entityBreakdown} />;
+  if (activeTab === "relationships" && relationshipBreakdown) return <RelationshipBreakdownTab relationshipBreakdown={relationshipBreakdown} />;
+  if (activeTab === "agents" && catalystStats) return <AgentsTab catalystStats={catalystStats} />;
+  if (activeTab === "notable" && notableEntities) return <NotableEntitiesTab notableEntities={notableEntities} />;
+  return null;
+}
 
 export default function FinalDiagnostics({
   entityBreakdown,
   catalystStats,
   relationshipBreakdown,
   notableEntities,
-}) {
+}: Readonly<FinalDiagnosticsProps>) {
   const [activeTab, setActiveTab] = useState("entities");
 
   const hasDiagnostics =
@@ -32,9 +95,8 @@ export default function FinalDiagnostics({
         </div>
       </div>
 
-      {/* Tab navigation */}
       <div className="lw-filter-tabs">
-        {["entities", "relationships", "agents", "notable"].map((tab) => (
+        {(["entities", "relationships", "agents", "notable"] as const).map((tab) => (
           <button
             key={tab}
             className={`lw-filter-tab ${activeTab === tab ? "active" : ""}`}
@@ -46,22 +108,13 @@ export default function FinalDiagnostics({
       </div>
 
       <div className="lw-panel-content">
-        {activeTab === "entities" && entityBreakdown && (
-          <EntityBreakdownTab entityBreakdown={entityBreakdown} />
-        )}
-        {activeTab === "relationships" && relationshipBreakdown && (
-          <RelationshipBreakdownTab relationshipBreakdown={relationshipBreakdown} />
-        )}
-        {activeTab === "agents" && catalystStats && <AgentsTab catalystStats={catalystStats} />}
-        {activeTab === "notable" && notableEntities && (
-          <NotableEntitiesTab notableEntities={notableEntities} />
-        )}
+        <ActiveTabContent activeTab={activeTab} entityBreakdown={entityBreakdown} catalystStats={catalystStats} relationshipBreakdown={relationshipBreakdown} notableEntities={notableEntities} />
       </div>
     </div>
   );
 }
 
-function EntityBreakdownTab({ entityBreakdown }) {
+function EntityBreakdownTab({ entityBreakdown }: Readonly<{ entityBreakdown: EntityBreakdownData }>) {
   return (
     <div>
       <div className="fd-total-label">
@@ -91,7 +144,7 @@ function EntityBreakdownTab({ entityBreakdown }) {
   );
 }
 
-function RelationshipBreakdownTab({ relationshipBreakdown }) {
+function RelationshipBreakdownTab({ relationshipBreakdown }: Readonly<{ relationshipBreakdown: RelationshipBreakdownData }>) {
   return (
     <div>
       <div className="fd-total-label">
@@ -106,7 +159,7 @@ function RelationshipBreakdownTab({ relationshipBreakdown }) {
             <div className="lw-pressure-bar">
               <div
                 className="lw-pressure-fill fd-rel-fill"
-                style={{ '--fd-rel-fill-width': `${rel.percentage}%` }}
+                style={{ '--fd-rel-fill-width': `${String(rel.percentage)}%` } as React.CSSProperties}
               />
             </div>
             <span className="lw-pressure-value">
@@ -119,9 +172,9 @@ function RelationshipBreakdownTab({ relationshipBreakdown }) {
   );
 }
 
-function AgentsTab({ catalystStats }) {
+function AgentsTab({ catalystStats }: Readonly<{ catalystStats: CatalystStatsData }>) {
   const [showUnused, setShowUnused] = useState(false);
-  const unusedCount = catalystStats.unusedActions?.length || 0;
+  const unusedCount = catalystStats.unusedActions.length;
 
   return (
     <div>
@@ -156,7 +209,7 @@ function AgentsTab({ catalystStats }) {
                 className="lw-template-item fd-agent-item"
                 style={{
                   '--fd-agent-border-left': `3px solid ${i === 0 ? ACCENT_COLOR : "var(--lw-border-color)"}`,
-                }}
+                } as React.CSSProperties}
               >
                 <span className="lw-template-name fd-agent-name">
                   {agent.name}
@@ -200,11 +253,11 @@ function AgentsTab({ catalystStats }) {
   );
 }
 
-function NotableEntitiesTab({ notableEntities }) {
+function NotableEntitiesTab({ notableEntities }: Readonly<{ notableEntities: NotableEntitiesData }>) {
   return (
     <div>
       {notableEntities.mythic.length > 0 && (
-        <div className="fd-mythic-section">
+        <div className="viewer-section">
           <div className="fd-mythic-label">
             <span>⭐</span> Mythic ({notableEntities.mythic.length})
           </div>
@@ -251,7 +304,7 @@ function NotableEntitiesTab({ notableEntities }) {
       )}
 
       {notableEntities.mythic.length === 0 && notableEntities.renowned.length === 0 && (
-        <div className="lw-empty-state">
+        <div className="viewer-empty-state">
           <span className="lw-empty-icon">🌟</span>
           <span>No notable entities yet</span>
         </div>
@@ -259,26 +312,3 @@ function NotableEntitiesTab({ notableEntities }) {
     </div>
   );
 }
-
-FinalDiagnostics.propTypes = {
-  entityBreakdown: PropTypes.object,
-  catalystStats: PropTypes.object,
-  relationshipBreakdown: PropTypes.object,
-  notableEntities: PropTypes.object,
-};
-
-EntityBreakdownTab.propTypes = {
-  entityBreakdown: PropTypes.object,
-};
-
-RelationshipBreakdownTab.propTypes = {
-  relationshipBreakdown: PropTypes.object,
-};
-
-AgentsTab.propTypes = {
-  catalystStats: PropTypes.object,
-};
-
-NotableEntitiesTab.propTypes = {
-  notableEntities: PropTypes.object,
-};

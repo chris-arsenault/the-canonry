@@ -27,8 +27,12 @@ import type { LLMClient } from "../lib/llmClient";
 import type { ImageClient } from "../lib/imageClient";
 import * as entityRepo from "../lib/db/entityRepository";
 
-// SharedWorker context
-const ctx = self as unknown as SharedWorkerGlobalScope;
+// Minimal SharedWorker global shape — full SharedWorkerGlobalScope is only
+// available under the WebWorker lib, which this file's tsconfig doesn't include.
+interface SharedWorkerSelf {
+  onconnect: ((event: MessageEvent) => void) | null;
+}
+const ctx: SharedWorkerSelf = self as unknown as SharedWorkerSelf;
 
 // ============================================================================
 // State
@@ -139,10 +143,11 @@ async function executeTask(task: WorkerTask, port: MessagePort): Promise<void> {
     });
 
     if (!result.success) {
+      const errorMessage = String(result.error || "Unknown error");
       safePostMessage(port, {
         type: "error",
         taskId: task.id,
-        error: result.error || "Unknown error",
+        error: errorMessage,
         debug: result.debug,
       });
       return;

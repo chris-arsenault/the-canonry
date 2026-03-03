@@ -3,13 +3,27 @@
  */
 
 import React from "react";
-import PropTypes from "prop-types";
 import { NumberInput } from "@the-canonry/shared-components";
 import "./EntityTargets.css";
 
-export default function EntityTargets({ entities, updateTargets, distributionTargets }) {
+interface SubtypeConfig {
+  target: number;
+  comment: string;
+}
+
+interface DistributionTargets {
+  entities: Record<string, Record<string, SubtypeConfig>>;
+}
+
+interface EntityTargetsProps {
+  entities: Record<string, Record<string, SubtypeConfig>>;
+  updateTargets: (key: string, value: Record<string, Record<string, SubtypeConfig>>) => void;
+  distributionTargets: DistributionTargets;
+}
+
+export default function EntityTargets({ entities, updateTargets, distributionTargets }: Readonly<EntityTargetsProps>) {
   // Group by entity kind
-  const kindGroups = {};
+  const kindGroups: Record<string, Record<string, SubtypeConfig>> = {};
   Object.entries(entities).forEach(([key, value]) => {
     if (key === "comment") return;
     if (typeof value === "object") {
@@ -34,9 +48,9 @@ export default function EntityTargets({ entities, updateTargets, distributionTar
                 <NumberInput
                   className="lw-input-small"
                   value={config.target || 0}
-                  onChange={(v) => {
+                  onChange={(v: number | null) => {
                     const currentEntities = distributionTargets.entities;
-                    const newEntities = JSON.parse(JSON.stringify(currentEntities));
+                    const newEntities = JSON.parse(JSON.stringify(currentEntities)) as Record<string, Record<string, SubtypeConfig>>;
                     if (!newEntities[kind]) newEntities[kind] = {};
                     newEntities[kind][subtype] = { ...config, target: v ?? 0 };
                     updateTargets("entities", newEntities);
@@ -57,9 +71,3 @@ export default function EntityTargets({ entities, updateTargets, distributionTar
     </>
   );
 }
-
-EntityTargets.propTypes = {
-  entities: PropTypes.object,
-  updateTargets: PropTypes.func,
-  distributionTargets: PropTypes.object,
-};

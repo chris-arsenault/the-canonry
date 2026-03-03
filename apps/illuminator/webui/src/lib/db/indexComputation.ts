@@ -46,7 +46,7 @@ export function computeRunIndexes(
   const eraTemporalInfo: EraTemporalEntry[] = sortedEras.map((era, index) => {
     const temporal = era.temporal;
     const startTick: number = temporal.startTick;
-    const endTick: number = temporal.endTick ?? startTick;
+    const endTick: number = temporal.end.occurred ? temporal.end.tick : startTick;
     const eraId = resolveEntityEraId(era) || era.id;
     return {
       id: eraId,

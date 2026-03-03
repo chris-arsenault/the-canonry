@@ -34,14 +34,14 @@ export interface ConvergenceConfig {
   /** Probability of adding a convergence tag per tick (0-1) */
   probability: number;
   /** Maximum shared tags before stopping convergence */
-  maxSharedTags?: number;
+  maxSharedTags: number;
   /**
    * Narration template for convergence events.
    * - {$self.name} - The entity gaining the tag
    * - {$tag} - The tag being added
    * Example: "{$self.name} adopted new cultural practices."
    */
-  narrationTemplate?: string;
+  narrationTemplate: string;
 }
 
 /**
@@ -60,7 +60,7 @@ export interface DivergenceConfig {
    * - {$tag} - The tag being added
    * Example: "{$self.name} developed unique traditions in isolation."
    */
-  narrationTemplate?: string;
+  narrationTemplate: string;
 }
 
 /**
@@ -72,7 +72,7 @@ export interface TagDiffusionConfig {
   /** Human-readable name */
   name: string;
   /** Optional description */
-  description?: string;
+  description: string;
 
   /** Selection rule for entities to evaluate */
   selection: SelectionRule;
@@ -80,25 +80,25 @@ export interface TagDiffusionConfig {
   /** Relationship kind that indicates "connection" between entities */
   connectionKind: string;
   /** Direction to check for connections (default: 'both') */
-  connectionDirection?: Direction;
+  connectionDirection: Direction;
 
   /** Convergence: tags added when entities are connected */
-  convergence?: ConvergenceConfig;
+  convergence: ConvergenceConfig;
 
   /** Divergence: tags added when entities are isolated */
-  divergence?: DivergenceConfig;
+  divergence: DivergenceConfig;
 
   /** Maximum tags per entity (to prevent tag bloat) */
-  maxTags?: number;
+  maxTags: number;
 
   /** Throttle: only run on some ticks (0-1, default: 1.0 = every tick) */
-  throttleChance?: number;
+  throttleChance: number;
 
   /** Pressure changes when diffusion occurs */
-  pressureChanges?: Record<string, number>;
+  pressureChanges: Record<string, number>;
 
   /** Pressure triggered specifically by divergent entities */
-  divergencePressure?: {
+  divergencePressure: {
     /** Pressure name to modify */
     pressureName: string;
     /** Minimum divergent entities to trigger pressure */
@@ -235,7 +235,7 @@ function processConvergence(
   entityNarrations: Map<string, { tag: string; type: 'convergence' | 'divergence' }>,
   graphView: WorldRuntime
 ): void {
-  const maxShared = conv.maxSharedTags ?? 2;
+  const maxShared = conv.maxSharedTags;
   const entityIdSet = new Set(entities.map(e => e.id));
   for (const entity of entities) {
     const connected = getConnectedEntities(entity, config.connectionKind, direction, graphView);
@@ -296,8 +296,8 @@ function resolveNarration(
   config: TagDiffusionConfig,
 ): string | null {
   const template = narrationInfo.type === 'convergence'
-    ? config.convergence?.narrationTemplate
-    : config.divergence?.narrationTemplate;
+    ? config.convergence.narrationTemplate
+    : config.divergence.narrationTemplate;
   if (!template) return null;
   const ctx = createSystemRuleContext({ self: entity });
   const result = interpolate(template, ctx);
@@ -310,8 +310,8 @@ function buildTagModifications(
   config: TagDiffusionConfig,
   graphView: WorldRuntime,
   narrationsByGroup: Record<string, string>
-): Array<{ id: string; changes: Partial<HardState>; narrativeGroupId?: string }> {
-  const modifications: Array<{ id: string; changes: Partial<HardState>; narrativeGroupId?: string }> = [];
+): Array<{ id: string; changes: Partial<HardState>; narrativeGroupId: string }> {
+  const modifications: Array<{ id: string; changes: Partial<HardState>; narrativeGroupId: string }> = [];
   for (const [entityId, tags] of modifiedTags) {
     const entity = graphView.getEntity(entityId);
     const narrationInfo = entityNarrations.get(entityId);
@@ -334,10 +334,10 @@ function computeTagDiffusionPressure(
   divergentCount: number,
   modifier: number
 ): Record<string, number> {
-  const pressureChanges: Record<string, number> = modificationsCount > 0 && config.pressureChanges
+  const pressureChanges: Record<string, number> = modificationsCount > 0
     ? { ...config.pressureChanges }
     : {};
-  if (config.divergencePressure && divergentCount >= config.divergencePressure.minDivergent) {
+  if (config.divergencePressure.minCount > 0 && divergentCount >= config.divergencePressure.minDivergent) {
     pressureChanges[config.divergencePressure.pressureName] =
       (pressureChanges[config.divergencePressure.pressureName] ?? 0) +
       config.divergencePressure.delta * modifier;
@@ -348,15 +348,15 @@ function computeTagDiffusionPressure(
 export function createTagDiffusionSystem(
   config: TagDiffusionConfig
 ): SimulationSystem {
-  const direction = config.connectionDirection ?? 'both';
-  const maxTags = config.maxTags ?? 10;
+  const direction = config.connectionDirection;
+  const maxTags = config.maxTags;
 
   return {
     id: config.id,
     name: config.name,
 
     apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
-      if (config.throttleChance !== undefined && config.throttleChance < 1.0) {
+      if (config.throttleChance < 1.0) {
         if (!rollProbability(config.throttleChance, modifier)) {
           return { relationshipsAdded: [], entitiesModified: [], pressureChanges: {}, description: `${config.name}: dormant` };
         }
@@ -372,12 +372,12 @@ export function createTagDiffusionSystem(
       const narrationsByGroup: Record<string, string> = {};
       const entityNarrations = new Map<string, { tag: string; type: 'convergence' | 'divergence' }>();
 
-      if (config.convergence) {
+      {
         processConvergence(entities, config.convergence, config, direction, maxTags, modifier, modifiedTags, entityNarrations, graphView);
       }
 
       let divergentCount = 0;
-      if (config.divergence) {
+      {
         divergentCount = processDivergence(entities, config.divergence, config, direction, maxTags, modifier, modifiedTags, entityNarrations, graphView);
       }
 

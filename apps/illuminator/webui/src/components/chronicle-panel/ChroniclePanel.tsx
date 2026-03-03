@@ -232,14 +232,18 @@ export function ChroniclePanel({
   useEffect(() => { refreshEraNarratives(); }, [refreshEraNarratives]);
 
   // Name bank
-  useEffect(() => {
-    if (!selectedItem?.roleAssignments || !navEntities?.length || !worldData?.schema?.cultures) return;
-    const entityIds = selectedItem.roleAssignments.map((r: { entityId: string }) => r.entityId);
+  const roleAssignments = selectedItem?.roleAssignments;
+  const nameBankCultureIds = useMemo(() => {
+    if (!roleAssignments || !navEntities?.length) return [];
+    const entityIds = roleAssignments.map((r: { entityId: string }) => r.entityId);
     const selectedEntities = navEntities.filter((e: { id: string }) => entityIds.includes(e.id));
-    const cultureIds = extractCultureIds(selectedEntities);
-    if (cultureIds.length === 0) { setNameBank({}); return; }
-    generateNameBank(worldData.schema.cultures, cultureIds).then((bank) => setNameBank(bank)).catch(() => setNameBank({}));
-  }, [selectedItem?.roleAssignments, navEntities, worldData?.schema?.cultures]);
+    return extractCultureIds(selectedEntities);
+  }, [roleAssignments, navEntities]);
+
+  useEffect(() => {
+    if (!worldData?.schema?.cultures || nameBankCultureIds.length === 0) return;
+    generateNameBank(worldData.schema.cultures, nameBankCultureIds).then((bank) => setNameBank(bank)).catch(() => setNameBank({}));
+  }, [nameBankCultureIds, worldData?.schema?.cultures]);
 
   // Clear stale selection
   useEffect(() => {
@@ -252,7 +256,7 @@ export function ChroniclePanel({
         if (!existsInNav) nav.setSelectedItemId(null);
       }
     }
-  }, [nav.selectedItemId, chronicleItems, eraNarrativeNavItems, nav.setSelectedItemId]);
+  }, [nav, chronicleItems, eraNarrativeNavItems]);
 
   // Persist selection
   useEffect(() => {

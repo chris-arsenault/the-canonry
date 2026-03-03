@@ -73,9 +73,7 @@ const POLL_INTERVAL_MS = 1500;
 // Hook
 // ============================================================================
 
-export function useChronicleLoreBackport(
-  getEntityContexts: (entityIds: string[]) => RevisionEntityContext[]
-): UseChronicleLoreBackportReturn {
+export function useChronicleLoreBackport(): UseChronicleLoreBackportReturn {
   const [run, setRun] = useState<SummaryRevisionRun | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [chronicleId, setChronicleId] = useState<string | null>(null);
@@ -187,7 +185,7 @@ export function useChronicleLoreBackport(
       // Start polling
       startPolling(runId);
     },
-    [dispatchBatch, startPolling, getEntityContexts]
+    [dispatchBatch, startPolling]
   );
 
   // Toggle accept/reject for a specific entity patch

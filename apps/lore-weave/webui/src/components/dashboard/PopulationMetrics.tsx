@@ -3,12 +3,33 @@
  */
 
 import React from "react";
-import PropTypes from "prop-types";
 import "./PopulationMetrics.css";
 
-export default function PopulationMetrics({ populationReport, epochStats }) {
+interface EntityMetric {
+  kind: string;
+  subtype: string;
+  count: number;
+  target: number;
+  deviation: number;
+}
+
+interface PopulationReport {
+  avgDeviation: number;
+  entityMetrics: EntityMetric[];
+}
+
+interface EpochStat {
+  entitiesByKind: Record<string, number>;
+}
+
+interface PopulationMetricsProps {
+  populationReport: PopulationReport | null;
+  epochStats: EpochStat[];
+}
+
+export default function PopulationMetrics({ populationReport, epochStats }: Readonly<PopulationMetricsProps>) {
   // Get latest epoch stats for entity breakdown
-  const latestEpoch = epochStats[epochStats.length - 1];
+  const latestEpoch: EpochStat | undefined = epochStats[epochStats.length - 1];
 
   if (!populationReport && !latestEpoch) {
     return (
@@ -20,7 +41,7 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
           </div>
         </div>
         <div className="lw-panel-content">
-          <div className="lw-empty-state">
+          <div className="viewer-empty-state">
             <span className="lw-empty-icon">📈</span>
             <span>Metrics will appear after first epoch</span>
           </div>
@@ -45,7 +66,7 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
                 if (populationReport.avgDeviation < 0.4) return "var(--lw-warning)";
                 return "var(--lw-danger)";
               })(),
-            }}
+            } as React.CSSProperties}
           >
             {(populationReport.avgDeviation * 100).toFixed(1)}% avg deviation
           </span>
@@ -88,12 +109,12 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
                       <div
                         className="lw-pressure-fill pm-pressure-fill"
                         style={{
-                          '--pm-pressure-fill-width': `${Math.min(100, (metric.count / metric.target) * 50)}%`,
-                          '--pm-pressure-fill-color': color,
-                        }}
+                          '--pm-pressure-fill-width': `${String(Math.min(100, (metric.count / metric.target) * 50))}%`,
+                          '--pm-pressure-fill-color': color as string,
+                        } as React.CSSProperties}
                       />
                     </div>
-                    <span className="lw-pressure-value pm-pressure-value" style={{ '--pm-pressure-value-color': color }}>
+                    <span className="lw-pressure-value pm-pressure-value" style={{ '--pm-pressure-value-color': color as string } as React.CSSProperties}>
                       {metric.count}/{metric.target}
                     </span>
                   </div>
@@ -106,8 +127,3 @@ export default function PopulationMetrics({ populationReport, epochStats }) {
     </div>
   );
 }
-
-PopulationMetrics.propTypes = {
-  populationReport: PropTypes.object,
-  epochStats: PropTypes.array,
-};

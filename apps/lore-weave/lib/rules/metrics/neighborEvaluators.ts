@@ -33,7 +33,7 @@ function collectViaEntityIds(
   const viaEntityIds = new Set<string>();
   for (const link of rels) {
     if (!viaKinds.includes(link.kind)) continue;
-    if ((link.strength ?? 0) < minStrength) continue;
+    if (link.strength < minStrength) continue;
     for (const id of resolveLinkedIds(link, entityId, direction)) viaEntityIds.add(id);
   }
   return viaEntityIds;
@@ -84,14 +84,10 @@ function countMatchingEntities(
 export function evaluateNeighborKindCount(
   metric: NeighborKindCountMetric,
   ctx: MetricContext,
-  entity?: HardState
+  entity: HardState
 ): MetricResult {
-  if (!entity) {
-    return { value: 0, diagnostic: 'no entity for neighbor kind count', details: {} };
-  }
-
   const viaDirection = normalizeDirection(metric.viaDirection);
-  const minStrength = metric.minStrength ?? 0;
+  const minStrength = metric.minStrength;
   const rels = ctx.graph.getAllRelationships();
   const viaKinds = Array.isArray(metric.via) ? metric.via : [metric.via];
 
@@ -103,10 +99,8 @@ export function evaluateNeighborKindCount(
 
   const count = countMatchingEntities(targetEntityIds, metric, ctx);
 
-  let value = count * (metric.coefficient ?? 1);
-  if (metric.cap !== undefined) {
-    value = Math.min(value, metric.cap);
-  }
+  let value = count * (metric.coefficient);
+  value = Math.min(value, metric.cap);
 
   const viaStr = Array.isArray(metric.via) ? metric.via.join('/') : metric.via;
   return {

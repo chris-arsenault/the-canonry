@@ -30,7 +30,7 @@ import { interpolate, createNarrationContext } from '../narrative/narrationTempl
  */
 export interface InstigatorSelectionRule extends VariableSelectionRule {
   /** If true, action is unavailable when no instigator is found. */
-  required?: boolean;
+  required: boolean;
 }
 
 /**
@@ -40,9 +40,9 @@ export interface ActionActorConfig {
   /** How to select eligible actors. */
   selection: SelectionRule;
   /** Optional conditions that must pass for this actor. */
-  conditions?: Condition[];
+  conditions: Condition[];
   /** Optional instigator selection. */
-  instigator?: InstigatorSelectionRule;
+  instigator: InstigatorSelectionRule;
 }
 
 /**
@@ -50,7 +50,7 @@ export interface ActionActorConfig {
  */
 export interface ActionOutcomeConfig {
   /** Mutations to apply on success. */
-  mutations?: Mutation[];
+  mutations: Mutation[];
   /** Description template (supports {actor.name}, {target.name}, etc.). */
   descriptionTemplate: string;
   /**
@@ -62,22 +62,22 @@ export interface ActionOutcomeConfig {
    *
    * Example: "The {actor.subtype} {actor.name} seized {target.name}, wresting it from {$previousOwner.name|the realm's grasp}."
    */
-  narrationTemplate?: string;
+  narrationTemplate: string;
   /**
    * Delta to apply to actor prominence on success/failure.
    * Example: { onSuccess: 1.0, onFailure: -0.5 }
    */
-  actorProminenceDelta?: {
-    onSuccess?: number;
-    onFailure?: number;
+  actorProminenceDelta: {
+    onSuccess: number;
+    onFailure: number;
   };
   /**
    * Delta to apply to target prominence on success/failure.
    * Example: { onSuccess: 0.5, onFailure: -0.2 }
    */
-  targetProminenceDelta?: {
-    onSuccess?: number;
-    onFailure?: number;
+  targetProminenceDelta: {
+    onSuccess: number;
+    onFailure: number;
   };
 }
 
@@ -100,7 +100,7 @@ export interface ActionProbabilityConfig {
   /** Selection weight for weighted random */
   baseWeight: number;
   /** Pressure modifiers that affect this action's weight and attempt chance */
-  pressureModifiers?: PressureModifier[];
+  pressureModifiers: PressureModifier[];
 }
 
 /**
@@ -114,7 +114,7 @@ export interface DeclarativeAction {
   /** Description of what this action does */
   description: string;
   /** Whether this action is enabled (default: true) */
-  enabled?: boolean;
+  enabled: boolean;
 
   /** Who can attempt this action (primary actor + optional instigator) */
   actor: ActionActorConfig;
@@ -125,7 +125,7 @@ export interface DeclarativeAction {
    * Variables can reference $actor, $target, $instigator and each other.
    * Resolved variables are available in mutations as $varName.
    */
-  variables?: Record<string, VariableDefinitionForResolution>;
+  variables: Record<string, VariableDefinitionForResolution>;
   /** What happens on success */
   outcome: ActionOutcomeConfig;
   /** Probability settings */
@@ -168,19 +168,19 @@ export interface ExecutableAction {
 export interface ActionResult {
   success: boolean;
   relationships: Relationship[];
-  relationshipsAdjusted?: Array<{ kind: string; src: string; dst: string; delta: number }>;
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number }>;
   /** Relationships to archive (deferred until worldEngine applies with proper context) */
-  relationshipsToArchive?: Array<{ kind: string; src: string; dst: string }>;
-  entitiesModified?: Array<{ id: string; changes: Partial<HardState> }>;
-  pressureChanges?: Record<string, number>;
+  relationshipsToArchive: Array<{ kind: string; src: string; dst: string }>;
+  entitiesModified: Array<{ id: string; changes: Partial<HardState> }>;
+  pressureChanges: Record<string, number>;
   description: string;
   /** Domain-controlled narrative text (from narrationTemplate). */
-  narration?: string;
-  entitiesCreated?: string[];
-  instigatorId?: string;
-  targetId?: string;
-  target2Id?: string;
-  failureReason?: 'no_instigator' | 'no_target' | 'actor_conditions' | 'mutation_failed';
+  narration: string;
+  entitiesCreated: string[];
+  instigatorId: string;
+  targetId: string;
+  target2Id: string;
+  failureReason: 'no_instigator' | 'no_target' | 'actor_conditions' | 'mutation_failed';
 }
 
 // =============================================================================
@@ -194,7 +194,7 @@ function resolveSingleEntity(select: VariableSelectionRule, ctx: RuleContext): H
     return undefined;
   }
 
-  const pickStrategy = select.pickStrategy ?? 'random';
+  const pickStrategy = select.pickStrategy;
   const picked = applyPickStrategy(candidates, pickStrategy, select.maxResults);
   return picked.length > 0 ? picked[0] : undefined;
 }
@@ -202,7 +202,7 @@ function resolveSingleEntity(select: VariableSelectionRule, ctx: RuleContext): H
 function resolveInstigator(
   config: InstigatorSelectionRule | undefined,
   ctx: RuleContext
-): { instigator: HardState | null; failureReason?: ActionResult['failureReason']; failureDescription?: string } {
+): { instigator: HardState | null; failureReason: ActionResult['failureReason']; failureDescription: string } {
   if (!config) {
     return { instigator: null };
   }
@@ -224,20 +224,20 @@ function formatDescription(
   template: string,
   bindings: {
     actor: HardState;
-    instigator?: HardState | null;
-    target?: HardState;
-    target2?: HardState;
+    instigator: HardState | null;
+    target: HardState;
+    target2: HardState;
   }
 ): string {
   const tokenMap: Record<string, string> = {
-    'actor.name': bindings.actor?.name ?? '',
-    'actor.id': bindings.actor?.id ?? '',
-    'instigator.name': bindings.instigator?.name ?? '',
-    'instigator.id': bindings.instigator?.id ?? '',
-    'target.name': bindings.target?.name ?? '',
-    'target.id': bindings.target?.id ?? '',
-    'target2.name': bindings.target2?.name ?? '',
-    'target2.id': bindings.target2?.id ?? '',
+    'actor.name': bindings.actor.name,
+    'actor.id': bindings.actor.id,
+    'instigator.name': bindings.instigator.name,
+    'instigator.id': bindings.instigator.id,
+    'target.name': bindings.target.name,
+    'target.id': bindings.target.id,
+    'target2.name': bindings.target2.name,
+    'target2.id': bindings.target2.id,
   };
 
   // eslint-disable-next-line sonarjs/slow-regex -- character-class bounded, no backtracking
@@ -253,10 +253,10 @@ function formatNarration(
   template: string,
   bindings: {
     actor: HardState;
-    instigator?: HardState | null;
-    target?: HardState;
-    target2?: HardState;
-    variables?: Record<string, HardState | undefined>;
+    instigator: HardState | null;
+    target: HardState;
+    target2: HardState;
+    variables: Record<string, HardState | undefined>;
   }
 ): string {
   const context = createNarrationContext({
@@ -274,7 +274,7 @@ function formatNarration(
 function evaluateActorConditions(
   conditions: Condition[] | undefined,
   ctx: RuleContext
-): { passed: boolean; diagnostic?: string } {
+): { passed: boolean; diagnostic: string } {
   if (!conditions || conditions.length === 0) {
     return { passed: true };
   }
@@ -303,10 +303,10 @@ function failResult(description: string, failureReason: ActionResult['failureRea
 function resolveTargets(
   action: DeclarativeAction,
   baseCtx: RuleContext
-): { targets: HardState[]; failure?: ActionResult } {
+): { targets: HardState[]; failure: ActionResult | null } {
   const targetingRule: SelectionRule = {
     ...action.targeting,
-    pickStrategy: action.targeting.pickStrategy ?? 'random',
+    pickStrategy: action.targeting.pickStrategy,
   };
 
   const targets = selectEntities(targetingRule, baseCtx);
@@ -322,7 +322,7 @@ function resolveTargets(
     return { targets: [], failure: failResult('found insufficient targets', 'no_target') };
   }
 
-  return { targets };
+  return { targets, failure: null };
 }
 
 function resolveActionVariables(
@@ -331,7 +331,7 @@ function resolveActionVariables(
   bindings: Record<string, HardState | undefined>,
   actor: HardState
 ): ActionResult | null {
-  if (!action.variables) return null;
+  if (Object.keys(action.variables).length === 0) return null;
   const varCtx = createActionContext(graph, bindings, actor);
   const resolvedVars = resolveVariablesForEntity(action.variables, varCtx, actor);
   if (resolvedVars === null) {
@@ -419,7 +419,7 @@ function createActionHandler(action: DeclarativeAction): ExecutableAction['handl
 
     // Resolve optional instigator
     const instigatorResult = resolveInstigator(action.actor.instigator, baseCtx);
-    if (instigatorResult.failureReason) {
+    if (instigatorResult.failureReason.length > 0) {
       return failResult(instigatorResult.failureDescription || 'no instigator available', instigatorResult.failureReason);
     }
 
@@ -446,7 +446,7 @@ function createActionHandler(action: DeclarativeAction): ExecutableAction['handl
     if (varFailure) return varFailure;
 
     const mutationCtx = createActionContext(graph, bindings, actor);
-    const prepared = (action.outcome.mutations ?? []).map((mutation) => prepareMutation(mutation, mutationCtx));
+    const prepared = (action.outcome.mutations).map((mutation) => prepareMutation(mutation, mutationCtx));
     const failed = prepared.filter((result) => !result.applied);
 
     if (failed.length > 0) {
@@ -466,9 +466,9 @@ function createActionHandler(action: DeclarativeAction): ExecutableAction['handl
       pressureChanges: aggregated.pressureChanges,
       description,
       narration,
-      instigatorId: instigator?.id,
-      targetId: target?.id,
-      target2Id: target2?.id,
+      instigatorId: instigator.id,
+      targetId: target.id,
+      target2Id: target2.id,
     };
   };
 }
@@ -487,15 +487,15 @@ export function createExecutableAction(action: DeclarativeAction): ExecutableAct
     description: action.description,
     baseSuccessChance: action.probability.baseSuccessChance,
     baseWeight: action.probability.baseWeight,
-    pressureModifiers: action.probability.pressureModifiers || [],
+    pressureModifiers: action.probability.pressureModifiers,
     actorConfig: action.actor,
     actorProminenceDelta: {
-      onSuccess: action.outcome.actorProminenceDelta?.onSuccess ?? 0,
-      onFailure: action.outcome.actorProminenceDelta?.onFailure ?? 0,
+      onSuccess: action.outcome.actorProminenceDelta.onSuccess,
+      onFailure: action.outcome.actorProminenceDelta.onFailure,
     },
     targetProminenceDelta: {
-      onSuccess: action.outcome.targetProminenceDelta?.onSuccess ?? 0,
-      onFailure: action.outcome.targetProminenceDelta?.onFailure ?? 0,
+      onSuccess: action.outcome.targetProminenceDelta.onSuccess,
+      onFailure: action.outcome.targetProminenceDelta.onFailure,
     },
     handler: createActionHandler(action)
   };
@@ -513,7 +513,7 @@ export function loadActions(actions: DeclarativeAction[]): ExecutableAction[] {
   const executableActions: ExecutableAction[] = [];
 
   for (const action of actions) {
-    if (!action || !action.id) {
+    if (!action.id) {
       console.warn('loadActions: skipping invalid action', action);
       continue;
     }

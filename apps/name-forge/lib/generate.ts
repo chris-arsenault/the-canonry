@@ -59,10 +59,10 @@ interface GrammarExpansionContext {
  */
 function selectProfile(
   profiles: Profile[],
-  profileId?: string,
-  kind?: string
+  profileId: string,
+  kind: string
 ): Profile | null {
-  if (!profiles || profiles.length === 0) {
+  if (profiles.length === 0) {
     return null;
   }
 
@@ -74,7 +74,7 @@ function selectProfile(
   // 2. Find first profile with matching entityKind
   if (kind) {
     const kindMatch = profiles.find(
-      (p) => p.entityKinds && p.entityKinds.includes(kind)
+      (p) => p.entityKinds.includes(kind)
     );
     if (kindMatch) {
       return kindMatch;
@@ -88,7 +88,7 @@ function selectProfile(
   }
 
   // 4. Legacy behavior: if only one profile exists and has no entityKinds, use it
-  if (profiles.length === 1 && !profiles[0].entityKinds?.length) {
+  if (profiles.length === 1 && !profiles[0].entityKinds.length) {
     return profiles[0];
   }
 
@@ -132,7 +132,7 @@ export async function generate(
 
   if (!profile) {
     const availableProfiles = culture.profiles.map(p => {
-      const kindsSuffix = p.entityKinds?.length ? ` (${p.entityKinds.join(', ')})` : '';
+      const kindsSuffix = p.entityKinds.length ? ` (${p.entityKinds.join(', ')})` : '';
       return `${p.id}${kindsSuffix}${p.isDefault ? ' [default]' : ''}`;
     }).join(', ');
     throw new Error(
@@ -143,7 +143,7 @@ export async function generate(
   }
 
   // Preload any Markov models referenced in grammars
-  const markovModels = await preloadModels(culture.grammars || []);
+  const markovModels = await preloadModels(culture.grammars);
 
   // Build generation context
   const rng = createRNG(seed || `gen-${Date.now()}`);
@@ -229,7 +229,7 @@ function checkListCondition(
   condList: string[] | undefined,
   value: string | undefined,
   fieldName: string
-): { matched: boolean; reason?: string } | null {
+): { matched: boolean; reason: string } | null {
   if (!condList || condList.length === 0) return null;
   if (!value) {
     return { matched: false, reason: `Requires ${fieldName} in [${condList.join(", ")}] but none provided` };
@@ -244,16 +244,16 @@ function checkListCondition(
 function checkTagCondition(
   condTags: string[] | undefined,
   tagMatchAll: boolean | undefined,
-  tags?: string[]
-): { matched: boolean; reason?: string } | null {
+  tags: string[]
+): { matched: boolean; reason: string } | null {
   if (!condTags || condTags.length === 0) return null;
   if (tagMatchAll) {
-    const missingTags = condTags.filter((t) => !tags?.includes(t));
+    const missingTags = condTags.filter((t) => !tags.includes(t));
     if (missingTags.length > 0) {
       return { matched: false, reason: `Missing required tags: [${missingTags.join(", ")}]` };
     }
   } else {
-    if (!condTags.some((t) => tags?.includes(t))) {
+    if (!condTags.some((t) => tags.includes(t))) {
       return { matched: false, reason: `No matching tags from [${condTags.join(", ")}]` };
     }
   }
@@ -265,11 +265,11 @@ function checkTagCondition(
  */
 function checkGroupMatch(
   group: StrategyGroup,
-  kind?: string,
-  subtype?: string,
-  prominence?: string,
-  tags?: string[]
-): { matched: boolean; reason?: string } {
+  kind: string,
+  subtype: string,
+  prominence: string,
+  tags: string[]
+): { matched: boolean; reason: string } {
   const conditions = group.conditions;
   if (!conditions) {
     return { matched: true, reason: "No conditions (matches all)" };
@@ -296,14 +296,14 @@ function checkGroupMatch(
  */
 function findMatchingGroup(
   groups: StrategyGroup[],
-  kind?: string,
-  subtype?: string,
-  prominence?: string,
-  tags?: string[]
+  kind: string,
+  subtype: string,
+  prominence: string,
+  tags: string[]
 ): GroupMatchResult {
   const debugInfo: GroupMatchDebug[] = [];
 
-  if (!groups || groups.length === 0) {
+  if (groups.length === 0) {
     return { matchingGroup: null, debugInfo, usedFallback: true };
   }
 
@@ -377,8 +377,8 @@ interface SingleNameResult {
   name: string;
   strategyType: string;
   strategyDesc: string;
-  grammarId?: string;
-  domainId?: string;
+  grammarId: string;
+  domainId: string;
 }
 
 /**
@@ -389,7 +389,7 @@ function generateSingleName(
   ctx: GenerationContext,
   index: number
 ): SingleNameResult {
-  if (!group || !group.strategies || group.strategies.length === 0) {
+  if (!group || group.strategies.length === 0) {
     return {
       name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
       strategyType: "fallback",
@@ -497,7 +497,7 @@ function expandGrammar(
   ctx: GenerationContext
 ): { name: string; usedMarkov: boolean } {
   const startSymbol = grammar.start || "name";
-  const rules = grammar.rules || {};
+  const rules = grammar.rules;
   const expansionCtx: GrammarExpansionContext = {
     usedMarkov: false,
     userContext: ctx.userContext,
@@ -506,7 +506,7 @@ function expandGrammar(
   let name = expandSymbol(startSymbol, rules, ctx, expansionCtx, 0);
 
   // Apply grammar-level capitalization if specified
-  if (grammar.capitalization) {
+  if (grammar.capitalization !== "mixed") {
     name = applyCapitalization(name, grammar.capitalization);
   }
 
@@ -939,7 +939,7 @@ function resolveSimpleToken(
 function generateFromMarkovModel(
   model: MarkovModel,
   rng: () => number,
-  options: { minLength?: number; maxLength?: number } = {}
+  options: { minLength: number; maxLength: number } = {}
 ): string {
   const { minLength = 3, maxLength = 12 } = options;
 
@@ -994,7 +994,7 @@ function generateFallbackName(
   rng: () => number,
   index: number
 ): string {
-  const nonEmptyLists = lexemeLists.filter((l) => l.entries?.length > 0);
+  const nonEmptyLists = lexemeLists.filter((l) => l.entries.length > 0);
 
   if (nonEmptyLists.length === 0) {
     return `Name-${index + 1}`;
@@ -1030,7 +1030,7 @@ function generateFallbackName(
 export function generateFromDomain(
   domain: NamingDomain,
   count: number = 10,
-  seed?: string
+  seed: string
 ): string[] {
   const rng = createRNG(seed || `domain-${Date.now()}`);
   const names: string[] = [];
@@ -1061,7 +1061,7 @@ export interface TestDomainResult {
 export function testDomain(
   domain: NamingDomain,
   sampleSize: number = 100,
-  seed?: string
+  seed: string
 ): TestDomainResult {
   const samples = generateFromDomain(domain, sampleSize, seed);
   const uniqueSet = new Set(samples);
@@ -1086,8 +1086,8 @@ export interface PreviewGrammarOptions {
   grammar: Grammar;
   domains: NamingDomain[];
   lexemeLists: LexemeList[];
-  count?: number;
-  seed?: string;
+  count: number;
+  seed: string;
 }
 
 /**
@@ -1101,7 +1101,7 @@ export async function previewGrammar(
 ): Promise<string[]> {
   const { grammar, domains, lexemeLists, count = 8, seed } = options;
 
-  if (!grammar || !grammar.rules || Object.keys(grammar.rules).length === 0) {
+  if (!grammar || Object.keys(grammar.rules).length === 0) {
     return [];
   }
 
@@ -1111,9 +1111,9 @@ export async function previewGrammar(
   const rng = createRNG(seed || `preview-${Date.now()}`);
   const ctx: GenerationContext = {
     rng,
-    domains: domains || [],
+    domains: domains,
     grammars: [grammar],
-    lexemeLists: lexemeLists || [],
+    lexemeLists: lexemeLists,
     markovModels,
     userContext: {},
   };

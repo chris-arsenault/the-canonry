@@ -166,12 +166,15 @@ export const FRAMEWORK_ENTITY_KIND_DEFINITIONS: EntityKindDefinition[] = [
     isFramework: true,
     subtypes: [],
     statuses: [
-      { id: FRAMEWORK_STATUS.CURRENT, name: 'Current', isTerminal: false, polarity: 'neutral' },
-      { id: FRAMEWORK_STATUS.FUTURE, name: 'Future', isTerminal: false, polarity: 'neutral' },
-      { id: FRAMEWORK_STATUS.HISTORICAL, name: 'Historical', isTerminal: true, polarity: 'neutral' },
+      { id: FRAMEWORK_STATUS.CURRENT, name: 'Current', isTerminal: false, polarity: 'neutral', transitionVerb: 'became current' },
+      { id: FRAMEWORK_STATUS.FUTURE, name: 'Future', isTerminal: false, polarity: 'neutral', transitionVerb: 'was scheduled' },
+      { id: FRAMEWORK_STATUS.HISTORICAL, name: 'Historical', isTerminal: true, polarity: 'neutral', transitionVerb: 'ended' },
     ],
+    requiredRelationships: [],
     defaultStatus: FRAMEWORK_STATUS.CURRENT,
-    style: { color: '#FFD700', displayName: 'Era' },
+    style: { color: '#FFD700', shape: 'ellipse', displayName: 'Era' },
+    semanticPlane: { axes: { x: { axisId: '' }, y: { axisId: '' }, z: { axisId: '' } }, regions: [] },
+    visualIdentityKeys: [],
   },
   {
     kind: FRAMEWORK_ENTITY_KINDS.OCCURRENCE,
@@ -180,11 +183,14 @@ export const FRAMEWORK_ENTITY_KIND_DEFINITIONS: EntityKindDefinition[] = [
     isFramework: true,
     subtypes: [],
     statuses: [
-      { id: FRAMEWORK_STATUS.ACTIVE, name: 'Active', isTerminal: false, polarity: 'neutral' },
-      { id: FRAMEWORK_STATUS.HISTORICAL, name: 'Historical', isTerminal: true, polarity: 'neutral' },
+      { id: FRAMEWORK_STATUS.ACTIVE, name: 'Active', isTerminal: false, polarity: 'neutral', transitionVerb: 'occurred' },
+      { id: FRAMEWORK_STATUS.HISTORICAL, name: 'Historical', isTerminal: true, polarity: 'neutral', transitionVerb: 'concluded' },
     ],
+    requiredRelationships: [],
     defaultStatus: FRAMEWORK_STATUS.ACTIVE,
-    style: { color: '#FCD76B', displayName: 'Occurrence' },
+    style: { color: '#FCD76B', shape: 'diamond', displayName: 'Occurrence' },
+    semanticPlane: { axes: { x: { axisId: '' }, y: { axisId: '' }, z: { axisId: '' } }, regions: [] },
+    visualIdentityKeys: [],
   },
 ];
 
@@ -199,6 +205,9 @@ export const FRAMEWORK_RELATIONSHIP_KIND_DEFINITIONS: RelationshipKindDefinition
     cullable: false,
     decayRate: 'none',
     polarity: 'neutral',
+    symmetric: false,
+    category: 'framework',
+    verbs: { formed: 'superseded', ended: 'no longer supersedes', inverseFormed: 'was superseded by', inverseEnded: 'is no longer superseded by' },
   },
   {
     kind: FRAMEWORK_RELATIONSHIP_KINDS.PART_OF,
@@ -210,6 +219,9 @@ export const FRAMEWORK_RELATIONSHIP_KIND_DEFINITIONS: RelationshipKindDefinition
     cullable: false,
     decayRate: 'none',
     polarity: 'positive',  // Membership is generally positive
+    symmetric: false,
+    category: 'framework',
+    verbs: { formed: 'joined', ended: 'left', inverseFormed: 'gained as member', inverseEnded: 'lost as member' },
   },
   {
     kind: FRAMEWORK_RELATIONSHIP_KINDS.ACTIVE_DURING,
@@ -221,6 +233,9 @@ export const FRAMEWORK_RELATIONSHIP_KIND_DEFINITIONS: RelationshipKindDefinition
     cullable: false,
     decayRate: 'none',
     polarity: 'neutral',
+    symmetric: false,
+    category: 'framework',
+    verbs: { formed: 'became active during', ended: 'was no longer active during', inverseFormed: 'gained active entity', inverseEnded: 'lost active entity' },
   },
   {
     kind: FRAMEWORK_RELATIONSHIP_KINDS.PARTICIPANT_IN,
@@ -232,6 +247,9 @@ export const FRAMEWORK_RELATIONSHIP_KIND_DEFINITIONS: RelationshipKindDefinition
     cullable: false,
     decayRate: 'none',
     polarity: 'neutral',
+    symmetric: false,
+    category: 'framework',
+    verbs: { formed: 'participated in', ended: 'withdrew from', inverseFormed: 'gained participant', inverseEnded: 'lost participant' },
   },
   {
     kind: FRAMEWORK_RELATIONSHIP_KINDS.EPICENTER_OF,
@@ -243,6 +261,9 @@ export const FRAMEWORK_RELATIONSHIP_KIND_DEFINITIONS: RelationshipKindDefinition
     cullable: false,
     decayRate: 'none',
     polarity: 'neutral',
+    symmetric: false,
+    category: 'framework',
+    verbs: { formed: 'occurred at', ended: 'no longer centered at', inverseFormed: 'became epicenter of', inverseEnded: 'was no longer epicenter of' },
   },
   {
     kind: FRAMEWORK_RELATIONSHIP_KINDS.TRIGGERED_BY,
@@ -254,6 +275,9 @@ export const FRAMEWORK_RELATIONSHIP_KIND_DEFINITIONS: RelationshipKindDefinition
     cullable: false,
     decayRate: 'none',
     polarity: 'neutral',
+    symmetric: false,
+    category: 'framework',
+    verbs: { formed: 'was triggered by', ended: 'was no longer triggered by', inverseFormed: 'triggered', inverseEnded: 'no longer triggers' },
   },
   {
     kind: FRAMEWORK_RELATIONSHIP_KINDS.CREATED_DURING,
@@ -265,6 +289,9 @@ export const FRAMEWORK_RELATIONSHIP_KIND_DEFINITIONS: RelationshipKindDefinition
     cullable: false,
     decayRate: 'none',
     polarity: 'neutral',
+    symmetric: false,
+    category: 'framework',
+    verbs: { formed: 'was created during', ended: 'was no longer from', inverseFormed: 'saw creation of', inverseEnded: 'no longer origin of' },
   },
 ];
 
@@ -275,45 +302,33 @@ export const FRAMEWORK_CULTURE_DEFINITIONS: CultureDefinition[] = [
     description: 'Transcendent entities that belong to no single culture.',
     color: '#9CA3AF',
     isFramework: true,
+    homeland: '',
+    axisBiases: {},
+    homeRegions: {},
+    naming: { domains: [], lexemeLists: {}, lexemeSpecs: [], grammars: [], profiles: [] },
+    defaultArtisticStyleId: '',
+    defaultCompositionStyles: {},
+    styleKeywords: [],
+    visualIdentity: {},
   },
 ];
 
+const FRAMEWORK_TAG_DEFAULTS = {
+  usageCount: 0,
+  templates: [] as string[],
+  entityKinds: [] as string[],
+  minUsage: 0,
+  maxUsage: 0,
+  relatedTags: [] as string[],
+  conflictingTags: [] as string[],
+};
+
 export const FRAMEWORK_TAG_DEFINITIONS: TagDefinition[] = [
-  {
-    tag: FRAMEWORK_TAGS.META_ENTITY,
-    category: 'system',
-    rarity: 'common',
-    description: 'Entity formed via clustering or meta-entity formation.',
-    isFramework: true,
-  },
-  {
-    tag: FRAMEWORK_TAGS.TEMPORAL,
-    category: 'system',
-    rarity: 'common',
-    description: 'Marks entities with temporal tracking semantics.',
-    isFramework: true,
-  },
-  {
-    tag: FRAMEWORK_TAGS.ERA,
-    category: 'system',
-    rarity: 'common',
-    description: 'Marks entities that represent eras.',
-    isFramework: true,
-  },
-  {
-    tag: FRAMEWORK_TAGS.ERA_ID,
-    category: 'system',
-    rarity: 'common',
-    description: 'Stores the era identifier for era entities.',
-    isFramework: true,
-  },
-  {
-    tag: FRAMEWORK_TAGS.PROMINENCE_LOCKED,
-    category: 'system',
-    rarity: 'common',
-    description: 'Prevents prominence changes for entities locked at era transition.',
-    isFramework: true,
-  },
+  { ...FRAMEWORK_TAG_DEFAULTS, tag: FRAMEWORK_TAGS.META_ENTITY, category: 'system', rarity: 'common', description: 'Entity formed via clustering or meta-entity formation.', isFramework: true },
+  { ...FRAMEWORK_TAG_DEFAULTS, tag: FRAMEWORK_TAGS.TEMPORAL, category: 'system', rarity: 'common', description: 'Marks entities with temporal tracking semantics.', isFramework: true },
+  { ...FRAMEWORK_TAG_DEFAULTS, tag: FRAMEWORK_TAGS.ERA, category: 'system', rarity: 'common', description: 'Marks entities that represent eras.', isFramework: true },
+  { ...FRAMEWORK_TAG_DEFAULTS, tag: FRAMEWORK_TAGS.ERA_ID, category: 'system', rarity: 'common', description: 'Stores the era identifier for era entities.', isFramework: true },
+  { ...FRAMEWORK_TAG_DEFAULTS, tag: FRAMEWORK_TAGS.PROMINENCE_LOCKED, category: 'system', rarity: 'common', description: 'Prevents prominence changes for entities locked at era transition.', isFramework: true },
 ];
 
 // SCHEMA MERGE HELPERS
@@ -336,10 +351,10 @@ function mergeEntityKinds(overrides: Map<string, EntityKindDefinition>, domainKi
     base: EntityKindDefinition,
     override?: EntityKindDefinition
   ) => {
-    const baseRules = base.requiredRelationships || [];
+    const baseRules = base.requiredRelationships;
     const seen = new Set(baseRules.map(r => r.kind));
-    const extra = (override?.requiredRelationships || []).filter(r => !seen.has(r.kind));
-    return baseRules.length > 0 || extra.length > 0 ? [...baseRules, ...extra] : undefined;
+    const extra = (override?.requiredRelationships ?? []).filter(r => !seen.has(r.kind));
+    return [...baseRules, ...extra];
   };
 
   return [
@@ -353,7 +368,7 @@ function mergeEntityKinds(overrides: Map<string, EntityKindDefinition>, domainKi
         subtypes: mergeSubtypes(base, override),
         statuses: mergeStatuses(base, override),
         requiredRelationships: mergeRequiredRelationships(base, override),
-        style: { ...(base.style || {}), ...(override?.style || {}) },
+        style: { ...base.style, ...(override?.style ?? {}) },
         semanticPlane: override?.semanticPlane ?? base.semanticPlane,
         defaultStatus: override?.defaultStatus ?? base.defaultStatus,
       } satisfies EntityKindDefinition;
@@ -397,11 +412,11 @@ function mergeFrameworkCulture(
     id: base.id,
     isFramework: true,
     name: base.name,
-    description: base.description ?? override.description,
-    color: base.color ?? override.color,
-    naming: override.naming ?? base.naming,
-    axisBiases: override.axisBiases ?? base.axisBiases,
-    homeRegions: override.homeRegions ?? base.homeRegions,
+    description: override.description || base.description,
+    color: override.color || base.color,
+    naming: override.naming,
+    axisBiases: override.axisBiases,
+    homeRegions: override.homeRegions,
   };
 }
 
@@ -448,7 +463,7 @@ export function mergeFrameworkSchemaSlice(schema: CanonrySchemaSlice): CanonrySc
     schema.cultures.map(item => [item.id, item])
   );
   const tagOverrides = new Map(
-    (schema.tagRegistry || []).map(item => [item.tag, item])
+    schema.tagRegistry.map(item => [item.tag, item])
   );
 
   return {
@@ -456,6 +471,6 @@ export function mergeFrameworkSchemaSlice(schema: CanonrySchemaSlice): CanonrySc
     entityKinds: mergeEntityKinds(entityOverrides, schema.entityKinds),
     relationshipKinds: mergeRelationshipKinds(relationshipOverrides, schema.relationshipKinds),
     cultures: mergeCultures(cultureOverrides, schema.cultures),
-    tagRegistry: mergeTags(tagOverrides, schema.tagRegistry || []),
+    tagRegistry: mergeTags(tagOverrides, schema.tagRegistry),
   };
 }

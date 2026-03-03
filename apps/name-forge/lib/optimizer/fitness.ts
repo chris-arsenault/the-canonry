@@ -30,11 +30,11 @@ async function loadValidationMetrics() {
  */
 function normalizeCapacityScore(report: CapacityReport, _settings: ValidationSettings): number {
   // Lower collision rate is better
-  const collisionRate = report.collisionRate ?? 0;
+  const collisionRate = report.collisionRate;
   const collisionScore = Math.max(0, 1 - collisionRate / 0.1);
 
   // Higher entropy is better (normalize to typical range 2-5 bits/char)
-  const entropy = report.entropy ?? 3;
+  const entropy = report.entropy;
   const entropyScore = Math.min(1, Math.max(0, (entropy - 2) / 3));
 
   const score = (collisionScore + entropyScore) / 2;
@@ -46,13 +46,13 @@ function normalizeCapacityScore(report: CapacityReport, _settings: ValidationSet
  */
 function normalizeDiffusenessScore(report: DiffusenessReport, settings: ValidationSettings): number {
   // Levenshtein NN distance (normalized)
-  const levenshteinP5 = report.levenshteinNN?.p5 ?? 0.3;
-  const minNN = settings.minNN_p5 ?? 0.3;
+  const levenshteinP5 = report.levenshteinNN.p5;
+  const minNN = settings.minNN_p5;
   const levenshteinScore = minNN > 0 ? Math.min(1, levenshteinP5 / minNN) : 0.5;
 
   // Shape NN distance (normalized)
-  const shapeP5 = report.shapeNN?.p5 ?? 0.2;
-  const minShape = settings.minShapeNN_p5 ?? 0.2;
+  const shapeP5 = report.shapeNN.p5;
+  const minShape = settings.minShapeNN_p5;
   const shapeScore = minShape > 0 ? Math.min(1, shapeP5 / minShape) : 0.5;
 
   const score = (levenshteinScore + shapeScore) / 2;
@@ -64,12 +64,12 @@ function normalizeDiffusenessScore(report: DiffusenessReport, settings: Validati
  */
 function normalizeSeparationScore(report: SeparationReport, settings: ValidationSettings): number {
   // Classifier accuracy
-  const classifierScore = report.classifierAccuracy ?? 0.5;
+  const classifierScore = report.classifierAccuracy;
 
   // Min pairwise centroid distance
-  const distances = Object.values(report.pairwiseDistances ?? {});
+  const distances = Object.values(report.pairwiseDistances);
   const minDistance = distances.length > 0 ? Math.min(...distances) : 1;
-  const minCentroid = settings.minCentroidDistance ?? 0.2;
+  const minCentroid = settings.minCentroidDistance;
   const centroidScore = minCentroid > 0 ? Math.min(1, minDistance / minCentroid) : 0.5;
 
   const score = (classifierScore + centroidScore) / 2;
@@ -146,6 +146,53 @@ function scoreLengthDeviation(
 /**
  * Generate names and compute fitness score
  */
+interface ScoreSet {
+  capacity: number;
+  diffuseness: number;
+  separation: number;
+  pronounceability: number;
+  length: number;
+}
+
+function computeAllScores(
+  config: NamingDomain, otherDomains: NamingDomain[],
+  settings: ValidationSettings, weights: FitnessWeights,
+  sampleSize: number, iteration: number, log: (msg: string) => void
+): ScoreSet {
+  log(`Computing metrics (${sampleSize} names)...`);
+  const capReport = validateCapacity(config, { sampleSize, seed: `fitness-${iteration}-capacity` });
+  const diffReport = validateDiffuseness(config, { sampleSize, seed: `fitness-${iteration}-diffuseness` });
+
+  let separation = 1.0;
+  if (otherDomains.length > 0) {
+    const all = [config, ...otherDomains];
+    const perDomain = Math.floor(sampleSize / all.length);
+    log(`Computing separation (${all.length} domains, ${perDomain} each)...`);
+    separation = normalizeSeparationScore(validateSeparation(all, { sampleSize: perDomain, seed: `fitness-${iteration}-separation` }), settings);
+  }
+
+  let pronounceability = 1.0, length = 1.0;
+  if (weights.pronounceability > 0 || weights.length > 0) {
+    const names = generateFromDomain(config, sampleSize, `fitness-${iteration}-style`);
+    if (weights.pronounceability > 0) pronounceability = scorePronounceability(names, config);
+    if (weights.length > 0) length = scoreLengthDeviation(names, config);
+  }
+
+  return {
+    capacity: normalizeCapacityScore(capReport, settings),
+    diffuseness: normalizeDiffusenessScore(diffReport, settings),
+    separation, pronounceability, length,
+  };
+}
+
+function combineScores(scores: ScoreSet, weights: FitnessWeights): number {
+  const total = weights.capacity + weights.diffuseness + weights.separation + weights.pronounceability + weights.length + weights.style;
+  if (total <= 0) return 0;
+  return (weights.capacity * scores.capacity + weights.diffuseness * scores.diffuseness +
+    weights.separation * scores.separation + weights.pronounceability * scores.pronounceability +
+    weights.length * scores.length) / total;
+}
+
 export async function computeFitness(
   config: NamingDomain,
   theta: ParameterVector,
@@ -167,12 +214,12 @@ export async function computeFitness(
   await loadValidationMetrics();
 
   // Apply defaults for validation settings
-  const requiredNames = settings.requiredNames ?? 500;
-  const sampleFactor = settings.sampleFactor ?? 20;
-  const maxSampleSize = settings.maxSampleSize ?? 20_000;
-  const minNN_p5 = settings.minNN_p5 ?? 0.3;
-  const minShapeNN_p5 = settings.minShapeNN_p5 ?? 0.2;
-  const minCentroidDistance = settings.minCentroidDistance ?? 0.2;
+  const requiredNames = settings.requiredNames;
+  const sampleFactor = settings.sampleFactor;
+  const maxSampleSize = settings.maxSampleSize;
+  const minNN_p5 = settings.minNN_p5;
+  const minShapeNN_p5 = settings.minShapeNN_p5;
+  const minCentroidDistance = settings.minCentroidDistance;
 
   // Merge defaults into settings for downstream use
   const mergedSettings: ValidationSettings = {
@@ -185,117 +232,12 @@ export async function computeFitness(
     minCentroidDistance,
   };
 
-  // Calculate sample size
-  const sampleSize = Math.min(
-    maxSampleSize,
-    requiredNames * sampleFactor
-  );
+  const sampleSize = Math.min(maxSampleSize, requiredNames * sampleFactor);
+  const scores = computeAllScores(config, otherDomains, mergedSettings, weights, sampleSize, iteration, log);
+  const fitness = combineScores(scores, weights);
 
-  // Run capacity and diffuseness in parallel (they're independent)
-  log(`Computing metrics in parallel (${sampleSize} names)...`);
-
-  const capacityReport = validateCapacity(config, {
-    sampleSize,
-    seed: `fitness-${iteration}-capacity`,
-  });
-  const diffusenessReport = validateDiffuseness(config, {
-    sampleSize,
-    seed: `fitness-${iteration}-diffuseness`,
-  });
-
-  // For separation, we need multiple domains (run after parallel metrics)
-  let separationScore = 1.0; // Default if no other domains
-  if (otherDomains.length > 0) {
-    const allDomains = [config, ...otherDomains];
-    const perDomainSample = Math.floor(sampleSize / allDomains.length);
-
-    log(`Computing separation (${allDomains.length} domains, ${perDomainSample} names each)...`);
-    const separationReport = validateSeparation(allDomains, {
-      sampleSize: perDomainSample,
-      seed: `fitness-${iteration}-separation`,
-    });
-    separationScore = normalizeSeparationScore(separationReport, mergedSettings);
-  }
-
-  log("Done computing metrics.");
-
-  // Normalize individual metrics to 0-1
-  const capacityScore = normalizeCapacityScore(capacityReport, mergedSettings);
-  const diffusenessScore = normalizeDiffusenessScore(diffusenessReport, mergedSettings);
-
-  // Compute pronounceability and length scores if weighted
-  let pronounceabilityScore = 1.0;
-  let lengthScore = 1.0;
-  if (weights.pronounceability > 0 || weights.length > 0) {
-    // Generate sample names for these metrics
-    const names = generateFromDomain(config, sampleSize, `fitness-${iteration}-style`);
-
-    if (weights.pronounceability > 0) {
-      pronounceabilityScore = scorePronounceability(names, config);
-    }
-
-    if (weights.length > 0) {
-      lengthScore = scoreLengthDeviation(names, config);
-    }
-  }
-
-  // Combine with weights (warn on undefined weights)
-  const warnUndefined = (name: string, value: number | undefined): number => {
-    if (value === undefined) {
-      console.warn(`[fitness] WARNING: weight '${name}' is undefined, using 0. Check caller is passing all required weights.`);
-      return 0;
-    }
-    return value;
-  };
-
-  const w = {
-    capacity: warnUndefined("capacity", weights.capacity),
-    diffuseness: warnUndefined("diffuseness", weights.diffuseness),
-    separation: warnUndefined("separation", weights.separation),
-    pronounceability: warnUndefined("pronounceability", weights.pronounceability),
-    length: warnUndefined("length", weights.length),
-    style: warnUndefined("style", weights.style),
-  };
-
-  const totalWeight =
-    w.capacity + w.diffuseness + w.separation + w.pronounceability + w.length + w.style;
-
-  // Debug: check for NaN values
-  if (isNaN(capacityScore) || isNaN(diffusenessScore) || isNaN(separationScore)) {
-    console.error("NaN detected in scores:", {
-      capacityScore,
-      diffusenessScore,
-      separationScore,
-      totalWeight,
-    });
-  }
-
-  const fitness =
-    totalWeight > 0
-      ? (w.capacity * capacityScore +
-          w.diffuseness * diffusenessScore +
-          w.separation * separationScore +
-          w.pronounceability * pronounceabilityScore +
-          w.length * lengthScore) /
-        totalWeight
-      : 0;
-
-  log(`Fitness: ${fitness.toFixed(4)} (weights: cap=${w.capacity}, diff=${w.diffuseness}, sep=${w.separation})`);
-
-  return {
-    config,
-    theta,
-    fitness,
-    scores: {
-      capacity: capacityScore,
-      diffuseness: diffusenessScore,
-      separation: separationScore,
-      pronounceability: pronounceabilityScore,
-      length: lengthScore,
-    },
-    iteration,
-    timestamp: Date.now(),
-  };
+  log(`Fitness: ${fitness.toFixed(4)}`);
+  return { config, theta, fitness, scores, iteration, timestamp: Date.now() };
 }
 
 /**

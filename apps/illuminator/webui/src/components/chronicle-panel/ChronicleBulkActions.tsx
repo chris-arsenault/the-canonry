@@ -24,10 +24,6 @@ interface BulkAnnotationProgress {
   operation?: string;
 }
 
-interface BulkEraNarrativeProgress {
-  status: string;
-}
-
 export interface ChronicleBulkActionsProps {
   showBulkActions: boolean;
   onToggleBulkActions: () => void;

@@ -95,7 +95,9 @@ async function idbDeleteProject(projectId) {
 
 function stripRunRecord(record) {
   if (!record) return null;
-  const { projectId, slotIndex, ...slotData } = record;
+  const slotData = { ...record };
+  delete slotData.projectId;
+  delete slotData.slotIndex;
   return slotData;
 }
 

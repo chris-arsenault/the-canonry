@@ -51,7 +51,7 @@ export type DeclarativeSystem =
 
 interface DeclarativeSystemBase {
   /** Whether this system is active (default: true) */
-  enabled?: boolean;
+  enabled: boolean;
 }
 
 export interface DeclarativeConnectionEvolutionSystem extends DeclarativeSystemBase {
@@ -97,7 +97,7 @@ export interface FrameworkSystemConfig {
   /** Human-readable name */
   name: string;
   /** Optional description */
-  description?: string;
+  description: string;
 }
 
 /**
@@ -119,9 +119,9 @@ export type EraSpawnerConfig = FrameworkSystemConfig;
  * See Era type in engine/types.ts for details.
  */
 export interface EraTransitionConfig extends FrameworkSystemConfig {
-  prominenceSnapshot?: {
-    enabled?: boolean;
-    minProminence?: ProminenceLabel;
+  prominenceSnapshot: {
+    enabled: boolean;
+    minProminence: ProminenceLabel;
   };
 }
 
@@ -132,13 +132,13 @@ export interface EraTransitionConfig extends FrameworkSystemConfig {
  */
 export interface UniversalCatalystConfig extends FrameworkSystemConfig {
   /** Base chance per tick that agents attempt actions. Default: 0.3 */
-  actionAttemptRate?: number;
+  actionAttemptRate: number;
   /** How much pressures amplify action attempt rates. Default: 1.5 */
-  pressureMultiplier?: number;
+  pressureMultiplier: number;
   /** Chance of prominence increase on successful action (0-1). Default: 0.1 */
-  prominenceUpChanceOnSuccess?: number;
+  prominenceUpChanceOnSuccess: number;
   /** Chance of prominence decrease on failed action (0-1). Default: 0.05 */
-  prominenceDownChanceOnFailure?: number;
+  prominenceDownChanceOnFailure: number;
 }
 
 /**
@@ -147,22 +147,22 @@ export interface UniversalCatalystConfig extends FrameworkSystemConfig {
  */
 export interface RelationshipMaintenanceConfig extends FrameworkSystemConfig {
   /** Run maintenance every N ticks. Default: 5 */
-  maintenanceFrequency?: number;
+  maintenanceFrequency: number;
   /** Remove cullable relationships below this strength. Default: 0.15 */
-  cullThreshold?: number;
+  cullThreshold: number;
   /** Don't decay or cull relationships younger than this many ticks. Default: 20 */
-  gracePeriod?: number;
+  gracePeriod: number;
   /** Strength increase when reinforcement conditions are met. Default: 0.02 */
-  reinforcementBonus?: number;
+  reinforcementBonus: number;
   /** Maximum relationship strength. Default: 1.0 */
-  maxStrength?: number;
+  maxStrength: number;
   /**
    * Relationship kinds that indicate entities are in "proximity" for reinforcement.
    * Two entities are in proximity if they both have the same destination via any of these relationships.
    * Example: ['resident_of', 'member_of'] means entities sharing a location or faction are in proximity.
    * If not specified, proximity reinforcement is disabled.
    */
-  proximityRelationshipKinds?: string[];
+  proximityRelationshipKinds: string[];
 }
 
 export interface DeclarativeEraSpawnerSystem extends DeclarativeSystemBase {
@@ -200,54 +200,30 @@ export interface DeclarativeGrowthSystem extends DeclarativeSystemBase {
  * @param declarative - The declarative system configuration
  * @returns A SimulationSystem that can be used by WorldEngine
  */
+type SystemFactory = (
+  config: DeclarativeSystem['config'],
+  options: { growthDependencies: GrowthSystemDependencies }
+) => SimulationSystem;
+
+const SYSTEM_FACTORY: Record<DeclarativeSystem['systemType'], SystemFactory> = {
+  connectionEvolution: (config) => createConnectionEvolutionSystem(config as ConnectionEvolutionConfig),
+  graphContagion: (config) => createGraphContagionSystem(config as GraphContagionConfig),
+  thresholdTrigger: (config) => createThresholdTriggerSystem(config as ThresholdTriggerConfig),
+  clusterFormation: (config) => createClusterFormationSystem(config as ClusterFormationConfig),
+  tagDiffusion: (config) => createTagDiffusionSystem(config as TagDiffusionConfig),
+  planeDiffusion: (config) => createPlaneDiffusionSystem(config as PlaneDiffusionConfig),
+  eraSpawner: (config) => createEraSpawnerSystem(config as EraSpawnerConfig),
+  eraTransition: (config) => createEraTransitionSystem(config as EraTransitionConfig),
+  universalCatalyst: (config) => createUniversalCatalystSystem(config as UniversalCatalystConfig),
+  relationshipMaintenance: (config) => createRelationshipMaintenanceSystem(config as RelationshipMaintenanceConfig),
+  growth: (config, options) => createGrowthSystem(config as GrowthSystemConfig, options.growthDependencies),
+};
+
 export function createSystemFromDeclarative(
   declarative: DeclarativeSystem,
-  options?: { growthDependencies?: GrowthSystemDependencies }
+  options: { growthDependencies: GrowthSystemDependencies }
 ): SimulationSystem {
-  switch (declarative.systemType) {
-    case 'connectionEvolution':
-      return createConnectionEvolutionSystem(declarative.config);
-
-    case 'graphContagion':
-      return createGraphContagionSystem(declarative.config);
-
-    case 'thresholdTrigger':
-      return createThresholdTriggerSystem(declarative.config);
-
-    case 'clusterFormation':
-      return createClusterFormationSystem(declarative.config);
-
-    case 'tagDiffusion':
-      return createTagDiffusionSystem(declarative.config);
-
-    case 'planeDiffusion':
-      return createPlaneDiffusionSystem(declarative.config);
-
-    // Framework systems - create configured instances
-    case 'eraSpawner':
-      return createEraSpawnerSystem(declarative.config);
-
-    case 'eraTransition':
-      return createEraTransitionSystem(declarative.config);
-
-    case 'universalCatalyst':
-      return createUniversalCatalystSystem(declarative.config);
-
-    case 'relationshipMaintenance':
-      return createRelationshipMaintenanceSystem(declarative.config);
-
-    case 'growth':
-      if (!options?.growthDependencies) {
-        throw new Error('Growth system requires engine-level dependencies; pass growthDependencies to createSystemFromDeclarative');
-      }
-      return createGrowthSystem(declarative.config, options.growthDependencies);
-
-    default: {
-      // TypeScript should catch this, but just in case
-      const exhaustive: never = declarative;
-      throw new Error(`Unknown system type: ${(exhaustive as DeclarativeSystem).systemType}`);
-    }
-  }
+  return SYSTEM_FACTORY[declarative.systemType](declarative.config, options);
 }
 
 /**
@@ -259,7 +235,7 @@ export function createSystemFromDeclarative(
  */
 export function loadSystems(
   declaratives: DeclarativeSystem[],
-  options?: { growthDependencies?: GrowthSystemDependencies }
+  options: { growthDependencies: GrowthSystemDependencies }
 ): SimulationSystem[] {
   if (!Array.isArray(declaratives)) {
     console.warn('loadSystems: expected array, got', typeof declaratives);
@@ -267,20 +243,7 @@ export function loadSystems(
   }
 
   return declaratives
-    .filter(d => {
-      if (!d || typeof d !== 'object') {
-        console.warn('loadSystems: skipping invalid config', d);
-        return false;
-      }
-      if ('enabled' in d && d.enabled === false) {
-        return false;
-      }
-      if (!d.systemType) {
-        console.warn('loadSystems: skipping config without systemType', d);
-        return false;
-      }
-      return true;
-    })
+    .filter(d => !('enabled' in d && d.enabled === false))
     .map(d => {
       try {
         return createSystemFromDeclarative(d, options);
@@ -294,20 +257,15 @@ export function loadSystems(
 /**
  * Check if a value is a valid declarative system configuration.
  */
+const DECLARATIVE_SYSTEM_TYPES = new Set([
+  'connectionEvolution', 'graphContagion', 'thresholdTrigger',
+  'clusterFormation', 'tagDiffusion', 'planeDiffusion',
+  'eraSpawner', 'eraTransition', 'universalCatalyst',
+  'relationshipMaintenance', 'growth',
+]);
+
 export function isDeclarativeSystem(value: unknown): value is DeclarativeSystem {
   if (!value || typeof value !== 'object') return false;
   const sys = value as Record<string, unknown>;
-  return (
-    sys.systemType === 'connectionEvolution' ||
-    sys.systemType === 'graphContagion' ||
-    sys.systemType === 'thresholdTrigger' ||
-    sys.systemType === 'clusterFormation' ||
-    sys.systemType === 'tagDiffusion' ||
-    sys.systemType === 'planeDiffusion' ||
-    sys.systemType === 'eraSpawner' ||
-    sys.systemType === 'eraTransition' ||
-    sys.systemType === 'universalCatalyst' ||
-    sys.systemType === 'relationshipMaintenance' ||
-    sys.systemType === 'growth'
-  ) && sys.config !== undefined;
+  return DECLARATIVE_SYSTEM_TYPES.has(sys.systemType as string) && sys.config !== undefined;
 }

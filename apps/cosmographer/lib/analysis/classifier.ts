@@ -107,6 +107,45 @@ function fuzzySimilarity(a: string, b: string): number {
   return 1 - (distance / maxLen);
 }
 
+function collectPlaneTokens(plane: PlaneSpecification): Set<string> {
+  return new Set([
+    ...tokenize(plane.id),
+    ...tokenize(plane.label),
+    ...tokenize(plane.description)
+  ]);
+}
+
+/** Forward match: check if keyword tokens appear in plane tokens. */
+function forwardKeywordMatch(planeTokens: Set<string>, allKeywords: string[]): { matches: number; totalWeight: number } {
+  let matches = 0;
+  let totalWeight = 0;
+  for (const keyword of allKeywords) {
+    const keywordTokens = tokenize(keyword);
+    const weight = 1 / Math.sqrt(keywordTokens.length);
+    for (const kt of keywordTokens) {
+      totalWeight += weight;
+      if (planeTokens.has(kt)) matches += weight;
+    }
+  }
+  return { matches, totalWeight };
+}
+
+/** Reverse match: check if plane tokens appear as substrings in keywords. */
+function reverseKeywordMatch(planeTokens: Set<string>, allKeywords: string[]): { matches: number; totalWeight: number } {
+  let matches = 0;
+  let totalWeight = 0;
+  for (const pt of planeTokens) {
+    if (pt.length < 3) continue;
+    for (const keyword of allKeywords) {
+      if (normalize(keyword).includes(pt)) {
+        matches += 0.5;
+        totalWeight += 0.5;
+      }
+    }
+  }
+  return { matches, totalWeight };
+}
+
 /**
  * Score a plane against a single category using keyword matching.
  */
@@ -114,40 +153,15 @@ function keywordScore(
   plane: PlaneSpecification,
   category: CategoryDefinition
 ): number {
-  const planeTokens = new Set([
-    ...tokenize(plane.id),
-    ...tokenize(plane.label),
-    ...(plane.description ? tokenize(plane.description) : [])
-  ]);
+  const planeTokens = collectPlaneTokens(plane);
+  const allKeywords = [...category.keywords, ...(category.synonyms)];
 
-  const allKeywords = [...category.keywords, ...(category.synonyms ?? [])];
+  const forward = forwardKeywordMatch(planeTokens, allKeywords);
+  const reverse = reverseKeywordMatch(planeTokens, allKeywords);
 
-  let matches = 0;
-  let totalWeight = 0;
-
-  for (const keyword of allKeywords) {
-    const keywordTokens = tokenize(keyword);
-    const weight = 1 / Math.sqrt(keywordTokens.length); // Longer keywords = less weight per match
-
-    for (const kt of keywordTokens) {
-      totalWeight += weight;
-      if (planeTokens.has(kt)) {
-        matches += weight;
-      }
-    }
-  }
-
-  // Also check if plane tokens appear in keywords
-  for (const pt of planeTokens) {
-    for (const keyword of allKeywords) {
-      if (normalize(keyword).includes(pt) && pt.length >= 3) {
-        matches += 0.5;
-        totalWeight += 0.5;
-      }
-    }
-  }
-
-  return totalWeight > 0 ? matches / totalWeight : 0;
+  const totalMatches = forward.matches + reverse.matches;
+  const totalWeight = forward.totalWeight + reverse.totalWeight;
+  return totalWeight > 0 ? totalMatches / totalWeight : 0;
 }
 
 /**
@@ -158,11 +172,11 @@ function fuzzyScore(
   category: CategoryDefinition
 ): number {
   const planeTerms = [plane.id, plane.label];
-  if (plane.description) {
+  if (plane.description.length > 0) {
     planeTerms.push(...plane.description.split(/\s+/).filter(w => w.length > 4));
   }
 
-  const allKeywords = [...category.keywords, ...(category.synonyms ?? [])];
+  const allKeywords = [...category.keywords, ...(category.synonyms)];
 
   let bestScore = 0;
 
@@ -299,10 +313,10 @@ export function getMatchedKeywords(
   const planeTokens = new Set([
     ...tokenize(plane.id),
     ...tokenize(plane.label),
-    ...(plane.description ? tokenize(plane.description) : [])
+    ...tokenize(plane.description)
   ]);
 
-  const allKeywords = [...category.keywords, ...(category.synonyms ?? [])];
+  const allKeywords = [...category.keywords, ...(category.synonyms)];
   const matched: string[] = [];
 
   for (const keyword of allKeywords) {

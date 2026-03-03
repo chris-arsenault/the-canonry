@@ -20,7 +20,7 @@
   color: #e2e8f0;
 }
 
-.system-activity-toggles {
+.view-switcher {
   display: flex;
   gap: 4px;
   background: rgb(0 0 0 / 20%);

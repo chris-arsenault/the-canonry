@@ -84,11 +84,11 @@ export interface StyleLibrary {
  */
 export interface StyleSelection {
   /** Selected artistic style ID, 'random' for random selection, or 'culture-default' to use culture's default */
-  artisticStyleId?: string;
+  artisticStyleId: string;
   /** Selected composition style ID, 'random' for random selection, or 'culture-default' to use culture's default */
-  compositionStyleId?: string;
+  compositionStyleId: string;
   /** Selected color palette ID, or 'random' for random selection */
-  colorPaletteId?: string;
+  colorPaletteId: string;
 }
 
 // =============================================================================

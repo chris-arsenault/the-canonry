@@ -92,7 +92,7 @@ export default function RoleAssignmentStep() {
     const metrics = computeMetrics(usageStats);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- recompute local metrics cache when candidate inputs change
     setMetricsMap(metrics);
-  }, [metricsKey, state.candidates.length, state.entryPointId, usageStats]);
+  }, [metricsKey, state.candidates.length, state.entryPointId, usageStats, computeMetrics]);
 
   // Get assigned entity IDs
   const assignedEntityIds = useMemo(() => {

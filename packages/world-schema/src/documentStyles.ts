@@ -31,9 +31,9 @@ export interface DocumentNarrativeStyle {
   /** Description shown in UI */
   description: string;
   /** Tags for categorization */
-  tags?: string[];
+  tags: string[];
   /** How this style weights in era narrative assembly */
-  eraNarrativeWeight?: EraNarrativeWeight;
+  eraNarrativeWeight: EraNarrativeWeight;
 
   // === Freeform Text Blocks (injected directly into prompts) ===
 
@@ -46,23 +46,22 @@ export interface DocumentNarrativeStyle {
 
   /**
    * Event usage instructions - how to incorporate world events.
-   * Optional - only needed if events require special handling.
    */
-  eventInstructions?: string;
+  eventInstructions: string;
 
   /**
    * Craft posture - how the author should relate to the material.
    * Controls density, withholding, elaboration mode, emotional signaling.
    * Orthogonal to document instructions and word count.
    */
-  craftPosture?: string;
+  craftPosture: string;
 
   /**
    * Title guidance - how titles for this style should feel.
    * Freeform description of the title's shape, register, and energy.
    * Injected into the title generation prompt as the primary style constraint.
    */
-  titleGuidance?: string;
+  titleGuidance: string;
 
   // === Structured Data (genuinely useful as structured) ===
 

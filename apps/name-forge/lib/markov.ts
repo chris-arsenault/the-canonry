@@ -21,9 +21,9 @@ const END = "$";
 export function generateFromMarkov(
   model: MarkovModel,
   options: {
-    minLength?: number;
-    maxLength?: number;
-    seed?: string;
+    minLength: number;
+    maxLength: number;
+    seed: string;
   } = {}
 ): string {
   const { minLength = 3, maxLength = 12, seed } = options;
@@ -59,9 +59,9 @@ export function generateNamesFromMarkov(
   model: MarkovModel,
   count: number,
   options: {
-    minLength?: number;
-    maxLength?: number;
-    seed?: string;
+    minLength: number;
+    maxLength: number;
+    seed: string;
   } = {}
 ): string[] {
   const names = new Set<string>();

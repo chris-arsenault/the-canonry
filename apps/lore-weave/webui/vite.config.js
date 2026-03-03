@@ -21,8 +21,8 @@ export default defineConfig({
       filename: 'remoteEntry.js',
       manifest: true,
       exposes: {
-        './LoreWeaveRemote': './src/LoreWeaveRemote.jsx',
-        './SimulationTraceVisx': './src/components/dashboard/trace/SimulationTraceVisx.jsx',
+        './LoreWeaveRemote': './src/LoreWeaveRemote.tsx',
+        './SimulationTraceVisx': './src/components/dashboard/trace/SimulationTraceVisx.tsx',
       },
       shared: sharedDeps(),
     }),

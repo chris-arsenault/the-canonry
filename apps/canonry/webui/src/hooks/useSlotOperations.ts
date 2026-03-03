@@ -5,7 +5,7 @@
  * reload-from-defaults, and search-run scoring.
  */
 
-import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction } from "react";
+import { useCallback, type RefObject, type Dispatch, type SetStateAction } from "react";
 import {
   loadWorldStore,
   getSlots,
@@ -34,9 +34,9 @@ interface UseSlotOperationsParams {
   setWorldContext: Dispatch<SetStateAction<unknown>>;
   setEntityGuidance: Dispatch<SetStateAction<unknown>>;
   setCultureIdentities: Dispatch<SetStateAction<unknown>>;
-  isLoadingSlotRef: MutableRefObject<boolean>;
-  lastSavedResultsRef: MutableRefObject<unknown>;
-  exportCancelRef: MutableRefObject<boolean>;
+  isLoadingSlotRef: RefObject<boolean>;
+  lastSavedResultsRef: RefObject<unknown>;
+  exportCancelRef: RefObject<boolean>;
   setExportBundleStatus: Dispatch<SetStateAction<{ state: "idle" | "working" | "error"; detail: string }>>;
   setExportModalSlotIndex: Dispatch<SetStateAction<number | null>>;
   worldContext: unknown;

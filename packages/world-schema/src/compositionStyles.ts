@@ -34,15 +34,15 @@ export interface CompositionStyle {
   /** Display name */
   name: string;
   /** Human-readable description */
-  description?: string;
+  description: string;
   /** Prompt fragment for composition (injected into image prompt) */
   promptFragment: string;
   /**
    * Target category this composition is best suited for.
    * Used to filter/suggest compositions based on context.
-   * If undefined, composition is considered universal.
+   * Empty string for universal compositions.
    */
-  targetCategory?: CompositionCategory;
+  targetCategory: CompositionCategory | '';
 }
 
 export const DEFAULT_COMPOSITION_STYLES: CompositionStyle[] = [

@@ -21,7 +21,7 @@ export function getAgentsByCategory(
   category: 'first-order' | 'second-order' | 'all' = 'all'
 ): HardState[] {
   const agents = graph.getEntities()
-    .filter(e => e.catalyst?.canAct === true);
+    .filter(e => e.catalyst.canAct === true);
 
   if (category === 'all') {
     return agents;
@@ -42,7 +42,7 @@ export function getAgentsByCategory(
  * @returns True if entity can act
  */
 export function canPerformAction(entity: HardState): boolean {
-  return entity.catalyst?.canAct === true;
+  return entity.catalyst.canAct === true;
 }
 
 /**
@@ -118,7 +118,7 @@ export function calculateAttemptChance(
   entity: HardState,
   baseRate: number
 ): number {
-  if (!entity.catalyst?.canAct) {
+  if (!entity.catalyst.canAct) {
     return 0;
   }
 

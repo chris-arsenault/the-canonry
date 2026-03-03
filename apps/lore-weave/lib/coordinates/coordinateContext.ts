@@ -29,7 +29,7 @@ interface NameGenerationService {
     prominence: string,
     tags: string[],
     culture: string,
-    context?: Record<string, string>
+    context: Record<string, string>
   ): Promise<string>;
 }
 
@@ -48,31 +48,31 @@ export type KindAxisBiases = AxisBias;
  */
 export interface PlacementContext {
   /** Culture driving placement biases */
-  cultureId?: string;
+  cultureId: string;
 
   /** Entity kind being placed (needed to look up kind-specific biases/regions) */
-  entityKind?: string;
+  entityKind: string;
 
   /** Culture's axis biases for this entity kind */
-  axisBiases?: KindAxisBiases;
+  axisBiases: KindAxisBiases;
 
   /** Region IDs to bias placement toward (derived from regions with matching culture) */
-  seedRegionIds?: string[];
+  seedRegionIds: string[];
 
   /** Reference entity for proximity-based placement */
-  referenceEntity?: {
+  referenceEntity: {
     id: string;
     coordinates: Point;
   };
 
   /** Whether to allow emergent region creation when seed regions are at capacity (default: true) */
-  allowEmergent?: boolean;
+  allowEmergent: boolean;
 
   /** When true, placement must stay within seed regions (skip unconstrained near-reference sampling) */
-  stickToRegion?: boolean;
+  stickToRegion: boolean;
 
   /** When true, bias region selection toward sparser regions (weighted by inverse entity count) */
-  preferSparse?: boolean;
+  preferSparse: boolean;
 }
 
 /**
@@ -83,31 +83,31 @@ export interface PlacementResult {
   success: boolean;
 
   /** Placed coordinates (if successful) */
-  coordinates?: Point;
+  coordinates: Point;
 
   /** Region ID entity was placed in (null if not in any region) */
-  regionId?: string | null;
+  regionId: string | null;
 
   /** All region IDs containing the point */
-  allRegionIds?: string[];
+  allRegionIds: string[];
 
   /** Tags derived from region + axis position */
-  derivedTags?: EntityTags;
+  derivedTags: EntityTags;
 
   /** Culture ID used for placement */
-  cultureId?: string;
+  cultureId: string;
 
   /** How the placement was resolved (which strategy succeeded) */
-  resolvedVia?: string;
+  resolvedVia: string;
 
   /** Whether an emergent region was created */
-  emergentRegionCreated?: {
+  emergentRegionCreated: {
     id: string;
     label: string;
   };
 
   /** Failure reason if unsuccessful */
-  failureReason?: string;
+  failureReason: string;
 }
 
 // =============================================================================
@@ -144,7 +144,7 @@ export interface CoordinateContextConfig {
    * Higher values = sparser placement (entities spread out more)
    * Default: 5 (units on 0-100 normalized coordinate space)
    */
-  defaultMinDistance?: number;
+  defaultMinDistance: number;
 
   /** Name generation service for emergent region names */
   nameForgeService: NameGenerationService;
@@ -213,22 +213,11 @@ export class CoordinateContext {
 
   constructor(config: CoordinateContextConfig) {
     const { schema } = config;
-    if (!schema) {
-      throw new Error('CoordinateContext: schema is required.');
-    }
-
     this.entityKinds = schema.entityKinds;
     this.cultures = schema.cultures;
-    this.defaultMinDistance = config.defaultMinDistance ?? 5;
+    this.defaultMinDistance = config.defaultMinDistance;
     this.nameForgeService = config.nameForgeService;
-    this.axisDefinitions = new Map((schema.axisDefinitions || []).map(axis => [axis.id, axis]));
-
-    if (!this.entityKinds || this.entityKinds.length === 0) {
-      throw new Error('CoordinateContext: schema.entityKinds is required.');
-    }
-    if (!this.cultures || this.cultures.length === 0) {
-      throw new Error('CoordinateContext: schema.cultures is required.');
-    }
+    this.axisDefinitions = new Map(schema.axisDefinitions.map(axis => [axis.id, axis]));
 
     this.validateSemanticPlanes();
     this.initializeRegionStorage();
@@ -240,12 +229,8 @@ export class CoordinateContext {
   private validateSemanticPlanes(): void {
     for (const entityKind of this.entityKinds) {
       const plane = entityKind.semanticPlane;
-      if (plane?.axes) {
-        this.validateAxisReferences(entityKind.kind, plane.axes);
-      }
-      if (plane?.regions) {
-        this.validateRegionColors(entityKind.kind, plane.regions);
-      }
+      this.validateAxisReferences(entityKind.kind, plane.axes);
+      this.validateRegionColors(entityKind.kind, plane.regions);
     }
   }
 
@@ -275,9 +260,7 @@ export class CoordinateContext {
    */
   private initializeRegionStorage(): void {
     for (const entityKind of this.entityKinds) {
-      if (entityKind.semanticPlane?.regions) {
-        this.regions[entityKind.kind] = [...entityKind.semanticPlane.regions];
-      }
+      this.regions[entityKind.kind] = [...entityKind.semanticPlane.regions];
     }
   }
 
@@ -298,7 +281,6 @@ export class CoordinateContext {
    */
   getConfiguredKinds(): string[] {
     return this.entityKinds
-      .filter(k => k.semanticPlane)
       .map(k => k.kind);
   }
 
@@ -306,7 +288,7 @@ export class CoordinateContext {
    * Check if a kind has semantic data configured.
    */
   hasKindMap(kind: string): boolean {
-    return this.entityKinds.some(k => k.kind === kind && k.semanticPlane);
+    return this.entityKinds.some(k => k.kind === kind);
   }
 
   /**
@@ -368,7 +350,7 @@ export class CoordinateContext {
    */
   getAxisBiases(cultureId: string, entityKind: string): KindAxisBiases | undefined {
     const culture = this.cultures.find(c => c.id === cultureId);
-    return culture?.axisBiases?.[entityKind];
+    return culture?.axisBiases[entityKind];
   }
 
   /**
@@ -409,13 +391,13 @@ export class CoordinateContext {
     description: string,
     tick: number,
     cultureId: string,
-    createdBy?: string
+    createdBy: string
   ): import('./types').EmergentRegionResult {
     const regions = this.getRegions(entityKind);
     const culture = this.getCultureConfig(cultureId);
-    if (!culture || !culture.color) {
+    if (!culture) {
       throw new Error(
-        `CoordinateContext: culture "${cultureId}" is missing color for emergent region "${label}".`
+        `CoordinateContext: culture "${cultureId}" not found for emergent region "${label}".`
       );
     }
 
@@ -509,11 +491,11 @@ export class CoordinateContext {
   sampleNearPoint(
     referencePoint: Point,
     existingPoints: Point[] = [],
-    maxSearchRadius?: number
+    maxSearchRadius: number
   ): Point | null {
     const maxAttempts = 50;
     const minDist = this.defaultMinDistance;
-    const maxRadius = maxSearchRadius ?? minDist * 4;
+    const maxRadius = maxSearchRadius;
 
     for (let i = 0; i < maxAttempts; i++) {
       // Sample in a ring around the reference point
@@ -712,7 +694,7 @@ export class CoordinateContext {
     for (let i = 0; i < maxAttempts; i++) {
       let point: Point;
 
-      if (refIsNearby && referencePoint && i < maxAttempts * 0.7) {
+      if (refIsNearby && i < maxAttempts * 0.7) {
         // First 70% of attempts: sample near reference point but constrain to region
         const searchRadius = Math.min(this.defaultMinDistance * 4, radius * 0.8);
         const r = this.defaultMinDistance + Math.random() * (searchRadius - this.defaultMinDistance);
@@ -812,7 +794,7 @@ export class CoordinateContext {
     context: PlacementContext,
     existingPoints: Point[] = [],
     tick: number = 0
-  ): Promise<{ point: Point; resolvedVia: string; placedInRegion?: Region; emergentRegion?: { id: string; label: string } } | null> {
+  ): Promise<{ point: Point; resolvedVia: string; placedInRegion: Region; emergentRegion: { id: string; label: string } } | null> {
     // If reference entity provided AND we're not constrained to regions, sample near it
     // When stickToRegion is true, skip this to ensure placement stays within region bounds
     const nearRef = this.trySampleNearReference(context, existingPoints);
@@ -838,7 +820,7 @@ export class CoordinateContext {
     context: PlacementContext,
     existingPoints: Point[]
   ): { point: Point; resolvedVia: string } | null {
-    if (!context.referenceEntity?.coordinates || context.stickToRegion) return null;
+    if (context.stickToRegion) return null;
     const point = this.sampleNearPoint(context.referenceEntity.coordinates, existingPoints);
     return point ? { point, resolvedVia: 'near_reference' } : null;
   }
@@ -848,10 +830,10 @@ export class CoordinateContext {
     context: PlacementContext,
     existingPoints: Point[]
   ): { point: Point; resolvedVia: string; placedInRegion: Region } | null {
-    if (!context.seedRegionIds || context.seedRegionIds.length === 0) return null;
+    if (context.seedRegionIds.length === 0) return null;
 
     const regions = this.getRegions(entityKind);
-    const referenceCoords = context.referenceEntity?.coordinates;
+    const referenceCoords = context.referenceEntity.coordinates;
 
     const validRegions = context.seedRegionIds
       .map(id => regions.find(r => r.id === id))
@@ -864,7 +846,7 @@ export class CoordinateContext {
     for (const region of orderedRegions) {
       const point = this.sampleCircleRegionNear(region, referenceCoords, existingPoints);
       if (point) {
-        const via = referenceCoords ? 'seed_region_near_ref' : 'seed_region';
+        const via = 'seed_region_near_ref';
         return { point, resolvedVia: via, placedInRegion: region };
       }
     }
@@ -875,7 +857,6 @@ export class CoordinateContext {
     context: PlacementContext,
     existingPoints: Point[]
   ): { point: Point; resolvedVia: string } | null {
-    if (!context.axisBiases) return null;
     const biasCenter: Point = {
       x: context.axisBiases.x,
       y: context.axisBiases.y,
@@ -960,12 +941,12 @@ export class CoordinateContext {
     cultureId: string,
     existingPoints: Point[],
     tick: number,
-    axisBiases?: KindAxisBiases
+    axisBiases: KindAxisBiases
   ): Promise<{ point: Point; region: Region } | null> {
     let regionCenter: Point | null = null;
 
     // If culture has axis biases, place emergent region near that point
-    if (axisBiases) {
+    {
       const biasCenter: Point = {
         x: axisBiases.x,
         y: axisBiases.y,
@@ -984,7 +965,7 @@ export class CoordinateContext {
         maxAttempts: 30
       });
 
-      if (!sparseResult.success || !sparseResult.coordinates) {
+      if (!sparseResult.success) {
         return null;
       }
       regionCenter = sparseResult.coordinates;
@@ -998,7 +979,7 @@ export class CoordinateContext {
       tick
     );
 
-    if (!regionResult.success || !regionResult.region) {
+    if (!regionResult.success) {
       return null;
     }
 
@@ -1035,10 +1016,8 @@ export class CoordinateContext {
 
     // 1. Add tags from containing regions
     for (const region of containingRegions) {
-      if (region.tags) {
-        for (const tag of region.tags) {
-          addTag(tag);
-        }
+      for (const tag of region.tags) {
+        addTag(tag);
       }
     }
 
@@ -1061,8 +1040,8 @@ export class CoordinateContext {
     if (!semanticPlane?.axes) return;
 
     const { axes } = semanticPlane;
-    const resolveAxis = (axisRef?: { axisId: string }) =>
-      axisRef?.axisId ? this.axisDefinitions.get(axisRef.axisId) : undefined;
+    const resolveAxis = (axisRef: { axisId: string }) =>
+      axisRef.axisId ? this.axisDefinitions.get(axisRef.axisId) : undefined;
 
     this.applyAxisTag(resolveAxis(axes.x), point.x, addTag);
     this.applyAxisTag(resolveAxis(axes.y), point.y, addTag);
@@ -1116,10 +1095,10 @@ export class CoordinateContext {
 
     // If we know which region we placed in (seed region case), use that as primary
     // This prevents confusion when regions overlap
-    const containingRegion = placedInRegion ?? containingRegions[0];
+    const containingRegion = placedInRegion;
 
     // Ensure placedInRegion is included in allRegions for tag derivation
-    const allContainingRegions = placedInRegion && !containingRegions.some(r => r.id === placedInRegion.id)
+    const allContainingRegions = !containingRegions.some(r => r.id === placedInRegion.id)
       ? [placedInRegion, ...containingRegions]
       : containingRegions;
 
@@ -1140,7 +1119,7 @@ export class CoordinateContext {
     return {
       success: true,
       coordinates: point,
-      regionId: containingRegion?.id ?? null,
+      regionId: containingRegion.id,
       allRegionIds: allContainingRegions.map(r => r.id),
       derivedTags,
       cultureId: context.cultureId,
@@ -1209,8 +1188,8 @@ export class CoordinateContext {
    * Import coordinate state from a previously exported world.
    * Restores emergent regions.
    */
-  import(state: { emergentRegions?: { [entityKind: string]: Region[] } }): void {
-    if (state.emergentRegions) {
+  import(state: { emergentRegions: { [entityKind: string]: Region[] } }): void {
+    {
       for (const [kind, regions] of Object.entries(state.emergentRegions)) {
         const existing = this.getRegions(kind);
         for (const region of regions) {
@@ -1249,14 +1228,14 @@ export class CoordinateContext {
     let emergentRegions = 0;
 
     for (const kind of Object.keys(this.regions)) {
-      const kindRegions = this.regions[kind] || [];
+      const kindRegions = this.regions[kind];
       totalRegions += kindRegions.length;
       emergentRegions += kindRegions.filter(r => r.emergent).length;
     }
 
     return {
       cultures: this.cultures.length,
-      kinds: this.entityKinds.filter(k => k.semanticPlane).length,
+      kinds: this.entityKinds.length,
       totalRegions,
       emergentRegions
     };

@@ -453,6 +453,148 @@ EntityRow.propTypes = {
   prominenceScale: PropTypes.object,
 };
 
+const NAV_COMPLETION_FIELDS = {
+  description: "hasDescription",
+  visualThesis: "hasVisualThesis",
+  image: "imageId",
+};
+
+function toggleSetMember(set, id) {
+  const next = new Set(set);
+  if (next.has(id)) next.delete(id); else next.add(id);
+  return next;
+}
+
+function extractFilterOptions(navEntities) {
+  const kinds = new Set();
+  const cultures = new Set();
+  for (const entity of navEntities) {
+    kinds.add(entity.kind);
+    if (entity.culture) cultures.add(entity.culture);
+  }
+  return { kinds: Array.from(kinds).sort(), cultures: Array.from(cultures).sort() };
+}
+
+function isEligibleForImage(nav, config, getStatus, prominenceScale) {
+  return prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
+    getStatus(nav, "image") === "missing" &&
+    (!config.requireDescription || nav.hasDescription);
+}
+
+function buildQueueItem(entity, type, buildPrompt, getVisualConfig, imageGenSettings) {
+  const prompt = buildPrompt(entity, type === "visualThesis" ? "description" : type);
+  const visualConfig = (type === "description" || type === "visualThesis") && getVisualConfig ? getVisualConfig(entity) : {};
+  const imageOverrides = type === "image" ? { imageSize: imageGenSettings.imageSize, imageQuality: imageGenSettings.imageQuality } : {};
+  return { entity, type, prompt, ...visualConfig, ...imageOverrides };
+}
+
+function resolveEnrichmentStatus(nav, type, queue) {
+  const queueItem = queue.find((item) => item.entityId === nav.id && item.type === type);
+  if (queueItem) return queueItem.status;
+  const field = NAV_COMPLETION_FIELDS[type];
+  if (field && nav[field]) return "complete";
+  return "missing";
+}
+
+function buildEntityDebugEntry(entity, queue) {
+  const textEnrichment = entity.enrichment?.text;
+  const chainDebug = textEnrichment?.chainDebug;
+  let legacyDebug = textEnrichment?.debug;
+
+  if (!chainDebug && !legacyDebug) {
+    const qItem = queue.find(
+      (item) => item.entityId === entity.id && item.type === "description" && item.debug
+    );
+    if (qItem?.debug) legacyDebug = qItem.debug;
+  }
+
+  if (!chainDebug && !legacyDebug) return null;
+
+  const entry = {
+    entityId: entity.id,
+    entityName: entity.name,
+    entityKind: entity.kind,
+    timestamp: textEnrichment?.generatedAt,
+    model: textEnrichment?.model,
+    summary: entity.summary,
+    description: entity.description,
+    visualThesis: textEnrichment?.visualThesis,
+    visualTraits: textEnrichment?.visualTraits,
+    aliases: textEnrichment?.aliases,
+  };
+  if (chainDebug) entry.chainDebug = chainDebug;
+  if (legacyDebug && !chainDebug) entry.legacyDebug = legacyDebug;
+  return entry;
+}
+
+function collectFieldMatches(entity, q) {
+  const matches = [];
+  const nameIdx = entity.name.toLowerCase().indexOf(q);
+  if (nameIdx !== -1) matches.push({ field: "name", value: entity.name, matchIndex: nameIdx });
+  for (const alias of entity.aliases) {
+    if (typeof alias !== "string") continue;
+    const aliasIdx = alias.toLowerCase().indexOf(q);
+    if (aliasIdx !== -1) matches.push({ field: "alias", value: alias, matchIndex: aliasIdx });
+  }
+  for (const slug of entity.slugAliases) {
+    if (typeof slug !== "string") continue;
+    const slugIdx = slug.toLowerCase().indexOf(q);
+    if (slugIdx !== -1) matches.push({ field: "slug alias", value: slug, matchIndex: slugIdx });
+  }
+  return matches;
+}
+
+function searchEntities(navEntities, searchQuery, searchText) {
+  const q = searchQuery.trim().toLowerCase();
+  if (!q || q.length < 2) return [];
+  const results = [];
+  for (const entity of navEntities) {
+    const matches = collectFieldMatches(entity, q);
+    if (searchText && entity.summary) {
+      const sumIdx = entity.summary.toLowerCase().indexOf(q);
+      if (sumIdx !== -1) matches.push({ field: "summary", value: entity.summary, matchIndex: sumIdx });
+    }
+    if (matches.length > 0) results.push({ entity, matches });
+  }
+  results.sort((a, b) => {
+    const aHasName = a.matches.some((m) => m.field === "name") ? 0 : 1;
+    const bHasName = b.matches.some((m) => m.field === "name") ? 0 : 1;
+    if (aHasName !== bHasName) return aHasName - bHasName;
+    return a.entity.name.localeCompare(b.entity.name);
+  });
+  return results;
+}
+
+function matchesStatusFilter(statusFilter, descStatus, imgStatus) {
+  if (statusFilter === "all") return true;
+  if (statusFilter === "missing") return descStatus === "missing" || imgStatus === "missing";
+  if (statusFilter === "complete") return descStatus === "complete";
+  if (statusFilter === "queued") return descStatus === "queued" || imgStatus === "queued";
+  if (statusFilter === "running") return descStatus === "running" || imgStatus === "running";
+  if (statusFilter === "error") return descStatus === "error" || imgStatus === "error";
+  return true;
+}
+
+function matchesChronicleImageFilter(filter, nav) {
+  if (filter === "all") return true;
+  if (filter === "none") return nav.backrefCount === 0;
+  if (filter === "unconfigured") return nav.backrefCount > 0 && nav.unconfiguredBackrefCount > 0;
+  if (filter === "configured") return nav.backrefCount > 0 && nav.unconfiguredBackrefCount === 0;
+  return true;
+}
+
+function entityMatchesFilters(nav, filters, getStatus, hideCompleted, prominenceScale) {
+  if (filters.kind !== "all" && nav.kind !== filters.kind) return false;
+  if (filters.prominence !== "all" && prominenceLabelFromScale(nav.prominence, prominenceScale) !== filters.prominence) return false;
+  if (filters.culture !== "all" && nav.culture !== filters.culture) return false;
+  const descStatus = getStatus(nav, "description");
+  const imgStatus = getStatus(nav, "image");
+  if (hideCompleted && descStatus === "complete" && imgStatus === "complete") return false;
+  if (!matchesStatusFilter(filters.status, descStatus, imgStatus)) return false;
+  if (!matchesChronicleImageFilter(filters.chronicleImage, nav)) return false;
+  return true;
+}
+
 export default function EntityBrowser({
   worldSchema: _worldSchema,
   config,
@@ -494,69 +636,13 @@ export default function EntityBrowser({
   const [imagePickerEntity, setImagePickerEntity] = useState(null);
   const [showMotifWeaver, setShowMotifWeaver] = useState(false);
   // Get unique values for filters
-  const filterOptions = useMemo(() => {
-    const kinds = new Set();
-    const cultures = new Set();
-
-    for (const entity of navEntities) {
-      kinds.add(entity.kind);
-      if (entity.culture) cultures.add(entity.culture);
-    }
-
-    return {
-      kinds: Array.from(kinds).sort(),
-      cultures: Array.from(cultures).sort(),
-    };
-  }, [navEntities]);
+  const filterOptions = useMemo(() => extractFilterOptions(navEntities), [navEntities]);
 
   // Entity search — partial match on name, aliases, and optionally summary text
-  const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q || q.length < 2) return [];
-    const results = [];
-    for (const entity of navEntities) {
-      const matches = [];
-      // Name match
-      const nameIdx = entity.name.toLowerCase().indexOf(q);
-      if (nameIdx !== -1) {
-        matches.push({ field: "name", value: entity.name, matchIndex: nameIdx });
-      }
-      // Alias matches
-      for (const alias of entity.aliases) {
-        if (typeof alias !== "string") continue;
-        const aliasIdx = alias.toLowerCase().indexOf(q);
-        if (aliasIdx !== -1) {
-          matches.push({ field: "alias", value: alias, matchIndex: aliasIdx });
-        }
-      }
-      // Slug alias matches
-      for (const slug of entity.slugAliases) {
-        if (typeof slug !== "string") continue;
-        const slugIdx = slug.toLowerCase().indexOf(q);
-        if (slugIdx !== -1) {
-          matches.push({ field: "slug alias", value: slug, matchIndex: slugIdx });
-        }
-      }
-      // Summary text matches (only when searchText enabled)
-      if (searchText && entity.summary) {
-        const sumIdx = entity.summary.toLowerCase().indexOf(q);
-        if (sumIdx !== -1) {
-          matches.push({ field: "summary", value: entity.summary, matchIndex: sumIdx });
-        }
-      }
-      if (matches.length > 0) {
-        results.push({ entity, matches });
-      }
-    }
-    // Sort: name matches first, then by name alphabetically
-    results.sort((a, b) => {
-      const aHasName = a.matches.some((m) => m.field === "name") ? 0 : 1;
-      const bHasName = b.matches.some((m) => m.field === "name") ? 0 : 1;
-      if (aHasName !== bHasName) return aHasName - bHasName;
-      return a.entity.name.localeCompare(b.entity.name);
-    });
-    return results;
-  }, [navEntities, searchQuery, searchText]);
+  const searchResults = useMemo(
+    () => searchEntities(navEntities, searchQuery, searchText),
+    [navEntities, searchQuery, searchText]
+  );
 
   const handleSearchSelect = useCallback((entityId) => {
     setSelectedEntityId(entityId);
@@ -566,89 +652,18 @@ export default function EntityBrowser({
 
   // Get enrichment status for a nav item
   const getStatus = useCallback(
-    (nav, type) => {
-      // Check queue first
-      const queueItem = queue.find((item) => item.entityId === nav.id && item.type === type);
-      if (queueItem) {
-        return queueItem.status;
-      }
-
-      // Check nav item flags
-      if (type === "description" && nav.hasDescription) return "complete";
-      if (type === "visualThesis" && nav.hasVisualThesis) return "complete";
-      if (type === "image" && nav.imageId) return "complete";
-
-      return "missing";
-    },
+    (nav, type) => resolveEnrichmentStatus(nav, type, queue),
     [queue]
   );
 
   // Filter entities via nav items
   const filteredNavItems = useMemo(() => {
-    return navEntities.filter((nav) => {
-      if (filters.kind !== "all" && nav.kind !== filters.kind) return false;
-      if (
-        filters.prominence !== "all" &&
-        prominenceLabelFromScale(nav.prominence, prominenceScale) !== filters.prominence
-      ) {
-        return false;
-      }
-      if (filters.culture !== "all" && nav.culture !== filters.culture) return false;
-
-      const descStatus = getStatus(nav, "description");
-      const imgStatus = getStatus(nav, "image");
-
-      // Hide completed filter
-      if (hideCompleted && descStatus === "complete" && imgStatus === "complete") {
-        return false;
-      }
-
-      if (filters.status !== "all") {
-        if (filters.status === "missing" && descStatus !== "missing" && imgStatus !== "missing") {
-          return false;
-        }
-        if (filters.status === "complete" && descStatus !== "complete") {
-          return false;
-        }
-        if (filters.status === "queued" && descStatus !== "queued" && imgStatus !== "queued") {
-          return false;
-        }
-        if (filters.status === "running" && descStatus !== "running" && imgStatus !== "running") {
-          return false;
-        }
-        if (filters.status === "error" && descStatus !== "error" && imgStatus !== "error") {
-          return false;
-        }
-      }
-
-      // Chronicle image filter
-      if (filters.chronicleImage !== "all") {
-        if (filters.chronicleImage === "none" && nav.backrefCount > 0) return false;
-        if (filters.chronicleImage === "unconfigured") {
-          if (nav.backrefCount === 0) return false;
-          if (nav.unconfiguredBackrefCount === 0) return false;
-        }
-        if (filters.chronicleImage === "configured") {
-          if (nav.backrefCount === 0) return false;
-          if (nav.unconfiguredBackrefCount > 0) return false;
-        }
-      }
-
-      return true;
-    });
+    return navEntities.filter((nav) => entityMatchesFilters(nav, filters, getStatus, hideCompleted, prominenceScale));
   }, [navEntities, filters, hideCompleted, getStatus, prominenceScale]);
 
   // Toggle selection
   const toggleSelect = useCallback((entityId) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(entityId)) {
-        next.delete(entityId);
-      } else {
-        next.add(entityId);
-      }
-      return next;
-    });
+    setSelectedIds((prev) => toggleSetMember(prev, entityId));
   }, []);
 
   // Select all filtered
@@ -662,22 +677,16 @@ export default function EntityBrowser({
   }, []);
 
   // Queue single item — load full entity from store for prompt building
+  const imgSize = imageGenSettings.imageSize;
+  const imgQuality = imageGenSettings.imageQuality;
   const queueItem = useCallback(
     async (entityId, type) => {
       const entity = await useEntityStore.getState().loadEntity(entityId);
       if (!entity) return;
-      const prompt = buildPrompt(entity, type === "visualThesis" ? "description" : type);
-      const visualConfig =
-        (type === "description" || type === "visualThesis") && getVisualConfig
-          ? getVisualConfig(entity)
-          : {};
-      const imageOverrides =
-        type === "image"
-          ? { imageSize: imageGenSettings.imageSize, imageQuality: imageGenSettings.imageQuality }
-          : {};
-      getEnqueue()([{ entity, type, prompt, ...visualConfig, ...imageOverrides }]);
+      const item = buildQueueItem(entity, type, buildPrompt, getVisualConfig, { imageSize: imgSize, imageQuality: imgQuality });
+      getEnqueue()([item]);
     },
-    [buildPrompt, getVisualConfig, imageGenSettings.imageSize, imageGenSettings.imageQuality]
+    [buildPrompt, getVisualConfig, imgSize, imgQuality]
   );
 
   // Cancel single item
@@ -693,13 +702,10 @@ export default function EntityBrowser({
 
   // Queue all missing descriptions for selected — filter on nav items, load full for prompt
   const queueSelectedDescriptions = useCallback(async () => {
-    const missingIds = [];
-    for (const entityId of selectedIds) {
+    const missingIds = [...selectedIds].filter(entityId => {
       const nav = navEntities.find((e) => e.id === entityId);
-      if (nav && getStatus(nav, "description") === "missing") {
-        missingIds.push(entityId);
-      }
-    }
+      return nav && getStatus(nav, "description") === "missing";
+    });
     if (missingIds.length === 0) return;
     const fullEntities = await useEntityStore.getState().loadEntities(missingIds);
     const items = fullEntities.map((entity) => {
@@ -715,27 +721,22 @@ export default function EntityBrowser({
   }, [selectedIds, navEntities, getStatus, buildPrompt, getVisualConfig]);
 
   // Queue all missing images for selected
+  const minProm = config.minProminenceForImage;
+  const requireDesc = config.requireDescription;
   const queueSelectedImages = useCallback(async () => {
-    const eligibleIds = [];
-    for (const entityId of selectedIds) {
+    const imgConfig = { minProminenceForImage: minProm, requireDescription: requireDesc };
+    const eligibleIds = [...selectedIds].filter(entityId => {
       const nav = navEntities.find((e) => e.id === entityId);
-      if (
-        nav &&
-        prominenceAtLeast(nav.prominence, config.minProminenceForImage, prominenceScale) &&
-        getStatus(nav, "image") === "missing" &&
-        (!config.requireDescription || nav.hasDescription)
-      ) {
-        eligibleIds.push(entityId);
-      }
-    }
+      return nav && isEligibleForImage(nav, imgConfig, getStatus, prominenceScale);
+    });
     if (eligibleIds.length === 0) return;
     const fullEntities = await useEntityStore.getState().loadEntities(eligibleIds);
     const items = fullEntities.map((entity) => ({
       entity,
       type: "image",
       prompt: buildPrompt(entity, "image"),
-      imageSize: imageGenSettings.imageSize,
-      imageQuality: imageGenSettings.imageQuality,
+      imageSize: imgSize,
+      imageQuality: imgQuality,
     }));
     if (items.length > 0) getEnqueue()(items);
   }, [
@@ -743,10 +744,10 @@ export default function EntityBrowser({
     navEntities,
     getStatus,
     buildPrompt,
-    config.minProminenceForImage,
-    config.requireDescription,
-    imageGenSettings.imageSize,
-    imageGenSettings.imageQuality,
+    minProm,
+    requireDesc,
+    imgSize,
+    imgQuality,
     prominenceScale,
   ]);
 
@@ -955,42 +956,9 @@ export default function EntityBrowser({
   const downloadSelectedDebug = useCallback(async () => {
     const ids = Array.from(selectedIds);
     const fullEntities = await useEntityStore.getState().loadEntities(ids);
-    const debugData = [];
-
-    for (const entity of fullEntities) {
-      const textEnrichment = entity.enrichment?.text;
-      const timestamp = textEnrichment?.generatedAt;
-
-      const chainDebug = textEnrichment?.chainDebug;
-      let legacyDebug = textEnrichment?.debug;
-
-      if (!chainDebug && !legacyDebug) {
-        const qItem = queue.find(
-          (item) => item.entityId === entity.id && item.type === "description" && item.debug
-        );
-        if (qItem?.debug) {
-          legacyDebug = qItem.debug;
-        }
-      }
-
-      if (chainDebug || legacyDebug) {
-        const entry = {
-          entityId: entity.id,
-          entityName: entity.name,
-          entityKind: entity.kind,
-          timestamp,
-          model: textEnrichment?.model,
-          summary: entity.summary,
-          description: entity.description,
-          visualThesis: textEnrichment?.visualThesis,
-          visualTraits: textEnrichment?.visualTraits,
-          aliases: textEnrichment?.aliases,
-        };
-        if (chainDebug) entry.chainDebug = chainDebug;
-        if (legacyDebug && !chainDebug) entry.legacyDebug = legacyDebug;
-        debugData.push(entry);
-      }
-    }
+    const debugData = fullEntities
+      .map(entity => buildEntityDebugEntry(entity, queue))
+      .filter(Boolean);
 
     if (debugData.length === 0) {
       alert("No debug data available for selected entities.");
@@ -1140,17 +1108,20 @@ export default function EntityBrowser({
     selectedEntityId ? s.cache.get(selectedEntityId) : undefined
   );
   const [selectedEntity, setSelectedEntity] = useState(null);
+
+  // Derive selected entity during render from cache when available
+  const derivedEntity = selectedEntityId ? cachedEntity ?? null : null;
+  const [prevDerivedEntity, setPrevDerivedEntity] = useState(derivedEntity);
+  if (derivedEntity !== prevDerivedEntity) {
+    setPrevDerivedEntity(derivedEntity);
+    if (derivedEntity) setSelectedEntity(derivedEntity);
+    else if (!selectedEntityId) setSelectedEntity(null);
+  }
+
+  // Load from Dexie when not in cache
   useEffect(() => {
-    if (selectedEntityId) {
-      // If already in cache (from subscription), use it directly; otherwise load from Dexie
-      if (cachedEntity) {
-        setSelectedEntity(cachedEntity);
-      } else {
-        useEntityStore.getState().loadEntity(selectedEntityId).then(setSelectedEntity);
-      }
-    } else {
-      setSelectedEntity(null);
-    }
+    if (!selectedEntityId || cachedEntity) return;
+    useEntityStore.getState().loadEntity(selectedEntityId).then(setSelectedEntity);
   }, [selectedEntityId, cachedEntity]);
 
   // Handle edit — load full entity from store before opening edit modal
@@ -1167,10 +1138,13 @@ export default function EntityBrowser({
   const [visibleCount, setVisibleCount] = useState(ENTITY_PAGE_SIZE);
   const entityListRef = useRef(null);
 
-  // Reset visible count when filters/search change
-  useEffect(() => {
+  // Reset visible count during render when filters/search change
+  const entityFilterKey = `${JSON.stringify(filters)}|${hideCompleted}|${searchQuery}`;
+  const [prevEntityFilterKey, setPrevEntityFilterKey] = useState(entityFilterKey);
+  if (entityFilterKey !== prevEntityFilterKey) {
+    setPrevEntityFilterKey(entityFilterKey);
     setVisibleCount(ENTITY_PAGE_SIZE);
-  }, [filters, hideCompleted, searchQuery]);
+  }
 
   // Scroll-based progressive loading — load more when near bottom
   useEffect(() => {

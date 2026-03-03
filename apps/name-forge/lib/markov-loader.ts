@@ -26,7 +26,7 @@ let nodeLoader: { loadModelFromFilesystem: (id: string) => MarkovModel | null } 
 // Check for browser environment safely (works in Node.js without DOM types)
 const isBrowser =
   typeof globalThis !== "undefined" &&
-  typeof (globalThis as { window?: unknown }).window !== "undefined";
+  typeof (globalThis as { window: unknown }).window !== "undefined";
 
 // ============================================================================
 // Configuration
@@ -114,7 +114,7 @@ export function extractMarkovModelIds(grammars: Grammar[]): MarkovModelId[] {
   const modelIds = new Set<MarkovModelId>();
 
   for (const grammar of grammars) {
-    for (const productions of Object.values(grammar.rules || {})) {
+    for (const productions of Object.values(grammar.rules)) {
       for (const production of productions) {
         for (const token of production) {
           const match = token.match(/markov:([a-z]+)/);

@@ -39,7 +39,7 @@ export interface RelationshipArchivedInput {
 export interface TagChangeInput {
   entityId: string;
   tag: string;
-  value?: string | boolean;
+  value: string | boolean;
 }
 
 export interface FieldChangeInput {
@@ -55,11 +55,11 @@ export interface NarrativeContext {
   getEntity: (id: string) => HardState | undefined;
   getEntityRelationships: (id: string) => { kind: string; src: string; dst: string }[];
   /** Get polarity for a relationship kind from schema */
-  getRelationshipPolarity?: (kind: string) => Polarity | undefined;
+  getRelationshipPolarity: (kind: string) => Polarity | undefined;
   /** Get polarity for a status from schema */
-  getStatusPolarity?: (entityKind: string, status: string) => Polarity | undefined;
+  getStatusPolarity: (entityKind: string, status: string) => Polarity | undefined;
   /** Get configured verb for relationship formation (from schema or default) */
-  getRelationshipVerb?: (kind: string, action: 'formed' | 'ended' | 'inverseFormed' | 'inverseEnded') => string | undefined;
+  getRelationshipVerb: (kind: string, action: 'formed' | 'ended' | 'inverseFormed' | 'inverseEnded') => string | undefined;
 }
 
 /**
@@ -153,10 +153,10 @@ export class NarrativeEventBuilder {
     for (const rel of relationshipsCreated) {
       const srcRef = this.resolveNarrativeEntityRef(rel.srcId);
       const dstRef = this.resolveNarrativeEntityRef(rel.dstId);
-      const polarity = this.context.getRelationshipPolarity?.(rel.kind);
+      const polarity = this.context.getRelationshipPolarity(rel.kind);
       const semanticKind = this.deriveRelationshipSemanticKind(polarity, 'formed');
 
-      const schemaVerb = this.context.getRelationshipVerb?.(rel.kind, 'formed');
+      const schemaVerb = this.context.getRelationshipVerb(rel.kind, 'formed');
       const description = schemaVerb
         ? `${schemaVerb} ${dstRef.name}`
         : this.getRelationshipFormedVerb(rel.kind, dstRef.name);
@@ -166,7 +166,7 @@ export class NarrativeEventBuilder {
         relatedEntity: dstRef, semanticKind, description,
       });
 
-      const inverseSchemaVerb = this.context.getRelationshipVerb?.(rel.kind, 'inverseFormed');
+      const inverseSchemaVerb = this.context.getRelationshipVerb(rel.kind, 'inverseFormed');
       const inverseDescription = inverseSchemaVerb
         ? `${inverseSchemaVerb} ${srcRef.name}`
         : this.getRelationshipFormedInverseVerb(rel.kind, srcRef.name);
@@ -185,10 +185,10 @@ export class NarrativeEventBuilder {
     for (const rel of relationshipsArchived) {
       const srcRef = this.resolveNarrativeEntityRef(rel.srcId);
       const dstRef = this.resolveNarrativeEntityRef(rel.dstId);
-      const polarity = this.context.getRelationshipPolarity?.(rel.kind);
+      const polarity = this.context.getRelationshipPolarity(rel.kind);
       const semanticKind = this.deriveRelationshipSemanticKind(polarity, 'ended');
 
-      const schemaVerb = this.context.getRelationshipVerb?.(rel.kind, 'ended');
+      const schemaVerb = this.context.getRelationshipVerb(rel.kind, 'ended');
       const description = schemaVerb
         ? `${schemaVerb} ${dstRef.name}`
         : this.getRelationshipEndedVerb(rel.kind, dstRef.name);
@@ -198,7 +198,7 @@ export class NarrativeEventBuilder {
         relatedEntity: dstRef, semanticKind, description,
       });
 
-      const inverseSchemaVerb = this.context.getRelationshipVerb?.(rel.kind, 'inverseEnded');
+      const inverseSchemaVerb = this.context.getRelationshipVerb(rel.kind, 'inverseEnded');
       const inverseDescription = inverseSchemaVerb
         ? `${inverseSchemaVerb} ${srcRef.name}`
         : this.getRelationshipEndedInverseVerb(rel.kind, srcRef.name);
@@ -248,8 +248,8 @@ export class NarrativeEventBuilder {
     if (field.field === 'status') {
       const entity = this.context.getEntity(field.entityId);
       const entityKind = entity?.kind || 'unknown';
-      const newPolarity = this.context.getStatusPolarity?.(entityKind, String(field.newValue));
-      const oldPolarity = this.context.getStatusPolarity?.(entityKind, String(field.oldValue));
+      const newPolarity = this.context.getStatusPolarity(entityKind, String(field.newValue));
+      const oldPolarity = this.context.getStatusPolarity(entityKind, String(field.oldValue));
       const semanticKind = this.deriveStatusSemanticKind(oldPolarity, newPolarity);
       return {
         type: 'field_changed', field: field.field, previousValue: field.oldValue,
@@ -301,8 +301,8 @@ export class NarrativeEventBuilder {
   private deriveRelationshipSemanticKind(
     polarity: Polarity | undefined,
     action: 'formed' | 'ended'
-  ): SemanticEffectKind | undefined {
-    if (!polarity || polarity === 'neutral') return undefined;
+  ): SemanticEffectKind | '' {
+    if (!polarity || polarity === 'neutral') return '';
 
     if (action === 'formed') {
       return polarity === 'positive' ? 'alliance' : 'rivalry';
@@ -319,16 +319,14 @@ export class NarrativeEventBuilder {
   private deriveStatusSemanticKind(
     oldPolarity: Polarity | undefined,
     newPolarity: Polarity | undefined
-  ): SemanticEffectKind | undefined {
+  ): SemanticEffectKind | '' {
     // Only meaningful if polarities differ
-    if (oldPolarity === newPolarity) return undefined;
-    if (!newPolarity || newPolarity === 'neutral') return undefined;
+    if (oldPolarity === newPolarity) return '';
+    if (!newPolarity || newPolarity === 'neutral') return '';
 
     // Transition to positive = triumph, to negative = downfall
     if (newPolarity === 'positive') return 'triumph';
-    if (newPolarity === 'negative') return 'downfall';
-
-    return undefined;
+    return 'downfall';
   }
 
   // ===========================================================================

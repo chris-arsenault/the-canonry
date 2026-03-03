@@ -35,13 +35,14 @@ Avoid modern references, all notices sounding the same, only dramatic content.`,
 
     eventInstructions: 'Events become rumors and gossip. Different takes on the same events add texture.',
 
+    craftPosture: '',
     titleGuidance: 'The title names the establishment or the board itself — what a regular would call the collection of notices pinned to the wall. Informal register: local, specific, the voice of a community that doesn\'t explain itself to outsiders. Grounded in a place name or a location people know by reputation.',
 
     roles: [
-      { role: 'establishment', count: { min: 0, max: 1 }, description: 'The tavern or public house hosting the board' },
-      { role: 'job-poster', count: { min: 0, max: 1 }, description: 'Someone seeking help' },
-      { role: 'rumor-subject', count: { min: 0, max: 2 }, description: 'Person or event being gossiped about' },
-      { role: 'mysterious-poster', count: { min: 0, max: 1 }, description: 'Unknown entity leaving intriguing notice' },
+      { role: 'establishment', count: { min: 0, max: 1 }, description: 'The tavern or public house hosting the board', selectionCriteria: '' },
+      { role: 'job-poster', count: { min: 0, max: 1 }, description: 'Someone seeking help', selectionCriteria: '' },
+      { role: 'rumor-subject', count: { min: 0, max: 2 }, description: 'Person or event being gossiped about', selectionCriteria: '' },
+      { role: 'mysterious-poster', count: { min: 0, max: 1 }, description: 'Unknown entity leaving intriguing notice', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -76,14 +77,15 @@ Avoid emotional language, speculation without marking it, irrelevant details, ca
 
     eventInstructions: 'Events are mission-relevant occurrences. Report with tactical implications.',
 
+    craftPosture: '',
     titleGuidance: 'The title is a file designation — what gets stamped on the cover before it is sent up the chain. Name the location, the operation, or the tactical subject. Military register: functional, abbreviated, stripped of personality. The title is for filing, not for reading aloud.',
 
     roles: [
-      { role: 'enemy-force', count: { min: 0, max: 2 }, description: 'Hostile faction or army being observed' },
-      { role: 'terrain-assessed', count: { min: 0, max: 2 }, description: 'Territory, fortification, or location being reported on' },
-      { role: 'capability-observed', count: { min: 0, max: 2 }, description: 'Enemy abilities, magic, or weapons noted' },
-      { role: 'reporting-unit', count: { min: 0, max: 1 }, description: 'Scout or reconnaissance party submitting report' },
-      { role: 'strategic-asset', count: { min: 0, max: 1 }, description: 'Resource, weapon, or item of tactical importance' },
+      { role: 'enemy-force', count: { min: 0, max: 2 }, description: 'Hostile faction or army being observed', selectionCriteria: '' },
+      { role: 'terrain-assessed', count: { min: 0, max: 2 }, description: 'Territory, fortification, or location being reported on', selectionCriteria: '' },
+      { role: 'capability-observed', count: { min: 0, max: 2 }, description: 'Enemy abilities, magic, or weapons noted', selectionCriteria: '' },
+      { role: 'reporting-unit', count: { min: 0, max: 1 }, description: 'Scout or reconnaissance party submitting report', selectionCriteria: '' },
+      { role: 'strategic-asset', count: { min: 0, max: 1 }, description: 'Resource, weapon, or item of tactical importance', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -117,13 +119,14 @@ Avoid generic descriptions, identical formats for each item, excessive jargon.`,
 
     eventInstructions: 'Events give items history - "used in the Battle of X" or "created during the Y crisis."',
 
+    craftPosture: '',
     titleGuidance: 'The title names the collection, the workshop, or the artisan — what would appear on the catalog\'s cover page in a confident hand. Trade register: proud but practical, establishing credibility through specificity. It should sound like something an artisan would hand to a patron, naming what they make and where to find them.',
 
     roles: [
-      { role: 'catalogued-item', count: { min: 1, max: 3 }, description: 'Artifact, creation, or treasure being documented' },
-      { role: 'creator-or-owner', count: { min: 0, max: 2 }, description: 'Artisan who made it or notable previous owners' },
-      { role: 'provenance-place', count: { min: 0, max: 2 }, description: 'Locations significant to the item history' },
-      { role: 'associated-power', count: { min: 0, max: 1 }, description: 'Ability or enchantment the item possesses' },
+      { role: 'catalogued-item', count: { min: 1, max: 3 }, description: 'Artifact, creation, or treasure being documented', selectionCriteria: '' },
+      { role: 'creator-or-owner', count: { min: 0, max: 2 }, description: 'Artisan who made it or notable previous owners', selectionCriteria: '' },
+      { role: 'provenance-place', count: { min: 0, max: 2 }, description: 'Locations significant to the item history', selectionCriteria: '' },
+      { role: 'associated-power', count: { min: 0, max: 1 }, description: 'Ability or enchantment the item possesses', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -157,14 +160,15 @@ Avoid casual language, modern idioms, uncertainty or hedging, irony.`,
 
     eventInstructions: 'Mythic events, creation stories, or prophesied future events. Frame as eternal truths.',
 
+    craftPosture: '',
     titleGuidance: 'The title is a name, not a description — spoken the way believers speak the name of their scripture. It should feel like it has always existed: not chosen but revealed, not composed but received. Sacred register: elevated, set apart from common speech, carrying the weight of doctrine in as few words as possible. One to three words.',
 
     roles: [
-      { role: 'divine-teaching', count: { min: 1, max: 2 }, description: 'Doctrine, law, or spiritual truth being revealed' },
-      { role: 'sacred-power', count: { min: 0, max: 1 }, description: 'Divine ability, blessing, or cosmic force' },
-      { role: 'prophesied-era', count: { min: 0, max: 1 }, description: 'Age that was, is, or will be' },
-      { role: 'divine-figure', count: { min: 0, max: 2 }, description: 'God, prophet, or holy person' },
-      { role: 'sacred-place', count: { min: 0, max: 1 }, description: 'Holy site or realm' },
+      { role: 'divine-teaching', count: { min: 1, max: 2 }, description: 'Doctrine, law, or spiritual truth being revealed', selectionCriteria: '' },
+      { role: 'sacred-power', count: { min: 0, max: 1 }, description: 'Divine ability, blessing, or cosmic force', selectionCriteria: '' },
+      { role: 'prophesied-era', count: { min: 0, max: 1 }, description: 'Age that was, is, or will be', selectionCriteria: '' },
+      { role: 'divine-figure', count: { min: 0, max: 2 }, description: 'God, prophet, or holy person', selectionCriteria: '' },
+      { role: 'sacred-place', count: { min: 0, max: 1 }, description: 'Holy site or realm', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -215,14 +219,14 @@ Restraint at the edges — what was sealed stays sealed, what is unanswered stay
     titleGuidance: 'The title names the text the way a civilization names its foundational document — a proper name that carries weight, spoken the way a people speak the name of their origin. Short, declarative, old-sounding. One to four words. A noun phrase, spoken as if it has always existed.',
 
     roles: [
-      { role: 'shaper', count: { min: 1, max: 3 }, description: 'Entities that actively shaped or divided the world — creators, tricksters, builders. Their agendas conflict.' },
-      { role: 'adversary-witness', count: { min: 0, max: 2 }, description: 'Forces that observed, tested, or opposed creation — older presences, cosmic opponents, those with competing claims on the substrate' },
-      { role: 'prophet-keeper', count: { min: 0, max: 2 }, description: 'Those who carry or guard knowledge from the making — hermits, seers, door-wardens' },
-      { role: 'sacred-order', count: { min: 0, max: 2 }, description: 'Groups or factions descended from the shapers\' work — priesthoods, guilds, custodial orders' },
-      { role: 'primordial-body', count: { min: 1, max: 2 }, description: 'The world-substrate itself — locations that ARE the creation. The body from which geography was carved, the matter that was separated or dismembered into landscape.' },
-      { role: 'sacred-artifact', count: { min: 0, max: 3 }, description: 'Objects of power from or before the making — instruments, weapons, sealed containers' },
-      { role: 'sealed-threshold', count: { min: 0, max: 2 }, description: 'Places where creation\'s work meets its limits — sealed doors, boundaries, containment sites' },
-      { role: 'foundational-event', count: { min: 0, max: 2 }, description: 'Occurrences that anchor the myth\'s timeline — the shattering, the division, the sealing' },
+      { role: 'shaper', count: { min: 1, max: 3 }, description: 'Entities that actively shaped or divided the world — creators, tricksters, builders. Their agendas conflict.', selectionCriteria: '' },
+      { role: 'adversary-witness', count: { min: 0, max: 2 }, description: 'Forces that observed, tested, or opposed creation — older presences, cosmic opponents, those with competing claims on the substrate', selectionCriteria: '' },
+      { role: 'prophet-keeper', count: { min: 0, max: 2 }, description: 'Those who carry or guard knowledge from the making — hermits, seers, door-wardens', selectionCriteria: '' },
+      { role: 'sacred-order', count: { min: 0, max: 2 }, description: 'Groups or factions descended from the shapers\' work — priesthoods, guilds, custodial orders', selectionCriteria: '' },
+      { role: 'primordial-body', count: { min: 1, max: 2 }, description: 'The world-substrate itself — locations that ARE the creation. The body from which geography was carved, the matter that was separated or dismembered into landscape.', selectionCriteria: '' },
+      { role: 'sacred-artifact', count: { min: 0, max: 3 }, description: 'Objects of power from or before the making — instruments, weapons, sealed containers', selectionCriteria: '' },
+      { role: 'sealed-threshold', count: { min: 0, max: 2 }, description: 'Places where creation\'s work meets its limits — sealed doors, boundaries, containment sites', selectionCriteria: '' },
+      { role: 'foundational-event', count: { min: 0, max: 2 }, description: 'Occurrences that anchor the myth\'s timeline — the shattering, the division, the sealing', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -267,14 +271,14 @@ Economy over exhaustiveness — each passage earns its place.`,
     titleGuidance: 'The title names the old age, the transition, or the figures themselves — what later generations call the time when gods walked. Short, heavy, carrying the weight of deep memory. One to four words. A noun phrase that sounds ancient and well-worn, spoken with reverence or fear depending on who speaks it.',
 
     roles: [
-      { role: 'elder-power', count: { min: 1, max: 3 }, description: 'Divine or near-divine figures of the old age — beings whose acts reshaped geography, climate, and the structure of the world' },
-      { role: 'inheritor', count: { min: 0, max: 2 }, description: 'Those who carried something through the transition — keepers of knowledge, founders of the new age\'s first institutions' },
-      { role: 'lost-order', count: { min: 0, max: 2 }, description: 'Powers, alliances, or institutions that existed in the old age and were destroyed or transformed by the transition' },
-      { role: 'shaped-ground', count: { min: 1, max: 2 }, description: 'Locations that bear the marks of divine action — landscapes carved, frozen, raised, or broken by the figures of the old age' },
-      { role: 'catalyst-event', count: { min: 0, max: 2 }, description: 'The specific acts that triggered or defined the transition — divine choices with world-scale consequences' },
-      { role: 'relic', count: { min: 0, max: 3 }, description: 'Objects of power from the old age or from before it — things that survived the transition, things even the divine figures did not fully understand' },
-      { role: 'sealed-legacy', count: { min: 0, max: 2 }, description: 'What was sealed, buried, or withdrawn — divine works that the new age contains rather than understands' },
-      { role: 'contested-figure', count: { min: 0, max: 2 }, description: 'Figures the traditions disagree about — savior to one account, destroyer to another. Large enough that different communities experienced them differently.' },
+      { role: 'elder-power', count: { min: 1, max: 3 }, description: 'Divine or near-divine figures of the old age — beings whose acts reshaped geography, climate, and the structure of the world', selectionCriteria: '' },
+      { role: 'inheritor', count: { min: 0, max: 2 }, description: 'Those who carried something through the transition — keepers of knowledge, founders of the new age\'s first institutions', selectionCriteria: '' },
+      { role: 'lost-order', count: { min: 0, max: 2 }, description: 'Powers, alliances, or institutions that existed in the old age and were destroyed or transformed by the transition', selectionCriteria: '' },
+      { role: 'shaped-ground', count: { min: 1, max: 2 }, description: 'Locations that bear the marks of divine action — landscapes carved, frozen, raised, or broken by the figures of the old age', selectionCriteria: '' },
+      { role: 'catalyst-event', count: { min: 0, max: 2 }, description: 'The specific acts that triggered or defined the transition — divine choices with world-scale consequences', selectionCriteria: '' },
+      { role: 'relic', count: { min: 0, max: 3 }, description: 'Objects of power from the old age or from before it — things that survived the transition, things even the divine figures did not fully understand', selectionCriteria: '' },
+      { role: 'sealed-legacy', count: { min: 0, max: 2 }, description: 'What was sealed, buried, or withdrawn — divine works that the new age contains rather than understands', selectionCriteria: '' },
+      { role: 'contested-figure', count: { min: 0, max: 2 }, description: 'Figures the traditions disagree about — savior to one account, destroyer to another. Large enough that different communities experienced them differently.', selectionCriteria: '' },
     ],
 
     pacing: {

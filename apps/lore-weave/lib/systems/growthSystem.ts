@@ -17,15 +17,15 @@ import { interpolate, createGeneratorContext } from '../narrative/narrationTempl
 export interface GrowthSystemConfig {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   /** Hard cap on template executions per tick (default: 5) */
-  maxTemplatesPerTick?: number;
+  maxTemplatesPerTick: number;
   /** Minimum templates to attempt per tick while target remains (default: 1) */
-  minTemplatesPerTick?: number;
+  minTemplatesPerTick: number;
   /** Rolling window for average entities per template (default: 30) */
-  yieldAveragingWindow?: number;
+  yieldAveragingWindow: number;
   /** Safety cap on selection attempts per tick (default: 40) */
-  maxAttemptsPerTick?: number;
+  maxAttemptsPerTick: number;
 }
 
 export interface GrowthSystemDependencies {
@@ -45,7 +45,7 @@ export interface GrowthSystemDependencies {
    * Used to stamp entities/relationships with their creation source.
    * See LINEAGE.md for design details.
    */
-  mutationTracker?: MutationTracker;
+  mutationTracker: MutationTracker;
   getPendingPressureModifications: () => DiscretePressureModification[];
   trackPressureModification: (pressureId: string, delta: number, source: PressureModificationSource) => void;
   calculateGrowthTarget: () => number;
@@ -69,492 +69,352 @@ export interface GrowthSystem extends SimulationSystem {
   getEpochTarget(): number;
 }
 
-interface GrowthState {
-  epoch: number;
-  epochTarget: number;
-  entitiesCreated: number;
-  templatesApplied: number;
-  templatesUsed: Set<string>;
-  yieldSamples: number[];
-  phaseCompleted: boolean;
-  epochEra?: Era;
+// ============================================================================
+// Module-level helpers (pure functions, no state)
+// ============================================================================
+
+function buildNarrationText(
+  declTemplate: DeclarativeTemplate, target: HardState, result: TemplateResult,
+  createdEntities: HardState[]
+): string | undefined {
+  if (!declTemplate.narrationTemplate) return undefined;
+  const variables: Record<string, HardState | HardState[] | undefined> = { ...result.resolvedVariables };
+  if (result.entityRefToIndex.size > 0) {
+    for (const [entityRef, idx] of Object.entries(result.entityRefToIndex)) {
+      if (createdEntities[idx]) {
+        variables[entityRef.startsWith('$') ? entityRef : `$${entityRef}`] = createdEntities[idx];
+      }
+    }
+  }
+  const ctx = createGeneratorContext({ target, variables });
+  const narrationResult = interpolate(declTemplate.narrationTemplate, ctx);
+  return narrationResult.text;
 }
 
-export function createGrowthSystem(
-  config: GrowthSystemConfig,
-  deps: GrowthSystemDependencies
-): GrowthSystem {
-  const state: GrowthState = {
-    epoch: -1,
-    epochTarget: 0,
-    entitiesCreated: 0,
-    templatesApplied: 0,
-    templatesUsed: new Set(),
-    yieldSamples: [],
-    phaseCompleted: false
-  };
-
-  const maxTemplatesPerTick = config.maxTemplatesPerTick ?? 5;
-  const minTemplatesPerTick = config.minTemplatesPerTick ?? 1;
-  const yieldWindow = config.yieldAveragingWindow ?? 30;
-  const maxAttemptsPerTick = config.maxAttemptsPerTick ?? 40;
-
-  function getExpectedYield(): number {
-    if (state.yieldSamples.length === 0) return 1;
-    const avg = state.yieldSamples.reduce((sum, val) => sum + val, 0) / state.yieldSamples.length;
-    // Avoid runaway budgets from unlucky zeros
-    return Math.max(1, avg);
-  }
-
-  function recordPhaseCompletion(graphView: WorldRuntime, reason: GrowthPhaseCompletion['reason']): void {
-    if (state.phaseCompleted) return;
-    if (state.epochTarget <= 0) return;
-    const eraId = state.epochEra?.id ?? deps.getEpochEra().id;
-    if (!eraId) return;
-
-    state.phaseCompleted = true;
-    graphView.growthPhaseHistory.push({
-      epoch: state.epoch,
-      eraId,
-      tick: graphView.tick,
-      reason
-    });
-  }
-
-  function logCanApplyDiagnostic(template: GrowthTemplate, graphView: WorldRuntime): void {
-    const declTemplate = deps.declarativeTemplates.get(template.id);
-    if (declTemplate) {
-      const diag = deps.templateInterpreter.diagnoseCanApply(declTemplate, graphView);
-      if (!diag.applicabilityPassed) {
-        graphView.debug('templates', `${template.id} rejected: ${diag.failedRules.join('; ')}`);
-      } else if (diag.selectionCount === 0) {
-        graphView.debug('templates', `${template.id} selection(${diag.selectionStrategy}) returned 0 targets`);
-      }
-    }
-  }
-
-  function checkContractChecks(allTagsToAdd: string[], template: GrowthTemplate, graphView: WorldRuntime): void {
-    const tagSaturationCheck = deps.contractEnforcer.checkTagSaturation(graphView, allTagsToAdd);
-    if (tagSaturationCheck.saturated) {
-      deps.emitter.log('warn', `Template ${template.id} would oversaturate tags: ${tagSaturationCheck.oversaturatedTags.join(', ')}`);
-    }
-    const orphanCheck = deps.contractEnforcer.checkTagOrphans(allTagsToAdd);
-    if (orphanCheck.hasOrphans && orphanCheck.orphanTags.length >= 3) {
-      deps.emitter.log('debug', `Template ${template.id} creates unregistered tags: ${orphanCheck.orphanTags.slice(0, 5).join(', ')}`);
-    }
-  }
-
-  async function expandTemplate(template: GrowthTemplate, graphView: WorldRuntime, target: HardState): Promise<TemplateResult> {
-    try {
-      return await template.expand(graphView, target);
-    } catch (error) {
-      // LINEAGE: Exit context on expand error
-      deps.mutationTracker?.exitContext();
-      throw error;
-    }
-  }
-
-  async function addEntitiesFromResult(
-    result: TemplateResult,
-    graphView: WorldRuntime,
-    template: GrowthTemplate,
-    newIds: string[],
-    createdEntities: HardState[]
-  ): Promise<void> {
-    for (let i = 0; i < result.entities.length; i++) {
-      const entity = result.entities[i];
-      const placementStrategy = result.placementStrategies?.[i] || 'unknown';
-      const id = await graphView.addEntity(entity, `template:${template.id}`, placementStrategy);
-      newIds.push(id);
-      const ref = graphView.getEntity(id);
-      if (ref) createdEntities.push(ref);
-    }
-    for (const entity of createdEntities) {
-      initializeCatalystSmart(entity);
-    }
-  }
-
-  function validateCreatedEntities(createdEntities: HardState[], graphView: WorldRuntime): void {
-    for (const entity of createdEntities) {
-      const coverageCheck = deps.contractEnforcer.enforceTagCoverage(entity, graphView);
-      if (coverageCheck.needsAdjustment) {
-        deps.emitter.log('debug', coverageCheck.suggestion || '', { entity: entity.id });
-      }
-      const taxonomyCheck = deps.contractEnforcer.validateTagTaxonomy(entity);
-      if (!taxonomyCheck.valid) {
-        deps.emitter.log('warn', `Entity ${entity.name} has conflicting tags`, { conflicts: taxonomyCheck.conflicts });
-      }
-    }
-  }
-
-  function buildEntityCreationInfo(createdEntities: HardState[], result: TemplateResult) {
-    return createdEntities.map((e, i) => {
-      const placementDebug = result.placementDebugList?.[i];
-      const strategy = result.placementStrategies?.[i] || 'unknown';
-      return {
-        id: e.id,
-        name: e.name,
-        kind: e.kind,
-        subtype: e.subtype,
-        culture: e.culture,
-        prominence: prominenceLabel(e.prominence),
-        tags: e.tags,
-        placementStrategy: strategy,
-        coordinates: e.coordinates,
-        regionId: placementDebug?.regionId ?? e.regionId,
-        allRegionIds: placementDebug?.allRegionIds ?? e.allRegionIds,
-        derivedTags: result.derivedTagsList?.[i],
-        placement: placementDebug ? {
-          anchorType: placementDebug.anchorType,
-          anchorEntity: placementDebug.anchorEntity,
-          anchorCulture: placementDebug.anchorCulture,
-          resolvedVia: placementDebug.resolvedVia,
-          seedRegionsAvailable: placementDebug.seedRegionsAvailable,
-          emergentRegionCreated: placementDebug.emergentRegionCreated
-        } : undefined
-      };
-    });
-  }
-
-  function buildNarrationText(
-    declTemplate: DeclarativeTemplate,
-    target: HardState,
-    result: TemplateResult,
-    createdEntities: HardState[],
-    templateId: string
-  ): string | undefined {
-    if (!declTemplate.narrationTemplate) return undefined;
-    // Start with the resolved variables from template expansion (like $target, $enemy)
-    const variables: Record<string, HardState | HardState[] | undefined> = {
-      ...(result.resolvedVariables || {}),
+function buildEntityCreationInfo(createdEntities: HardState[], result: TemplateResult) {
+  return createdEntities.map((e, i) => {
+    const debug = result.placementDebugList[i];
+    return {
+      id: e.id, name: e.name, kind: e.kind, subtype: e.subtype,
+      culture: e.culture, prominence: prominenceLabel(e.prominence),
+      tags: e.tags, placementStrategy: result.placementStrategies[i] || 'unknown',
+      coordinates: e.coordinates, regionId: debug.regionId ?? e.regionId,
+      allRegionIds: debug.allRegionIds,
+      derivedTags: result.derivedTagsList[i],
+      placement: {
+        anchorType: debug.anchorType, anchorEntity: debug.anchorEntity,
+        anchorCulture: debug.anchorCulture, resolvedVia: debug.resolvedVia,
+        seedRegionsAvailable: debug.seedRegionsAvailable,
+        emergentRegionCreated: debug.emergentRegionCreated,
+      },
     };
-    // Add created entities by their entityRef (like $war, $ideology)
-    // Use entityRefToIndex mapping since createChance can skip entities
-    if (result.entityRefToIndex) {
-      for (const [entityRef, idx] of Object.entries(result.entityRefToIndex)) {
-        if (createdEntities[idx]) {
-          const key = entityRef.startsWith('$') ? entityRef : `$${entityRef}`;
-          variables[key] = createdEntities[idx];
-        }
-      }
-    }
-    const narrationCtx = createGeneratorContext({ target, variables });
-    const narrationResult = interpolate(declTemplate.narrationTemplate, narrationCtx);
-    if (!narrationResult.complete) {
-      console.debug(`[GrowthSystem] Template ${templateId} narration partial:`, {
-        unresolvedTokens: narrationResult.unresolvedTokens,
-        variableKeys: Object.keys(variables),
-      });
-    }
-    return narrationResult.text;
+  });
+}
+
+// ============================================================================
+// GrowthSystem class
+// ============================================================================
+
+/**
+ * Growth system manages entity creation via template expansion.
+ *
+ * Responsibilities:
+ * - Epoch lifecycle (start, apply per tick, complete)
+ * - Template selection and application budgeting
+ * - Entity creation, relationship formation, narration
+ * - Contract enforcement and lineage tracking
+ */
+class GrowthSystemImpl implements GrowthSystem {
+  readonly id: string;
+  readonly name: string;
+  state: unknown = null;
+
+  private readonly maxTemplatesPerTick: number;
+  private readonly minTemplatesPerTick: number;
+  private readonly yieldWindow: number;
+  private readonly maxAttemptsPerTick: number;
+  private readonly deps: GrowthSystemDependencies;
+
+  private epoch = -1;
+  private epochTarget = 0;
+  private entitiesCreated = 0;
+  private templatesApplied = 0;
+  private readonly templatesUsed = new Set<string>();
+  private yieldSamples: number[] = [];
+  private phaseCompleted = false;
+  private epochEra!: Era;
+
+  constructor(config: GrowthSystemConfig, deps: GrowthSystemDependencies) {
+    this.id = config.id;
+    this.name = config.name;
+    this.maxTemplatesPerTick = config.maxTemplatesPerTick;
+    this.minTemplatesPerTick = config.minTemplatesPerTick;
+    this.yieldWindow = config.yieldAveragingWindow;
+    this.maxAttemptsPerTick = config.maxAttemptsPerTick;
+    this.deps = deps;
   }
 
-  function recordCreationBatchEvents(
-    template: GrowthTemplate,
-    result: TemplateResult,
-    newIds: string[],
-    createdEntities: HardState[],
-    target: HardState
-  ): void {
-    if (newIds.length === 0) return;
-    const relationshipCounts = new Map<string, number>();
-    for (const rel of result.relationships) {
-      relationshipCounts.set(rel.kind, (relationshipCounts.get(rel.kind) || 0) + 1);
+  initialize(): void { /* no-op — state initialized in constructor */ }
+
+  startEpoch(era: Era): void {
+    this.epoch = this.deps.getCurrentEpoch();
+    this.epochTarget = this.deps.calculateGrowthTarget();
+    this.entitiesCreated = 0;
+    this.templatesApplied = 0;
+    this.templatesUsed.clear();
+    this.phaseCompleted = false;
+    this.epochEra = era;
+    this.deps.emitter.log('info', `[Growth] Planning epoch ${this.epoch} in era ${era.name} with target ${this.epochTarget}`);
+  }
+
+  getEpochTarget(): number { return this.epochTarget; }
+
+  completeEpoch(): GrowthEpochSummary {
+    return {
+      epoch: this.epoch, target: this.epochTarget,
+      entitiesCreated: this.entitiesCreated, templatesApplied: this.templatesApplied,
+      templatesUsed: Array.from(this.templatesUsed),
+    };
+  }
+
+  reset(): void {
+    this.epoch = -1;
+    this.epochTarget = 0;
+    this.entitiesCreated = 0;
+    this.templatesApplied = 0;
+    this.templatesUsed.clear();
+    this.yieldSamples = [];
+    this.phaseCompleted = false;
+  }
+
+  async apply(graphView: WorldRuntime, modifier: number): Promise<import('../engine/types').SystemResult> {
+    this.syncEpochIfNeeded();
+    if (modifier <= 0) return this.emptyResult('Growth disabled for this era');
+
+    const remaining = Math.max(0, this.epochTarget - this.entitiesCreated);
+    if (remaining === 0) {
+      this.recordPhaseCompletion(graphView, 'target_met');
+      return this.emptyResult(`Growth target met for epoch ${this.epoch}`);
     }
-    const relationshipSummary: RelationshipSummary[] = [];
-    for (const [kind, count] of relationshipCounts) {
-      relationshipSummary.push({ kind, count });
+
+    this.deps.populationTracker.update(graphView);
+    const metrics = this.deps.populationTracker.getMetrics();
+    const budget = this.computeBudget(graphView, remaining, modifier);
+
+    let applied = 0, created = 0, attempts = 0;
+    while (applied < budget && attempts < this.maxAttemptsPerTick) {
+      attempts++;
+      const r = await this.attemptOneTemplate(graphView, this.epochEra, metrics, attempts);
+      if (r.exhausted) break;
+      applied += r.appliedDelta;
+      created += r.createdDelta;
+      if (this.entitiesCreated >= this.epochTarget) break;
     }
-    // Use description from first creation item if available
-    const declTemplate = deps.declarativeTemplates.get(template.id);
-    const rawDescription = declTemplate?.creation?.[0]?.description;
-    // DescriptionSpec can be string or { template, replacements } - extract string if possible
-    const primaryDescription = typeof rawDescription === 'string' ? rawDescription : undefined;
-    // Generate narration ONCE here, now that entities have names
-    const narration = declTemplate
-      ? buildNarrationText(declTemplate, target, result, createdEntities, template.id)
-      : undefined;
-    deps.stateChangeTracker.recordCreationBatch(
-      template.id,
-      template.name || template.id,
-      newIds,
-      relationshipSummary,
-      primaryDescription || result.description,
-      narration
-    );
+
+    if (this.entitiesCreated >= this.epochTarget) this.recordPhaseCompletion(graphView, 'target_met');
+    return this.emptyResult(created > 0
+      ? `Growth tick: +${created} entities (epoch ${this.entitiesCreated}/${this.epochTarget})`
+      : 'Growth tick: no entities created');
   }
 
-  async function applyTemplateOnce(
-    template: GrowthTemplate,
-    graphView: WorldRuntime,
-    _era: Era
-  ): Promise<number> {
-    try {
-      if (!template.canApply(graphView)) {
-        logCanApplyDiagnostic(template, graphView);
-        return 0;
-      }
-      const templateTargets = template.findTargets(graphView);
-      if (templateTargets.length === 0) {
-        graphView.debug('selection', `${template.id} found no targets via findTargets()`);
-        return 0;
-      }
+  // --- Epoch management ---
 
-      const target = pickRandom(templateTargets);
-      const pressureModsBefore = deps.getPendingPressureModifications().length;
-      graphView.setPressureModificationCallback((pressureId, delta, source) => {
-        deps.trackPressureModification(pressureId, delta, source);
-      });
-      graphView.setCurrentSource({ type: 'template', templateId: template.id });
-      // LINEAGE: Enter template context for entity/relationship stamping.
-      // All entities and relationships created will have
-      // createdBy = { tick, source: 'template', sourceId: template.id }.
-      // See LINEAGE.md for design details.
-      // NOTE: Context must stay open until AFTER addEntity/createRelationship calls below.
-      deps.mutationTracker?.enterContext('template', template.id);
-
-      const result = await expandTemplate(template, graphView, target);
-      graphView.clearCurrentSource();
-
-      const allTagsToAdd = Array.from(new Set(result.entities.flatMap(e => Object.keys(e.tags || {}))));
-      checkContractChecks(allTagsToAdd, template, graphView);
-      deps.statisticsCollector.recordTemplateApplication(template.id);
-
-      const createdEntities: HardState[] = [];
-      const newIds: string[] = [];
-      await addEntitiesFromResult(result, graphView, template, newIds, createdEntities);
-
-      result.relationships.forEach(rel => {
-        const srcId = rel.src.startsWith('will-be-assigned-') ? newIds[parseInt(rel.src.split('-')[3])] : rel.src;
-        const dstId = rel.dst.startsWith('will-be-assigned-') ? newIds[parseInt(rel.dst.split('-')[3])] : rel.dst;
-        if (srcId && dstId) graphView.createRelationship(rel.kind, srcId, dstId, rel.strength);
-      });
-
-      // LINEAGE: Exit template context now that entities/relationships are created.
-      // They are now stamped with createdBy = { source: 'template', sourceId: template.id }.
-      deps.mutationTracker?.exitContext();
-
-      validateCreatedEntities(createdEntities, graphView);
-      recordCreationBatchEvents(template, result, newIds, createdEntities, target);
-
-      const templatePressureMods = deps.getPendingPressureModifications().slice(pressureModsBefore);
-      const pressureChanges: Record<string, number> = {};
-      for (const mod of templatePressureMods) {
-        pressureChanges[mod.pressureId] = (pressureChanges[mod.pressureId] || 0) + mod.delta;
-      }
-
-      const resolvedRelationships = result.relationships.map(rel => ({
-        kind: rel.kind,
-        srcId: rel.src.startsWith('will-be-assigned-') ? newIds[parseInt(rel.src.split('-')[3])] : rel.src,
-        dstId: rel.dst.startsWith('will-be-assigned-') ? newIds[parseInt(rel.dst.split('-')[3])] : rel.dst,
-        strength: rel.strength
-      }));
-
-      deps.emitter.templateApplication({
-        tick: graphView.tick,
-        epoch: deps.getCurrentEpoch(),
-        templateId: template.id,
-        targetEntityId: target.id,
-        targetEntityName: target.name,
-        targetEntityKind: target.kind,
-        description: result.description,
-        entitiesCreated: buildEntityCreationInfo(createdEntities, result),
-        relationshipsCreated: resolvedRelationships,
-        pressureChanges
-      });
-
-      return result.entities.length;
-    } catch (error) {
-      graphView.clearCurrentSource();
-      const message = error instanceof Error ? error.message : String(error);
-      const templateLabel = template.name ? `${template.name} (${template.id})` : template.id;
-      throw new Error(`Template ${templateLabel} failed: ${message}`);
-    }
+  private syncEpochIfNeeded(): void {
+    if (this.epoch === this.deps.getCurrentEpoch()) return;
+    this.epochTarget = this.deps.calculateGrowthTarget();
+    this.entitiesCreated = 0;
+    this.templatesApplied = 0;
+    this.templatesUsed.clear();
+    this.epoch = this.deps.getCurrentEpoch();
+    this.phaseCompleted = false;
+    this.epochEra = this.deps.getEpochEra();
+    this.deps.emitter.log('info', `[Growth] Auto-sync epoch ${this.epoch} in era ${this.epochEra.name} with target ${this.epochTarget}`);
   }
 
-  function buildApplicableTemplates(
-    graphView: WorldRuntime,
-    rejectionReasons: Map<string, string>
-  ): GrowthTemplate[] {
-    return deps.runtimeTemplates.filter(t => {
-      const runCount = deps.templateRunCounts.get(t.id) || 0;
-      if (runCount >= deps.maxRunsPerTemplate) {
-        rejectionReasons.set(t.id, `run_cap: ${runCount}/${deps.maxRunsPerTemplate}`);
-        return false;
-      }
-
-      if (!t.canApply(graphView)) {
-        const declTemplate = deps.declarativeTemplates.get(t.id);
-        if (declTemplate) {
-          const diag = deps.templateInterpreter.diagnoseCanApply(declTemplate, graphView);
-          if (!diag.applicabilityPassed) {
-            rejectionReasons.set(t.id, `applicability: ${diag.failedRules.join('; ')}`);
-          } else if (diag.selectionCount === 0) {
-            rejectionReasons.set(t.id, `selection(${diag.selectionStrategy}): no targets found`);
-          }
-        } else {
-          rejectionReasons.set(t.id, 'canApply: false');
-        }
-        return false;
-      }
-
-      return true;
-    });
+  private computeBudget(graphView: WorldRuntime, remaining: number, modifier: number): number {
+    const tickInEpoch = graphView.tick % this.deps.engineConfig.ticksPerEpoch;
+    const ticksLeft = Math.max(1, this.deps.engineConfig.ticksPerEpoch - tickInEpoch);
+    const yield_ = this.yieldSamples.length === 0 ? 1 : Math.max(1, this.yieldSamples.reduce((s, v) => s + v, 0) / this.yieldSamples.length);
+    const budget = Math.ceil(Math.ceil((remaining / ticksLeft) / yield_) * modifier);
+    return Math.max(remaining > 0 ? this.minTemplatesPerTick : 0, Math.min(this.maxTemplatesPerTick, budget));
   }
 
-  function logRejectionReasons(graphView: WorldRuntime, rejectionReasons: Map<string, string>): void {
-    for (const [templateId, reason] of rejectionReasons) {
-      graphView.debug('templates', `  ${templateId}: ${reason}`);
-    }
+  private recordPhaseCompletion(graphView: WorldRuntime, reason: GrowthPhaseCompletion['reason']): void {
+    if (this.phaseCompleted || this.epochTarget <= 0 || !this.epochEra.id) return;
+    this.phaseCompleted = true;
+    graphView.growthPhaseHistory.push({ epoch: this.epoch, eraId: this.epochEra.id, tick: graphView.tick, reason });
   }
 
-  function updateStateOnYield(template: GrowthTemplate, entitiesCreated: number): void {
-    state.entitiesCreated += entitiesCreated;
-    state.templatesApplied += 1;
-    state.templatesUsed.add(template.id);
-    const currentCount = deps.templateRunCounts.get(template.id) || 0;
-    deps.templateRunCounts.set(template.id, currentCount + 1);
-    state.yieldSamples.push(entitiesCreated);
-    if (state.yieldSamples.length > yieldWindow) state.yieldSamples.shift();
-  }
+  // --- Template selection and application ---
 
-  async function runOneGrowthAttempt(
-    graphView: WorldRuntime,
-    era: Era,
-    metrics: PopulationMetrics,
-    attempts: number
+  private async attemptOneTemplate(
+    graphView: WorldRuntime, era: Era, metrics: PopulationMetrics, attempts: number
   ): Promise<{ appliedDelta: number; createdDelta: number; exhausted: boolean }> {
-    const rejectionReasons = new Map<string, string>();
-    const applicableTemplates = buildApplicableTemplates(graphView, rejectionReasons);
-    if (applicableTemplates.length === 0) {
-      deps.emitter.log('warn', `No applicable templates remaining (${state.entitiesCreated}/${state.epochTarget} entities created)`);
-      graphView.debug('templates', `[Filter] All ${deps.runtimeTemplates.length} templates rejected:`);
-      logRejectionReasons(graphView, rejectionReasons);
-      recordPhaseCompletion(graphView, 'exhausted');
+    const rejections = new Map<string, string>();
+    const applicable = this.filterApplicable(graphView, rejections);
+    if (applicable.length === 0) {
+      this.deps.emitter.log('warn', `No applicable templates remaining (${this.entitiesCreated}/${this.epochTarget})`);
+      for (const [id, reason] of rejections) graphView.debug('templates', `  ${id}: ${reason}`);
+      this.recordPhaseCompletion(graphView, 'exhausted');
       return { appliedDelta: 0, createdDelta: 0, exhausted: true };
     }
-    const template = deps.sampleTemplate(era, applicableTemplates, metrics);
+    const template = this.deps.sampleTemplate(era, applicable, metrics);
     if (!template) {
-      if (attempts < 5 || attempts % 20 === 0) {
-        graphView.debug('templates', `[Attempt ${attempts}] Failed to sample template from ${applicableTemplates.length} options`);
-      }
+      if (attempts < 5 || attempts % 20 === 0) graphView.debug('templates', `[Attempt ${attempts}] No sample from ${applicable.length}`);
       return { appliedDelta: 0, createdDelta: 0, exhausted: false };
     }
-    const entitiesCreated = await applyTemplateOnce(template, graphView, era);
-    if (entitiesCreated > 0) {
-      updateStateOnYield(template, entitiesCreated);
-      return { appliedDelta: 1, createdDelta: entitiesCreated, exhausted: state.entitiesCreated >= state.epochTarget };
+    const count = await this.applyTemplate(template, graphView);
+    if (count > 0) {
+      this.recordYield(template, count);
+      return { appliedDelta: 1, createdDelta: count, exhausted: this.entitiesCreated >= this.epochTarget };
     }
     return { appliedDelta: 0, createdDelta: 0, exhausted: false };
   }
 
-  const system: GrowthSystem = {
-    id: config.id,
-    name: config.name,
+  private filterApplicable(graphView: WorldRuntime, rejections: Map<string, string>): GrowthTemplate[] {
+    return this.deps.runtimeTemplates.filter(t => {
+      const runs = this.deps.templateRunCounts.get(t.id) || 0;
+      if (runs >= this.deps.maxRunsPerTemplate) { rejections.set(t.id, `run_cap: ${runs}/${this.deps.maxRunsPerTemplate}`); return false; }
+      if (!t.canApply(graphView)) { this.diagnoseRejection(t, graphView, rejections); return false; }
+      return true;
+    });
+  }
 
-    startEpoch: (era: Era) => {
-      state.epoch = deps.getCurrentEpoch();
-      state.epochTarget = deps.calculateGrowthTarget();
-      state.entitiesCreated = 0;
-      state.templatesApplied = 0;
-      state.templatesUsed.clear();
-      state.phaseCompleted = false;
-      state.epochEra = era;
+  private diagnoseRejection(t: GrowthTemplate, graphView: WorldRuntime, rejections: Map<string, string>): void {
+    const decl = this.deps.declarativeTemplates.get(t.id);
+    if (!decl) { rejections.set(t.id, 'canApply: false'); return; }
+    const d = this.deps.templateInterpreter.diagnoseCanApply(decl, graphView);
+    rejections.set(t.id, !d.applicabilityPassed ? `applicability: ${d.failedRules.join('; ')}` : `selection(${d.selectionStrategy}): no targets`);
+  }
 
-      deps.emitter.log('info', `[Growth] Planning epoch ${state.epoch} in era ${era.name} with target ${state.epochTarget}`);
-    },
-
-    getEpochTarget: () => state.epochTarget,
-
-    completeEpoch: (): GrowthEpochSummary => ({
-      epoch: state.epoch,
-      target: state.epochTarget,
-      entitiesCreated: state.entitiesCreated,
-      templatesApplied: state.templatesApplied,
-      templatesUsed: Array.from(state.templatesUsed)
-    }),
-
-    reset: () => {
-      state.epoch = -1;
-      state.epochTarget = 0;
-      state.entitiesCreated = 0;
-      state.templatesApplied = 0;
-      state.templatesUsed.clear();
-      state.yieldSamples = [];
-      state.phaseCompleted = false;
-    },
-
-    apply: async (graphView: WorldRuntime, modifier: number) => {
-      if (state.epoch !== deps.getCurrentEpoch()) {
-        state.epochTarget = deps.calculateGrowthTarget();
-        state.entitiesCreated = 0;
-        state.templatesApplied = 0;
-        state.templatesUsed.clear();
-        state.epoch = deps.getCurrentEpoch();
-        state.phaseCompleted = false;
-        state.epochEra = deps.getEpochEra();
-        const syncedEra = state.epochEra ?? deps.getEpochEra();
-        deps.emitter.log('info', `[Growth] Auto-sync epoch ${state.epoch} in era ${syncedEra.name} with target ${state.epochTarget}`);
-      }
-      const era = state.epochEra ?? deps.getEpochEra();
-
-      if (modifier <= 0) {
-        return {
-          relationshipsAdded: [],
-          entitiesModified: [],
-          pressureChanges: {},
-          description: 'Growth disabled for this era'
-        };
-      }
-
-      const remainingEntities = Math.max(0, state.epochTarget - state.entitiesCreated);
-      if (remainingEntities === 0) {
-        recordPhaseCompletion(graphView, 'target_met');
-        return {
-          relationshipsAdded: [],
-          entitiesModified: [],
-          pressureChanges: {},
-          description: `Growth target met for epoch ${state.epoch}`
-        };
-      }
-
-      deps.populationTracker.update(graphView);
-      const metrics = deps.populationTracker.getMetrics();
-
-      const tickInEpoch = graphView.tick % deps.engineConfig.ticksPerEpoch;
-      const ticksRemaining = Math.max(1, deps.engineConfig.ticksPerEpoch - tickInEpoch);
-      const expectedYield = getExpectedYield();
-
-      let templateBudget = Math.ceil((remainingEntities / ticksRemaining) / expectedYield);
-      templateBudget = Math.ceil(templateBudget * modifier);
-      const effectiveMin = remainingEntities > 0 ? minTemplatesPerTick : 0;
-      templateBudget = Math.max(effectiveMin, Math.min(maxTemplatesPerTick, templateBudget));
-
-      let appliedThisTick = 0;
-      let createdThisTick = 0;
-      let attempts = 0;
-
-      while (appliedThisTick < templateBudget && attempts < maxAttemptsPerTick) {
-        attempts++;
-        const { appliedDelta, createdDelta, exhausted } = await runOneGrowthAttempt(graphView, era, metrics, attempts);
-        if (exhausted) break;
-        appliedThisTick += appliedDelta;
-        createdThisTick += createdDelta;
-        if (state.entitiesCreated >= state.epochTarget) break;
-      }
-
-      if (state.entitiesCreated >= state.epochTarget) recordPhaseCompletion(graphView, 'target_met');
-
-      return {
-        relationshipsAdded: [],
-        entitiesModified: [],
-        pressureChanges: {},
-        description: createdThisTick > 0
-          ? `Growth tick: +${createdThisTick} entities (epoch ${state.entitiesCreated}/${state.epochTarget})`
-          : 'Growth tick: no entities created'
-      };
+  private async applyTemplate(template: GrowthTemplate, graphView: WorldRuntime): Promise<number> {
+    if (!template.canApply(graphView)) return 0;
+    const targets = template.findTargets(graphView);
+    if (targets.length === 0) { graphView.debug('selection', `${template.id} found no targets`); return 0; }
+    try {
+      return await this.expandAndCommit(template, graphView, pickRandom(targets));
+    } catch (error) {
+      graphView.clearCurrentSource();
+      throw new Error(`Template ${template.name || template.id} failed: ${error instanceof Error ? error.message : String(error)}`);
     }
-  };
+  }
 
-  return system;
+  private async expandAndCommit(template: GrowthTemplate, graphView: WorldRuntime, target: HardState): Promise<number> {
+    const pressureBefore = this.deps.getPendingPressureModifications().length;
+    graphView.setPressureModificationCallback((p, d, s) => this.deps.trackPressureModification(p, d, s));
+    graphView.setCurrentSource({ type: 'template', templateId: template.id });
+    this.deps.mutationTracker.enterContext('template', template.id);
+
+    let result: TemplateResult;
+    try { result = await template.expand(graphView, target); }
+    catch (e) { this.deps.mutationTracker.exitContext(); throw e; }
+    graphView.clearCurrentSource();
+
+    this.checkContracts(result, template, graphView);
+    this.deps.statisticsCollector.recordTemplateApplication(template.id);
+
+    const { newIds, created } = await this.createEntities(result, graphView, template);
+    this.formRelationships(result, graphView, newIds);
+    this.deps.mutationTracker.exitContext();
+
+    this.validateCreated(created, graphView);
+    this.recordBatch(template, result, newIds, created, target);
+    this.emitApplication(template, result, target, graphView, newIds, created, pressureBefore);
+    return result.entities.length;
+  }
+
+  // --- Entity operations ---
+
+  private async createEntities(result: TemplateResult, graphView: WorldRuntime, template: GrowthTemplate) {
+    const newIds: string[] = [];
+    const created: HardState[] = [];
+    for (let i = 0; i < result.entities.length; i++) {
+      const id = await graphView.addEntity(result.entities[i], `template:${template.id}`, result.placementStrategies[i] || 'unknown');
+      newIds.push(id);
+      const ref = graphView.getEntity(id);
+      if (ref) created.push(ref);
+    }
+    for (const e of created) initializeCatalystSmart(e);
+    return { newIds, created };
+  }
+
+  private formRelationships(result: TemplateResult, graphView: WorldRuntime, newIds: string[]): void {
+    for (const rel of result.relationships) {
+      const src = rel.src.startsWith('will-be-assigned-') ? newIds[parseInt(rel.src.split('-')[3])] : rel.src;
+      const dst = rel.dst.startsWith('will-be-assigned-') ? newIds[parseInt(rel.dst.split('-')[3])] : rel.dst;
+      if (src && dst) graphView.createRelationship(rel.kind, src, dst, rel.strength);
+    }
+  }
+
+  private checkContracts(result: TemplateResult, template: GrowthTemplate, graphView: WorldRuntime): void {
+    const tags = Array.from(new Set(result.entities.flatMap(e => Object.keys(e.tags))));
+    const sat = this.deps.contractEnforcer.checkTagSaturation(graphView, tags);
+    if (sat.saturated) this.deps.emitter.log('warn', `Template ${template.id} oversaturates: ${sat.oversaturatedTags.join(', ')}`);
+    const orph = this.deps.contractEnforcer.checkTagOrphans(tags);
+    if (orph.hasOrphans && orph.orphanTags.length >= 3) this.deps.emitter.log('debug', `Template ${template.id} unregistered: ${orph.orphanTags.slice(0, 5).join(', ')}`);
+  }
+
+  private validateCreated(entities: HardState[], graphView: WorldRuntime): void {
+    for (const e of entities) {
+      const cov = this.deps.contractEnforcer.enforceTagCoverage(e, graphView);
+      if (cov.needsAdjustment) this.deps.emitter.log('debug', cov.suggestion || '', { entity: e.id });
+      const tax = this.deps.contractEnforcer.validateTagTaxonomy(e);
+      if (!tax.valid) this.deps.emitter.log('warn', `Entity ${e.name} has conflicting tags`, { conflicts: tax.conflicts });
+    }
+  }
+
+  // --- Event recording ---
+
+  private recordBatch(template: GrowthTemplate, result: TemplateResult, newIds: string[], created: HardState[], target: HardState): void {
+    if (newIds.length === 0) return;
+    const counts = new Map<string, number>();
+    for (const r of result.relationships) counts.set(r.kind, (counts.get(r.kind) || 0) + 1);
+    const summary: RelationshipSummary[] = [...counts].map(([kind, count]) => ({ kind, count }));
+    const decl = this.deps.declarativeTemplates.get(template.id);
+    const raw = decl?.creation[0]?.description;
+    const narration = decl ? buildNarrationText(decl, target, result, created) : undefined;
+    this.deps.stateChangeTracker.recordCreationBatch(template.id, template.name || template.id, newIds, summary, (typeof raw === 'string' ? raw : undefined) || result.description, narration);
+  }
+
+  private emitApplication(
+    template: GrowthTemplate, result: TemplateResult, target: HardState,
+    graphView: WorldRuntime, newIds: string[], created: HardState[], pressureBefore: number
+  ): void {
+    const mods = this.deps.getPendingPressureModifications().slice(pressureBefore);
+    const pc: Record<string, number> = {};
+    for (const m of mods) pc[m.pressureId] = (pc[m.pressureId] || 0) + m.delta;
+    this.deps.emitter.templateApplication({
+      tick: graphView.tick, epoch: this.deps.getCurrentEpoch(),
+      templateId: template.id, targetEntityId: target.id, targetEntityName: target.name, targetEntityKind: target.kind,
+      description: result.description, entitiesCreated: buildEntityCreationInfo(created, result),
+      relationshipsCreated: result.relationships.map(r => ({
+        kind: r.kind,
+        srcId: r.src.startsWith('will-be-assigned-') ? newIds[parseInt(r.src.split('-')[3])] : r.src,
+        dstId: r.dst.startsWith('will-be-assigned-') ? newIds[parseInt(r.dst.split('-')[3])] : r.dst,
+        strength: r.strength,
+      })),
+      pressureChanges: pc,
+    });
+  }
+
+  private recordYield(template: GrowthTemplate, count: number): void {
+    this.entitiesCreated += count;
+    this.templatesApplied += 1;
+    this.templatesUsed.add(template.id);
+    this.deps.templateRunCounts.set(template.id, (this.deps.templateRunCounts.get(template.id) || 0) + 1);
+    this.yieldSamples.push(count);
+    if (this.yieldSamples.length > this.yieldWindow) this.yieldSamples.shift();
+  }
+
+  private emptyResult(description: string): import('../engine/types').SystemResult {
+    return { relationshipsAdded: [], entitiesModified: [], pressureChanges: {}, description };
+  }
+}
+
+// ============================================================================
+// Factory function (preserves existing API)
+// ============================================================================
+
+export function createGrowthSystem(config: GrowthSystemConfig, deps: GrowthSystemDependencies): GrowthSystem {
+  return new GrowthSystemImpl(config, deps);
 }

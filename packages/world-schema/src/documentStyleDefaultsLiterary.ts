@@ -34,13 +34,14 @@ Avoid modern concepts, abstract language, lengthy explanations within proverbs, 
 
     eventInstructions: 'Historical events become cautionary tales. "Remember the [disaster]" type sayings.',
 
+    craftPosture: '',
     titleGuidance: 'The title names the source — the people, the place, or the tradition from which the sayings come. Communal and referential register: what a culture calls its own collected wisdom when speaking about it. It should feel inherited rather than authored, oral rather than written. If a standout proverb serves as the title, it should be the one everyone already knows.',
 
     roles: [
-      { role: 'cultural-value', count: { min: 1, max: 3 }, description: 'Tradition, belief, or principle expressed in the sayings' },
-      { role: 'folk-hero', count: { min: 0, max: 2 }, description: 'Legendary figure referenced in proverbs' },
-      { role: 'cultural-institution', count: { min: 0, max: 1 }, description: 'Guild, temple, or social group whose wisdom is cited' },
-      { role: 'proverbial-place', count: { min: 0, max: 1 }, description: 'Location referenced in cautionary tales' },
+      { role: 'cultural-value', count: { min: 1, max: 3 }, description: 'Tradition, belief, or principle expressed in the sayings', selectionCriteria: '' },
+      { role: 'folk-hero', count: { min: 0, max: 2 }, description: 'Legendary figure referenced in proverbs', selectionCriteria: '' },
+      { role: 'cultural-institution', count: { min: 0, max: 1 }, description: 'Guild, temple, or social group whose wisdom is cited', selectionCriteria: '' },
+      { role: 'proverbial-place', count: { min: 0, max: 1 }, description: 'Location referenced in cautionary tales', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -74,12 +75,13 @@ Avoid identical voices, all positive or all negative, generic praise, modern rev
 
     eventInstructions: 'Reviews reference occasions. "Bought for the festival" or "Needed after the flood."',
 
+    craftPosture: '',
     titleGuidance: 'Name the thing being reviewed — the product, the shop, or the vendor. Informal and opinionated register: what an unsatisfied or delighted customer would scrawl as a heading. Specific and grounded in the commercial world of the setting. The title should sound like ordinary people talking about ordinary transactions.',
 
     roles: [
-      { role: 'reviewed-subject', count: { min: 1, max: 1 }, description: 'Product, service, or establishment being reviewed' },
-      { role: 'vendor', count: { min: 0, max: 1 }, description: 'The seller or provider' },
-      { role: 'notable-reviewer', count: { min: 0, max: 1 }, description: 'Famous customer whose opinion carries weight' },
+      { role: 'reviewed-subject', count: { min: 1, max: 1 }, description: 'Product, service, or establishment being reviewed', selectionCriteria: '' },
+      { role: 'vendor', count: { min: 0, max: 1 }, description: 'The seller or provider', selectionCriteria: '' },
+      { role: 'notable-reviewer', count: { min: 0, max: 1 }, description: 'Famous customer whose opinion carries weight', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -113,12 +115,13 @@ Avoid consistent tone, literary polish, awareness of audience, complete narrativ
 
     eventInstructions: 'Events are experienced personally, not reported. "That thing at the market today" not "The merchant guild trade dispute." The writer assumes they remember context.',
 
+    craftPosture: '',
     titleGuidance: 'The title is what the diarist or someone who found the diary later would write on the cover — a place name, a date range, or a simple identifying label. Not literary, not clever. Private and functional register: a notebook marked for the writer\'s own use, never meant to be a title at all. The less composed it sounds, the more authentic it feels.',
 
     roles: [
-      { role: 'diarist', count: { min: 1, max: 1 }, description: 'The private voice - their unguarded self, messier than their public persona' },
-      { role: 'mentioned-person', count: { min: 0, max: 2 }, description: 'People the diarist writes about - described with unfiltered private opinion' },
-      { role: 'private-concern', count: { min: 0, max: 1 }, description: 'The thing weighing on them - may be petty, profound, or both' },
+      { role: 'diarist', count: { min: 1, max: 1 }, description: 'The private voice - their unguarded self, messier than their public persona', selectionCriteria: '' },
+      { role: 'mentioned-person', count: { min: 0, max: 2 }, description: 'People the diarist writes about - described with unfiltered private opinion', selectionCriteria: '' },
+      { role: 'private-concern', count: { min: 0, max: 1 }, description: 'The thing weighing on them - may be petty, profound, or both', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -153,12 +156,13 @@ Avoid casual language, long speeches, the subject volunteering information freel
 
     eventInstructions: 'Events are what the interrogation is about. They appear as contested facts - the interrogator\'s version versus the subject\'s version, with the truth somewhere between.',
 
+    craftPosture: '',
     titleGuidance: 'The title is a case file heading — subject name, case number, or incident description. Bureaucratic register: the voice of an institution processing a person. Clinical, impersonal, reducing a human situation to an administrative category. The colder the title sounds, the more the reader feels what is being done to the person inside it.',
 
     roles: [
-      { role: 'subject', count: { min: 1, max: 1 }, description: 'The one being questioned - their evasions reveal as much as their answers' },
-      { role: 'interrogator', count: { min: 1, max: 1 }, description: 'The questioner - professional, persistent, holding information back strategically' },
-      { role: 'reviewing-officer', count: { min: 0, max: 1 }, description: 'The margin-note voice - reads the transcript later, catches what the interrogator missed' },
+      { role: 'subject', count: { min: 1, max: 1 }, description: 'The one being questioned - their evasions reveal as much as their answers', selectionCriteria: '' },
+      { role: 'interrogator', count: { min: 1, max: 1 }, description: 'The questioner - professional, persistent, holding information back strategically', selectionCriteria: '' },
+      { role: 'reviewing-officer', count: { min: 0, max: 1 }, description: 'The margin-note voice - reads the transcript later, catches what the interrogator missed', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -197,11 +201,12 @@ Avoid prose disguised as verse, forced rhymes that sacrifice meaning, modern idi
 
     eventInstructions: 'Events become imagery. A war becomes "the red year." A leader becomes "the one who wore the crown of thorns." The song remembers events as feelings and images, not facts.',
 
+    craftPosture: '',
     titleGuidance: 'The title is what the singer says before they begin — the name everyone in the room already knows. It comes from the song itself: a character\'s name, the opening phrase, the refrain\'s key words, or the place where events happened. Oral register: worn smooth by many mouths, easy to say, easy to remember. It belongs to a community, not an author.',
 
     roles: [
-      { role: 'song-subject', count: { min: 1, max: 2 }, description: 'What or whom the song is about - may be a person, place, event, or feeling, transformed into imagery' },
-      { role: 'cultural-origin', count: { min: 0, max: 1 }, description: 'The community that sings this - their concerns and values shape the song' },
+      { role: 'song-subject', count: { min: 1, max: 2 }, description: 'What or whom the song is about - may be a person, place, event, or feeling, transformed into imagery', selectionCriteria: '' },
+      { role: 'cultural-origin', count: { min: 0, max: 1 }, description: 'The community that sings this - their concerns and values shape the song', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -240,11 +245,12 @@ Avoid adult vocabulary, complex syntax, obvious allegory, rhymes that sound comp
 
     eventInstructions: 'Historical events become unrecognizable in children\'s mouths. A plague becomes "Ring around the rosie." A tyrant becomes "Old King Grumblethorn." The rhyme preserves the emotional residue, not the facts.',
 
+    craftPosture: '',
     titleGuidance: 'The title names the collection the way a community names its children\'s songs — by the most memorable character, the place where children sing them, or the figure who supposedly gathered them. Simple enough for a child to repeat: concrete nouns, strong rhythm, words that are fun in the mouth. It should feel like it has been shouted across playgrounds for longer than anyone remembers.',
 
     roles: [
-      { role: 'rhyme-subjects', count: { min: 2, max: 4 }, description: 'Diverse subjects across the rhymes - historical figures, places, events, all transformed into children\'s chant material' },
-      { role: 'cultural-origin', count: { min: 0, max: 1 }, description: 'The culture whose children sing these - their world is embedded in the imagery' },
+      { role: 'rhyme-subjects', count: { min: 2, max: 4 }, description: 'Diverse subjects across the rhymes - historical figures, places, events, all transformed into children\'s chant material', selectionCriteria: '' },
+      { role: 'cultural-origin', count: { min: 0, max: 1 }, description: 'The culture whose children sing these - their world is embedded in the imagery', selectionCriteria: '' },
     ],
 
     pacing: {
@@ -284,11 +290,12 @@ Avoid sentimentality, abstraction, commentary, narrative, metaphor spelled out, 
 
     eventInstructions: 'Events are absent. The haiku exists outside history, in the eternal present of perception. If a war raged yesterday, the haiku notices the frost on a blade of grass this morning.',
 
+    craftPosture: '',
     titleGuidance: 'The title grounds the collection in a concrete particular — a place, a season, a natural element, or the circumstance of composition. One to three words. Precise and sensory register, carrying more than it says. No abstraction, no metaliterary framing. The title should feel like the first perception — the one that opened the poet\'s attention.',
 
     roles: [
-      { role: 'observed-moment', count: { min: 1, max: 2 }, description: 'The subject of perception - a season, a place, a fleeting natural event' },
-      { role: 'poet-context', count: { min: 0, max: 1 }, description: 'The poet or the occasion - minimal, providing just enough frame' },
+      { role: 'observed-moment', count: { min: 1, max: 2 }, description: 'The subject of perception - a season, a place, a fleeting natural event', selectionCriteria: '' },
+      { role: 'poet-context', count: { min: 0, max: 1 }, description: 'The poet or the occasion - minimal, providing just enough frame', selectionCriteria: '' },
     ],
 
     pacing: {

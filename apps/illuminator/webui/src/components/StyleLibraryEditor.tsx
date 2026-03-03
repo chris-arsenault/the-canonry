@@ -229,7 +229,7 @@ function StyleEditModal({ style, type, onSave, onCancel }: Readonly<StyleEditMod
   const isNew = !style?.id;
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const result: StyleBase = {
         id: isNew ? generateStyleId(type) : formData.id,
@@ -1056,7 +1056,7 @@ function NarrativeStyleEditModal({
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const result: NarrativeStyle = {
       id: isNew ? `narrative-${Date.now().toString(36)}` : formData.id,

@@ -438,7 +438,7 @@ function ChecksTabContent({ report }: Readonly<{ report: CohesionReport }>) {
 // Tab: Issues
 // ============================================================================
 
-function IssuesTabContent({ report, assessment }: Readonly<{ report: CohesionReport; assessment: Assessment }>) {
+function IssuesTabContent({ report, assessment: _assessment }: Readonly<{ report: CohesionReport; assessment: Assessment }>) {
   const criticalIssues = useMemo(
     () => report.issues.filter(i => i.severity === "critical"),
     [report.issues],

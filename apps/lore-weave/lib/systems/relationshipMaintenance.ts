@@ -123,7 +123,7 @@ function computeUpdatedStrength(
   maxStrength: number,
   graphView: WorldRuntime
 ): { strength: number; decayed: boolean; reinforced: boolean } {
-  let strength = rel.strength ?? 0.5;
+  let strength = rel.strength;
   let decayed = false;
   let reinforced = false;
   if (!isYoung && decayRate !== 'none') {
@@ -146,113 +146,93 @@ function computeUpdatedStrength(
 /**
  * Create a Relationship Maintenance system with the given configuration.
  */
-export function createRelationshipMaintenanceSystem(config: RelationshipMaintenanceConfig): SimulationSystem {
-  // Extract config with defaults
-  const maintenanceFrequency = config.maintenanceFrequency ?? 5;
-  const cullThreshold = config.cullThreshold ?? 0.15;
-  const gracePeriod = config.gracePeriod ?? 20;
-  const reinforcementBonus = config.reinforcementBonus ?? 0.02;
-  const maxStrength = config.maxStrength ?? 1.0;
-  const proximityRelationshipKinds = config.proximityRelationshipKinds ?? [];
+class RelationshipMaintenanceSystem implements SimulationSystem {
+  readonly id: string;
+  readonly name: string;
+  state: unknown = null;
+  private readonly frequency: number;
+  private readonly cullThreshold: number;
+  private readonly gracePeriod: number;
+  private readonly reinforcementBonus: number;
+  private readonly maxStrength: number;
+  private readonly proximityKinds: string[];
 
-  return {
-    id: config.id || 'relationship_maintenance',
-    name: config.name || 'Relationship Maintenance',
+  constructor(config: RelationshipMaintenanceConfig) {
+    this.id = config.id || 'relationship_maintenance';
+    this.name = config.name || 'Relationship Maintenance';
+    this.frequency = config.maintenanceFrequency;
+    this.cullThreshold = config.cullThreshold;
+    this.gracePeriod = config.gracePeriod;
+    this.reinforcementBonus = config.reinforcementBonus;
+    this.maxStrength = config.maxStrength;
+    this.proximityKinds = config.proximityRelationshipKinds;
+  }
 
-    apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
-      // Only run every N ticks
-      if (graphView.tick % maintenanceFrequency !== 0) {
-        return {
-          relationshipsAdded: [],
-          entitiesModified: [],
-          pressureChanges: {},
-          description: 'Relationship maintenance dormant'
-        };
-      }
+  initialize(): void { /* no-op */ }
 
-      // Get all relationships including historical
-      const allRelationships = graphView.getAllRelationships({ includeHistorical: true });
-      const originalCount = allRelationships.filter(r => r.status !== 'historical').length;
-
-      let decayed = 0;
-      let reinforced = 0;
-      let archived = 0;
-      let removed = 0;
-
-      const metricCtx = createSystemContext(graphView);
-
-      const maintainedRelationships: Relationship[] = [];
-      const modifiedEntityIds = new Set<string>();
-
-      for (const rel of allRelationships) {
-        // Preserve historical relationships unchanged
-        if (rel.status === 'historical') {
-          maintainedRelationships.push(rel);
-          continue;
-        }
-
-        const srcEntity = graphView.getEntity(rel.src);
-        const dstEntity = graphView.getEntity(rel.dst);
-
-        // Remove relationships to non-existent entities (can't archive - no entity to reference)
-        if (!srcEntity || !dstEntity) {
-          removed++;
-          continue;
-        }
-
-        // Calculate relationship age
-        const age = Math.min(
-          graphView.tick - srcEntity.createdAt,
-          graphView.tick - dstEntity.createdAt
-        );
-
-        // Young relationships are protected
-        const isYoung = age < gracePeriod;
-
-        // Get relationship kind properties
-        const decayRate = getDecayRate(graphView, rel.kind);
-        const cullable = isCullable(graphView, rel.kind);
-
-        const update = computeUpdatedStrength(
-          rel, isYoung, decayRate, metricCtx, modifier,
-          proximityRelationshipKinds, reinforcementBonus, maxStrength, graphView
-        );
-        if (update.decayed) decayed++;
-        if (update.reinforced) reinforced++;
-        const strength = update.strength;
-
-        // === CULLING (archives instead of deleting) ===
-        if (!isYoung && cullable && strength < cullThreshold) {
-          archived++;
-          rel.status = 'historical';
-          rel.archivedAt = graphView.tick;
-          srcEntity.updatedAt = graphView.tick;
-          modifiedEntityIds.add(srcEntity.id);
-          dstEntity.updatedAt = graphView.tick;
-          modifiedEntityIds.add(dstEntity.id);
-          maintainedRelationships.push(rel);
-          continue;
-        }
-
-        if (rel.strength !== strength) rel.strength = strength;
-        maintainedRelationships.push(rel);
-      }
-
-      // Update graph with all maintained relationships
-      graphView.setRelationships(maintainedRelationships);
-
-      const description = buildMaintenanceDescription(decayed, reinforced, archived, removed, originalCount);
-
-      return {
-        relationshipsAdded: [],
-        entitiesModified: Array.from(modifiedEntityIds).map(id => ({
-          id,
-          changes: { updatedAt: graphView.tick }
-        })),
-        pressureChanges: {},
-        description
-      };
+  apply(graphView: WorldRuntime, modifier: number = 1.0): SystemResult {
+    if (graphView.tick % this.frequency !== 0) {
+      return { relationshipsAdded: [], entitiesModified: [], pressureChanges: {}, description: 'Relationship maintenance dormant' };
     }
-  };
+
+    const allRels = graphView.getAllRelationships({ includeHistorical: true });
+    const originalCount = allRels.filter(r => r.status !== 'historical').length;
+    const stats = { decayed: 0, reinforced: 0, archived: 0, removed: 0 };
+    const metricCtx = createSystemContext(graphView);
+    const maintained: Relationship[] = [];
+    const modifiedIds = new Set<string>();
+
+    for (const rel of allRels) {
+      if (rel.status === 'historical') { maintained.push(rel); continue; }
+      this.processRelationship(rel, graphView, metricCtx, modifier, stats, maintained, modifiedIds);
+    }
+
+    graphView.setRelationships(maintained);
+    return {
+      relationshipsAdded: [],
+      entitiesModified: Array.from(modifiedIds).map(id => ({ id, changes: { updatedAt: graphView.tick } })),
+      pressureChanges: {},
+      description: buildMaintenanceDescription(stats.decayed, stats.reinforced, stats.archived, stats.removed, originalCount),
+    };
+  }
+
+  private processRelationship(
+    rel: Relationship, graphView: WorldRuntime,
+    metricCtx: ReturnType<typeof createSystemContext>, modifier: number,
+    stats: { decayed: number; reinforced: number; archived: number; removed: number },
+    maintained: Relationship[], modifiedIds: Set<string>
+  ): void {
+    const src = graphView.getEntity(rel.src);
+    const dst = graphView.getEntity(rel.dst);
+    if (!src || !dst) { stats.removed++; return; }
+
+    const age = Math.min(graphView.tick - src.createdAt, graphView.tick - dst.createdAt);
+    const isYoung = age < this.gracePeriod;
+    const decayRate = getDecayRate(graphView, rel.kind);
+    const cullable = isCullable(graphView, rel.kind);
+
+    const update = computeUpdatedStrength(rel, isYoung, decayRate, metricCtx, modifier, this.proximityKinds, this.reinforcementBonus, this.maxStrength, graphView);
+    if (update.decayed) stats.decayed++;
+    if (update.reinforced) stats.reinforced++;
+
+    if (!isYoung && cullable && update.strength < this.cullThreshold) {
+      stats.archived++;
+      rel.status = 'historical';
+      rel.archived = { occurred: true, tick: graphView.tick };
+      src.updatedAt = graphView.tick;
+      dst.updatedAt = graphView.tick;
+      modifiedIds.add(src.id);
+      modifiedIds.add(dst.id);
+      maintained.push(rel);
+      return;
+    }
+
+    if (rel.strength !== update.strength) rel.strength = update.strength;
+    maintained.push(rel);
+  }
+}
+
+export function createRelationshipMaintenanceSystem(config: RelationshipMaintenanceConfig): SimulationSystem {
+  return new RelationshipMaintenanceSystem(config);
 }
 

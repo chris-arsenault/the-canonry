@@ -1,4 +1,4 @@
-import { SimulationSystem, SystemResult, Era } from '../engine/types';
+import { SimulationSystem, SystemResult, Era , entityCriteria } from '../engine/types';
 import { HardState } from '../core/worldTypes';
 import {
   FRAMEWORK_ENTITY_KINDS,
@@ -36,11 +36,11 @@ export function createEraEntity(
   configEra: Era,
   tick: number,
   status: string,
-  previousEra?: HardState,
-  id?: string
+  previousEra: HardState,
+  id: string
 ): { entity: HardState } {
   // Use config ID as entity ID - this must match the era field in history events
-  const resolvedId = id ?? configEra.id;
+  const resolvedId = id;
   const eraEntity: HardState = {
     id: resolvedId,
     kind: FRAMEWORK_ENTITY_KINDS.ERA,
@@ -78,7 +78,7 @@ export function applyEntryEffects(
   configEra: Era
 ): Record<string, number> {
   const entryEffects = configEra.entryEffects;
-  const mutations = entryEffects?.mutations || [];
+  const mutations = entryEffects.mutations;
   if (mutations.length === 0) return {};
 
   const ctx = createSystemContext(graphView);
@@ -104,7 +104,7 @@ export function createEraSpawnerSystem(config: EraSpawnerConfig): SimulationSyst
 
     apply: (graphView: WorldRuntime, _modifier: number = 1.0): SystemResult => {
       // Check if any era entities already exist
-      const existingEras = graphView.findEntities({ kind: FRAMEWORK_ENTITY_KINDS.ERA });
+      const existingEras = graphView.findEntities(entityCriteria({ kind: FRAMEWORK_ENTITY_KINDS.ERA }));
 
       if (existingEras.length > 0) {
         // Eras already exist - skip
@@ -118,7 +118,7 @@ export function createEraSpawnerSystem(config: EraSpawnerConfig): SimulationSyst
 
       // Get eras from config
       const configEras = graphView.config.eras;
-      if (!configEras || configEras.length === 0) {
+      if (configEras.length === 0) {
         return {
           relationshipsAdded: [],
           entitiesModified: [],
