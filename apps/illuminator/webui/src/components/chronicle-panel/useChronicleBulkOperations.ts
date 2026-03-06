@@ -90,6 +90,7 @@ export function useChronicleBulkOperations({
   historianConfigured,
   historianConfig,
   skipCompletedPrep,
+  fullEntityMapRef,
 }: UseChronicleBulkOperationsParams) {
   // Bulk image ref regeneration
   const [bulkImageRefResult, setBulkImageRefResult] = useState<OperationResult | null>(null);
