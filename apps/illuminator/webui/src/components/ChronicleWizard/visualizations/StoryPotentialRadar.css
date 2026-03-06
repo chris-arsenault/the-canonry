@@ -1,0 +1,47 @@
+/* StoryPotentialRadar styles */
+
+.spr-svg {
+  display: block;
+}
+
+.spr-with-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.spr-score-wrap {
+  text-align: center;
+}
+
+.spr-score-number {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+.spr-score-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.spr-dots {
+  display: flex;
+  gap: 2px;
+}
+
+.spr-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.spr-dot-filled {
+  background: var(--accent-color);
+}
+
+.spr-dot-empty {
+  background: var(--bg-tertiary);
+}

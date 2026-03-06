@@ -11,17 +11,17 @@
 // =============================================================================
 
 export type DynamicsRunStatus =
-  | 'pending'                // Created, waiting for first LLM turn
-  | 'generating'             // LLM call in progress (worker is running)
-  | 'awaiting_review'        // LLM returned proposed dynamics, user needs to review
-  | 'complete'               // User accepted final dynamics
-  | 'failed';                // Error occurred
+  | "pending" // Created, waiting for first LLM turn
+  | "generating" // LLM call in progress (worker is running)
+  | "awaiting_review" // LLM returned proposed dynamics, user needs to review
+  | "complete" // User accepted final dynamics
+  | "failed"; // Error occurred
 
 // =============================================================================
 // Conversation Messages
 // =============================================================================
 
-export type DynamicsMessageRole = 'system' | 'assistant' | 'user';
+export type DynamicsMessageRole = "system" | "assistant" | "user";
 
 export interface DynamicsMessage {
   role: DynamicsMessageRole;

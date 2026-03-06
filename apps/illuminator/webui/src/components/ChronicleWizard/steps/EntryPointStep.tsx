@@ -8,23 +8,28 @@
  * - Mini constellation showing 1-hop network preview
  */
 
-import { useState, useMemo, useEffect } from 'react';
-import type { EntityContext, RelationshipContext, NarrativeEventContext } from '../../../lib/chronicleTypes';
-import { useWizard } from '../WizardContext';
+import React, { useState, useMemo, useEffect } from "react";
+import type {
+  EntityContext,
+  RelationshipContext,
+  NarrativeEventContext,
+} from "../../../lib/chronicleTypes";
+import { useWizard } from "../WizardContext";
 import {
   computeAllStoryPotentials,
   getConnectedEntities,
   getUniqueKinds,
   type EntityWithPotential,
-} from '../../../lib/chronicle/storyPotential';
-import { getEntityUsageStats } from '../../../lib/db/chronicleRepository';
-import { getEraRanges } from '../../../lib/chronicle/timelineUtils';
+} from "../../../lib/chronicle/storyPotential";
+import { getEntityUsageStats } from "../../../lib/db/chronicleRepository";
+import { getEraRanges } from "../../../lib/chronicle/timelineUtils";
 import {
   FilterChips,
   StoryPotentialRadarWithScore,
   StoryScoreBar,
   MiniConstellation,
-} from '../visualizations';
+} from "../visualizations";
+import "./EntryPointStep.css";
 
 interface EntryPointStepProps {
   entities: EntityContext[];
@@ -32,7 +37,7 @@ interface EntryPointStepProps {
   events: NarrativeEventContext[];
 }
 
-type SortOption = 'story-score' | 'connections' | 'name' | 'underused';
+type SortOption = "story-score" | "connections" | "name" | "underused";
 
 interface UsageMetrics {
   usageCount: number;
@@ -45,11 +50,98 @@ interface UsageMetrics {
   prominence: number;
 }
 
-export default function EntryPointStep({
-  entities,
-  relationships,
-  events,
-}: EntryPointStepProps) {
+function buildAdjacency(
+  entityIds: string[],
+  relationships: Array<{ src: string; dst: string }>
+): Map<string, Set<string>> {
+  const adjacency = new Map<string, Set<string>>();
+  for (const id of entityIds) adjacency.set(id, new Set());
+  for (const rel of relationships) {
+    if (!adjacency.has(rel.src) || !adjacency.has(rel.dst)) continue;
+    adjacency.get(rel.src)?.add(rel.dst);
+    adjacency.get(rel.dst)?.add(rel.src);
+  }
+  return adjacency;
+}
+
+function countNeighbors(
+  neighbors: Iterable<string>,
+  visitStamp: Map<string, number>,
+  stamp: number,
+  usageCounts: Map<string, number>
+): { total: number; unused: number } {
+  let total = 0, unused = 0;
+  for (const id of neighbors) {
+    if (visitStamp.get(id) === stamp) continue;
+    visitStamp.set(id, stamp);
+    total += 1;
+    if ((usageCounts.get(id) ?? 0) === 0) unused += 1;
+  }
+  return { total, unused };
+}
+
+function collectSecondHopNeighbors(
+  firstHop: Set<string>,
+  adjacency: Map<string, Set<string>>
+): string[] {
+  const secondHop: string[] = [];
+  for (const neighbor of firstHop) {
+    const neighborHops = adjacency.get(neighbor);
+    if (neighborHops) secondHop.push(...neighborHops);
+  }
+  return secondHop;
+}
+
+function countHops(
+  firstHop: Set<string>,
+  adjacency: Map<string, Set<string>>,
+  visitStamp: Map<string, number>,
+  stamp: number,
+  usageCounts: Map<string, number>
+): { hop1Total: number; hop1Unused: number; hop2Total: number; hop2Unused: number } {
+  const hop1 = countNeighbors(firstHop, visitStamp, stamp, usageCounts);
+  const secondHopNeighbors = collectSecondHopNeighbors(firstHop, adjacency);
+  const hop2 = countNeighbors(secondHopNeighbors, visitStamp, stamp, usageCounts);
+  return { hop1Total: hop1.total, hop1Unused: hop1.unused, hop2Total: hop2.total, hop2Unused: hop2.unused };
+}
+
+function computeUsageMetrics(
+  entityPotentials: Map<string, { prominence: unknown }>,
+  relationships: Array<{ src: string; dst: string }>,
+  usageCounts: Map<string, number>
+): Map<string, UsageMetrics> {
+  if (entityPotentials.size === 0) return new Map();
+
+  const entityIds = Array.from(entityPotentials.keys());
+  const adjacency = buildAdjacency(entityIds, relationships);
+  const visitStamp = new Map<string, number>();
+  let stamp = 1;
+  const result = new Map<string, UsageMetrics>();
+
+  for (const id of entityIds) {
+    const usageCount = usageCounts.get(id) ?? 0;
+    const entity = entityPotentials.get(id);
+    const rawProminence = entity ? Number(entity.prominence) : 0;
+    const prominence = Number.isFinite(rawProminence) ? Math.max(0, rawProminence) : 0;
+
+    const firstHop = adjacency.get(id) || new Set<string>();
+    stamp += 1;
+    visitStamp.set(id, stamp);
+
+    const hops = countHops(firstHop, adjacency, visitStamp, stamp, usageCounts);
+    result.set(id, {
+      usageCount,
+      unusedSelf: usageCount === 0,
+      ...hops,
+      underusedScore: prominence / (usageCount + 1),
+      prominence,
+    });
+  }
+
+  return result;
+}
+
+export default function EntryPointStep({ entities, relationships, events }: Readonly<EntryPointStepProps>) {
   const {
     state,
     eras,
@@ -59,28 +151,31 @@ export default function EntryPointStep({
     simulationRunId,
   } = useWizard();
   const [selectedKinds, setSelectedKinds] = useState<Set<string>>(new Set());
-  const [sortBy, setSortBy] = useState<SortOption>('story-score');
+  const [sortBy, setSortBy] = useState<SortOption>("story-score");
   const [hoveredEntityId, setHoveredEntityId] = useState<string | null>(null);
   const [onlyUnused, setOnlyUnused] = useState(false);
   const [usageStats, setUsageStats] = useState<Map<string, { usageCount: number }>>(new Map());
-  const [usageLoading, setUsageLoading] = useState(false);
+  const [usageLoading, setUsageLoading] = useState(!!simulationRunId);
+  const [prevRunId, setPrevRunId] = useState(simulationRunId);
+
+  // Clear usage stats during render when simulationRunId is removed
+  if (!simulationRunId && prevRunId) {
+    setPrevRunId(simulationRunId);
+    setUsageStats(new Map());
+    setUsageLoading(false);
+  }
 
   useEffect(() => {
-    if (!simulationRunId) {
-      setUsageStats(new Map());
-      setUsageLoading(false);
-      return;
-    }
+    if (!simulationRunId) return;
 
     let isActive = true;
-    setUsageLoading(true);
 
     getEntityUsageStats(simulationRunId)
       .then((stats) => {
         if (isActive) setUsageStats(stats);
       })
       .catch((err) => {
-        console.error('[Chronicle Wizard] Failed to load entity usage stats:', err);
+        console.error("[Chronicle Wizard] Failed to load entity usage stats:", err);
         if (isActive) setUsageStats(new Map());
       })
       .finally(() => {
@@ -105,70 +200,10 @@ export default function EntryPointStep({
     return counts;
   }, [usageStats]);
 
-  const usageMetrics = useMemo(() => {
-    if (entityPotentials.size === 0) return new Map<string, UsageMetrics>();
-
-    const entityIds = Array.from(entityPotentials.keys());
-    const adjacency = new Map<string, Set<string>>();
-    for (const id of entityIds) adjacency.set(id, new Set());
-
-    for (const rel of relationships) {
-      if (!adjacency.has(rel.src) || !adjacency.has(rel.dst)) continue;
-      adjacency.get(rel.src)!.add(rel.dst);
-      adjacency.get(rel.dst)!.add(rel.src);
-    }
-
-    const visitStamp = new Map<string, number>();
-    let stamp = 1;
-    const result = new Map<string, UsageMetrics>();
-
-    for (const id of entityIds) {
-      const usageCount = usageCounts.get(id) ?? 0;
-      const entity = entityPotentials.get(id);
-      const rawProminence = entity ? Number(entity.prominence) : 0;
-      const prominence = Number.isFinite(rawProminence) ? Math.max(0, rawProminence) : 0;
-
-      const firstHop = adjacency.get(id) || new Set<string>();
-      stamp += 1;
-      visitStamp.set(id, stamp);
-
-      let hop1Total = 0;
-      let hop1Unused = 0;
-      for (const neighbor of firstHop) {
-        if (visitStamp.get(neighbor) === stamp) continue;
-        visitStamp.set(neighbor, stamp);
-        hop1Total += 1;
-        if ((usageCounts.get(neighbor) ?? 0) === 0) hop1Unused += 1;
-      }
-
-      let hop2Total = 0;
-      let hop2Unused = 0;
-      for (const neighbor of firstHop) {
-        const neighborHops = adjacency.get(neighbor);
-        if (!neighborHops) continue;
-
-        for (const secondHop of neighborHops) {
-          if (visitStamp.get(secondHop) === stamp) continue;
-          visitStamp.set(secondHop, stamp);
-          hop2Total += 1;
-          if ((usageCounts.get(secondHop) ?? 0) === 0) hop2Unused += 1;
-        }
-      }
-
-      result.set(id, {
-        usageCount,
-        unusedSelf: usageCount === 0,
-        hop1Unused,
-        hop1Total,
-        hop2Unused,
-        hop2Total,
-        underusedScore: prominence / (usageCount + 1),
-        prominence,
-      });
-    }
-
-    return result;
-  }, [entityPotentials, relationships, usageCounts]);
+  const usageMetrics = useMemo(
+    () => computeUsageMetrics(entityPotentials, relationships, usageCounts),
+    [entityPotentials, relationships, usageCounts]
+  );
 
   // Get available kinds for filter chips
   const availableKinds = useMemo(() => {
@@ -198,28 +233,28 @@ export default function EntryPointStep({
 
     // Apply kind filter
     if (selectedKinds.size > 0) {
-      result = result.filter(e => selectedKinds.has(e.kind));
+      result = result.filter((e) => selectedKinds.has(e.kind));
     }
 
     // Apply unused filter (requires usage stats)
     if (onlyUnused && !usageLoading) {
-      result = result.filter(e => (usageMetrics.get(e.id)?.usageCount ?? 0) === 0);
+      result = result.filter((e) => (usageMetrics.get(e.id)?.usageCount ?? 0) === 0);
     }
 
     // Sort
     result.sort((a, b) => {
       switch (sortBy) {
-        case 'name':
+        case "name":
           return a.name.localeCompare(b.name);
-        case 'connections':
+        case "connections":
           return b.connectionCount - a.connectionCount;
-        case 'underused': {
+        case "underused": {
           const aScore = usageMetrics.get(a.id)?.underusedScore ?? 0;
           const bScore = usageMetrics.get(b.id)?.underusedScore ?? 0;
           if (bScore !== aScore) return bScore - aScore;
           return b.potential.overallScore - a.potential.overallScore;
         }
-        case 'story-score':
+        case "story-score":
         default:
           return b.potential.overallScore - a.potential.overallScore;
       }
@@ -251,27 +286,30 @@ export default function EntryPointStep({
       clearEntryPoint();
       return;
     }
-    // Convert back to EntityContext for the wizard
-    const { potential, connectionCount, eventCount, connectedKinds, eraIds, ...baseEntity } = entity;
+    // Strip computed analysis fields for EntityContext
+    const baseEntity = Object.fromEntries(
+      Object.entries(entity).filter(([k]) => k !== 'potential' && k !== 'connectionCount' && k !== 'eventCount' && k !== 'connectedKinds' && k !== 'eraIds')
+    );
     selectEntryPoint(baseEntity as EntityContext, entities, relationships, events);
   };
 
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: '16px' }}>
-        <h4 style={{ margin: '0 0 8px 0' }}>Select Entry Point</h4>
-        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
-          Choose the central entity for your chronicle. Higher story scores indicate richer narrative potential.
+      <div className="eps-header">
+        <h4 className="eps-title">Select Entry Point</h4>
+        <p className="eps-subtitle">
+          Choose the central entity for your chronicle. Higher story scores indicate richer
+          narrative potential.
         </p>
       </div>
 
       {/* Two column layout - fixed height to prevent jumping */}
-      <div style={{ display: 'flex', gap: '20px', height: '480px' }}>
+      <div className="eps-layout">
         {/* Left: Entity list */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <div className="eps-left">
           {/* Filter chips */}
-          <div style={{ marginBottom: '12px' }}>
+          <div className="eps-filter-gap">
             <FilterChips
               options={availableKinds}
               selected={selectedKinds}
@@ -281,47 +319,38 @@ export default function EntryPointStep({
           </div>
 
           {/* Sort control and options */}
-          <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="eps-sort-row">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="illuminator-select"
-              style={{ fontSize: '11px', padding: '4px 8px' }}
+              className="illuminator-select eps-sort-select"
             >
               <option value="story-score">Sort by Story Score</option>
               <option value="connections">Sort by Connections</option>
               <option value="underused">Sort by Underused Score</option>
               <option value="name">Sort by Name</option>
             </select>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '11px',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-            }}>
+            <label className="eps-checkbox-label eps-checkbox-label-muted">
               <input
                 type="checkbox"
                 checked={state.includeErasInNeighborhood}
                 onChange={(e) => setIncludeErasInNeighborhood(e.target.checked)}
-                style={{ margin: 0 }}
+                className="eps-checkbox"
               />
               Include eras in neighborhood
             </label>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '11px',
-              color: usageLoading ? 'var(--text-muted)' : 'var(--text-secondary)',
-              cursor: usageLoading ? 'not-allowed' : 'pointer',
-            }}>
+            <label
+              className="eps-checkbox-label"
+              style={{
+                '--eps-label-color': usageLoading ? "var(--text-muted)" : "var(--text-secondary)",
+                '--eps-label-cursor': usageLoading ? "not-allowed" : "pointer",
+              } as React.CSSProperties}
+            >
               <input
                 type="checkbox"
                 checked={onlyUnused}
                 onChange={(e) => setOnlyUnused(e.target.checked)}
-                style={{ margin: 0 }}
+                className="eps-checkbox"
                 disabled={usageLoading}
               />
               Only unused
@@ -329,19 +358,13 @@ export default function EntryPointStep({
           </div>
 
           {/* Entity list - fills remaining height */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            border: '1px solid var(--border-color)',
-            borderRadius: '8px',
-            minHeight: 0,
-          }}>
+          <div className="eps-entity-list">
             {filteredEntities.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div className="ilu-empty eps-empty-list">
                 No entities match the selected filters.
               </div>
             ) : (
-              filteredEntities.map(entity => {
+              filteredEntities.map((entity) => {
                 const isSelected = state.entryPointId === entity.id;
                 const isHovered = hoveredEntityId === entity.id;
                 const usage = usageMetrics.get(entity.id);
@@ -352,96 +375,57 @@ export default function EntryPointStep({
                     onClick={() => handleSelect(entity)}
                     onMouseEnter={() => setHoveredEntityId(entity.id)}
                     onMouseLeave={() => setHoveredEntityId(null)}
-                    style={{
-                      padding: '10px 14px',
-                      borderBottom: '1px solid var(--border-color)',
-                      cursor: 'pointer',
-                      background: isSelected
-                        ? 'var(--accent-color)'
-                        : isHovered
-                        ? 'var(--bg-tertiary)'
-                        : 'transparent',
-                      color: isSelected ? 'white' : 'inherit',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      transition: 'background 0.15s ease',
-                    }}
+                    className={`eps-entity-row ${isSelected ? "eps-entity-row-selected" : ""} ${isHovered && !isSelected ? "eps-entity-row-hovered" : ""}`}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                   >
                     {/* Selection indicator */}
-                    <div style={{
-                      width: '14px',
-                      height: '14px',
-                      borderRadius: '50%',
-                      border: isSelected ? '2px solid white' : '2px solid var(--border-color)',
-                      background: isSelected ? 'white' : 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}>
+                    <div className={`eps-radio-dot ${isSelected ? "eps-radio-dot-selected" : "eps-radio-dot-unselected"}`}>
                       {isSelected && (
-                        <div style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          background: 'var(--accent-color)',
-                        }} />
+                        <div className="eps-radio-dot-inner" />
                       )}
                     </div>
 
                     {/* Entity info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}>
-                        <span style={{ fontWeight: 500, fontSize: '13px' }}>
-                          {entity.name}
-                        </span>
-                        <span style={{
-                          padding: '1px 6px',
-                          background: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--bg-tertiary)',
-                          borderRadius: '4px',
-                          fontSize: '9px',
-                          color: isSelected ? 'rgba(255,255,255,0.9)' : 'var(--text-muted)',
-                        }}>
+                    <div className="eps-entity-info">
+                      <div className="eps-entity-name-row">
+                        <span className="eps-entity-name">{entity.name}</span>
+                        <span className={`eps-kind-badge ${isSelected ? "eps-kind-badge-selected" : "eps-kind-badge-default"}`}>
                           {entity.kind}
                         </span>
-                        {entity.eraId && eraNameMap.has(entity.eraId) && (() => {
-                          const eraColor = eraColorMap.get(entity.eraId!);
-                          return (
-                            <span style={{
-                              padding: '1px 6px',
-                              background: isSelected ? 'rgba(255,255,255,0.2)' : eraColor ? `${eraColor}26` : 'var(--bg-tertiary)',
-                              borderRadius: '4px',
-                              fontSize: '9px',
-                              color: isSelected ? 'rgba(255,255,255,0.9)' : eraColor ?? 'var(--text-muted)',
-                            }}>
-                              {eraNameMap.get(entity.eraId!)}
-                            </span>
-                          );
-                        })()}
-                        <span style={{
-                          padding: '1px 6px',
-                          background: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--bg-tertiary)',
-                          borderRadius: '4px',
-                          fontSize: '9px',
-                          color: isSelected ? 'rgba(255,255,255,0.9)' : 'var(--text-muted)',
-                        }}
-                        title="Prominence-weighted underuse: prominence ÷ (usage + 1)">
-                          {usageLoading ? 'Underused ...' : `Underused ${usage ? usage.underusedScore.toFixed(2) : '0.00'}`}
+                        {entity.eraId &&
+                          eraNameMap.has(entity.eraId) &&
+                          (() => {
+                            const eraColor = eraColorMap.get(entity.eraId);
+                            let eraBgValue: string | undefined;
+                            if (isSelected) eraBgValue = "rgba(255,255,255,0.2)";
+                            else if (eraColor) eraBgValue = `${eraColor}26`;
+                            const eraColorValue = isSelected ? "rgba(255,255,255,0.9)" : eraColor;
+                            return (
+                              <span
+                                className="eps-era-badge"
+                                style={{
+                                  '--eps-era-bg': eraBgValue,
+                                  '--eps-era-color': eraColorValue,
+                                } as React.CSSProperties}
+                              >
+                                {eraNameMap.get(entity.eraId)}
+                              </span>
+                            );
+                          })()}
+                        <span
+                          className={`eps-underused-badge ${isSelected ? "eps-kind-badge-selected" : "eps-kind-badge-default"}`}
+                          title="Prominence-weighted underuse: prominence ÷ (usage + 1)"
+                        >
+                          {(() => {
+                            if (usageLoading) return "Underused ...";
+                            const score = usage ? usage.underusedScore.toFixed(2) : "0.00";
+                            return `Underused ${score}`;
+                          })()}
                         </span>
                       </div>
-                      <div style={{
-                        fontSize: '11px',
-                        color: isSelected ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',
-                        marginTop: '2px',
-                        display: 'flex',
-                        gap: '8px',
-                        alignItems: 'center',
-                      }}>
+                      <div className={`eps-entity-stats ${isSelected ? "eps-entity-stats-selected" : "eps-entity-stats-default"}`}>
                         <span>{entity.connectionCount} links</span>
                         <span>·</span>
                         <span>{entity.eventCount} events</span>
@@ -452,33 +436,19 @@ export default function EntryPointStep({
                           </>
                         )}
                       </div>
-                      <div style={{
-                        fontSize: '10px',
-                        color: isSelected ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)',
-                        marginTop: '2px',
-                      }}>
-                        {usageLoading ? 'Unused: ...' : (
-                          `Unused: self ${usage?.unusedSelf ? '1' : '0'}/1 · 1-hop ${usage?.hop1Unused ?? 0}/${usage?.hop1Total ?? 0} · 2-hop ${usage?.hop2Unused ?? 0}/${usage?.hop2Total ?? 0}`
-                        )}
+                      <div className={`eps-entity-usage ${isSelected ? "eps-entity-usage-selected" : "eps-entity-usage-default"}`}>
+                        {(() => {
+                          if (usageLoading) return "Unused: ...";
+                          const selfStr = usage?.unusedSelf ? "1" : "0";
+                          return `Unused: self ${selfStr}/1 · 1-hop ${usage?.hop1Unused ?? 0}/${usage?.hop1Total ?? 0} · 2-hop ${usage?.hop2Unused ?? 0}/${usage?.hop2Total ?? 0}`;
+                        })()}
                       </div>
                     </div>
 
                     {/* Story score bar */}
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: '2px',
-                    }}>
-                      <StoryScoreBar
-                        score={entity.potential.overallScore}
-                        width={50}
-                        height={6}
-                      />
-                      <span style={{
-                        fontSize: '9px',
-                        color: isSelected ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',
-                      }}>
+                    <div className="eps-score-col">
+                      <StoryScoreBar score={entity.potential.overallScore} width={50} height={6} />
+                      <span className={`eps-score-pct ${isSelected ? "eps-score-pct-selected" : "eps-score-pct-default"}`}>
                         {(entity.potential.overallScore * 100).toFixed(0)}%
                       </span>
                     </div>
@@ -490,43 +460,20 @@ export default function EntryPointStep({
         </div>
 
         {/* Right: Detail panel - fixed height, scrollable */}
-        <div style={{
-          width: '220px',
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          overflowY: 'auto',
-          minHeight: 0,
-        }}>
+        <div className="eps-right">
           {detailEntity ? (
             <>
               {/* Radar chart with score below */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-              }}>
-                <StoryPotentialRadarWithScore
-                  potential={detailEntity.potential}
-                  size={160}
-                />
+              <div className="eps-radar-wrap">
+                <StoryPotentialRadarWithScore potential={detailEntity.potential} size={160} />
               </div>
 
               {/* Mini constellation */}
               <div>
-                <div style={{
-                  fontSize: '9px',
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  marginBottom: '4px',
-                  textAlign: 'center',
-                }}>
+                <div className="eps-network-label">
                   1-Hop Network
                 </div>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                }}>
+                <div className="eps-network-wrap">
                   <MiniConstellation
                     centerName={detailEntity.name}
                     connections={detailConnections}
@@ -534,57 +481,33 @@ export default function EntryPointStep({
                   />
                 </div>
                 {/* Inline stats */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  gap: '16px',
-                  marginTop: '4px',
-                  fontSize: '10px',
-                  color: 'var(--text-muted)',
-                }}>
-                  <span><strong>{detailEntity.connectedKinds.length}</strong> kinds</span>
-                  <span><strong>{detailEntity.eraIds.length}</strong> eras</span>
+                <div className="eps-inline-stats">
+                  <span>
+                    <strong>{detailEntity.connectedKinds.length}</strong> kinds
+                  </span>
+                  <span>
+                    <strong>{detailEntity.eraIds.length}</strong> eras
+                  </span>
                 </div>
-                <div style={{
-                  marginTop: '6px',
-                  textAlign: 'center',
-                  fontSize: '10px',
-                  color: 'var(--text-muted)',
-                }}>
-                  {usageLoading || !detailUsage ? 'Unused: ...' : (
-                    `Unused: self ${detailUsage.unusedSelf ? '1' : '0'}/1 · 1-hop ${detailUsage.hop1Unused}/${detailUsage.hop1Total} · 2-hop ${detailUsage.hop2Unused}/${detailUsage.hop2Total}`
-                  )}
+                <div className="eps-detail-usage">
+                  {(() => {
+                    if (usageLoading || !detailUsage) return "Unused: ...";
+                    const selfStr = detailUsage.unusedSelf ? "1" : "0";
+                    return `Unused: self ${selfStr}/1 · 1-hop ${detailUsage.hop1Unused}/${detailUsage.hop1Total} · 2-hop ${detailUsage.hop2Unused}/${detailUsage.hop2Total}`;
+                  })()}
                 </div>
-                <div style={{
-                  marginTop: '4px',
-                  textAlign: 'center',
-                  fontSize: '10px',
-                  color: 'var(--text-muted)',
-                }}>
-                  {usageLoading || !detailUsage ? 'Underused score: ...' : `Underused score: ${detailUsage.underusedScore.toFixed(2)}`}
+                <div className="eps-detail-underused">
+                  {usageLoading || !detailUsage
+                    ? "Underused score: ..."
+                    : `Underused score: ${detailUsage.underusedScore.toFixed(2)}`}
                 </div>
               </div>
             </>
           ) : (
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '20px',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontSize: '12px',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '8px',
-              border: '1px dashed var(--border-color)',
-            }}>
-              <div style={{ marginBottom: '8px', fontSize: '32px', opacity: 0.4 }}>
-                ◎
-              </div>
+            <div className="eps-empty-detail">
+              <div className="eps-empty-icon">◎</div>
               <div>Hover or select an entity</div>
-              <div style={{ fontSize: '11px', marginTop: '4px' }}>to see its story potential</div>
+              <div className="eps-empty-sub">to see its story potential</div>
             </div>
           )}
         </div>
@@ -592,26 +515,17 @@ export default function EntryPointStep({
 
       {/* Selected entry point summary */}
       {state.entryPoint && (
-        <div style={{
-          marginTop: '16px',
-          padding: '12px',
-          background: 'var(--bg-tertiary)',
-          borderRadius: '8px',
-          border: '1px solid var(--accent-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
+        <div className="eps-selected-summary">
           <div>
-            <span style={{ fontWeight: 500 }}>{state.entryPoint.name}</span>
+            <span className="eps-selected-name">{state.entryPoint.name}</span>
             {state.entryPoint.summary && (
-              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+              <p className="eps-selected-desc">
                 {state.entryPoint.summary}
               </p>
             )}
           </div>
-          <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)' }}>
-            <div style={{ fontWeight: 500, color: 'var(--accent-color)' }}>
+          <div className="eps-selected-right">
+            <div className="eps-candidate-count">
               {state.candidates.length} candidates
             </div>
             <div>in 2-hop neighborhood</div>

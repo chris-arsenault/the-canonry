@@ -44,6 +44,7 @@ async function evaluateBatch(
         hyphenRate: 0,
         lengthMin: 0,
         lengthMax: 0,
+        favoredClusterBoost: 0,
       },
       validationSettings,
       fitnessWeights,
@@ -90,77 +91,42 @@ const DEFAULT_GA_SETTINGS: GASettings = {
  * Crossover two domain configurations
  * Swaps phoneme subsets between parents
  */
+function dedupeWithWeights(arr: string[], weights: number[]): [string[], number[]] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  const resultW: number[] = [];
+  for (let i = 0; i < arr.length; i++) {
+    if (!seen.has(arr[i])) { seen.add(arr[i]); result.push(arr[i]); resultW.push(weights[i] ?? 1); }
+  }
+  return [result, resultW];
+}
+
+function crossArrays(
+  c1: string[], c2: string[], w1: number[], w2: number[], rng: () => number
+): [string[], string[], number[], number[]] {
+  const cp = Math.floor(rng() * Math.min(c1.length, c2.length));
+  const [d1, dw1] = dedupeWithWeights([...c1.slice(0, cp), ...c2.slice(cp)], [...w1.slice(0, cp), ...w2.slice(cp)]);
+  const [d2, dw2] = dedupeWithWeights([...c2.slice(0, cp), ...c1.slice(cp)], [...w2.slice(0, cp), ...w1.slice(cp)]);
+  return [d1, d2, dw1, dw2];
+}
+
 function crossover(
   parent1: NamingDomain,
   parent2: NamingDomain,
   rng: () => number
 ): [NamingDomain, NamingDomain] {
-  // Crossover consonants
-  const crossConsonants = (
-    c1: string[],
-    c2: string[],
-    w1: number[],
-    w2: number[]
-  ): [string[], string[], number[], number[]] => {
-    const crossPoint = Math.floor(rng() * Math.min(c1.length, c2.length));
-    const newC1 = [...c1.slice(0, crossPoint), ...c2.slice(crossPoint)];
-    const newC2 = [...c2.slice(0, crossPoint), ...c1.slice(crossPoint)];
-    const newW1 = [...w1.slice(0, crossPoint), ...w2.slice(crossPoint)];
-    const newW2 = [...w2.slice(0, crossPoint), ...w1.slice(crossPoint)];
 
-    // Remove duplicates
-    const dedupe = (arr: string[], weights: number[]): [string[], number[]] => {
-      const seen = new Set<string>();
-      const result: string[] = [];
-      const resultW: number[] = [];
-      for (let i = 0; i < arr.length; i++) {
-        if (!seen.has(arr[i])) {
-          seen.add(arr[i]);
-          result.push(arr[i]);
-          resultW.push(weights[i] ?? 1);
-        }
-      }
-      return [result, resultW];
-    };
-
-    const [deduped1, dedupedW1] = dedupe(newC1, newW1);
-    const [deduped2, dedupedW2] = dedupe(newC2, newW2);
-
-    return [deduped1, deduped2, dedupedW1, dedupedW2];
-  };
-
-  // Get weights or defaults
-  const cw1 = parent1.phonology.consonantWeights || parent1.phonology.consonants.map(() => 1);
-  const cw2 = parent2.phonology.consonantWeights || parent2.phonology.consonants.map(() => 1);
-  const vw1 = parent1.phonology.vowelWeights || parent1.phonology.vowels.map(() => 1);
-  const vw2 = parent2.phonology.vowelWeights || parent2.phonology.vowels.map(() => 1);
-
-  // Crossover consonants
-  const [newCons1, newCons2, newConsW1, newConsW2] = crossConsonants(
-    parent1.phonology.consonants,
-    parent2.phonology.consonants,
-    cw1,
-    cw2
-  );
-
-  // Crossover vowels
-  const [newVowels1, newVowels2, newVowelW1, newVowelW2] = crossConsonants(
-    parent1.phonology.vowels,
-    parent2.phonology.vowels,
-    vw1,
-    vw2
-  );
+  const p1 = parent1.phonology;
+  const p2 = parent2.phonology;
+  const [newCons1, newCons2, newConsW1, newConsW2] = crossArrays(p1.consonants, p2.consonants, p1.consonantWeights ?? [], p2.consonantWeights ?? [], rng);
+  const [newVowels1, newVowels2, newVowelW1, newVowelW2] = crossArrays(p1.vowels, p2.vowels, p1.vowelWeights ?? [], p2.vowelWeights ?? [], rng);
 
   // Crossover templates (simple swap)
   const swapTemplates = rng() < 0.5;
-  const templates1 = swapTemplates ? parent2.phonology.syllableTemplates : parent1.phonology.syllableTemplates;
-  const templates2 = swapTemplates ? parent1.phonology.syllableTemplates : parent2.phonology.syllableTemplates;
-  const templatesW1 = swapTemplates
-    ? (parent2.phonology.templateWeights || parent2.phonology.syllableTemplates.map(() => 1))
-    : (parent1.phonology.templateWeights || parent1.phonology.syllableTemplates.map(() => 1));
-  const templatesW2 = swapTemplates
-    ? (parent1.phonology.templateWeights || parent1.phonology.syllableTemplates.map(() => 1))
-    : (parent2.phonology.templateWeights || parent2.phonology.syllableTemplates.map(() => 1));
+  const templates1 = swapTemplates ? p2.syllableTemplates : p1.syllableTemplates;
+  const templates2 = swapTemplates ? p1.syllableTemplates : p2.syllableTemplates;
+  const templatesW1 = swapTemplates ? p2.templateWeights : p1.templateWeights;
+  const templatesW2 = swapTemplates ? p1.templateWeights : p2.templateWeights;
 
   // Create offspring
   const child1: NamingDomain = {
@@ -216,18 +182,105 @@ function tournamentSelect(
  */
 function getPrimaryGoal(weights: FitnessWeights): keyof typeof MUTATION_WEIGHTS {
   const goals: Array<{ goal: keyof typeof MUTATION_WEIGHTS; weight: number }> = [
-    { goal: "capacity", weight: weights.capacity ?? 0 },
-    { goal: "separation", weight: weights.separation ?? 0 },
-    { goal: "pronounceability", weight: weights.pronounceability ?? 0 },
+    { goal: "capacity", weight: weights.capacity },
+    { goal: "separation", weight: weights.separation },
+    { goal: "pronounceability", weight: weights.pronounceability },
   ];
 
   goals.sort((a, b) => b.weight - a.weight);
   return goals[0].goal;
 }
 
+/** Optionally mutate a child genome based on mutation rate. */
+function maybeApplyMutation(
+  child: NamingDomain,
+  mutationRate: number,
+  mutationsPerIndividual: number,
+  primaryGoal: keyof typeof MUTATION_WEIGHTS,
+  rng: () => number
+): NamingDomain {
+  if (rng() >= mutationRate) return child;
+  let result = child;
+  for (let m = 0; m < mutationsPerIndividual; m++) {
+    result = applyWeightedMutation(result, primaryGoal, rng);
+  }
+  return result;
+}
+
+/** Generate child genomes from a population via selection, crossover, and mutation. */
+function generateChildren(
+  population: Individual[],
+  gaSettings: GASettings,
+  primaryGoal: keyof typeof MUTATION_WEIGHTS,
+  rng: () => number,
+  targetCount: number
+): NamingDomain[] {
+  const childGenomes: NamingDomain[] = [];
+
+  while (childGenomes.length < targetCount) {
+    const parent1 = tournamentSelect(population, gaSettings.tournamentSize, rng);
+    const parent2 = tournamentSelect(population, gaSettings.tournamentSize, rng);
+
+    let child1: NamingDomain;
+    let child2: NamingDomain;
+
+    if (rng() < gaSettings.crossoverRate) {
+      [child1, child2] = crossover(parent1.genome, parent2.genome, rng);
+    } else {
+      child1 = { ...parent1.genome };
+      child2 = { ...parent2.genome };
+    }
+
+    child1 = maybeApplyMutation(child1, gaSettings.mutationRate, gaSettings.mutationsPerIndividual, primaryGoal, rng);
+    child2 = maybeApplyMutation(child2, gaSettings.mutationRate, gaSettings.mutationsPerIndividual, primaryGoal, rng);
+
+    childGenomes.push(child1);
+    if (childGenomes.length < targetCount) {
+      childGenomes.push(child2);
+    }
+  }
+
+  return childGenomes;
+}
+
 /**
  * Run genetic algorithm optimization
  */
+async function runEvolutionLoop(
+  population: Individual[], generations: number, gaSettings: GASettings,
+  validationSettings: ValidationSettings, fitnessWeights: FitnessWeights,
+  siblingDomains: NamingDomain[], primaryGoal: keyof typeof MUTATION_WEIGHTS, rng: () => number,
+  initialFitness: number
+): Promise<{ evaluations: EvaluationResult[]; convergenceHistory: number[] }> {
+  const evaluations: EvaluationResult[] = [];
+  const convergenceHistory: number[] = [initialFitness];
+
+  for (let gen = 0; gen < generations; gen++) {
+    const genStart = Date.now();
+    const elites = population.slice(0, gaSettings.eliteCount);
+    const childGenomes = generateChildren(population, gaSettings, primaryGoal, rng, gaSettings.populationSize - elites.length);
+    const childEvals = await evaluateBatch(childGenomes, validationSettings, fitnessWeights, siblingDomains, gen + 1);
+
+    const newPop = [...elites];
+    for (let i = 0; i < childGenomes.length; i++) {
+      newPop.push({ genome: childGenomes[i], fitness: childEvals[i].fitness, scores: childEvals[i].scores });
+      evaluations.push(childEvals[i]);
+    }
+
+    newPop.sort((a, b) => b.fitness - a.fitness);
+    population.length = 0;
+    population.push(...newPop.slice(0, gaSettings.populationSize));
+
+    const best = population[0].fitness;
+    const avg = population.reduce((s, ind) => s + ind.fitness, 0) / population.length;
+    convergenceHistory.push(best);
+    console.log(`[Gen ${gen + 1}/${generations}] Best: ${best.toFixed(4)}, Avg: ${avg.toFixed(4)} (${((Date.now() - genStart) / 1000).toFixed(1)}s)`);
+    if (best > initialFitness * 1.001) console.log(`  -> Improvement: +${(((best - initialFitness) / initialFitness) * 100).toFixed(1)}%`);
+  }
+
+  return { evaluations, convergenceHistory };
+}
+
 export async function geneticAlgorithm(
   initialDomain: NamingDomain,
   validationSettings: ValidationSettings,
@@ -244,13 +297,14 @@ export async function geneticAlgorithm(
   };
 
   const generations = optimizationSettings.iterations ?? 50;
-  const useSeparation = siblingDomains.length > 0 && (fitnessWeights.separation ?? 0) > 0;
+  const useSeparation = siblingDomains.length > 0 && (fitnessWeights.separation) > 0;
   const primaryGoal = getPrimaryGoal(fitnessWeights);
 
   console.log(`\n=== Genetic Algorithm ===`);
   console.log(`Population: ${gaSettings.populationSize}, Generations: ${generations}`);
   console.log(`Primary goal: ${primaryGoal}`);
-  console.log(`Separation: ${useSeparation ? `yes (${siblingDomains.length} siblings)` : "no"}`);
+  const geneticSeparationLabel = useSeparation ? `yes (${siblingDomains.length} siblings)` : "no";
+  console.log(`Separation: ${geneticSeparationLabel}`);
 
   // Initialize population with mutations of initial domain
   console.log("\nInitializing population...");
@@ -288,98 +342,10 @@ export async function geneticAlgorithm(
   const initialFitness = population[0].fitness;
   console.log(`Initial best fitness: ${initialFitness.toFixed(4)}`);
 
-  const evaluations: EvaluationResult[] = [];
-  const convergenceHistory: number[] = [initialFitness];
-
-  // Evolution loop
-  for (let gen = 0; gen < generations; gen++) {
-    const genStart = Date.now();
-
-    const newPopulation: Individual[] = [];
-
-    // Elitism: keep best individuals
-    for (let i = 0; i < gaSettings.eliteCount; i++) {
-      newPopulation.push(population[i]);
-    }
-
-    // Generate children through selection, crossover, mutation
-    const childGenomes: NamingDomain[] = [];
-
-    while (newPopulation.length + childGenomes.length < gaSettings.populationSize) {
-      // Selection
-      const parent1 = tournamentSelect(population, gaSettings.tournamentSize, rng);
-      const parent2 = tournamentSelect(population, gaSettings.tournamentSize, rng);
-
-      let child1: NamingDomain;
-      let child2: NamingDomain;
-
-      // Crossover
-      if (rng() < gaSettings.crossoverRate) {
-        [child1, child2] = crossover(parent1.genome, parent2.genome, rng);
-      } else {
-        child1 = { ...parent1.genome };
-        child2 = { ...parent2.genome };
-      }
-
-      // Mutation
-      if (rng() < gaSettings.mutationRate) {
-        for (let m = 0; m < gaSettings.mutationsPerIndividual; m++) {
-          child1 = applyWeightedMutation(child1, primaryGoal, rng);
-        }
-      }
-      if (rng() < gaSettings.mutationRate) {
-        for (let m = 0; m < gaSettings.mutationsPerIndividual; m++) {
-          child2 = applyWeightedMutation(child2, primaryGoal, rng);
-        }
-      }
-
-      childGenomes.push(child1);
-      if (newPopulation.length + childGenomes.length < gaSettings.populationSize) {
-        childGenomes.push(child2);
-      }
-    }
-
-    // Evaluate all children in parallel
-    const childEvaluations = await evaluateBatch(
-      childGenomes,
-      validationSettings,
-      fitnessWeights,
-      useSeparation ? siblingDomains : [],
-      gen + 1
-    );
-
-    // Add children to population
-    for (let i = 0; i < childGenomes.length; i++) {
-      newPopulation.push({
-        genome: childGenomes[i],
-        fitness: childEvaluations[i].fitness,
-        scores: childEvaluations[i].scores,
-      });
-      evaluations.push(childEvaluations[i]);
-    }
-
-    // Replace population
-    newPopulation.sort((a, b) => b.fitness - a.fitness);
-    population.length = 0;
-    population.push(...newPopulation.slice(0, gaSettings.populationSize));
-
-    const genElapsed = ((Date.now() - genStart) / 1000).toFixed(1);
-    const bestFitness = population[0].fitness;
-    const avgFitness = population.reduce((sum, ind) => sum + ind.fitness, 0) / population.length;
-
-    convergenceHistory.push(bestFitness);
-
-    console.log(
-      `[Gen ${gen + 1}/${generations}] ` +
-      `Best: ${bestFitness.toFixed(4)}, Avg: ${avgFitness.toFixed(4)} ` +
-      `(${genElapsed}s)`
-    );
-
-    if (bestFitness > initialFitness * 1.001) {
-      const improvement = ((bestFitness - initialFitness) / initialFitness) * 100;
-      console.log(`  -> Improvement: +${improvement.toFixed(1)}%`);
-    }
-  }
+  const { evaluations, convergenceHistory } = await runEvolutionLoop(
+    population, generations, gaSettings, validationSettings, fitnessWeights,
+    useSeparation ? siblingDomains : [], primaryGoal, rng, initialFitness
+  );
 
   const bestIndividual = population[0];
   const finalFitness = bestIndividual.fitness;

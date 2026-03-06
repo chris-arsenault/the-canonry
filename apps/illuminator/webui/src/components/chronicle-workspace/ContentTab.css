@@ -1,0 +1,329 @@
+/* ContentTab — prefix: ctab- */
+/* Shared utilities available: .ilu-section, .ilu-container, .ilu-container-header,
+   .ilu-container-header-bordered, .ilu-action-btn, .ilu-empty, .ilu-footer,
+   .ilu-warning-banner, .ilu-error-banner, .ilu-section-label
+   (from packages/shared-components/src/styles/components/panel-utilities.css) */
+
+/* AssembledContentViewer */
+
+/* Shared: compose with .ilu-container */
+.ctab-viewer {
+}
+
+/* Shared: compose with .ilu-container-header + .ilu-container-header-bordered */
+.ctab-viewer-toolbar {
+  justify-content: space-between;
+}
+
+.ctab-word-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ctab-diff-label {
+  margin-left: 8px;
+}
+
+.ctab-diff-added {
+  margin-left: 6px;
+  color: rgb(34 197 94 / 80%);
+}
+
+.ctab-diff-removed {
+  margin-left: 4px;
+  color: rgb(239 68 68 / 80%);
+}
+
+.ctab-toolbar-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ctab-toolbar-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.ctab-toolbar-btn-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ctab-qc-indicator-clean {
+  color: #22c55e;
+}
+
+.ctab-qc-indicator-minor {
+  color: #f59e0b;
+}
+
+.ctab-qc-indicator-major {
+  color: #ef4444;
+}
+
+.ctab-qc-indicator {
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.ctab-viewer-body {
+  padding: 20px;
+  max-height: 600px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+}
+
+.ctab-diff-span-added {
+  background: rgb(34 197 94 / 20%);
+  color: var(--text-primary);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.ctab-diff-span-removed {
+  background: rgb(239 68 68 / 20%);
+  color: var(--text-secondary);
+  border-radius: 2px;
+  padding: 0 1px;
+  text-decoration: line-through;
+}
+
+/* Summary collapsible */
+
+/* Shared: compose with .ilu-container */
+.ctab-summary-section {
+  margin-bottom: 12px;
+}
+
+.ctab-summary-header {
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ctab-summary-header-expanded {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ctab-summary-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ctab-collapse-icon {
+  display: inline-block;
+  width: 14px;
+  font-size: 10px;
+}
+
+.ctab-copy-btn {
+  padding: 2px 10px;
+  font-size: 11px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.ctab-summary-body {
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+/* Tertiary cast */
+
+/* Similar to .ilu-container but no overflow:hidden + position/z-index extras */
+.ctab-tertiary-section {
+  margin-bottom: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  position: relative;
+  z-index: 10;
+}
+
+.ctab-tertiary-header {
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.ctab-tertiary-header-expandable {
+  cursor: pointer;
+}
+
+.ctab-tertiary-header-default {
+  cursor: default;
+}
+
+.ctab-tertiary-header-expanded {
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 8px 8px 0 0;
+}
+
+.ctab-tertiary-header-collapsed {
+  border-radius: 8px;
+}
+
+.ctab-tertiary-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ctab-tertiary-count {
+  margin-left: 6px;
+  color: var(--text-muted);
+}
+
+.ctab-detect-btn {
+  padding: 2px 10px;
+  font-size: 11px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.ctab-detect-btn-enabled {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.ctab-detect-btn-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ctab-tertiary-body {
+  padding: 8px 16px;
+}
+
+.ctab-tertiary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ctab-tertiary-chip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.ctab-tertiary-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ctab-tertiary-chip-accepted {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  opacity: 1;
+  text-decoration: none;
+}
+
+.ctab-tertiary-chip-rejected {
+  background: transparent;
+  color: var(--text-muted);
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.ctab-tertiary-chip-kind {
+  margin-left: 4px;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+/* Tertiary hover tooltip */
+
+.ctab-tertiary-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+  z-index: 100;
+  min-width: 200px;
+  max-width: 360px;
+  pointer-events: none;
+}
+
+.ctab-tooltip-header {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ctab-tooltip-context {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: break-word;
+}
+
+.ctab-tooltip-match-highlight {
+  background: rgb(245 158 11 / 20%);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.ctab-tooltip-matched-as {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.ctab-tooltip-matched-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ctab-tooltip-arrow {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Version selector wrapper */
+
+.ctab-version-selector {
+  margin-bottom: 16px;
+}

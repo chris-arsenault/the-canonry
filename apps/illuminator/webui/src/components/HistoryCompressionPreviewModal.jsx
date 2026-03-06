@@ -7,6 +7,11 @@
  * were consolidated and which were kept as distinct milestones.
  */
 
+import "./HistoryCompressionPreviewModal.css";
+import React from "react";
+import PropTypes from "prop-types";
+import { ModalShell } from "@the-canonry/shared-components";
+
 export default function HistoryCompressionPreviewModal({
   entityName,
   originalCount,
@@ -18,154 +23,78 @@ export default function HistoryCompressionPreviewModal({
 
   const removedCount = originalCount - compressed.length;
 
+  const footer = (
+    <>
+      <button
+        onClick={onCancel}
+        className="illuminator-button illuminator-button-secondary hcpm-footer-btn"
+      >
+        Cancel
+      </button>
+      <button
+        onClick={onProceed}
+        className="illuminator-button illuminator-button-primary hcpm-footer-btn"
+      >
+        Proceed with Copy Edit
+      </button>
+    </>
+  );
+
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 1000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(0, 0, 0, 0.6)',
-    }}>
-      <div style={{
-        background: 'var(--bg-primary)',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
-        width: '700px',
-        maxWidth: '95vw',
-        maxHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '16px 20px',
-          borderBottom: '1px solid var(--border-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-        }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '16px' }}>
-              Description Archive
-              <span style={{ fontWeight: 400, fontSize: '13px', color: 'var(--text-muted)', marginLeft: '8px' }}>
-                {entityName}
-              </span>
-            </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
-              {removedCount > 0
-                ? `${originalCount} versions → ${compressed.length} milestones (${removedCount} near-duplicate passes consolidated)`
-                : `${originalCount} versions — no compression needed`
-              }
-            </p>
-          </div>
-        </div>
-
-        {/* Scrollable content */}
-        <div style={{
-          flex: 1,
-          overflow: 'auto',
-          padding: '16px 20px',
-          minHeight: 0,
-        }}>
-          {compressed.map((entry, i) => {
-            const date = new Date(entry.replacedAt).toISOString().split('T')[0];
-            const isConsolidated = entry.consolidatedCount > 1;
-            const earliestDate = entry.earliestDate
-              ? new Date(entry.earliestDate).toISOString().split('T')[0]
-              : null;
-
-            return (
-              <div
-                key={i}
-                style={{
-                  background: 'var(--bg-secondary)',
-                  borderRadius: '6px',
-                  marginBottom: '6px',
-                  borderLeft: `3px solid ${isConsolidated ? '#f59e0b' : 'var(--border-color)'}`,
-                }}
-              >
-                {/* Header */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text-primary)' }}>
-                      [{i + 1}]
-                    </span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      {entry.source}
-                    </span>
-                    {isConsolidated && (
-                      <span style={{
-                        fontSize: '10px',
-                        color: '#f59e0b',
-                        fontWeight: 500,
-                      }}>
-                        {entry.consolidatedCount} passes consolidated
-                      </span>
-                    )}
-                  </div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                    {isConsolidated && earliestDate
-                      ? `${earliestDate} → ${date}`
-                      : date
-                    }
-                  </span>
-                </div>
-
-                {/* Preview */}
-                <div style={{
-                  padding: '0 12px 8px',
-                  fontSize: '11px',
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.5,
-                  maxHeight: '60px',
-                  overflow: 'hidden',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
-                  WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
-                }}>
-                  {entry.description.slice(0, 300)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Footer */}
-        <div style={{
-          padding: '12px 20px 16px',
-          borderTop: '1px solid var(--border-color)',
-          flexShrink: 0,
-          display: 'flex',
-          gap: '8px',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-        }}>
-          <button
-            onClick={onCancel}
-            className="illuminator-button illuminator-button-secondary"
-            style={{ padding: '6px 16px', fontSize: '12px' }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onProceed}
-            className="illuminator-button illuminator-button-primary"
-            style={{ padding: '6px 16px', fontSize: '12px' }}
-          >
-            Proceed with Copy Edit
-          </button>
-        </div>
+    <ModalShell onClose={onCancel} title="Description Archive" className="hcpm-dialog" footer={footer}>
+      <div className="hcpm-meta">
+        <span className="hcpm-entity-name">{entityName}</span>
+        <p className="hcpm-subtitle">
+          {removedCount > 0
+            ? `${originalCount} versions → ${compressed.length} milestones (${removedCount} near-duplicate passes consolidated)`
+            : `${originalCount} versions — no compression needed`}
+        </p>
       </div>
-    </div>
+
+      {/* Scrollable content */}
+      <div className="hcpm-content">
+        {compressed.map((entry, i) => {
+          const date = new Date(entry.replacedAt).toISOString().split("T")[0];
+          const isConsolidated = entry.consolidatedCount > 1;
+          const earliestDate = entry.earliestDate
+            ? new Date(entry.earliestDate).toISOString().split("T")[0]
+            : null;
+
+          return (
+            <div
+              key={i}
+              className={`hcpm-entry ${isConsolidated ? "hcpm-entry-consolidated" : "hcpm-entry-normal"}`}
+            >
+              {/* Header */}
+              <div className="hcpm-entry-header">
+                <div className="hcpm-entry-header-left">
+                  <span className="hcpm-entry-index">[{i + 1}]</span>
+                  <span className="hcpm-entry-source">{entry.source}</span>
+                  {isConsolidated && (
+                    <span className="hcpm-entry-consolidated-label">
+                      {entry.consolidatedCount} passes consolidated
+                    </span>
+                  )}
+                </div>
+                <span className="hcpm-entry-date">
+                  {isConsolidated && earliestDate ? `${earliestDate} → ${date}` : date}
+                </span>
+              </div>
+
+              {/* Preview */}
+              <div className="hcpm-entry-preview">{entry.description.slice(0, 300)}</div>
+            </div>
+          );
+        })}
+      </div>
+    </ModalShell>
   );
 }
+
+HistoryCompressionPreviewModal.propTypes = {
+  entityName: PropTypes.string,
+  originalCount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  compressed: PropTypes.array,
+  onProceed: PropTypes.func,
+  onCancel: PropTypes.func,
+};

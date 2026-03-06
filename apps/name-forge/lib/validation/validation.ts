@@ -47,5 +47,5 @@ export interface ClassificationResult {
   predicted: string;
   actual: string;
   correct: boolean;
-  confidence?: number;
+  confidence: number;
 }

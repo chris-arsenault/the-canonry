@@ -6,21 +6,79 @@
  */
 
 import { HardState } from '../../core/worldTypes';
-import { SelectionFilter } from './types';
+import type {
+  SelectionFilter, HasRelationshipFilter, LacksRelationshipFilter, SharesRelatedFilter, ComponentSizeFilter,
+  ExcludeEntitiesFilter, HasTagSelectionFilter, HasTagsSelectionFilter, HasAnyTagSelectionFilter,
+  LacksTagSelectionFilter, LacksAnyTagSelectionFilter,
+  HasCultureFilter, NotHasCultureFilter,
+  MatchesCultureFilter, NotMatchesCultureFilter,
+  HasStatusFilter, HasProminenceFilter,
+  GraphPathSelectionFilter,
+} from './types';
 import { hasTag, getTagValue } from '../../utils';
 import { EntityResolver } from '../resolver';
 import { evaluateGraphPath, GraphPathOptions } from '../graphPath';
 import { prominenceThreshold } from '../types';
 
-function resolveGraphPathOptions(graphPathOptions?: GraphPathOptions): GraphPathOptions {
-  if (graphPathOptions?.filterEvaluator) {
-    return graphPathOptions;
-  }
+type RelLink = { kind: string; strength: number; src: string; dst: string };
 
-  const options: GraphPathOptions = {};
-  options.filterEvaluator = (entities, filters, resolver) =>
-    applySelectionFilters(entities, filters, resolver, options);
-  return options;
+/** Build an undirected adjacency map from matching relationship links. */
+function buildRelationshipAdjacency(
+  rels: RelLink[],
+  relationshipKinds: string[],
+  minStrength: number
+): Map<string, Set<string>> {
+  const adjacency = new Map<string, Set<string>>();
+  for (const link of rels) {
+    if (!relationshipKinds.includes(link.kind)) continue;
+    if (link.strength < minStrength) continue;
+    if (!adjacency.has(link.src)) adjacency.set(link.src, new Set());
+    if (!adjacency.has(link.dst)) adjacency.set(link.dst, new Set());
+    adjacency.get(link.src)!.add(link.dst);
+    adjacency.get(link.dst)!.add(link.src);
+  }
+  return adjacency;
+}
+
+/** Count connected-component size via BFS from startId. */
+function computeComponentSize(adjacency: Map<string, Set<string>>, startId: string): number {
+  const visited = new Set<string>([startId]);
+  const stack = [startId];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    const neighbors = adjacency.get(current);
+    if (neighbors) {
+      for (const neighborId of neighbors) {
+        if (!visited.has(neighborId)) {
+          visited.add(neighborId);
+          stack.push(neighborId);
+        }
+      }
+    }
+  }
+  return visited.size;
+}
+
+/** Check if a relationship link matches direction and optional withEntity constraints. */
+function linkMatchesConstraints(
+  link: RelLink,
+  entityId: string,
+  direction: string,
+  withEntityId: string
+): boolean {
+  if (direction === 'src' && link.src !== entityId) return false;
+  if (direction === 'dst' && link.dst !== entityId) return false;
+  const otherId = link.src === entityId ? link.dst : link.src;
+  return withEntityId ? otherId === withEntityId : true;
+}
+
+const DEFAULT_GRAPH_PATH_OPTIONS: GraphPathOptions = {
+  filterEvaluator: (entities, filters, resolver, options) =>
+    applySelectionFilters(entities, filters, resolver, options),
+};
+
+function resolveGraphPathOptions(graphPathOptions: GraphPathOptions): GraphPathOptions {
+  return graphPathOptions;
 }
 
 /**
@@ -31,7 +89,7 @@ export function applySelectionFilters(
   entities: HardState[],
   filters: SelectionFilter[] | undefined,
   resolver: EntityResolver,
-  graphPathOptions?: GraphPathOptions
+  graphPathOptions: GraphPathOptions = DEFAULT_GRAPH_PATH_OPTIONS
 ): HardState[] {
   if (!filters || filters.length === 0) return entities;
 
@@ -45,197 +103,142 @@ export function applySelectionFilters(
   return result;
 }
 
+function filterByRelationship(
+  entities: HardState[],
+  filter: HasRelationshipFilter | LacksRelationshipFilter,
+  resolver: EntityResolver,
+  negate: boolean
+): HardState[] {
+  const graphView = resolver.getGraphView();
+  const withEntityId = filter.with ? (resolver.resolveEntity(filter.with)?.id ?? '') : '';
+  const direction = filter.type === 'has_relationship' ? filter.direction : 'both';
+  return entities.filter(entity => {
+    const relationships = graphView.getRelationships(entity.id, filter.kind, { includeHistorical: false });
+    const hasMatch = relationships.some(link =>
+      linkMatchesConstraints(link, entity.id, direction, withEntityId)
+    );
+    return negate ? !hasMatch : hasMatch;
+  });
+}
+
+function filterBySharesRelated(
+  entities: HardState[],
+  filter: SharesRelatedFilter,
+  resolver: EntityResolver
+): HardState[] {
+  const graphView = resolver.getGraphView();
+  const refEntity = resolver.resolveEntity(filter.with);
+  if (!refEntity) return entities;
+  const refRelated = graphView
+    .getConnectedEntities(refEntity.id, filter.relationshipKind, 'both', { includeHistorical: false })
+    .map(entity => entity.id);
+  if (refRelated.length === 0) return [];
+  const refRelatedSet = new Set(refRelated);
+  return entities.filter(entity => {
+    const entityRelated = graphView
+      .getConnectedEntities(entity.id, filter.relationshipKind, 'both', { includeHistorical: false })
+      .map(related => related.id);
+    return entityRelated.some(id => refRelatedSet.has(id));
+  });
+}
+
+function filterByComponentSize(
+  entities: HardState[],
+  filter: ComponentSizeFilter,
+  resolver: EntityResolver
+): HardState[] {
+  const graphView = resolver.getGraphView();
+  const adjacency = buildRelationshipAdjacency(
+    graphView.getAllRelationships({ includeHistorical: false }),
+    filter.relationshipKinds,
+    filter.minStrength
+  );
+  return entities.filter(entity => {
+    const size = computeComponentSize(adjacency, entity.id);
+    return (size >= filter.min)
+      && (size <= filter.max);
+  });
+}
+
 /**
  * Apply a single selection filter to a list of entities.
  */
+function filterByExclude(entities: HardState[], filter: ExcludeEntitiesFilter, resolver: EntityResolver): HardState[] {
+  const ids = new Set(filter.entities.map(ref => resolver.resolveEntity(ref)?.id).filter((id): id is string => id !== undefined));
+  return entities.filter(e => !ids.has(e.id));
+}
+
+function filterByTag(entities: HardState[], filter: HasTagSelectionFilter): HardState[] {
+  return entities.filter(e => hasTag(e.tags, filter.tag) && getTagValue(e.tags, filter.tag, filter.value) === filter.value);
+}
+
+function filterByLacksTag(entities: HardState[], filter: LacksTagSelectionFilter): HardState[] {
+  return entities.filter(e => !hasTag(e.tags, filter.tag) || getTagValue(e.tags, filter.tag, filter.value) !== filter.value);
+}
+
+function filterByCultureMatch(entities: HardState[], filter: MatchesCultureFilter | NotMatchesCultureFilter, resolver: EntityResolver, negate: boolean): HardState[] {
+  const ref = resolver.resolveEntity(filter.with);
+  if (!ref) return entities;
+  return negate ? entities.filter(e => e.culture !== ref.culture) : entities.filter(e => e.culture === ref.culture);
+}
+
+type FilterHandler = (
+  entities: HardState[],
+  filter: SelectionFilter,
+  resolver: EntityResolver,
+  graphPathOptions: GraphPathOptions
+) => HardState[];
+
+const FILTER_DISPATCH: Record<SelectionFilter['type'], FilterHandler> = {
+  exclude: (entities, filter, resolver) =>
+    filterByExclude(entities, filter as ExcludeEntitiesFilter, resolver),
+  has_relationship: (entities, filter, resolver) =>
+    filterByRelationship(entities, filter as HasRelationshipFilter, resolver, false),
+  lacks_relationship: (entities, filter, resolver) =>
+    filterByRelationship(entities, filter as LacksRelationshipFilter, resolver, true),
+  has_tag: (entities, filter) =>
+    filterByTag(entities, filter as HasTagSelectionFilter),
+  has_tags: (entities, filter) => {
+    const f = filter as HasTagsSelectionFilter;
+    return f.tags.length === 0 ? entities : entities.filter(e => f.tags.every(t => hasTag(e.tags, t)));
+  },
+  has_any_tag: (entities, filter) => {
+    const f = filter as HasAnyTagSelectionFilter;
+    return f.tags.length === 0 ? entities : entities.filter(e => f.tags.some(t => hasTag(e.tags, t)));
+  },
+  lacks_tag: (entities, filter) =>
+    filterByLacksTag(entities, filter as LacksTagSelectionFilter),
+  lacks_any_tag: (entities, filter) => {
+    const f = filter as LacksAnyTagSelectionFilter;
+    return f.tags.length === 0 ? entities : entities.filter(e => !f.tags.some(t => hasTag(e.tags, t)));
+  },
+  has_culture: (entities, filter) =>
+    entities.filter(e => e.culture === (filter as HasCultureFilter).culture),
+  not_has_culture: (entities, filter) =>
+    entities.filter(e => e.culture !== (filter as NotHasCultureFilter).culture),
+  matches_culture: (entities, filter, resolver) =>
+    filterByCultureMatch(entities, filter as MatchesCultureFilter, resolver, false),
+  not_matches_culture: (entities, filter, resolver) =>
+    filterByCultureMatch(entities, filter as NotMatchesCultureFilter, resolver, true),
+  has_status: (entities, filter) =>
+    entities.filter(e => e.status === (filter as HasStatusFilter).status),
+  has_prominence: (entities, filter) =>
+    entities.filter(e => e.prominence >= prominenceThreshold((filter as HasProminenceFilter).minProminence)),
+  shares_related: (entities, filter, resolver) =>
+    filterBySharesRelated(entities, filter as SharesRelatedFilter, resolver),
+  graph_path: (entities, filter, resolver, graphPathOptions) =>
+    entities.filter(e => evaluateGraphPath(e, (filter as GraphPathSelectionFilter).assert, resolver, resolveGraphPathOptions(graphPathOptions))),
+  component_size: (entities, filter, resolver) =>
+    filterByComponentSize(entities, filter as ComponentSizeFilter, resolver),
+};
+
 export function applySelectionFilter(
   entities: HardState[],
   filter: SelectionFilter,
   resolver: EntityResolver,
-  graphPathOptions?: GraphPathOptions
+  graphPathOptions: GraphPathOptions = DEFAULT_GRAPH_PATH_OPTIONS
 ): HardState[] {
-  switch (filter.type) {
-    case 'exclude': {
-      const excludeIds = new Set(
-        filter.entities
-          .map(ref => resolver.resolveEntity(ref)?.id)
-          .filter((id): id is string => id !== undefined)
-      );
-      return entities.filter(e => !excludeIds.has(e.id));
-    }
-
-    case 'has_relationship': {
-      const graphView = resolver.getGraphView();
-      const withEntity = filter.with ? resolver.resolveEntity(filter.with) : undefined;
-      return entities.filter(entity => {
-        const relationships = graphView.getRelationships(entity.id, filter.kind);
-        return relationships.some(link => {
-          if (filter.direction === 'src' && link.src !== entity.id) return false;
-          if (filter.direction === 'dst' && link.dst !== entity.id) return false;
-          if (withEntity) {
-            const otherId = link.src === entity.id ? link.dst : link.src;
-            return otherId === withEntity.id;
-          }
-          return true;
-        });
-      });
-    }
-
-    case 'lacks_relationship': {
-      const graphView = resolver.getGraphView();
-      const withEntity = filter.with ? resolver.resolveEntity(filter.with) : undefined;
-      return entities.filter(entity => {
-        const relationships = graphView.getRelationships(entity.id, filter.kind);
-        const hasRel = relationships.some(link => {
-          if (withEntity) {
-            const otherId = link.src === entity.id ? link.dst : link.src;
-            return otherId === withEntity.id;
-          }
-          return true;
-        });
-        return !hasRel;
-      });
-    }
-
-    case 'has_tag': {
-      return entities.filter(entity => {
-        if (!hasTag(entity.tags, filter.tag)) return false;
-        if (filter.value === undefined) return true;
-        return getTagValue(entity.tags, filter.tag) === filter.value;
-      });
-    }
-
-    case 'has_tags': {
-      const tagList = filter.tags || [];
-      if (tagList.length === 0) return entities;
-      return entities.filter(entity => tagList.every(tag => hasTag(entity.tags, tag)));
-    }
-
-    case 'has_any_tag': {
-      const tagList = filter.tags || [];
-      if (tagList.length === 0) return entities;
-      return entities.filter(entity => tagList.some(tag => hasTag(entity.tags, tag)));
-    }
-
-    case 'lacks_tag': {
-      return entities.filter(entity => {
-        if (!hasTag(entity.tags, filter.tag)) return true; // Doesn't have tag, include
-        if (filter.value === undefined) return false; // Has tag, exclude
-        // Has tag, only exclude if value matches
-        return getTagValue(entity.tags, filter.tag) !== filter.value;
-      });
-    }
-
-    case 'lacks_any_tag': {
-      const tagList = filter.tags || [];
-      if (tagList.length === 0) return entities;
-      return entities.filter(entity => !tagList.some(tag => hasTag(entity.tags, tag)));
-    }
-
-    case 'has_culture': {
-      return entities.filter(e => e.culture === filter.culture);
-    }
-
-    case 'not_has_culture': {
-      return entities.filter(e => e.culture !== filter.culture);
-    }
-
-    case 'matches_culture': {
-      const refEntity = resolver.resolveEntity(filter.with);
-      if (!refEntity) return entities;
-      return entities.filter(e => e.culture === refEntity.culture);
-    }
-
-    case 'not_matches_culture': {
-      const refEntity = resolver.resolveEntity(filter.with);
-      if (!refEntity) return entities;
-      return entities.filter(e => e.culture !== refEntity.culture);
-    }
-
-    case 'has_status': {
-      return entities.filter(e => e.status === filter.status);
-    }
-
-    case 'has_prominence': {
-      const minValue = prominenceThreshold(filter.minProminence);
-      return entities.filter(e => e.prominence >= minValue);
-    }
-
-    case 'shares_related': {
-      // Find entities that share a common related entity with the reference
-      const graphView = resolver.getGraphView();
-      const refEntity = resolver.resolveEntity(filter.with);
-      if (!refEntity) return entities;
-
-      const refRelated = graphView
-        .getConnectedEntities(refEntity.id, filter.relationshipKind, 'both')
-        .map(entity => entity.id);
-
-      if (refRelated.length === 0) return [];
-
-      const refRelatedSet = new Set(refRelated);
-
-      return entities.filter(entity => {
-        const entityRelated = graphView
-          .getConnectedEntities(entity.id, filter.relationshipKind, 'both')
-          .map(related => related.id);
-        return entityRelated.some(id => refRelatedSet.has(id));
-      });
-    }
-
-    case 'graph_path': {
-      const options = resolveGraphPathOptions(graphPathOptions);
-      return entities.filter(entity =>
-        evaluateGraphPath(entity, filter.assert, resolver, options)
-      );
-    }
-
-    case 'component_size': {
-      const graphView = resolver.getGraphView();
-      const rels = graphView.getAllRelationships();
-      const minStrength = filter.minStrength ?? 0;
-
-      // Build adjacency index for the specified relationship kinds
-      const adjacency = new Map<string, Set<string>>();
-      for (const link of rels) {
-        if (!filter.relationshipKinds.includes(link.kind)) continue;
-        if ((link.strength ?? 0) < minStrength) continue;
-
-        // Bidirectional edges (undirected graph)
-        if (!adjacency.has(link.src)) adjacency.set(link.src, new Set());
-        if (!adjacency.has(link.dst)) adjacency.set(link.dst, new Set());
-        adjacency.get(link.src)!.add(link.dst);
-        adjacency.get(link.dst)!.add(link.src);
-      }
-
-      return entities.filter(entity => {
-        // DFS to find component size
-        const visited = new Set<string>([entity.id]);
-        const stack = [entity.id];
-
-        while (stack.length > 0) {
-          const current = stack.pop()!;
-          const neighbors = adjacency.get(current);
-          if (neighbors) {
-            for (const neighborId of neighbors) {
-              if (!visited.has(neighborId)) {
-                visited.add(neighborId);
-                stack.push(neighborId);
-              }
-            }
-          }
-        }
-
-        const componentSize = visited.size;
-        const minOk = filter.min === undefined || componentSize >= filter.min;
-        const maxOk = filter.max === undefined || componentSize <= filter.max;
-        return minOk && maxOk;
-      });
-    }
-
-    default:
-      return entities;
-  }
+  return FILTER_DISPATCH[filter.type](entities, filter, resolver, graphPathOptions);
 }
 
 /**
@@ -245,9 +248,10 @@ export function applySelectionFilter(
 export function entityPassesFilter(
   entity: HardState,
   filter: SelectionFilter,
-  resolver: EntityResolver
+  resolver: EntityResolver,
+  graphPathOptions: GraphPathOptions = DEFAULT_GRAPH_PATH_OPTIONS
 ): boolean {
-  const result = applySelectionFilter([entity], filter, resolver);
+  const result = applySelectionFilter([entity], filter, resolver, graphPathOptions);
   return result.length > 0;
 }
 
@@ -257,12 +261,13 @@ export function entityPassesFilter(
 export function entityPassesAllFilters(
   entity: HardState,
   filters: SelectionFilter[] | undefined,
-  resolver: EntityResolver
+  resolver: EntityResolver,
+  graphPathOptions: GraphPathOptions = DEFAULT_GRAPH_PATH_OPTIONS
 ): boolean {
   if (!filters || filters.length === 0) return true;
 
   for (const filter of filters) {
-    if (!entityPassesFilter(entity, filter, resolver)) {
+    if (!entityPassesFilter(entity, filter, resolver, graphPathOptions)) {
       return false;
     }
   }

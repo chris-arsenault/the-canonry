@@ -5,9 +5,9 @@
  * the specific relationship data they care about changes.
  */
 
-import { useRelationshipStore } from './relationshipStore';
-import type { PersistedRelationship } from './illuminatorDb';
-import type { RelationshipIndex } from './relationshipStore';
+import { useRelationshipStore } from "./relationshipStore";
+import type { PersistedRelationship } from "./illuminatorDb";
+import type { RelationshipIndex } from "./relationshipStore";
 
 const EMPTY_ARRAY: PersistedRelationship[] = [];
 
@@ -24,7 +24,9 @@ export function useRelationshipsByEntity(): RelationshipIndex {
 /** Relationships for a specific entity — re-renders when index changes */
 export function useRelationshipsForEntity(entityId: string | undefined): PersistedRelationship[] {
   return useRelationshipStore((state) =>
-    entityId ? ((state.byEntity.get(entityId) as PersistedRelationship[] | undefined) ?? EMPTY_ARRAY) : EMPTY_ARRAY
+    entityId
+      ? ((state.byEntity.get(entityId) as PersistedRelationship[] | undefined) ?? EMPTY_ARRAY)
+      : EMPTY_ARRAY
   );
 }
 

@@ -13,6 +13,16 @@ import {
   ActionEntityResolver,
 } from './resolver';
 
+/** Sentinel entity for contexts that bind self later via withSelf(). */
+const UNBOUND_SELF: HardState = {
+  id: '', kind: '', subtype: '', name: '', description: '', status: '',
+  prominence: 0, culture: '', tags: {}, eraId: '', createdAt: 0, updatedAt: 0,
+  coordinates: { x: 0, y: 0, z: 0 }, temporal: { startTick: 0, end: { occurred: false, tick: 0 } },
+  catalyst: { canAct: false }, regionId: '', allRegionIds: [], summary: '',
+  narrativeHint: '', lockedSummary: false,
+  createdBy: { tick: 0, source: 'framework', sourceId: '', success: true, narration: '' },
+};
+
 /**
  * Unified context for all rule evaluation.
  *
@@ -30,13 +40,13 @@ export interface RuleContext {
   readonly resolver: EntityResolver;
 
   /** Current entity being evaluated (for per-entity conditions) */
-  readonly self?: HardState;
+  readonly self: HardState;
 
   /** Named entity bindings for context-specific references (e.g., $source) */
-  readonly entities?: Record<string, HardState | undefined>;
+  readonly entities: Record<string, HardState | undefined>;
 
   /** Named values for context-specific lookups (e.g., tag value sources) */
-  readonly values?: Record<string, string | number | boolean>;
+  readonly values: Record<string, string | number | boolean>;
 
   /** Path sets for graph traversal (used by graph_path filter) */
   readonly pathSets: Map<string, Set<string>>;
@@ -52,7 +62,7 @@ export interface RuleContext {
 export function createRuleContext(
   graph: WorldRuntime,
   resolver: EntityResolver,
-  self?: HardState
+  self: HardState
 ): RuleContext {
   return {
     graph,
@@ -77,7 +87,9 @@ export function createSystemContext(graph: WorldRuntime): RuleContext {
     graph,
     tick: graph.tick,
     resolver,
-    self: undefined,
+    // Sentinel — withSelf() replaces this before any per-entity evaluation.
+    // Empty strings/zeros make bugs obvious instead of crashing on undefined.
+    self: UNBOUND_SELF,
     entities: {},
     values: {},
     pathSets: new Map(),
@@ -94,8 +106,8 @@ export function createSystemContext(graph: WorldRuntime): RuleContext {
 export function createActionContext(
   graph: WorldRuntime,
   bindings: Record<string, HardState | undefined>,
-  self?: HardState,
-  values?: Record<string, string | number | boolean>
+  self: HardState,
+  values: Record<string, string | number | boolean>
 ): RuleContext {
   const resolver = new ActionEntityResolver(graph, bindings);
 
@@ -105,7 +117,7 @@ export function createActionContext(
     resolver,
     self,
     entities: bindings,
-    values: values ?? {},
+    values: values,
     pathSets: new Map(),
   };
 }

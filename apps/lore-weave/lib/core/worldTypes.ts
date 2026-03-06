@@ -13,6 +13,9 @@ export type Relationship = WorldRelationship;
 
 export type CatalystProperties = NonNullable<WorldEntity['catalyst']>;
 
+/** Value stored in template/narration variable maps — single entity, array, or unresolved. */
+export type VariableValue = HardState | HardState[] | undefined;
+
 // Rate limiting for template-based entity creation
 export interface RateLimitState {
   currentThreshold: number;     // Difficulty threshold for next creation

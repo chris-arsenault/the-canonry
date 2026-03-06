@@ -81,15 +81,15 @@
 }
 
 /* Stats Sections */
-.stats-section {
+.stats-group {
   margin-bottom: var(--spacing-4xl);
 }
 
-.stats-section:last-child {
+.stats-group:last-child {
   margin-bottom: 0;
 }
 
-.stats-section-title {
+.stats-group-title {
   margin: 0 0 var(--spacing-xl);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
@@ -237,6 +237,7 @@
 
 .pressure-bar-fill {
   height: 100%;
+  width: var(--sp-pressure-width);
   transition: width var(--transition-slow);
   border-radius: var(--radius-sm);
 }

@@ -7,7 +7,8 @@
  * Runs at startup to catch configuration errors before generation begins.
  */
 
-import { EngineConfig, Pressure, EntityOperatorRegistry, SimulationSystem } from '../engine/types';
+import { EngineConfig, EntityOperatorRegistry, SimulationSystem } from '../engine/types';
+import { DeclarativePressure } from './declarativePressureTypes';
 import { DeclarativeSystem } from './systemInterpreter';
 
 export interface ValidationResult {
@@ -40,9 +41,8 @@ export class FrameworkValidator {
 
     // Run all validation checks
     this.validateCoverage(errors, warnings);
-    this.validateEquilibrium(errors, warnings);
+    this.validateEquilibrium(errors);
     this.validateAchievability(errors, warnings);
-    this.validateContracts(errors, warnings);
 
     return {
       valid: errors.length === 0,
@@ -60,70 +60,84 @@ export class FrameworkValidator {
    * - All referenced components exist
    */
   private validateCoverage(errors: string[], warnings: string[]): void {
-    // Check entity registries exist
-    if (!this.config.entityRegistries || this.config.entityRegistries.length === 0) {
+    if (this.config.entityRegistries.length === 0) {
       warnings.push('No entity registries defined - lineage enforcement disabled');
       return;
     }
 
-    // Validate each entity kind has creators
     for (const registry of this.config.entityRegistries) {
-      if (registry.creators.length === 0) {
-        errors.push(`Entity kind '${registry.kind}' has no creators`);
-      }
+      this.validateRegistryCoverage(registry, errors);
+    }
 
-      // Validate creators exist in templates
-      for (const creator of registry.creators) {
-        const template = this.config.templates.find(t => t.id === creator.templateId);
-        if (!template) {
-          errors.push(`Entity kind '${registry.kind}' references non-existent template: ${creator.templateId}`);
-        }
-      }
+    for (const pressure of this.config.pressures) {
+      this.validatePressureCoverage(pressure, errors);
+    }
+  }
 
-      // Validate modifiers exist in systems
-      for (const modifier of registry.modifiers) {
-        const system = this.config.systems.find(s => getSystemId(s) === modifier.systemId);
-        if (!system) {
-          errors.push(`Entity kind '${registry.kind}' references non-existent system: ${modifier.systemId}`);
-        }
+  private validateRegistryCoverage(
+    registry: EntityOperatorRegistry,
+    errors: string[]
+  ): void {
+    if (registry.creators.length === 0) {
+      errors.push(`Entity kind '${registry.kind}' has no creators`);
+    }
+
+    for (const creator of registry.creators) {
+      const template = this.config.templates.find(t => t.id === creator.templateId);
+      if (!template) {
+        errors.push(`Entity kind '${registry.kind}' references non-existent template: ${creator.templateId}`);
       }
     }
 
-    // Validate pressures have sources and sinks
-    for (const pressure of this.config.pressures) {
-      if (!pressure.contract) {
-        warnings.push(`Pressure '${pressure.name}' has no contract - validation skipped`);
-        continue;
+    for (const modifier of registry.modifiers) {
+      const system = this.config.systems.find(s => getSystemId(s) === modifier.systemId);
+      if (!system) {
+        errors.push(`Entity kind '${registry.kind}' references non-existent system: ${modifier.systemId}`);
       }
+    }
+  }
 
-      if (pressure.contract.sources.length === 0) {
-        errors.push(`Pressure '${pressure.name}' has no sources`);
-      }
+  private validatePressureCoverage(
+    pressure: DeclarativePressure,
+    errors: string[]
+  ): void {
+    if (pressure.contract.sources.length === 0) {
+      errors.push(`Pressure '${pressure.name}' has no sources`);
+    }
 
-      if (pressure.contract.sinks.length === 0) {
-        errors.push(`Pressure '${pressure.name}' has no sinks - will saturate at 100!`);
-      }
+    if (pressure.contract.sinks.length === 0) {
+      errors.push(`Pressure '${pressure.name}' has no sinks - will saturate at 100!`);
+    }
 
-      // Validate component references
-      for (const source of pressure.contract.sources) {
-        if (!this.componentExists(source.component)) {
-          errors.push(`Pressure '${pressure.name}' references non-existent source: ${source.component}`);
-        }
-      }
+    this.validateComponentRefs(
+      pressure.contract.sources.map(s => s.component),
+      `Pressure '${pressure.name}' references non-existent source`,
+      errors
+    );
 
-      for (const sink of pressure.contract.sinks) {
-        if (!this.componentExists(sink.component)) {
-          errors.push(`Pressure '${pressure.name}' references non-existent sink: ${sink.component}`);
-        }
-      }
+    this.validateComponentRefs(
+      pressure.contract.sinks.map(s => s.component),
+      `Pressure '${pressure.name}' references non-existent sink`,
+      errors
+    );
 
-      // Validate affects references
-      if (pressure.contract.affects) {
-        for (const affected of pressure.contract.affects) {
-          if (!this.componentExists(affected.component)) {
-            errors.push(`Pressure '${pressure.name}' references non-existent affected component: ${affected.component}`);
-          }
-        }
+    if (pressure.contract.affects.length > 0) {
+      this.validateComponentRefs(
+        pressure.contract.affects.map(a => a.component),
+        `Pressure '${pressure.name}' references non-existent affected component`,
+        errors
+      );
+    }
+  }
+
+  private validateComponentRefs(
+    components: string[],
+    errorPrefix: string,
+    errors: string[]
+  ): void {
+    for (const component of components) {
+      if (!this.componentExists(component)) {
+        errors.push(`${errorPrefix}: ${component}`);
       }
     }
   }
@@ -134,42 +148,26 @@ export class FrameworkValidator {
    * For each pressure, calculates predicted equilibrium and compares to declared range.
    * This helps catch configuration errors where pressures won't reach expected values.
    */
-  private validateEquilibrium(errors: string[], warnings: string[]): void {
+  private validateEquilibrium(errors: string[]): void {
     for (const pressure of this.config.pressures) {
-      if (!pressure.contract) {
-        continue; // Skip pressures without contracts
-      }
-
       // Enforce equilibrium centered at 0
       if (pressure.contract.equilibrium.restingPoint !== 0) {
         errors.push(
-          `Pressure '${pressure.name}' restingPoint must be 0 for the new homeostatic model (found ${pressure.contract.equilibrium.restingPoint}).`
+          `Pressure '${pressure.name}' restingPoint must be 0 for the homeostatic model (found ${pressure.contract.equilibrium.restingPoint}).`
         );
       }
 
-      // Check if equilibrium range is valid
       const [min, max] = pressure.contract.equilibrium.expectedRange;
       if (min < -100 || max > 100) {
         errors.push(`Pressure '${pressure.name}' has invalid equilibrium range: [${min}, ${max}]. Must be within [-100, 100].`);
       }
-
       if (min >= max) {
         errors.push(`Pressure '${pressure.name}' has invalid equilibrium range: min (${min}) >= max (${max})`);
       }
     }
   }
 
-  /**
-   * Validate Achievability
-   *
-   * For each entity kind, verifies that the target count is achievable
-   * given the number and frequency of creators.
-   */
   private validateAchievability(errors: string[], warnings: string[]): void {
-    if (!this.config.entityRegistries) {
-      return; // Skip if no registries
-    }
-
     for (const registry of this.config.entityRegistries) {
       // Calculate total capacity from primary creators
       const primaryCreators = registry.creators.filter(c => c.primary);
@@ -206,9 +204,7 @@ export class FrameworkValidator {
    * Note: Contract validation removed. Contracts are now empty.
    * Lineage attribution is handled by the mutation tracker; no contract validation needed.
    */
-  private validateContracts(errors: string[], warnings: string[]): void {
-    // Contracts are now empty - no validation needed
-  }
+  
 
   /**
    * Check if a component exists (template, system, or pressure)
@@ -242,7 +238,7 @@ export class FrameworkValidator {
    */
   private entityKindExists(kind: string): boolean {
     // Check entity registries first
-    if (this.config.entityRegistries) {
+    if (this.config.entityRegistries.length > 0) {
       if (this.config.entityRegistries.some(r => r.kind === kind)) {
         return true;
       }

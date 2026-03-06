@@ -1,0 +1,7 @@
+/* SelectionFiltersEditor companion styles */
+.sfe-dropdown-fixed {
+  position: fixed;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 10000;
+}

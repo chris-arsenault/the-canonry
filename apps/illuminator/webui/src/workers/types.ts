@@ -1,11 +1,11 @@
-import type { LLMCallType } from '../lib/llmCallTypes';
-import type { ResolvedLLMCallConfig } from '../lib/llmModelSettings';
+import type { LLMCallType } from "../lib/llmCallTypes";
+import type { ResolvedLLMCallConfig } from "../lib/llmModelSettings";
 import type {
   WorkerTask,
   WorkerResult,
   EnrichmentResult,
   NetworkDebugInfo,
-} from '../lib/enrichmentTypes';
+} from "../lib/enrichmentTypes";
 
 /**
  * Resolved LLM call settings - model, thinking budget, and max tokens per call type.
@@ -30,25 +30,27 @@ export interface WorkerConfig {
 }
 
 export type WorkerInbound =
-  | { type: 'init'; config: WorkerConfig }
-  | { type: 'execute'; task: WorkerTask }
-  | { type: 'abort'; taskId?: string }
-  | { type: 'keepalive' };
+  | { type: "init"; config: WorkerConfig }
+  | { type: "execute"; task: WorkerTask }
+  | { type: "abort"; taskId?: string }
+  | { type: "keepalive" };
 
 export type WorkerOutbound =
-  | { type: 'ready' }
-  | { type: 'started'; taskId: string }
-  | { type: 'thinking_delta'; taskId: string; delta: string }
-  | { type: 'text_delta'; taskId: string; delta: string }
-  | { type: 'complete'; result: WorkerResult }
-  | { type: 'error'; taskId: string; error: string; debug?: NetworkDebugInfo };
+  | { type: "ready" }
+  | { type: "started"; taskId: string }
+  | { type: "thinking_delta"; taskId: string; delta: string }
+  | { type: "text_delta"; taskId: string; delta: string }
+  | { type: "complete"; result: WorkerResult }
+  | { type: "error"; taskId: string; error: string; debug?: NetworkDebugInfo };
 
-export type TaskResult = {
-  success: true;
-  result: EnrichmentResult;
-  debug?: NetworkDebugInfo;
-} | {
-  success: false;
-  error: string;
-  debug?: NetworkDebugInfo;
-};
+export type TaskResult =
+  | {
+      success: true;
+      result: EnrichmentResult;
+      debug?: NetworkDebugInfo;
+    }
+  | {
+      success: false;
+      error: string;
+      debug?: NetworkDebugInfo;
+    };

@@ -1,4 +1,4 @@
-import type { EntityContext, RelationshipContext } from '../chronicleTypes';
+import type { EntityContext, RelationshipContext } from "../chronicleTypes";
 
 export interface SharedNeighborLink {
   neighborId: string;
@@ -35,16 +35,14 @@ export function buildEntityLookup(
   return lookup;
 }
 
-function buildAdjacency(
-  relationships: RelationshipContext[]
-): Map<string, RelationshipContext[]> {
+function buildAdjacency(relationships: RelationshipContext[]): Map<string, RelationshipContext[]> {
   const adjacency = new Map<string, RelationshipContext[]>();
 
   for (const rel of relationships) {
     if (!adjacency.has(rel.src)) adjacency.set(rel.src, []);
     if (!adjacency.has(rel.dst)) adjacency.set(rel.dst, []);
-    adjacency.get(rel.src)!.push(rel);
-    adjacency.get(rel.dst)!.push(rel);
+    adjacency.get(rel.src).push(rel);
+    adjacency.get(rel.dst).push(rel);
   }
 
   return adjacency;
@@ -61,7 +59,7 @@ function collectNeighborLinks(
     const neighborId = rel.src === entityId ? rel.dst : rel.src;
     if (!neighborId || neighborId === entityId) continue;
     if (!neighbors.has(neighborId)) neighbors.set(neighborId, []);
-    neighbors.get(neighborId)!.push(rel);
+    neighbors.get(neighborId).push(rel);
   }
 
   return neighbors;

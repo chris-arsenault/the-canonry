@@ -5,4 +5,4 @@
  * Internal modules (cards, modals, shared) are used internally.
  */
 
-export { default, PressuresEditor } from './PressuresEditor';
+export { default, PressuresEditor } from "./PressuresEditor";

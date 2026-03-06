@@ -1,4 +1,4 @@
-import type { ImageBackend, ImageEntryMetadata, ImageSize } from '../types';
+import type { ImageBackend, ImageDimensions, ImageEntryMetadata, ImageGenerationInfo, ImageEntityInfo, ImageSize } from '../types';
 
 const DB_NAME = 'illuminator';
 const IMAGES_STORE = 'images';
@@ -32,7 +32,60 @@ function openDb(onVersionChange?: () => void): Promise<IDBDatabase> {
 /**
  * Read a single record from an IDB object store by key.
  */
-function getRecord(db: IDBDatabase, storeName: string, key: string): Promise<any> {
+interface BlobRecord {
+  blob: Blob;
+}
+
+/** Raw shape stored in IDB — flat fields from Illuminator's Dexie writes. */
+interface ImageRecord {
+  imageId: string;
+  entityId: string | null;
+  entityName: string | null;
+  entityKind: string | null;
+  entityCulture: string | null;
+  width: number | null;
+  height: number | null;
+  aspect: 'portrait' | 'landscape' | 'square' | null;
+  originalPrompt: string | null;
+  finalPrompt: string | null;
+  revisedPrompt: string | null;
+  generatedAt: number | null;
+  model: string | null;
+  size: number | null;
+}
+
+function buildEntity(r: ImageRecord): ImageEntityInfo | null {
+  if (!r.entityId || !r.entityName || !r.entityKind) return null;
+  return { id: r.entityId, name: r.entityName, kind: r.entityKind, culture: r.entityCulture ?? '' };
+}
+
+function buildDimensions(r: ImageRecord): ImageDimensions | null {
+  if (r.width == null || r.height == null || !r.aspect) return null;
+  return { width: r.width, height: r.height, aspect: r.aspect };
+}
+
+function buildGeneration(r: ImageRecord): ImageGenerationInfo | null {
+  if (!r.originalPrompt && !r.finalPrompt) return null;
+  return {
+    originalPrompt: r.originalPrompt ?? '',
+    finalPrompt: r.finalPrompt ?? '',
+    revisedPrompt: r.revisedPrompt ?? '',
+    generatedAt: r.generatedAt ?? 0,
+    model: r.model ?? '',
+  };
+}
+
+function recordToMetadata(r: ImageRecord): ImageEntryMetadata {
+  return {
+    imageId: r.imageId,
+    entity: buildEntity(r),
+    dimensions: buildDimensions(r),
+    generation: buildGeneration(r),
+    size: r.size,
+  };
+}
+
+function getRecord<T>(db: IDBDatabase, storeName: string, key: string): Promise<T | null> {
   return new Promise((resolve, reject) => {
     if (!db.objectStoreNames.contains(storeName)) {
       resolve(null);
@@ -40,8 +93,8 @@ function getRecord(db: IDBDatabase, storeName: string, key: string): Promise<any
     }
     const tx = db.transaction(storeName, 'readonly');
     const request = tx.objectStore(storeName).get(key);
-    request.onsuccess = () => resolve(request.result ?? null);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve((request.result as T | undefined) ?? null);
+    request.onerror = () => reject(new Error(request.error?.message ?? 'IDB get failed'));
   });
 }
 
@@ -49,7 +102,7 @@ function getRecord(db: IDBDatabase, storeName: string, key: string): Promise<any
  * Read multiple records from an IDB object store by keys.
  * Returns results in the same order as keys (null for missing).
  */
-function getRecords(db: IDBDatabase, storeName: string, keys: string[]): Promise<any[]> {
+function getRecords<T>(db: IDBDatabase, storeName: string, keys: string[]): Promise<(T | null)[]> {
   return new Promise((resolve, reject) => {
     if (!db.objectStoreNames.contains(storeName)) {
       resolve(keys.map(() => null));
@@ -57,7 +110,7 @@ function getRecords(db: IDBDatabase, storeName: string, keys: string[]): Promise
     }
     const tx = db.transaction(storeName, 'readonly');
     const store = tx.objectStore(storeName);
-    const results: any[] = new Array(keys.length).fill(null);
+    const results: (T | null)[] = new Array<T | null>(keys.length).fill(null);
     let pending = keys.length;
 
     if (pending === 0) {
@@ -68,7 +121,7 @@ function getRecords(db: IDBDatabase, storeName: string, keys: string[]): Promise
     for (let i = 0; i < keys.length; i++) {
       const request = store.get(keys[i]);
       request.onsuccess = () => {
-        results[i] = request.result ?? null;
+        results[i] = (request.result as T | undefined) ?? null;
         if (--pending === 0) resolve(results);
       };
       request.onerror = () => {
@@ -76,7 +129,7 @@ function getRecords(db: IDBDatabase, storeName: string, keys: string[]): Promise
       };
     }
 
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => reject(new Error(tx.error?.message ?? 'IDB transaction failed'));
   });
 }
 
@@ -104,7 +157,7 @@ export class IndexedDBBackend implements ImageBackend {
   async getImageUrl(imageId: string, _size?: ImageSize): Promise<string | null> {
     if (!this.db) await this.initialize();
 
-    const record = await getRecord(this.db!, BLOBS_STORE, imageId);
+    const record = await getRecord<BlobRecord>(this.db!, BLOBS_STORE, imageId);
     if (!record?.blob) return null;
 
     const url = URL.createObjectURL(record.blob);
@@ -115,7 +168,7 @@ export class IndexedDBBackend implements ImageBackend {
   async getImageUrls(imageIds: string[], _size?: ImageSize): Promise<Map<string, string>> {
     if (!this.db) await this.initialize();
 
-    const records = await getRecords(this.db!, BLOBS_STORE, imageIds);
+    const records = await getRecords<BlobRecord>(this.db!, BLOBS_STORE, imageIds);
     const result = new Map<string, string>();
 
     for (let i = 0; i < imageIds.length; i++) {
@@ -133,21 +186,13 @@ export class IndexedDBBackend implements ImageBackend {
   async getMetadata(imageIds: string[]): Promise<Map<string, ImageEntryMetadata>> {
     if (!this.db) await this.initialize();
 
-    const records = await getRecords(this.db!, IMAGES_STORE, imageIds);
+    const records = await getRecords<ImageRecord>(this.db!, IMAGES_STORE, imageIds);
     const result = new Map<string, ImageEntryMetadata>();
 
     for (let i = 0; i < imageIds.length; i++) {
       const record = records[i];
       if (record) {
-        result.set(imageIds[i], {
-          imageId: record.imageId,
-          entityId: record.entityId,
-          entityName: record.entityName,
-          entityKind: record.entityKind,
-          width: record.width,
-          height: record.height,
-          aspect: record.aspect,
-        });
+        result.set(imageIds[i], recordToMetadata(record));
       }
     }
 

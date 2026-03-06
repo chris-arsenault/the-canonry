@@ -1,0 +1,27 @@
+.sn-root {
+  height: 100vh;
+  background-color: #1e1e2e;
+  color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, sans-serif;
+  padding: 24px;
+}
+
+.sn-content {
+  max-width: 520px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.sn-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.sn-subtitle {
+  font-size: 14px;
+  color: #9ca3af;
+}

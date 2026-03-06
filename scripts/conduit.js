@@ -5,11 +5,11 @@ import process from 'node:process';
 import {
   compileCanonProject,
   compileCanonStaticPages,
-} from '../packages/canonry-dsl-v2/dist/compile.js';
+} from '../staging/canonry-dsl-v2/dist/compile.js';
 import {
   serializeCanonProject,
   serializeCanonStaticPages,
-} from '../packages/canonry-dsl-v2/dist/serialize.js';
+} from '../staging/canonry-dsl-v2/dist/serialize.js';
 import { computeUsageMap } from '../packages/shared-components/src/utils/schemaUsageMap.js';
 
 const JSON_FILE_MAP = {

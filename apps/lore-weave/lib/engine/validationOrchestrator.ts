@@ -63,7 +63,7 @@ export class ValidationOrchestrator {
    * Display service initialization status
    */
   static displayServiceStatus(
-    metaEntityConfigs: any[],
+    metaEntityConfigs: Array<{ name: string }>,
     hasTargetSelector: boolean
   ): void {
     // Contract enforcement
@@ -78,9 +78,9 @@ export class ValidationOrchestrator {
     }
 
     // Meta-entity formation
-    if (metaEntityConfigs && metaEntityConfigs.length > 0) {
+    if (metaEntityConfigs.length > 0) {
       console.log('✓ Meta-entity formation system initialized');
-      metaEntityConfigs.forEach((cfg: any) => {
+      metaEntityConfigs.forEach((cfg) => {
         console.log(`  - Registered ${cfg.name} formation`);
       });
     }

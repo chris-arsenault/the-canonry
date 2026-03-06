@@ -1,0 +1,29 @@
+/* StyleSelector — prefix: stsel
+ * Muted hint text: compose with ilu-hint / ilu-hint-sm from panel-utilities.css. */
+
+.stsel-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stsel-compact-select {
+  width: auto;
+  min-width: 120px;
+}
+
+.stsel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.stsel-label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.stsel-description {
+  margin-top: 4px;
+}

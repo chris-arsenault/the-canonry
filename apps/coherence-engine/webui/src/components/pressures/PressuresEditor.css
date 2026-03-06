@@ -1,0 +1,16 @@
+/* PressuresEditor companion styles */
+.pe-empty-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: var(--spacing-md);
+}
+
+.pe-empty-desc {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.pe-create-btn {
+  width: auto;
+  padding: 14px 28px;
+}

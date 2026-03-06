@@ -6,29 +6,29 @@
 
 // ID generation counter
 let idCounter = 1000;
-let eventCounter = 0;
 
 export function generateId(prefix: string): string {
   return `${prefix}_${idCounter++}`;
 }
 
 /**
+ * Generate a prefixed ID with timestamp and random UUID slice.
+ * Canonical pattern: prefix_timestamp_randomSlice
+ */
+function generatePrefixedId(prefix: string, sliceLength = 8): string {
+  return `${prefix}_${Date.now()}_${crypto.randomUUID().slice(0, sliceLength)}`;
+}
+
+/**
  * Generate a globally unique ID for narrative events.
  */
 export function generateEventId(): string {
-  const cryptoObj = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
-  if (cryptoObj?.randomUUID) {
-    return `event_${cryptoObj.randomUUID()}`;
-  }
-  return `event_${Date.now()}_${eventCounter++}`;
+  return generatePrefixedId("event");
 }
 
-// ID generation for lore records
-let loreRecordCounter = 0;
-
 /**
- * Generate unique ID for lore records with timestamp and counter
+ * Generate unique ID for lore records with timestamp and random component.
  */
 export function generateLoreId(prefix: string): string {
-  return `${prefix}_${Date.now()}_${loreRecordCounter++}`;
+  return generatePrefixedId(prefix);
 }

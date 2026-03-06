@@ -12,7 +12,6 @@
  */
 
 import { Graph } from '../engine/types';
-import { HardState, Relationship } from '../core/worldTypes';
 import { findEntities } from '../utils';
 
 /**
@@ -133,16 +132,11 @@ export class CulturalAwarenessAnalyzer {
     for (const rel of socialRels) {
       const src = graph.getEntity(rel.src);
       const dst = graph.getEntity(rel.dst);
-
       if (!src || !dst) continue;
 
-      const isSame = src.culture === dst.culture;
+      if (!byKind[rel.kind]) byKind[rel.kind] = { same: 0, cross: 0 };
 
-      if (!byKind[rel.kind]) {
-        byKind[rel.kind] = { same: 0, cross: 0 };
-      }
-
-      if (isSame) {
+      if (src.culture === dst.culture) {
         sameCulture++;
         byKind[rel.kind].same++;
       } else {
@@ -154,7 +148,17 @@ export class CulturalAwarenessAnalyzer {
     const total = sameCulture + crossCulture;
     const crossCultureRatio = total > 0 ? crossCulture / total : 0;
 
-    // Warn if cross-culture ratio is very high
+    this.warnHighCrossCulture(crossCultureRatio, total, byKind, warnings);
+
+    return { total, sameCulture, crossCulture, crossCultureRatio, byKind };
+  }
+
+  private warnHighCrossCulture(
+    crossCultureRatio: number,
+    total: number,
+    byKind: Record<string, { same: number; cross: number }>,
+    warnings: string[]
+  ): void {
     if (crossCultureRatio > 0.5 && total > 10) {
       warnings.push(
         `High cross-culture relationship ratio (${(crossCultureRatio * 100).toFixed(1)}%). ` +
@@ -162,11 +166,9 @@ export class CulturalAwarenessAnalyzer {
       );
     }
 
-    // Warn about specific relationship types
     for (const [kind, counts] of Object.entries(byKind)) {
       const kindTotal = counts.same + counts.cross;
       const kindCrossRatio = kindTotal > 0 ? counts.cross / kindTotal : 0;
-
       if (kindCrossRatio > 0.6 && kindTotal > 5) {
         warnings.push(
           `${kind} relationships are ${(kindCrossRatio * 100).toFixed(0)}% cross-culture. ` +
@@ -174,14 +176,6 @@ export class CulturalAwarenessAnalyzer {
         );
       }
     }
-
-    return {
-      total,
-      sameCulture,
-      crossCulture,
-      crossCultureRatio,
-      byKind
-    };
   }
 
   /**

@@ -9,8 +9,9 @@
  * - Prominence: entity prominence level
  */
 
-import { useMemo } from 'react';
-import type { StoryPotential } from '../../../lib/chronicle/storyPotential';
+import React, { useMemo } from "react";
+import type { StoryPotential } from "../../../lib/chronicle/storyPotential";
+import "./StoryPotentialRadar.css";
 
 interface StoryPotentialRadarProps {
   potential: StoryPotential;
@@ -23,11 +24,11 @@ interface StoryPotentialRadarProps {
 
 // Axis configuration
 const AXES = [
-  { key: 'connections', label: 'Connections', shortLabel: 'Conn' },
-  { key: 'temporalSpan', label: 'Temporal Span', shortLabel: 'Time' },
-  { key: 'roleDiversity', label: 'Role Diversity', shortLabel: 'Roles' },
-  { key: 'eventInvolvement', label: 'Events', shortLabel: 'Events' },
-  { key: 'prominence', label: 'Prominence', shortLabel: 'Prom' },
+  { key: "connections", label: "Connections", shortLabel: "Conn" },
+  { key: "temporalSpan", label: "Temporal Span", shortLabel: "Time" },
+  { key: "roleDiversity", label: "Role Diversity", shortLabel: "Roles" },
+  { key: "eventInvolvement", label: "Events", shortLabel: "Events" },
+  { key: "prominence", label: "Prominence", shortLabel: "Prom" },
 ] as const;
 
 export default function StoryPotentialRadar({
@@ -35,10 +36,10 @@ export default function StoryPotentialRadar({
   size = 160,
   showLabels = true,
   interactive = true,
-}: StoryPotentialRadarProps) {
+}: Readonly<StoryPotentialRadarProps>) {
   const cx = size / 2;
   const cy = size / 2;
-  const maxRadius = (size / 2) - (showLabels ? 28 : 8);
+  const maxRadius = size / 2 - (showLabels ? 28 : 8);
   const numAxes = AXES.length;
   const angleStep = (2 * Math.PI) / numAxes;
   // Start from top (-90 degrees)
@@ -61,7 +62,7 @@ export default function StoryPotentialRadar({
   // Compute polygon points for the data
   const dataPoints = useMemo(() => {
     return AXES.map((axis, i) => {
-      const value = potential[axis.key as keyof StoryPotential] as number;
+      const value = potential[axis.key as keyof StoryPotential];
       const radius = value * maxRadius;
       const angle = startAngle + i * angleStep;
       return {
@@ -74,20 +75,19 @@ export default function StoryPotentialRadar({
   }, [potential, cx, cy, maxRadius, angleStep, startAngle]);
 
   // Build polygon path
-  const polygonPath = dataPoints
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
-    .join(' ') + ' Z';
+  const polygonPath =
+    dataPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + " Z";
 
   // Grid rings (25%, 50%, 75%, 100%)
   const gridRings = [0.25, 0.5, 0.75, 1];
 
   return (
-    <svg width={size} height={size} style={{ display: 'block' }}>
+    <svg width={size} height={size} className="spr-svg">
       {/* Background */}
       <circle cx={cx} cy={cy} r={maxRadius} fill="var(--bg-tertiary)" />
 
       {/* Grid rings */}
-      {gridRings.map(ring => (
+      {gridRings.map((ring) => (
         <circle
           key={ring}
           cx={cx}
@@ -96,7 +96,7 @@ export default function StoryPotentialRadar({
           fill="none"
           stroke="var(--border-color)"
           strokeWidth={ring === 1 ? 1 : 0.5}
-          strokeDasharray={ring === 1 ? 'none' : '2,2'}
+          strokeDasharray={ring === 1 ? "none" : "2,2"}
         />
       ))}
 
@@ -132,41 +132,40 @@ export default function StoryPotentialRadar({
             stroke="white"
             strokeWidth={1.5}
           />
-          {interactive && (
-            <title>{`${point.label}: ${(point.value * 100).toFixed(0)}%`}</title>
-          )}
+          {interactive && <title>{`${point.label}: ${(point.value * 100).toFixed(0)}%`}</title>}
         </g>
       ))}
 
       {/* Axis labels */}
-      {showLabels && axisPoints.map((point, i) => {
-        const axis = AXES[i];
+      {showLabels &&
+        axisPoints.map((point, i) => {
+          const axis = AXES[i];
 
-        // Adjust text anchor based on position
-        let textAnchor: 'start' | 'middle' | 'end' = 'middle';
-        if (point.labelX < cx - 10) textAnchor = 'end';
-        else if (point.labelX > cx + 10) textAnchor = 'start';
+          // Adjust text anchor based on position
+          let textAnchor: "start" | "middle" | "end" = "middle";
+          if (point.labelX < cx - 10) textAnchor = "end";
+          else if (point.labelX > cx + 10) textAnchor = "start";
 
-        // Adjust vertical position
-        let dy = 4;
-        if (point.labelY < cy - maxRadius * 0.5) dy = 12;
-        else if (point.labelY > cy + maxRadius * 0.5) dy = -2;
+          // Adjust vertical position
+          let dy = 4;
+          if (point.labelY < cy - maxRadius * 0.5) dy = 12;
+          else if (point.labelY > cy + maxRadius * 0.5) dy = -2;
 
-        return (
-          <text
-            key={i}
-            x={point.labelX}
-            y={point.labelY}
-            dy={dy}
-            textAnchor={textAnchor}
-            fontSize="9"
-            fill="var(--text-muted)"
-            fontFamily="inherit"
-          >
-            {axis.shortLabel}
-          </text>
-        );
-      })}
+          return (
+            <text
+              key={i}
+              x={point.labelX}
+              y={point.labelY}
+              dy={dy}
+              textAnchor={textAnchor}
+              fontSize="9"
+              fill="var(--text-muted)"
+              fontFamily="inherit"
+            >
+              {axis.shortLabel}
+            </text>
+          );
+        })}
     </svg>
   );
 }
@@ -177,18 +176,18 @@ export default function StoryPotentialRadar({
 export function StoryPotentialRadarWithScore({
   potential,
   size = 160,
-}: {
+}: Readonly<{
   potential: StoryPotential;
   size?: number;
-}) {
+}>) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+    <div className="spr-with-score">
       <StoryPotentialRadar potential={potential} size={size} />
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '24px', fontWeight: 600, color: 'var(--accent-color)' }}>
+      <div className="spr-score-wrap">
+        <div className="spr-score-number">
           {(potential.overallScore * 100).toFixed(0)}
         </div>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+        <div className="spr-score-label">
           Story Score
         </div>
       </div>
@@ -203,24 +202,17 @@ export function StoryScoreBar({
   score,
   width = 60,
   height = 8,
-}: {
+}: Readonly<{
   score: number;
   width?: number;
   height?: number;
-}) {
+}>) {
   const fillWidth = score * width;
 
   return (
-    <svg width={width} height={height} style={{ display: 'block' }}>
+    <svg width={width} height={height} className="spr-svg">
       {/* Background */}
-      <rect
-        x={0}
-        y={0}
-        width={width}
-        height={height}
-        rx={height / 2}
-        fill="var(--bg-tertiary)"
-      />
+      <rect x={0} y={0} width={width} height={height} rx={height / 2} fill="var(--bg-tertiary)" />
       {/* Fill */}
       <rect
         x={0}
@@ -237,26 +229,15 @@ export function StoryScoreBar({
 /**
  * Dot rating display (1-5 filled dots)
  */
-export function StoryScoreDots({
-  score,
-  maxDots = 5,
-}: {
-  score: number;
-  maxDots?: number;
-}) {
+export function StoryScoreDots({ score, maxDots = 5 }: Readonly<{ score: number; maxDots?: number }>) {
   const filledDots = Math.max(1, Math.min(maxDots, Math.round(score * maxDots)));
 
   return (
-    <div style={{ display: 'flex', gap: '2px' }}>
+    <div className="spr-dots">
       {Array.from({ length: maxDots }).map((_, i) => (
         <span
           key={i}
-          style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            background: i < filledDots ? 'var(--accent-color)' : 'var(--bg-tertiary)',
-          }}
+          className={`spr-dot ${i < filledDots ? "spr-dot-filled" : "spr-dot-empty"}`}
         />
       ))}
     </div>

@@ -12,8 +12,8 @@
  * This hook is a thin accessor for components.
  */
 
-import { useToneRankingStore } from '../lib/db/toneRankingStore';
-import type { HistorianTone } from '../lib/historianTypes';
+import { useToneRankingStore } from "../lib/db/toneRankingStore";
+import type { HistorianTone } from "../lib/historianTypes";
 
 // ============================================================================
 // Types (re-exported for consumers)
@@ -25,7 +25,7 @@ export interface ToneRankingChronicleSummary {
 }
 
 export interface ToneRankingProgress {
-  status: 'idle' | 'confirming' | 'running' | 'complete' | 'cancelled' | 'failed';
+  status: "idle" | "confirming" | "running" | "complete" | "cancelled" | "failed";
   chronicles: ToneRankingChronicleSummary[];
   totalChronicles: number;
   processedChronicles: number;
@@ -52,7 +52,7 @@ export interface UseToneRankingReturn {
   // Phase 1: LLM ranking
   progress: ToneRankingProgress;
   isActive: boolean;
-  prepareToneRanking: (chronicleItems: import('../lib/db/chronicleNav').ChronicleNavItem[]) => void;
+  prepareToneRanking: (chronicleItems: import("../lib/db/chronicleNav").ChronicleNavItem[]) => void;
   confirmToneRanking: () => void;
   cancelToneRanking: () => void;
   closeToneRanking: () => void;
@@ -68,7 +68,15 @@ export interface UseToneRankingReturn {
 // Assignment Algorithm (pure functions, used by store)
 // ============================================================================
 
-const ANNOTATION_TONES: HistorianTone[] = ['witty', 'weary', 'elegiac', 'cantankerous', 'rueful', 'conspiratorial', 'bemused'];
+const ANNOTATION_TONES: HistorianTone[] = [
+  "witty",
+  "weary",
+  "elegiac",
+  "cantankerous",
+  "rueful",
+  "conspiratorial",
+  "bemused",
+];
 
 /**
  * Assign tones to chronicles with strong rank-1 preference but distribution balancing.
@@ -76,7 +84,11 @@ const ANNOTATION_TONES: HistorianTone[] = ['witty', 'weary', 'elegiac', 'cantank
  * AND they have a good alternative that fills an underrepresented slot.
  */
 export function assignCorpusTones(
-  chronicles: Array<{ chronicleId: string; title: string; ranking: [HistorianTone, HistorianTone, HistorianTone] }>,
+  chronicles: Array<{
+    chronicleId: string;
+    title: string;
+    ranking: [HistorianTone, HistorianTone, HistorianTone];
+  }>
 ): ToneAssignmentEntry[] {
   const entries: ToneAssignmentEntry[] = chronicles.map((c) => ({
     chronicleId: c.chronicleId,
@@ -108,13 +120,15 @@ export function assignCorpusTones(
       .map((e) => {
         for (const altRank of [1, 2] as const) {
           const alt = e.ranking[altRank];
-          if (alt && counts[alt] < counts[overTone!]) {
+          if (alt && counts[alt] < counts[overTone]) {
             return { entry: e, alt, priority: altRank * 100 + counts[alt] };
           }
         }
         return null;
       })
-      .filter((c): c is { entry: ToneAssignmentEntry; alt: HistorianTone; priority: number } => c !== null)
+      .filter(
+        (c): c is { entry: ToneAssignmentEntry; alt: HistorianTone; priority: number } => c !== null
+      )
       .sort((a, b) => a.priority - b.priority);
 
     if (candidates.length > 0) {
@@ -131,7 +145,10 @@ export function assignCorpusTones(
 }
 
 export function countDistribution(entries: ToneAssignmentEntry[]): Record<HistorianTone, number> {
-  const counts = Object.fromEntries(ANNOTATION_TONES.map((t) => [t, 0])) as Record<HistorianTone, number>;
+  const counts = Object.fromEntries(ANNOTATION_TONES.map((t) => [t, 0])) as Record<
+    HistorianTone,
+    number
+  >;
   for (const e of entries) {
     if (counts[e.assignedTone] !== undefined) counts[e.assignedTone]++;
   }
@@ -153,7 +170,7 @@ export function useToneRanking(): UseToneRankingReturn {
   const applyAssignment = useToneRankingStore((s) => s.applyAssignment);
   const closeAssignment = useToneRankingStore((s) => s.closeAssignment);
 
-  const isActive = progress.status === 'running' || progress.status === 'confirming';
+  const isActive = progress.status === "running" || progress.status === "confirming";
 
   return {
     progress,

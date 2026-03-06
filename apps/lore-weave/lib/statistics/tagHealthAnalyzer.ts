@@ -355,9 +355,10 @@ export class TagHealthAnalyzer {
     // Consolidation recommendations
     if (issues.consolidationOpportunities.length > 0) {
       const totalConsolidatable = issues.consolidationOpportunities.reduce((sum, c) => sum + c.count, 0);
+      const mergeList = issues.consolidationOpportunities.map(c => `"${c.from}" \u2192 "${c.to}"`).join(', ');
       recommendations.push(
         `${issues.consolidationOpportunities.length} tags marked for consolidation (${totalConsolidatable} total uses). ` +
-        `Merge: ${issues.consolidationOpportunities.map(c => `"${c.from}" → "${c.to}"`).join(', ')}`
+        `Merge: ${mergeList}`
       );
     }
 
@@ -506,7 +507,7 @@ export class TagHealthAnalyzer {
   public validateTagTaxonomy(entity: HardState): Array<{ tag1: string; tag2: string; reason: string }> {
     const conflicts: Array<{ tag1: string; tag2: string; reason: string }> = [];
 
-    if (!entity.tags) {
+    if (Object.keys(entity.tags).length === 0) {
       return conflicts;
     }
 

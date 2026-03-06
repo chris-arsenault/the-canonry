@@ -1,4 +1,5 @@
-import React from 'react';
+import React from "react";
+import PropTypes from "prop-types";
 
 /**
  * Tags input with auto-split on space/comma
@@ -8,32 +9,28 @@ export default function TagsInput({ value, onChange, placeholder }) {
   const tags = Array.isArray(value) ? value : [];
 
   const handleKeyDown = (e) => {
-    if (e.key === ' ' || e.key === ',' || e.key === 'Enter') {
+    if (e.key === " " || e.key === "," || e.key === "Enter") {
       e.preventDefault();
       const input = e.target.value.trim();
       if (input && !tags.includes(input)) {
         onChange([...tags, input]);
       }
-      e.target.value = '';
-    } else if (e.key === 'Backspace' && e.target.value === '' && tags.length > 0) {
+      e.target.value = "";
+    } else if (e.key === "Backspace" && e.target.value === "" && tags.length > 0) {
       onChange(tags.slice(0, -1));
     }
   };
 
   const handleRemove = (tag) => {
-    onChange(tags.filter(t => t !== tag));
+    onChange(tags.filter((t) => t !== tag));
   };
 
   return (
     <div className="tags-input-container">
-      {tags.map(tag => (
+      {tags.map((tag) => (
         <span key={tag} className="tag-chip">
           {tag}
-          <button
-            type="button"
-            onClick={() => handleRemove(tag)}
-            className="tag-remove-btn"
-          >
+          <button type="button" onClick={() => handleRemove(tag)} className="tag-remove-btn">
             x
           </button>
         </span>
@@ -41,9 +38,15 @@ export default function TagsInput({ value, onChange, placeholder }) {
       <input
         type="text"
         onKeyDown={handleKeyDown}
-        placeholder={tags.length === 0 ? placeholder : ''}
+        placeholder={tags.length === 0 ? placeholder : ""}
         className="tags-input"
       />
     </div>
   );
 }
+
+TagsInput.propTypes = {
+  value: PropTypes.array,
+  onChange: PropTypes.func,
+  placeholder: PropTypes.string,
+};

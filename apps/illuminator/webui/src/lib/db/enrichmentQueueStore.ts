@@ -15,9 +15,9 @@
  * - Worker management, retry logic → useEnrichmentQueue (the source-of-truth hook)
  */
 
-import { create } from 'zustand';
-import type { QueueItem } from '../enrichmentTypes';
-import type { QueueStats } from '../../hooks/useEnrichmentQueue';
+import { create } from "zustand";
+import type { QueueItem } from "../enrichmentTypes";
+import type { QueueStats } from "../../hooks/useEnrichmentQueue";
 
 interface EnrichmentQueueStoreState {
   queue: QueueItem[];

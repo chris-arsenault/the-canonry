@@ -5,39 +5,35 @@
  * Does NOT touch blobs.
  */
 
-import { openIlluminatorDb } from '../lib/illuminatorDbReader';
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
-const IMAGES_STORE_NAME = 'images';
+const IMAGES_STORE_NAME = "images";
 
 const MIME_BY_EXTENSION = {
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  webp: 'image/webp',
-  gif: 'image/gif',
-  svg: 'image/svg+xml',
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  svg: "image/svg+xml",
 };
 
 function normalizeSourcePath(value) {
-  if (!value || typeof value !== 'string') return null;
-  const cleaned = value.split('?')[0].split('#')[0];
+  if (!value || typeof value !== "string") return null;
+  const cleaned = value.split("?")[0].split("#")[0];
   return cleaned || null;
 }
 
 function inferMimeType(path, fallback) {
   if (fallback) return fallback;
-  if (!path || typeof path !== 'string') return 'application/octet-stream';
+  if (!path || typeof path !== "string") return "application/octet-stream";
   const match = /\.([a-zA-Z0-9]+)$/.exec(path);
-  if (!match) return 'application/octet-stream';
+  if (!match) return "application/octet-stream";
   const ext = match[1].toLowerCase();
-  return MIME_BY_EXTENSION[ext] || 'application/octet-stream';
+  return MIME_BY_EXTENSION[ext] || "application/octet-stream";
 }
 
-export async function importBundleImageReferences({
-  projectId,
-  imageData,
-  images,
-} = {}) {
+export async function importBundleImageReferences({ projectId, imageData, images } = {}) {
   if (!projectId) return { imported: 0, skipped: 0 };
   const results = Array.isArray(imageData?.results) ? imageData.results : [];
   if (results.length === 0) return { imported: 0, skipped: 0 };
@@ -49,13 +45,13 @@ export async function importBundleImageReferences({
 
   try {
     if (!db.objectStoreNames.contains(IMAGES_STORE_NAME)) {
-      throw new Error('Illuminator images store is unavailable.');
+      throw new Error("Illuminator images store is unavailable.");
     }
 
     const now = Date.now();
 
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(IMAGES_STORE_NAME, 'readwrite');
+      const tx = db.transaction(IMAGES_STORE_NAME, "readwrite");
       const store = tx.objectStore(IMAGES_STORE_NAME);
 
       for (const entry of results) {
@@ -78,7 +74,7 @@ export async function importBundleImageReferences({
             ...existing,
             imageId,
             projectId,
-            entityId: incomingEntityId ?? existing.entityId ?? 'chronicle',
+            entityId: incomingEntityId ?? existing.entityId ?? "chronicle",
             entityName: entry.entityName ?? existing.entityName,
             entityKind: entry.entityKind ?? existing.entityKind,
             entityCulture: entry.entityCulture ?? existing.entityCulture,
@@ -89,9 +85,9 @@ export async function importBundleImageReferences({
             imageRefId: entry.imageRefId ?? existing.imageRefId,
             sceneDescription: entry.sceneDescription ?? existing.sceneDescription,
             generatedAt: existing.generatedAt ?? now,
-            model: existing.model || 'imported',
+            model: existing.model || "imported",
             mimeType: existing.mimeType || mimeType,
-            size: typeof existing.size === 'number' ? existing.size : 0,
+            size: typeof existing.size === "number" ? existing.size : 0,
             savedAt: existing.savedAt ?? now,
           };
 
@@ -104,7 +100,7 @@ export async function importBundleImageReferences({
       }
 
       tx.oncomplete = () => resolve({ imported, overwritten, skipped });
-      tx.onerror = () => reject(tx.error || new Error('Failed to import image references'));
+      tx.onerror = () => reject(tx.error || new Error("Failed to import image references"));
     });
   } finally {
     db.close();
@@ -116,12 +112,12 @@ export async function getImageCountForProject(projectId) {
   const db = await openIlluminatorDb();
   try {
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(IMAGES_STORE_NAME, 'readonly');
+      const tx = db.transaction(IMAGES_STORE_NAME, "readonly");
       const store = tx.objectStore(IMAGES_STORE_NAME);
-      const index = store.index('projectId');
+      const index = store.index("projectId");
       const request = index.count(projectId);
       request.onsuccess = () => resolve(request.result || 0);
-      request.onerror = () => reject(request.error || new Error('Failed to count images'));
+      request.onerror = () => reject(request.error || new Error("Failed to count images"));
     });
   } finally {
     db.close();

@@ -38,7 +38,7 @@ export interface SchemaError {
   message: string;
   value: unknown;
   expected: string;
-  suggestion?: string;
+  suggestion: string;
 }
 
 export interface SchemaValidationResult {
@@ -74,53 +74,43 @@ const validateEntity = ajv.compile(entitySchema);
 /**
  * Convert ajv errors to our SchemaError format
  */
-function formatAjvErrors(errors: ErrorObject[] | null | undefined, itemId?: string): SchemaError[] {
+const EXPECTED_FORMATTERS: Partial<Record<string, (params: Record<string, string>) => string>> = {
+  type: (p) => `type: ${p.type}`,
+  enum: (p) => `one of: ${p.allowedValues}`,
+  required: (p) => `required property: ${p.missingProperty}`,
+  additionalProperties: (p) => `no additional property: ${p.additionalProperty}`,
+  const: (p) => `value: ${JSON.stringify(p.allowedValue)}`,
+  oneOf: () => 'match one of the allowed schemas',
+  minimum: (p) => `minimum: ${p.limit}`,
+  maximum: (p) => `maximum: ${p.limit}`,
+};
+
+const SUGGESTION_FORMATTERS: Partial<Record<string, (params: Record<string, string>) => string>> = {
+  required: (p) => `Add the missing "${p.missingProperty}" property`,
+  type: (p) => `Change the value to be a ${p.type}`,
+  enum: () => 'Use one of the allowed values',
+};
+
+function formatAjvErrors(errors: ErrorObject[] | null | undefined, itemId: string): SchemaError[] {
   if (!errors) return [];
 
   return errors.map(error => {
-    // Build a human-readable path
     let path = error.instancePath || '/';
     if (itemId) {
       path = `"${itemId}"${path}`;
     }
 
-    // Build expected description
-    let expected = '';
-    if (error.keyword === 'type') {
-      expected = `type: ${error.params.type}`;
-    } else if (error.keyword === 'enum') {
-      expected = `one of: ${(error.params.allowedValues as string[]).join(', ')}`;
-    } else if (error.keyword === 'required') {
-      expected = `required property: ${error.params.missingProperty}`;
-    } else if (error.keyword === 'additionalProperties') {
-      expected = `no additional property: ${error.params.additionalProperty}`;
-    } else if (error.keyword === 'const') {
-      expected = `value: ${JSON.stringify(error.params.allowedValue)}`;
-    } else if (error.keyword === 'oneOf') {
-      expected = 'match one of the allowed schemas';
-    } else if (error.keyword === 'minimum' || error.keyword === 'maximum') {
-      expected = `${error.keyword}: ${error.params.limit}`;
-    } else {
-      expected = error.message || 'valid value';
-    }
+        const params = error.params as Record<string, string>;
+    const expectedFmt = EXPECTED_FORMATTERS[error.keyword];
+    const expected = expectedFmt ? expectedFmt(params) : (error.message || 'valid value');
 
-    // Get the invalid value
-    const value = error.data;
-
-    // Build suggestion based on error type
-    let suggestion: string | undefined;
-    if (error.keyword === 'required') {
-      suggestion = `Add the missing "${error.params.missingProperty}" property`;
-    } else if (error.keyword === 'type') {
-      suggestion = `Change the value to be a ${error.params.type}`;
-    } else if (error.keyword === 'enum') {
-      suggestion = `Use one of the allowed values`;
-    }
+    const suggestionFmt = SUGGESTION_FORMATTERS[error.keyword];
+    const suggestion = suggestionFmt ? suggestionFmt(params) : '';
 
     return {
       path,
       message: error.message || 'Validation error',
-      value,
+      value: error.data,
       expected,
       suggestion,
     };
@@ -159,6 +149,7 @@ export function validateTemplates(templates: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: templates,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -194,6 +185,7 @@ export function validatePressures(pressures: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: pressures,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -223,6 +215,7 @@ export function validateSystems(systems: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: systems,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -230,7 +223,7 @@ export function validateSystems(systems: unknown): SchemaValidationResult {
   systems.forEach((system, index) => {
     // Skip disabled systems
     if (typeof system === 'object' && system !== null &&
-        'enabled' in system && (system as { enabled?: unknown }).enabled === false) {
+        'enabled' in system && (system as { enabled: unknown }).enabled === false) {
       return;
     }
 
@@ -258,6 +251,7 @@ export function validateEras(eras: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: eras,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -287,6 +281,7 @@ export function validateActions(actions: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: actions,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -326,6 +321,7 @@ export function validateEntities(entities: unknown): SchemaValidationResult {
       message: 'Expected array',
       value: entities,
       expected: 'array',
+      suggestion: '',
     });
     return { valid: false, errors, warnings };
   }
@@ -349,16 +345,16 @@ export function validateEntities(entities: unknown): SchemaValidationResult {
  * Validate all configuration files at once
  */
 export function validateAllConfigs(config: {
-  templates?: unknown;
-  pressures?: unknown;
-  systems?: unknown;
-  eras?: unknown;
-  actions?: unknown;
-  seedEntities?: unknown;
-  schema?: {
-    cultures?: string[];
-    entityKinds?: string[];
-    relationshipKinds?: string[];
+  templates: unknown;
+  pressures: unknown;
+  systems: unknown;
+  eras: unknown;
+  actions: unknown;
+  seedEntities: unknown;
+  schema: {
+    cultures: string[];
+    entityKinds: string[];
+    relationshipKinds: string[];
   };
 }): SchemaValidationResult {
   const allErrors: SchemaError[] = [];
@@ -410,40 +406,47 @@ export function validateAllConfigs(config: {
 /**
  * Format validation results for display
  */
-export function formatValidationResult(result: SchemaValidationResult): string {
-  const lines: string[] = [];
+function formatErrorLines(errors: SchemaValidationResult['errors']): string[] {
+  if (errors.length === 0) return [];
+  const lines: string[] = [`ERRORS (${errors.length}):`];
+  for (const error of errors) {
+    lines.push(`  [${error.path}] ${error.message}`);
+    lines.push(`    Expected: ${error.expected}`);
+    if (error.value !== undefined) {
+      const valueStr = JSON.stringify(error.value);
+      if (valueStr.length < 100) {
+        lines.push(`    Got: ${valueStr}`);
+      }
+    }
+    if (error.suggestion) {
+      lines.push(`    Suggestion: ${error.suggestion}`);
+    }
+    lines.push('');
+  }
+  return lines;
+}
 
+function formatWarningLines(warnings: SchemaValidationResult['warnings']): string[] {
+  if (warnings.length === 0) return [];
+  const lines: string[] = [`WARNINGS (${warnings.length}):`];
+  for (const warning of warnings) {
+    lines.push(`  [${warning.path}] ${warning.message}`);
+    if (warning.suggestion) {
+      lines.push(`    Suggestion: ${warning.suggestion}`);
+    }
+  }
+  return lines;
+}
+
+export function formatValidationResult(result: SchemaValidationResult): string {
   if (result.valid && result.warnings.length === 0) {
     return 'Configuration is valid.';
   }
 
-  if (result.errors.length > 0) {
-    lines.push(`ERRORS (${result.errors.length}):`);
-    for (const error of result.errors) {
-      lines.push(`  [${error.path}] ${error.message}`);
-      lines.push(`    Expected: ${error.expected}`);
-      if (error.value !== undefined) {
-        const valueStr = JSON.stringify(error.value);
-        if (valueStr.length < 100) {
-          lines.push(`    Got: ${valueStr}`);
-        }
-      }
-      if (error.suggestion) {
-        lines.push(`    Suggestion: ${error.suggestion}`);
-      }
-      lines.push('');
-    }
-  }
-
-  if (result.warnings.length > 0) {
-    lines.push(`WARNINGS (${result.warnings.length}):`);
-    for (const warning of result.warnings) {
-      lines.push(`  [${warning.path}] ${warning.message}`);
-      if (warning.suggestion) {
-        lines.push(`    Suggestion: ${warning.suggestion}`);
-      }
-    }
-  }
+  const lines: string[] = [
+    ...formatErrorLines(result.errors),
+    ...formatWarningLines(result.warnings),
+  ];
 
   return lines.join('\n');
 }

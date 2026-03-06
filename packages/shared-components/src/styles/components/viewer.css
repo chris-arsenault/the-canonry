@@ -1,0 +1,207 @@
+/**
+ * Viewer utility styles
+ *
+ * Common structural patterns shared across read-only viewer pages
+ * (dependency-viewer, naming-profile-viewer, validation editor, etc.).
+ *
+ * Components can compose these classes directly or use them as a
+ * reference for component-specific implementations. Over time,
+ * component-prefixed classes (e.g. .dependency-viewer-section) should
+ * migrate to use these shared classes instead.
+ */
+
+/* ==========================================================================
+   Page layout
+   ========================================================================== */
+
+.viewer-container {
+  padding: var(--spacing-2xl);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.viewer-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+/* ==========================================================================
+   Collapsible section card
+   ========================================================================== */
+
+.viewer-section {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-xl);
+  overflow: hidden;
+}
+
+.viewer-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.viewer-section-header:hover {
+  background-color: rgb(59 130 246 / 5%);
+}
+
+.viewer-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.viewer-section-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-dark);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: var(--spacing-sm);
+}
+
+.viewer-section-content {
+  padding: var(--spacing-md) var(--spacing-xl) var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   Expand/collapse icon
+   ========================================================================== */
+
+.viewer-expand-icon {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.viewer-expand-icon-open {
+  transform: rotate(180deg);
+}
+
+/* ==========================================================================
+   Data rows inside sections
+   ========================================================================== */
+
+.viewer-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--color-bg-dark);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+}
+
+.viewer-item-name {
+  font-size: var(--font-size-md);
+  color: var(--color-text-dim);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ==========================================================================
+   Inline badges (used-by indicators, status badges)
+   ========================================================================== */
+
+.viewer-badge {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  text-transform: lowercase;
+}
+
+.viewer-badge-list {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Legend row (color-coded key for section types)
+   ========================================================================== */
+
+.viewer-legend {
+  display: flex;
+  gap: var(--spacing-xl);
+  align-items: center;
+}
+
+.viewer-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.viewer-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ==========================================================================
+   Table layout (for mapping/reference tables)
+   ========================================================================== */
+
+.viewer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.viewer-table-header {
+  text-align: left;
+  padding: var(--spacing-md) var(--spacing-lg);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  border-bottom: 1px solid var(--color-border);
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+}
+
+.viewer-table-row {
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background-color var(--transition-fast);
+}
+
+.viewer-table-row:hover {
+  background-color: rgb(59 130 246 / 5%);
+}
+
+.viewer-table-cell {
+  padding: var(--spacing-md) var(--spacing-lg);
+  color: var(--color-text);
+}
+
+/* ==========================================================================
+   Empty state
+   ========================================================================== */
+
+.viewer-empty-state {
+  text-align: center;
+  padding: var(--spacing-4xl);
+  color: var(--color-text-muted);
+}

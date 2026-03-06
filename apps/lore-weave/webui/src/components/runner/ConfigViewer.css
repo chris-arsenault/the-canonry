@@ -1,0 +1,10 @@
+.cv-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.cv-toggle-flush {
+  flex: 1;
+  margin-top: 0;
+}

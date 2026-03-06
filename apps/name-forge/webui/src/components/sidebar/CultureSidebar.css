@@ -1,0 +1,5 @@
+/* CultureSidebar Component Styles */
+
+.csb-progress-fill {
+  width: var(--csb-progress-width);
+}

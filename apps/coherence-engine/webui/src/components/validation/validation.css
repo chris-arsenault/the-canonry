@@ -79,6 +79,10 @@
   margin-bottom: var(--spacing-2xl);
 }
 
+.validation-summary-cards-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 .validation-summary-card {
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border);

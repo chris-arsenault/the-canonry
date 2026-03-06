@@ -16,13 +16,13 @@ import { archiveRelationship, addRelationship } from '../utils';
  */
 export interface ArchiveEntityOptions {
   /** Archive all relationships involving this entity (default: true) */
-  archiveRelationships?: boolean;
+  archiveRelationships: boolean;
 
   /** Relationship kinds to exclude from archival */
-  excludeRelationshipKinds?: string[];
+  excludeRelationshipKinds: string[];
 
   /** Custom status to set (default: 'historical') */
-  status?: string;
+  status: string;
 }
 
 /**
@@ -30,16 +30,16 @@ export interface ArchiveEntityOptions {
  */
 export interface TransferRelationshipsOptions {
   /** Relationship kinds to exclude from transfer */
-  excludeKinds?: string[];
+  excludeKinds: string[];
 
   /** Only transfer relationships where entity is source */
-  sourceOnly?: boolean;
+  sourceOnly: boolean;
 
   /** Only transfer relationships where entity is destination */
-  destinationOnly?: boolean;
+  destinationOnly: boolean;
 
   /** Archive original relationships after transfer (default: true) */
-  archiveOriginals?: boolean;
+  archiveOriginals: boolean;
 }
 
 /**
@@ -52,7 +52,11 @@ export interface TransferRelationshipsOptions {
 export function archiveEntity(
   graph: Graph,
   entityId: string,
-  options: ArchiveEntityOptions = {}
+  options: ArchiveEntityOptions = {
+    archiveRelationships: true,
+    excludeRelationshipKinds: [],
+    status: FRAMEWORK_STATUS.HISTORICAL,
+  }
 ): void {
   const entity = graph.getEntity(entityId);
   if (!entity) return;
@@ -75,7 +79,7 @@ export function archiveEntity(
     );
 
     entityRelationships.forEach(rel => {
-      archiveRelationship(graph, rel.src, rel.dst, rel.kind);
+      archiveRelationship(graph, rel.src, rel.dst, rel.kind, 'entity_archived');
     });
   }
 }
@@ -90,7 +94,11 @@ export function archiveEntity(
 export function archiveEntities(
   graph: Graph,
   entityIds: string[],
-  options: ArchiveEntityOptions = {}
+  options: ArchiveEntityOptions = {
+    archiveRelationships: true,
+    excludeRelationshipKinds: [],
+    status: FRAMEWORK_STATUS.HISTORICAL,
+  }
 ): void {
   entityIds.forEach(id => archiveEntity(graph, id, options));
 }
@@ -109,7 +117,12 @@ export function transferRelationships(
   graph: Graph,
   sourceIds: string[],
   targetId: string,
-  options: TransferRelationshipsOptions = {}
+  options: TransferRelationshipsOptions = {
+    excludeKinds: [FRAMEWORK_RELATIONSHIP_KINDS.PART_OF],
+    sourceOnly: false,
+    destinationOnly: false,
+    archiveOriginals: true,
+  }
 ): number {
   const {
     excludeKinds = [FRAMEWORK_RELATIONSHIP_KINDS.PART_OF],
@@ -147,7 +160,7 @@ export function transferRelationships(
     // Don't create self-referential relationship, but DO archive the original
     if (newSrc === newDst) {
       if (archiveOriginals) {
-        archiveRelationship(graph, rel.src, rel.dst, rel.kind);
+        archiveRelationship(graph, rel.src, rel.dst, rel.kind, 'relationship_transferred');
       }
       return;
     }
@@ -162,7 +175,7 @@ export function transferRelationships(
 
     // Archive original if requested
     if (archiveOriginals) {
-      archiveRelationship(graph, rel.src, rel.dst, rel.kind);
+      archiveRelationship(graph, rel.src, rel.dst, rel.kind, 'relationship_transferred');
     }
   });
 
@@ -285,10 +298,10 @@ export function getPartOfMembers(
  */
 export interface SupersedeEntityOptions extends TransferRelationshipsOptions {
   /** Archive the superseded entity (default: true) */
-  archiveSuperseded?: boolean;
+  archiveSuperseded: boolean;
 
   /** Create supersedes relationship (default: true) */
-  createSupersedes?: boolean;
+  createSupersedes: boolean;
 }
 
 /**
@@ -304,7 +317,14 @@ export function supersedeEntity(
   graph: Graph,
   oldEntityId: string,
   newEntityId: string,
-  options: SupersedeEntityOptions = {}
+  options: SupersedeEntityOptions = {
+    archiveSuperseded: true,
+    createSupersedes: true,
+    excludeKinds: [],
+    sourceOnly: false,
+    destinationOnly: false,
+    archiveOriginals: true,
+  }
 ): void {
   const {
     archiveSuperseded = true,
@@ -330,7 +350,7 @@ export function supersedeEntity(
     {
       ...transferOptions,
       excludeKinds: [
-        ...(transferOptions.excludeKinds || []),
+        ...transferOptions.excludeKinds,
         FRAMEWORK_RELATIONSHIP_KINDS.SUPERSEDES,
         FRAMEWORK_RELATIONSHIP_KINDS.PART_OF
       ]
@@ -344,7 +364,8 @@ export function supersedeEntity(
       excludeRelationshipKinds: [
         FRAMEWORK_RELATIONSHIP_KINDS.SUPERSEDES,
         FRAMEWORK_RELATIONSHIP_KINDS.PART_OF
-      ]
+      ],
+      status: FRAMEWORK_STATUS.HISTORICAL,
     });
   }
 }

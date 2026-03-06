@@ -1,5 +1,5 @@
-import { SimulationSystem, SystemResult, ComponentPurpose } from '../engine/types';
-import { HardState, Relationship } from '../core/worldTypes';
+import { SimulationSystem, SystemResult, ActionContext } from '../engine/types';
+import { HardState } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import { rollProbability, hasTag, generateId } from '../utils';
 import {
@@ -16,10 +16,8 @@ import type {
   Mutation,
   MutationResult,
   Condition,
-  RuleContext,
   EntityModification,
   VariableSelectionRule,
-  VariableDefinitionForResolution,
 } from '../rules';
 
 /**
@@ -52,7 +50,7 @@ export type TriggerCondition = Condition;
 
 export type TriggerAction = Mutation & {
   /** If true, create relationships between all matching entities */
-  betweenMatching?: boolean;
+  betweenMatching: boolean;
 };
 
 export interface ThresholdTriggerConfig {
@@ -61,7 +59,7 @@ export interface ThresholdTriggerConfig {
   /** Human-readable name */
   name: string;
   /** Optional description */
-  description?: string;
+  description: string;
 
   /** Selection rule for entities to evaluate */
   selection: SelectionRule;
@@ -78,31 +76,31 @@ export interface ThresholdTriggerConfig {
    * 'all_matching' - all matching entities share one cluster ID
    * 'by_relationship' - group by shared relationship targets
    */
-  clusterMode?: 'individual' | 'all_matching' | 'by_relationship';
+  clusterMode: 'individual' | 'all_matching' | 'by_relationship';
 
   /** For by_relationship clustering: the relationship to group by */
-  clusterRelationshipKind?: string;
+  clusterRelationshipKind: string;
 
   /** Minimum entities needed to trigger (for cluster modes) */
-  minClusterSize?: number;
+  minClusterSize: number;
 
   /** Throttle: only run on some ticks (0-1, default: 1.0 = every tick) */
-  throttleChance?: number;
+  throttleChance: number;
 
   /** Cooldown tag: if this tag exists on entity, skip it */
-  cooldownTag?: string;
+  cooldownTag: string;
 
   /** Ticks to check for cooldown */
-  cooldownTicks?: number;
+  cooldownTicks: number;
 
   /** Pressure changes when trigger fires */
-  pressureChanges?: Record<string, number>;
+  pressureChanges: Record<string, number>;
 
   /**
    * Template for in-world narration when this system triggers.
    * Supports {$self.name}, {$variable.field}, etc.
    */
-  narrationTemplate?: string;
+  narrationTemplate: string;
 
   /**
    * Variables to resolve before applying actions.
@@ -110,9 +108,9 @@ export interface ThresholdTriggerConfig {
    * Variables can reference $self (the matched entity) or other previously resolved variables.
    * If a required variable cannot be resolved, the entity is skipped.
    */
-  variables?: Record<string, {
+  variables: Record<string, {
     select: VariableSelectionRule;
-    required?: boolean;
+    required: boolean;
   }>;
 }
 
@@ -238,52 +236,153 @@ function clusterEntities(
 // ACTION APPLICATION
 // =============================================================================
 
+/** Bundled mutable results accumulated during action application */
+interface ActionResults {
+  modifications: Array<EntityModification & { actionContext: ActionContext; narrativeGroupId: string }>;
+  relationships: SystemResult['relationshipsAdded'];
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; actionContext: ActionContext; narrativeGroupId: string }>;
+  relationshipsToArchive: Array<{ kind: string; src: string; dst: string; actionContext: ActionContext; narrativeGroupId: string }>;
+  pressureChanges: Record<string, number>;
+  narrationsByGroup: Record<string, string>;
+  skippedMembers: number;
+}
+
+function pushWithContext<T extends object>(
+  items: T[],
+  dest: Array<T & { actionContext: ActionContext; narrativeGroupId: string }>,
+  ctx: ActionContext,
+  narrativeGroupId: string
+): void {
+  for (const item of items) {
+    dest.push({ ...item, actionContext: ctx, narrativeGroupId: narrativeGroupId ?? '' });
+  }
+}
+
+function mergeRelationshipsCreated(
+  created: MutationResult['relationshipsCreated'],
+  dest: SystemResult['relationshipsAdded'],
+  ctx: ActionContext,
+  narrativeGroupId: string
+): void {
+  for (const rel of created) {
+    dest.push({
+      kind: rel.kind,
+      src: rel.src,
+      dst: rel.dst,
+      strength: rel.strength,
+      category: rel.category,
+      actionContext: ctx,
+      narrativeGroupId: narrativeGroupId ?? '',
+    });
+  }
+}
+
+function mergePressureChanges(from: Record<string, number>, into: Record<string, number>): void {
+  for (const [pressureId, delta] of Object.entries(from)) {
+    into[pressureId] = (into[pressureId] || 0) + delta;
+  }
+}
+
 function mergeMutationResult(
   result: MutationResult,
-  modifications: Array<EntityModification & { narrativeGroupId?: string }>,
-  relationships: Array<Relationship & { narrativeGroupId?: string }>,
-  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId?: string }>,
-  relationshipsToArchive: Array<{ kind: string; src: string; dst: string; narrativeGroupId?: string }>,
-  pressureChanges: Record<string, number>,
-  narrativeGroupId?: string
+  out: ActionResults,
+  narrativeGroupId: string,
+  ctx: ActionContext
 ): void {
   if (!result.applied) return;
+  pushWithContext(result.entityModifications, out.modifications, ctx, narrativeGroupId);
+  mergeRelationshipsCreated(result.relationshipsCreated, out.relationships, ctx, narrativeGroupId);
+  pushWithContext(result.relationshipsAdjusted, out.relationshipsAdjusted, ctx, narrativeGroupId);
+  pushWithContext(result.relationshipsToArchive, out.relationshipsToArchive, ctx, narrativeGroupId);
+  mergePressureChanges(result.pressureChanges, out.pressureChanges);
+}
 
-  if (result.entityModifications.length > 0) {
-    for (const mod of result.entityModifications) {
-      modifications.push(narrativeGroupId ? { ...mod, narrativeGroupId } : mod);
-    }
-  }
-
-  if (result.relationshipsCreated.length > 0) {
-    for (const rel of result.relationshipsCreated) {
-      const relWithGroup = {
-        kind: rel.kind,
-        src: rel.src,
-        dst: rel.dst,
-        strength: rel.strength,
-        category: rel.category,
-        ...(narrativeGroupId ? { narrativeGroupId } : {}),
+function applyBetweenMatchingPairs(
+  actionKind: string,
+  members: HardState[],
+  clusterCtx: ReturnType<typeof createSystemContext>,
+  action: Mutation,
+  out: ActionResults,
+  narrativeGroupId: string,
+  graphView: WorldRuntime,
+  ctx: ActionContext
+): void {
+  for (let i = 0; i < members.length; i++) {
+    for (let j = i + 1; j < members.length; j++) {
+      const src = members[i];
+      const dst = members[j];
+      if (graphView.hasRelationship(src.id, dst.id, actionKind)) continue;
+      const pairCtx = {
+        ...clusterCtx,
+        entities: { ...(clusterCtx.entities), member: src, member2: dst },
       };
-      relationships.push(relWithGroup);
+      const result = prepareMutation(action, pairCtx);
+      mergeMutationResult(result, out, narrativeGroupId ?? '', ctx);
+    }
+  }
+}
+
+function applyClusterActions(
+  actions: TriggerAction[],
+  members: HardState[],
+  clusterCtx: ReturnType<typeof createSystemContext>,
+  out: ActionResults,
+  narrativeGroupId: string,
+  graphView: WorldRuntime,
+  ctx: ActionContext
+): void {
+  for (const action of actions) {
+    if (action.type === 'modify_pressure') {
+      const result = prepareMutation(action, clusterCtx);
+      mergeMutationResult(result, out, narrativeGroupId ?? '', ctx);
+    }
+    if (action.type === 'create_relationship' && action.betweenMatching && members.length >= 2) {
+      applyBetweenMatchingPairs((action as { kind: string }).kind, members, clusterCtx, action, out, narrativeGroupId, graphView, ctx);
+    }
+  }
+}
+
+function applyActionsToMember(
+  member: HardState,
+  config: ThresholdTriggerConfig,
+  clusterCtx: ReturnType<typeof createSystemContext>,
+  out: ActionResults,
+  narrativeGroupId: string,
+  ctx: ActionContext
+): boolean {
+  const resolvedVars = resolveVariablesForEntity(config.variables, clusterCtx, member);
+  if (resolvedVars === null) return false;
+
+  const memberCtx = {
+    ...clusterCtx,
+    self: member,
+    entities: { ...(clusterCtx.entities), self: member, ...resolvedVars },
+  };
+
+  if (config.narrationTemplate && narrativeGroupId) {
+    const narrationCtx = createSystemRuleContext({
+      self: member,
+      member: member,
+      member2: member,
+      sharedVia: member,
+      variables: resolvedVars as Record<string, HardState | undefined>,
+      counts: {},
+      values: {},
+    });
+    const narration = interpolate(config.narrationTemplate, narrationCtx);
+    if (narration.complete) {
+      out.narrationsByGroup[narrativeGroupId] = narration.text;
     }
   }
 
-  if (result.relationshipsAdjusted.length > 0) {
-    for (const adj of result.relationshipsAdjusted) {
-      relationshipsAdjusted.push(narrativeGroupId ? { ...adj, narrativeGroupId } : adj);
-    }
+  for (const action of config.actions) {
+    if (action.type === 'modify_pressure') continue;
+    if (action.type === 'create_relationship' && action.betweenMatching) continue;
+    const mutation: Mutation = action;
+    const result = prepareMutation(mutation, memberCtx);
+    mergeMutationResult(result, out, narrativeGroupId ?? '', ctx);
   }
-
-  if (result.relationshipsToArchive.length > 0) {
-    for (const arch of result.relationshipsToArchive) {
-      relationshipsToArchive.push(narrativeGroupId ? { ...arch, narrativeGroupId } : arch);
-    }
-  }
-
-  for (const [pressureId, delta] of Object.entries(result.pressureChanges)) {
-    pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
-  }
+  return true;
 }
 
 function applyActions(
@@ -291,118 +390,56 @@ function applyActions(
   config: ThresholdTriggerConfig,
   graphView: WorldRuntime
 ): {
-  modifications: Array<EntityModification & { narrativeGroupId?: string }>;
-  relationships: Array<Relationship & { narrativeGroupId?: string }>;
-  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId?: string }>;
-  relationshipsToArchive: Array<{ kind: string; src: string; dst: string; narrativeGroupId?: string }>;
+  modifications: Array<EntityModification & { actionContext: ActionContext; narrativeGroupId: string }>;
+  relationships: SystemResult['relationshipsAdded'];
+  relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; actionContext: ActionContext; narrativeGroupId: string }>;
+  relationshipsToArchive: Array<{ kind: string; src: string; dst: string; actionContext: ActionContext; narrativeGroupId: string }>;
   pressureChanges: Record<string, number>;
   skippedMembers: number;
   narrationsByGroup: Record<string, string>;
 } {
-  const modifications: Array<EntityModification & { narrativeGroupId?: string }> = [];
-  const relationships: Array<Relationship & { narrativeGroupId?: string }> = [];
-  const relationshipsAdjusted: Array<{ kind: string; src: string; dst: string; delta: number; narrativeGroupId?: string }> = [];
-  const relationshipsToArchive: Array<{ kind: string; src: string; dst: string; narrativeGroupId?: string }> = [];
-  const pressureChanges: Record<string, number> = {};
-  const narrationsByGroup: Record<string, string> = {};
+  const ctx: ActionContext = { source: 'system', sourceId: config.id, success: true };
+  const out: ActionResults = {
+    modifications: [],
+    relationships: [],
+    relationshipsAdjusted: [],
+    relationshipsToArchive: [],
+    pressureChanges: {},
+    narrationsByGroup: {},
+    skippedMembers: 0,
+  };
   const baseCtx = createSystemContext(graphView);
-  let skippedMembers = 0;
-
-  // When clusterMode is 'individual', each cluster is one entity and should get its own narrative event
   const usePerClusterNarrative = config.clusterMode === 'individual';
 
   for (const [clusterId, members] of clusters) {
     const clusterCtx = {
       ...baseCtx,
-      values: { ...(baseCtx.values ?? {}), cluster_id: clusterId },
+      values: { ...(baseCtx.values), cluster_id: clusterId },
     };
+    const narrativeGroupId = usePerClusterNarrative ? clusterId : '';
 
-    // narrativeGroupId is the clusterId when using per-cluster narrative grouping
-    // For 'individual' mode, clusterId equals the entity's id
-    const narrativeGroupId = usePerClusterNarrative ? clusterId : undefined;
+    applyClusterActions(config.actions, members, clusterCtx, out, narrativeGroupId, graphView, ctx);
 
-    // Handle cluster-level actions (modify_pressure, betweenMatching)
-    for (const action of config.actions) {
-      if (action.type === 'modify_pressure') {
-        const result = prepareMutation(action, clusterCtx);
-        mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, relationshipsToArchive, pressureChanges, narrativeGroupId);
-      }
-
-      if (action.type === 'create_relationship' && action.betweenMatching && members.length >= 2) {
-        for (let i = 0; i < members.length; i++) {
-          for (let j = i + 1; j < members.length; j++) {
-            const src = members[i];
-            const dst = members[j];
-
-            if (graphView.hasRelationship(src.id, dst.id, action.kind)) {
-              continue;
-            }
-
-            const pairCtx = {
-              ...clusterCtx,
-              entities: { ...(clusterCtx.entities ?? {}), member: src, member2: dst },
-            };
-
-            const mutation: Mutation = action;
-            const result = prepareMutation(mutation, pairCtx);
-            mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, relationshipsToArchive, pressureChanges, narrativeGroupId);
-          }
-        }
-      }
-    }
-
-    // Handle per-member actions with variable resolution
     for (const member of members) {
-      // Resolve variables for this member (if any are defined)
-      const resolvedVars = config.variables
-        ? resolveVariablesForEntity(config.variables, clusterCtx, member)
-        : {};
-      if (resolvedVars === null) {
-        // Required variable not found - skip this member
-        skippedMembers++;
-        continue;
-      }
-
-      // Build context with resolved variables
-      const memberCtx = {
-        ...clusterCtx,
-        self: member,
-        entities: { ...(clusterCtx.entities ?? {}), self: member, ...resolvedVars },
-      };
-
-      // Generate narration if template provided, keyed by narrativeGroupId
-      if (config.narrationTemplate && narrativeGroupId) {
-        const narrationCtx = createSystemRuleContext({
-          self: member,
-          variables: resolvedVars as Record<string, HardState | undefined>,
-        });
-        const result = interpolate(config.narrationTemplate, narrationCtx);
-        if (result.complete) {
-          narrationsByGroup[narrativeGroupId] = result.text;
-        }
-      }
-
-      // Apply non-cluster-level actions
-      for (const action of config.actions) {
-        // Skip cluster-level actions (already handled above)
-        if (action.type === 'modify_pressure') continue;
-        if (action.type === 'create_relationship' && action.betweenMatching) continue;
-
-        const mutation: Mutation = action;
-        const result = prepareMutation(mutation, memberCtx);
-        mergeMutationResult(result, modifications, relationships, relationshipsAdjusted, relationshipsToArchive, pressureChanges, narrativeGroupId);
+      if (!applyActionsToMember(member, config, clusterCtx, out, narrativeGroupId, ctx)) {
+        out.skippedMembers++;
       }
     }
   }
 
-  // Add config-level pressure changes if any triggers fired
-  if (clusters.size > 0 && config.pressureChanges) {
-    for (const [pressureId, delta] of Object.entries(config.pressureChanges)) {
-      pressureChanges[pressureId] = (pressureChanges[pressureId] || 0) + delta;
-    }
+  if (clusters.size > 0) {
+    mergePressureChanges(config.pressureChanges, out.pressureChanges);
   }
 
-  return { modifications, relationships, relationshipsAdjusted, relationshipsToArchive, pressureChanges, skippedMembers, narrationsByGroup };
+  return {
+    modifications: out.modifications,
+    relationships: out.relationships,
+    relationshipsAdjusted: out.relationshipsAdjusted,
+    relationshipsToArchive: out.relationshipsToArchive,
+    pressureChanges: out.pressureChanges,
+    skippedMembers: out.skippedMembers,
+    narrationsByGroup: out.narrationsByGroup,
+  };
 }
 
 // =============================================================================
@@ -415,20 +452,28 @@ function applyActions(
 export function createThresholdTriggerSystem(
   config: ThresholdTriggerConfig
 ): SimulationSystem {
+  const emptyResult = (description: string): SystemResult => ({
+    relationshipsAdded: [],
+    relationshipsAdjusted: [],
+    relationshipsToArchive: [],
+    entitiesModified: [],
+    pressureChanges: {},
+    description,
+    details: {},
+    narrationsByGroup: {},
+  });
+
   return {
     id: config.id,
     name: config.name,
+    state: {},
+    initialize: () => {},
 
     apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
       // Throttle check
-      if (config.throttleChance !== undefined && config.throttleChance < 1.0) {
+      if (config.throttleChance < 1.0) {
         if (!rollProbability(config.throttleChance, modifier)) {
-          return {
-            relationshipsAdded: [],
-            entitiesModified: [],
-            pressureChanges: {},
-            description: `${config.name}: dormant`
-          };
+          return emptyResult(`${config.name}: dormant`);
         }
       }
 
@@ -438,7 +483,7 @@ export function createThresholdTriggerSystem(
 
       // Apply cooldown filter
       if (config.cooldownTag) {
-        entities = entities.filter(e => !hasTag(e.tags, config.cooldownTag!));
+        entities = entities.filter(e => !hasTag(e.tags, config.cooldownTag));
       }
 
       // Evaluate conditions on each entity
@@ -447,24 +492,14 @@ export function createThresholdTriggerSystem(
       );
 
       if (matchingEntities.length === 0) {
-        return {
-          relationshipsAdded: [],
-          entitiesModified: [],
-          pressureChanges: {},
-          description: `${config.name}: no matches`
-        };
+        return emptyResult(`${config.name}: no matches`);
       }
 
       // Cluster matching entities
       const clusters = clusterEntities(matchingEntities, config, graphView);
 
       if (clusters.size === 0) {
-        return {
-          relationshipsAdded: [],
-          entitiesModified: [],
-          pressureChanges: {},
-          description: `${config.name}: clusters too small`
-        };
+        return emptyResult(`${config.name}: clusters too small`);
       }
 
       // Apply actions
@@ -479,7 +514,8 @@ export function createThresholdTriggerSystem(
         entitiesModified: modifications as SystemResult['entitiesModified'],
         pressureChanges,
         description: `${config.name}: ${clusters.size} trigger(s), ${modifications.length} entities tagged${skippedInfo}`,
-        narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : undefined,
+        details: {},
+        narrationsByGroup: Object.keys(narrationsByGroup).length > 0 ? narrationsByGroup : {},
       };
     }
   };

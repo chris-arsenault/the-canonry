@@ -1,0 +1,6 @@
+/* PrePrintPanel — prefix: ppp */
+
+.ppp-empty-state {
+  padding: var(--space-lg);
+  color: var(--text-secondary);
+}

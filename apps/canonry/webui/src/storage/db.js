@@ -2,19 +2,19 @@
  * IndexedDB storage layer for Canonry projects.
  */
 
-const DB_NAME = 'canonry';
+const DB_NAME = "canonry";
 const DB_VERSION = 1;
-const STORE_NAME = 'projects';
+const STORE_NAME = "projects";
 
 const DEFAULT_UI_CONFIG = {
-  worldIcon: 'penguin',
-  prominenceLevels: ['forgotten', 'marginal', 'recognized', 'renowned', 'mythic'],
+  worldIcon: "penguin",
+  prominenceLevels: ["forgotten", "marginal", "recognized", "renowned", "mythic"],
   prominenceColors: {
-    forgotten: '#6b7280',
-    marginal: '#d97706',
-    recognized: '#059669',
-    renowned: '#2563eb',
-    mythic: '#7c3aed',
+    forgotten: "#6b7280",
+    marginal: "#d97706",
+    recognized: "#059669",
+    renowned: "#2563eb",
+    mythic: "#7c3aed",
   },
 };
 
@@ -40,9 +40,9 @@ export async function openDatabase() {
       const db = event.target.result;
 
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        store.createIndex('name', 'name', { unique: false });
-        store.createIndex('updatedAt', 'updatedAt', { unique: false });
+        const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
+        store.createIndex("name", "name", { unique: false });
+        store.createIndex("updatedAt", "updatedAt", { unique: false });
       }
     };
   });
@@ -62,7 +62,7 @@ export async function saveProject(project) {
   };
 
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
     const request = store.put(projectToSave);
 
@@ -78,7 +78,7 @@ export async function loadProject(id) {
   const db = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
+    const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
     const request = store.get(id);
 
@@ -94,7 +94,7 @@ export async function deleteProject(id) {
   const db = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
     const request = store.delete(id);
 
@@ -110,7 +110,7 @@ export async function listProjects() {
   const db = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
+    const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
     const request = store.getAll();
 
@@ -135,11 +135,11 @@ export async function listProjects() {
 /**
  * Create a new empty project with default structure.
  */
-export function createEmptyProject(name = 'New World') {
+export function createEmptyProject(name = "New World") {
   return {
     id: `project_${Date.now()}`,
     name,
-    version: '1.0',
+    version: "1.0",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     // Schema (Enumerist)

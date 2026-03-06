@@ -1,0 +1,701 @@
+/* ChroniclePanel.css — co-located styles for ChroniclePanel.jsx */
+
+/* ============================================================================
+ * ChronicleItemCard
+ * ============================================================================ */
+
+.chron-card {
+  padding: 12px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.15s;
+}
+
+.chron-card-default {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.chron-card-selected {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--accent-primary);
+}
+
+.chron-card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.chron-card-name {
+  font-weight: 500;
+  font-size: 14px;
+  flex: 1;
+}
+
+.chron-card-symbol {
+  margin-left: 5px;
+  font-size: 11px;
+  opacity: 0.85;
+  color: var(--chron-symbol-color);
+}
+
+.chron-card-status {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--chron-status-color);
+}
+
+.chron-card-subtitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.chron-card-subtitle-left {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chron-card-era-year {
+  color: #8b7355;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.chron-card-style-name {
+  font-style: italic;
+}
+
+.chron-card-counts {
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.chron-card-count-icon {
+  opacity: 0.6;
+}
+
+/* ============================================================================
+ * AssembledContentViewer
+ * ============================================================================ */
+
+.chron-assembled-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.chron-assembled-word-count {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.chron-assembled-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.chron-assembled-copy-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chron-assembled-content {
+  padding: 20px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.8;
+  max-height: 600px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+/* ============================================================================
+ * EraNarrativeItemCard
+ * ============================================================================ */
+
+.chron-era-card {
+  padding: 10px 12px;
+  border-left: 3px solid #d97706;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: background 0.1s;
+}
+
+.chron-era-card-default {
+  background: transparent;
+  border-top: 1px solid transparent;
+  border-right: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+}
+
+.chron-era-card-selected {
+  background: var(--bg-tertiary);
+  border-top: 1px solid #d97706;
+  border-right: 1px solid #d97706;
+  border-bottom: 1px solid #d97706;
+}
+
+.chron-era-card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.chron-era-card-name {
+  font-weight: 500;
+  font-size: 13px;
+  flex: 1;
+  line-height: 1.3;
+}
+
+.chron-era-card-symbol {
+  margin-left: 5px;
+  font-size: 10px;
+  opacity: 0.85;
+  color: var(--chron-symbol-color);
+}
+
+.chron-era-card-status {
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--chron-status-color);
+}
+
+.chron-era-card-subtitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.chron-era-card-tone {
+  font-style: italic;
+}
+
+.chron-era-card-counts {
+  display: flex;
+  gap: 8px;
+}
+
+/* ============================================================================
+ * Main ChroniclePanel: Root & Header
+ * ============================================================================ */
+
+.chron-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chron-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.chron-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chron-header-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.chron-header-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.chron-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chron-header-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.chron-header-new-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chron-header-new-icon {
+  font-size: 14px;
+}
+
+/* ============================================================================
+ * Filter Bar
+ * ============================================================================ */
+
+.chron-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.chron-filter-bar-group-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.chron-filter-bar-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chron-filter-bar-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.chron-filter-bar-select {
+  width: auto;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+
+.chron-filter-bar-select-sort {
+  min-width: 150px;
+}
+
+.chron-filter-bar-select-status {
+  min-width: 140px;
+}
+
+.chron-filter-bar-select-focus {
+  min-width: 120px;
+}
+
+/* Entity search */
+.chron-filter-bar-search {
+  position: relative;
+  min-width: 220px;
+  flex: 1;
+}
+
+.chron-filter-bar-search-input {
+  width: 100%;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
+.chron-filter-bar-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  z-index: 10;
+  max-height: 180px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+.chron-filter-bar-suggestion-item {
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.chron-filter-bar-suggestion-name {
+  color: var(--text-primary);
+}
+
+.chron-filter-bar-suggestion-kind {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* ============================================================================
+ * Bulk Actions
+ * ============================================================================ */
+
+.chron-bulk {
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.chron-bulk-toggle {
+  width: 100%;
+  padding: 6px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.chron-bulk-toggle-arrow {
+  font-size: 9px;
+  transition: transform 0.15s;
+}
+
+.chron-bulk-toggle-arrow-open {
+  transform: rotate(90deg);
+}
+
+.chron-bulk-grid {
+  padding: 4px 16px 12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.chron-bulk-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chron-bulk-section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.chron-bulk-skip-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-top: -2px;
+}
+
+.chron-bulk-skip-checkbox {
+  margin: 0;
+}
+
+.chron-bulk-status-text {
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.chron-bulk-status-text-complete { color: #10b981; }
+.chron-bulk-status-text-failed { color: #ef4444; }
+.chron-bulk-status-text-cancelled { color: #f59e0b; }
+
+/* ============================================================================
+ * Main Content Area (nav list + detail panel)
+ * ============================================================================ */
+
+.chron-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.chron-nav {
+  width: 300px;
+  border-right: 1px solid var(--border-color);
+  overflow: auto;
+  padding: 16px;
+}
+
+.chron-nav-empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+}
+
+.chron-nav-empty-title {
+  font-size: 14px;
+}
+
+.chron-nav-empty-hint {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.chron-nav-group {
+  margin-bottom: 12px;
+}
+
+.chron-nav-group-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chron-nav-group-count {
+  font-size: 10px;
+}
+
+.chron-nav-load-more {
+  padding: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.chron-detail {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+}
+
+/* ============================================================================
+ * Detail: Empty / Placeholder states
+ * ============================================================================ */
+
+.chron-detail-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+}
+
+/* ============================================================================
+ * Detail: Failed state
+ * ============================================================================ */
+
+.chron-detail-aborted {
+  padding: 24px;
+  background: rgb(239 68 68 / 8%);
+  border: 1px solid rgb(239 68 68 / 30%);
+  border-radius: 8px;
+}
+
+.chron-detail-aborted-title {
+  margin: 0 0 8px;
+  color: #ef4444;
+}
+
+.chron-detail-aborted-msg {
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+}
+
+.chron-detail-aborted-btn {
+  padding: 10px 18px;
+  font-size: 13px;
+}
+
+/* ============================================================================
+ * Detail: In-progress spinner
+ * ============================================================================ */
+
+.chron-detail-progress {
+  text-align: center;
+  padding: 48px;
+}
+
+.chron-detail-spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  border: 4px solid var(--bg-tertiary);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.chron-detail-progress-title {
+  margin: 0 0 8px;
+}
+
+.chron-detail-progress-hint {
+  color: var(--text-muted);
+}
+
+.chron-detail-cancel-btn {
+  margin-top: 16px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ============================================================================
+ * Modal: Restart
+ * ============================================================================ */
+
+.chron-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 60%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.chron-modal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgb(0 0 0 / 30%);
+}
+
+.chron-modal-wide {
+  max-width: 450px;
+}
+
+.chron-modal-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.chron-modal-body {
+  margin: 0 0 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.chron-modal-body-mb16 {
+  margin: 0 0 16px;
+}
+
+.chron-modal-list {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.chron-modal-hint {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.chron-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.chron-modal-cancel-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chron-modal-danger-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chron-modal-danger-btn-red {
+  background: #dc2626;
+}
+
+.chron-modal-danger-btn-amber {
+  background: #f59e0b;
+}
+
+/* ============================================================================
+ * Toast Notifications
+ * ============================================================================ */
+
+.chron-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chron-toast-success {
+  background: rgb(16 185 129 / 95%);
+}
+
+.chron-toast-error {
+  background: rgb(239 68 68 / 95%);
+}
+
+.chron-toast-close {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* ErrorMessage inside toasts inherits toast styling */
+.chron-toast .error-message {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}

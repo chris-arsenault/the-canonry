@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { federation } from '@module-federation/vite';
-import { copyFileSync, mkdirSync, readdirSync } from 'fs';
-import { join, resolve } from 'path';
+import { copyFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { federationOnWarn, sharedDeps } from '../../../config/federation.js';
 
 // Lore Weave is an MFE remote for The Canonry shell.
 // To use Lore Weave, run The Canonry (apps/canonry/webui).
@@ -16,17 +17,15 @@ export default defineConfig({
   plugins: [
     react(),
     federation({
+      dts: false,
       name: 'loreWeave',
       filename: 'remoteEntry.js',
       manifest: true,
       exposes: {
-        './LoreWeaveRemote': './src/LoreWeaveRemote.jsx',
-        './SimulationTraceVisx': './src/components/dashboard/trace/SimulationTraceVisx.jsx',
+        './LoreWeaveRemote': './src/LoreWeaveRemote.tsx',
+        './SimulationTraceVisx': './src/components/dashboard/trace/SimulationTraceVisx.tsx',
       },
-      shared: {
-        react: { singleton: true, requiredVersion: '^19.0.0' },
-        'react-dom': { singleton: true, requiredVersion: '^19.0.0' },
-      },
+      shared: sharedDeps(),
     }),
     {
       name: 'copy-lore-weave-schemas',
@@ -48,16 +47,7 @@ export default defineConfig({
     target: 'esnext',
     minify: false,
     rollupOptions: {
-      onwarn(warning, warn) {
-        const isModuleFederationEval =
-          warning.code === 'EVAL' &&
-          (warning.id?.includes('@module-federation/sdk') ||
-            warning.message.includes('@module-federation/sdk'));
-        if (isModuleFederationEval) {
-          return;
-        }
-        warn(warning);
-      },
+      onwarn: federationOnWarn,
     },
   },
   worker: {

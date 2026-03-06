@@ -58,7 +58,7 @@
  *   - For BULK operations (queue all) → filter on nav items, then loadEntities(ids)
  *   - For IMPERATIVE callbacks → store.getState().loadEntity(id) (async) or getEntity(id) (cache-only sync)
  */
-import type { PersistedEntity } from './illuminatorDb';
+import type { PersistedEntity } from "./illuminatorDb";
 
 export interface EntityNavItem {
   id: string;
@@ -68,22 +68,22 @@ export interface EntityNavItem {
   prominence: number;
   culture: string;
   status: string;
-  summary?: string;           // Short text (~100-200 chars), displayed inline in EntityRow
-  eraId?: string;             // Used by EntityCoveragePanel era analysis
+  summary?: string; // Short text (~100-200 chars), displayed inline in EntityRow
+  eraId?: string; // Used by EntityCoveragePanel era analysis
 
   // Enrichment status flags — lightweight projections of the heavy enrichment object.
   // These drive badge rendering and status determination in the list view.
-  hasDescription: boolean;    // !!(entity.summary && entity.description)
-  hasVisualThesis: boolean;   // !!entity.enrichment?.text?.visualThesis
-  imageId?: string;           // entity.enrichment?.image?.imageId — presence = has image
-  descriptionCost?: number;   // entity.enrichment?.text?.actualCost — for cost display
-  imageCost?: number;         // entity.enrichment?.image?.actualCost
-  aliases: string[];          // entity.enrichment?.text?.aliases — for search
-  slugAliases: string[];      // entity.enrichment?.slugAliases — for search
-  backrefCount: number;       // chronicleBackrefs.length — for chronicle image filter
-  unconfiguredBackrefCount: number;  // backrefs missing imageSource — for filter
-  isManual: boolean;          // id.startsWith('manual_') — controls Edit/Delete visibility
-  lockedSummary: boolean;     // prevents summary overwrite during enrichment
+  hasDescription: boolean; // !!(entity.summary && entity.description)
+  hasVisualThesis: boolean; // !!entity.enrichment?.text?.visualThesis
+  imageId?: string; // entity.enrichment?.image?.imageId — presence = has image
+  descriptionCost?: number; // entity.enrichment?.text?.actualCost — for cost display
+  imageCost?: number; // entity.enrichment?.image?.actualCost
+  aliases: string[]; // entity.enrichment?.text?.aliases — for search
+  slugAliases: string[]; // entity.enrichment?.slugAliases — for search
+  backrefCount: number; // chronicleBackrefs.length — for chronicle image filter
+  unconfiguredBackrefCount: number; // backrefs missing imageSource — for filter
+  isManual: boolean; // id.startsWith('manual_') — controls Edit/Delete visibility
+  lockedSummary: boolean; // prevents summary overwrite during enrichment
   hasHistorianNotes: boolean; // (entity.enrichment?.historianNotes?.length ?? 0) > 0
   hasHistorianEdition: boolean; // descriptionHistory contains a 'historian-edition' source entry
   historianEditionCount: number; // count of historian-edition entries in descriptionHistory
@@ -111,16 +111,16 @@ export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
     slugAliases: entity.enrichment?.slugAliases || [],
     backrefCount: backrefs.length,
     unconfiguredBackrefCount: backrefs.filter(
-      (b: { imageSource?: unknown }) => b.imageSource === undefined,
+      (b: { imageSource?: unknown }) => b.imageSource === undefined
     ).length,
-    isManual: entity.id.startsWith('manual_'),
+    isManual: entity.id.startsWith("manual_"),
     lockedSummary: !!entity.lockedSummary,
     hasHistorianNotes: (entity.enrichment?.historianNotes?.length ?? 0) > 0,
     hasHistorianEdition: (entity.enrichment?.descriptionHistory || []).some(
-      (h: { source?: string }) => h.source === 'historian-edition',
+      (h: { source?: string }) => h.source === "historian-edition"
     ),
     historianEditionCount: (entity.enrichment?.descriptionHistory || []).filter(
-      (h: { source?: string }) => h.source === 'historian-edition',
+      (h: { source?: string }) => h.source === "historian-edition"
     ).length,
     descriptionWordCount: entity.description ? entity.description.split(/\s+/).length : 0,
   };

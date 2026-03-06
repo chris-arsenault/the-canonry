@@ -29,7 +29,7 @@ export function getTagsByCategory(registry: TagMetadata[], category: TagMetadata
 export function getConsolidationSuggestions(registry: TagMetadata[]): Array<{ from: string; to: string }> {
   return registry
     .filter(t => t.consolidateInto)
-    .map(t => ({ from: t.tag, to: t.consolidateInto! }));
+    .map(t => ({ from: t.tag, to: t.consolidateInto }));
 }
 
 /**
@@ -41,8 +41,8 @@ export function tagsConflict(registry: TagMetadata[], tag1: string, tag2: string
 
   if (!metadata1 || !metadata2) return false;
 
-  return (metadata1.conflictingTags?.includes(tag2) ||
-          metadata2.conflictingTags?.includes(tag1)) ?? false;
+  return metadata1.conflictingTags.includes(tag2) ||
+         metadata2.conflictingTags.includes(tag1);
 }
 
 /**

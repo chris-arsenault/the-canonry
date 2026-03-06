@@ -2,19 +2,20 @@
  * ActionsEditor - Main component for editing action configurations
  */
 
-import React from 'react';
-import { useEditorState } from '../shared';
-import { buildStorageKey } from '../../utils/persistence';
-import { ActionListCard } from './cards';
-import { ActionModal } from './modals';
+import React from "react";
+import PropTypes from "prop-types";
+import { useEditorState } from "../shared";
+import { buildStorageKey } from "../../utils/persistence";
+import { ActionListCard } from "./cards";
+import { ActionModal } from "./modals";
 
 const createAction = () => ({
   id: `action_${Date.now()}`,
-  name: 'New Action',
-  description: '',
+  name: "New Action",
+  description: "",
   actor: { kinds: [] },
-  targeting: { kind: '' },
-  outcome: { descriptionTemplate: '' },
+  targeting: { kind: "" },
+  outcome: { descriptionTemplate: "" },
   probability: {
     baseSuccessChance: 0.5,
     baseWeight: 1.0,
@@ -22,8 +23,15 @@ const createAction = () => ({
   },
 });
 
-export default function ActionsEditor({ projectId, actions = [], onChange, schema, pressures = [], usageMap }) {
-  const selectionKey = buildStorageKey(projectId, 'actions:selected');
+export default function ActionsEditor({
+  projectId,
+  actions = [],
+  onChange,
+  schema,
+  pressures = [],
+  usageMap,
+}) {
+  const selectionKey = buildStorageKey(projectId, "actions:selected");
   const {
     selectedItem: selectedAction,
     handleItemChange: handleActionChange,
@@ -36,8 +44,8 @@ export default function ActionsEditor({ projectId, actions = [], onChange, schem
 
   // Collect unique pressures across all actions
   const uniquePressures = new Set();
-  actions.forEach(action => {
-    (action.probability?.pressureModifiers || []).forEach(mod => {
+  actions.forEach((action) => {
+    (action.probability?.pressureModifiers || []).forEach((mod) => {
       if (mod.pressure) uniquePressures.add(mod.pressure);
     });
   });
@@ -47,7 +55,8 @@ export default function ActionsEditor({ projectId, actions = [], onChange, schem
       <div className="actions-header">
         <h1 className="actions-title">Actions</h1>
         <p className="actions-subtitle">
-          Actions define what agents can do during the simulation via the universal catalyst system. Click an action to edit.
+          Actions define what agents can do during the simulation via the universal catalyst system.
+          Click an action to edit.
         </p>
         <div className="actions-stats">
           <div className="actions-stat">
@@ -72,10 +81,7 @@ export default function ActionsEditor({ projectId, actions = [], onChange, schem
           />
         ))}
 
-        <div
-          className="actions-add-card"
-          onClick={() => handleAddAction()}
-        >
+        <div className="actions-add-card" onClick={() => handleAddAction()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
           <span className="text-2xl">+</span>
           <span>Add Action</span>
         </div>
@@ -94,5 +100,14 @@ export default function ActionsEditor({ projectId, actions = [], onChange, schem
     </div>
   );
 }
+
+ActionsEditor.propTypes = {
+  projectId: PropTypes.string,
+  actions: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+  usageMap: PropTypes.object,
+};
 
 export { ActionsEditor };

@@ -74,16 +74,16 @@
   text-align: center;
 }
 
-.header-menu-section {
+.header-menu-group {
   padding: var(--spacing-md) 0;
   border-bottom: 1px solid var(--color-bg-blue-20);
 }
 
-.header-menu-section:last-child {
+.header-menu-group:last-child {
   border-bottom: none;
 }
 
-.header-menu-section-title {
+.header-menu-group-title {
   padding: var(--spacing-md) var(--spacing-xl) var(--spacing-xs);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);

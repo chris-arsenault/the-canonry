@@ -1,0 +1,141 @@
+/* RoleSlot styles */
+
+.rs-wrap {
+  padding: 8px 10px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.rs-wrap-accept {
+  background: rgba(99, 102, 241, 0.1);
+  border-left: 3px solid var(--accent-color);
+  cursor: pointer;
+}
+
+.rs-wrap-undermin {
+  background: var(--bg-secondary);
+  border-left: 3px solid var(--error);
+  cursor: default;
+}
+
+.rs-wrap-default {
+  background: var(--bg-secondary);
+  border-left: 3px solid transparent;
+  cursor: default;
+}
+
+.rs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rs-header-mb {
+  margin-bottom: 6px;
+}
+
+.rs-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rs-role-name {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.rs-role-name-error {
+  color: var(--error);
+}
+
+.rs-role-name-default {
+  color: var(--text-primary);
+}
+
+.rs-role-count {
+  font-size: 9px;
+}
+
+.rs-role-count-error {
+  color: var(--error);
+}
+
+.rs-role-count-default {
+  color: var(--text-muted);
+}
+
+.rs-add-label {
+  font-size: 9px;
+  color: var(--accent-color);
+  font-weight: 500;
+}
+
+.rs-assignments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border-color);
+}
+
+.rs-assignment-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.rs-entity-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.rs-entity-kind {
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 4px;
+  font-size: 9px;
+}
+
+.rs-toggle-btn {
+  padding: 2px 6px;
+  border: 1px solid;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.rs-toggle-btn-primary {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.rs-toggle-btn-support {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+.rs-remove-btn {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

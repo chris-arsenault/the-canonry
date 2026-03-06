@@ -1,4 +1,4 @@
-import { SimulationSystem, SystemResult, Era } from '../engine/types';
+import { SimulationSystem, SystemResult, Era , entityCriteria } from '../engine/types';
 import { HardState } from '../core/worldTypes';
 import {
   FRAMEWORK_ENTITY_KINDS,
@@ -36,11 +36,10 @@ export function createEraEntity(
   configEra: Era,
   tick: number,
   status: string,
-  previousEra?: HardState,
-  id?: string
-): { entity: HardState; relationship?: any } {
+  id: string
+): { entity: HardState } {
   // Use config ID as entity ID - this must match the era field in history events
-  const resolvedId = id ?? configEra.id;
+  const resolvedId = id;
   const eraEntity: HardState = {
     id: resolvedId,
     kind: FRAMEWORK_ENTITY_KINDS.ERA,
@@ -48,6 +47,7 @@ export function createEraEntity(
     name: configEra.name,
     summary: configEra.summary,       // User-defined, locked
     lockedSummary: true,              // Prevent enrichment from overwriting
+    narrativeHint: '',
     description: '',                  // LLM will generate via enrichment
     status: status,
     prominence: 5.0,  // Eras are always mythic (world-defining)
@@ -61,10 +61,13 @@ export function createEraEntity(
     createdAt: tick,
     updatedAt: tick,
     coordinates: { x: 50, y: 50, z: 50 },  // Eras are world-level, centered in their map
-    temporal: status === FRAMEWORK_STATUS.CURRENT ? {
-      startTick: tick,
-      endTick: null
-    } : undefined
+    temporal: status === FRAMEWORK_STATUS.CURRENT
+      ? { startTick: tick, end: { occurred: false, tick: 0 } }
+      : { startTick: tick, end: { occurred: false, tick: 0 } },
+    catalyst: { canAct: false },
+    regionId: '',
+    allRegionIds: [],
+    createdBy: { tick, source: 'framework', sourceId: 'era_spawner', success: true, narration: '' },
   };
 
   return { entity: eraEntity };
@@ -78,7 +81,7 @@ export function applyEntryEffects(
   configEra: Era
 ): Record<string, number> {
   const entryEffects = configEra.entryEffects;
-  const mutations = entryEffects?.mutations || [];
+  const mutations = entryEffects.mutations;
   if (mutations.length === 0) return {};
 
   const ctx = createSystemContext(graphView);
@@ -98,33 +101,36 @@ export function applyEntryEffects(
  * Create an Era Spawner system with the given configuration.
  */
 export function createEraSpawnerSystem(config: EraSpawnerConfig): SimulationSystem {
+  const emptyResult = (description: string): SystemResult => ({
+    relationshipsAdded: [],
+    relationshipsAdjusted: [],
+    relationshipsToArchive: [],
+    entitiesModified: [],
+    pressureChanges: {},
+    description,
+    details: {},
+    narrationsByGroup: {},
+  });
+
   return {
     id: config.id || 'era_spawner',
     name: config.name || 'Era Initialization',
+    state: {},
+    initialize: () => {},
 
-    apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
+    apply: (graphView: WorldRuntime, _modifier: number = 1.0): SystemResult => {
       // Check if any era entities already exist
-      const existingEras = graphView.findEntities({ kind: FRAMEWORK_ENTITY_KINDS.ERA });
+      const existingEras = graphView.findEntities(entityCriteria({ kind: FRAMEWORK_ENTITY_KINDS.ERA }));
 
       if (existingEras.length > 0) {
         // Eras already exist - skip
-        return {
-          relationshipsAdded: [],
-          entitiesModified: [],
-          pressureChanges: {},
-          description: `${existingEras.length} era entities already exist`
-        };
+        return emptyResult(`${existingEras.length} era entities already exist`);
       }
 
       // Get eras from config
       const configEras = graphView.config.eras;
-      if (!configEras || configEras.length === 0) {
-        return {
-          relationshipsAdded: [],
-          entitiesModified: [],
-          pressureChanges: {},
-          description: 'No eras defined in config'
-        };
+      if (configEras.length === 0) {
+        return emptyResult('No eras defined in config');
       }
 
       // LAZY SPAWNING: Only create the FIRST era at init
@@ -133,7 +139,6 @@ export function createEraSpawnerSystem(config: EraSpawnerConfig): SimulationSyst
         firstEraConfig,
         graphView.tick,
         FRAMEWORK_STATUS.CURRENT,
-        undefined,
         firstEraConfig.id  // Use config ID directly
       );
 
@@ -146,13 +151,17 @@ export function createEraSpawnerSystem(config: EraSpawnerConfig): SimulationSyst
       // Apply entry effects for the first era
       const pressureChanges = applyEntryEffects(graphView, firstEraConfig);
 
-      graphView.log('info', `[EraSpawner] Started first era: ${firstEraConfig.name}`);
+      graphView.log('info', `[EraSpawner] Started first era: ${firstEraConfig.name}`, {});
 
       return {
         relationshipsAdded: [],
+        relationshipsAdjusted: [],
+        relationshipsToArchive: [],
         entitiesModified: [],
         pressureChanges,
-        description: `Started first era: ${firstEraConfig.name}`
+        description: `Started first era: ${firstEraConfig.name}`,
+        details: {},
+        narrationsByGroup: {},
       };
     }
   };

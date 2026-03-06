@@ -1,0 +1,6 @@
+/* TimelineBrush styles */
+@import "./visualization-base.css";
+
+.tb-svg {
+  cursor: var(--tb-cursor, crosshair);
+}

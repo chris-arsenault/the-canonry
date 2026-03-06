@@ -13,7 +13,6 @@ export interface MarkovModel {
   transitions: Record<string, Record<string, number>>; // state -> (char -> probability)
 }
 
-const START = "^";
 const END = "$";
 
 /**
@@ -22,10 +21,10 @@ const END = "$";
 export function generateFromMarkov(
   model: MarkovModel,
   options: {
-    minLength?: number;
-    maxLength?: number;
-    seed?: string;
-  } = {}
+    minLength: number;
+    maxLength: number;
+    seed: string;
+  } = { minLength: 3, maxLength: 12, seed: "" }
 ): string {
   const { minLength = 3, maxLength = 12, seed } = options;
   const rng = seed ? seedrandom(seed) : Math.random;
@@ -60,10 +59,10 @@ export function generateNamesFromMarkov(
   model: MarkovModel,
   count: number,
   options: {
-    minLength?: number;
-    maxLength?: number;
-    seed?: string;
-  } = {}
+    minLength: number;
+    maxLength: number;
+    seed: string;
+  } = { minLength: 3, maxLength: 12, seed: "" }
 ): string[] {
   const names = new Set<string>();
   const baseSeed = options.seed || String(Date.now());

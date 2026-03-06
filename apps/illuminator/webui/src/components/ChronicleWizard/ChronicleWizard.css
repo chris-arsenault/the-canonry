@@ -1,0 +1,61 @@
+/* ChronicleWizard styles */
+
+.cw-modal {
+  max-width: 800px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.cw-step-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+.cw-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  background: var(--cw-step-bg);
+  color: var(--cw-step-color);
+  font-weight: var(--cw-step-weight);
+  cursor: var(--cw-step-cursor);
+  opacity: var(--cw-step-opacity);
+}
+
+.cw-step-number {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cw-num-bg);
+  font-size: 10px;
+}
+
+.cw-body {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+}
+
+.cw-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+}
+
+.cw-footer-right {
+  display: flex;
+  gap: 8px;
+}

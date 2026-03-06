@@ -14,11 +14,11 @@ export interface EventFilterOptions {
   /** Entity ID to filter events for */
   entityId: string;
   /** Minimum significance threshold (0, 0.25, 0.50, 0.75) */
-  minSignificance?: number;
-  /** Whether to exclude prominence-only events (default: true) */
-  excludeProminenceOnly?: boolean;
-  /** Maximum number of events to return */
-  limit?: number;
+  minSignificance: number;
+  /** Whether to exclude prominence-only events */
+  excludeProminenceOnly: boolean;
+  /** Maximum number of events to return (0 = unlimited) */
+  limit: number;
 }
 
 /**
@@ -33,12 +33,15 @@ export function isProminenceOnlyEvent(
   event: NarrativeEvent,
   entityId: string
 ): boolean {
-  const participant = event.participantEffects?.find(p => p.entity.id === entityId);
+  const participant = event.participantEffects.find(p => p.entity.id === entityId);
   if (!participant || participant.effects.length === 0) return false;
 
   // Check if ALL effects are prominence field changes
   return participant.effects.every(
-    effect => effect.type === 'field_changed' && effect.field === 'prominence'
+    (effect): boolean => {
+      if (effect.type !== 'field_changed') return false;
+      return effect.field === 'prominence';
+    }
   );
 }
 
@@ -49,7 +52,7 @@ export function getEntityEffects(
   event: NarrativeEvent,
   entityId: string
 ): EntityEffect[] {
-  const participant = event.participantEffects?.find(p => p.entity.id === entityId);
+  const participant = event.participantEffects.find(p => p.entity.id === entityId);
   return participant?.effects ?? [];
 }
 
@@ -69,15 +72,15 @@ export function getEntityEvents(
 ): NarrativeEvent[] {
   const {
     entityId,
-    minSignificance = 0,
-    excludeProminenceOnly = true,
+    minSignificance,
+    excludeProminenceOnly,
     limit,
   } = options;
 
   const filtered = narrativeHistory
     .filter(event => {
       // Entity must appear in participantEffects
-      if (!event.participantEffects?.some(p => p.entity.id === entityId)) {
+      if (!event.participantEffects.some(p => p.entity.id === entityId)) {
         return false;
       }
 
@@ -95,7 +98,7 @@ export function getEntityEvents(
     })
     .sort((a, b) => a.tick - b.tick); // Chronological order
 
-  return limit ? filtered.slice(0, limit) : filtered;
+  return limit > 0 ? filtered.slice(0, limit) : filtered;
 }
 
 /**

@@ -23,7 +23,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project   = "penguin-tales"
+      Project   = "the-canonry"
       ManagedBy = "terraform"
     }
   }

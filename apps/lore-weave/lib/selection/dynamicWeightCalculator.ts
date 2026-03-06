@@ -33,7 +33,7 @@ export class DynamicWeightCalculator {
     template: GrowthTemplate,
     baseWeight: number,
     metrics: PopulationMetrics,
-    creationInfo?: TemplateCreationInfo
+    creationInfo: TemplateCreationInfo
   ): WeightAdjustment {
     if (baseWeight === 0) {
       return {
@@ -46,7 +46,7 @@ export class DynamicWeightCalculator {
     }
 
     // Check if template produces any tracked entities
-    if (!creationInfo || creationInfo.entityKinds.length === 0) {
+    if (creationInfo.entityKinds.length === 0) {
       return {
         templateId: template.id,
         baseWeight,
@@ -108,14 +108,14 @@ export class DynamicWeightCalculator {
     templates: GrowthTemplate[],
     baseWeights: Map<string, number>,
     metrics: PopulationMetrics,
-    creationInfoMap?: Map<string, TemplateCreationInfo>
+    creationInfoMap: Map<string, TemplateCreationInfo>
   ): Map<string, WeightAdjustment> {
     const adjustments = new Map<string, WeightAdjustment>();
 
     templates.forEach(template => {
       const baseWeight = baseWeights.get(template.id) || 0;
-      const creationInfo = creationInfoMap?.get(template.id);
-      const adjustment = this.calculateWeight(template, baseWeight, metrics, creationInfo);
+      const creationInfo = creationInfoMap.get(template.id);
+      const adjustment = this.calculateWeight(template, baseWeight, metrics, creationInfo || { entityKinds: [] });
       adjustments.set(template.id, adjustment);
     });
 
@@ -142,17 +142,17 @@ export class DynamicWeightCalculator {
    * Configure adjustment parameters
    */
   configure(options: {
-    deviationThreshold?: number;
-    maxSuppressionFactor?: number;
-    maxBoostFactor?: number;
+    deviationThreshold: number;
+    maxSuppressionFactor: number;
+    maxBoostFactor: number;
   }): void {
-    if (options.deviationThreshold !== undefined) {
+    {
       this.deviationThreshold = options.deviationThreshold;
     }
-    if (options.maxSuppressionFactor !== undefined) {
+    {
       this.maxSuppressionFactor = options.maxSuppressionFactor;
     }
-    if (options.maxBoostFactor !== undefined) {
+    {
       this.maxBoostFactor = options.maxBoostFactor;
     }
   }

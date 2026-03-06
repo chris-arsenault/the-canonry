@@ -1,0 +1,20 @@
+/* ErrorMessage - inline error display */
+
+.error-message {
+  background: rgb(239 68 68 / 15%);
+  border: 1px solid rgb(239 68 68 / 30%);
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.error-message-title {
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--spacing-xs);
+}
+
+.error-message-text {
+  opacity: 0.9;
+}

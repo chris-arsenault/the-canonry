@@ -1,0 +1,6 @@
+packages:
+  - "apps/*"
+  - "apps/*/webui"
+  - "packages/*"
+
+shamefullyHoist: true

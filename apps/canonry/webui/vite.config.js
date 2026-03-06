@@ -1,14 +1,22 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { federation } from '@module-federation/vite';
+import { federationOnWarn, sharedDeps } from '../../../config/federation.js';
 
 export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  resolve: {
+    alias: {
+      // AWS SDK uses Node stream.Writable — provide browser-compatible polyfill
+      stream: 'readable-stream',
+    },
+  },
   plugins: [
     react(),
     federation({
+      dts: false,
       name: 'canonry',
       remotes: {
         // Remotes are loaded via path prefixes through the dev proxy (localhost:3000)
@@ -56,28 +64,14 @@ export default defineConfig({
           entryGlobalName: 'chronicler',
         },
       },
-      shared: {
-        react: { singleton: true, requiredVersion: '^19.0.0' },
-        'react-dom': { singleton: true, requiredVersion: '^19.0.0' },
-        zustand: { singleton: true },
-        '@penguin-tales/image-store': { singleton: true },
-      },
+      shared: sharedDeps('zustand', '@the-canonry/image-store'),
     }),
   ],
   build: {
     target: 'esnext',
     minify: false,
     rollupOptions: {
-      onwarn(warning, warn) {
-        const isModuleFederationEval =
-          warning.code === 'EVAL' &&
-          (warning.id?.includes('@module-federation/sdk') ||
-            warning.message.includes('@module-federation/sdk'));
-        if (isModuleFederationEval) {
-          return;
-        }
-        warn(warning);
-      },
+      onwarn: federationOnWarn,
     },
   },
   server: {

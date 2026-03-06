@@ -1,0 +1,147 @@
+/* CreateEntityModal styles */
+
+.cem-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.cem-card {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: 500px;
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.cem-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.cem-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cem-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.cem-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.cem-edit-subtitle {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cem-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.cem-two-column-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cem-full-width {
+  width: 100%;
+}
+
+.cem-full-width-box {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cem-field-group {
+  margin-bottom: 12px;
+}
+
+.cem-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.cem-empty-body {
+  padding: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.cem-tags-container {
+  margin-bottom: 8px;
+}
+
+.cem-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 12px;
+}
+
+.cem-tag-key {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.cem-tag-value {
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.cem-remove-tag-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+.cem-tag-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.cem-tag-input {
+  flex: 1;
+  box-sizing: border-box;
+  font-size: 12px;
+}
+
+.cem-add-tag-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  white-space: nowrap;
+}

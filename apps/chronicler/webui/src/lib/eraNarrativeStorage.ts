@@ -5,9 +5,10 @@
  * Chronicler reads completed era narratives directly from here.
  */
 
-import { openIlluminatorDb } from './illuminatorDbReader';
+import { openIlluminatorDb } from "@the-canonry/world-store";
+import type { Optional } from "@the-canonry/shared-components";
 
-const ERA_NARRATIVE_STORE_NAME = 'eraNarratives';
+const ERA_NARRATIVE_STORE_NAME = "eraNarratives";
 
 /**
  * Viewer-facing era narrative record.
@@ -27,36 +28,36 @@ export interface EraNarrativeViewRecord {
   wordCount: number;
 
   /** Analytical thesis — one-sentence summary of the era's transformation */
-  thesis?: string;
+  thesis: Optional<string>;
 
   /** Cover image metadata */
-  coverImage?: {
+  coverImage: Optional<{
     sceneDescription: string;
     status: string;
-    generatedImageId?: string;
-  };
+    generatedImageId: Optional<string>;
+  }>;
 
   /** Inline image refs (chronicle refs + generated scenes) */
-  imageRefs?: {
+  imageRefs: Optional<{
     refs: Array<{
       refId: string;
       type: string;
       anchorText: string;
-      anchorIndex?: number;
+      anchorIndex: Optional<number>;
       size: string;
-      justification?: 'left' | 'right';
-      caption?: string;
+      justification: Optional<"left" | "right">;
+      caption: Optional<string>;
       // chronicle_ref fields
-      imageId?: string;
-      chronicleId?: string;
+      imageId: Optional<string>;
+      chronicleId: Optional<string>;
       // prompt_request fields
-      sceneDescription?: string;
-      status?: string;
-      generatedImageId?: string;
+      sceneDescription: Optional<string>;
+      status: Optional<string>;
+      generatedImageId: Optional<string>;
     }>;
     generatedAt: number;
     model: string;
-  };
+  }>;
 
   /** Source chronicle IDs and titles */
   sourceChronicles: Array<{ chronicleId: string; chronicleTitle: string }>;
@@ -65,34 +66,61 @@ export interface EraNarrativeViewRecord {
   updatedAt: number;
 }
 
+interface RawNarrativeContent {
+  editedContent: Optional<string>;
+  content: Optional<string>;
+  editedWordCount: Optional<number>;
+  wordCount: Optional<number>;
+}
+
+// eslint-disable-next-line complexity -- projects untyped IndexedDB records with legacy field layouts; each typeof/optional check handles a different storage format version
+function resolveContent(raw: Record<string, unknown>): { content: string; wordCount: number } | null {
+  const narrative = raw.narrative as RawNarrativeContent | undefined;
+  const content =
+    narrative?.editedContent ||
+    narrative?.content ||
+    (typeof raw.content === "string" ? raw.content : "");
+  if (!content) return null;
+  const wordCount =
+    narrative?.editedWordCount ||
+    narrative?.wordCount ||
+    (typeof raw.wordCount === "number" ? raw.wordCount : 0);
+  return { content, wordCount };
+}
+
+/** Extract source chronicles from prepBriefs or sourceChronicles fields */
+function resolveSourceChronicles(raw: Record<string, unknown>): Array<{ chronicleId: string; chronicleTitle: string }> {
+  if (Array.isArray(raw.prepBriefs)) {
+    return (raw.prepBriefs as Array<{ chronicleId: string; chronicleTitle: string }>).map((b) => ({
+      chronicleId: b.chronicleId,
+      chronicleTitle: b.chronicleTitle,
+    }));
+  }
+  if (Array.isArray(raw.sourceChronicles)) {
+    return raw.sourceChronicles as Array<{ chronicleId: string; chronicleTitle: string }>;
+  }
+  return [];
+}
+
+/** Resolve thesis from threadSynthesis or top-level thesis field */
+function resolveThesis(raw: Record<string, unknown>): string | undefined {
+  const threadSynthesis = raw.threadSynthesis as { thesis: Optional<string> } | undefined;
+  return threadSynthesis?.thesis || (typeof raw.thesis === "string" ? raw.thesis : undefined);
+}
+
 /**
  * Project a raw IndexedDB era narrative record into a view record.
  * Picks the best content (edited > draft) and strips generation metadata.
  */
+// eslint-disable-next-line complexity -- maps untyped IndexedDB fields to a typed view record; each conditional handles an independent field projection
 function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewRecord | null {
-  if (!raw || raw.status !== 'complete') return null;
+  if (!raw || raw.status !== "complete") return null;
 
-  const narrative = raw.narrative as {
-    editedContent?: string;
-    content?: string;
-    editedWordCount?: number;
-    wordCount?: number;
-  } | undefined;
+  const resolved = resolveContent(raw);
+  if (!resolved) return null;
 
-  // Support both full records (content under narrative) and viewer-projected records (content at top level)
-  const content = narrative?.editedContent || narrative?.content || (typeof raw.content === 'string' ? raw.content : '');
-  if (!content) return null;
-
-  const threadSynthesis = raw.threadSynthesis as { thesis?: string } | undefined;
-  const prepBriefs = Array.isArray(raw.prepBriefs)
-    ? (raw.prepBriefs as Array<{ chronicleId: string; chronicleTitle: string }>)
-        .map(b => ({ chronicleId: b.chronicleId, chronicleTitle: b.chronicleTitle }))
-    : Array.isArray(raw.sourceChronicles)
-      ? (raw.sourceChronicles as Array<{ chronicleId: string; chronicleTitle: string }>)
-      : [];
-
-  const coverImage = raw.coverImage as EraNarrativeViewRecord['coverImage'] | undefined;
-  const imageRefs = raw.imageRefs as EraNarrativeViewRecord['imageRefs'] | undefined;
+  const coverImage = raw.coverImage as EraNarrativeViewRecord["coverImage"] | undefined;
+  const imageRefs = raw.imageRefs as EraNarrativeViewRecord["imageRefs"] | undefined;
 
   return {
     narrativeId: raw.narrativeId as string,
@@ -102,14 +130,13 @@ function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewReco
     eraName: raw.eraName as string,
     status: raw.status as string,
     tone: raw.tone as string,
-    content,
-    wordCount: narrative?.editedWordCount || narrative?.wordCount || (typeof raw.wordCount === 'number' ? raw.wordCount : 0),
-    thesis: threadSynthesis?.thesis || (typeof raw.thesis === 'string' ? raw.thesis : undefined),
-    coverImage: coverImage?.status === 'complete' && coverImage?.generatedImageId
-      ? coverImage
-      : undefined,
+    content: resolved.content,
+    wordCount: resolved.wordCount,
+    thesis: resolveThesis(raw),
+    coverImage:
+      coverImage?.status === "complete" && coverImage?.generatedImageId ? coverImage : undefined,
     imageRefs: imageRefs?.refs?.length ? imageRefs : undefined,
-    sourceChronicles: prepBriefs,
+    sourceChronicles: resolveSourceChronicles(raw),
     createdAt: raw.createdAt as number,
     updatedAt: raw.updatedAt as number,
   };
@@ -120,7 +147,7 @@ function projectToViewRecord(raw: Record<string, unknown>): EraNarrativeViewReco
  * Returns at most one narrative per era (the most recently updated).
  */
 export async function getCompletedEraNarrativesForSimulation(
-  simulationRunId: string,
+  simulationRunId: string
 ): Promise<EraNarrativeViewRecord[]> {
   if (!simulationRunId) return [];
 
@@ -133,9 +160,9 @@ export async function getCompletedEraNarrativesForSimulation(
       }
 
       return await new Promise((resolve, reject) => {
-        const tx = db.transaction(ERA_NARRATIVE_STORE_NAME, 'readonly');
+        const tx = db.transaction(ERA_NARRATIVE_STORE_NAME, "readonly");
         const store = tx.objectStore(ERA_NARRATIVE_STORE_NAME);
-        const index = store.index('simulationRunId');
+        const index = store.index("simulationRunId");
         const request = index.getAll(IDBKeyRange.only(simulationRunId));
 
         request.onsuccess = () => {
@@ -156,14 +183,13 @@ export async function getCompletedEraNarrativesForSimulation(
           resolve(Array.from(byEra.values()));
         };
 
-        request.onerror = () =>
-          reject(request.error || new Error('Failed to get era narratives'));
+        request.onerror = () => reject(request.error || new Error("Failed to get era narratives"));
       });
     } finally {
       db.close();
     }
   } catch (err) {
-    console.error('[eraNarrativeStorage] Failed to load era narratives:', err);
+    console.error("[eraNarrativeStorage] Failed to load era narratives:", err);
     return [];
   }
 }

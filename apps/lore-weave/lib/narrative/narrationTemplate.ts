@@ -13,7 +13,9 @@
  * - {list:entityRef.field} - Comma-separated list of entity field values
  */
 
-import type { HardState } from '../core/worldTypes';
+import type { HardState, VariableValue } from '../core/worldTypes';
+
+type ScalarValue = string | number | boolean;
 
 /**
  * Context for template interpolation.
@@ -21,11 +23,11 @@ import type { HardState } from '../core/worldTypes';
  */
 export interface NarrationContext {
   /** Named entity bindings (actor, target, $variable, etc.) */
-  entities: Record<string, HardState | HardState[] | undefined>;
+  entities: Record<string, VariableValue>;
   /** Counts by entity kind */
-  counts?: Record<string, number>;
+  counts: Record<string, number>;
   /** Additional string values */
-  values?: Record<string, string | number | boolean>;
+  values: Record<string, ScalarValue>;
 }
 
 /**
@@ -44,23 +46,28 @@ export interface NarrationResult {
  * Token types recognized by the parser.
  */
 type TokenType =
-  | 'entity_field'      // {actor.name}
-  | 'variable_field'    // {$myVar.name}
-  | 'count'             // {count:faction}
-  | 'list'              // {list:members} or {list:members.name}
-  | 'value';            // {someValue}
+  | 'entity_field'      // e.g. actor.name
+  | 'variable_field'    // e.g. $myVar.name
+  | 'count'             // e.g. count:faction
+  | 'list'              // e.g. list:members or list:members.name
+  | 'value';            // e.g. someValue
 
 interface ParsedToken {
   type: TokenType;
   raw: string;
-  entityRef?: string;
-  field?: string;
-  fallback?: string;
-  countKind?: string;
-  listRef?: string;
-  listField?: string;
-  valueKey?: string;
+  entityRef: string;
+  field: string;
+  fallback: string;
+  countKind: string;
+  listRef: string;
+  listField: string;
+  valueKey: string;
 }
+
+const EMPTY_TOKEN: ParsedToken = {
+  type: 'value', raw: '', entityRef: '', field: '', fallback: '',
+  countKind: '', listRef: '', listField: '', valueKey: '',
+};
 
 /**
  * Parse a template token like {actor.name|unknown} into its components.
@@ -72,11 +79,12 @@ function parseToken(token: string): ParsedToken {
   // Check for fallback
   const [mainPart, fallback] = inner.split('|');
   const trimmedMain = mainPart.trim();
-  const trimmedFallback = fallback?.trim();
+  const trimmedFallback = fallback.trim();
 
   // Check for count: prefix
   if (trimmedMain.startsWith('count:')) {
     return {
+      ...EMPTY_TOKEN,
       type: 'count',
       raw: token,
       countKind: trimmedMain.slice(6),
@@ -90,6 +98,7 @@ function parseToken(token: string): ParsedToken {
     const dotIndex = listPart.indexOf('.');
     if (dotIndex !== -1) {
       return {
+        ...EMPTY_TOKEN,
         type: 'list',
         raw: token,
         listRef: listPart.slice(0, dotIndex),
@@ -98,6 +107,7 @@ function parseToken(token: string): ParsedToken {
       };
     }
     return {
+      ...EMPTY_TOKEN,
       type: 'list',
       raw: token,
       listRef: listPart,
@@ -111,6 +121,7 @@ function parseToken(token: string): ParsedToken {
     const dotIndex = trimmedMain.indexOf('.');
     if (dotIndex !== -1) {
       return {
+        ...EMPTY_TOKEN,
         type: 'variable_field',
         raw: token,
         entityRef: trimmedMain.slice(0, dotIndex),
@@ -120,6 +131,7 @@ function parseToken(token: string): ParsedToken {
     }
     // Variable without field - default to name
     return {
+      ...EMPTY_TOKEN,
       type: 'variable_field',
       raw: token,
       entityRef: trimmedMain,
@@ -132,6 +144,7 @@ function parseToken(token: string): ParsedToken {
   const dotIndex = trimmedMain.indexOf('.');
   if (dotIndex !== -1) {
     return {
+      ...EMPTY_TOKEN,
       type: 'entity_field',
       raw: token,
       entityRef: trimmedMain.slice(0, dotIndex),
@@ -142,6 +155,7 @@ function parseToken(token: string): ParsedToken {
 
   // Simple value reference
   return {
+    ...EMPTY_TOKEN,
     type: 'value',
     raw: token,
     valueKey: trimmedMain,
@@ -152,47 +166,77 @@ function parseToken(token: string): ParsedToken {
 /**
  * Get a field value from an entity.
  */
+const ENTITY_STRING_FIELDS = new Set(['name', 'id', 'kind', 'subtype', 'culture', 'status', 'description']);
+
 function getEntityField(entity: HardState, field: string): string | undefined {
-  switch (field) {
-    case 'name':
-      return entity.name;
-    case 'id':
-      return entity.id;
-    case 'kind':
-      return entity.kind;
-    case 'subtype':
-      return entity.subtype;
-    case 'culture':
-      return entity.culture;
-    case 'status':
-      return entity.status;
-    case 'description':
-      return entity.description;
-    default:
-      // Check tags
-      if (entity.tags && field in entity.tags) {
-        const tagValue = entity.tags[field];
-        return typeof tagValue === 'string' ? tagValue : String(tagValue);
-      }
-      // Try direct property access for extensibility
-      const value = (entity as unknown as Record<string, unknown>)[field];
-      if (value !== undefined && value !== null) {
-        return String(value);
-      }
-      return undefined;
+  // Known string fields on HardState
+  if (ENTITY_STRING_FIELDS.has(field)) {
+    return (entity as unknown as Record<string, string>)[field];
   }
+  // Check tags
+  if (field in entity.tags) {
+    const tagValue = entity.tags[field];
+    return typeof tagValue === 'string' ? tagValue : String(tagValue);
+  }
+  // Try direct property access for extensibility
+  const value = (entity as unknown as Record<string, unknown>)[field];
+  if (value !== undefined && value !== null) {
+    return typeof value === 'object' ? JSON.stringify(value) : String(value as ScalarValue);
+  }
+  return undefined;
 }
 
 /**
  * Resolve an entity reference from context.
  */
+// eslint-disable-next-line sonarjs/function-return-type -- VariableValue is an intentional union
 function resolveEntityRef(
   ref: string,
   context: NarrationContext
-): HardState | HardState[] | undefined {
+): VariableValue {
   // Handle $ prefix for variables
-  const key = ref.startsWith('$') ? ref : ref;
-  return context.entities[key];
+  return context.entities[ref];
+}
+
+function resolveEntityOrVariableToken(
+  token: ParsedToken,
+  context: NarrationContext
+): string | undefined {
+  const key = token.entityRef;
+
+  const entityOrArray = resolveEntityRef(key, context);
+  if (!entityOrArray) {
+    return token.fallback;
+  }
+  const entity: HardState | undefined = Array.isArray(entityOrArray) ? entityOrArray[0] : entityOrArray;
+  if (!entity) return token.fallback;
+
+  const value = getEntityField(entity, token.field);
+  return value ?? token.fallback;
+}
+
+function resolveListToken(
+  token: ParsedToken,
+  context: NarrationContext
+): string | undefined {
+  const entityOrArray = resolveEntityRef(token.listRef, context);
+  if (!entityOrArray) return token.fallback;
+
+  const entities = Array.isArray(entityOrArray) ? entityOrArray : [entityOrArray];
+  if (entities.length === 0) return token.fallback;
+
+  const values = entities
+    .map((e) => getEntityField(e, token.listField))
+    .filter((v): v is string => v !== undefined);
+  if (values.length === 0) return token.fallback;
+
+  return formatNaturalList(values);
+}
+
+function formatNaturalList(values: string[]): string {
+  if (values.length === 1) return values[0];
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(', ')}, and ${values[values.length - 1]}`;
 }
 
 /**
@@ -204,67 +248,24 @@ function resolveToken(
 ): string | undefined {
   switch (token.type) {
     case 'entity_field':
-    case 'variable_field': {
-      // Check if the key exists in context (even if undefined)
-      const key = token.entityRef!.startsWith('$') ? token.entityRef! : token.entityRef!;
-      const keyExists = key in context.entities;
-
-      const entityOrArray = resolveEntityRef(token.entityRef!, context);
-      if (!entityOrArray) {
-        // If key exists but value is undefined, use fallback or empty string
-        // (don't leave the literal token in the output)
-        if (keyExists) {
-          return token.fallback ?? '';
-        }
-        return token.fallback;
-      }
-      const entity = Array.isArray(entityOrArray) ? entityOrArray[0] : entityOrArray;
-      if (!entity) {
-        return token.fallback ?? '';
-      }
-      const value = getEntityField(entity, token.field!);
-      return value ?? token.fallback;
-    }
+    case 'variable_field':
+      return resolveEntityOrVariableToken(token, context);
 
     case 'count': {
-      const count = context.counts?.[token.countKind!];
-      if (count === undefined) {
-        return token.fallback;
+      if (token.countKind in context.counts) {
+        return String(context.counts[token.countKind]);
       }
-      return String(count);
+      return token.fallback;
     }
 
-    case 'list': {
-      const entityOrArray = resolveEntityRef(token.listRef!, context);
-      if (!entityOrArray) {
-        return token.fallback;
-      }
-      const entities = Array.isArray(entityOrArray) ? entityOrArray : [entityOrArray];
-      if (entities.length === 0) {
-        return token.fallback;
-      }
-      const values = entities
-        .map((e) => getEntityField(e, token.listField!))
-        .filter((v): v is string => v !== undefined);
-      if (values.length === 0) {
-        return token.fallback;
-      }
-      // Format list naturally: "A", "A and B", "A, B, and C"
-      if (values.length === 1) {
-        return values[0];
-      }
-      if (values.length === 2) {
-        return `${values[0]} and ${values[1]}`;
-      }
-      return `${values.slice(0, -1).join(', ')}, and ${values[values.length - 1]}`;
-    }
+    case 'list':
+      return resolveListToken(token, context);
 
     case 'value': {
-      const value = context.values?.[token.valueKey!];
-      if (value === undefined) {
-        return token.fallback;
+      if (token.valueKey in context.values) {
+        return String(context.values[token.valueKey]);
       }
-      return String(value);
+      return token.fallback;
     }
 
     default:
@@ -276,7 +277,7 @@ function resolveToken(
  * Find all tokens in a template string.
  */
 function findTokens(template: string): string[] {
-  const regex = /\{[^}]+\}/g;
+  const regex = /\{[^}]+\}/g; // eslint-disable-line sonarjs/slow-regex -- character-class bounded, no backtracking
   return template.match(regex) || [];
 }
 
@@ -329,23 +330,23 @@ export function interpolate(template: string, context: NarrationContext): Narrat
  * Create a NarrationContext from common action/system bindings.
  */
 export function createNarrationContext(bindings: {
-  actor?: HardState;
-  target?: HardState;
-  target2?: HardState;
-  instigator?: HardState | null;
-  variables?: Record<string, HardState | HardState[] | undefined>;
-  counts?: Record<string, number>;
-  values?: Record<string, string | number | boolean>;
+  actor: HardState;
+  target: HardState;
+  target2: HardState;
+  instigator: HardState | null;
+  variables: Record<string, VariableValue>;
+  counts: Record<string, number>;
+  values: Record<string, ScalarValue>;
 }): NarrationContext {
-  const entities: Record<string, HardState | HardState[] | undefined> = {};
+  const entities: Record<string, VariableValue> = {};
 
-  if (bindings.actor) {
+  {
     entities['actor'] = bindings.actor;
   }
-  if (bindings.target) {
+  {
     entities['target'] = bindings.target;
   }
-  if (bindings.target2) {
+  {
     entities['target2'] = bindings.target2;
   }
   // Always add instigator key if it was provided (even if null),
@@ -355,7 +356,7 @@ export function createNarrationContext(bindings: {
   }
 
   // Add variables with $ prefix
-  if (bindings.variables) {
+  {
     for (const [key, value] of Object.entries(bindings.variables)) {
       // Ensure $ prefix for consistency
       const prefixedKey = key.startsWith('$') ? key : `$${key}`;
@@ -374,34 +375,34 @@ export function createNarrationContext(bindings: {
  * Helper to create context for system rules (connectionEvolution, etc.)
  */
 export function createSystemRuleContext(bindings: {
-  self?: HardState;
-  member?: HardState;
-  member2?: HardState;
-  sharedVia?: HardState;
-  variables?: Record<string, HardState | HardState[] | undefined>;
-  counts?: Record<string, number>;
-  values?: Record<string, string | number | boolean>;
+  self: HardState;
+  member: HardState;
+  member2: HardState;
+  sharedVia: HardState;
+  variables: Record<string, VariableValue>;
+  counts: Record<string, number>;
+  values: Record<string, ScalarValue>;
 }): NarrationContext {
-  const entities: Record<string, HardState | HardState[] | undefined> = {};
+  const entities: Record<string, VariableValue> = {};
 
-  if (bindings.self) {
+  {
     entities['self'] = bindings.self;
     entities['$self'] = bindings.self;
   }
-  if (bindings.member) {
+  {
     entities['member'] = bindings.member;
     entities['$member'] = bindings.member;
   }
-  if (bindings.member2) {
+  {
     entities['member2'] = bindings.member2;
     entities['$member2'] = bindings.member2;
   }
-  if (bindings.sharedVia) {
+  {
     entities['sharedVia'] = bindings.sharedVia;
     entities['$sharedVia'] = bindings.sharedVia;
   }
 
-  if (bindings.variables) {
+  {
     for (const [key, value] of Object.entries(bindings.variables)) {
       const prefixedKey = key.startsWith('$') ? key : `$${key}`;
       entities[prefixedKey] = value;
@@ -419,29 +420,29 @@ export function createSystemRuleContext(bindings: {
  * Helper to create context for template/generator execution
  */
 export function createGeneratorContext(bindings: {
-  target?: HardState;
-  selected?: HardState;
-  variables?: Record<string, HardState | HardState[] | undefined>;
-  entitiesCreated?: HardState[];
-  counts?: Record<string, number>;
-  values?: Record<string, string | number | boolean>;
+  target: HardState;
+  selected: HardState;
+  variables: Record<string, VariableValue>;
+  entitiesCreated: HardState[];
+  counts: Record<string, number>;
+  values: Record<string, ScalarValue>;
 }): NarrationContext {
-  const entities: Record<string, HardState | HardState[] | undefined> = {};
+  const entities: Record<string, VariableValue> = {};
 
-  if (bindings.target) {
+  {
     entities['target'] = bindings.target;
     entities['$target'] = bindings.target;
   }
-  if (bindings.selected) {
+  {
     entities['selected'] = bindings.selected;
     entities['$selected'] = bindings.selected;
   }
-  if (bindings.entitiesCreated) {
+  {
     entities['created'] = bindings.entitiesCreated;
     entities['$created'] = bindings.entitiesCreated;
   }
 
-  if (bindings.variables) {
+  {
     for (const [key, value] of Object.entries(bindings.variables)) {
       const prefixedKey = key.startsWith('$') ? key : `$${key}`;
       entities[prefixedKey] = value;

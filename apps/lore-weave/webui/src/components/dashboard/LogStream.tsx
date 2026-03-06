@@ -1,0 +1,92 @@
+/**
+ * LogStream - Collapsible log viewer with filtering
+ */
+
+import React, { useState, useMemo } from "react";
+import "./LogStream.css";
+
+interface LogEntry {
+  level: string;
+  message: string;
+}
+
+interface LogStreamProps {
+  logs: LogEntry[];
+  onClear: () => void;
+}
+
+export default function LogStream({ logs, onClear }: Readonly<LogStreamProps>) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [filter, setFilter] = useState("all");
+
+  const filteredLogs = useMemo(() => {
+    if (filter === "all") return logs;
+    return logs.filter((log) => log.level === filter);
+  }, [logs, filter]);
+
+  const logCounts = useMemo(
+    () => ({
+      all: logs.length,
+      info: logs.filter((l) => l.level === "info").length,
+      warn: logs.filter((l) => l.level === "warn").length,
+      error: logs.filter((l) => l.level === "error").length,
+    }),
+    [logs]
+  );
+
+  return (
+    <div className="lw-log-panel">
+      <div className="lw-log-header" onClick={() => setIsExpanded(!isExpanded)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }} >
+        <div className="ls-header-left">
+          <span className="ls-title">
+            {isExpanded ? "▼" : "▶"} Log Stream
+          </span>
+          <span className="ls-count">
+            {logs.length} entries
+          </span>
+          {logCounts.error > 0 && (
+            <span className="lw-badge lw-badge-error">{logCounts.error} errors</span>
+          )}
+          {logCounts.warn > 0 && (
+            <span className="lw-badge lw-badge-warn">{logCounts.warn} warnings</span>
+          )}
+        </div>
+        {logs.length > 0 && (
+          <button
+            className="lw-btn-copy"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClear();
+            }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      {isExpanded && logs.length > 0 && (
+        <>
+          <div className="ls-filter-bar">
+            <div className="lw-filter-tabs">
+              {(["all", "info", "warn", "error"] as const).map((f) => (
+                <button
+                  key={f}
+                  className={`lw-filter-tab ${filter === f ? "active" : ""}`}
+                  onClick={() => setFilter(f)}
+                >
+                  {f} ({logCounts[f]})
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="lw-log-content">
+            {filteredLogs.slice(-100).map((log, i) => (
+              <div key={i} className={`lw-log-entry ${log.level}`}>
+                [{log.level.toUpperCase().padEnd(5)}] {log.message}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

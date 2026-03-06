@@ -1,0 +1,13 @@
+.rv-empty-state {
+  height: auto;
+  padding: 80px 40px;
+}
+
+.rv-button-group {
+  margin-bottom: 24px;
+}
+
+.rv-pressure-fill {
+  width: var(--rv-pressure-fill-width);
+  background-color: var(--rv-pressure-fill-color);
+}

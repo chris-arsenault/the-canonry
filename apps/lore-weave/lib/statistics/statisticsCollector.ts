@@ -1,6 +1,5 @@
 import { mean, standardDeviation } from 'simple-statistics';
 import { Graph, EngineConfig, EpochEraSummary } from '../engine/types';
-import { HardState } from '../core/worldTypes';
 import {
   SimulationStatistics,
   EpochStats,
@@ -17,7 +16,6 @@ import {
   calculateProminenceDistribution,
   calculateRelationshipDistribution,
   calculateConnectivityMetrics,
-  calculateSubtypeDistribution
 } from './distributionCalculations';
 
 /**
@@ -60,11 +58,8 @@ export class StatisticsCollector {
 
     // Store subtype counts for feedback loop tracking
     // This ensures metrics like "npc:merchant.count" are available
-    if (!graph.subtypeMetrics) {
-      graph.subtypeMetrics = new Map();
-    }
     Object.entries(entitiesBySubtype).forEach(([key, count]) => {
-      graph.subtypeMetrics!.set(key, count);
+      graph.subtypeMetrics.set(key, count);
     });
 
     // Count relationships by type
@@ -128,7 +123,7 @@ export class StatisticsCollector {
   /**
    * Record warning
    */
-  public recordWarning(warningType: 'budget' | 'aggressive' | 'growth', systemId?: string): void {
+  public recordWarning(warningType: 'budget' | 'aggressive' | 'growth', systemId: string): void {
     this.warningCount++;
 
     if (warningType === 'budget') {
@@ -156,11 +151,10 @@ export class StatisticsCollector {
     const entityKindRatios = calculateRatios(entityKindCounts, totalEntities);
 
     // Prominence distribution
-    const { counts: prominenceCounts, ratios: prominenceRatios } = calculateProminenceDistribution(entities);
+    const { ratios: prominenceRatios } = calculateProminenceDistribution(entities);
 
     // Relationship distribution
     const {
-      counts: relationshipTypeCounts,
       ratios: relationshipTypeRatios,
       diversity: relationshipDiversity
     } = calculateRelationshipDistribution(graph);
@@ -206,11 +200,11 @@ export class StatisticsCollector {
     const avgDegree = totalEntities > 0 ? (totalRelationships * 2) / totalEntities : 0;
 
     // Deviations are not calculated without explicit targets
-    let entityKindDeviation = 0;
-    let prominenceDeviation = 0;
-    let relationshipDeviation = 0;
-    let connectivityDeviation = 0;
-    let overallDeviation = 0;
+    const entityKindDeviation = 0;
+    const prominenceDeviation = 0;
+    const relationshipDeviation = 0;
+    const connectivityDeviation = 0;
+    const overallDeviation = 0;
 
     return {
       entityKindRatios,
@@ -300,7 +294,7 @@ export class StatisticsCollector {
     const fitnessMetrics = this.calculateFitnessMetrics(distributionStats, config);
 
     // Calculate protected relationship violation stats
-    const violationData = graph.protectedRelationshipViolations || [];
+    const violationData = graph.protectedRelationshipViolations;
     let totalViolations = 0;
     const violationsByKind: Record<string, number> = {};
     let totalStrength = 0;

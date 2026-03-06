@@ -1,0 +1,79 @@
+/* Shared: panel-utilities.css provides .ilu-section, .ilu-action-btn */
+
+/* Shared: compose with .ilu-section */
+.enrtab-container {
+  /* base: .ilu-section */
+}
+
+.enrtab-heading {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.enrtab-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.enrtab-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.enrtab-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.enrtab-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.enrtab-timestamp {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.enrtab-candidates {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.enrtab-candidate-selected {
+  color: var(--text-secondary);
+}
+
+.enrtab-candidate-alt {
+  opacity: 0.6;
+}
+
+.enrtab-fragments {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Shared: compose with .ilu-action-btn */
+.enrtab-button {
+  padding: 8px 16px;
+  height: 32px;
+  align-self: center;
+}
+
+/* Shared: covered by .ilu-action-btn:not(:disabled) */
+.enrtab-button:not(.enrtab-button-disabled) {
+  opacity: 1;
+}
+
+/* Shared: covered by .ilu-action-btn:disabled */
+.enrtab-button-disabled {
+  /* base: .ilu-action-btn:disabled */
+}

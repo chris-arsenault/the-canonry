@@ -1,0 +1,148 @@
+/**
+ * Ornaments CSS Module
+ */
+
+/* ParchmentTexture - dynamic background via CSS custom properties */
+.parchment-texture {
+  background-image: var(--parchment-url);
+  background-repeat: repeat;
+  background-size: var(--parchment-size);
+  opacity: var(--parchment-opacity, 1);
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+/* PageFrame */
+.page-frame {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.corner-base {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
+}
+
+.corner-top-left {
+  composes: corner-base;
+  top: 0;
+  left: 0;
+}
+
+.corner-top-right {
+  composes: corner-base;
+  top: 0;
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.corner-bottom-left {
+  composes: corner-base;
+  bottom: 0;
+  left: 0;
+  transform: scaleY(-1);
+}
+
+.corner-bottom-right {
+  composes: corner-base;
+  bottom: 0;
+  right: 0;
+  transform: scale(-1);
+}
+
+/* FrostEdge */
+.frost-flipped {
+  transform: scaleY(-1);
+}
+
+/* ParchmentDebugPanel */
+.debug-panel {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 100;
+  background: rgb(20 16 12 / 95%);
+  border: 1px solid #c49a5c;
+  border-radius: 8px;
+  padding: 12px;
+  width: 300px;
+  max-height: 80vh;
+  overflow-y: auto;
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  color: #e8dcc8;
+}
+
+.debug-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 100;
+  background: rgb(20 16 12 / 80%);
+  border: 1px solid #c49a5c;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  color: #c49a5c;
+}
+
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.debug-title {
+  color: #c49a5c;
+  font-weight: bold;
+}
+
+.debug-close {
+  background: none;
+  border: none;
+  color: #c49a5c;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.slider-label {
+  width: 85px;
+  flex-shrink: 0;
+  color: #c4b99a;
+}
+
+.slider-input {
+  flex: 1;
+  accent-color: #c49a5c;
+}
+
+.slider-value {
+  width: 42px;
+  text-align: right;
+  color: #8a7d6b;
+  flex-shrink: 0;
+}
+
+.reset-btn {
+  background: none;
+  border: 1px solid rgb(196 164 112 / 30%);
+  border-radius: 4px;
+  padding: 3px 10px;
+  color: #c4b99a;
+  cursor: pointer;
+  font-size: 10px;
+  margin-top: 6px;
+}

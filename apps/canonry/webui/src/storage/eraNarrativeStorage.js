@@ -5,19 +5,19 @@
  * Returns at most one narrative per era (the most recently updated).
  */
 
-import { openIlluminatorDb } from '../lib/illuminatorDbReader';
+import { openIlluminatorDb } from "@the-canonry/world-store";
 
-const STORE_NAME = 'eraNarratives';
+const STORE_NAME = "eraNarratives";
 
 /**
  * Project a raw era narrative record into a viewer-friendly format.
  * Strips generation metadata, keeps only display-relevant fields.
  */
 function projectForExport(raw) {
-  if (!raw || raw.status !== 'complete') return null;
+  if (!raw || raw.status !== "complete") return null;
 
   const narrative = raw.narrative;
-  const content = narrative?.editedContent || narrative?.content || '';
+  const content = narrative?.editedContent || narrative?.content || "";
   if (!content) return null;
 
   return {
@@ -56,16 +56,14 @@ export async function getCompletedEraNarrativesForSimulation(simulationRunId) {
       }
 
       return await new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readonly');
+        const tx = db.transaction(STORE_NAME, "readonly");
         const store = tx.objectStore(STORE_NAME);
-        const index = store.index('simulationRunId');
+        const index = store.index("simulationRunId");
         const request = index.getAll(IDBKeyRange.only(simulationRunId));
 
         request.onsuccess = () => {
           const allRecords = request.result || [];
-          const projected = allRecords
-            .map(projectForExport)
-            .filter(Boolean);
+          const projected = allRecords.map(projectForExport).filter(Boolean);
 
           // Keep only the latest completed narrative per era
           const byEra = new Map();
@@ -79,14 +77,13 @@ export async function getCompletedEraNarrativesForSimulation(simulationRunId) {
           resolve(Array.from(byEra.values()));
         };
 
-        request.onerror = () =>
-          reject(request.error || new Error('Failed to get era narratives'));
+        request.onerror = () => reject(request.error || new Error("Failed to get era narratives"));
       });
     } finally {
       db.close();
     }
   } catch (err) {
-    console.error('[eraNarrativeStorage] Failed to load era narratives:', err);
+    console.error("[eraNarrativeStorage] Failed to load era narratives:", err);
     return [];
   }
 }

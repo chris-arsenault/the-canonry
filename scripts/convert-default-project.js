@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeCanonProject } from '../packages/canonry-dsl-v2/dist/serialize.js';
+import { serializeCanonProject } from '../staging/canonry-dsl-v2/dist/serialize.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const baseDir = path.join(__dirname, '..', 'apps', 'canonry', 'webui', 'public', 'default-project');

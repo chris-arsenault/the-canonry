@@ -2,4 +2,4 @@
  * Card components for the generator list view
  */
 
-export { GeneratorListCard } from './GeneratorListCard';
+export { GeneratorListCard } from "./GeneratorListCard";

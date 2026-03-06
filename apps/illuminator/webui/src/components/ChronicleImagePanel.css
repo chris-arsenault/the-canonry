@@ -1,0 +1,387 @@
+/* Shared panel utilities available: see panel-utilities.css in shared-components */
+/* ChronicleImagePanel styles */
+
+/* Shared card layout for entity ref and prompt request cards */
+.cip-ref-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.cip-thumbnail {
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cip-thumbnail-loading {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.cip-thumbnail-btn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.cip-thumbnail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cip-thumbnail-placeholder {
+  font-size: 20px;
+  color: var(--text-muted);
+}
+
+.cip-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cip-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.cip-entity-ref-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.cip-scene-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.cip-status-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  text-transform: capitalize;
+  background: var(--cip-status-bg);
+  color: var(--cip-status-text);
+}
+
+.cip-size-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border-radius: 4px;
+}
+
+.cip-entity-name {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.cip-entity-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cip-scene-description {
+  font-size: 12px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.cip-regen-desc-btn {
+  margin-bottom: 4px;
+  padding: 3px 8px;
+  font-size: 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cip-anchor-missing {
+  font-size: 11px;
+  color: #ef4444;
+  margin-top: 4px;
+}
+
+.cip-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.cip-size-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cip-size-select {
+  width: auto;
+  min-width: 120px;
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
+.cip-justify-select {
+  width: auto;
+  min-width: 90px;
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
+.cip-caption {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.cip-no-image-warning {
+  font-size: 11px;
+  color: #f59e0b;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.cip-error-message {
+  font-size: 11px;
+  color: #ef4444;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+}
+
+.cip-action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.cip-generate-btn {
+  padding: 6px 12px;
+  font-size: 11px;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cip-secondary-btn {
+  padding: 6px 12px;
+  font-size: 11px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cip-reset-btn {
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* Involved entities */
+.cip-involved-entities {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cip-involved-label {
+  color: var(--text-muted);
+}
+
+.cip-involved-name {
+  padding: 1px 6px;
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.cip-tooltip-trigger {
+  cursor: help;
+}
+
+/* Tooltip */
+.cip-tooltip {
+  position: fixed;
+  left: var(--cip-tooltip-left);
+  top: var(--cip-tooltip-top);
+  width: 400px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  z-index: 1000;
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
+}
+
+.cip-tooltip-highlight {
+  background: rgba(168, 85, 247, 0.3);
+  color: var(--text-primary);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* Anchor text editor */
+.cip-anchor-info {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.cip-anchor-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.cip-anchor-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.cip-anchor-edit-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cip-anchor-underline {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.cip-anchor-input {
+  min-width: 200px;
+  flex: 1;
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
+/* Panel layout */
+/* Shared: compose with .ilu-empty — matching base props (padding, text-align, color) removed */
+.cip-empty-state {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.cip-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cip-header-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cip-header-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+}
+
+.cip-stat-muted {
+  color: var(--text-muted);
+}
+
+.cip-stat-pending {
+  color: #f59e0b;
+}
+
+.cip-stat-complete {
+  color: #10b981;
+}
+
+.cip-section {
+  margin-bottom: 24px;
+}
+
+.cip-section-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cip-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cip-metadata-footer {
+  margin-top: 16px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+}

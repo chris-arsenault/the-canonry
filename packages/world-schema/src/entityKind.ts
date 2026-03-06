@@ -87,7 +87,7 @@ export interface Subtype {
    * If true, this subtype represents an authority/leadership position.
    * Used by the narrative system to detect succession and power vacuum events.
    */
-  isAuthority?: boolean;
+  isAuthority: boolean;
 }
 
 /**
@@ -105,13 +105,13 @@ export interface Status {
    * - neutral: active, idle, traveling
    * - negative: exiled, imprisoned, dying
    */
-  polarity?: Polarity;
+  polarity: Polarity;
   /**
    * Verb describing transition to this status.
    * Used by the narrative system for natural language descriptions.
    * Example: "was crowned", "was exiled", "ascended to"
    */
-  transitionVerb?: string;
+  transitionVerb: string;
 }
 
 /**
@@ -121,7 +121,7 @@ export interface RequiredRelationshipRule {
   /** Relationship kind that must exist */
   kind: string;
   /** Human-readable description of why this is required */
-  description?: string;
+  description: string;
 }
 
 /**
@@ -171,26 +171,26 @@ export type RegionBounds = CircleBounds | RectBounds | PolygonBounds;
 export interface SemanticRegion {
   id: string;
   label: string;
-  /** Display color (hex string, optional) */
-  color?: string;
-  /** Culture that "owns" this region (optional) */
-  culture?: string | null;
+  /** Display color (hex string) */
+  color: string;
+  /** Culture that owns this region — every region belongs to a culture */
+  culture: string;
   /** Tags to apply to entities placed in this region */
-  tags?: string[];
-  /** Narrative description (optional) */
-  description?: string;
-  /** Optional z-range constraint */
-  zRange?: { min: number; max: number };
-  /** Parent region (for nested regions like city within planet) */
-  parentRegion?: string;
+  tags: string[];
+  /** Narrative description */
+  description: string;
+  /** Z-range constraint for entity placement within this region */
+  zRange: { min: number; max: number };
+  /** Parent region (empty string if top-level) */
+  parentRegion: string;
   /** Whether this region was created dynamically */
-  emergent?: boolean;
-  /** Tick when region was created (for emergent regions) */
-  createdAt?: number;
-  /** Entity that triggered creation (for emergent regions) */
-  createdBy?: string;
+  emergent: boolean;
+  /** Tick when region was created (0 for seed regions) */
+  createdAt: number;
+  /** Entity that triggered creation (empty string for seed regions) */
+  createdBy: string;
   /** Custom metadata */
-  metadata?: Record<string, unknown>;
+  metadata: Record<string, unknown>;
   bounds: RegionBounds;
 }
 
@@ -199,9 +199,9 @@ export interface SemanticRegion {
  */
 export interface SemanticPlane {
   axes: {
-    x?: SemanticAxis;
-    y?: SemanticAxis;
-    z?: SemanticAxis;
+    x: SemanticAxis;
+    y: SemanticAxis;
+    z: SemanticAxis;
   };
   regions: SemanticRegion[];
 }
@@ -211,11 +211,11 @@ export interface SemanticPlane {
  */
 export interface EntityKindStyle {
   /** Hex color for visualization */
-  color?: string;
+  color: string;
   /** Shape for graph visualization (e.g., 'ellipse', 'diamond', 'hexagon') */
-  shape?: string;
-  /** Display name for UI (defaults to description/kind) */
-  displayName?: string;
+  shape: string;
+  /** Display name for UI */
+  displayName: string;
 }
 
 /**
@@ -225,32 +225,32 @@ export interface EntityKindDefinition {
   /** Unique identifier (e.g., "npc", "location", "faction") */
   kind: string;
   /** Human-readable description (used as display name) */
-  description?: string;
+  description: string;
   /** True if this kind is defined by the framework and is read-only in editors */
-  isFramework?: boolean;
+  isFramework: boolean;
   /**
    * Abstract category this entity kind belongs to.
    * Used by narrative styles to specify subject kinds in a domain-agnostic way.
    * Framework kinds have 1-1 category mappings (era → era, occurrence → event).
    */
-  category?: EntityCategory;
+  category: EntityCategory;
   /** Valid subtypes for this entity kind */
   subtypes: Subtype[];
   /** Valid status values for this entity kind */
   statuses: Status[];
   /** Relationships required for this entity kind to be structurally valid */
-  requiredRelationships?: RequiredRelationshipRule[];
+  requiredRelationships: RequiredRelationshipRule[];
   /** Default status for new entities of this kind */
-  defaultStatus?: string;
+  defaultStatus: string;
   /** Visual styling for UI */
-  style?: EntityKindStyle;
-  /** Semantic placement configuration (Cosmographer) */
-  semanticPlane?: SemanticPlane;
+  style: EntityKindStyle;
+  /** Semantic placement configuration (empty regions array if not applicable) */
+  semanticPlane: SemanticPlane;
 
   // === Illuminator: Visual Identity ===
   /**
    * Which visual identity keys from culture.visualIdentity to include in image prompts.
    * e.g., ["ATTIRE", "SPECIES"] for NPCs, ["ARCHITECTURE", "SPECIES"] for locations.
    */
-  visualIdentityKeys?: string[];
+  visualIdentityKeys: string[];
 }

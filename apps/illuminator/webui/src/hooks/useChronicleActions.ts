@@ -6,12 +6,12 @@
  * This separation keeps the store free of prop-dependent closures.
  */
 
-import { useCallback } from 'react';
-import type { ChronicleGenerationContext, ChronicleSampling } from '../lib/chronicleTypes';
-import type { EnrichmentType, ChronicleStep } from '../lib/enrichmentTypes';
-import { getEnqueue } from '../lib/db/enrichmentQueueBridge';
-import { useChronicleStore } from '../lib/db/chronicleStore';
-import type { ChronicleRecord } from '../lib/db/chronicleRepository';
+import { useCallback } from "react";
+import type { ChronicleGenerationContext, ChronicleSampling } from "../lib/chronicleTypes";
+import type { EnrichmentType, ChronicleStep } from "../lib/enrichmentTypes";
+import { getEnqueue } from "../lib/db/enrichmentQueueBridge";
+import { useChronicleStore } from "../lib/db/chronicleStore";
+import type { ChronicleRecord } from "../lib/db/chronicleRepository";
 
 // ============================================================================
 // Types
@@ -20,7 +20,7 @@ import type { ChronicleRecord } from '../lib/db/chronicleRepository';
 export interface ChronicleMetadata {
   chronicleId: string;
   title?: string;
-  format: 'story' | 'document';
+  format: "story" | "document";
   generationSampling: ChronicleSampling;
   roleAssignments: Array<{
     role: string;
@@ -48,7 +48,7 @@ export interface ChronicleMetadata {
 function buildEntityRefFromContext(
   chronicleId: string,
   context: ChronicleGenerationContext,
-  chronicle?: ChronicleRecord,
+  chronicle?: ChronicleRecord
 ) {
   const primaryEntityId = context.focus.primaryEntityIds[0] || context.focus.selectedEntityIds[0];
   const primaryEntity = primaryEntityId
@@ -60,22 +60,22 @@ function buildEntityRefFromContext(
         id: primaryEntity.id,
         name: primaryEntity.name,
         kind: primaryEntity.kind,
-        subtype: primaryEntity.subtype || '',
+        subtype: primaryEntity.subtype || "",
         prominence: primaryEntity.prominence,
-        culture: primaryEntity.culture || '',
+        culture: primaryEntity.culture || "",
         status: primaryEntity.status,
-        description: primaryEntity.description || '',
+        description: primaryEntity.description || "",
         tags: primaryEntity.tags as Record<string, unknown>,
       }
     : {
         id: chronicleId,
-        name: chronicle?.title || 'Chronicle',
-        kind: 'chronicle',
-        subtype: '',
-        prominence: 'recognized',
-        culture: '',
-        status: 'active',
-        description: '',
+        name: chronicle?.title || "Chronicle",
+        kind: "chronicle",
+        subtype: "",
+        prominence: "recognized",
+        culture: "",
+        status: "active",
+        description: "",
         tags: {},
       };
 }
@@ -89,22 +89,22 @@ function buildEntityRefFromRecord(chronicleId: string, chronicle: ChronicleRecor
         id: primaryRole.entityId,
         name: primaryRole.entityName,
         kind: primaryRole.entityKind,
-        subtype: '',
-        prominence: 'recognized',
-        culture: '',
-        status: 'active',
-        description: '',
+        subtype: "",
+        prominence: "recognized",
+        culture: "",
+        status: "active",
+        description: "",
         tags: {},
       }
     : {
         id: chronicleId,
-        name: chronicle.title || 'Chronicle',
-        kind: 'chronicle',
-        subtype: '',
-        prominence: 'recognized',
-        culture: '',
-        status: 'active',
-        description: '',
+        name: chronicle.title || "Chronicle",
+        kind: "chronicle",
+        subtype: "",
+        prominence: "recognized",
+        culture: "",
+        status: "active",
+        description: "",
         tags: {},
       };
 }
@@ -117,21 +117,21 @@ export function useChronicleActions() {
   const getChronicle = useCallback(
     (chronicleId: string): ChronicleRecord | undefined =>
       useChronicleStore.getState().cache.get(chronicleId),
-    [],
+    []
   );
 
   const generateV2 = useCallback(
     (
       chronicleId: string,
       context: ChronicleGenerationContext,
-      metadata: ChronicleMetadata | undefined,
+      metadata: ChronicleMetadata | undefined
     ) => {
       if (!context.focus) {
-        console.error('[Chronicle V2] Focus context required');
+        console.error("[Chronicle V2] Focus context required");
         return;
       }
       if (!context.narrativeStyle) {
-        console.error('[Chronicle V2] Narrative style required for generation');
+        console.error("[Chronicle V2] Narrative style required for generation");
         return;
       }
 
@@ -141,253 +141,253 @@ export function useChronicleActions() {
       getEnqueue()([
         {
           entity,
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
           chronicleContext: context,
-          chronicleStep: 'generate_v2',
+          chronicleStep: "generate_v2",
           chronicleId: metadata?.chronicleId || chronicleId,
           chronicleMetadata: metadata,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   const generateSummary = useCallback(
     (chronicleId: string, context: ChronicleGenerationContext) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
       if (chronicle.finalContent) {
-        console.error('[Chronicle] Summary refinements are only available before acceptance');
+        console.error("[Chronicle] Summary refinements are only available before acceptance");
         return;
       }
       if (!chronicle.assembledContent) {
-        console.error('[Chronicle] No assembled content to summarize');
+        console.error("[Chronicle] No assembled content to summarize");
         return;
       }
       if (!context.narrativeStyle) {
-        console.error('[Chronicle] Narrative style required to generate summary');
+        console.error("[Chronicle] Narrative style required to generate summary");
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromContext(chronicleId, context, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
           chronicleContext: context,
-          chronicleStep: 'summary',
+          chronicleStep: "summary",
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   const generateTitle = useCallback(
     (chronicleId: string) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
       const content = chronicle.finalContent || chronicle.assembledContent;
       if (!content) {
-        console.error('[Chronicle] No content to generate title from');
+        console.error("[Chronicle] No content to generate title from");
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
-          chronicleStep: 'title' as ChronicleStep,
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
+          chronicleStep: "title" as ChronicleStep,
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   const generateImageRefs = useCallback(
     (chronicleId: string, context: ChronicleGenerationContext) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
       if (chronicle.finalContent) {
-        console.error('[Chronicle] Image refs are only available before acceptance');
+        console.error("[Chronicle] Image refs are only available before acceptance");
         return;
       }
       if (!chronicle.assembledContent) {
-        console.error('[Chronicle] No assembled content to draft image refs');
+        console.error("[Chronicle] No assembled content to draft image refs");
         return;
       }
       if (!context.narrativeStyle) {
-        console.error('[Chronicle] Narrative style required to generate image refs');
+        console.error("[Chronicle] Narrative style required to generate image refs");
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromContext(chronicleId, context, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
           chronicleContext: context,
-          chronicleStep: 'image_refs',
+          chronicleStep: "image_refs",
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   const regenerateWithSampling = useCallback(
     (chronicleId: string) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
-      if (chronicle.finalContent || chronicle.status === 'complete') {
-        console.error('[Chronicle] Sampling regeneration is only available before acceptance');
+      if (chronicle.finalContent || chronicle.status === "complete") {
+        console.error("[Chronicle] Sampling regeneration is only available before acceptance");
         return;
       }
       if (!chronicle.generationSystemPrompt || !chronicle.generationUserPrompt) {
-        console.error('[Chronicle] Stored prompts missing; cannot regenerate');
+        console.error("[Chronicle] Stored prompts missing; cannot regenerate");
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
-          chronicleStep: 'regenerate_temperature',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
+          chronicleStep: "regenerate_temperature",
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   const compareVersions = useCallback(
     (chronicleId: string) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
       if (!chronicle.assembledContent) {
-        console.error('[Chronicle] No assembled content to compare');
+        console.error("[Chronicle] No assembled content to compare");
         return;
       }
       const historyCount = chronicle.generationHistory?.length || 0;
       if (historyCount < 2) {
-        console.error('[Chronicle] Need at least 2 versions to compare');
+        console.error("[Chronicle] Need at least 2 versions to compare");
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
-          chronicleStep: 'compare',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
+          chronicleStep: "compare",
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   const combineVersions = useCallback(
     (chronicleId: string) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
       if (!chronicle.assembledContent) {
-        console.error('[Chronicle] No assembled content to combine');
+        console.error("[Chronicle] No assembled content to combine");
         return;
       }
       const historyCount = chronicle.generationHistory?.length || 0;
       if (historyCount < 2) {
-        console.error('[Chronicle] Need at least 2 versions to combine');
+        console.error("[Chronicle] Need at least 2 versions to combine");
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
-          chronicleStep: 'combine',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
+          chronicleStep: "combine",
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   const copyEdit = useCallback(
     (chronicleId: string) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
       if (!chronicle.assembledContent) {
-        console.error('[Chronicle] No assembled content to copy-edit');
+        console.error("[Chronicle] No assembled content to copy-edit");
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
-          chronicleStep: 'copy_edit',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
+          chronicleStep: "copy_edit",
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   const temporalCheck = useCallback(
     (chronicleId: string) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
       if (!chronicle.assembledContent) {
-        console.error('[Chronicle] No assembled content for temporal check');
+        console.error("[Chronicle] No assembled content for temporal check");
         return;
       }
       if (!chronicle.perspectiveSynthesis?.temporalNarrative) {
-        console.error('[Chronicle] No temporal narrative available for temporal check');
+        console.error("[Chronicle] No temporal narrative available for temporal check");
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
-          chronicleStep: 'temporal_check',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
+          chronicleStep: "temporal_check",
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   /**
@@ -399,34 +399,36 @@ export function useChronicleActions() {
     (chronicleId: string, context: ChronicleGenerationContext) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
-      if (chronicle.finalContent || chronicle.status === 'complete') {
-        console.error('[Chronicle] Full regeneration requires unpublishing first');
+      if (chronicle.finalContent || chronicle.status === "complete") {
+        console.error("[Chronicle] Full regeneration requires unpublishing first");
         return;
       }
       if (!context.narrativeStyle) {
-        console.error('[Chronicle] Narrative style required for full regeneration');
+        console.error("[Chronicle] Narrative style required for full regeneration");
         return;
       }
       if (!context.toneFragments || !context.canonFactsWithMetadata) {
-        console.error('[Chronicle] Full regeneration requires toneFragments and canonFactsWithMetadata');
+        console.error(
+          "[Chronicle] Full regeneration requires toneFragments and canonFactsWithMetadata"
+        );
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
           chronicleContext: context,
-          chronicleStep: 'regenerate_full',
+          chronicleStep: "regenerate_full",
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   /**
@@ -438,59 +440,59 @@ export function useChronicleActions() {
     (chronicleId: string, context: ChronicleGenerationContext) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
-      if (chronicle.finalContent || chronicle.status === 'complete') {
-        console.error('[Chronicle] Creative regeneration requires unpublishing first');
+      if (chronicle.finalContent || chronicle.status === "complete") {
+        console.error("[Chronicle] Creative regeneration requires unpublishing first");
         return;
       }
       if (!context.narrativeStyle) {
-        console.error('[Chronicle] Narrative style required for creative regeneration');
+        console.error("[Chronicle] Narrative style required for creative regeneration");
         return;
       }
-      if (context.narrativeStyle.format !== 'story') {
-        console.error('[Chronicle] Creative freedom mode is only available for story format');
+      if (context.narrativeStyle.format !== "story") {
+        console.error("[Chronicle] Creative freedom mode is only available for story format");
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
           chronicleContext: context,
-          chronicleStep: 'regenerate_creative',
+          chronicleStep: "regenerate_creative",
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   const quickCheck = useCallback(
     (chronicleId: string) => {
       const chronicle = getChronicle(chronicleId);
       if (!chronicle) {
-        console.error('[Chronicle] No chronicle found for chronicleId', chronicleId);
+        console.error("[Chronicle] No chronicle found for chronicleId", chronicleId);
         return;
       }
       if (!chronicle.assembledContent && !chronicle.finalContent) {
-        console.error('[Chronicle] No content available for quick check');
+        console.error("[Chronicle] No content available for quick check");
         return;
       }
 
       getEnqueue()([
         {
           entity: buildEntityRefFromRecord(chronicleId, chronicle),
-          type: 'entityChronicle' as EnrichmentType,
-          prompt: '',
-          chronicleStep: 'quick_check',
+          type: "entityChronicle" as EnrichmentType,
+          prompt: "",
+          chronicleStep: "quick_check",
           chronicleId,
         },
       ]);
     },
-    [getChronicle],
+    [getChronicle]
   );
 
   return {

@@ -1,0 +1,34 @@
+/* CostsPanel — prefix: cpanel
+ * Muted hint text: compose with ilu-hint from panel-utilities.css. */
+
+.cpanel-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cpanel-row:last-child {
+  border-bottom: none;
+}
+
+.cpanel-row-total {
+  font-weight: 600;
+}
+
+.cpanel-row-value {
+  font-family: monospace;
+}
+
+.cpanel-section-hint {
+  margin-bottom: 12px;
+}
+
+.cpanel-clear-button {
+  margin-top: 12px;
+  font-size: 11px;
+}
+
+.cpanel-empty-hint {
+  padding: 12px 0;
+}

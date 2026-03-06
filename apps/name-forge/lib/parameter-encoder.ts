@@ -57,25 +57,25 @@ export function encodeParameters(domain: NamingDomain): ParameterVector {
   const { phonology, morphology, style } = domain;
 
   // Get weights or create uniform defaults
-  const consonantWeights =
+  const consonantWeights: number[] =
     phonology.consonantWeights && phonology.consonantWeights.length > 0
       ? phonology.consonantWeights
-      : Array(phonology.consonants.length).fill(1);
+      : new Array<number>(phonology.consonants.length).fill(1);
 
-  const vowelWeights =
+  const vowelWeights: number[] =
     phonology.vowelWeights && phonology.vowelWeights.length > 0
       ? phonology.vowelWeights
-      : Array(phonology.vowels.length).fill(1);
+      : new Array<number>(phonology.vowels.length).fill(1);
 
-  const templateWeights =
+  const templateWeights: number[] =
     phonology.templateWeights && phonology.templateWeights.length > 0
       ? phonology.templateWeights
-      : Array(phonology.syllableTemplates.length).fill(1);
+      : new Array<number>(phonology.syllableTemplates.length).fill(1);
 
-  const structureWeights =
+  const structureWeights: number[] =
     morphology.structureWeights && morphology.structureWeights.length > 0
       ? morphology.structureWeights
-      : Array(morphology.structure.length).fill(1);
+      : new Array<number>(morphology.structure.length).fill(1);
 
   return {
     consonantWeights: normalizeWeights(consonantWeights).map(toLogSpace),
@@ -89,7 +89,7 @@ export function encodeParameters(domain: NamingDomain): ParameterVector {
     lengthMin: phonology.lengthRange[0],
     lengthMax: phonology.lengthRange[1],
 
-    favoredClusterBoost: phonology.favoredClusterBoost,
+    favoredClusterBoost: phonology.favoredClusterBoost ?? 1,
   };
 }
 
@@ -177,9 +177,7 @@ export function perturbParameters(
     lengthMin: theta.lengthMin + Math.round(gaussian() * stepSizes.lengthRange),
     lengthMax: theta.lengthMax + Math.round(gaussian() * stepSizes.lengthRange),
 
-    favoredClusterBoost: theta.favoredClusterBoost
-      ? theta.favoredClusterBoost + gaussian() * 1.0
-      : undefined,
+    favoredClusterBoost: theta.favoredClusterBoost + gaussian() * 1.0,
   };
 }
 

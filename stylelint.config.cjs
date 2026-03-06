@@ -9,6 +9,13 @@ module.exports = {
   ],
   overrides: [
     {
+      files: ['**/*.module.css'],
+      rules: {
+        'property-no-unknown': [true, { ignoreProperties: ['composes'] }],
+        'selector-pseudo-class-no-unknown': [true, { ignorePseudoClasses: ['global'] }],
+      },
+    },
+    {
       files: ['apps/name-forge/webui/src/App.css'],
       rules: {
         'no-descending-specificity': null,

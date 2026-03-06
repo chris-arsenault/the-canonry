@@ -2,7 +2,7 @@
  * React hook for managing Canonry projects in IndexedDB.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   openDatabase,
   saveProject,
@@ -10,65 +10,36 @@ import {
   deleteProject,
   listProjects,
   createEmptyProject,
-} from './db.js';
-import { loadLastProjectId, saveLastProjectId } from './uiState.js';
-import { loadWorldStore, saveWorldStore } from './worldStore.js';
+} from "./db.js";
+import { loadLastProjectId, saveLastProjectId } from "./uiState.js";
+import { loadWorldStore, saveWorldStore } from "./worldStore.js";
 import {
   getStaticPagesForProject,
   importStaticPages,
-  deleteStaticPagesForProject,
   loadAndImportSeedPages,
-} from './staticPageStorage.js';
-import {
-  compileCanonProject,
-  compileCanonStaticPages,
-  serializeCanonProject,
-  serializeCanonStaticPages,
-} from '@canonry/dsl';
+} from "./staticPageStorage.js";
 
 /**
  * Default project ID - used to identify the default project for reload functionality
  */
-export const DEFAULT_PROJECT_ID = 'project_1765083188592';
+export const DEFAULT_PROJECT_ID = "project_1765083188592";
 
-const USE_CANON_DSL = false;
-
-/**
- * Canon project file names (default layout)
- */
-const CANON_PROJECT_FILES = [
-  'project',
-  'entity_kinds',
-  'relationship_kinds',
-  'cultures',
-  'tag_registry',
-  'axis_definitions',
-  'ui_config',
-  'eras',
-  'pressures',
-  'generators',
-  'systems',
-  'actions',
-  'seed_entities',
-  'seed_relationships',
-  'distribution_targets',
-];
 
 const PROJECT_JSON_FILES = [
-  'entityKinds',
-  'relationshipKinds',
-  'cultures',
-  'tagRegistry',
-  'axisDefinitions',
-  'uiConfig',
-  'eras',
-  'pressures',
-  'generators',
-  'systems',
-  'actions',
-  'seedEntities',
-  'seedRelationships',
-  'distributionTargets',
+  "entityKinds",
+  "relationshipKinds",
+  "cultures",
+  "tagRegistry",
+  "axisDefinitions",
+  "uiConfig",
+  "eras",
+  "pressures",
+  "generators",
+  "systems",
+  "actions",
+  "seedEntities",
+  "seedRelationships",
+  "distributionTargets",
 ];
 
 const PROJECT_DEFAULTS = {
@@ -106,97 +77,20 @@ function normalizeProjectConfig(raw) {
     project.id = `project_${Date.now()}`;
   }
   if (!project.name) {
-    project.name = 'New World';
+    project.name = "New World";
   }
   if (!project.version) {
-    project.version = '1.0';
+    project.version = "1.0";
   }
 
   return project;
-}
-
-function formatCanonDiagnostics(diagnostics = []) {
-  return diagnostics
-    .map((diag) => {
-      if (!diag) return null;
-      const location = diag.span?.start
-        ? ` (${diag.span.file}:${diag.span.start.line}:${diag.span.start.column})`
-        : '';
-      return `${diag.message}${location}`;
-    })
-    .filter(Boolean)
-    .join('\n');
 }
 
 /**
  * Fetch and load the default seed project from individual files
  */
 async function fetchDefaultProject() {
-  if (USE_CANON_DSL) {
-    return fetchDefaultProjectCanon();
-  }
-
   return fetchDefaultProjectJson();
-}
-
-async function fetchDefaultProjectCanon() {
-  try {
-    const baseUrl = `${import.meta.env.BASE_URL}default-project/`;
-
-    const responses = await Promise.all(
-      CANON_PROJECT_FILES.map(async (file) => {
-        const response = await fetch(`${baseUrl}${file}.canon`);
-        if (!response.ok) {
-          console.warn(`Default project file ${file}.canon not found`);
-          return { file, content: null };
-        }
-        const content = await response.text();
-        return { file, content };
-      })
-    );
-
-    const sources = responses
-      .filter((entry) => entry.content !== null)
-      .map((entry) => ({
-        path: `${entry.file}.canon`,
-        content: entry.content,
-      }));
-
-    if (sources.length === 0) {
-      console.warn('Default project .canon files not found');
-      return null;
-    }
-
-    const { config, diagnostics } = compileCanonProject(sources);
-    if (!config || diagnostics.some((diag) => diag.severity === 'error')) {
-      console.warn('Failed to compile default project:', formatCanonDiagnostics(diagnostics));
-      return null;
-    }
-
-    let project = normalizeProjectConfig(config);
-
-    let illuminatorConfig = null;
-    const illuminatorResponse = await fetch(`${baseUrl}illuminatorConfig.json`);
-    if (illuminatorResponse.ok) {
-      illuminatorConfig = await illuminatorResponse.json();
-    } else {
-      console.warn('Default project illuminatorConfig.json not found');
-    }
-    const historianResponse = await fetch(`${baseUrl}historianConfig.json`);
-    if (historianResponse.ok) {
-      const historianConfig = await historianResponse.json();
-      illuminatorConfig = { ...(illuminatorConfig || {}), historianConfig };
-    }
-
-    // Update timestamps to now
-    const now = new Date().toISOString();
-    project.createdAt = now;
-    project.updatedAt = now;
-    return { project, illuminatorConfig };
-  } catch (error) {
-    console.warn('Failed to load default project:', error);
-    return null;
-  }
 }
 
 async function fetchDefaultProjectJson() {
@@ -205,7 +99,7 @@ async function fetchDefaultProjectJson() {
 
     const manifestResponse = await fetch(`${baseUrl}manifest.json`);
     if (!manifestResponse.ok) {
-      console.warn('Default project manifest.json not found');
+      console.warn("Default project manifest.json not found");
       return null;
     }
 
@@ -237,7 +131,7 @@ async function fetchDefaultProjectJson() {
     if (illuminatorResponse.ok) {
       illuminatorConfig = await illuminatorResponse.json();
     } else {
-      console.warn('Default project illuminatorConfig.json not found');
+      console.warn("Default project illuminatorConfig.json not found");
     }
     const historianResponse = await fetch(`${baseUrl}historianConfig.json`);
     if (historianResponse.ok) {
@@ -250,7 +144,7 @@ async function fetchDefaultProjectJson() {
     normalized.updatedAt = now;
     return { project: normalized, illuminatorConfig };
   } catch (error) {
-    console.warn('Failed to load default project:', error);
+    console.warn("Failed to load default project:", error);
     return null;
   }
 }
@@ -264,123 +158,62 @@ async function fetchDefaultProjectJson() {
  * @param {Object} options.illuminatorConfig - Illuminator settings to include
  * @param {Array} options.staticPages - Static pages to include
  */
+function addJsonFilesToZip(zip, project) {
+  const manifest = { ...project };
+  for (const key of PROJECT_JSON_FILES) {
+    delete manifest[key];
+  }
+  zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+
+  for (const key of PROJECT_JSON_FILES) {
+    const fallback = Array.isArray(PROJECT_DEFAULTS[key]) ? [] : PROJECT_DEFAULTS[key];
+    const resolved = project[key] === undefined ? fallback : project[key];
+    zip.file(`${key}.json`, JSON.stringify(resolved, null, 2));
+  }
+}
+
 async function createProjectZip(project, options = {}) {
-  const { default: JSZip } = await import('jszip');
+  const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
 
-  if (USE_CANON_DSL) {
-    const canonFiles = serializeCanonProject(project);
-    for (const file of canonFiles) {
-      zip.file(file.path, file.content);
-    }
+  addJsonFilesToZip(zip, project);
 
-    const { staticPages } = options;
-    if (staticPages && staticPages.length > 0) {
-      const staticFiles = serializeCanonStaticPages(staticPages, { includeEmpty: false });
-      for (const file of staticFiles) {
-        zip.file(file.path, file.content);
-      }
-    }
-  } else {
-    const manifest = { ...project };
-    for (const key of PROJECT_JSON_FILES) {
-      delete manifest[key];
-    }
-    zip.file('manifest.json', JSON.stringify(manifest, null, 2));
-
-    for (const key of PROJECT_JSON_FILES) {
-      const fallback = Array.isArray(PROJECT_DEFAULTS[key]) ? [] : PROJECT_DEFAULTS[key];
-      const resolved = project[key] === undefined ? fallback : project[key];
-      zip.file(`${key}.json`, JSON.stringify(resolved, null, 2));
-    }
-  }
-
-  // Add Illuminator configuration if provided
   const { illuminatorConfig, staticPages } = options;
   if (illuminatorConfig) {
-    zip.file('illuminatorConfig.json', JSON.stringify(illuminatorConfig, null, 2));
+    zip.file("illuminatorConfig.json", JSON.stringify(illuminatorConfig, null, 2));
   }
 
-  // Add static pages if provided (JSON mode only)
-  if (!USE_CANON_DSL && staticPages && staticPages.length > 0) {
-    zip.file('staticPages.json', JSON.stringify(staticPages, null, 2));
+  if (staticPages && staticPages.length > 0) {
+    zip.file("staticPages.json", JSON.stringify(staticPages, null, 2));
   }
 
-  return zip.generateAsync({ type: 'blob' });
+  return zip.generateAsync({ type: "blob" });
 }
 
 /**
  * Extract project data from a zip file
  * Returns { project, illuminatorConfig, staticPages }
  */
-async function extractProjectZip(zipBlob) {
-  const { default: JSZip } = await import('jszip');
-  const zip = await JSZip.loadAsync(zipBlob);
+async function loadOptionalJsonFromZip(zip, filename) {
+  const file = zip.file(filename);
+  if (!file) return null;
+  return JSON.parse(await file.async("string"));
+}
 
-  const canonFiles = zip.file(/\.canon$/);
-  if (USE_CANON_DSL && canonFiles && canonFiles.length > 0) {
-    const sources = await Promise.all(
-      canonFiles.map(async (file) => ({
-        path: file.name,
-        content: await file.async('string'),
-      }))
-    );
-
-    const { config, diagnostics } = compileCanonProject(sources);
-    if (!config || diagnostics.some((diag) => diag.severity === 'error')) {
-      throw new Error(`Invalid .canon project:\n${formatCanonDiagnostics(diagnostics)}`);
-    }
-
-    const project = normalizeProjectConfig(config);
-
-    let illuminatorConfig = null;
-    const illuminatorFile = zip.file('illuminatorConfig.json');
-    if (illuminatorFile) {
-      illuminatorConfig = JSON.parse(await illuminatorFile.async('string'));
-    }
-
-    let staticPages = [];
-    const mdFiles = zip.file(/\.md$/);
-    const staticSources = await Promise.all(
-      [...canonFiles, ...mdFiles].map(async (file) => ({
-        path: file.name,
-        content: await file.async('string'),
-      }))
-    );
-    const { pages, diagnostics: staticPageDiagnostics } = compileCanonStaticPages(staticSources);
-    if (staticPageDiagnostics.some((diag) => diag.severity === 'error')) {
-      throw new Error(`Invalid static pages:\n${formatCanonDiagnostics(staticPageDiagnostics)}`);
-    }
-    if (pages && pages.length > 0) {
-      staticPages = pages;
-    } else {
-      const staticPagesFile = zip.file('staticPages.json');
-      if (staticPagesFile) {
-        staticPages = JSON.parse(await staticPagesFile.async('string'));
-      }
-    }
-
-    return { project, illuminatorConfig, staticPages };
-  }
-
-  // Legacy JSON export fallback
-  const manifestFile = zip.file('manifest.json');
+async function extractJsonProjectFromZip(zip) {
+  const manifestFile = zip.file("manifest.json");
   if (!manifestFile) {
-    throw new Error('Invalid project zip: missing manifest.json');
+    throw new Error("Invalid project zip: missing manifest.json");
   }
-  const manifest = JSON.parse(await manifestFile.async('string'));
-
+  const manifest = JSON.parse(await manifestFile.async("string"));
   const project = { ...manifest };
 
-  const defaultValues = {
-    uiConfig: null,
-    distributionTargets: null,
-  };
+  const defaultValues = { uiConfig: null, distributionTargets: null };
 
   for (const fileName of PROJECT_JSON_FILES) {
     const file = zip.file(`${fileName}.json`);
     if (file) {
-      project[fileName] = JSON.parse(await file.async('string'));
+      project[fileName] = JSON.parse(await file.async("string"));
     } else {
       project[fileName] = Object.prototype.hasOwnProperty.call(defaultValues, fileName)
         ? defaultValues[fileName]
@@ -388,21 +221,16 @@ async function extractProjectZip(zipBlob) {
     }
   }
 
-  // Load Illuminator config if present
-  let illuminatorConfig = null;
-  const illuminatorFile = zip.file('illuminatorConfig.json');
-  if (illuminatorFile) {
-    illuminatorConfig = JSON.parse(await illuminatorFile.async('string'));
-  }
-
-  // Load static pages if present
-  let staticPages = [];
-  const staticPagesFile = zip.file('staticPages.json');
-  if (staticPagesFile) {
-    staticPages = JSON.parse(await staticPagesFile.async('string'));
-  }
+  const illuminatorConfig = await loadOptionalJsonFromZip(zip, "illuminatorConfig.json");
+  const staticPages = (await loadOptionalJsonFromZip(zip, "staticPages.json")) || [];
 
   return { project, illuminatorConfig, staticPages };
+}
+
+async function extractProjectZip(zipBlob) {
+  const { default: JSZip } = await import("jszip");
+  const zip = await JSZip.loadAsync(zipBlob);
+  return extractJsonProjectFromZip(zip);
 }
 
 export function useProjectStorage() {
@@ -612,7 +440,7 @@ export function useProjectStorage() {
             historianConfig: worldStore.historianConfig || null,
           };
           // Only include if there's actual data
-          const hasData = Object.values(illuminatorConfig).some(v => v !== null);
+          const hasData = Object.values(illuminatorConfig).some((v) => v !== null);
           if (!hasData) {
             illuminatorConfig = null;
           }
@@ -642,7 +470,7 @@ export function useProjectStorage() {
         if (input instanceof Blob) {
           extractedData = await extractProjectZip(input);
         } else {
-          throw new Error('Invalid import format: expected zip file');
+          throw new Error("Invalid import format: expected zip file");
         }
 
         const { project: data, illuminatorConfig, staticPages } = extractedData;
@@ -684,57 +512,54 @@ export function useProjectStorage() {
 
   // Reload current project from default files (merge overwrite)
   // Only works for the default project
-  const reloadProjectFromDefaults = useCallback(
-    async () => {
-      if (!currentProject) return null;
-      if (currentProject.id !== DEFAULT_PROJECT_ID) {
-        throw new Error('Can only reload the default project from defaults');
+  const reloadProjectFromDefaults = useCallback(async () => {
+    if (!currentProject) return null;
+    if (currentProject.id !== DEFAULT_PROJECT_ID) {
+      throw new Error("Can only reload the default project from defaults");
+    }
+
+    try {
+      setLoading(true);
+
+      // Fetch fresh default project files
+      const defaultData = await fetchDefaultProject();
+      if (!defaultData?.project) {
+        throw new Error("Failed to load default project files");
       }
 
-      try {
-        setLoading(true);
+      // Merge: use fresh data but preserve the current project's ID and timestamps
+      const reloaded = {
+        ...defaultData.project,
+        id: currentProject.id,
+        createdAt: currentProject.createdAt,
+        updatedAt: new Date().toISOString(),
+      };
 
-        // Fetch fresh default project files
-        const defaultData = await fetchDefaultProject();
-        if (!defaultData?.project) {
-          throw new Error('Failed to load default project files');
-        }
+      // Save the merged project to IndexedDB
+      await saveProject(reloaded);
 
-        // Merge: use fresh data but preserve the current project's ID and timestamps
-        const reloaded = {
-          ...defaultData.project,
-          id: currentProject.id,
-          createdAt: currentProject.createdAt,
-          updatedAt: new Date().toISOString(),
+      // Reload illuminatorConfig to worldStore if present
+      if (defaultData.illuminatorConfig) {
+        const worldStoreData = {
+          activeSlotIndex: 0,
+          ...defaultData.illuminatorConfig,
         };
-
-        // Save the merged project to IndexedDB
-        await saveProject(reloaded);
-
-        // Reload illuminatorConfig to worldStore if present
-        if (defaultData.illuminatorConfig) {
-          const worldStoreData = {
-            activeSlotIndex: 0,
-            ...defaultData.illuminatorConfig,
-          };
-          await saveWorldStore(currentProject.id, worldStoreData);
-        }
-
-        // Reload static pages from default staticPages.json
-        await loadAndImportSeedPages(currentProject.id);
-
-        await refreshList();
-        setCurrentProject(reloaded);
-        return reloaded;
-      } catch (err) {
-        setError(err.message);
-        throw err;
-      } finally {
-        setLoading(false);
+        await saveWorldStore(currentProject.id, worldStoreData);
       }
-    },
-    [currentProject, refreshList]
-  );
+
+      // Reload static pages from default staticPages.json
+      await loadAndImportSeedPages(currentProject.id);
+
+      await refreshList();
+      setCurrentProject(reloaded);
+      return reloaded;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [currentProject, refreshList]);
 
   return {
     // State

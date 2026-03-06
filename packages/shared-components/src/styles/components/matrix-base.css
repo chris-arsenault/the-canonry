@@ -1,0 +1,128 @@
+/**
+ * Matrix base utility classes — shared structural patterns for data matrix components.
+ *
+ * These classes extract the most commonly duplicated CSS patterns across
+ * matrix/spreadsheet-style table components. Components should compose these
+ * alongside their prefixed component-specific classes.
+ *
+ * Usage:  className="mat-layout weight-matrix-editor"
+ *   The mat-* class provides the base structural pattern.
+ *   The component-prefixed class adds/overrides unique properties.
+ *
+ * Canonical reference: apps/coherence-engine/webui/src/components/weight-matrix/WeightMatrixEditor.css
+ * ADR: docs/adr/037-matrix-css-consolidation.md
+ */
+
+/* ── Layout container ──
+ * Full-height flex column for the overall matrix page/panel.
+ * Used by: weight-matrix-editor, coverage-matrix.
+ */
+.mat-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 100%;
+}
+
+/* ── Scrollable area ──
+ * Flex-growing scrollable container wrapping the table.
+ * Used by: matrix-container, cm-container.
+ */
+.mat-scroll-area {
+  flex: 1;
+  overflow: auto;
+  background: rgb(15 23 42 / 40%);
+  border: 1px solid rgb(59 130 246 / 20%);
+  border-radius: 12px;
+}
+
+/* ── Table ──
+ * Full-width collapsed table with sticky uppercase headers.
+ * Used by: matrix-table, cm-table.
+ */
+.mat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.mat-table th,
+.mat-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgb(59 130 246 / 10%);
+}
+
+.mat-table th {
+  position: sticky;
+  top: 0;
+  background: #0c1f2e;
+  font-weight: 600;
+  color: #93c5fd;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  z-index: 10;
+}
+
+/* ── Row hover ──
+ * Subtle background transition on row hover.
+ * Used by: matrix-row, cm-row.
+ */
+.mat-row {
+  transition: background-color 0.1s;
+}
+
+.mat-row:hover {
+  background: rgb(59 130 246 / 5%);
+}
+
+/* ── Toolbar ──
+ * Horizontal flex toolbar above the matrix.
+ * Used by: matrix-toolbar, cm-toolbar.
+ */
+.mat-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* ── Search input ──
+ * Dark-themed search input with focus accent.
+ * Used by: matrix-search, cm-search.
+ */
+.mat-search {
+  padding: 8px 12px;
+  font-size: 13px;
+  background: rgb(15 23 42 / 60%);
+  border: 1px solid rgb(59 130 246 / 20%);
+  border-radius: 6px;
+  color: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.mat-search:focus {
+  border-color: #f59e0b;
+}
+
+.mat-search::placeholder {
+  color: #64748b;
+}
+
+/* ── Legend bar ──
+ * Horizontal legend strip below the matrix.
+ * Used by: matrix-legend, cm-legend.
+ */
+.mat-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgb(15 23 42 / 40%);
+  border: 1px solid rgb(59 130 246 / 15%);
+  border-radius: 8px;
+}

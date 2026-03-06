@@ -4,9 +4,10 @@
  * Dynamic tabs: Overview, [each strategy group], Test
  */
 
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { ModalShell } from '@penguin-tales/shared-components';
-import { OverviewTab, SingleGroupTab, TestTab } from './tabs';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
+import { ModalShell } from "@the-canonry/shared-components";
+import { OverviewTab, SingleGroupTab, TestTab } from "./tabs";
 
 export default function ProfileModal({
   profile,
@@ -20,20 +21,48 @@ export default function ProfileModal({
   onAddTag,
   generatorUsage,
 }) {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [editedProfile, setEditedProfile] = useState(null);
 
   // Autosave refs
   const autosaveTimeoutRef = useRef(null);
   const lastSavedRef = useRef(null);
 
-  // Initialize edited profile
+  // Initialize/sync edited profile from props (render-time)
+  const [prevProfile, setPrevProfile] = useState(profile);
+  if (prevProfile !== profile && profile) {
+    setPrevProfile(profile);
+    setEditedProfile(JSON.parse(JSON.stringify(profile)));
+  }
+
+  // Keep lastSaved ref in sync when profile changes
   useEffect(() => {
     if (profile) {
-      setEditedProfile(JSON.parse(JSON.stringify(profile)));
       lastSavedRef.current = JSON.stringify(profile);
     }
   }, [profile]);
+
+  const handleSave = useCallback((profileToSave) => {
+    // Normalize weights within each group
+    const normalizedGroups = (profileToSave.strategyGroups || []).map((group) => {
+      const totalWeight = group.strategies.reduce((sum, s) => sum + s.weight, 0);
+      return {
+        ...group,
+        strategies: group.strategies.map((s) => ({
+          ...s,
+          weight:
+            totalWeight > 0 ? s.weight / totalWeight : 1 / Math.max(group.strategies.length, 1),
+        })),
+      };
+    });
+
+    const updatedProfile = {
+      ...profileToSave,
+      strategyGroups: normalizedGroups,
+    };
+
+    onSave(updatedProfile, isNew);
+  }, [onSave, isNew]);
 
   // Autosave effect
   useEffect(() => {
@@ -56,7 +85,7 @@ export default function ProfileModal({
         clearTimeout(autosaveTimeoutRef.current);
       }
     };
-  }, [editedProfile]);
+  }, [editedProfile, handleSave]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -71,9 +100,7 @@ export default function ProfileModal({
   const tabs = useMemo(() => {
     if (!editedProfile) return [];
 
-    const dynamicTabs = [
-      { id: 'overview', label: 'Overview', icon: '📋' },
-    ];
+    const dynamicTabs = [{ id: "overview", label: "Overview", icon: "📋" }];
 
     // Add a tab for each strategy group
     (editedProfile.strategyGroups || []).forEach((group, idx) => {
@@ -81,35 +108,14 @@ export default function ProfileModal({
       dynamicTabs.push({
         id: `group-${idx}`,
         label: group.name || `Group ${idx + 1}`,
-        icon: isConditional ? '🎯' : '📦',
+        icon: isConditional ? "🎯" : "📦",
       });
     });
 
-    dynamicTabs.push({ id: 'test', label: 'Test', icon: '🧪' });
+    dynamicTabs.push({ id: "test", label: "Test", icon: "🧪" });
 
     return dynamicTabs;
   }, [editedProfile]);
-
-  const handleSave = (profileToSave) => {
-    // Normalize weights within each group
-    const normalizedGroups = (profileToSave.strategyGroups || []).map((group) => {
-      const totalWeight = group.strategies.reduce((sum, s) => sum + s.weight, 0);
-      return {
-        ...group,
-        strategies: group.strategies.map((s) => ({
-          ...s,
-          weight: totalWeight > 0 ? s.weight / totalWeight : 1 / Math.max(group.strategies.length, 1),
-        })),
-      };
-    });
-
-    const updatedProfile = {
-      ...profileToSave,
-      strategyGroups: normalizedGroups,
-    };
-
-    onSave(updatedProfile, isNew);
-  };
 
   const handleClose = () => {
     // Save any pending changes before closing
@@ -136,16 +142,18 @@ export default function ProfileModal({
 
   const handleAddGroup = (withConditions = false) => {
     const newGroup = {
-      name: withConditions ? 'Conditional' : 'Default',
+      name: withConditions ? "Conditional" : "Default",
       priority: withConditions ? 50 : 0,
-      conditions: withConditions ? {
-        entityKinds: [],
-        prominence: [],
-        subtypes: [],
-        subtypeMatchAll: false,
-        tags: [],
-        tagMatchAll: false,
-      } : null,
+      conditions: withConditions
+        ? {
+            entityKinds: [],
+            prominence: [],
+            subtypes: [],
+            subtypeMatchAll: false,
+            tags: [],
+            tagMatchAll: false,
+          }
+        : null,
       strategies: [],
     };
     const updated = {
@@ -165,7 +173,7 @@ export default function ProfileModal({
     setEditedProfile(updated);
     // Switch to overview if we deleted the current tab
     if (activeTab === `group-${groupIdx}`) {
-      setActiveTab('overview');
+      setActiveTab("overview");
     }
   };
 
@@ -184,7 +192,7 @@ export default function ProfileModal({
   const tagRegistry = worldSchema?.tagRegistry || [];
 
   const renderTabContent = () => {
-    if (activeTab === 'overview') {
+    if (activeTab === "overview") {
       return (
         <OverviewTab
           profile={editedProfile}
@@ -198,18 +206,13 @@ export default function ProfileModal({
       );
     }
 
-    if (activeTab === 'test') {
-      return (
-        <TestTab
-          profile={editedProfile}
-          cultureConfig={cultureConfig}
-        />
-      );
+    if (activeTab === "test") {
+      return <TestTab profile={editedProfile} cultureConfig={cultureConfig} />;
     }
 
     // Check if it's a group tab
-    if (activeTab.startsWith('group-')) {
-      const groupIdx = parseInt(activeTab.replace('group-', ''), 10);
+    if (activeTab.startsWith("group-")) {
+      const groupIdx = parseInt(activeTab.replace("group-", ""), 10);
       const group = editedProfile.strategyGroups?.[groupIdx];
       if (group) {
         return (
@@ -256,7 +259,7 @@ export default function ProfileModal({
     <ModalShell
       onClose={handleClose}
       icon="📝"
-      title={isNew ? 'New Profile' : editedProfile.id}
+      title={isNew ? "New Profile" : editedProfile.id}
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={setActiveTab}
@@ -267,3 +270,16 @@ export default function ProfileModal({
     </ModalShell>
   );
 }
+
+ProfileModal.propTypes = {
+  profile: PropTypes.object,
+  isNew: PropTypes.bool,
+  onSave: PropTypes.func,
+  onClose: PropTypes.func,
+  onDelete: PropTypes.func,
+  onDuplicate: PropTypes.func,
+  cultureConfig: PropTypes.object,
+  worldSchema: PropTypes.object,
+  onAddTag: PropTypes.func,
+  generatorUsage: PropTypes.object,
+};

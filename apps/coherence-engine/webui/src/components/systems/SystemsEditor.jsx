@@ -2,21 +2,37 @@
  * SystemsEditor - Main component for editing simulation systems
  */
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { SYSTEM_TYPES, SYSTEM_CATEGORIES, getSystemCategory } from './constants';
-import { CategorySection } from '../shared';
-import { SystemListCard } from './cards/SystemListCard';
-import { SystemModal } from './SystemModal';
-import { buildStorageKey, clearStoredValue, loadStoredValue, saveStoredValue } from '../../utils/persistence';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
+import { SYSTEM_TYPES, SYSTEM_CATEGORIES, getSystemCategory } from "./constants";
+import { CategorySection } from "../shared";
+import { SystemListCard } from "./cards/SystemListCard";
+import { SystemModal } from "./SystemModal";
+import {
+  buildStorageKey,
+  clearStoredValue,
+  loadStoredValue,
+  saveStoredValue,
+} from "../../utils/persistence";
+import "./SystemsEditor.css";
 
-export default function SystemsEditor({ projectId, systems = [], onChange, schema, pressures = [], usageMap }) {
-  const selectionKey = buildStorageKey(projectId, 'systems:selected');
-  const typePickerKey = buildStorageKey(projectId, 'systems:typePicker');
+export default function SystemsEditor({
+  projectId,
+  systems = [],
+  onChange,
+  schema,
+  pressures = [],
+  usageMap,
+}) {
+  const selectionKey = buildStorageKey(projectId, "systems:selected");
+  const typePickerKey = buildStorageKey(projectId, "systems:typePicker");
   const [selectedId, setSelectedId] = useState(() => {
     const stored = loadStoredValue(selectionKey);
-    return typeof stored === 'string' ? stored : null;
+    return typeof stored === "string" ? stored : null;
   });
-  const [showTypePicker, setShowTypePicker] = useState(() => loadStoredValue(typePickerKey) === true);
+  const [showTypePicker, setShowTypePicker] = useState(
+    () => loadStoredValue(typePickerKey) === true
+  );
 
   // Derive selectedSystem from index
   const resolvedIndex = selectedId
@@ -47,7 +63,7 @@ export default function SystemsEditor({ projectId, systems = [], onChange, schem
   const groupedSystems = useMemo(() => {
     const groups = {};
     systems.forEach((system) => {
-      const category = getSystemCategory(system.systemType || 'unknown');
+      const category = getSystemCategory(system.systemType || "unknown");
       if (!groups[category]) {
         groups[category] = [];
       }
@@ -69,7 +85,7 @@ export default function SystemsEditor({ projectId, systems = [], onChange, schem
 
   useEffect(() => {
     const stored = loadStoredValue(selectionKey);
-    setSelectedId(typeof stored === 'string' ? stored : null);
+    setSelectedId(typeof stored === "string" ? stored : null);
   }, [selectionKey]);
 
   useEffect(() => {
@@ -103,90 +119,108 @@ export default function SystemsEditor({ projectId, systems = [], onChange, schem
     }
   }, [selectedId, selectedIndex, selectionKey]);
 
-  const handleSystemChange = useCallback((updated) => {
-    if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < systems.length) {
-      const newSystems = [...systems];
-      newSystems[selectedIndex] = updated;
-      onChange(newSystems);
-    }
-  }, [systems, onChange, selectedIndex]);
+  const handleSystemChange = useCallback(
+    (updated) => {
+      if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < systems.length) {
+        const newSystems = [...systems];
+        newSystems[selectedIndex] = updated;
+        onChange(newSystems);
+      }
+    },
+    [systems, onChange, selectedIndex]
+  );
 
-  const handleToggle = useCallback((system) => {
-    const index = systems.findIndex((s) => s.config?.id === system.config?.id);
-    if (index >= 0) {
-      const newSystems = [...systems];
-      newSystems[index] = { ...system, enabled: system.enabled === false ? true : false };
-      onChange(newSystems);
-    }
-  }, [systems, onChange]);
+  const handleToggle = useCallback(
+    (system) => {
+      const index = systems.findIndex((s) => s.config?.id === system.config?.id);
+      if (index >= 0) {
+        const newSystems = [...systems];
+        newSystems[index] = { ...system, enabled: system.enabled === false ? true : false };
+        onChange(newSystems);
+      }
+    },
+    [systems, onChange]
+  );
 
   const handleDelete = useCallback(() => {
-    if (selectedIndex !== null && selectedSystem && confirm(`Delete system "${selectedSystem.config?.name || selectedSystem.config?.id}"?`)) {
+    if (
+      selectedIndex !== null &&
+      selectedSystem &&
+      confirm(`Delete system "${selectedSystem.config?.name || selectedSystem.config?.id}"?`)
+    ) {
       const newSystems = systems.filter((_, i) => i !== selectedIndex);
       onChange(newSystems);
       setSelectedId(null);
     }
   }, [systems, onChange, selectedIndex, selectedSystem]);
 
-  const handleAddSystem = useCallback((type) => {
-    const needsSelection = [
-      'graphContagion',
-      'connectionEvolution',
-      'thresholdTrigger',
-      'clusterFormation',
-      'tagDiffusion',
-      'planeDiffusion',
-    ].includes(type);
-    const newSystem = {
-      systemType: type,
-      config: {
-        id: `system_${Date.now()}`,
-        name: `New ${SYSTEM_TYPES[type]?.label || type}`,
-        description: '',
-        ...(needsSelection ? { selection: { strategy: 'by_kind', kind: 'any' } } : {}),
-      },
-    };
-    onChange([...systems, newSystem]);
-    setSelectedId(newSystem.config.id);
-    setShowTypePicker(false);
-  }, [systems, onChange]);
+  const handleAddSystem = useCallback(
+    (type) => {
+      const needsSelection = [
+        "graphContagion",
+        "connectionEvolution",
+        "thresholdTrigger",
+        "clusterFormation",
+        "tagDiffusion",
+        "planeDiffusion",
+      ].includes(type);
+      const newSystem = {
+        systemType: type,
+        config: {
+          id: `system_${Date.now()}`,
+          name: `New ${SYSTEM_TYPES[type]?.label || type}`,
+          description: "",
+          ...(needsSelection ? { selection: { strategy: "by_kind", kind: "any" } } : {}),
+        },
+      };
+      onChange([...systems, newSystem]);
+      setSelectedId(newSystem.config.id);
+      setShowTypePicker(false);
+    },
+    [systems, onChange]
+  );
 
   const toggleCategoryExpand = useCallback((type) => {
-    setExpandedCategories(prev => ({
+    setExpandedCategories((prev) => ({
       ...prev,
       [type]: !prev[type],
     }));
   }, []);
 
-  const toggleAllInCategory = useCallback((category) => {
-    const categoryItems = groupedSystems[category] || [];
-    const allEnabled = categoryItems.every(s => s.enabled !== false);
-    const newEnabled = !allEnabled;
+  const toggleAllInCategory = useCallback(
+    (category) => {
+      const categoryItems = groupedSystems[category] || [];
+      const allEnabled = categoryItems.every((s) => s.enabled !== false);
+      const newEnabled = !allEnabled;
 
-    // Get IDs of systems in this category
-    const categoryIds = new Set(categoryItems.map(s => s.config?.id));
+      // Get IDs of systems in this category
+      const categoryIds = new Set(categoryItems.map((s) => s.config?.id));
 
-    const newSystems = systems.map(s => {
-      if (categoryIds.has(s.config?.id)) {
-        return { ...s, enabled: newEnabled };
-      }
-      return s;
-    });
-    onChange(newSystems);
-  }, [systems, groupedSystems, onChange]);
+      const newSystems = systems.map((s) => {
+        if (categoryIds.has(s.config?.id)) {
+          return { ...s, enabled: newEnabled };
+        }
+        return s;
+      });
+      onChange(newSystems);
+    },
+    [systems, groupedSystems, onChange]
+  );
 
   return (
     <div className="editor-container">
       <div className="header">
         <h1 className="title">Systems</h1>
-        <p className="subtitle">Configure simulation systems that run during the simulation phase. Click a system to edit.</p>
+        <p className="subtitle">
+          Configure simulation systems that run during the simulation phase. Click a system to edit.
+        </p>
       </div>
 
       {/* Category sections */}
       {categories.map((category) => {
-        const categoryConfig = SYSTEM_CATEGORIES[category] || { icon: '⚙️', label: category };
+        const categoryConfig = SYSTEM_CATEGORIES[category] || { icon: "⚙️", label: category };
         const categoryItems = groupedSystems[category] || [];
-        const allEnabled = categoryItems.every(s => s.enabled !== false);
+        const allEnabled = categoryItems.every((s) => s.enabled !== false);
 
         return (
           <CategorySection
@@ -217,31 +251,45 @@ export default function SystemsEditor({ projectId, systems = [], onChange, schem
       })}
 
       {/* Add System button */}
-      <div style={{ marginTop: '16px' }}>
+      <div className="mt-xl">
         <div
-          className="add-card"
-          style={{ maxWidth: '320px' }}
+          className="add-card se-add-card-wrap"
           onClick={() => setShowTypePicker(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
         >
-          <span style={{ fontSize: '24px' }}>+</span>
+          <span className="se-add-icon">+</span>
           <span>Add System</span>
         </div>
       </div>
 
       {showTypePicker && (
-        <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
-          <div className="modal" style={{ maxWidth: '600px', height: 'auto', maxHeight: '80vh' }}>
+        <div
+          className="modal-overlay"
+          onMouseDown={handleOverlayMouseDown}
+          onClick={handleOverlayClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
+        >
+          <div className="modal se-type-picker-modal">
             <div className="modal-header">
               <div className="modal-title">Choose System Type</div>
-              <button className="close-btn" onClick={() => setShowTypePicker(false)}>×</button>
+              <button className="close-btn" onClick={() => setShowTypePicker(false)}>
+                ×
+              </button>
             </div>
-            <div style={{ padding: '24px', overflowY: 'auto' }}>
+            <div className="se-type-picker-content">
               <div className="type-picker">
                 {Object.entries(SYSTEM_TYPES).map(([type, config]) => (
                   <div
                     key={type}
                     className="se-type-option type-option"
                     onClick={() => handleAddSystem(type)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                   >
                     <div className="type-option-icon">{config.icon}</div>
                     <div className="type-option-label">{config.label}</div>
@@ -267,5 +315,14 @@ export default function SystemsEditor({ projectId, systems = [], onChange, schem
     </div>
   );
 }
+
+SystemsEditor.propTypes = {
+  projectId: PropTypes.string,
+  systems: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+  usageMap: PropTypes.object,
+};
 
 export { SystemsEditor };

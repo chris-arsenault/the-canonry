@@ -4,11 +4,7 @@
  * Minimal types for the single-shot chronicle generation pipeline.
  */
 
-import type {
-  EntityContext,
-  RelationshipContext,
-  NarrativeEventContext,
-} from '../chronicleTypes';
+import type { EntityContext, RelationshipContext, NarrativeEventContext } from "../../chronicleTypes";
 
 /**
  * Configuration for V2 selection limits.
@@ -44,7 +40,7 @@ export interface V2GenerationResult {
   /** Generated narrative content */
   content: string;
   /** Pipeline version marker */
-  pipelineVersion: 'v2';
+  pipelineVersion: "v2";
   /** Summary of what was selected for the prompt */
   selectionSummary: {
     entityCount: number;

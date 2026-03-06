@@ -9,10 +9,6 @@
 
 import type { NamingDomain } from "../types/domain.js";
 import {
-  getAllConsonants,
-  getAllVowels,
-  getAllTemplates,
-  getAllClusters,
   getAvailableConsonants,
   getAvailableVowels,
   getAvailableTemplates,

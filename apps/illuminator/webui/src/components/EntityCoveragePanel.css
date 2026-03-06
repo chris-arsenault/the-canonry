@@ -1,0 +1,389 @@
+/* EntityCoveragePanel.css — co-located styles for EntityCoveragePanel.jsx */
+
+/* ── Prominence dots ── */
+.ecp-prominence-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin-right: 2px;
+}
+
+.ecp-prominence-dot-filled {
+  background: var(--text-secondary);
+}
+
+.ecp-prominence-dot-empty {
+  background: rgb(148 163 184 / 25%);
+}
+
+.ecp-prominence-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── Ratio indicator ── */
+.ecp-ratio-muted {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.ecp-ratio-value {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ecp-ratio-color);
+}
+
+/* ── Significance stars ── */
+.ecp-sig-stars {
+  font-size: 10px;
+  color: #f59e0b;
+  letter-spacing: -1px;
+}
+
+/* ── Coverage indicator ── */
+.ecp-coverage-covered {
+  color: #22c55e;
+  font-size: 11px;
+}
+
+.ecp-coverage-uncovered {
+  color: #ef4444;
+  font-size: 11px;
+}
+
+/* ── Status dot ── */
+.ecp-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.ecp-status-dot-active {
+  background: #22c55e;
+  border: none;
+}
+
+.ecp-status-dot-inactive {
+  background: rgb(148 163 184 / 30%);
+  border: 1px solid rgb(148 163 184 / 40%);
+}
+
+/* ── Section toolbar ── */
+.ecp-section-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ── Filter select ── */
+.ecp-filter-select {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 11px;
+}
+
+/* ── Section header ── */
+.ecp-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ecp-section-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.ecp-section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+  flex-shrink: 0;
+}
+
+.ecp-section-underutil {
+  font-size: 10px;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.ecp-section-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Auto count / summary text ── */
+.ecp-auto-count {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ── Checkbox label (filter rows) ── */
+.ecp-checkbox-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Suggestion action detail ── */
+.ecp-detail-wrap {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+.ecp-detail-inner {
+  padding: 8px 16px 8px 32px;
+}
+
+.ecp-detail-heading {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.ecp-detail-covered-note {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ── Suggestion event card ── */
+.ecp-event-card {
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+}
+
+.ecp-event-headline-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ecp-event-headline {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-color);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ecp-event-era {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.ecp-entity-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.ecp-entity-chip {
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ecp-entity-icon-subject {
+  color: #60a5fa;
+  font-size: 9px;
+}
+
+.ecp-entity-icon-participant {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.ecp-entity-name {
+  color: var(--text-color);
+}
+
+.ecp-entity-kind {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.ecp-entity-new {
+  color: #a855f7;
+  font-size: 9px;
+}
+
+.ecp-entity-appearances {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+/* ── Suggestion expand toggle td ── */
+.ecp-expand-td {
+  width: 16px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.ecp-row-clickable {
+  cursor: pointer;
+}
+
+/* ── Table cell expand detail ── */
+.ecp-expand-detail-td {
+  padding: 0;
+}
+
+/* ── Color classes for inline values ── */
+.ecp-color-green {
+  color: #22c55e;
+}
+
+.ecp-color-red {
+  color: #ef4444;
+}
+
+.ecp-color-amber {
+  color: #f59e0b;
+}
+
+.ecp-color-muted {
+  color: var(--text-muted);
+}
+
+.ecp-color-blue {
+  color: #60a5fa;
+}
+
+.ecp-color-purple {
+  color: #a855f7;
+}
+
+.ecp-font-bold {
+  font-weight: 600;
+}
+
+/* ── Divergence and gap value styling ── */
+.ecp-divergence-warning {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+/* ── Status dot row (integration section) ── */
+.ecp-status-dot-row {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ── Potential rating ── */
+.ecp-potential-stars {
+  color: #f59e0b;
+  letter-spacing: -1px;
+}
+
+.ecp-never-primary {
+  font-size: 9px;
+  color: #a855f7;
+  margin-left: 4px;
+}
+
+/* ── Era chronicle count ── */
+.ecp-era-completed {
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+/* ── Pre-calculation panel ── */
+.ecp-pre-calc {
+  margin-top: 16px;
+}
+
+.ecp-pre-calc-inner {
+  padding: 16px;
+}
+
+.ecp-pre-calc-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ecp-pre-calc-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.ecp-pre-calc-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 8px 0 12px;
+}
+
+.ecp-btn-pad-sm {
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+/* ── Post-calculation wrapper ── */
+.ecp-wrapper {
+  margin-top: 16px;
+}
+
+.ecp-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+}
+
+.ecp-header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.ecp-header-stats {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ecp-recalc-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  margin-left: auto;
+}
+
+/* ── Frequency view: rare count highlight ── */
+.ecp-rare-count {
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+/* ── Card with bottom margin ── */
+.ecp-header-card {
+  margin-bottom: 8px;
+}

@@ -1,13 +1,9 @@
 /**
  * WeightMatrixEditor Styles
+ *
+ * Structural base provided by mat-* classes from @the-canonry/shared-components.
+ * This file contains only WeightMatrixEditor-specific rules.
  */
-
-.weight-matrix-editor {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  max-width: 100%;
-}
 
 .weight-matrix-editor .header {
   margin-bottom: 20px;
@@ -26,14 +22,10 @@
   margin: 0;
 }
 
-/* Toolbar */
+/* Toolbar — extends mat-toolbar with space-between and wider gap */
 .matrix-toolbar {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
 }
 
 .toolbar-left {
@@ -79,25 +71,9 @@
   color: #0a1929;
 }
 
-/* Search */
+/* Search — extends mat-search with fixed width */
 .matrix-search {
-  padding: 8px 12px;
-  font-size: 13px;
-  background: rgb(15 23 42 / 60%);
-  border: 1px solid rgb(59 130 246 / 20%);
-  border-radius: 6px;
-  color: #fff;
   width: 200px;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.matrix-search:focus {
-  border-color: #f59e0b;
-}
-
-.matrix-search::placeholder {
-  color: #64748b;
 }
 
 /* Bulk Actions */
@@ -136,41 +112,6 @@
   border-radius: 4px;
 }
 
-/* Matrix Container */
-.matrix-container {
-  flex: 1;
-  overflow: auto;
-  background: rgb(15 23 42 / 40%);
-  border: 1px solid rgb(59 130 246 / 20%);
-  border-radius: 12px;
-}
-
-/* Matrix Table */
-.matrix-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.matrix-table th,
-.matrix-table td {
-  padding: 10px 12px;
-  text-align: left;
-  border-bottom: 1px solid rgb(59 130 246 / 10%);
-}
-
-.matrix-table th {
-  position: sticky;
-  top: 0;
-  background: #0c1f2e;
-  font-weight: 600;
-  color: #93c5fd;
-  text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  z-index: 10;
-}
-
 /* Column Widths */
 .checkbox-col {
   width: 40px;
@@ -201,15 +142,7 @@
   text-align: right !important;
 }
 
-/* Row Styles */
-.matrix-row {
-  transition: background-color 0.1s;
-}
-
-.matrix-row:hover {
-  background: rgb(59 130 246 / 5%);
-}
-
+/* Row Styles — extends mat-row */
 .matrix-row.unused {
   opacity: 0.6;
 }
@@ -277,9 +210,37 @@
   background: transparent !important;
 }
 
+.weight-cell-none {
+  background-color: transparent;
+}
+
+.weight-cell-low {
+  background-color: rgb(245 158 11 / 30%);
+}
+
+.weight-cell-mid {
+  background-color: rgb(245 158 11 / 45%);
+}
+
+.weight-cell-high {
+  background-color: rgb(245 158 11 / 60%);
+}
+
+.weight-cell-max {
+  background-color: rgb(245 158 11 / 75%);
+}
+
 .cell-value {
   font-weight: 600;
   font-size: 13px;
+}
+
+.cell-value-muted {
+  color: #64748b;
+}
+
+.cell-value-active {
+  color: #fbbf24;
 }
 
 .cell-input {
@@ -343,16 +304,9 @@
   padding: 40px !important;
 }
 
-/* Legend */
+/* Legend — extends mat-legend with tighter gap */
 .matrix-legend {
-  display: flex;
-  align-items: center;
   gap: 12px;
-  margin-top: 16px;
-  padding: 12px 16px;
-  background: rgb(15 23 42 / 40%);
-  border: 1px solid rgb(59 130 246 / 15%);
-  border-radius: 8px;
 }
 
 .legend-label {

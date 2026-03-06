@@ -3,4 +3,4 @@ export {
   extractFirstJsonObject,
   parseJsonObject,
   parseJsonValue,
-} from '../../lib/jsonParsing';
+} from "../../lib/jsonParsing";

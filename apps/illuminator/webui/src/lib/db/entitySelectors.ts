@@ -34,10 +34,10 @@
  * re-renders when that specific nav item changes.
  */
 
-import { useMemo } from 'react';
-import { useEntityStore } from './entityStore';
-import type { PersistedEntity } from './illuminatorDb';
-import type { EntityNavItem } from './entityNav';
+import { useMemo } from "react";
+import { useEntityStore } from "./entityStore";
+import type { PersistedEntity } from "./illuminatorDb";
+import type { EntityNavItem } from "./entityNav";
 
 const EMPTY_ARRAY: EntityNavItem[] = [];
 
@@ -49,10 +49,7 @@ export function useEntityNavItems(): Map<string, EntityNavItem> {
 /** Nav item array for list rendering — derived from map via useMemo */
 export function useEntityNavList(): EntityNavItem[] {
   const navItems = useEntityStore((state) => state.navItems);
-  return useMemo(
-    () => (navItems.size ? Array.from(navItems.values()) : EMPTY_ARRAY),
-    [navItems],
-  );
+  return useMemo(() => (navItems.size ? Array.from(navItems.values()) : EMPTY_ARRAY), [navItems]);
 }
 
 /** Single nav item by ID — only re-renders when this specific nav item changes */

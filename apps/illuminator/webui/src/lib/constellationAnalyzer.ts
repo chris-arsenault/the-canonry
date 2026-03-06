@@ -10,7 +10,7 @@ import type {
   RelationshipContext,
   NarrativeEventContext,
   EraContext,
-} from './chronicleTypes';
+} from "./chronicleTypes";
 
 // =============================================================================
 // Types
@@ -23,10 +23,10 @@ export interface ConstellationInput {
   focalEra?: EraContext;
 }
 
-export type CultureBalance = 'single' | 'dominant' | 'mixed';
-export type KindFocus = 'character' | 'place' | 'object' | 'event' | 'mixed';
-export type SpatialSpread = 'tight' | 'dispersed';
-export type EraSpan = 'single' | 'multiple';
+export type CultureBalance = "single" | "dominant" | "mixed";
+export type KindFocus = "character" | "place" | "object" | "event" | "mixed";
+export type SpatialSpread = "tight" | "dispersed";
+export type EraSpan = "single" | "multiple";
 
 export interface EntityConstellation {
   // Culture distribution
@@ -62,40 +62,39 @@ export interface EntityConstellation {
 // Helper Functions
 // =============================================================================
 
-
 /**
  * Compute kind focus from kind distribution
  */
 function computeKindFocus(kinds: Record<string, number>): KindFocus {
   const total = Object.values(kinds).reduce((a, b) => a + b, 0);
-  if (total === 0) return 'mixed';
+  if (total === 0) return "mixed";
 
   const entries = Object.entries(kinds).sort((a, b) => b[1] - a[1]);
-  const [topKind, topCount] = entries[0] || ['unknown', 0];
+  const [topKind, topCount] = entries[0] || ["unknown", 0];
   const topRatio = topCount / total;
 
   // If one kind dominates (>50%), use that focus
   if (topRatio > 0.5) {
     switch (topKind) {
-      case 'npc':
-      case 'character':
-        return 'character';
-      case 'location':
-      case 'place':
-        return 'place';
-      case 'artifact':
-      case 'object':
-      case 'item':
-        return 'object';
-      case 'occurrence':
-      case 'event':
-        return 'event';
+      case "npc":
+      case "character":
+        return "character";
+      case "location":
+      case "place":
+        return "place";
+      case "artifact":
+      case "object":
+      case "item":
+        return "object";
+      case "occurrence":
+      case "event":
+        return "event";
       default:
-        return 'mixed';
+        return "mixed";
     }
   }
 
-  return 'mixed';
+  return "mixed";
 }
 
 /**
@@ -111,39 +110,37 @@ function buildFocusSummary(
   const parts: string[] = [];
 
   // Culture part
-  if (cultureBalance === 'single' && topCulture) {
+  if (cultureBalance === "single" && topCulture) {
     parts.push(`${topCulture}-focused`);
-  } else if (cultureBalance === 'dominant' && topCulture) {
+  } else if (cultureBalance === "dominant" && topCulture) {
     parts.push(`${topCulture}-dominant`);
   } else {
-    parts.push('cross-cultural');
+    parts.push("cross-cultural");
   }
 
   // Kind part
-  if (kindFocus !== 'mixed') {
+  if (kindFocus !== "mixed") {
     parts.push(`${kindFocus}-centered`);
   }
 
   // Relationship kinds
   const relKinds = Object.keys(relationshipKinds);
   if (relKinds.length > 0) {
-    parts.push(`relationships: ${relKinds.slice(0, 3).join(', ')}`);
+    parts.push(`relationships: ${relKinds.slice(0, 3).join(", ")}`);
   }
 
   // Tags
   if (prominentTags.length > 0) {
-    parts.push(`themes: ${prominentTags.slice(0, 3).join(', ')}`);
+    parts.push(`themes: ${prominentTags.slice(0, 3).join(", ")}`);
   }
 
-  return parts.join(', ');
+  return parts.join(", ");
 }
 
 /**
  * Compute centroid of entity coordinates
  */
-function computeCentroid(
-  entities: EntityContext[]
-): { x: number; y: number } | undefined {
+function computeCentroid(entities: EntityContext[]): { x: number; y: number } | undefined {
   const withCoords = entities.filter((e) => e.coordinates);
   if (withCoords.length === 0) return undefined;
 
@@ -166,10 +163,10 @@ function computeCentroid(
  */
 function computeSpatialSpread(entities: EntityContext[]): SpatialSpread {
   const withCoords = entities.filter((e) => e.coordinates);
-  if (withCoords.length < 2) return 'tight';
+  if (withCoords.length < 2) return "tight";
 
   const centroid = computeCentroid(entities);
-  if (!centroid) return 'tight';
+  if (!centroid) return "tight";
 
   // Compute average distance from centroid
   const avgDistance =
@@ -180,7 +177,7 @@ function computeSpatialSpread(entities: EntityContext[]): SpatialSpread {
     }, 0) / withCoords.length;
 
   // Threshold for dispersed (arbitrary, can be tuned)
-  return avgDistance > 0.3 ? 'dispersed' : 'tight';
+  return avgDistance > 0.3 ? "dispersed" : "tight";
 }
 
 // =============================================================================
@@ -194,16 +191,9 @@ function computeSpatialSpread(entities: EntityContext[]): SpatialSpread {
  * kind focus, tag frequency, relationship dynamics, and temporal scope
  * from the provided entity set.
  */
-export function analyzeConstellation(
-  input: ConstellationInput
-): EntityConstellation {
-  const { entities, relationships, events, focalEra } = input;
-  const totalEntities = entities.length;
-
-  // ==========================================================================
-  // Culture Analysis
-  // ==========================================================================
-
+function analyzeCultures(
+  entities: ConstellationInput["entities"]
+): { cultures: Record<string, number>; topCulture: string | null; cultureBalance: CultureBalance } {
   const cultures: Record<string, number> = {};
   for (const e of entities) {
     if (e.culture) {
@@ -213,70 +203,69 @@ export function analyzeConstellation(
 
   const cultureEntries = Object.entries(cultures).sort((a, b) => b[1] - a[1]);
   const [topCulture, topCultureCount] = cultureEntries[0] || [null, 0];
+  const total = entities.length;
 
-  let cultureBalance: CultureBalance;
-  if (totalEntities === 0) {
-    cultureBalance = 'mixed';
-  } else if (topCultureCount / totalEntities > 0.8) {
-    cultureBalance = 'single';
-  } else if (topCultureCount / totalEntities > 0.5) {
-    cultureBalance = 'dominant';
-  } else {
-    cultureBalance = 'mixed';
-  }
+  const cultureBalance = determineCultureBalance(total, topCultureCount ?? 0);
+  return { cultures, topCulture: topCulture ?? null, cultureBalance };
+}
 
-  // ==========================================================================
-  // Kind Analysis
-  // ==========================================================================
+function determineCultureBalance(total: number, topCount: number): CultureBalance {
+  if (total === 0) return "mixed";
+  if (topCount / total > 0.8) return "single";
+  if (topCount / total > 0.5) return "dominant";
+  return "mixed";
+}
 
+function analyzeKinds(
+  entities: ConstellationInput["entities"]
+): { kinds: Record<string, number>; topKind: string | null; kindFocus: KindFocus } {
   const kinds: Record<string, number> = {};
   for (const e of entities) {
     kinds[e.kind] = (kinds[e.kind] || 0) + 1;
   }
-
   const kindEntries = Object.entries(kinds).sort((a, b) => b[1] - a[1]);
   const [topKind] = kindEntries[0] || [null];
+  return { kinds, topKind, kindFocus: computeKindFocus(kinds) };
+}
 
-  const kindFocus = computeKindFocus(kinds);
-
-  // ==========================================================================
-  // Tag Aggregation
-  // ==========================================================================
-
+function aggregateTags(
+  entities: ConstellationInput["entities"]
+): { tagFrequency: Record<string, number>; prominentTags: string[] } {
   const tagFrequency: Record<string, number> = {};
   for (const e of entities) {
-    if (e.tags) {
-      for (const [key, value] of Object.entries(e.tags)) {
-        if (value) {
-          tagFrequency[key] = (tagFrequency[key] || 0) + 1;
-        }
+    if (!e.tags) continue;
+    for (const [key, value] of Object.entries(e.tags)) {
+      if (value) {
+        tagFrequency[key] = (tagFrequency[key] || 0) + 1;
       }
     }
   }
-
   const prominentTags = Object.entries(tagFrequency)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([tag]) => tag);
+  return { tagFrequency, prominentTags };
+}
 
-  // ==========================================================================
-  // Relationship Analysis
-  // ==========================================================================
-
+function countRelationshipKinds(relationships: ConstellationInput["relationships"]): Record<string, number> {
   const relationshipKinds: Record<string, number> = {};
   for (const r of relationships) {
     relationshipKinds[r.kind] = (relationshipKinds[r.kind] || 0) + 1;
   }
+  return relationshipKinds;
+}
 
-  // ==========================================================================
-  // Temporal Analysis
-  // ==========================================================================
+export function analyzeConstellation(input: ConstellationInput): EntityConstellation {
+  const { entities, relationships, events, focalEra } = input;
+
+  const { cultures, topCulture, cultureBalance } = analyzeCultures(entities);
+  const { kinds, topKind, kindFocus } = analyzeKinds(entities);
+  const { tagFrequency, prominentTags } = aggregateTags(entities);
+  const relationshipKinds = countRelationshipKinds(relationships);
 
   const focalEraId = focalEra?.id || null;
-
-  // Check era span from events
   const eraIds = new Set(events.map((e) => e.era).filter(Boolean));
-  const eraSpan: EraSpan = eraIds.size > 1 ? 'multiple' : 'single';
+  const eraSpan: EraSpan = eraIds.size > 1 ? "multiple" : "single";
 
   // ==========================================================================
   // Spatial Analysis
@@ -303,7 +292,7 @@ export function analyzeConstellation(
 
   return {
     cultures,
-    dominantCulture: cultureBalance !== 'mixed' ? topCulture : null,
+    dominantCulture: cultureBalance !== "mixed" ? topCulture : null,
     cultureBalance,
     kinds,
     dominantKind: topKind || null,

@@ -1,0 +1,47 @@
+/* PressureCard companion styles */
+.pc-title-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.pc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pc-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2xl);
+}
+
+.pc-balance-value {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.pc-balance-label {
+  font-size: 11px;
+}
+
+.pc-factor-positive {
+  color: #86efac;
+}
+
+.pc-factor-negative {
+  color: #fca5a5;
+}
+
+.pc-stat-bar-fill {
+  background-color: #3b82f6;
+}
+
+.pc-danger-zone {
+  margin-top: var(--spacing-2xl);
+  padding-top: var(--spacing-xl);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+}

@@ -32,9 +32,10 @@ export class ContractEnforcer {
   private registry: TagMetadata[];
 
   constructor(private config: EngineConfig) {
-    // TagDefinition from schema is looser than TagMetadata; filter to valid entries
-    this.registry = (config.schema.tagRegistry || [])
-      .filter((t): t is TagMetadata => t.category !== undefined) as TagMetadata[];
+    // TagDefinition from schema is structurally compatible with TagMetadata for the fields we use
+    this.registry = config.schema.tagRegistry
+      .filter(t => typeof t.category === 'string' && t.category.length > 0)
+      .map(t => ({ ...t, consolidateInto: '' }) as TagMetadata);
     this.tagAnalyzer = new TagHealthAnalyzer(this.registry);
   }
 
@@ -52,14 +53,14 @@ export class ContractEnforcer {
   public checkTagSaturation(
     graph: WorldRuntime,
     tagsToAdd: string[]
-  ): { saturated: boolean; oversaturatedTags: string[]; reason?: string } {
+  ): { saturated: boolean; oversaturatedTags: string[]; reason: string } {
     // Count current tag usage
     const tagCounts = new Map<string, number>();
     graph.forEachEntity((entity) => {
       for (const tag of getTagKeysNormalized(entity.tags)) {
         tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
       }
-    });
+    }, { includeHistorical: false });
 
     // Check which tags would exceed maxUsage
     const oversaturatedTags: string[] = [];
@@ -84,7 +85,7 @@ export class ContractEnforcer {
       };
     }
 
-    return { saturated: false, oversaturatedTags: [] };
+    return { saturated: false, oversaturatedTags: [], reason: '' };
   }
 
   /**
@@ -118,13 +119,13 @@ export class ContractEnforcer {
    */
   public enforceTagCoverage(
     entity: HardState,
-    graph: WorldRuntime
-  ): { needsAdjustment: boolean; suggestion: string; tagsToAdd?: string[]; tagsToRemove?: string[] } {
+    _graph: WorldRuntime
+  ): { needsAdjustment: boolean; suggestion: string; tagsToAdd: string[]; tagsToRemove: string[] } {
     const currentCount = getTagKeyCount(entity.tags);
 
     // Check if coverage is acceptable (3-5 tags)
     if (currentCount >= 3 && currentCount <= 5) {
-      return { needsAdjustment: false, suggestion: 'Tag coverage is adequate' };
+      return { needsAdjustment: false, suggestion: 'Tag coverage is adequate', tagsToAdd: [], tagsToRemove: [] };
     }
 
     // Too few tags - suggest additions
@@ -133,22 +134,24 @@ export class ContractEnforcer {
       return {
         needsAdjustment: true,
         suggestion: `Entity ${entity.name} has only ${currentCount} tags, needs ${needed} more`,
-        tagsToAdd: []  // Template should handle this
+        tagsToAdd: [],  // Template should handle this
+        tagsToRemove: []
       };
     }
 
     // Too many tags - suggest removals
     if (currentCount > 5) {
       const excess = currentCount - 5;
-      const tagKeys = Object.keys(entity.tags || {});
+      const tagKeys = Object.keys(entity.tags);
       return {
         needsAdjustment: true,
         suggestion: `Entity ${entity.name} has ${currentCount} tags, should remove ${excess}`,
+        tagsToAdd: [],
         tagsToRemove: tagKeys.slice(5)  // Remove excess tags
       };
     }
 
-    return { needsAdjustment: false, suggestion: 'Tag coverage is adequate' };
+    return { needsAdjustment: false, suggestion: 'Tag coverage is adequate', tagsToAdd: [], tagsToRemove: [] };
   }
 
   /**
@@ -184,7 +187,7 @@ export class ContractEnforcer {
     parts.push(`canApply(): ${canApply ? '✓' : '✗'}`);
 
     // Check targets
-    const targets = template.findTargets ? template.findTargets(graphView) : [];
+    const targets = template.findTargets(graphView);
     parts.push(`Targets: ${targets.length}`);
 
     return parts.join(' | ');

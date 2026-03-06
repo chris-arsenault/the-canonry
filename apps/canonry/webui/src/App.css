@@ -1,0 +1,283 @@
+/**
+ * App.css — Styles for canonry App.jsx / App.tsx
+ *
+ * AWS modal, app shell, loading screen.
+ * Theme values hardcoded from theme.js.
+ */
+
+/* ===== Remote host container (used by all *Host.jsx wrappers) ===== */
+
+.remote-container {
+  height: 100%;
+  overflow: auto;
+}
+
+/* ===== App shell ===== */
+
+.canonry-app-loading {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background-color: #0a1929;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.canonry-loading-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #60a5fa;
+}
+
+.canonry-app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #0a1929;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.canonry-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.canonry-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #0a1929;
+  border-top: 1px solid rgba(59, 130, 246, 0.3);
+  font-size: 12px;
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+/* ===== AWS modal layout ===== */
+
+.aws-modal {
+  max-width: 900px;
+}
+
+.aws-section {
+  margin-bottom: 16px;
+}
+
+.aws-section-title {
+  font-size: 13px;
+}
+
+.aws-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.aws-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aws-label {
+  font-size: 11px;
+  color: #60a5fa;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.aws-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  background-color: #1e3a5f;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+}
+
+.aws-description {
+  color: #93c5fd;
+  margin-bottom: 12px;
+}
+
+.aws-hint {
+  font-size: 12px;
+  color: #60a5fa;
+}
+
+.aws-hint-spaced {
+  font-size: 12px;
+  color: #60a5fa;
+  margin-top: 8px;
+}
+
+.aws-session-value {
+  color: #93c5fd;
+  margin-top: 4px;
+}
+
+/* ===== AWS sync progress ===== */
+
+.canonry-aws-sync-progress {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  appearance: none;
+}
+.canonry-aws-sync-progress::-webkit-progress-bar {
+  background: transparent;
+  border-radius: 4px;
+}
+.canonry-aws-sync-progress::-webkit-progress-value {
+  background: #3b82f6;
+  border-radius: 4px;
+}
+
+.aws-progress-track {
+  margin-top: 4px;
+  height: 6px;
+  background: #2d4a6f;
+  border-radius: 4px;
+}
+
+/* ===== AWS credentials ===== */
+
+.aws-credentials {
+  margin-top: 12px;
+}
+
+.aws-session-info {
+  color: #93c5fd;
+  font-size: 12px;
+}
+
+.aws-user-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.aws-login-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.aws-login-submit {
+  display: flex;
+  align-items: flex-end;
+}
+
+/* ===== AWS S3 config ===== */
+
+.aws-s3-toggle {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aws-browse-loading {
+  color: #60a5fa;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.aws-browse-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.aws-browse-prefixes {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.aws-browse-prefix-btn {
+  font-size: 11px;
+}
+
+.aws-checkbox-section {
+  margin-top: 12px;
+}
+
+.aws-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #93c5fd;
+  cursor: pointer;
+}
+
+/* ===== AWS snapshot ===== */
+
+.aws-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.aws-status-text {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #60a5fa;
+}
+
+.canonry-snapshot-detail {
+  margin-top: 4px;
+  font-size: 11px;
+}
+.canonry-snapshot-detail-error {
+  color: #ef4444;
+}
+.canonry-snapshot-detail-default {
+  color: #60a5fa;
+}
+
+/* ===== AWS upload plan ===== */
+
+.aws-plan-summary {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #93c5fd;
+}
+
+.aws-plan-detail {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #60a5fa;
+}
+
+.aws-plan-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #ef4444;
+}
+
+.aws-plan-json {
+  width: 100%;
+  height: 200px;
+  margin-top: 8px;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 11px;
+  background-color: #0a1929;
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  resize: vertical;
+}

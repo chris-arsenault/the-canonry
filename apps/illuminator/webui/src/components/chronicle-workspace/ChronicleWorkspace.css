@@ -1,0 +1,208 @@
+/* ChronicleWorkspace — cw- prefix */
+
+/* Title accept modal */
+.cw-title-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 60%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.cw-title-dialog {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgb(0 0 0 / 30%);
+}
+
+.cw-title-heading {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+
+.cw-generating-current {
+  margin-bottom: 16px;
+}
+
+.cw-generating-current-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.cw-generating-current-value {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.cw-generating-spinner-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.cw-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--text-muted);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: cw-spin 1s linear infinite;
+}
+
+@keyframes cw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Fragments box */
+.cw-fragments-box {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.cw-fragments-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cw-fragments-list {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.cw-fragment-separator {
+  color: var(--text-muted);
+  margin: 0 6px;
+}
+
+/* Title candidates */
+.cw-candidates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.cw-candidate-primary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--bg-secondary);
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  text-align: left;
+  width: 100%;
+}
+
+.cw-candidate-primary-icon {
+  color: #2563eb;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.cw-candidate-alt {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  text-align: left;
+  width: 100%;
+}
+
+.cw-candidate-alt:hover {
+  border-color: var(--text-muted);
+}
+
+.cw-candidate-alt-icon {
+  opacity: 0.4;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+/* Custom title section */
+.cw-custom-title-section {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  margin-bottom: 16px;
+}
+
+.cw-custom-title-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.cw-custom-title-row {
+  display: flex;
+  gap: 8px;
+}
+
+.cw-custom-title-input {
+  flex: 1;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+.cw-custom-title-use-btn {
+  padding: 8px 12px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.cw-custom-title-use-btn-active {
+  background: var(--accent-primary);
+  cursor: pointer;
+  color: white;
+}
+
+.cw-custom-title-use-btn-disabled {
+  background: var(--bg-tertiary);
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+/* Footer */
+.cw-title-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cw-keep-current-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}

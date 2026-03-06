@@ -1,17 +1,40 @@
 export type ImageSize = 'thumb' | 'full';
 
+/** Entity this image depicts — null when image is not entity-associated. */
+export interface ImageEntityInfo {
+  id: string;
+  name: string;
+  kind: string;
+  culture: string;
+}
+
+/** Measured pixel dimensions — null when image hasn't been loaded/measured. */
+export interface ImageDimensions {
+  width: number;
+  height: number;
+  aspect: 'portrait' | 'landscape' | 'square';
+}
+
+/** Generation provenance — null when not captured by the generator. */
+export interface ImageGenerationInfo {
+  originalPrompt: string;
+  finalPrompt: string;
+  revisedPrompt: string;
+  generatedAt: number;
+  model: string;
+}
+
 /**
  * Metadata for a single image — lightweight, no blob data.
- * Used for layout decisions (aspect ratio) and entity identification.
+ * Used for layout decisions (aspect ratio), entity identification,
+ * and generation provenance (prompt, model, etc.).
  */
 export interface ImageEntryMetadata {
   imageId: string;
-  entityId?: string;
-  entityName?: string;
-  entityKind?: string;
-  width?: number;
-  height?: number;
-  aspect?: 'portrait' | 'landscape' | 'square';
+  entity: ImageEntityInfo | null;
+  dimensions: ImageDimensions | null;
+  generation: ImageGenerationInfo | null;
+  size: number | null;
 }
 
 /**

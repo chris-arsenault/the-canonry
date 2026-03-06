@@ -12,7 +12,7 @@
  * total accumulated drift is significant.
  */
 
-export const SIMILARITY_THRESHOLD = 0.90;
+export const SIMILARITY_THRESHOLD = 0.9;
 export const COMPRESSION_FLOOR = 8;
 
 export interface DescriptionHistoryEntry {
@@ -38,10 +38,7 @@ export function wordSimilarity(a: string, b: string): number {
   return union === 0 ? 1 : intersection / union;
 }
 
-function flushGroup(
-  group: DescriptionHistoryEntry[],
-  result: CompressedHistoryEntry[],
-): void {
+function flushGroup(group: DescriptionHistoryEntry[], result: CompressedHistoryEntry[]): void {
   const last = group[group.length - 1];
   if (group.length === 1) {
     result.push(last);
@@ -57,7 +54,7 @@ function flushGroup(
 }
 
 export function compressDescriptionHistory(
-  history: DescriptionHistoryEntry[],
+  history: DescriptionHistoryEntry[]
 ): CompressedHistoryEntry[] {
   if (history.length <= COMPRESSION_FLOOR) {
     return history;

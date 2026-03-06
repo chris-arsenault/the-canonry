@@ -22,8 +22,8 @@ export interface ScenePromptTemplate {
 
 export const SCENE_PROMPT_TEMPLATES: ScenePromptTemplate[] = [
   {
-    id: 'montage',
-    name: 'Cinematic Montage',
+    id: "montage",
+    name: "Cinematic Montage",
     framing: `Generate a visual scene description for a cinematic montage-style cover image for this chronicle. The cover image should work like a movie poster (but with NO TEXT): overlapping visual elements showing key figures and settings from the chronicle, with dramatic layering and depth.`,
     instructions: `Write a vivid visual description of a montage composition that captures the essence of this chronicle. Describe:
 - Which key figures should be prominent and at what scale (foreground, midground, background)
@@ -32,8 +32,8 @@ export const SCENE_PROMPT_TEMPLATES: ScenePromptTemplate[] = [
 - How elements overlap and layer (movie-poster style, NOT a single coherent scene)`,
   },
   {
-    id: 'intimate-scene',
-    name: 'Intimate Scene',
+    id: "intimate-scene",
+    name: "Intimate Scene",
     framing: `Generate a visual scene description for a single evocative cover image for this chronicle. The cover image should capture ONE key moment — a still frame from the story, not a montage. Focus on atmosphere and emotional resonance over spectacle.`,
     instructions: `Write a vivid visual description of one scene that captures the emotional heart of this chronicle. Describe:
 - The single moment that best represents the chronicle's core
@@ -43,8 +43,8 @@ export const SCENE_PROMPT_TEMPLATES: ScenePromptTemplate[] = [
 - One or two small telling details that reward close looking`,
   },
   {
-    id: 'symbolic-abstract',
-    name: 'Symbolic / Abstract',
+    id: "symbolic-abstract",
+    name: "Symbolic / Abstract",
     framing: `Generate a visual scene description for an abstract, mood-driven cover image for this chronicle. The image should evoke the chronicle's emotional and thematic essence through symbolic visual elements rather than literal scenes.`,
     instructions: `Write a vivid visual description of an abstract composition that captures the thematic essence of this chronicle. Describe:
 - Central symbolic elements or motifs drawn from the chronicle's themes
@@ -54,8 +54,8 @@ export const SCENE_PROMPT_TEMPLATES: ScenePromptTemplate[] = [
 - Any recurring images or metaphors from the text rendered visually`,
   },
   {
-    id: 'document-artifact',
-    name: 'Document Artifact',
+    id: "document-artifact",
+    name: "Document Artifact",
     framing: `Generate a visual scene description for a cover image that depicts the chronicle AS a physical document or artifact — something with history, handled by real hands. The composition should show the document the way it would naturally be encountered in the world, not always flat on a surface photographed from above.`,
     instructions: `Write a vivid visual description of this chronicle as a physical document. Describe:
 - Who made this document, who it was for, and how it would naturally be encountered or displayed
@@ -65,8 +65,8 @@ export const SCENE_PROMPT_TEMPLATES: ScenePromptTemplate[] = [
 - The immediate environment and lighting`,
   },
   {
-    id: 'formal-tableau',
-    name: 'Formal Tableau',
+    id: "formal-tableau",
+    name: "Formal Tableau",
     framing: `Generate a visual scene description for a formal, symmetrically arranged cover image for this chronicle. The composition should feel like a ceremonial painting or official record — staged, hierarchical, deliberate.`,
     instructions: `Write a vivid visual description of a formal tableau composition that captures the ceremony or proceedings of this chronicle. Describe:
 - The central figure or focal point of authority
@@ -76,8 +76,8 @@ export const SCENE_PROMPT_TEMPLATES: ScenePromptTemplate[] = [
 - Lighting that emphasizes the power structure`,
   },
   {
-    id: 'folk-illustration',
-    name: 'Folk Illustration',
+    id: "folk-illustration",
+    name: "Folk Illustration",
     framing: `Generate a visual scene description for a folk-art style cover image for this chronicle. The image should look like a traditional illustration — iconic, decorative, with flattened perspective. Characters are archetypes, not portraits.`,
     instructions: `Write a vivid visual description of a folk-art illustration that captures the central narrative of this chronicle. Describe:
 - Key characters or creatures rendered as iconic, slightly stylized figures
@@ -87,8 +87,8 @@ export const SCENE_PROMPT_TEMPLATES: ScenePromptTemplate[] = [
 - The central narrative moment that reads clearly as a single image`,
   },
   {
-    id: 'vignette-sequence',
-    name: 'Vignette Sequence',
+    id: "vignette-sequence",
+    name: "Vignette Sequence",
     framing: `Generate a visual scene description for a multi-panel vignette cover image for this chronicle. The image should contain several small, self-contained scenes arranged together — multiple moments from the chronicle presented side by side.`,
     instructions: `Write a vivid visual description of a vignette sequence that captures the breadth of this chronicle. Describe:
 - 3-5 distinct moments from the chronicle, each as a brief self-contained scene
@@ -109,52 +109,91 @@ export interface CoverImageConfig {
 }
 
 const DEFAULT_CONFIG: CoverImageConfig = {
-  scenePromptId: 'montage',
-  compositionStyleId: 'chronicle-overview',
+  scenePromptId: "montage",
+  compositionStyleId: "chronicle-overview",
 };
 
 const COVER_IMAGE_CONFIG: Record<string, CoverImageConfig> = {
   // --- Story styles ---
-  'epic-drama':         { scenePromptId: 'montage',           compositionStyleId: 'chronicle-overview' },
-  'action-adventure':   { scenePromptId: 'montage',           compositionStyleId: 'chronicle-overview' },
-  'heroic-fantasy':     { scenePromptId: 'montage',           compositionStyleId: 'chronicle-overview' },
-  'treasure-hunt':      { scenePromptId: 'montage',           compositionStyleId: 'chronicle-overview' },
-  'political-intrigue': { scenePromptId: 'montage',           compositionStyleId: 'chronicle-overview' },
-  'tragedy':            { scenePromptId: 'montage',           compositionStyleId: 'chronicle-overview' },
-  'mystery-suspense':   { scenePromptId: 'montage',           compositionStyleId: 'chronicle-overview' },
-  'haunted-relic':      { scenePromptId: 'montage',           compositionStyleId: 'chronicle-overview' },
-  'lost-legacy':        { scenePromptId: 'montage',           compositionStyleId: 'chronicle-overview' },
-  'apocalyptic-vision': { scenePromptId: 'symbolic-abstract', compositionStyleId: 'chronicle-symbolic' },
-  'romance':            { scenePromptId: 'intimate-scene',    compositionStyleId: 'chronicle-intimate' },
-  'slice-of-life':      { scenePromptId: 'intimate-scene',    compositionStyleId: 'chronicle-intimate' },
-  'confession':         { scenePromptId: 'intimate-scene',    compositionStyleId: 'chronicle-intimate' },
-  'poetic-lyrical':     { scenePromptId: 'symbolic-abstract', compositionStyleId: 'chronicle-symbolic' },
-  'dreamscape':         { scenePromptId: 'symbolic-abstract', compositionStyleId: 'chronicle-symbolic' },
-  'dark-comedy':        { scenePromptId: 'vignette-sequence', compositionStyleId: 'chronicle-vignette' },
-  'fable':              { scenePromptId: 'folk-illustration', compositionStyleId: 'chronicle-folk' },
-  'trial-judgment':     { scenePromptId: 'formal-tableau',    compositionStyleId: 'chronicle-tableau' },
+  "epic-drama": { scenePromptId: "montage", compositionStyleId: "chronicle-overview" },
+  "action-adventure": { scenePromptId: "montage", compositionStyleId: "chronicle-overview" },
+  "heroic-fantasy": { scenePromptId: "montage", compositionStyleId: "chronicle-overview" },
+  "treasure-hunt": { scenePromptId: "montage", compositionStyleId: "chronicle-overview" },
+  "political-intrigue": { scenePromptId: "montage", compositionStyleId: "chronicle-overview" },
+  tragedy: { scenePromptId: "montage", compositionStyleId: "chronicle-overview" },
+  "mystery-suspense": { scenePromptId: "montage", compositionStyleId: "chronicle-overview" },
+  "haunted-relic": { scenePromptId: "montage", compositionStyleId: "chronicle-overview" },
+  "lost-legacy": { scenePromptId: "montage", compositionStyleId: "chronicle-overview" },
+  "apocalyptic-vision": {
+    scenePromptId: "symbolic-abstract",
+    compositionStyleId: "chronicle-symbolic",
+  },
+  romance: { scenePromptId: "intimate-scene", compositionStyleId: "chronicle-intimate" },
+  "slice-of-life": { scenePromptId: "intimate-scene", compositionStyleId: "chronicle-intimate" },
+  confession: { scenePromptId: "intimate-scene", compositionStyleId: "chronicle-intimate" },
+  "poetic-lyrical": {
+    scenePromptId: "symbolic-abstract",
+    compositionStyleId: "chronicle-symbolic",
+  },
+  dreamscape: { scenePromptId: "symbolic-abstract", compositionStyleId: "chronicle-symbolic" },
+  "dark-comedy": { scenePromptId: "vignette-sequence", compositionStyleId: "chronicle-vignette" },
+  fable: { scenePromptId: "folk-illustration", compositionStyleId: "chronicle-folk" },
+  "trial-judgment": { scenePromptId: "formal-tableau", compositionStyleId: "chronicle-tableau" },
 
   // --- Document styles ---
-  'heralds-dispatch':     { scenePromptId: 'document-artifact',  compositionStyleId: 'chronicle-document' },
-  'merchants-broadsheet': { scenePromptId: 'document-artifact',  compositionStyleId: 'chronicle-document' },
-  'collected-letters':    { scenePromptId: 'document-artifact',  compositionStyleId: 'chronicle-document' },
-  'chronicle-entry':      { scenePromptId: 'document-artifact',  compositionStyleId: 'chronicle-document' },
-  'wanted-notice':        { scenePromptId: 'document-artifact',  compositionStyleId: 'chronicle-document' },
-  'field-report':         { scenePromptId: 'document-artifact',  compositionStyleId: 'chronicle-document' },
-  'personal-diary':       { scenePromptId: 'intimate-scene',     compositionStyleId: 'chronicle-intimate' },
-  'interrogation-record': { scenePromptId: 'formal-tableau',     compositionStyleId: 'chronicle-tableau' },
-  'diplomatic-accord':    { scenePromptId: 'formal-tableau',     compositionStyleId: 'chronicle-tableau' },
-  'treatise-powers':      { scenePromptId: 'document-artifact',   compositionStyleId: 'chronicle-document' },
-  'sacred-text':          { scenePromptId: 'symbolic-abstract',  compositionStyleId: 'chronicle-symbolic' },
-  'creation-myth':        { scenePromptId: 'symbolic-abstract',  compositionStyleId: 'chronicle-symbolic' },
-  'origin-myth':          { scenePromptId: 'montage',            compositionStyleId: 'chronicle-overview' },
-  'artisans-catalogue':   { scenePromptId: 'vignette-sequence',  compositionStyleId: 'chronicle-vignette' },
-  'tavern-notices':       { scenePromptId: 'vignette-sequence',  compositionStyleId: 'chronicle-vignette' },
-  'product-reviews':      { scenePromptId: 'vignette-sequence',  compositionStyleId: 'chronicle-vignette' },
-  'folk-song':            { scenePromptId: 'folk-illustration',  compositionStyleId: 'chronicle-folk' },
-  'nursery-rhymes':       { scenePromptId: 'folk-illustration',  compositionStyleId: 'chronicle-folk' },
-  'haiku-collection':     { scenePromptId: 'symbolic-abstract',  compositionStyleId: 'chronicle-symbolic' },
-  'proverbs-sayings':     { scenePromptId: 'symbolic-abstract',  compositionStyleId: 'chronicle-symbolic' },
+  "heralds-dispatch": {
+    scenePromptId: "document-artifact",
+    compositionStyleId: "chronicle-document",
+  },
+  "merchants-broadsheet": {
+    scenePromptId: "document-artifact",
+    compositionStyleId: "chronicle-document",
+  },
+  "collected-letters": {
+    scenePromptId: "document-artifact",
+    compositionStyleId: "chronicle-document",
+  },
+  "chronicle-entry": {
+    scenePromptId: "document-artifact",
+    compositionStyleId: "chronicle-document",
+  },
+  "wanted-notice": { scenePromptId: "document-artifact", compositionStyleId: "chronicle-document" },
+  "field-report": { scenePromptId: "document-artifact", compositionStyleId: "chronicle-document" },
+  "personal-diary": { scenePromptId: "intimate-scene", compositionStyleId: "chronicle-intimate" },
+  "interrogation-record": {
+    scenePromptId: "formal-tableau",
+    compositionStyleId: "chronicle-tableau",
+  },
+  "diplomatic-accord": { scenePromptId: "formal-tableau", compositionStyleId: "chronicle-tableau" },
+  "treatise-powers": {
+    scenePromptId: "document-artifact",
+    compositionStyleId: "chronicle-document",
+  },
+  "sacred-text": { scenePromptId: "symbolic-abstract", compositionStyleId: "chronicle-symbolic" },
+  "creation-myth": { scenePromptId: "symbolic-abstract", compositionStyleId: "chronicle-symbolic" },
+  "origin-myth": { scenePromptId: "montage", compositionStyleId: "chronicle-overview" },
+  "artisans-catalogue": {
+    scenePromptId: "vignette-sequence",
+    compositionStyleId: "chronicle-vignette",
+  },
+  "tavern-notices": {
+    scenePromptId: "vignette-sequence",
+    compositionStyleId: "chronicle-vignette",
+  },
+  "product-reviews": {
+    scenePromptId: "vignette-sequence",
+    compositionStyleId: "chronicle-vignette",
+  },
+  "folk-song": { scenePromptId: "folk-illustration", compositionStyleId: "chronicle-folk" },
+  "nursery-rhymes": { scenePromptId: "folk-illustration", compositionStyleId: "chronicle-folk" },
+  "haiku-collection": {
+    scenePromptId: "symbolic-abstract",
+    compositionStyleId: "chronicle-symbolic",
+  },
+  "proverbs-sayings": {
+    scenePromptId: "symbolic-abstract",
+    compositionStyleId: "chronicle-symbolic",
+  },
 };
 
 // ============================================================================
@@ -168,5 +207,5 @@ export function getCoverImageConfig(narrativeStyleId: string): CoverImageConfig 
 }
 
 export function getScenePromptTemplate(id: string): ScenePromptTemplate {
-  return templateMap.get(id) || templateMap.get('montage')!;
+  return templateMap.get(id) || templateMap.get("montage");
 }

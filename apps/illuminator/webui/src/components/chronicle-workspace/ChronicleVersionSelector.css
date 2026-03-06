@@ -1,0 +1,36 @@
+/* ChronicleVersionSelector.css -- co-located styles for ChronicleVersionSelector.jsx
+ * Base button styles: ilu-action-btn-sm (panel-utilities.css)
+ * Base badge styles:  ilu-active-badge  (panel-utilities.css)
+ * Base select styles: ilu-compact-select (panel-utilities.css)
+ */
+
+.cvs-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Compose with: ilu-compact-select */
+.cvs-select-version {
+  min-width: 240px;
+}
+
+/* Compose with: ilu-compact-select */
+.cvs-select-compare {
+  min-width: 160px;
+}
+
+/* Compose with: ilu-action-btn-sm — adds transition for confirm animation */
+.cvs-btn-delete {
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.cvs-btn-delete-confirming {
+  background: var(--error-color, #ef4444);
+  border-color: var(--error-color, #ef4444);
+  color: #fff;
+}

@@ -17,16 +17,31 @@ const COORDINATE_STORE = 'coordinateStates';
 const CHRONICLES_STORE = 'chronicles';
 const STATIC_PAGES_STORE = 'staticPages';
 
-export interface SimulationSlotRecord {
+/** In-progress slot (simulation not yet complete). */
+interface InProgressSlotRecord {
   projectId: string;
   slotIndex: number;
-  simulationRunId?: string | null;
-  finalTick?: number | null;
-  finalEraId?: string | null;
-  label?: string | null;
-  isTemporary?: boolean | null;
+  simulationRunId: string;
+  finalTick: null;
+  finalEraId: null;
+  label: string;
+  isTemporary: boolean;
   updatedAt: number;
 }
+
+/** Completed slot (simulation finished, era and tick known). */
+interface CompletedSlotRecord {
+  projectId: string;
+  slotIndex: number;
+  simulationRunId: string;
+  finalTick: number;
+  finalEraId: string;
+  label: string;
+  isTemporary: boolean;
+  updatedAt: number;
+}
+
+export type SimulationSlotRecord = InProgressSlotRecord | CompletedSlotRecord;
 
 export interface WorldSchemaRecord {
   projectId: string;
@@ -42,26 +57,26 @@ export interface CoordinateStateRecord {
 
 export interface ChronicleRecord {
   chronicleId: string;
-  projectId?: string;
-  simulationRunId?: string;
-  title?: string;
-  summary?: string;
-  status?: string;
-  acceptedAt?: number | null;
-  updatedAt?: number | null;
+  projectId: string;
+  simulationRunId: string;
+  title: string;
+  summary: string;
+  status: string;
+  acceptedAt: number | null;         // required column, null = not accepted
+  updatedAt: number | null;          // required column, null = never updated
 }
 
 export interface StaticPageRecord {
   pageId: string;
-  projectId?: string;
-  title?: string;
-  summary?: string;
-  status?: string;
-  slug?: string;
-  updatedAt?: number | null;
+  projectId: string;
+  title: string;
+  summary: string;
+  status: string;
+  slug: string;
+  updatedAt: number | null;          // required column, null = never updated
 }
 
-function openDb(onVersionChange?: () => void): Promise<IDBDatabase> {
+export function openIlluminatorDb(onVersionChange?: () => void): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME);
     request.onsuccess = () => {
@@ -85,7 +100,7 @@ function getRecord<T>(db: IDBDatabase, storeName: string, key: IDBValidKey): Pro
     const tx = db.transaction(storeName, 'readonly');
     const request = tx.objectStore(storeName).get(key);
     request.onsuccess = () => resolve((request.result as T) ?? null);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => reject(new Error(request.error?.message ?? 'IDB get failed'));
   });
 }
 
@@ -118,12 +133,12 @@ function getAllByIndex<T>(
         resolve(results);
       }
     };
-    request.onerror = () => reject(request.error);
+    request.onerror = () => reject(new Error(request.error?.message ?? 'IDB cursor failed'));
   });
 }
 
-function stripSimulationRunId<T extends { simulationRunId?: string }>(record: T): Omit<T, 'simulationRunId'> {
-  const { simulationRunId: _omit, ...rest } = record;
+function stripSimulationRunId<T extends { simulationRunId: string }>(record: T): Omit<T, 'simulationRunId'> {
+  const { simulationRunId: _omit, ...rest } = record; // eslint-disable-line sonarjs/no-unused-vars
   return rest;
 }
 
@@ -131,29 +146,29 @@ export async function getSlotRecord(
   projectId: string,
   slotIndex: number,
 ): Promise<SimulationSlotRecord | null> {
-  const db = await openDb();
+  const db = await openIlluminatorDb();
   const record = await getRecord<SimulationSlotRecord>(db, SLOTS_STORE, [projectId, slotIndex]);
   db.close();
   return record;
 }
 
 export async function getWorldSchema(projectId: string): Promise<CanonrySchemaSlice | null> {
-  const db = await openDb();
+  const db = await openIlluminatorDb();
   const record = await getRecord<WorldSchemaRecord>(db, SCHEMAS_STORE, projectId);
   db.close();
   return record?.schema ?? null;
 }
 
 export async function getCoordinateState(simulationRunId: string): Promise<CoordinateState | null> {
-  const db = await openDb();
+  const db = await openIlluminatorDb();
   const record = await getRecord<CoordinateStateRecord>(db, COORDINATE_STORE, simulationRunId);
   db.close();
   return record?.coordinateState ?? null;
 }
 
 export async function getEntities(simulationRunId: string): Promise<WorldEntity[]> {
-  const db = await openDb();
-  const records = await getAllByIndex<WorldEntity & { simulationRunId?: string }>(
+  const db = await openIlluminatorDb();
+  const records = await getAllByIndex<WorldEntity & { simulationRunId: string }>(
     db,
     ENTITIES_STORE,
     'simulationRunId',
@@ -164,8 +179,8 @@ export async function getEntities(simulationRunId: string): Promise<WorldEntity[
 }
 
 export async function getRelationships(simulationRunId: string): Promise<WorldRelationship[]> {
-  const db = await openDb();
-  const records = await getAllByIndex<WorldRelationship & { simulationRunId?: string }>(
+  const db = await openIlluminatorDb();
+  const records = await getAllByIndex<WorldRelationship & { simulationRunId: string }>(
     db,
     RELATIONSHIPS_STORE,
     'simulationRunId',
@@ -176,8 +191,8 @@ export async function getRelationships(simulationRunId: string): Promise<WorldRe
 }
 
 export async function getNarrativeEvents(simulationRunId: string): Promise<NarrativeEvent[]> {
-  const db = await openDb();
-  const records = await getAllByIndex<NarrativeEvent & { simulationRunId?: string }>(
+  const db = await openIlluminatorDb();
+  const records = await getAllByIndex<NarrativeEvent & { simulationRunId: string }>(
     db,
     EVENTS_STORE,
     'simulationRunId',
@@ -188,7 +203,7 @@ export async function getNarrativeEvents(simulationRunId: string): Promise<Narra
 }
 
 export async function getChronicles(simulationRunId: string): Promise<ChronicleRecord[]> {
-  const db = await openDb();
+  const db = await openIlluminatorDb();
   const records = await getAllByIndex<ChronicleRecord>(
     db,
     CHRONICLES_STORE,
@@ -200,7 +215,7 @@ export async function getChronicles(simulationRunId: string): Promise<ChronicleR
 }
 
 export async function getStaticPages(projectId: string): Promise<StaticPageRecord[]> {
-  const db = await openDb();
+  const db = await openIlluminatorDb();
   const records = await getAllByIndex<StaticPageRecord>(
     db,
     STATIC_PAGES_STORE,
@@ -246,7 +261,7 @@ export async function buildWorldStateForSlot(
       entityCount: entities.length,
       relationshipCount: relationships.length,
     },
-    hardState: entities as WorldEntity[],
+    hardState: entities,
     relationships,
     pressures: {},
     narrativeHistory: narrativeHistory.length > 0 ? narrativeHistory : undefined,

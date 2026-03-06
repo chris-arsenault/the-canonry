@@ -2,19 +2,36 @@
   --bg-primary: #352a1e;
   --bg-secondary: #41352a;
   --bg-tertiary: #4d4036;
-  --border: rgba(196, 164, 112, 0.2);
+  --border: rgb(196 164 112 / 20%);
   --text-primary: #e8dcc8;
   --text-muted: #c4b99a;
   --text-faded: #8a7d6b;
   --accent: #c49a5c;
   --accent-strong: #d4aa6c;
-  --accent-hover: rgba(196, 154, 92, 0.15);
-  --accent-active: rgba(196, 154, 92, 0.25);
+  --accent-hover: rgb(196 154 92 / 15%);
+  --accent-active: rgb(196 154 92 / 25%);
   --danger: #c0392b;
+
   /* Frost - Ice accent (nod to the frozen world) */
   --frost: #8ab4c4;
   --frost-light: #a8ccd8;
-  --frost-dim: rgba(138, 180, 196, 0.12);
+  --frost-dim: rgb(138 180 196 / 12%);
+
+  /* Canonical overrides for shared-components (warm library theme) */
+  --color-bg: #352a1e;
+  --color-bg-card: #41352a;
+  --color-bg-dark: #3f301f;
+  --color-border: rgb(196 164 112 / 20%);
+  --color-border-light: rgb(196 164 112 / 10%);
+  --color-text: #e8dcc8;
+  --color-text-muted: #c4b99a;
+  --color-text-dim: #8a7d6b;
+  --color-accent: #c49a5c;
+  --color-accent-light: #d4aa6c;
+  --gradient-accent: linear-gradient(135deg, #c49a5c 0%, #d4aa6c 100%);
+  --color-success: #5b7a5e;
+  --color-danger: #c0392b;
+  --color-warning: #d4a017;
 }
 
 * {
@@ -23,12 +40,13 @@
 
 body {
   margin: 0;
-  font-family: "Merriweather", Georgia, "Times New Roman", serif;
+  font-family: Merriweather, Georgia, "Times New Roman", serif;
   color: var(--text-primary);
+
   /* Background: vignette + warm base. Paper grain from ParchmentTexture overlay. */
   background-color: var(--bg-primary);
   background-image:
-    radial-gradient(ellipse at center, transparent 50%, rgba(20, 15, 10, 0.4) 100%),
+    radial-gradient(ellipse at center, transparent 50%, rgb(20 15 10 / 40%) 100%),
     linear-gradient(170deg, #3a2e22 0%, #352a1e 40%, #322820 100%);
   background-attachment: fixed;
 }
@@ -51,13 +69,14 @@ body {
   background: var(--bg-secondary);
   border-bottom: 1px solid transparent;
   border-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(138, 180, 196, 0.12) 20%,
-    rgba(196, 164, 112, 0.2) 50%,
-    rgba(138, 180, 196, 0.12) 80%,
-    transparent 100%
-  ) 1;
+      90deg,
+      transparent 0%,
+      rgb(138 180 196 / 12%) 20%,
+      rgb(196 164 112 / 20%) 50%,
+      rgb(138 180 196 / 12%) 80%,
+      transparent 100%
+    )
+    1;
 }
 
 .header-spacer {
@@ -78,7 +97,7 @@ body {
 }
 
 .brand:hover {
-  background: rgba(196, 154, 92, 0.08);
+  background: rgb(196 154 92 / 8%);
 }
 
 .brand-icon {
@@ -103,7 +122,7 @@ body {
 .header-search-input {
   width: 240px;
   padding: 8px 14px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-primary);
@@ -119,7 +138,7 @@ body {
 
 .header-search-input:focus {
   outline: none;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(0 0 0 / 30%);
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-hover);
 }
@@ -134,7 +153,9 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 4px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(196, 164, 112, 0.05) inset;
+  box-shadow:
+    0 12px 32px rgb(0 0 0 / 40%),
+    0 0 0 1px rgb(196 164 112 / 5%) inset;
   z-index: 1000;
   max-height: 320px;
   overflow: auto;
@@ -176,7 +197,7 @@ body {
   color: var(--text-faded);
   text-transform: capitalize;
   padding: 2px 6px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(0 0 0 / 20%);
   border-radius: 4px;
   margin-left: 10px;
 }
@@ -203,18 +224,21 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 13px;
   font-weight: 600;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .nav-button.active {
   color: var(--text-primary);
-  border-color: rgba(196, 154, 92, 0.7);
+  border-color: rgb(196 154 92 / 70%);
   background: var(--accent-hover);
 }
 
 .nav-button:hover {
   color: var(--text-primary);
-  border-color: rgba(196, 164, 112, 0.5);
+  border-color: rgb(196 164 112 / 50%);
 }
 
 .bundle-status {
@@ -247,11 +271,11 @@ body {
 
 .state-card {
   max-width: 520px;
-  background: rgba(42, 35, 24, 0.7);
+  background: rgb(42 35 24 / 70%);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 28px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 40px rgb(0 0 0 / 35%);
 }
 
 .state-title {
@@ -264,6 +288,10 @@ body {
   font-size: 13px;
   color: var(--text-faded);
   line-height: 1.6;
+}
+
+.state-detail + .state-detail {
+  margin-top: 12px;
 }
 
 .state-actions {
@@ -303,13 +331,14 @@ body {
   padding: 12px 20px;
   border-top: 1px solid transparent;
   border-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(138, 180, 196, 0.1) 20%,
-    rgba(196, 164, 112, 0.15) 50%,
-    rgba(138, 180, 196, 0.1) 80%,
-    transparent 100%
-  ) 1;
+      90deg,
+      transparent 0%,
+      rgb(138 180 196 / 10%) 20%,
+      rgb(196 164 112 / 15%) 50%,
+      rgb(138 180 196 / 10%) 80%,
+      transparent 100%
+    )
+    1;
   background: var(--bg-primary);
   color: var(--text-faded);
   font-size: 12px;
@@ -325,37 +354,31 @@ body {
   --color-bg-tertiary: #4d4036;
   --color-bg-sidebar: #3f301f;
   --color-bg-elevated: #574a3e;
-
-  --color-border: rgba(196, 164, 112, 0.2);
-  --color-border-light: rgba(196, 164, 112, 0.1);
-
+  --color-border: rgb(196 164 112 / 20%);
+  --color-border-light: rgb(196 164 112 / 10%);
   --color-text-primary: #e8dcc8;
   --color-text-secondary: #c4b99a;
   --color-text-muted: #8a7d6b;
-
   --color-accent: #c49a5c;
   --color-accent-light: #d4aa6c;
-  --color-accent-hover: rgba(196, 154, 92, 0.15);
-  --color-accent-active: rgba(196, 154, 92, 0.25);
-
+  --color-accent-hover: rgb(196 154 92 / 15%);
+  --color-accent-active: rgb(196 154 92 / 25%);
   --color-frost: #8ab4c4;
   --color-frost-light: #a8ccd8;
-  --color-frost-dim: rgba(138, 180, 196, 0.12);
-
+  --color-frost-dim: rgb(138 180 196 / 12%);
   --color-danger: #c0392b;
   --color-warning: #d4a017;
   --color-success: #5b7a5e;
-
   --color-purple: #8b7355;
   --color-info: #7d8a6b;
 
   /* ===================
      Typography
      =================== */
-  --font-family: "Merriweather", Georgia, "Times New Roman", serif;
-  --font-family-display: "Playfair Display", Georgia, "Times New Roman", serif;
-  --font-family-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-
+  --font-family: "Merriweather", georgia, "Times New Roman", serif;
+  --font-family-display: "Playfair Display", georgia, "Times New Roman", serif;
+  --font-family-ui:
+    -apple-system, blinkmacsystemfont, "Segoe UI", roboto, helvetica, arial, sans-serif;
   --font-size-xs: 11px;
   --font-size-sm: 13px;
   --font-size-base: 16px;
@@ -364,12 +387,10 @@ body {
   --font-size-xl: 21px;
   --font-size-2xl: 28px;
   --font-size-3xl: 36px;
-
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-
   --line-height-tight: 1.3;
   --line-height-normal: 1.6;
   --line-height-relaxed: 1.85;
@@ -397,10 +418,10 @@ body {
   /* ===================
      Shadows
      =================== */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 4px rgb(0 0 0 / 20%);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 30%);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 40%);
+  --shadow-xl: 0 12px 32px rgb(0 0 0 / 50%);
 
   /* ===================
      Transitions

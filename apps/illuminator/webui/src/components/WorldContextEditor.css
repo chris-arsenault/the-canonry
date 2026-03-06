@@ -1,0 +1,448 @@
+/* WorldContextEditor.css — co-located styles for WorldContextEditor.tsx */
+
+/* =========================================================================
+   Shared patterns
+   ========================================================================= */
+
+/* Compose with ilu-hint-sm from panel-utilities.css for font-size/color */
+.wce-field-label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.wce-field-label-mb6 {
+  margin-bottom: 6px;
+}
+
+/* Compose with ilu-hint from panel-utilities.css for font-size/color */
+.wce-description-text {
+  margin-bottom: 12px;
+}
+
+.wce-input-sm {
+  font-size: 12px;
+}
+
+.wce-remove-btn {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 14px;
+}
+
+.wce-remove-btn-sm {
+  font-size: 13px;
+}
+
+/* =========================================================================
+   FactCard
+   ========================================================================= */
+
+.wce-fact-card {
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.wce-fact-card-disabled {
+  opacity: 0.5;
+}
+
+.wce-fact-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.wce-fact-chevron {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.wce-fact-id {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--accent-color);
+  min-width: 120px;
+}
+
+.wce-fact-preview {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wce-fact-type-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.wce-fact-type-badge-truth {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.wce-fact-type-badge-constraint {
+  background: var(--warning-bg, #4a3f00);
+  color: var(--warning, #ffc107);
+}
+
+.wce-fact-status-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.wce-fact-status-badge-required {
+  color: var(--accent-color);
+}
+
+.wce-fact-status-badge-disabled {
+  color: var(--text-muted);
+}
+
+/* Expanded detail panel */
+.wce-fact-detail {
+  padding: 12px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wce-fact-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.wce-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.wce-checkbox-text {
+  color: var(--text-secondary);
+}
+
+/* =========================================================================
+   FactsEditor — add row
+   ========================================================================= */
+
+.wce-add-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.wce-add-input {
+  flex: 1;
+  font-size: 12px;
+}
+
+/* =========================================================================
+   WorldDynamicCard
+   ========================================================================= */
+
+.wce-dynamic-card {
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.wce-dynamic-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.wce-dynamic-chevron {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.wce-dynamic-id {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--accent-color);
+  min-width: 120px;
+}
+
+.wce-dynamic-preview {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wce-dynamic-scope-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+/* Dynamic detail panel */
+.wce-dynamic-detail {
+  padding: 12px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wce-dynamic-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Era override card */
+.wce-override-card {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.wce-override-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.wce-override-era-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-color);
+}
+
+.wce-override-replace-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Add override row */
+.wce-add-override-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.wce-add-override-select {
+  flex: 1;
+  font-size: 12px;
+}
+
+.wce-add-override-btn {
+  font-size: 12px;
+}
+
+/* =========================================================================
+   ToneFragmentsEditor
+   ========================================================================= */
+
+.wce-tone-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wce-tone-core-label {
+  font-size: 12px;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.wce-tone-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 10px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+/* =========================================================================
+   EditableList
+   ========================================================================= */
+
+.wce-editable-list-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.wce-editable-list-add-input {
+  flex: 1;
+}
+
+.wce-editable-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wce-editable-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.wce-editable-list-item-text {
+  flex: 1;
+}
+
+.wce-editable-list-remove {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+/* =========================================================================
+   Main component — info banner
+   ========================================================================= */
+
+.wce-info-banner {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-color);
+}
+
+.wce-info-banner-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+/* Compose with ilu-hint from panel-utilities.css for font-size/color */
+.wce-info-banner-desc {
+}
+
+/* =========================================================================
+   Chronicle Generation section
+   ========================================================================= */
+
+.wce-section-divider {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 2px solid var(--accent-color);
+}
+
+.wce-section-header {
+  margin-bottom: 16px;
+}
+
+.wce-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Compose with ilu-hint-sm from panel-utilities.css for font-size/color */
+.wce-section-subtitle {
+  margin-top: 4px;
+}
+
+/* Facet range */
+.wce-facet-range-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wce-facet-range-input {
+  max-width: 100px;
+}
+
+.wce-facet-range-separator {
+  color: var(--text-muted);
+}
+
+/* Compose with ilu-hint-sm from panel-utilities.css for font-size/color */
+.wce-facet-range-hint {
+  margin-top: 6px;
+}
+
+/* World Dynamics header with flex actions */
+.wce-dynamics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wce-dynamics-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.wce-dynamics-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+}
+
+/* Textarea dynamic size presets */
+.wce-textarea-description {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.wce-textarea-tone {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.wce-textarea-compact {
+  min-height: 60px;
+  resize: vertical;
+  font-size: 12px;
+}
+
+.wce-textarea-compact-short {
+  min-height: 40px;
+}
+
+.wce-textarea-core-tone {
+  min-height: 200px;
+  resize: vertical;
+  font-size: 12px;
+}
+
+/* Override form group */
+.wce-form-group-mb16 {
+  margin-bottom: 16px;
+}

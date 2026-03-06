@@ -1,12 +1,8 @@
-import {
-  CognitoUserPool,
-  CognitoUser,
-  AuthenticationDetails,
-} from 'amazon-cognito-identity-js';
+import { CognitoUserPool, CognitoUser, AuthenticationDetails } from "amazon-cognito-identity-js";
 
 function getUserPool(config) {
   if (!config?.cognitoUserPoolId || !config?.cognitoClientId) {
-    throw new Error('Missing Cognito user pool configuration');
+    throw new Error("Missing Cognito user pool configuration");
   }
   return new CognitoUserPool({
     UserPoolId: config.cognitoUserPoolId,
@@ -68,7 +64,7 @@ export function sessionToTokens(session) {
   return {
     idToken,
     accessToken,
-    tokenType: 'Bearer',
+    tokenType: "Bearer",
     expiresAt,
   };
 }

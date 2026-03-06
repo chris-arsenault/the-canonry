@@ -12,8 +12,8 @@
  */
 
 import { Graph } from '../engine/types';
-import { HardState, Relationship, ProminenceLabel } from '../core/worldTypes';
-import { findEntities, hasTag } from '../utils';
+import { HardState, ProminenceLabel } from '../core/worldTypes';
+import { hasTag } from '../utils';
 import { prominenceLabel } from '../rules/types';
 
 /**
@@ -21,44 +21,44 @@ import { prominenceLabel } from '../rules/types';
  */
 export interface SelectionBias {
   /** Positive preferences - boost score for entities with these attributes */
-  prefer?: {
+  prefer: {
     /** Preferred subtypes (e.g., ['merchant', 'outlaw'] for cult recruitment) */
-    subtypes?: string[];
+    subtypes: string[];
 
     /** Preferred tags (e.g., ['mystic', 'explorer']) */
-    tags?: string[];
+    tags: string[];
 
     /** Preferred prominence levels */
-    prominence?: ProminenceLabel[];
+    prominence: ProminenceLabel[];
 
     /** Same location as reference entity (for local recruitment) */
-    sameLocationAs?: string; // Entity ID
+    sameLocationAs: string; // Entity ID
 
     /**
      * Prefer entities matching this culture.
      * Culture is first-class - use this to create culturally cohesive groups.
      */
-    sameCultureAs?: string;
+    sameCultureAs: string;
 
     /** Boost multiplier for preferred attributes (default: 2.0) */
-    preferenceBoost?: number;
+    preferenceBoost: number;
   };
 
   /** Negative penalties - reduce score for oversaturated entities */
-  avoid?: {
+  avoid: {
     /** Relationship kinds to penalize (e.g., ['member_of'] to avoid multi-faction NPCs) */
-    relationshipKinds?: string[];
+    relationshipKinds: string[];
 
     /** Exponential hub penalty strength (default: 1.0, higher = more aggressive) */
-    hubPenaltyStrength?: number;
+    hubPenaltyStrength: number;
 
     /** Hard cap - never select entities with this many total relationships */
-    maxTotalRelationships?: number;
+    maxTotalRelationships: number;
 
     /** Exclude entities already related to this entity */
-    excludeRelatedTo?: {
+    excludeRelatedTo: {
       entityId: string;
-      relationshipKind?: string; // If specified, only exclude this kind
+      relationshipKind: string; // If specified, only exclude this kind
     };
 
     /**
@@ -66,20 +66,20 @@ export interface SelectionBias {
      * Default: 1.0 (no penalty). Use 0.3-0.5 to make cross-culture selection rare.
      * Only applies when prefer.sameCultureAs is set.
      */
-    differentCulturePenalty?: number;
+    differentCulturePenalty: number;
   };
 
   /** Hard culture filters - applied before scoring */
-  culture?: {
+  culture: {
     /** Only select entities with this exact culture */
-    require?: string;
+    require: string;
 
     /** Exclude entities with any of these cultures */
-    exclude?: string[];
+    exclude: string[];
   };
 
   /** Creation fallback - create new entity when all candidates are oversaturated */
-  createIfSaturated?: {
+  createIfSaturated: {
     /** If best candidate score falls below this, create new entity (0-1, default: 0.1) */
     threshold: number;
 
@@ -87,16 +87,16 @@ export interface SelectionBias {
     factory: (graph: Graph, context: SelectionContext) => Partial<HardState>;
 
     /** Maximum new entities to create per selection (default: count/2) */
-    maxCreated?: number;
+    maxCreated: number;
   };
 
   /** Diversity pressure - penalize recently selected entities */
-  diversityTracking?: {
+  diversityTracking: {
     /** Track ID for this selection type (e.g., 'cult_recruitment') */
     trackingId: string;
 
     /** Penalty strength (default: 1.0, uses same formula as template diversity) */
-    strength?: number;
+    strength: number;
   };
 }
 
@@ -134,7 +134,7 @@ export interface SelectionResult {
     worstScore: number;
     avgScore: number;
     creationTriggered: boolean;
-    creationReason?: string;
+    creationReason: string;
   };
 }
 
@@ -156,7 +156,7 @@ class SelectionTracker {
     return this.selectionCounts.get(trackingId)?.get(entityId) || 0;
   }
 
-  reset(trackingId?: string): void {
+  reset(trackingId: string): void {
     if (trackingId) {
       this.selectionCounts.delete(trackingId);
     } else {
@@ -184,7 +184,13 @@ export class TargetSelector {
     graph: Graph,
     kind: string,
     count: number,
-    bias: SelectionBias = {}
+    bias: SelectionBias = {
+      prefer: { subtypes: [], tags: [], prominence: [], sameLocationAs: '', sameCultureAs: '', preferenceBoost: 2.0 },
+      avoid: { relationshipKinds: [], hubPenaltyStrength: 1.0, maxTotalRelationships: 0, excludeRelatedTo: { entityId: '', relationshipKind: '' }, differentCulturePenalty: 1.0 },
+      culture: { require: '', exclude: [] },
+      createIfSaturated: { threshold: 0.1, factory: () => ({}), maxCreated: 1 },
+      diversityTracking: { trackingId: '', strength: 1.0 },
+    }
   ): SelectionResult {
     // Find all candidate entities
     const candidates = graph.getEntities()
@@ -192,7 +198,7 @@ export class TargetSelector {
 
     if (candidates.length === 0) {
       // No candidates at all - must create if factory provided
-      if (bias.createIfSaturated?.factory) {
+      {
         return this.createNewEntities(graph, count, bias, []);
       }
       return this.emptyResult();
@@ -212,9 +218,9 @@ export class TargetSelector {
 
     // Check if best candidate is below saturation threshold
     const bestScore = filtered.length > 0 ? filtered[0].score : 0;
-    const threshold = bias.createIfSaturated?.threshold ?? 0.1;
+    const threshold = bias.createIfSaturated.threshold;
 
-    if (bestScore < threshold && bias.createIfSaturated?.factory) {
+    if (bestScore < threshold) {
       // All candidates oversaturated - create new entities
       return this.createNewEntities(graph, count, bias, filtered);
     }
@@ -223,8 +229,8 @@ export class TargetSelector {
     const selected = filtered.slice(0, count).map(s => s.entity);
 
     // Track selections for diversity
-    if (bias.diversityTracking?.trackingId) {
-      selected.forEach(e => this.tracker.track(bias.diversityTracking!.trackingId, e.id));
+    if (bias.diversityTracking.trackingId) {
+      selected.forEach(e => this.tracker.track(bias.diversityTracking.trackingId, e.id));
     }
 
     // Calculate diagnostics
@@ -234,7 +240,8 @@ export class TargetSelector {
       bestScore: Math.max(...scores, 0),
       worstScore: Math.min(...scores, 0),
       avgScore: scores.reduce((a, b) => a + b, 0) / scores.length || 0,
-      creationTriggered: false
+      creationTriggered: false,
+      creationReason: '',
     };
 
     return {
@@ -253,99 +260,107 @@ export class TargetSelector {
     entity: HardState,
     bias: SelectionBias
   ): number {
-    let score = 1.0; // Base score
-
-    // === POSITIVE PREFERENCES ===
-    if (bias.prefer) {
-      const boost = bias.prefer.preferenceBoost ?? 2.0;
-
-      // Subtype preference
-      if (bias.prefer.subtypes?.includes(entity.subtype)) {
-        score *= boost;
-      }
-
-      // Tag preference
-      if (bias.prefer.tags?.some(tag => hasTag(entity.tags, tag))) {
-        score *= boost;
-      }
-
-      // Prominence preference
-      if (bias.prefer.prominence?.includes(prominenceLabel(entity.prominence))) {
-        score *= boost;
-      }
-
-      // Location preference (same location as reference)
-      if (bias.prefer.sameLocationAs) {
-        const refEntity = graph.getEntity(bias.prefer.sameLocationAs);
-        const refLocations = refEntity
-          ? new Set(
-              graph.getEntityRelationships(refEntity.id, 'src')
-                .filter(r => r.kind === 'resident_of')
-                .map(r => r.dst)
-            )
-          : new Set<string>();
-        const sameLocation = refLocations.size > 0 &&
-          graph.getEntityRelationships(entity.id, 'src').some(
-            r => r.kind === 'resident_of' && refLocations.has(r.dst)
-          );
-        if (sameLocation) {
-          score *= boost;
-        }
-      }
-
-      // Culture preference (same culture as reference)
-      if (bias.prefer.sameCultureAs) {
-        if (entity.culture === bias.prefer.sameCultureAs) {
-          score *= boost;
-        } else {
-          // Apply cross-culture penalty if configured
-          const crossCulturePenalty = bias.avoid?.differentCulturePenalty ?? 1.0;
-          score *= crossCulturePenalty;
-        }
-      }
+    let score = 1.0;
+    {
+      score = this.applyPreferenceBias(graph, entity, bias, score);
     }
-
-    // === NEGATIVE PENALTIES ===
-    if (bias.avoid) {
-      // Count penalized relationships
-      let penalizedCount = 0;
-      if (bias.avoid.relationshipKinds) {
-        penalizedCount = graph.getEntityRelationships(entity.id, 'both').filter(r =>
-          bias.avoid!.relationshipKinds!.includes(r.kind)
-        ).length;
-      }
-
-      // Hub penalty - exponential penalty for high-degree nodes
-      // Formula: score *= (1 / (1 + count^strength))
-      // Same formula as template diversity!
-      const strength = bias.avoid.hubPenaltyStrength ?? 1.0;
-      if (penalizedCount > 0) {
-        const penalty = 1 / (1 + Math.pow(penalizedCount, strength));
-        score *= penalty;
-      }
-
-      // Total relationship penalty (general hub avoidance)
-      const totalLinks = graph.getEntityRelationships(entity.id, 'both').length;
-      if (totalLinks > 5) { // Only penalize if significantly connected
-        const generalPenalty = 1 / (1 + Math.pow(totalLinks - 5, 0.5));
-        score *= generalPenalty;
-      }
+    {
+      score = this.applyAvoidancePenalties(graph, entity, bias.avoid, score);
     }
-
-    // === DIVERSITY PRESSURE ===
-    if (bias.diversityTracking) {
-      const selectionCount = this.tracker.getCount(
-        bias.diversityTracking.trackingId,
-        entity.id
-      );
-      if (selectionCount > 0) {
-        const strength = bias.diversityTracking.strength ?? 1.0;
-        const diversityPenalty = 1 / (1 + Math.pow(selectionCount, strength));
-        score *= diversityPenalty;
-      }
+    {
+      score = this.applyDiversityPenalty(entity, bias.diversityTracking, score);
     }
-
     return Math.max(0, score);
+  }
+
+  private applyLocationPreference(
+    graph: Graph,
+    entity: HardState,
+    sameLocationAs: string,
+    boost: number
+  ): number {
+    const refEntity = graph.getEntity(sameLocationAs);
+    const refLocations = refEntity
+      ? new Set(
+          graph.getEntityRelationships(refEntity.id, 'src')
+            .filter(r => r.kind === 'resident_of')
+            .map(r => r.dst)
+        )
+      : new Set<string>();
+    const sameLocation = refLocations.size > 0 &&
+      graph.getEntityRelationships(entity.id, 'src').some(
+        r => r.kind === 'resident_of' && refLocations.has(r.dst)
+      );
+    if (sameLocation) {
+      return boost;
+    }
+    return 1.0;
+  }
+
+  private applyPreferenceBias(
+    graph: Graph,
+    entity: HardState,
+    bias: SelectionBias,
+    score: number
+  ): number {
+    const prefer = bias.prefer;
+    const boost = prefer.preferenceBoost;
+    if (prefer.subtypes.includes(entity.subtype)) {
+      score *= boost;
+    }
+    if (prefer.tags.some(tag => hasTag(entity.tags, tag))) {
+      score *= boost;
+    }
+    if (prefer.prominence.includes(prominenceLabel(entity.prominence))) {
+      score *= boost;
+    }
+    if (prefer.sameLocationAs) {
+      score *= this.applyLocationPreference(graph, entity, prefer.sameLocationAs, boost);
+    }
+    if (prefer.sameCultureAs) {
+      if (entity.culture === prefer.sameCultureAs) {
+        score *= boost;
+      } else {
+        score *= bias.avoid.differentCulturePenalty;
+      }
+    }
+    return score;
+  }
+
+  private applyAvoidancePenalties(
+    graph: Graph,
+    entity: HardState,
+    avoid: NonNullable<SelectionBias['avoid']>,
+    score: number
+  ): number {
+    let penalizedCount = 0;
+    if (avoid.relationshipKinds.length > 0) {
+      penalizedCount = graph.getEntityRelationships(entity.id, 'both').filter(r =>
+        avoid.relationshipKinds.includes(r.kind)
+      ).length;
+    }
+    const strength = avoid.hubPenaltyStrength;
+    if (penalizedCount > 0) {
+      score *= 1 / (1 + Math.pow(penalizedCount, strength));
+    }
+    const totalLinks = graph.getEntityRelationships(entity.id, 'both').length;
+    if (totalLinks > 5) {
+      score *= 1 / (1 + Math.pow(totalLinks - 5, 0.5));
+    }
+    return score;
+  }
+
+  private applyDiversityPenalty(
+    entity: HardState,
+    tracking: NonNullable<SelectionBias['diversityTracking']>,
+    score: number
+  ): number {
+    const selectionCount = this.tracker.getCount(tracking.trackingId, entity.id);
+    if (selectionCount > 0) {
+      const strength = tracking.strength;
+      score *= 1 / (1 + Math.pow(selectionCount, strength));
+    }
+    return score;
   }
 
   /**
@@ -359,21 +374,21 @@ export class TargetSelector {
     let filtered = scored;
 
     // Culture hard filters (applied first for efficiency)
-    if (bias.culture?.require) {
-      filtered = filtered.filter(s => s.entity.culture === bias.culture!.require);
+    if (bias.culture.require) {
+      filtered = filtered.filter(s => s.entity.culture === bias.culture.require);
     }
 
-    if (bias.culture?.exclude?.length) {
-      filtered = filtered.filter(s => !bias.culture!.exclude!.includes(s.entity.culture));
+    if (bias.culture.exclude.length) {
+      filtered = filtered.filter(s => !bias.culture.exclude.includes(s.entity.culture));
     }
 
-    if (bias.avoid?.maxTotalRelationships !== undefined) {
+    if (bias.avoid.maxTotalRelationships > 0) {
       filtered = filtered.filter(
-        s => graph.getEntityRelationships(s.entity.id, 'both').length < bias.avoid!.maxTotalRelationships!
+        s => graph.getEntityRelationships(s.entity.id, 'both').length < bias.avoid.maxTotalRelationships
       );
     }
 
-    if (bias.avoid?.excludeRelatedTo) {
+    if (bias.avoid.excludeRelatedTo.entityId) {
       const { entityId, relationshipKind } = bias.avoid.excludeRelatedTo;
       filtered = filtered.filter(s => {
         const hasRelationship = graph.getRelationships().some(r =>
@@ -397,8 +412,8 @@ export class TargetSelector {
     bias: SelectionBias,
     candidates: Array<{ entity: HardState; score: number }>
   ): SelectionResult {
-    const factory = bias.createIfSaturated!.factory;
-    const maxCreated = bias.createIfSaturated!.maxCreated ?? Math.ceil(count / 2);
+    const factory = bias.createIfSaturated.factory;
+    const maxCreated = bias.createIfSaturated.maxCreated;
     const numToCreate = Math.min(count, maxCreated);
 
     const context: SelectionContext = {
@@ -427,7 +442,7 @@ export class TargetSelector {
         worstScore: Math.min(...scores, 0),
         avgScore: scores.reduce((a, b) => a + b, 0) / scores.length || 0,
         creationTriggered: true,
-        creationReason: `Best score ${context.bestCandidateScore.toFixed(2)} < threshold ${bias.createIfSaturated!.threshold}`
+        creationReason: `Best score ${context.bestCandidateScore.toFixed(2)} < threshold ${bias.createIfSaturated.threshold}`
       }
     };
   }
@@ -441,7 +456,8 @@ export class TargetSelector {
         bestScore: 0,
         worstScore: 0,
         avgScore: 0,
-        creationTriggered: false
+        creationTriggered: false,
+        creationReason: '',
       }
     };
   }
@@ -449,7 +465,7 @@ export class TargetSelector {
   /**
    * Reset diversity tracking (call at epoch boundaries or specific events)
    */
-  resetDiversityTracking(trackingId?: string): void {
+  resetDiversityTracking(trackingId: string): void {
     this.tracker.reset(trackingId);
   }
 }

@@ -139,8 +139,8 @@ export function buildVocabulary(featureVectors: FeatureVector[]): {
   }
 
   return {
-    bigrams: Array.from(bigramSet).sort(),
-    endings: Array.from(endingSet).sort(),
+    bigrams: Array.from(bigramSet).sort((a, b) => a.localeCompare(b)),
+    endings: Array.from(endingSet).sort((a, b) => a.localeCompare(b)),
   };
 }
 
@@ -154,7 +154,7 @@ export function calculateCentroid(
 ): number[] {
   if (featureVectors.length === 0) {
     // Return zero vector
-    return new Array(5 + allBigrams.length + allEndings.length).fill(0);
+    return new Array<number>(5 + allBigrams.length + allEndings.length).fill(0);
   }
 
   // Convert all to arrays
@@ -164,7 +164,7 @@ export function calculateCentroid(
 
   // Calculate mean for each dimension
   const dimensions = arrays[0].length;
-  const centroid: number[] = new Array(dimensions).fill(0);
+  const centroid: number[] = new Array<number>(dimensions).fill(0);
 
   for (const arr of arrays) {
     for (let i = 0; i < dimensions; i++) {
@@ -195,8 +195,8 @@ export function normalizeFeatures(
   }
 
   const dimensions = featureArrays[0].length;
-  const min: number[] = new Array(dimensions).fill(Infinity);
-  const max: number[] = new Array(dimensions).fill(-Infinity);
+  const min: number[] = new Array<number>(dimensions).fill(Infinity);
+  const max: number[] = new Array<number>(dimensions).fill(-Infinity);
 
   // Find min/max for each dimension
   for (const arr of featureArrays) {

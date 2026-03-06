@@ -2,7 +2,7 @@
  * Image export helpers — raw IndexedDB reads from the Illuminator DB.
  *
  * Used only by the bundle export pipeline. Display/rendering goes
- * through the shared @penguin-tales/image-store package instead.
+ * through the shared @the-canonry/image-store package instead.
  */
 
 const DB_NAME = 'illuminator';

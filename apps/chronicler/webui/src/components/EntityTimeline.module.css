@@ -7,7 +7,7 @@
   width: 100%;
 }
 
-.filterRow {
+.filter-row {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -21,7 +21,7 @@
   cursor: pointer;
 }
 
-.checkboxLabel {
+.checkbox-label {
   cursor: pointer;
   user-select: none;
 }
@@ -32,7 +32,7 @@
   font-size: var(--font-size-sm);
 }
 
-.headerRow {
+.header-row {
   background-color: var(--color-bg-secondary);
 }
 
@@ -44,17 +44,17 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.thTick {
+.th-tick {
   composes: th;
   width: 60px;
 }
 
-.thEra {
+.th-era {
   composes: th;
   width: 120px;
 }
 
-.thExpand {
+.th-expand {
   composes: th;
   width: 40px;
   text-align: center;
@@ -70,12 +70,12 @@
   background-color: var(--color-accent-hover);
 }
 
-.rowExpanded {
+.row-expanded {
   composes: row;
   background-color: var(--color-accent-hover);
 }
 
-.rowExpanded:hover {
+.row-expanded:hover {
   background-color: var(--color-accent-active);
 }
 
@@ -85,51 +85,51 @@
   vertical-align: top;
 }
 
-.tdTick {
+.td-tick {
   font-family: monospace;
   color: var(--color-text-muted);
 }
 
-.tdEra {
+.td-era {
   color: var(--color-text-muted);
 }
 
-.tdEvent {
+.td-event {
   line-height: var(--line-height-relaxed);
 }
 
-.tdExpand {
+.td-expand {
   text-align: center;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
 }
 
-.expandIcon {
+.expand-icon {
   display: inline-block;
   transition: transform 0.2s;
   user-select: none;
 }
 
-.expandIconOpen {
+.expand-icon-open {
   transform: rotate(90deg);
 }
 
-.effectsRow {
-  background-color: rgba(196, 154, 92, 0.05);
+.effects-row {
+  background-color: rgb(196 154 92 / 5%);
 }
 
-.effectsCell {
+.effects-cell {
   padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) 48px;
   border-bottom: 1px solid var(--color-border);
 }
 
-.effectsList {
+.effects-list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.effectItem {
+.effect-item {
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-sm);
@@ -138,70 +138,70 @@
   line-height: var(--line-height-normal);
 }
 
-.effectIcon {
+.effect-icon {
   flex-shrink: 0;
   width: 16px;
   text-align: center;
 }
 
-.effectDescription {
+.effect-description {
   color: var(--color-text-secondary);
 }
 
-.entityLink {
+.entity-link {
   color: var(--color-accent);
   cursor: pointer;
   border-bottom: 1px dotted var(--color-accent);
   text-decoration: none;
 }
 
-.emptyState {
+.empty-state {
   padding: var(--spacing-xl);
   text-align: center;
   color: var(--color-text-muted);
   font-style: italic;
 }
 
-.noEffects {
+.no-effects {
   color: var(--color-text-muted);
   font-style: italic;
   font-size: var(--font-size-xs);
 }
 
 /* Weight tier colors - warm parchment scale */
-.weightHigh {
+.weight-high {
   color: var(--color-text-primary);
 }
 
-.weightMidHigh {
+.weight-mid-high {
   color: var(--color-text-secondary);
 }
 
-.weightMidLow {
+.weight-mid-low {
   color: var(--color-text-muted);
 }
 
-.weightLow {
+.weight-low {
   color: #6b6155;
 }
 
 /* Effect type colors - warm palette */
-.effectCreated {
+.effect-created {
   color: var(--color-success);
 }
 
-.effectEnded {
+.effect-ended {
   color: var(--color-danger);
 }
 
-.effectRelationship {
+.effect-relationship {
   color: var(--color-accent);
 }
 
-.effectTag {
+.effect-tag {
   color: var(--color-purple);
 }
 
-.effectField {
+.effect-field {
   color: var(--color-warning);
 }

@@ -1,78 +1,21 @@
-/* Arctic Blue Theme - Name Forge (with Gold accent for identity) */
+/* Arctic Blue Theme — Shared base (backgrounds, borders, text, spacing, fonts, reset) */
+@import "@the-canonry/shared-components/styles/arctic-theme-base";
+
+/* Name Forge accent overrides (gold for identity) */
 :root {
-  /* Backgrounds - Arctic deep blues */
-  --bg-primary: #0a1929;
-  --bg-secondary: #1e3a5f;
-  --bg-tertiary: #2d4a6f;
-  --bg-sidebar: #0c1f2e;
-
-  /* Borders - Blue tinted */
-  --border-color: rgb(59 130 246 / 30%);
-  --border-light: rgb(59 130 246 / 50%);
-
-  /* Text - Ice white tones */
-  --text-color: #fff;
-  --text-secondary: #93c5fd;
-  --text-muted: #60a5fa;
-
-  /* Name Forge accent (gold for identity within arctic theme) */
   --accent-color: #fbbf24;
   --accent-hover: #fcd34d;
-
-  /* Arctic theme variables */
-  --arctic-deep: #0a1929;
-  --arctic-dark: #1e3a5f;
-  --arctic-mid: #2d4a6f;
-  --arctic-ice: #3b82f6;
-  --arctic-frost: #60a5fa;
-  --arctic-light: #93c5fd;
   --gold-accent: #fbbf24;
   --gold-dark: #f59e0b;
-
-  /* Consistent spacing scale */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 24px;
-
-  /* Consistent font sizes */
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-base: 13px;
-  --text-lg: 14px;
-  --text-xl: 16px;
-  --text-2xl: 20px;
-
-  /* Component colors */
-  --card-bg: var(--bg-secondary);
-  --card-border: var(--border-color);
-  --input-bg: var(--bg-tertiary);
-
-  /* Semantic colors - consistent with theme.js */
-  --danger: #ef4444;
-  --success: #22c55e;
-  --warning: #f59e0b;
 
   /* Buttons */
   --button-primary: #58e;
   --button-primary-hover: #69f;
-}
 
-/* Reset & Base */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  font-size: var(--text-base);
-  line-height: 1.5;
-  background: var(--bg-primary);
-  color: var(--text-color);
+  /* Canonical overrides for shared-components (accent differs from default theme) */
+  --color-accent: #fbbf24;
+  --color-accent-light: #fcd34d;
+  --gradient-accent: linear-gradient(135deg, #fbbf24 0%, #fcd34d 100%);
 }
 
 /* App Layout */
@@ -104,7 +47,9 @@ body {
 
 .header-logo {
   cursor: pointer;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
 }
 
 .header-logo:hover {
@@ -119,20 +64,9 @@ body {
   filter: drop-shadow(0 2px 8px rgb(0 0 0 / 30%));
 
   /* Soft fade at edges */
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 8%,
-    black 92%,
-    transparent 100%
-  ),
-  linear-gradient(
-    to bottom,
-    transparent 0%,
-    black 15%,
-    black 85%,
-    transparent 100%
-  );
+  mask-image:
+    linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
   mask-composite: intersect;
 }
 
@@ -160,7 +94,6 @@ body {
 .app-footer img {
   vertical-align: middle;
 }
-
 
 /* API Key Dropdown */
 .api-key-dropdown {
@@ -372,7 +305,9 @@ select {
   font-family: inherit;
   background: var(--input-bg);
   color: var(--text-color);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 input:focus,
@@ -418,7 +353,7 @@ input[type="range"] {
 .form-group textarea {
   min-height: 80px;
   resize: vertical;
-  font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', monospace;
+  font-family: "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace;
   font-size: var(--text-sm);
 }
 
@@ -526,7 +461,7 @@ code {
   background: rgb(10 25 41 / 60%);
   padding: 0.1rem 0.3rem;
   border-radius: 3px;
-  font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', monospace;
+  font-family: "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace;
   font-size: 0.9em;
   color: var(--gold-accent);
 }
@@ -536,7 +471,7 @@ code {
   color: var(--arctic-light);
   padding: var(--space-md);
   border-radius: 4px;
-  font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', monospace;
+  font-family: "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace;
   font-size: var(--text-sm);
   overflow-x: auto;
   white-space: pre-wrap;
@@ -571,8 +506,13 @@ code {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error/Success States */
@@ -933,50 +873,141 @@ button.sm {
    ============================================ */
 
 /* Margin utilities */
-.mt-0 { margin-top: 0; }
-.mt-xs { margin-top: var(--space-xs); }
-.mt-sm { margin-top: var(--space-sm); }
-.mt-md { margin-top: var(--space-md); }
-.mt-lg { margin-top: var(--space-lg); }
+.mt-0 {
+  margin-top: 0;
+}
 
-.mb-0 { margin-bottom: 0; }
-.mb-xs { margin-bottom: var(--space-xs); }
-.mb-sm { margin-bottom: var(--space-sm); }
-.mb-md { margin-bottom: var(--space-md); }
-.mb-lg { margin-bottom: var(--space-lg); }
+.mt-xs {
+  margin-top: var(--space-xs);
+}
 
-.ml-xs { margin-left: var(--space-xs); }
-.ml-sm { margin-left: var(--space-sm); }
-.ml-md { margin-left: var(--space-md); }
+.mt-sm {
+  margin-top: var(--space-sm);
+}
 
-.mr-xs { margin-right: var(--space-xs); }
-.mr-sm { margin-right: var(--space-sm); }
-.mr-md { margin-right: var(--space-md); }
+.mt-md {
+  margin-top: var(--space-md);
+}
+
+.mt-lg {
+  margin-top: var(--space-lg);
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.mb-xs {
+  margin-bottom: var(--space-xs);
+}
+
+.mb-sm {
+  margin-bottom: var(--space-sm);
+}
+
+.mb-md {
+  margin-bottom: var(--space-md);
+}
+
+.mb-lg {
+  margin-bottom: var(--space-lg);
+}
+
+.ml-xs {
+  margin-left: var(--space-xs);
+}
+
+.ml-sm {
+  margin-left: var(--space-sm);
+}
+
+.ml-md {
+  margin-left: var(--space-md);
+}
+
+.mr-xs {
+  margin-right: var(--space-xs);
+}
+
+.mr-sm {
+  margin-right: var(--space-sm);
+}
+
+.mr-md {
+  margin-right: var(--space-md);
+}
 
 /* Flex utilities */
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.flex-1 { flex: 1; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-xs { gap: var(--space-xs); }
-.gap-sm { gap: var(--space-sm); }
-.gap-md { gap: var(--space-md); }
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-xs {
+  gap: var(--space-xs);
+}
+
+.gap-sm {
+  gap: var(--space-sm);
+}
+
+.gap-md {
+  gap: var(--space-md);
+}
 
 /* Text utilities */
-.text-center { text-align: center; }
-.font-bold { font-weight: 600; }
-.font-mono { font-family: monospace; }
+.text-center {
+  text-align: center;
+}
+
+.font-bold {
+  font-weight: 600;
+}
+
+.font-mono {
+  font-family: monospace;
+}
 
 /* Display utilities */
-.block { display: block; }
-.inline { display: inline; }
-.inline-flex { display: inline-flex; }
+.block {
+  display: block;
+}
+
+.inline {
+  display: inline;
+}
+
+.inline-flex {
+  display: inline-flex;
+}
 
 /* Grid utilities */
-.grid { display: grid; }
-.grid.gap-sm { gap: var(--space-sm); }
-.grid.gap-md { gap: var(--space-md); }
+.grid {
+  display: grid;
+}
+
+.grid.gap-sm {
+  gap: var(--space-sm);
+}
+
+.grid.gap-md {
+  gap: var(--space-md);
+}
 
 /* ============================================
    CONDITIONS MODAL
@@ -2549,7 +2580,7 @@ button.sm {
   cursor: pointer;
   font-size: var(--text-xs);
   border: 1px solid;
-  font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', monospace;
+  font-family: "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace;
 }
 
 .insert-chip.gold {
@@ -2590,7 +2621,7 @@ button.sm {
   cursor: pointer;
   font-size: 0.7rem;
   margin-right: 0.25rem;
-  font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', monospace;
+  font-family: "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace;
 }
 
 /* Rule form */
@@ -4274,5 +4305,7 @@ button.sm {
 .weight-cell-bar {
   height: 100%;
   border-radius: 2px;
-  transition: height 0.2s, background-color 0.2s;
+  transition:
+    height 0.2s,
+    background-color 0.2s;
 }

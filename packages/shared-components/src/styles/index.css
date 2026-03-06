@@ -18,11 +18,23 @@
 @import url('./components/toggle.css');
 @import url('./components/section.css');
 @import url('./components/empty-state.css');
+@import url('./components/error-boundary.css');
+@import url('./components/error-message.css');
 @import url('./components/item-row.css');
 @import url('./components/dropdown.css');
 @import url('./components/level-selector.css');
 @import url('./components/editor.css');
 @import url('./components/actions.css');
+
+/* Layout patterns */
+@import url('./components/remote-shell.css');
+@import url('./components/viewer.css');
+
+/* Panel utilities (shared structural patterns for dense information panels) */
+@import url('./components/panel-utilities.css');
+
+/* Matrix base (shared structural patterns for data matrix components) */
+@import url('./components/matrix-base.css');
 
 /* Utilities */
 @import url('./utilities.css');

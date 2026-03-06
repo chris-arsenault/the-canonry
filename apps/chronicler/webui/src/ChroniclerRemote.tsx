@@ -7,37 +7,38 @@
  * Loads world data from the shared Dexie store.
  */
 
-import { useEffect, useMemo, useState } from 'react';
-import './styles/variables.css';
-import WikiExplorer from './components/WikiExplorer.tsx';
-import type { WorldState, SerializedPageIndex } from './types/world.ts';
-import { buildWorldStateForSlot } from '@penguin-tales/world-store';
-import { IndexedDBBackend, useNarrativeStore } from '@penguin-tales/narrative-store';
-import type { ChronicleRecord } from './lib/chronicleStorage.ts';
-import type { StaticPage } from './lib/staticPageStorage.ts';
-import type { EraNarrativeViewRecord } from './lib/eraNarrativeStorage.ts';
+import "./styles/variables.css";
+import type { Optional } from "@the-canonry/shared-components";
+import WikiExplorer from "./components/WikiExplorer.tsx";
+import ChroniclerStatusScreen from "./components/ChroniclerStatusScreen.tsx";
+import type { WorldState, SerializedPageIndex } from "./types/world.ts";
+import type { ChronicleRecord } from "./lib/chronicleStorage.ts";
+import type { StaticPage } from "./lib/staticPageStorage.ts";
+import type { EraNarrativeViewRecord } from "./lib/eraNarrativeStorage.ts";
+import useWorldDataLoader from "./hooks/useWorldDataLoader.ts";
+import React from "react";
 
 export interface ChroniclerRemoteProps {
-  projectId?: string;
-  activeSlotIndex?: number;
+  projectId: Optional<string>;
+  activeSlotIndex: Optional<number>;
   /** Timestamp updated when Dexie ingestion completes (viewer). */
-  dexieSeededAt?: number;
+  dexieSeededAt: Optional<number>;
   /** Page ID requested by external navigation */
-  requestedPageId?: string | null;
+  requestedPageId: Optional<string | null>;
   /** Callback to signal that the requested page has been consumed */
-  onRequestedPageConsumed?: () => void;
+  onRequestedPageConsumed: Optional<() => void>;
   /** Pre-loaded world data — skips IndexedDB read when provided (viewer context) */
-  preloadedWorldData?: WorldState | null;
+  preloadedWorldData: Optional<WorldState | null>;
   /** Pre-loaded chronicles — skips IndexedDB read when provided (viewer context) */
-  preloadedChronicles?: ChronicleRecord[];
+  preloadedChronicles: Optional<ChronicleRecord[]>;
   /** Pre-loaded static pages — skips IndexedDB read when provided (viewer context) */
-  preloadedStaticPages?: StaticPage[];
+  preloadedStaticPages: Optional<StaticPage[]>;
   /** Pre-loaded era narratives — skips IndexedDB read when provided (viewer context) */
-  preloadedEraNarratives?: EraNarrativeViewRecord[];
+  preloadedEraNarratives: Optional<EraNarrativeViewRecord[]>;
   /** Pre-baked parchment tile URL — skips runtime canvas pipeline when provided */
-  prebakedParchmentUrl?: string;
+  prebakedParchmentUrl: Optional<string>;
   /** Pre-computed page index — skips buildPageIndex on mount when provided */
-  precomputedPageIndex?: SerializedPageIndex;
+  precomputedPageIndex: Optional<SerializedPageIndex>;
 }
 
 export default function ChroniclerRemote({
@@ -52,137 +53,22 @@ export default function ChroniclerRemote({
   preloadedEraNarratives,
   prebakedParchmentUrl,
   precomputedPageIndex,
-}: ChroniclerRemoteProps) {
-  const [worldDataState, setWorldDataState] = useState<WorldState | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+}: Readonly<ChroniclerRemoteProps>) {
+  const { worldData, loading, loadError } = useWorldDataLoader({
+    projectId,
+    activeSlotIndex,
+    dexieSeededAt,
+    preloadedWorldData,
+  });
 
-  const narrativeBackend = useMemo(() => new IndexedDBBackend(), []);
-  const hasPreloadedWorld = preloadedWorldData !== undefined;
-  const effectiveWorldData = projectId ? (hasPreloadedWorld ? preloadedWorldData : worldDataState) : null;
-  const effectiveLoading = projectId ? (hasPreloadedWorld ? false : loading) : false;
-  const effectiveLoadError = projectId ? (hasPreloadedWorld ? null : loadError) : null;
-  const simulationRunId = effectiveWorldData?.metadata?.simulationRunId ?? null;
-
-  // Load world data from IndexedDB when no preloaded data is provided (Canonry shell context)
-  useEffect(() => {
-    if (hasPreloadedWorld) return;
-    if (!projectId) return;
-
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (cancelled) return;
-      setLoading(true);
-      setLoadError(null);
-    });
-
-    buildWorldStateForSlot(projectId, activeSlotIndex)
-      .then((loaded) => {
-        if (cancelled) return;
-        setWorldDataState(loaded);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error('[ChroniclerRemote] Failed to load world data:', err);
-        setWorldDataState(null);
-        setLoadError(err?.message || 'Failed to load world data from Dexie.');
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeSlotIndex, dexieSeededAt, hasPreloadedWorld, projectId]);
-
-  useEffect(() => {
-    const store = useNarrativeStore.getState();
-    store.configureBackend(narrativeBackend);
-    if (store.simulationRunId !== simulationRunId) {
-      store.setSimulationRunId(simulationRunId);
-    }
-  }, [narrativeBackend, simulationRunId]);
-
-  if (effectiveLoading) {
-    return (
-      <div
-        style={{
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'var(--color-bg-primary, #352a1e)',
-          color: 'var(--color-text-muted, #8a7d6b)',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '18px', color: 'var(--color-text-primary, #e8dcc8)', marginBottom: '8px', fontFamily: '"Playfair Display", Georgia, serif' }}>
-            Loading World Data
-          </div>
-          <div style={{ fontSize: '14px' }}>
-            Reading from local storage...
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (effectiveLoadError) {
-    return (
-      <div
-        style={{
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'var(--color-bg-primary, #352a1e)',
-          color: 'var(--color-text-muted, #8a7d6b)',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#x2756;</div>
-          <div style={{ fontSize: '18px', color: 'var(--color-text-primary, #e8dcc8)', marginBottom: '8px', fontFamily: '"Playfair Display", Georgia, serif' }}>
-            World Data Unavailable
-          </div>
-          <div style={{ fontSize: '14px' }}>
-            {effectiveLoadError}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!effectiveWorldData) {
-    return (
-      <div
-        style={{
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'var(--color-bg-primary, #352a1e)',
-          color: 'var(--color-text-muted, #8a7d6b)',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#x2756;</div>
-          <div style={{ fontSize: '18px', color: 'var(--color-text-primary, #e8dcc8)', marginBottom: '8px', fontFamily: '"Playfair Display", Georgia, serif' }}>
-            No World Data
-          </div>
-          <div style={{ fontSize: '14px' }}>
-            Run a simulation in Lore Weave and enrich it with Illuminator to view the world chronicle.
-          </div>
-        </div>
-      </div>
-    );
+  if (loading || loadError || !worldData) {
+    return <ChroniclerStatusScreen loading={loading} loadError={loadError} />;
   }
 
   return (
     <WikiExplorer
       projectId={projectId}
-      worldData={effectiveWorldData}
+      worldData={worldData}
       loreData={null}
       requestedPageId={requestedPageId}
       onRequestedPageConsumed={onRequestedPageConsumed}

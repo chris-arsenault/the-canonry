@@ -1,0 +1,56 @@
+/* FilterChips styles */
+
+.fc-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fc-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.fc-clear-btn {
+  background: none;
+  border: none;
+  color: var(--accent-color);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.fc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fc-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: var(--fc-chip-border, 1px solid var(--border-color));
+  background: var(--fc-chip-bg, transparent);
+  color: var(--fc-chip-color, var(--text-secondary));
+  font-weight: var(--fc-chip-weight, 400);
+}
+
+.fc-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fc-dot-bg, var(--accent-color));
+}

@@ -6,10 +6,10 @@
  */
 
 /** Type of image: entity (default) or chronicle (scene/illustration) */
-export type ImageType = 'entity' | 'chronicle';
+export type ImageType = "entity" | "chronicle";
 
 /** Image aspect ratio classification */
-export type ImageAspect = 'portrait' | 'landscape' | 'square';
+export type ImageAspect = "portrait" | "landscape" | "square";
 
 export interface ImageMetadata {
   entityId: string;

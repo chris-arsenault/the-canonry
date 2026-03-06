@@ -5,7 +5,7 @@
  */
 
 import { Graph } from '../engine/types';
-import { HardState, Relationship } from '../core/worldTypes';
+import { HardState } from '../core/worldTypes';
 
 /**
  * Find entities matching criteria
@@ -38,9 +38,9 @@ export function findEntities(
  * Relationship query options
  */
 export interface RelationshipQueryOptions {
-  minStrength?: number;      // Filter by minimum strength
-  maxStrength?: number;      // Filter by maximum strength
-  sortByStrength?: boolean;  // Sort by strength descending
+  minStrength: number;      // Filter by minimum strength
+  maxStrength: number;      // Filter by maximum strength
+  sortByStrength: boolean;  // Sort by strength descending
 }
 
 /**
@@ -49,20 +49,20 @@ export interface RelationshipQueryOptions {
 export function getRelated(
   graph: Graph,
   entityId: string,
-  relationshipKind?: string,
+  relationshipKind: string,
   direction: 'src' | 'dst' | 'both' = 'both',
-  options?: RelationshipQueryOptions
+  options: RelationshipQueryOptions
 ): HardState[] {
   const related: Array<{ entity: HardState; strength: number }> = [];
-  const opts = options || {};
+  const opts = options;
 
   graph.getRelationships().forEach(rel => {
     if (relationshipKind && rel.kind !== relationshipKind) return;
 
     // Strength filtering
-    const strength = rel.strength ?? 0.5;
-    if (opts.minStrength !== undefined && strength < opts.minStrength) return;
-    if (opts.maxStrength !== undefined && strength > opts.maxStrength) return;
+    const strength = rel.strength;
+    if (strength < opts.minStrength) return;
+    if (strength > opts.maxStrength) return;
 
     if ((direction === 'src' || direction === 'both') && rel.src === entityId) {
       const entity = graph.getEntity(rel.dst);
@@ -87,7 +87,7 @@ export function hasRelationship(
   graph: Graph,
   srcId: string,
   dstId: string,
-  kind?: string
+  kind: string
 ): boolean {
   return graph.getRelationships().some(rel =>
     rel.src === srcId &&

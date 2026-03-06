@@ -1,0 +1,274 @@
+/* CausalLoopEditor companion styles */
+.cl-toolbar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.cl-stats {
+  color: #93c5fd;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.cl-stats-warning {
+  color: #f59e0b;
+}
+
+.cl-stats-hint {
+  color: #6b7280;
+}
+
+.cl-loop-count {
+  margin-left: 8px;
+}
+
+.cl-loop-reinforcing {
+  color: #ef4444;
+}
+
+.cl-loop-balancing {
+  color: #3b82f6;
+}
+
+.cl-warnings-box {
+  padding: 8px 12px;
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.cl-warnings-title {
+  color: #f59e0b;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.cl-warnings-list {
+  color: #fcd34d;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.cl-warnings-more {
+  color: #f59e0b;
+  margin-top: 4px;
+}
+
+.cl-legend {
+  display: flex;
+  gap: 24px;
+  padding: 12px 16px;
+  background-color: rgba(15, 23, 42, 0.6);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.cl-legend-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.cl-legend-label {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cl-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.cl-legend-node {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #0a1929;
+}
+
+.cl-legend-node-label {
+  color: #e2e8f0;
+}
+
+.cl-graph-container {
+  background-color: #0f172a;
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  overflow: hidden;
+}
+
+.cl-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #93c5fd;
+}
+
+.cl-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.cl-empty-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.cl-empty-desc {
+  font-size: 13px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.cl-details {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: rgba(15, 23, 42, 0.8);
+  border-radius: 8px;
+  border: 2px solid var(--cl-detail-color, rgba(59, 130, 246, 0.3));
+}
+
+.cl-details-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cl-details-type-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0a1929;
+}
+
+.cl-details-name {
+  color: #fff;
+  font-weight: 500;
+}
+
+.cl-details-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #93c5fd;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.cl-details-edges {
+  display: flex;
+  gap: 24px;
+}
+
+.cl-edge-section {
+  flex: 1;
+}
+
+.cl-edge-label {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cl-edge-list {
+  padding-left: 8px;
+  font-size: 12px;
+  color: #e2e8f0;
+  margin-top: 4px;
+}
+
+.cl-edge-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.cl-edge-none {
+  color: #6b7280;
+}
+
+.cl-loops-section {
+  margin-top: 16px;
+}
+
+.cl-loops-title {
+  color: #fff;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.cl-loops-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cl-loop-item {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.cl-loop-item-reinforcing {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+}
+
+.cl-loop-item-balancing {
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 1px solid #3b82f6;
+}
+
+.cl-loop-type {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.cl-loop-type-reinforcing {
+  color: #ef4444;
+}
+
+.cl-loop-type-balancing {
+  color: #3b82f6;
+}
+
+.cl-loop-path {
+  color: #e2e8f0;
+}
+
+.cl-loops-more {
+  color: #93c5fd;
+  font-size: 12px;
+}
+
+.cl-edge-positive {
+  color: #22c55e;
+}
+
+.cl-edge-negative {
+  color: #ef4444;
+}

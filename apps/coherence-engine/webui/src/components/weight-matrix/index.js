@@ -1,1 +1,1 @@
-export { default as WeightMatrixEditor } from './WeightMatrixEditor';
+export { default as WeightMatrixEditor } from "./WeightMatrixEditor";

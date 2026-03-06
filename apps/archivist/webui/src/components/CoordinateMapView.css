@@ -5,8 +5,13 @@
   overflow: hidden;
 }
 
-.coordinate-map-container canvas {
+.coordinate-map-canvas {
   display: block;
+  cursor: default;
+}
+
+.coordinate-map-canvas-clickable {
+  cursor: pointer;
 }
 
 /* Controls panel */
@@ -25,11 +30,11 @@
   z-index: 10;
 }
 
-.control-section {
+.control-block {
   margin-bottom: var(--spacing-lg);
 }
 
-.control-section:last-child {
+.control-block:last-child {
   margin-bottom: 0;
 }
 
@@ -69,13 +74,13 @@
   font-style: italic;
 }
 
-.layer-toggles {
+.layer-checks {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
 }
 
-.layer-toggle {
+.layer-check {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -83,11 +88,11 @@
   padding: var(--spacing-xs) 0;
 }
 
-.layer-toggle input {
+.layer-check input {
   accent-color: var(--color-blue-500);
 }
 
-.layer-toggle span {
+.layer-check span {
   text-transform: capitalize;
 }
 
@@ -131,6 +136,12 @@
   flex-shrink: 0;
 }
 
+.legend-dot-svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
 .legend-divider {
   height: 1px;
   background: var(--color-border);
@@ -158,6 +169,11 @@
   z-index: 100;
   box-shadow: var(--shadow-xl);
   max-width: 200px;
+}
+
+.coordinate-map-tooltip-fixed {
+  top: var(--spacing-xl);
+  right: var(--spacing-xl);
 }
 
 .tooltip-name {

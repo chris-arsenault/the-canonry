@@ -5,9 +5,10 @@
  * Chronicler reads completed chronicles directly from here.
  */
 
-import { openIlluminatorDb } from './illuminatorDbReader';
+import { openIlluminatorDb } from "@the-canonry/world-store";
+import type { Optional } from "@the-canonry/shared-components";
 
-const CHRONICLE_STORE_NAME = 'chronicles';
+const CHRONICLE_STORE_NAME = "chronicles";
 
 /**
  * Role assignment (matching illuminator's ChronicleRoleAssignment)
@@ -32,70 +33,70 @@ export interface ChronicleRecord {
 
   // Chronicle identity (seed data)
   title: string;
-  format: 'story' | 'document';
-  focusType: 'single' | 'ensemble' | 'relationship' | 'event';
+  format: "story" | "document";
+  focusType: "single" | "ensemble" | "relationship" | "event";
   narrativeStyleId: string;
-  entrypointId?: string;
+  entrypointId: Optional<string>;
   roleAssignments: ChronicleRoleAssignment[];
   selectedEntityIds: string[];
   selectedEventIds: string[];
   selectedRelationshipIds: string[];
-  temporalContext?: {
-    focalEra?: { id: string; name: string; summary?: string };
-    chronicleTickRange?: [number, number];
-    temporalScope?: string;
-    isMultiEra?: boolean;
-    touchedEraIds?: string[];
-    temporalDescription?: string;
+  temporalContext: Optional<{
+    focalEra: Optional<{ id: string; name: string; summary: Optional<string> }>;
+    chronicleTickRange: Optional<[number, number]>;
+    temporalScope: Optional<string>;
+    isMultiEra: Optional<boolean>;
+    touchedEraIds: Optional<string[]>;
+    temporalDescription: Optional<string>;
     [key: string]: unknown;
-  };
+  }>;
 
   // Content
-  assembledContent?: string;
-  finalContent?: string;
-  summary?: string;
+  assembledContent: Optional<string>;
+  finalContent: Optional<string>;
+  summary: Optional<string>;
 
   // Image refs for inline images
-  imageRefs?: {
+  imageRefs: Optional<{
     refs: Array<{
       refId: string;
       anchorText: string;
-      anchorIndex?: number;
-      size: 'small' | 'medium' | 'large' | 'full-width';
-      justification?: 'left' | 'right';
-      caption?: string;
-      type: 'entity_ref' | 'prompt_request';
-      entityId?: string;
-      sceneDescription?: string;
-      status?: 'pending' | 'generating' | 'complete' | 'failed';
-      generatedImageId?: string;
+      anchorIndex: Optional<number>;
+      size: "small" | "medium" | "large" | "full-width";
+      justification: Optional<"left" | "right">;
+      caption: Optional<string>;
+      type: "entity_ref" | "prompt_request";
+      entityId: Optional<string>;
+      sceneDescription: Optional<string>;
+      status: Optional<"pending" | "generating" | "complete" | "failed">;
+      generatedImageId: Optional<string>;
     }>;
     generatedAt: number;
     model: string;
-  };
+  }>;
 
   // Cover image (montage-style chronicle overview)
-  coverImage?: {
+  coverImage: Optional<{
     sceneDescription: string;
     involvedEntityIds: string[];
-    status: 'pending' | 'generating' | 'complete' | 'failed';
-    generatedImageId?: string;
-    error?: string;
-  };
+    status: "pending" | "generating" | "complete" | "failed";
+    generatedImageId: Optional<string>;
+    error: Optional<string>;
+  }>;
 
   // Historian annotations
-  historianNotes?: Array<{
+  historianNotes: Optional<Array<{
     noteId: string;
     anchorPhrase: string;
     text: string;
     type: string;
-    display?: 'disabled' | 'popout' | 'full';
+    display: Optional<"disabled" | "popout" | "full">;
     /** @deprecated Use `display` instead */
-    enabled?: boolean;
-  }>;
+    enabled: Optional<boolean>;
+  }>>;
 
   // Timestamps
-  acceptedAt?: number;
+  acceptedAt: Optional<number>;
   createdAt: number;
   updatedAt: number;
 
@@ -106,34 +107,36 @@ export interface ChronicleRecord {
 /**
  * Get all completed chronicles for a simulation run
  */
-export async function getCompletedChroniclesForSimulation(simulationRunId: string): Promise<ChronicleRecord[]> {
+export async function getCompletedChroniclesForSimulation(
+  simulationRunId: string
+): Promise<ChronicleRecord[]> {
   if (!simulationRunId) return [];
 
   try {
     const db = await openIlluminatorDb();
     try {
       return await new Promise((resolve, reject) => {
-        const tx = db.transaction(CHRONICLE_STORE_NAME, 'readonly');
+        const tx = db.transaction(CHRONICLE_STORE_NAME, "readonly");
         const store = tx.objectStore(CHRONICLE_STORE_NAME);
-        const index = store.index('simulationRunId');
+        const index = store.index("simulationRunId");
         const request = index.getAll(IDBKeyRange.only(simulationRunId));
 
         request.onsuccess = () => {
           const allChronicles = request.result as ChronicleRecord[];
           // Filter to only completed chronicles
-          const completed = allChronicles.filter((c) => c.status === 'complete' && c.acceptedAt);
+          const completed = allChronicles.filter((c) => c.status === "complete" && c.acceptedAt);
           // Sort by acceptedAt descending
           completed.sort((a, b) => (b.acceptedAt || 0) - (a.acceptedAt || 0));
           resolve(completed);
         };
 
-        request.onerror = () => reject(request.error || new Error('Failed to get chronicles'));
+        request.onerror = () => reject(request.error || new Error("Failed to get chronicles"));
       });
     } finally {
       db.close();
     }
   } catch (err) {
-    console.error('[chronicleStorage] Failed to load chronicles:', err);
+    console.error("[chronicleStorage] Failed to load chronicles:", err);
     return [];
   }
 }
@@ -148,17 +151,17 @@ export async function getChronicle(chronicleId: string): Promise<ChronicleRecord
     const db = await openIlluminatorDb();
     try {
       return await new Promise((resolve, reject) => {
-        const tx = db.transaction(CHRONICLE_STORE_NAME, 'readonly');
+        const tx = db.transaction(CHRONICLE_STORE_NAME, "readonly");
         const request = tx.objectStore(CHRONICLE_STORE_NAME).get(chronicleId);
 
-        request.onsuccess = () => resolve(request.result || null);
-        request.onerror = () => reject(request.error || new Error('Failed to get chronicle'));
+        request.onsuccess = () => resolve((request.result as ChronicleRecord | undefined) ?? null);
+        request.onerror = () => reject(request.error ?? new Error("Failed to get chronicle"));
       });
     } finally {
       db.close();
     }
   } catch (err) {
-    console.error('[chronicleStorage] Failed to load chronicle:', err);
+    console.error("[chronicleStorage] Failed to load chronicle:", err);
     return null;
   }
 }
@@ -168,5 +171,5 @@ export async function getChronicle(chronicleId: string): Promise<ChronicleRecord
  * Prefers finalContent (accepted), falls back to assembledContent
  */
 export function getChronicleContent(chronicle: ChronicleRecord): string {
-  return chronicle.finalContent || chronicle.assembledContent || '';
+  return chronicle.finalContent || chronicle.assembledContent || "";
 }

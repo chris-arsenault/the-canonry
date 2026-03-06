@@ -37,7 +37,7 @@ export interface DeclarativePressure {
   id: string;
   name: string;
   /** Optional human-friendly description of the pressure and what ± values mean */
-  description?: string;
+  description: string;
 
   /** Initial value (-100 to 100) */
   initialValue: number;
@@ -58,7 +58,7 @@ export interface DeclarativePressure {
   };
 
   /** Documentation contract (optional, for UI display) */
-  contract?: PressureContract;
+  contract: PressureContract;
 }
 
 // =============================================================================
@@ -69,6 +69,6 @@ export interface DeclarativePressure {
  * Shape of the pressures.json file
  */
 export interface PressuresFile {
-  $schema?: string;
+  $schema: string;
   pressures: DeclarativePressure[];
 }

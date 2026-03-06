@@ -5,4 +5,4 @@
  * Internal modules (cards, modals, shared, tabs) are used internally.
  */
 
-export { default, ActionsEditor } from './ActionsEditor';
+export { default, ActionsEditor } from "./ActionsEditor";

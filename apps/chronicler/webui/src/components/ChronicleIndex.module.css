@@ -23,7 +23,7 @@
   line-height: var(--line-height-relaxed);
 }
 
-.descriptionRow {
+.description-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -32,7 +32,7 @@
   flex-wrap: wrap;
 }
 
-.descriptionRow .description {
+.description-row .description {
   margin-bottom: 0;
   flex: 1;
   min-width: 240px;
@@ -44,13 +44,13 @@
   gap: var(--spacing-sm);
 }
 
-.sortControl {
+.sort-control {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
 }
 
-.sortLabel {
+.sort-label {
   font-size: var(--font-size-xs);
   font-family: var(--font-family-ui);
   color: var(--color-text-muted);
@@ -58,7 +58,7 @@
   letter-spacing: 0.08em;
 }
 
-.sortSelect {
+.sort-select {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -80,7 +80,7 @@
   gap: var(--spacing-sm);
 }
 
-.groupHeader {
+.group-header {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   font-family: var(--font-family-ui);
@@ -91,7 +91,7 @@
   padding-bottom: var(--spacing-xs);
 }
 
-.groupItems {
+.group-items {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
@@ -111,7 +111,7 @@
   background-color: var(--color-accent-hover);
 }
 
-.itemHeader {
+.item-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -119,13 +119,13 @@
   margin-bottom: var(--spacing-sm);
 }
 
-.itemTitle {
+.item-title {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
-.badgeGroup {
+.badge-group {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -144,7 +144,7 @@
   letter-spacing: 0.08em;
 }
 
-.badgeSecondary {
+.badge-secondary {
   composes: badge;
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-secondary);
@@ -152,7 +152,7 @@
   letter-spacing: 0.2px;
 }
 
-.itemMeta {
+.item-meta {
   font-size: var(--font-size-xs);
   font-family: var(--font-family-ui);
   color: var(--color-text-muted);
@@ -162,7 +162,7 @@
   margin-bottom: var(--spacing-xs);
 }
 
-.itemSummary {
+.item-summary {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   line-height: var(--line-height-relaxed);

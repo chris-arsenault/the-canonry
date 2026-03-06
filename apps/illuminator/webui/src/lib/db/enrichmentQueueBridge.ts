@@ -31,14 +31,14 @@ export function registerQueue(enqueue: EnqueueFn, cancel: CancelFn): void {
 
 export function getEnqueue(): EnqueueFn {
   if (!_enqueue) {
-    throw new Error('registerQueue must be called before getEnqueue');
+    throw new Error("registerQueue must be called before getEnqueue");
   }
   return _enqueue;
 }
 
 export function getCancel(): CancelFn {
   if (!_cancel) {
-    throw new Error('registerQueue must be called before getCancel');
+    throw new Error("registerQueue must be called before getCancel");
   }
   return _cancel;
 }

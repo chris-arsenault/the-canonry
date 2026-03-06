@@ -79,28 +79,28 @@
   color: var(--color-text-primary);
 }
 
-.relationship-story-section {
+.rs-block {
   padding: var(--spacing-xl) var(--spacing-2xl);
   border-bottom: 1px solid var(--color-bg-blue-15);
 }
 
-.relationship-story-section:last-child {
+.rs-block:last-child {
   border-bottom: none;
 }
 
-.relationship-story-section-header {
+.rs-block-hdr {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
 }
 
-.relationship-story-section-icon {
+.rs-block-icon {
   font-size: var(--font-size-xl);
   line-height: 1;
 }
 
-.relationship-story-section-title {
+.rs-block-title {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-bold);
   color: var(--color-blue-400);
@@ -108,7 +108,7 @@
   letter-spacing: 0.05em;
 }
 
-.relationship-story-section-content {
+.rs-block-body {
   font-family: var(--font-serif);
   font-size: var(--font-size-base);
   line-height: var(--line-height-loose);
@@ -118,14 +118,14 @@
 }
 
 /* Different section backgrounds */
-.relationship-story-section:nth-child(2) {
+.rs-block:nth-child(2) {
   background: var(--color-bg-blue-3);
 }
 
-.relationship-story-section:nth-child(3) {
+.rs-block:nth-child(3) {
   background: var(--color-bg-gold-3);
 }
 
-.relationship-story-section:nth-child(4) {
+.rs-block:nth-child(4) {
   background: var(--color-bg-purple-3);
 }

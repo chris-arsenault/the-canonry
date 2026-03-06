@@ -1,13 +1,9 @@
 /**
- * CoverageMatrix - Base styles for coverage/relationship matrix visualization
+ * CoverageMatrix - Component-specific styles for coverage/relationship matrix visualization
+ *
+ * Structural base provided by mat-* classes from matrix-base.css.
+ * This file contains only CoverageMatrix-specific rules.
  */
-
-.coverage-matrix {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  max-width: 100%;
-}
 
 /* Header */
 .cm-header {
@@ -72,35 +68,12 @@
   color: #22c55e;
 }
 
-/* Toolbar */
-.cm-toolbar {
-  display: flex;
-  gap: var(--spacing-md, 12px);
-  margin-bottom: var(--spacing-lg, 16px);
-  align-items: center;
-  flex-wrap: wrap;
-}
-
+/* Search — extends mat-search with fixed width */
 .cm-search {
-  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
-  font-size: var(--font-size-sm, 13px);
-  background: rgb(15 23 42 / 60%);
-  border: 1px solid rgb(59 130 246 / 20%);
-  border-radius: var(--radius-md, 6px);
-  color: var(--color-text, #fff);
   width: 250px;
-  outline: none;
-  transition: border-color 0.15s;
 }
 
-.cm-search:focus {
-  border-color: var(--color-accent, #f59e0b);
-}
-
-.cm-search::placeholder {
-  color: var(--color-text-muted, #64748b);
-}
-
+/* Filters */
 .cm-filters {
   display: flex;
   gap: var(--spacing-xs, 4px);
@@ -129,15 +102,7 @@
   color: var(--color-accent, #f59e0b);
 }
 
-/* Matrix Container */
-.cm-container {
-  flex: 1;
-  overflow: auto;
-  background: rgb(15 23 42 / 40%);
-  border: 1px solid rgb(59 130 246 / 20%);
-  border-radius: var(--radius-xl, 12px);
-}
-
+/* Empty state */
 .cm-empty {
   display: flex;
   align-items: center;
@@ -147,30 +112,8 @@
   font-style: italic;
 }
 
-/* Matrix Table */
-.cm-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-sm, 13px);
-}
-
-.cm-table th,
-.cm-table td {
-  padding: var(--spacing-sm, 10px) var(--spacing-md, 12px);
-  text-align: left;
-  border-bottom: 1px solid rgb(59 130 246 / 10%);
-}
-
+/* Table header — extends mat-table th */
 .cm-table th {
-  position: sticky;
-  top: 0;
-  background: #0c1f2e;
-  font-weight: var(--font-weight-semibold, 600);
-  color: var(--color-text-dim, #93c5fd);
-  text-transform: uppercase;
-  font-size: var(--font-size-xs, 11px);
-  letter-spacing: 0.5px;
-  z-index: 10;
   white-space: nowrap;
 }
 
@@ -201,15 +144,7 @@
   background: rgb(239 68 68 / 10%);
 }
 
-/* Row Styles */
-.cm-row {
-  transition: background-color 0.1s;
-}
-
-.cm-row:hover {
-  background: rgb(59 130 246 / 5%);
-}
-
+/* Row Styles — extends mat-row */
 .cm-row.clickable {
   cursor: pointer;
 }
@@ -300,16 +235,8 @@
   color: var(--color-text-muted, #475569);
 }
 
-/* Legend */
+/* Legend — extends mat-legend with flex-wrap */
 .cm-legend {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg, 16px);
-  margin-top: var(--spacing-lg, 16px);
-  padding: var(--spacing-md, 12px) var(--spacing-lg, 16px);
-  background: rgb(15 23 42 / 40%);
-  border: 1px solid rgb(59 130 246 / 15%);
-  border-radius: var(--radius-lg, 8px);
   flex-wrap: wrap;
 }
 

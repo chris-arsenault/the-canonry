@@ -20,7 +20,7 @@ export function getAllDomains(allCultures) {
         cultConfig.naming.domains.forEach((domain) => {
           allDomains.push({
             ...domain,
-            sourceCulture: cultId
+            sourceCulture: cultId,
           });
         });
       }
@@ -34,9 +34,12 @@ export function getAllDomains(allCultures) {
  */
 export function getStrategyColor(type) {
   switch (type) {
-    case 'phonotactic': return 'rgba(59, 130, 246, 0.3)';
-    case 'grammar': return 'rgba(147, 51, 234, 0.3)';
-    default: return 'rgba(100, 100, 100, 0.3)';
+    case "phonotactic":
+      return "rgba(59, 130, 246, 0.3)";
+    case "grammar":
+      return "rgba(147, 51, 234, 0.3)";
+    default:
+      return "rgba(100, 100, 100, 0.3)";
   }
 }
 
@@ -45,9 +48,12 @@ export function getStrategyColor(type) {
  */
 export function getStrategyBorder(type) {
   switch (type) {
-    case 'phonotactic': return 'rgba(59, 130, 246, 0.5)';
-    case 'grammar': return 'rgba(147, 51, 234, 0.5)';
-    default: return 'rgba(100, 100, 100, 0.5)';
+    case "phonotactic":
+      return "rgba(59, 130, 246, 0.5)";
+    case "grammar":
+      return "rgba(147, 51, 234, 0.5)";
+    default:
+      return "rgba(100, 100, 100, 0.5)";
   }
 }
 
@@ -60,14 +66,12 @@ export function listAppliesHere(list, cultureId, entityKind) {
   const entityKinds = appliesTo.entityKinds || [];
 
   // Check culture match (empty array or '*' means all)
-  const cultureMatch = cultures.length === 0 ||
-    cultures.includes('*') ||
-    cultures.includes(cultureId);
+  const cultureMatch =
+    cultures.length === 0 || cultures.includes("*") || cultures.includes(cultureId);
 
   // Check entity kind match
-  const entityMatch = entityKinds.length === 0 ||
-    entityKinds.includes('*') ||
-    entityKinds.includes(entityKind);
+  const entityMatch =
+    entityKinds.length === 0 || entityKinds.includes("*") || entityKinds.includes(entityKind);
 
   return cultureMatch && entityMatch;
 }
@@ -88,7 +92,7 @@ export function getSharedLexemeLists(allCultures, cultureId, entityKind) {
             ...list,
             id: listId,
             sourceCulture: cultId,
-            isShared: true
+            isShared: true,
           };
         }
       });
@@ -105,8 +109,8 @@ export function getAvailableLexemeLists(entityConfig, cultureConfig, cultureId, 
   const lists = [];
   // Local lists
   if (entityConfig?.lexemeLists) {
-    Object.keys(entityConfig.lexemeLists).forEach(id => {
-      lists.push({ id, source: 'local' });
+    Object.keys(entityConfig.lexemeLists).forEach((id) => {
+      lists.push({ id, source: "local" });
     });
   }
   // Shared lists from same culture
@@ -114,8 +118,14 @@ export function getAvailableLexemeLists(entityConfig, cultureConfig, cultureId, 
   Object.entries(cultureLists).forEach(([id, list]) => {
     if (entityConfig?.lexemeLists && entityConfig.lexemeLists[id]) return;
     const appliesTo = list.appliesTo || {};
-    const cultureMatch = !appliesTo.cultures?.length || appliesTo.cultures.includes('*') || appliesTo.cultures.includes(cultureId);
-    const entityMatch = !appliesTo.entityKinds?.length || appliesTo.entityKinds.includes('*') || appliesTo.entityKinds.includes(entityKind);
+    const cultureMatch =
+      !appliesTo.cultures?.length ||
+      appliesTo.cultures.includes("*") ||
+      appliesTo.cultures.includes(cultureId);
+    const entityMatch =
+      !appliesTo.entityKinds?.length ||
+      appliesTo.entityKinds.includes("*") ||
+      appliesTo.entityKinds.includes(entityKind);
     if (cultureMatch && entityMatch) {
       lists.push({ id, source: cultureId });
     }

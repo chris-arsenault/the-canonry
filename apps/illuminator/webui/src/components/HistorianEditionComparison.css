@@ -1,0 +1,97 @@
+/* HistorianEditionComparison styles */
+
+.hec-wrapper {
+  margin-top: var(--space-sm);
+}
+
+.hec-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.hec-toggle-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hec-expanded {
+  margin-top: 8px;
+}
+
+.hec-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+/* Compose with: ilu-compact-select */
+.hec-select {
+  min-width: 180px;
+}
+
+/* Compose with: ilu-compact-select */
+.hec-compare-select {
+  min-width: 160px;
+}
+
+/* Compose with: ilu-action-btn-sm — overrides for extra-compact sizing */
+.hec-make-active-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+/* Compose with: ilu-action-btn-sm — overrides for extra-compact sizing + auto margin */
+.hec-export-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  margin-left: auto;
+}
+
+.hec-word-summary {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  gap: 12px;
+}
+
+.hec-text-view {
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+  line-height: 1.8;
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hec-word-delta {
+  font-weight: 600;
+  color: var(--hec-delta-color, var(--text-muted));
+}
+
+.hec-diff-added {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--text-primary);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.hec-diff-removed {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--text-secondary);
+  border-radius: 2px;
+  padding: 0 1px;
+  text-decoration: line-through;
+}

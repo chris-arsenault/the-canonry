@@ -1,0 +1,6 @@
+/* PhonemeWeightGrid Component Styles */
+
+.pwg-bar {
+  height: var(--pwg-bar-height);
+  background-color: var(--pwg-bar-color);
+}

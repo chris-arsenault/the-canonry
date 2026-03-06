@@ -5,13 +5,14 @@
  * note statistics. Calculated on-demand via button click.
  */
 
-import { useState, useCallback } from 'react';
-import type { PrePrintStats } from '../../lib/preprint/prePrintTypes';
-import type { PersistedEntity } from '../../lib/db/illuminatorDb';
-import type { ChronicleRecord } from '../../lib/chronicleTypes';
-import type { StaticPage } from '../../lib/staticPageTypes';
-import type { EraNarrativeRecord } from '../../lib/eraNarrativeTypes';
-import { computePrePrintStats, type ImageMetadataRecord } from '../../lib/preprint/prePrintStats';
+import React, { useState, useCallback } from "react";
+import type { PrePrintStats } from "../../lib/preprint/prePrintTypes";
+import type { PersistedEntity } from "../../lib/db/illuminatorDb";
+import type { ChronicleRecord } from "../../lib/chronicleTypes";
+import type { StaticPage } from "../../lib/staticPageTypes";
+import type { EraNarrativeRecord } from "../../lib/eraNarrativeTypes";
+import { computePrePrintStats, type ImageMetadataRecord } from "../../lib/preprint/prePrintStats";
+import "./StatsView.css";
 
 interface StatsViewProps {
   entities: PersistedEntity[];
@@ -28,11 +29,17 @@ function formatBytes(bytes: number): string {
 }
 
 function pct(part: number, total: number): string {
-  if (total === 0) return '—';
+  if (total === 0) return "—";
   return `${Math.round((part / total) * 100)}%`;
 }
 
-export default function StatsView({ entities, chronicles, images, staticPages, eraNarratives }: StatsViewProps) {
+export default function StatsView({
+  entities,
+  chronicles,
+  images,
+  staticPages,
+  eraNarratives,
+}: Readonly<StatsViewProps>) {
   const [stats, setStats] = useState<PrePrintStats | null>(null);
   const [calculating, setCalculating] = useState(false);
 
@@ -49,17 +56,13 @@ export default function StatsView({ entities, chronicles, images, staticPages, e
   if (!stats) {
     return (
       <div className="preprint-stats-empty">
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
-          Calculate statistics for print preparation. This scans all entities, chronicles,
-          era narratives, images, and static pages to produce word counts, image inventory,
-          and completeness checks.
+        <p className="sv-empty-msg">
+          Calculate statistics for print preparation. This scans all entities, chronicles, era
+          narratives, images, and static pages to produce word counts, image inventory, and
+          completeness checks.
         </p>
-        <button
-          className="preprint-action-button"
-          onClick={handleCalculate}
-          disabled={calculating}
-        >
-          {calculating ? 'Calculating...' : 'Calculate Stats'}
+        <button className="preprint-action-button" onClick={handleCalculate} disabled={calculating}>
+          {calculating ? "Calculating..." : "Calculate Stats"}
         </button>
       </div>
     );
@@ -74,7 +77,7 @@ export default function StatsView({ entities, chronicles, images, staticPages, e
   return (
     <div className="preprint-stats">
       <div className="preprint-stats-header">
-        <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+        <span className="sv-calc-meta">
           Calculated {new Date(stats.calculatedAt).toLocaleString()}
         </span>
         <button
@@ -82,7 +85,7 @@ export default function StatsView({ entities, chronicles, images, staticPages, e
           onClick={handleCalculate}
           disabled={calculating}
         >
-          {calculating ? 'Recalculating...' : 'Recalculate'}
+          {calculating ? "Recalculating..." : "Recalculate"}
         </button>
       </div>
 
@@ -117,15 +120,60 @@ export default function StatsView({ entities, chronicles, images, staticPages, e
             <span>Chars</span>
             <span>% of Total</span>
           </div>
-          <WordRow label="Chronicle body text" words={wb.chronicleBody} chars={cb.chronicleBody} total={stats.totalWords} />
-          <WordRow label="Chronicle summaries" words={wb.chronicleSummaries} chars={cb.chronicleSummaries} total={stats.totalWords} />
-          <WordRow label="Era narrative content" words={wb.eraNarrativeContent} chars={cb.eraNarrativeContent} total={stats.totalWords} />
-          <WordRow label="Entity descriptions" words={wb.entityDescriptions} chars={cb.entityDescriptions} total={stats.totalWords} />
-          <WordRow label="Entity summaries" words={wb.entitySummaries} chars={cb.entitySummaries} total={stats.totalWords} />
-          <WordRow label="Image captions" words={wb.imageCaptions} chars={cb.imageCaptions} total={stats.totalWords} />
-          <WordRow label="Historian notes (entity)" words={wb.historianNotesEntity} chars={cb.historianNotesEntity} total={stats.totalWords} />
-          <WordRow label="Historian notes (chronicle)" words={wb.historianNotesChronicle} chars={cb.historianNotesChronicle} total={stats.totalWords} />
-          <WordRow label="Static page content" words={wb.staticPageContent} chars={cb.staticPageContent} total={stats.totalWords} />
+          <WordRow
+            label="Chronicle body text"
+            words={wb.chronicleBody}
+            chars={cb.chronicleBody}
+            total={stats.totalWords}
+          />
+          <WordRow
+            label="Chronicle summaries"
+            words={wb.chronicleSummaries}
+            chars={cb.chronicleSummaries}
+            total={stats.totalWords}
+          />
+          <WordRow
+            label="Era narrative content"
+            words={wb.eraNarrativeContent}
+            chars={cb.eraNarrativeContent}
+            total={stats.totalWords}
+          />
+          <WordRow
+            label="Entity descriptions"
+            words={wb.entityDescriptions}
+            chars={cb.entityDescriptions}
+            total={stats.totalWords}
+          />
+          <WordRow
+            label="Entity summaries"
+            words={wb.entitySummaries}
+            chars={cb.entitySummaries}
+            total={stats.totalWords}
+          />
+          <WordRow
+            label="Image captions"
+            words={wb.imageCaptions}
+            chars={cb.imageCaptions}
+            total={stats.totalWords}
+          />
+          <WordRow
+            label="Historian notes (entity)"
+            words={wb.historianNotesEntity}
+            chars={cb.historianNotesEntity}
+            total={stats.totalWords}
+          />
+          <WordRow
+            label="Historian notes (chronicle)"
+            words={wb.historianNotesChronicle}
+            chars={cb.historianNotesChronicle}
+            total={stats.totalWords}
+          />
+          <WordRow
+            label="Static page content"
+            words={wb.staticPageContent}
+            chars={cb.staticPageContent}
+            total={stats.totalWords}
+          />
         </div>
       </div>
 
@@ -146,15 +194,21 @@ export default function StatsView({ entities, chronicles, images, staticPages, e
         <div className="preprint-stats-subsection">By Orientation</div>
         <div className="preprint-stats-row">
           <span>Portrait</span>
-          <span className="preprint-stats-value">{img.byAspect.portrait} ({pct(img.byAspect.portrait, img.total)})</span>
+          <span className="preprint-stats-value">
+            {img.byAspect.portrait} ({pct(img.byAspect.portrait, img.total)})
+          </span>
         </div>
         <div className="preprint-stats-row">
           <span>Landscape</span>
-          <span className="preprint-stats-value">{img.byAspect.landscape} ({pct(img.byAspect.landscape, img.total)})</span>
+          <span className="preprint-stats-value">
+            {img.byAspect.landscape} ({pct(img.byAspect.landscape, img.total)})
+          </span>
         </div>
         <div className="preprint-stats-row">
           <span>Square</span>
-          <span className="preprint-stats-value">{img.byAspect.square} ({pct(img.byAspect.square, img.total)})</span>
+          <span className="preprint-stats-value">
+            {img.byAspect.square} ({pct(img.byAspect.square, img.total)})
+          </span>
         </div>
 
         <div className="preprint-stats-subsection">By Type</div>
@@ -186,7 +240,7 @@ export default function StatsView({ entities, chronicles, images, staticPages, e
         </div>
         <div className="preprint-stats-row">
           <span>Full-width</span>
-          <span className="preprint-stats-value">{img.bySize['full-width']}</span>
+          <span className="preprint-stats-value">{img.bySize["full-width"]}</span>
         </div>
 
         {img.dimensionRange && (
@@ -194,11 +248,15 @@ export default function StatsView({ entities, chronicles, images, staticPages, e
             <div className="preprint-stats-subsection">Dimensions (pixels)</div>
             <div className="preprint-stats-row">
               <span>Width range</span>
-              <span className="preprint-stats-value">{img.dimensionRange.minWidth} – {img.dimensionRange.maxWidth}px</span>
+              <span className="preprint-stats-value">
+                {img.dimensionRange.minWidth} – {img.dimensionRange.maxWidth}px
+              </span>
             </div>
             <div className="preprint-stats-row">
               <span>Height range</span>
-              <span className="preprint-stats-value">{img.dimensionRange.minHeight} – {img.dimensionRange.maxHeight}px</span>
+              <span className="preprint-stats-value">
+                {img.dimensionRange.minHeight} – {img.dimensionRange.maxHeight}px
+              </span>
             </div>
           </>
         )}
@@ -209,15 +267,51 @@ export default function StatsView({ entities, chronicles, images, staticPages, e
         <div className="illuminator-card-header">
           <h2 className="illuminator-card-title">Completeness</h2>
         </div>
-        <CompletenessRow label="Entities with description" count={comp.entitiesWithDescription} total={comp.entitiesTotal} />
-        <CompletenessRow label="Entities with image" count={comp.entitiesWithImage} total={comp.entitiesTotal} />
-        <CompletenessRow label="Entities with summary" count={comp.entitiesWithSummary} total={comp.entitiesTotal} />
-        <CompletenessRow label="Chronicles published" count={comp.chroniclesPublished} total={comp.chroniclesTotal} />
-        <CompletenessRow label="Chronicles with historian notes" count={comp.chroniclesWithHistorianNotes} total={comp.chroniclesTotal} />
-        <CompletenessRow label="Chronicles with scene images" count={comp.chroniclesWithSceneImages} total={comp.chroniclesTotal} />
-        <CompletenessRow label="Era narratives complete" count={comp.eraNarrativesComplete} total={comp.eraNarrativesTotal} />
-        <CompletenessRow label="Era narratives with cover image" count={comp.eraNarrativesWithCoverImage} total={comp.eraNarrativesTotal} />
-        <CompletenessRow label="Static pages published" count={comp.staticPagesPublished} total={comp.staticPagesTotal} />
+        <CompletenessRow
+          label="Entities with description"
+          count={comp.entitiesWithDescription}
+          total={comp.entitiesTotal}
+        />
+        <CompletenessRow
+          label="Entities with image"
+          count={comp.entitiesWithImage}
+          total={comp.entitiesTotal}
+        />
+        <CompletenessRow
+          label="Entities with summary"
+          count={comp.entitiesWithSummary}
+          total={comp.entitiesTotal}
+        />
+        <CompletenessRow
+          label="Chronicles published"
+          count={comp.chroniclesPublished}
+          total={comp.chroniclesTotal}
+        />
+        <CompletenessRow
+          label="Chronicles with historian notes"
+          count={comp.chroniclesWithHistorianNotes}
+          total={comp.chroniclesTotal}
+        />
+        <CompletenessRow
+          label="Chronicles with scene images"
+          count={comp.chroniclesWithSceneImages}
+          total={comp.chroniclesTotal}
+        />
+        <CompletenessRow
+          label="Era narratives complete"
+          count={comp.eraNarrativesComplete}
+          total={comp.eraNarrativesTotal}
+        />
+        <CompletenessRow
+          label="Era narratives with cover image"
+          count={comp.eraNarrativesWithCoverImage}
+          total={comp.eraNarrativesTotal}
+        />
+        <CompletenessRow
+          label="Static pages published"
+          count={comp.staticPagesPublished}
+          total={comp.staticPagesTotal}
+        />
       </div>
 
       {/* Historian Notes */}
@@ -264,7 +358,17 @@ export default function StatsView({ entities, chronicles, images, staticPages, e
   );
 }
 
-function WordRow({ label, words, chars, total }: { label: string; words: number; chars: number; total: number }) {
+function WordRow({
+  label,
+  words,
+  chars,
+  total,
+}: Readonly<{
+  label: string;
+  words: number;
+  chars: number;
+  total: number;
+}>) {
   return (
     <div className="preprint-stats-table-row">
       <span>{label}</span>
@@ -275,7 +379,7 @@ function WordRow({ label, words, chars, total }: { label: string; words: number;
   );
 }
 
-function CompletenessRow({ label, count, total }: { label: string; count: number; total: number }) {
+function CompletenessRow({ label, count, total }: Readonly<{ label: string; count: number; total: number }>) {
   const complete = total > 0 && count === total;
   const partial = total > 0 && count > 0 && count < total;
   const missing = total > 0 && count === 0;
@@ -285,14 +389,31 @@ function CompletenessRow({ label, count, total }: { label: string; count: number
       <span>
         <span
           className="preprint-completeness-dot"
-          style={{ color: complete ? '#22c55e' : partial ? '#f59e0b' : missing ? '#ef4444' : 'var(--text-secondary)' }}
-          title={complete ? 'Complete' : partial ? 'Partial' : 'Missing'}
+          style={{
+            '--completeness-color': (() => {
+              if (complete) return "#22c55e";
+              if (partial) return "#f59e0b";
+              if (missing) return "#ef4444";
+              return "var(--text-secondary)";
+            })(),
+          } as React.CSSProperties}
+          title={(() => {
+            if (complete) return "Complete";
+            if (partial) return "Partial";
+            return "Missing";
+          })()}
         >
-          {complete ? '\u25CF' : partial ? '\u25D2' : '\u25CB'}
-        </span>
-        {' '}{label}
+          {(() => {
+            if (complete) return "\u25CF";
+            if (partial) return "\u25D2";
+            return "\u25CB";
+          })()}
+        </span>{" "}
+        {label}
       </span>
-      <span className="preprint-stats-value">{count}/{total}</span>
+      <span className="preprint-stats-value">
+        {count}/{total}
+      </span>
     </div>
   );
 }

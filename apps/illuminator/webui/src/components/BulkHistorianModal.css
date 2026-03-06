@@ -1,0 +1,214 @@
+/* BulkHistorianModal — content-specific styles (shell handled by BulkOperationShell.css) */
+
+/* Tone cycling info box (review mode) */
+.bhm-tone-cycle-box {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.bhm-tone-cycle-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-right: 6px;
+}
+
+.bhm-tone-cycle-arrow {
+  margin: 0 4px;
+  color: var(--text-muted);
+}
+
+.bhm-tone-cycle-symbol {
+  color: #8b7355;
+}
+
+/* Tone picker (edition mode) */
+.bhm-tone-picker {
+  margin-bottom: 12px;
+}
+
+.bhm-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.bhm-tone-options {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.bhm-tone-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.bhm-tone-btn-default {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.bhm-tone-btn-selected {
+  border: 1px solid #8b7355;
+  background: rgb(139 115 85 / 15%);
+  color: #8b7355;
+  font-weight: 600;
+}
+
+.bhm-tone-btn-symbol {
+  font-size: 12px;
+}
+
+/* Entity list section */
+.bhm-entity-section {
+  margin-bottom: 12px;
+}
+
+.bhm-entity-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.bhm-entity-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.bhm-entity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.bhm-entity-row-bordered {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.bhm-entity-row-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.bhm-entity-tone-symbol {
+  font-size: 11px;
+  color: #8b7355;
+  flex-shrink: 0;
+}
+
+.bhm-entity-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bhm-entity-kind {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.bhm-entity-tokens {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.bhm-entity-tokens-over {
+  color: #ef4444;
+}
+
+/* Token estimate summary */
+.bhm-token-summary {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.bhm-token-summary-ok {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.bhm-token-summary-over {
+  background: rgb(239 68 68 / 8%);
+  border: 1px solid rgb(239 68 68 / 20%);
+}
+
+.bhm-token-limit-note {
+  margin-left: 8px;
+}
+
+.bhm-token-over-warning {
+  color: #ef4444;
+  margin-top: 2px;
+}
+
+/* Processing screen — entity counts detail */
+.bhm-progress-counts {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.bhm-progress-failed-count {
+  color: #ef4444;
+  margin-left: 8px;
+}
+
+/* Current entity detail */
+.bhm-current-entity {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  margin-bottom: 16px;
+}
+
+.bhm-current-entity-name {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bhm-current-entity-tone {
+  color: #8b7355;
+  font-size: 13px;
+}
+
+.bhm-current-entity-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}

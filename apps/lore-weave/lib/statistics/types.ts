@@ -82,7 +82,7 @@ export interface ValidationStats {
     name: string;
     passed: boolean;
     failureCount: number;
-    details?: string;
+    details: string;
   }>;
 }
 
@@ -183,7 +183,7 @@ export interface SimulationStatistics {
   configSnapshot: {
     ticksPerEpoch: number;
     maxTicks: number;
-    relationshipBudget?: {
+    relationshipBudget: {
       maxPerSimulationTick: number;
       maxPerGrowthPhase: number;
     };
@@ -198,14 +198,14 @@ export interface SimulationStatistics {
  * Per-subtype targets for homeostatic template weighting
  */
 export interface DistributionTargets {
-  $schema?: string;
+  $schema: string;
   version: string;
-  entities: Record<string, Record<string, EntityTarget>>;
+  entities: Partial<Record<string, Partial<Record<string, EntityTarget>>>>;
 }
 
 export interface EntityTarget {
   target: number;
-  comment?: string;
+  comment: string;
 }
 
 /**
@@ -245,7 +245,7 @@ export interface DeviationScore {
   prominence: {
     score: number;
     deviations: Record<ProminenceLabel, number>;
-    byKind?: Record<string, Record<ProminenceLabel, number>>;
+    byKind: Record<string, Record<ProminenceLabel, number>>;
   };
   relationship: {
     score: number;

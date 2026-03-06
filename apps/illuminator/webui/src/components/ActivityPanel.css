@@ -1,0 +1,156 @@
+/* Shared panel utilities available: see panel-utilities.css in shared-components */
+/* ActivityPanel — prefix: ap- */
+
+/* TaskRow */
+.ap-task-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ap-task-status-icon {
+  font-size: 16px;
+  color: var(--ap-status-color);
+}
+
+.ap-task-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ap-task-name {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.ap-task-type {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ap-task-duration {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ap-task-action {
+  font-size: 11px;
+}
+
+/* Stats header */
+.ap-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ap-header-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.ap-stats-row {
+  display: flex;
+  gap: 24px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.ap-stat-value {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.ap-stat-value-running {
+  color: #f59e0b;
+}
+
+.ap-stat-value-completed {
+  color: #10b981;
+}
+
+.ap-stat-value-errors {
+  color: #ef4444;
+}
+
+.ap-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
+/* Section headers */
+.ap-section-card {
+  padding: 0;
+}
+
+/* Shared: similar to .ilu-container-header but padding is 12px not 12px 16px */
+.ap-section-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 500;
+  font-size: 13px;
+  background: var(--bg-tertiary);
+}
+
+.ap-section-header-errors {
+  color: #ef4444;
+}
+
+/* More indicator */
+.ap-more-indicator {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Error detail */
+.ap-error-detail {
+  padding: 8px 12px 12px 40px;
+  font-size: 11px;
+  color: #ef4444;
+  background: rgb(239 68 68 / 10%);
+}
+
+/* Empty state */
+/* Shared: similar to .ilu-empty but padding is 40px not 24px */
+.ap-empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+}
+
+/* Debug modal */
+.ap-debug-modal {
+  max-width: 900px;
+  width: 90%;
+  max-height: 85vh;
+}
+
+.ap-debug-body {
+  display: grid;
+  gap: 12px;
+}
+
+.ap-debug-entity-info {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ap-debug-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.ap-debug-request-textarea {
+  min-height: 140px;
+}
+
+.ap-debug-response-textarea {
+  min-height: 160px;
+}

@@ -24,9 +24,9 @@
     }
   },
   "scripts": {
-    "ui": "cd webui && npm run dev",
-    "ui:static": "cd webui && npm run static",
-    "ui:serve": "cd webui && npm run serve",
+    "ui": "cd webui && pnpm run dev",
+    "ui:static": "cd webui && pnpm run static",
+    "ui:serve": "cd webui && pnpm run serve",
     "build": "rm -rf dist && tsc",
     "build:fast": "tsc",
     "clean": "rm -rf dist",
@@ -44,7 +44,7 @@
   "author": "",
   "license": "PolyForm-Noncommercial-1.0.0",
   "dependencies": {
-    "@canonry/world-schema": "file:../../packages/world-schema",
+    "@canonry/world-schema": "workspace:*",
     "seedrandom": "^3.0.5",
     "zod": "^3.23.8"
   },
@@ -54,7 +54,7 @@
     "@vitest/coverage-v8": "^4.0.13",
     "@vitest/ui": "^4.0.13",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2",
+    "typescript": "~5.9.3",
     "vitest": "^4.0.13"
   }
 }

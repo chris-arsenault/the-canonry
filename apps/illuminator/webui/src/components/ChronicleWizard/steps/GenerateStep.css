@@ -1,0 +1,176 @@
+/* GenerateStep styles */
+
+.gs-header {
+  margin-bottom: 20px;
+}
+
+.gs-title {
+  margin: 0 0 8px 0;
+}
+
+.gs-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.gs-summary {
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.gs-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.gs-section-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.gs-section-value {
+  font-weight: 500;
+}
+
+.gs-section-meta {
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.gs-format-badge {
+  margin-left: 8px;
+  padding: 2px 6px;
+  color: white;
+  border-radius: 4px;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.gs-format-badge-story {
+  background: var(--accent-color);
+}
+
+.gs-format-badge-document {
+  background: var(--warning);
+}
+
+.gs-lens-section {
+  margin-top: 20px;
+}
+
+.gs-lens-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.gs-lens-icon {
+  color: rgba(139, 92, 246, 0.7);
+}
+
+.gs-lens-name {
+  font-weight: 500;
+}
+
+.gs-lens-kind {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.gs-roles-section {
+  margin-top: 20px;
+}
+
+.gs-roles-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.gs-roles-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gs-role-chip {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.gs-role-entity {
+  margin-left: 6px;
+  opacity: var(--gs-role-opacity, 0.7);
+}
+
+.gs-role-chip-primary {
+  background: var(--accent-color);
+  color: white;
+}
+
+.gs-role-chip-support {
+  background: var(--bg-tertiary);
+}
+
+.gs-role-name {
+  font-weight: 500;
+}
+
+.gs-direction-section {
+  margin-bottom: 24px;
+}
+
+.gs-direction-optional {
+  text-transform: none;
+  margin-left: 6px;
+  font-style: italic;
+}
+
+.gs-direction-desc {
+  margin: 0 0 8px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.gs-direction-textarea {
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: inherit;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.gs-info-box {
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gs-info-icon {
+  font-size: 16px;
+}

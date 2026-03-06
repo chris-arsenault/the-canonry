@@ -5,11 +5,33 @@
  * Enrichment data is stored on entities and persisted to IndexedDB.
  */
 
-import type { ChronicleFormat, ChronicleGenerationContext, ChronicleImageRefs, EraTemporalInfo } from './chronicleTypes';
-import type { HistorianNote } from './historianTypes';
-import type { ResolvedLLMCallSettings } from './llmModelSettings';
+import type {
+  ChronicleFormat,
+  ChronicleGenerationContext,
+  ChronicleImageRefs,
+  EraTemporalInfo,
+} from "./chronicleTypes";
+import type { HistorianNote } from "./historianTypes";
+import type { ResolvedLLMCallSettings } from "./llmModelSettings";
 
-export type EnrichmentType = 'description' | 'visualThesis' | 'image' | 'entityChronicle' | 'paletteExpansion' | 'dynamicsGeneration' | 'summaryRevision' | 'chronicleLoreBackport' | 'historianEdition' | 'historianReview' | 'historianChronology' | 'historianPrep' | 'eraNarrative' | 'motifVariation' | 'factCoverage' | 'toneRanking' | 'bulkToneRanking';
+export type EnrichmentType =
+  | "description"
+  | "visualThesis"
+  | "image"
+  | "entityChronicle"
+  | "paletteExpansion"
+  | "dynamicsGeneration"
+  | "summaryRevision"
+  | "chronicleLoreBackport"
+  | "historianEdition"
+  | "historianReview"
+  | "historianChronology"
+  | "historianPrep"
+  | "eraNarrative"
+  | "motifVariation"
+  | "factCoverage"
+  | "toneRanking"
+  | "bulkToneRanking";
 
 /**
  * Which image to display at a chronicle backref anchor in an entity description.
@@ -18,9 +40,9 @@ export type EnrichmentType = 'description' | 'visualThesis' | 'image' | 'entityC
  * - 'entity': Use an entity's portrait image
  */
 export type BackrefImageSource =
-  | { source: 'cover' }
-  | { source: 'image_ref'; refId: string }
-  | { source: 'entity'; entityId: string };
+  | { source: "cover" }
+  | { source: "image_ref"; refId: string }
+  | { source: "entity"; entityId: string };
 
 /**
  * Links an anchor phrase in an entity's description to the source chronicle
@@ -36,16 +58,16 @@ export interface ChronicleBackref {
   /** Image to display at this backref anchor. undefined = legacy fallback (cover), null = no image */
   imageSource?: BackrefImageSource | null;
   /** Display size for the backref image */
-  imageSize?: 'small' | 'medium' | 'large' | 'full-width';
+  imageSize?: "small" | "medium" | "large" | "full-width";
   /** Float alignment for the backref image */
-  imageAlignment?: 'left' | 'right';
+  imageAlignment?: "left" | "right";
 }
 
 export interface NetworkDebugInfo {
   request: string;
   response?: string;
   meta?: {
-    provider?: 'anthropic' | 'openai';
+    provider?: "anthropic" | "openai";
     status?: number;
     statusText?: string;
     durationMs?: number;
@@ -63,7 +85,7 @@ export interface DescriptionChainDebug {
   traits?: NetworkDebugInfo;
 }
 
-export type EnrichmentStatus = 'missing' | 'queued' | 'running' | 'complete' | 'error';
+export type EnrichmentStatus = "missing" | "queued" | "running" | "complete" | "error";
 
 export interface EnrichmentResult {
   summary?: string;
@@ -73,8 +95,8 @@ export interface EnrichmentResult {
   visualThesis?: string;
   /** Distinctive visual traits for image generation (derived from thesis) */
   visualTraits?: string[];
-  imageId?: string;  // Reference to stored image (worker saves directly to IndexedDB)
-  chronicleId?: string;  // Reference to stored chronicle in chronicleStore
+  imageId?: string; // Reference to stored image (worker saves directly to IndexedDB)
+  chronicleId?: string; // Reference to stored chronicle in chronicleStore
   revisedPrompt?: string;
   generatedAt: number;
   model: string;
@@ -86,7 +108,7 @@ export interface EnrichmentResult {
   // Image dimensions for aspect-aware display
   width?: number;
   height?: number;
-  aspect?: 'portrait' | 'landscape' | 'square';
+  aspect?: "portrait" | "landscape" | "square";
   // Debug info (persisted for description enrichments)
   debug?: NetworkDebugInfo;
   /** Debug info for description chain (narrative → thesis → traits) */
@@ -138,21 +160,21 @@ export interface EntityEnrichment {
     chainDebug?: DescriptionChainDebug;
   };
   image?: {
-    imageId: string;  // Reference to stored image in imageStore
+    imageId: string; // Reference to stored image in imageStore
     generatedAt: number;
     model: string;
     revisedPrompt?: string;
     estimatedCost?: number;
     actualCost?: number;
-    inputTokens?: number;  // GPT Image models return token usage
+    inputTokens?: number; // GPT Image models return token usage
     outputTokens?: number;
     // Image dimensions for aspect-aware display
     width?: number;
     height?: number;
-    aspect?: 'portrait' | 'landscape' | 'square';
+    aspect?: "portrait" | "landscape" | "square";
   };
   entityChronicle?: {
-    chronicleId: string;  // Reference to stored chronicle in chronicleStore
+    chronicleId: string; // Reference to stored chronicle in chronicleStore
     generatedAt: number;
     model: string;
     estimatedCost?: number;
@@ -167,7 +189,7 @@ export interface EntityEnrichment {
   descriptionHistory?: Array<{
     description: string;
     replacedAt: number;
-    source: string;  // 'description-task' | 'lore-backport' | 'summary-revision' | 'manual'
+    source: string; // 'description-task' | 'lore-backport' | 'summary-revision' | 'manual'
   }>;
   /** Historian annotations — scholarly margin notes anchored to description text */
   historianNotes?: HistorianNote[];
@@ -181,7 +203,7 @@ export interface EntityEnrichment {
  * Shared task payload fields for queue items and worker tasks.
  */
 export interface EnrichmentTaskBase {
-  id: string;                 // Unique ID: `${type}_${entityId}`
+  id: string; // Unique ID: `${type}_${entityId}`
   entityId: string;
   entityName: string;
   entityKind: string;
@@ -201,12 +223,12 @@ export interface EnrichmentTaskBase {
   chronicleId?: string;
   /** Optional metadata snapshot for chronicle generation */
   chronicleMetadata?: {
-    generationSampling?: 'normal' | 'low';
+    generationSampling?: "normal" | "low";
   };
   // For chronicle image tasks
   imageRefId?: string;
   sceneDescription?: string;
-  imageType?: 'entity' | 'chronicle' | 'era_narrative';
+  imageType?: "entity" | "chronicle" | "era_narrative";
   /** Visual thesis per entity ID, for cover image scene generation */
   visualIdentities?: Record<string, string>;
   // For palette expansion tasks
@@ -248,24 +270,24 @@ export interface EnrichmentTaskBase {
 
 export type EnrichmentTaskPayload =
   | (EnrichmentTaskBase & {
-      type: 'description';
+      type: "description";
       visualThesisInstructions: string;
       visualTraitsInstructions: string;
     })
   | (EnrichmentTaskBase & {
-      type: 'visualThesis';
+      type: "visualThesis";
       visualThesisInstructions: string;
       visualTraitsInstructions: string;
     })
   | (EnrichmentTaskBase & {
-      type: Exclude<EnrichmentType, 'description' | 'visualThesis'>;
+      type: Exclude<EnrichmentType, "description" | "visualThesis">;
     });
 
 /**
  * Queue item - represents a pending enrichment request
  */
 export type QueueItem = EnrichmentTaskPayload & {
-  status: 'queued' | 'running' | 'complete' | 'error';
+  status: "queued" | "running" | "complete" | "error";
   queuedAt: number;
   startedAt?: number;
   completedAt?: number;
@@ -280,23 +302,23 @@ export type QueueItem = EnrichmentTaskPayload & {
  * Which step to run for entityChronicle tasks
  */
 export type ChronicleStep =
-  | 'generate_v2'  // Single-shot generation
-  | 'regenerate_temperature' // Re-run chronicle generation with prior prompts (sampling mode)
-  | 'regenerate_full' // Full regeneration with new perspective synthesis (creates new version)
-  | 'regenerate_creative' // Creative freedom generation — stripped prompt, no PS, more latitude
-  | 'compare'  // Compare all versions (produces report, no new draft)
-  | 'combine'  // Combine all versions into a new draft
-  | 'copy_edit' // Polish pass — trims, smooths voice, tightens prose without changing content
-  | 'temporal_check' // Check if focal era / temporal narrative misalignment affected the output
-  | 'quick_check'    // Detect unanchored entity references (names not in cast or name bank)
-  | 'validate'
-  | 'edit'
-  | 'summary'
-  | 'title'
-  | 'image_refs'
-  | 'cover_image_scene'  // Generate cover image scene description
-  | 'cover_image'  // Generate cover image from scene description
-  | 'regenerate_scene_description';  // Regenerate a single image ref's scene description
+  | "generate_v2" // Single-shot generation
+  | "regenerate_temperature" // Re-run chronicle generation with prior prompts (sampling mode)
+  | "regenerate_full" // Full regeneration with new perspective synthesis (creates new version)
+  | "regenerate_creative" // Creative freedom generation — stripped prompt, no PS, more latitude
+  | "compare" // Compare all versions (produces report, no new draft)
+  | "combine" // Combine all versions into a new draft
+  | "copy_edit" // Polish pass — trims, smooths voice, tightens prose without changing content
+  | "temporal_check" // Check if focal era / temporal narrative misalignment affected the output
+  | "quick_check" // Detect unanchored entity references (names not in cast or name bank)
+  | "validate"
+  | "edit"
+  | "summary"
+  | "title"
+  | "image_refs"
+  | "cover_image_scene" // Generate cover image scene description
+  | "cover_image" // Generate cover image from scene description
+  | "regenerate_scene_description"; // Regenerate a single image ref's scene description
 
 /**
  * Worker task - what we send to the worker (single task)
@@ -330,26 +352,24 @@ export function getEnrichmentStatus(
   queueItems: QueueItem[]
 ): EnrichmentStatus {
   // Check queue first
-  const queueItem = queueItems.find(
-    (item) => item.entityId === entity.id && item.type === type
-  );
+  const queueItem = queueItems.find((item) => item.entityId === entity.id && item.type === type);
   if (queueItem) {
-    if (queueItem.status === 'running') return 'running';
-    if (queueItem.status === 'queued') return 'queued';
-    if (queueItem.status === 'error') return 'error';
+    if (queueItem.status === "running") return "running";
+    if (queueItem.status === "queued") return "queued";
+    if (queueItem.status === "error") return "error";
   }
 
   // Check entity fields directly (summary/description are on entity, not nested)
   const enrichment = entity.enrichment;
 
-  if (type === 'description') {
+  if (type === "description") {
     // Text enrichment is complete when entity has summary and description
-    return (entity.summary && entity.description) ? 'complete' : 'missing';
+    return entity.summary && entity.description ? "complete" : "missing";
   }
-  if (type === 'image' && enrichment?.image?.imageId) return 'complete';
-  if (type === 'entityChronicle' && enrichment?.entityChronicle?.chronicleId) return 'complete';
+  if (type === "image" && enrichment?.image?.imageId) return "complete";
+  if (type === "entityChronicle" && enrichment?.entityChronicle?.chronicleId) return "complete";
 
-  return 'missing';
+  return "missing";
 }
 
 /**
@@ -361,12 +381,12 @@ export function needsEnrichment(
 ): boolean {
   const enrichment = entity.enrichment;
 
-  if (type === 'description') {
+  if (type === "description") {
     // Text enrichment needed when entity lacks summary or description
     return !(entity.summary && entity.description);
   }
-  if (type === 'image') return !enrichment?.image?.imageId;
-  if (type === 'entityChronicle') return !enrichment?.entityChronicle?.chronicleId;
+  if (type === "image") return !enrichment?.image?.imageId;
+  if (type === "entityChronicle") return !enrichment?.entityChronicle?.chronicleId;
 
   return true;
 }
@@ -398,7 +418,7 @@ export function applyEnrichmentResult(
 ): ApplyEnrichmentOutput {
   const existing = entity.enrichment || {};
 
-  if (type === 'description' && result.description) {
+  if (type === "description" && result.description) {
     // For lockedSummary entities, skip the summary (user-defined takes precedence)
     // For normal entities, require both summary and description
     if (!lockedSummary && !result.summary) {
@@ -427,12 +447,12 @@ export function applyEnrichmentResult(
     };
   }
 
-  if (type === 'visualThesis' && result.visualThesis) {
+  if (type === "visualThesis" && result.visualThesis) {
     return {
       enrichment: {
         ...existing,
         text: {
-          ...(existing.text || { aliases: [], visualTraits: [], generatedAt: 0, model: '' }),
+          ...(existing.text || { aliases: [], visualTraits: [], generatedAt: 0, model: "" }),
           visualThesis: result.visualThesis,
           visualTraits: result.visualTraits || existing.text?.visualTraits || [],
           generatedAt: result.generatedAt,
@@ -447,7 +467,7 @@ export function applyEnrichmentResult(
     };
   }
 
-  if (type === 'image' && result.imageId) {
+  if (type === "image" && result.imageId) {
     return {
       enrichment: {
         ...existing,
@@ -469,7 +489,7 @@ export function applyEnrichmentResult(
     };
   }
 
-  if (type === 'entityChronicle' && result.chronicleId) {
+  if (type === "entityChronicle" && result.chronicleId) {
     return {
       enrichment: {
         ...existing,

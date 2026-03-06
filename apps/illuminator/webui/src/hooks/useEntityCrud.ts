@@ -20,9 +20,9 @@
  *   (e.g. in other action hooks). Reads simulationRunId from entity store.
  */
 
-import { useCallback } from 'react';
-import * as entityRepo from '../lib/db/entityRepository';
-import { useEntityStore } from '../lib/db/entityStore';
+import { useCallback } from "react";
+import * as entityRepo from "../lib/db/entityRepository";
+import { useEntityStore } from "../lib/db/entityStore";
 
 // ============================================================================
 // Module-level helper — reusable by other hooks without prop threading
@@ -44,9 +44,9 @@ export async function reloadEntities(invalidateIds?: string[]): Promise<void> {
   }
 
   window.dispatchEvent(
-    new CustomEvent('illuminator:worlddata-changed', {
-      detail: { simulationRunId, scope: 'entities' },
-    }),
+    new CustomEvent("illuminator:worlddata-changed", {
+      detail: { simulationRunId, scope: "entities" },
+    })
   );
 }
 
@@ -56,11 +56,15 @@ export async function reloadEntities(invalidateIds?: string[]): Promise<void> {
 
 export function useEntityCrud() {
   const handleAssignImage = useCallback(
-    async (entityId: string, imageId: string, imageMetadata?: { generatedAt?: number; model?: string; revisedPrompt?: string }) => {
+    async (
+      entityId: string,
+      imageId: string,
+      imageMetadata?: { generatedAt?: number; model?: string; revisedPrompt?: string }
+    ) => {
       await entityRepo.assignImage(entityId, imageId, imageMetadata);
       await reloadEntities([entityId]);
     },
-    [],
+    []
   );
 
   const handleUpdateBackrefs = useCallback(
@@ -68,7 +72,7 @@ export function useEntityCrud() {
       await entityRepo.updateBackrefs(entityId, updatedBackrefs);
       await reloadEntities([entityId]);
     },
-    [],
+    []
   );
 
   const handleUndoDescription = useCallback(async (entityId: string) => {
@@ -102,13 +106,13 @@ export function useEntityCrud() {
   }, []);
 
   const handleDeleteEntity = useCallback(async (entity: { id: string; name: string }) => {
-    if (!entity.id.startsWith('manual_')) return;
+    if (!entity.id.startsWith("manual_")) return;
     if (!confirm(`Delete "${entity.name}"? This cannot be undone.`)) return;
     try {
       await entityRepo.deleteEntity(entity.id);
       await reloadEntities([entity.id]);
     } catch (err) {
-      console.error('[Illuminator] Delete entity failed:', err);
+      console.error("[Illuminator] Delete entity failed:", err);
     }
   }, []);
 

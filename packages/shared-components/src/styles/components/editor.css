@@ -183,6 +183,14 @@
   transition: transform var(--transition-normal);
 }
 
+.expand-icon-expanded {
+  transform: rotate(90deg);
+}
+
+.expand-icon-collapsed {
+  transform: rotate(0deg);
+}
+
 /* ==========================================================================
    Nested card - small inline cards for nested items (factors, etc)
    ========================================================================== */
@@ -938,7 +946,7 @@
   min-width: 0;
 }
 
-.slot-item-name {
+.slot-label {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-medium);
   color: var(--color-text);
@@ -947,7 +955,7 @@
   white-space: nowrap;
 }
 
-.slot-item-empty .slot-item-name {
+.slot-item-empty .slot-label {
   color: var(--color-text-dim);
   font-style: italic;
 }

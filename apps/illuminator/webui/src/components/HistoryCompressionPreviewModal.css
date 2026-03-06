@@ -1,0 +1,99 @@
+/* HistoryCompressionPreviewModal — prefix: hcpm */
+/* Overlay, header, close button, scroll lock, and Escape are provided by ModalShell */
+
+.modal.hcpm-dialog {
+  width: 700px;
+  max-width: 95vw;
+  height: auto;
+  max-height: 90vh;
+}
+
+.hcpm-meta {
+  margin-bottom: 12px;
+}
+
+.hcpm-entity-name {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.hcpm-subtitle {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Scrollable content */
+
+.hcpm-content {
+  overflow: auto;
+  max-height: 50vh;
+}
+
+.hcpm-entry {
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.hcpm-entry-consolidated {
+  border-left: 3px solid #f59e0b;
+}
+
+.hcpm-entry-normal {
+  border-left: 3px solid var(--border-color);
+}
+
+.hcpm-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+}
+
+.hcpm-entry-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hcpm-entry-index {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.hcpm-entry-source {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.hcpm-entry-consolidated-label {
+  font-size: 10px;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.hcpm-entry-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.hcpm-entry-preview {
+  padding: 0 12px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-height: 60px;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
+/* Footer button sizing (layout provided by modal-footer) */
+.hcpm-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}

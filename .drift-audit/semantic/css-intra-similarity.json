@@ -1,0 +1,2890 @@
+[
+  {
+    "dominantSignal": "ruleExactMatch",
+    "filePath": "apps/chronicler/webui/src/components/WikiExplorer.module.css",
+    "prefixA": "pages-index",
+    "prefixB": "category-index",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.95,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 1.0,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/chronicler/webui/src/components/WikiExplorer.module.css::pages-index",
+    "unitB": "apps/chronicler/webui/src/components/WikiExplorer.module.css::category-index"
+  },
+  {
+    "dominantSignal": "ruleExactMatch",
+    "filePath": "apps/illuminator/webui/src/components/WorldContextEditor.css",
+    "prefixA": "wce-fact",
+    "prefixB": "wce-dynamic",
+    "rulesA": 6,
+    "rulesB": 6,
+    "score": 0.95,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 1.0,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/WorldContextEditor.css::wce-fact",
+    "unitB": "apps/illuminator/webui/src/components/WorldContextEditor.css::wce-dynamic"
+  },
+  {
+    "dominantSignal": "ruleSetMatch",
+    "filePath": "packages/shared-components/src/styles/components/editor.css",
+    "prefixA": "project-selector",
+    "prefixB": "slot-selector",
+    "rulesA": 5,
+    "rulesB": 5,
+    "score": 0.8733,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.8333,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 0.8,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "packages/shared-components/src/styles/components/editor.css::project-selector",
+    "unitB": "packages/shared-components/src/styles/components/editor.css::slot-selector"
+  },
+  {
+    "dominantSignal": "ruleSetMatch",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css",
+    "prefixA": "vtab-action",
+    "prefixB": "vtab-regen",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.85,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 0.6667,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-action",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-regen"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "preprint-subtab",
+    "prefixB": "workspace-subtab",
+    "rulesA": 3,
+    "rulesB": 5,
+    "score": 0.8042,
+    "signals": {
+      "categoryProfile": 0.9668,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.9129,
+      "ruleExactMatch": 0.75,
+      "ruleSetMatch": 0.75,
+      "selectorPrefixOverlap": 0.25
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::preprint-subtab",
+    "unitB": "apps/illuminator/webui/src/App.css::workspace-subtab"
+  },
+  {
+    "dominantSignal": "ruleSetMatch",
+    "filePath": "apps/lore-weave/webui/src/components/dashboard/FinalDiagnostics.css",
+    "prefixA": "fd-agent",
+    "prefixB": "fd-unused",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.8,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 0.6667,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/lore-weave/webui/src/components/dashboard/FinalDiagnostics.css::fd-agent",
+    "unitB": "apps/lore-weave/webui/src/components/dashboard/FinalDiagnostics.css::fd-unused"
+  },
+  {
+    "dominantSignal": "ruleSetMatch",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css",
+    "prefixA": "vtab-action",
+    "prefixB": "vtab-regen-primary",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.75,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 0.6667,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-action",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-regen-primary"
+  },
+  {
+    "dominantSignal": "ruleSetMatch",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css",
+    "prefixA": "vtab-action",
+    "prefixB": "vtab-regen-creative",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.75,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 0.6667,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-action",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-regen-creative"
+  },
+  {
+    "dominantSignal": "ruleSetMatch",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css",
+    "prefixA": "vtab-regen",
+    "prefixB": "vtab-regen-primary",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.75,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 0.6667,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-regen",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-regen-primary"
+  },
+  {
+    "dominantSignal": "ruleSetMatch",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css",
+    "prefixA": "vtab-regen",
+    "prefixB": "vtab-regen-creative",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.75,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 0.6667,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-regen",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-regen-creative"
+  },
+  {
+    "dominantSignal": "ruleSetMatch",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css",
+    "prefixA": "vtab-regen-primary",
+    "prefixB": "vtab-regen-creative",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.75,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 0.6667,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-regen-primary",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css::vtab-regen-creative"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/archivist/webui/src/components/FilterPanel.css",
+    "prefixA": "view-mode",
+    "prefixB": "edge-metric",
+    "rulesA": 4,
+    "rulesB": 5,
+    "score": 0.7417,
+    "signals": {
+      "categoryProfile": 0.9778,
+      "customPropertyVocab": 0.6875,
+      "propertyFrequency": 0.9592,
+      "ruleExactMatch": 0.6667,
+      "ruleSetMatch": 0.6667,
+      "selectorPrefixOverlap": 0.3333
+    },
+    "unitA": "apps/archivist/webui/src/components/FilterPanel.css::view-mode",
+    "unitB": "apps/archivist/webui/src/components/FilterPanel.css::edge-metric"
+  },
+  {
+    "dominantSignal": "propertyFrequency",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "weight-slider",
+    "prefixB": "strategy-config",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.7282,
+    "signals": {
+      "categoryProfile": 0.9526,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.9562,
+      "ruleExactMatch": 0.6667,
+      "ruleSetMatch": 0.6667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::weight-slider",
+    "unitB": "apps/name-forge/webui/src/App.css::strategy-config"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/ReferenceTab.css",
+    "prefixA": "ref-tab-rating",
+    "prefixB": "ref-tab-fcg-legend",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.6744,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.9971,
+      "ruleExactMatch": 0.5,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/ReferenceTab.css::ref-tab-rating",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/ReferenceTab.css::ref-tab-fcg-legend"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css",
+    "prefixA": "htab-prep",
+    "prefixB": "htab-backport",
+    "rulesA": 7,
+    "rulesB": 5,
+    "score": 0.666,
+    "signals": {
+      "categoryProfile": 0.8783,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.7577,
+      "ruleExactMatch": 0.6667,
+      "ruleSetMatch": 0.6667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-prep",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-backport"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/ChronicleWizard/visualizations/NarrativeTimeline.css",
+    "prefixA": "nt-tooltip",
+    "prefixB": "nt-cast",
+    "rulesA": 7,
+    "rulesB": 6,
+    "score": 0.6408,
+    "signals": {
+      "categoryProfile": 0.9984,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.974,
+      "ruleExactMatch": 0.3077,
+      "ruleSetMatch": 0.6154,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/ChronicleWizard/visualizations/NarrativeTimeline.css::nt-tooltip",
+    "unitB": "apps/illuminator/webui/src/components/ChronicleWizard/visualizations/NarrativeTimeline.css::nt-cast"
+  },
+  {
+    "dominantSignal": "propertyFrequency",
+    "filePath": "apps/illuminator/webui/src/components/CoveragePanel.css",
+    "prefixA": "cvp-color",
+    "prefixB": "cvp-strength",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.6375,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 0.5,
+      "ruleSetMatch": 0.75,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/CoveragePanel.css::cvp-color",
+    "unitB": "apps/illuminator/webui/src/components/CoveragePanel.css::cvp-strength"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "sidebar",
+    "prefixB": "guide-sidebar",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.6291,
+    "signals": {
+      "categoryProfile": 0.9574,
+      "customPropertyVocab": 0.6667,
+      "propertyFrequency": 0.875,
+      "ruleExactMatch": 0.5,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.3333
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::sidebar",
+    "unitB": "apps/name-forge/webui/src/App.css::guide-sidebar"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-sd",
+    "prefixB": "era-narrative-quote",
+    "rulesA": 5,
+    "rulesB": 4,
+    "score": 0.6002,
+    "signals": {
+      "categoryProfile": 0.9798,
+      "customPropertyVocab": 0.8,
+      "propertyFrequency": 0.889,
+      "ruleExactMatch": 0.4444,
+      "ruleSetMatch": 0.4444,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-sd",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-quote"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css",
+    "prefixA": "htab-tone-detect",
+    "prefixB": "htab-backport",
+    "rulesA": 3,
+    "rulesB": 5,
+    "score": 0.5876,
+    "signals": {
+      "categoryProfile": 0.7926,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.6667,
+      "ruleExactMatch": 0.5,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-tone-detect",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-backport"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css",
+    "prefixA": "htab-annotate",
+    "prefixB": "htab-backport",
+    "rulesA": 5,
+    "rulesB": 5,
+    "score": 0.5847,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.9487,
+      "ruleExactMatch": 0.4,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-annotate",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-backport"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/CoveragePanel.css",
+    "prefixA": "cvp-histogram",
+    "prefixB": "cvp-analysis",
+    "rulesA": 8,
+    "rulesB": 7,
+    "score": 0.5768,
+    "signals": {
+      "categoryProfile": 0.9642,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.8021,
+      "ruleExactMatch": 0.4,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/CoveragePanel.css::cvp-histogram",
+    "unitB": "apps/illuminator/webui/src/components/CoveragePanel.css::cvp-analysis"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "packages/shared-components/src/styles/components/editor.css",
+    "prefixA": "project-dropdown",
+    "prefixB": "slot-dropdown",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.5721,
+    "signals": {
+      "categoryProfile": 0.9623,
+      "customPropertyVocab": 0.6923,
+      "propertyFrequency": 0.9617,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.8571,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "packages/shared-components/src/styles/components/editor.css::project-dropdown",
+    "unitB": "packages/shared-components/src/styles/components/editor.css::slot-dropdown"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css",
+    "prefixA": "htab-tone-detect",
+    "prefixB": "htab-annotate",
+    "rulesA": 3,
+    "rulesB": 5,
+    "score": 0.5663,
+    "signals": {
+      "categoryProfile": 0.7926,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.6852,
+      "ruleExactMatch": 0.5,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-tone-detect",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-annotate"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css",
+    "prefixA": "htab-annotate",
+    "prefixB": "htab-prep",
+    "rulesA": 5,
+    "rulesB": 7,
+    "score": 0.5551,
+    "signals": {
+      "categoryProfile": 0.8783,
+      "customPropertyVocab": 0.8,
+      "propertyFrequency": 0.8115,
+      "ruleExactMatch": 0.3333,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-annotate",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-prep"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "packages/shared-components/src/styles/components/editor.css",
+    "prefixA": "btn-sm",
+    "prefixB": "btn-xs",
+    "rulesA": 6,
+    "rulesB": 6,
+    "score": 0.5515,
+    "signals": {
+      "categoryProfile": 0.9775,
+      "customPropertyVocab": 0.6364,
+      "propertyFrequency": 0.8257,
+      "ruleExactMatch": 0.3333,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "packages/shared-components/src/styles/components/editor.css::btn-sm",
+    "unitB": "packages/shared-components/src/styles/components/editor.css::btn-xs"
+  },
+  {
+    "dominantSignal": "ruleSetMatch",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "strategy-group",
+    "prefixB": "strategy-card",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.55,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::strategy-group",
+    "unitB": "apps/name-forge/webui/src/App.css::strategy-card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "strategy-badge",
+    "prefixB": "strategy-card",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.5297,
+    "signals": {
+      "categoryProfile": 0.969,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.9211,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.5714,
+      "selectorPrefixOverlap": 0.4
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::strategy-badge",
+    "unitB": "apps/name-forge/webui/src/App.css::strategy-card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/chronicler/webui/src/components/WikiExplorer.module.css",
+    "prefixA": "era-button",
+    "prefixB": "entity-list",
+    "rulesA": 4,
+    "rulesB": 8,
+    "score": 0.5237,
+    "signals": {
+      "categoryProfile": 0.9774,
+      "customPropertyVocab": 0.6471,
+      "propertyFrequency": 0.8898,
+      "ruleExactMatch": 0.3333,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/chronicler/webui/src/components/WikiExplorer.module.css::era-button",
+    "unitB": "apps/chronicler/webui/src/components/WikiExplorer.module.css::entity-list"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EntityCoveragePanel.css",
+    "prefixA": "ecp-pre-calc",
+    "prefixB": "ecp-header",
+    "rulesA": 4,
+    "rulesB": 4,
+    "score": 0.5232,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.9286,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.25,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EntityCoveragePanel.css::ecp-pre-calc",
+    "unitB": "apps/illuminator/webui/src/components/EntityCoveragePanel.css::ecp-header"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css",
+    "prefixA": "htab-tone-detect",
+    "prefixB": "htab-prep",
+    "rulesA": 3,
+    "rulesB": 7,
+    "score": 0.5224,
+    "signals": {
+      "categoryProfile": 0.8845,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.7699,
+      "ruleExactMatch": 0.4,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-tone-detect",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-prep"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-prompt",
+    "prefixB": "illuminator-kind",
+    "rulesA": 7,
+    "rulesB": 5,
+    "score": 0.5192,
+    "signals": {
+      "categoryProfile": 0.903,
+      "customPropertyVocab": 0.6667,
+      "propertyFrequency": 0.832,
+      "ruleExactMatch": 0.3333,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.25
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-prompt",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-kind"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/coherence-engine/webui/src/components/validation/validation.css",
+    "prefixA": "validation-export",
+    "prefixB": "validation-affected",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.5162,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.4615,
+      "propertyFrequency": 0.9333,
+      "ruleExactMatch": 0.3333,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/coherence-engine/webui/src/components/validation/validation.css::validation-export",
+    "unitB": "apps/coherence-engine/webui/src/components/validation/validation.css::validation-affected"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-thread",
+    "prefixB": "era-narrative-quote",
+    "rulesA": 8,
+    "rulesB": 4,
+    "score": 0.5145,
+    "signals": {
+      "categoryProfile": 0.9791,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.908,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-thread",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-quote"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-status",
+    "prefixB": "static-page-status",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.5095,
+    "signals": {
+      "categoryProfile": 0.9959,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.9245,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-status",
+    "unitB": "apps/illuminator/webui/src/App.css::static-page-status"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/ChronologyModal.css",
+    "prefixA": "chm-generating",
+    "prefixB": "chm-failed",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.5081,
+    "signals": {
+      "categoryProfile": 0.9806,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.967,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.6667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/ChronologyModal.css::chm-generating",
+    "unitB": "apps/illuminator/webui/src/components/ChronologyModal.css::chm-failed"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-collapsible",
+    "prefixB": "era-narrative-brief",
+    "rulesA": 3,
+    "rulesB": 5,
+    "score": 0.5057,
+    "signals": {
+      "categoryProfile": 0.9186,
+      "customPropertyVocab": 0.6667,
+      "propertyFrequency": 0.736,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-collapsible",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-brief"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/lore-weave/webui/src/App.css",
+    "prefixA": "lw-timeline",
+    "prefixB": "lw-category",
+    "rulesA": 8,
+    "rulesB": 10,
+    "score": 0.5017,
+    "signals": {
+      "categoryProfile": 0.9374,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.9009,
+      "ruleExactMatch": 0.2222,
+      "ruleSetMatch": 0.4444,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/lore-weave/webui/src/App.css::lw-timeline",
+    "unitB": "apps/lore-weave/webui/src/App.css::lw-category"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-kind",
+    "prefixB": "illuminator-btn",
+    "rulesA": 5,
+    "rulesB": 8,
+    "score": 0.5011,
+    "signals": {
+      "categoryProfile": 0.9666,
+      "customPropertyVocab": 0.5714,
+      "propertyFrequency": 0.9285,
+      "ruleExactMatch": 0.1538,
+      "ruleSetMatch": 0.4615,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-kind",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-btn"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-image-refs",
+    "prefixB": "era-narrative-brief",
+    "rulesA": 4,
+    "rulesB": 5,
+    "score": 0.5009,
+    "signals": {
+      "categoryProfile": 0.9487,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.891,
+      "ruleExactMatch": 0.2222,
+      "ruleSetMatch": 0.4444,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-image-refs",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-brief"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "test-count",
+    "prefixB": "strategy-config",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.497,
+    "signals": {
+      "categoryProfile": 0.9526,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.7171,
+      "ruleExactMatch": 0.3333,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::test-count",
+    "unitB": "apps/name-forge/webui/src/App.css::strategy-config"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/ImageSettingsDrawer.css",
+    "prefixA": "isd-category",
+    "prefixB": "isd-output",
+    "rulesA": 3,
+    "rulesB": 5,
+    "score": 0.4913,
+    "signals": {
+      "categoryProfile": 0.982,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.9655,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/ImageSettingsDrawer.css::isd-category",
+    "unitB": "apps/illuminator/webui/src/components/ImageSettingsDrawer.css::isd-output"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "badge",
+    "prefixB": "profile-badge",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.4875,
+    "signals": {
+      "categoryProfile": 0.9984,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.9739,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5714,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::badge",
+    "unitB": "apps/name-forge/webui/src/App.css::profile-badge"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-thread",
+    "prefixB": "era-narrative-brief",
+    "rulesA": 8,
+    "rulesB": 5,
+    "score": 0.4864,
+    "signals": {
+      "categoryProfile": 0.9584,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.7319,
+      "ruleExactMatch": 0.3077,
+      "ruleSetMatch": 0.3077,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-thread",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-brief"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "group-type",
+    "prefixB": "strategy-count",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.4833,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.3333,
+      "propertyFrequency": 0.9167,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.6667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::group-type",
+    "unitB": "apps/name-forge/webui/src/App.css::strategy-count"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-btn",
+    "prefixB": "preprint-action",
+    "rulesA": 8,
+    "rulesB": 5,
+    "score": 0.4831,
+    "signals": {
+      "categoryProfile": 0.9802,
+      "customPropertyVocab": 0.2667,
+      "propertyFrequency": 0.7538,
+      "ruleExactMatch": 0.3077,
+      "ruleSetMatch": 0.4615,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-btn",
+    "unitB": "apps/illuminator/webui/src/App.css::preprint-action"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/lore-weave/webui/src/components/dashboard/trace/SimulationTraceVisx.css",
+    "prefixA": "lw-trace-view-anchor",
+    "prefixB": "lw-trace-view-resolved",
+    "rulesA": 5,
+    "rulesB": 6,
+    "score": 0.4829,
+    "signals": {
+      "categoryProfile": 0.9933,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.9812,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.7273,
+      "selectorPrefixOverlap": 0.1111
+    },
+    "unitA": "apps/lore-weave/webui/src/components/dashboard/trace/SimulationTraceVisx.css::lw-trace-view-anchor",
+    "unitB": "apps/lore-weave/webui/src/components/dashboard/trace/SimulationTraceVisx.css::lw-trace-view-resolved"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.css",
+    "prefixA": "rke-constraint",
+    "prefixB": "rke-maintenance",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.4821,
+    "signals": {
+      "categoryProfile": 0.9923,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.7715,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.5714,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.css::rke-constraint",
+    "unitB": "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.css::rke-maintenance"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/lore-weave/webui/src/App.css",
+    "prefixA": "lw-metric",
+    "prefixB": "lw-detail",
+    "rulesA": 6,
+    "rulesB": 5,
+    "score": 0.4795,
+    "signals": {
+      "categoryProfile": 0.9336,
+      "customPropertyVocab": 0.2778,
+      "propertyFrequency": 0.8372,
+      "ruleExactMatch": 0.1818,
+      "ruleSetMatch": 0.5455,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/lore-weave/webui/src/App.css::lw-metric",
+    "unitB": "apps/lore-weave/webui/src/App.css::lw-detail"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "packages/shared-components/src/styles/components/editor.css",
+    "prefixA": "project-item",
+    "prefixB": "slot-item",
+    "rulesA": 6,
+    "rulesB": 10,
+    "score": 0.4763,
+    "signals": {
+      "categoryProfile": 0.9601,
+      "customPropertyVocab": 0.7857,
+      "propertyFrequency": 0.821,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.25,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "packages/shared-components/src/styles/components/editor.css::project-item",
+    "unitB": "packages/shared-components/src/styles/components/editor.css::slot-item"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/ReferenceTab.css",
+    "prefixA": "ref-tab-synth",
+    "prefixB": "ref-tab-fcv",
+    "rulesA": 7,
+    "rulesB": 7,
+    "score": 0.4754,
+    "signals": {
+      "categoryProfile": 0.9943,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.8082,
+      "ruleExactMatch": 0.1429,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/ReferenceTab.css::ref-tab-synth",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/ReferenceTab.css::ref-tab-fcv"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-nav",
+    "prefixB": "preprint-subtab",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.4743,
+    "signals": {
+      "categoryProfile": 0.9037,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.822,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5714,
+      "selectorPrefixOverlap": 0.3333
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-nav",
+    "unitB": "apps/illuminator/webui/src/App.css::preprint-subtab"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/SummaryRevisionModal.css",
+    "prefixA": "srm-diff",
+    "prefixB": "srm-anchor",
+    "rulesA": 5,
+    "rulesB": 6,
+    "score": 0.4715,
+    "signals": {
+      "categoryProfile": 0.8956,
+      "customPropertyVocab": 0.8,
+      "propertyFrequency": 0.7823,
+      "ruleExactMatch": 0.1818,
+      "ruleSetMatch": 0.3636,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/SummaryRevisionModal.css::srm-diff",
+    "unitB": "apps/illuminator/webui/src/components/SummaryRevisionModal.css::srm-anchor"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-context",
+    "prefixB": "illuminator-visual-identity",
+    "rulesA": 3,
+    "rulesB": 6,
+    "score": 0.4687,
+    "signals": {
+      "categoryProfile": 0.9504,
+      "customPropertyVocab": 0.7143,
+      "propertyFrequency": 0.9,
+      "ruleExactMatch": 0.2222,
+      "ruleSetMatch": 0.2222,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-context",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-visual-identity"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "list-item",
+    "prefixB": "profile-card",
+    "rulesA": 7,
+    "rulesB": 7,
+    "score": 0.4684,
+    "signals": {
+      "categoryProfile": 0.959,
+      "customPropertyVocab": 0.1818,
+      "propertyFrequency": 0.9232,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.25
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::list-item",
+    "unitB": "apps/name-forge/webui/src/App.css::profile-card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/TraitPaletteSection.css",
+    "prefixA": "tps-stat",
+    "prefixB": "tps-palette",
+    "rulesA": 3,
+    "rulesB": 6,
+    "score": 0.4671,
+    "signals": {
+      "categoryProfile": 0.8173,
+      "customPropertyVocab": 0.6667,
+      "propertyFrequency": 0.7047,
+      "ruleExactMatch": 0.2222,
+      "ruleSetMatch": 0.4444,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/TraitPaletteSection.css::tps-stat",
+    "unitB": "apps/illuminator/webui/src/components/TraitPaletteSection.css::tps-palette"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/ImageSettingsDrawer.css",
+    "prefixA": "isd-item",
+    "prefixB": "isd-palette",
+    "rulesA": 7,
+    "rulesB": 6,
+    "score": 0.4644,
+    "signals": {
+      "categoryProfile": 0.8944,
+      "customPropertyVocab": 0.4,
+      "propertyFrequency": 0.8286,
+      "ruleExactMatch": 0.3077,
+      "ruleSetMatch": 0.3077,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/ImageSettingsDrawer.css::isd-item",
+    "unitB": "apps/illuminator/webui/src/components/ImageSettingsDrawer.css::isd-palette"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "generate-context",
+    "prefixB": "strategy-config",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.4634,
+    "signals": {
+      "categoryProfile": 0.9467,
+      "customPropertyVocab": 0.4,
+      "propertyFrequency": 0.8581,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::generate-context",
+    "unitB": "apps/name-forge/webui/src/App.css::strategy-config"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-queue-item",
+    "prefixB": "illuminator-style-card",
+    "rulesA": 4,
+    "rulesB": 9,
+    "score": 0.4632,
+    "signals": {
+      "categoryProfile": 0.9283,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.8614,
+      "ruleExactMatch": 0.1538,
+      "ruleSetMatch": 0.3077,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-queue-item",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-style-card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/chronicler/webui/src/components/WikiExplorer.module.css",
+    "prefixA": "page-item",
+    "prefixB": "era-button",
+    "rulesA": 3,
+    "rulesB": 4,
+    "score": 0.462,
+    "signals": {
+      "categoryProfile": 0.981,
+      "customPropertyVocab": 0.3529,
+      "propertyFrequency": 0.8573,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/chronicler/webui/src/components/WikiExplorer.module.css::page-item",
+    "unitB": "apps/chronicler/webui/src/components/WikiExplorer.module.css::era-button"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "test-count",
+    "prefixB": "weight-slider",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.4595,
+    "signals": {
+      "categoryProfile": 0.8333,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.7143,
+      "ruleExactMatch": 0.3333,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::test-count",
+    "unitB": "apps/name-forge/webui/src/App.css::weight-slider"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "group-type",
+    "prefixB": "diff-tag",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.4582,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.9574,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.6667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::group-type",
+    "unitB": "apps/name-forge/webui/src/App.css::diff-tag"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "strategy-count",
+    "prefixB": "diff-tag",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.4582,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.9574,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.6667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::strategy-count",
+    "unitB": "apps/name-forge/webui/src/App.css::diff-tag"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/CorpusFindReplace.css",
+    "prefixA": "cfr-diff",
+    "prefixB": "cfr-literal",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.4568,
+    "signals": {
+      "categoryProfile": 0.9623,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.8864,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/CorpusFindReplace.css::cfr-diff",
+    "unitB": "apps/illuminator/webui/src/components/CorpusFindReplace.css::cfr-literal"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-btn",
+    "prefixB": "static-page",
+    "rulesA": 8,
+    "rulesB": 10,
+    "score": 0.4566,
+    "signals": {
+      "categoryProfile": 0.9263,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.8477,
+      "ruleExactMatch": 0.1111,
+      "ruleSetMatch": 0.4444,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-btn",
+    "unitB": "apps/illuminator/webui/src/App.css::static-page"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/CohesionReportViewer.css",
+    "prefixA": "crv-refinement",
+    "prefixB": "crv-section-goal",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.4559,
+    "signals": {
+      "categoryProfile": 0.8729,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.6556,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.25,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/CohesionReportViewer.css::crv-refinement",
+    "unitB": "apps/illuminator/webui/src/components/CohesionReportViewer.css::crv-section-goal"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/coherence-engine/webui/src/styles/components/editor.css",
+    "prefixA": "nested-card",
+    "prefixB": "condition-card",
+    "rulesA": 11,
+    "rulesB": 10,
+    "score": 0.4557,
+    "signals": {
+      "categoryProfile": 0.932,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.8694,
+      "ruleExactMatch": 0.1905,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/coherence-engine/webui/src/styles/components/editor.css::nested-card",
+    "unitB": "apps/coherence-engine/webui/src/styles/components/editor.css::condition-card"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "preprint-picker-item",
+    "prefixB": "preprint-palette-item",
+    "rulesA": 3,
+    "rulesB": 4,
+    "score": 0.4547,
+    "signals": {
+      "categoryProfile": 0.9847,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.9241,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::preprint-picker-item",
+    "unitB": "apps/illuminator/webui/src/App.css::preprint-palette-item"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "packages/shared-components/src/styles/components/editor.css",
+    "prefixA": "nested-card",
+    "prefixB": "condition-card",
+    "rulesA": 11,
+    "rulesB": 10,
+    "score": 0.4545,
+    "signals": {
+      "categoryProfile": 0.9283,
+      "customPropertyVocab": 0.7,
+      "propertyFrequency": 0.8157,
+      "ruleExactMatch": 0.1905,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "packages/shared-components/src/styles/components/editor.css::nested-card",
+    "unitB": "packages/shared-components/src/styles/components/editor.css::condition-card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-image-refs",
+    "prefixB": "era-narrative-collapsible",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.4542,
+    "signals": {
+      "categoryProfile": 0.9037,
+      "customPropertyVocab": 0.6667,
+      "propertyFrequency": 0.7715,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5714,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-image-refs",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-collapsible"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/lore-weave/webui/src/App.css",
+    "prefixA": "lw-pressure",
+    "prefixB": "lw-template",
+    "rulesA": 9,
+    "rulesB": 6,
+    "score": 0.4531,
+    "signals": {
+      "categoryProfile": 0.876,
+      "customPropertyVocab": 0.6154,
+      "propertyFrequency": 0.8199,
+      "ruleExactMatch": 0.1333,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/lore-weave/webui/src/App.css::lw-pressure",
+    "unitB": "apps/lore-weave/webui/src/App.css::lw-template"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "group-row",
+    "prefixB": "strategy-item",
+    "rulesA": 5,
+    "rulesB": 5,
+    "score": 0.4524,
+    "signals": {
+      "categoryProfile": 0.8748,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.7746,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::group-row",
+    "unitB": "apps/name-forge/webui/src/App.css::strategy-item"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/ChroniclePlanEditor.css",
+    "prefixA": "cpe-section",
+    "prefixB": "cpe-entity",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.4501,
+    "signals": {
+      "categoryProfile": 0.969,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.891,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/ChroniclePlanEditor.css::cpe-section",
+    "unitB": "apps/illuminator/webui/src/components/ChroniclePlanEditor.css::cpe-entity"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/QuickCheckModal.css",
+    "prefixA": "qcm-search-result",
+    "prefixB": "qcm-header",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.4495,
+    "signals": {
+      "categoryProfile": 0.9045,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.9382,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/QuickCheckModal.css::qcm-search-result",
+    "unitB": "apps/illuminator/webui/src/components/QuickCheckModal.css::qcm-header"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "rule-card",
+    "prefixB": "strategy-item",
+    "rulesA": 7,
+    "rulesB": 5,
+    "score": 0.4495,
+    "signals": {
+      "categoryProfile": 0.884,
+      "customPropertyVocab": 0.4,
+      "propertyFrequency": 0.7303,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::rule-card",
+    "unitB": "apps/name-forge/webui/src/App.css::strategy-item"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-queue-item",
+    "prefixB": "entity-link",
+    "rulesA": 4,
+    "rulesB": 6,
+    "score": 0.4488,
+    "signals": {
+      "categoryProfile": 0.6455,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.521,
+      "ruleExactMatch": 0.4,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-queue-item",
+    "unitB": "apps/illuminator/webui/src/App.css::entity-link"
+  },
+  {
+    "dominantSignal": "propertyFrequency",
+    "filePath": "packages/shared-components/src/styles/components/card.css",
+    "prefixA": "weights-accordion",
+    "prefixB": "transitions-column",
+    "rulesA": 8,
+    "rulesB": 5,
+    "score": 0.445,
+    "signals": {
+      "categoryProfile": 0.9035,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.908,
+      "ruleExactMatch": 0.1538,
+      "ruleSetMatch": 0.3077,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "packages/shared-components/src/styles/components/card.css::weights-accordion",
+    "unitB": "packages/shared-components/src/styles/components/card.css::transitions-column"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "guide-step",
+    "prefixB": "card",
+    "rulesA": 5,
+    "rulesB": 4,
+    "score": 0.4449,
+    "signals": {
+      "categoryProfile": 0.9959,
+      "customPropertyVocab": 0.5455,
+      "propertyFrequency": 0.8985,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.4444,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::guide-step",
+    "unitB": "apps/name-forge/webui/src/App.css::card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/archivist/webui/src/components/StatsPanel.css",
+    "prefixA": "validation-value",
+    "prefixB": "validation-result",
+    "rulesA": 3,
+    "rulesB": 10,
+    "score": 0.4448,
+    "signals": {
+      "categoryProfile": 0.8552,
+      "customPropertyVocab": 0.1765,
+      "propertyFrequency": 0.7372,
+      "ruleExactMatch": 0.3077,
+      "ruleSetMatch": 0.3077,
+      "selectorPrefixOverlap": 0.5
+    },
+    "unitA": "apps/archivist/webui/src/components/StatsPanel.css::validation-value",
+    "unitB": "apps/archivist/webui/src/components/StatsPanel.css::validation-result"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/ChronicleWizard/steps/GenerateStep.css",
+    "prefixA": "gs-section",
+    "prefixB": "gs-lens",
+    "rulesA": 3,
+    "rulesB": 5,
+    "score": 0.4441,
+    "signals": {
+      "categoryProfile": 0.9461,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.5601,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.25,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/ChronicleWizard/steps/GenerateStep.css::gs-section",
+    "unitB": "apps/illuminator/webui/src/components/ChronicleWizard/steps/GenerateStep.css::gs-lens"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-card",
+    "prefixB": "static-page-editor-empty",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.444,
+    "signals": {
+      "categoryProfile": 0.9297,
+      "customPropertyVocab": 0.4,
+      "propertyFrequency": 0.7695,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-card",
+    "unitB": "apps/illuminator/webui/src/App.css::static-page-editor-empty"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-button",
+    "prefixB": "static-page",
+    "rulesA": 11,
+    "rulesB": 10,
+    "score": 0.4439,
+    "signals": {
+      "categoryProfile": 0.9436,
+      "customPropertyVocab": 0.3684,
+      "propertyFrequency": 0.8818,
+      "ruleExactMatch": 0.0952,
+      "ruleSetMatch": 0.381,
+      "selectorPrefixOverlap": 0.25
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-button",
+    "unitB": "apps/illuminator/webui/src/App.css::static-page"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "packages/shared-components/src/TagSelector.css",
+    "prefixA": "tag-selector",
+    "prefixB": "tag-selector-rarity",
+    "rulesA": 6,
+    "rulesB": 4,
+    "score": 0.4428,
+    "signals": {
+      "categoryProfile": 0.876,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.6429,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.2,
+      "selectorPrefixOverlap": 0.3333
+    },
+    "unitA": "packages/shared-components/src/TagSelector.css::tag-selector",
+    "unitB": "packages/shared-components/src/TagSelector.css::tag-selector-rarity"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-kind",
+    "prefixB": "static-page",
+    "rulesA": 5,
+    "rulesB": 10,
+    "score": 0.4417,
+    "signals": {
+      "categoryProfile": 0.9722,
+      "customPropertyVocab": 0.6429,
+      "propertyFrequency": 0.8675,
+      "ruleExactMatch": 0.1333,
+      "ruleSetMatch": 0.2667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-kind",
+    "unitB": "apps/illuminator/webui/src/App.css::static-page"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/ChronicleImagePanel.css",
+    "prefixA": "cip-involved",
+    "prefixB": "cip-stat",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.4417,
+    "signals": {
+      "categoryProfile": 0.7746,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.6547,
+      "ruleExactMatch": 0.3333,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/ChronicleImagePanel.css::cip-involved",
+    "unitB": "apps/illuminator/webui/src/components/ChronicleImagePanel.css::cip-stat"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-prompt",
+    "prefixB": "illuminator-btn",
+    "rulesA": 7,
+    "rulesB": 8,
+    "score": 0.4404,
+    "signals": {
+      "categoryProfile": 0.8906,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.7566,
+      "ruleExactMatch": 0.1333,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-prompt",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-btn"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "packages/shared-components/src/styles/components/editor.css",
+    "prefixA": "expandable-card",
+    "prefixB": "condition-card",
+    "rulesA": 11,
+    "rulesB": 10,
+    "score": 0.4391,
+    "signals": {
+      "categoryProfile": 0.9877,
+      "customPropertyVocab": 0.4348,
+      "propertyFrequency": 0.8654,
+      "ruleExactMatch": 0.0952,
+      "ruleSetMatch": 0.381,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "packages/shared-components/src/styles/components/editor.css::expandable-card",
+    "unitB": "packages/shared-components/src/styles/components/editor.css::condition-card"
+  },
+  {
+    "dominantSignal": "propertyFrequency",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "sidebar",
+    "prefixB": "workshop-sidebar",
+    "rulesA": 5,
+    "rulesB": 5,
+    "score": 0.4386,
+    "signals": {
+      "categoryProfile": 0.8781,
+      "customPropertyVocab": 0.6667,
+      "propertyFrequency": 0.9208,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::sidebar",
+    "unitB": "apps/name-forge/webui/src/App.css::workshop-sidebar"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-prompt",
+    "prefixB": "static-page",
+    "rulesA": 7,
+    "rulesB": 10,
+    "score": 0.4374,
+    "signals": {
+      "categoryProfile": 0.9033,
+      "customPropertyVocab": 0.5625,
+      "propertyFrequency": 0.8367,
+      "ruleExactMatch": 0.1176,
+      "ruleSetMatch": 0.3529,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-prompt",
+    "unitB": "apps/illuminator/webui/src/App.css::static-page"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-kind",
+    "prefixB": "preprint-subtab",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.4365,
+    "signals": {
+      "categoryProfile": 0.9325,
+      "customPropertyVocab": 0.3333,
+      "propertyFrequency": 0.8621,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.25
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-kind",
+    "unitB": "apps/illuminator/webui/src/App.css::preprint-subtab"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/coherence-engine/webui/src/components/causal-loop/CausalLoopEditor.css",
+    "prefixA": "cl-stats",
+    "prefixB": "cl-edge",
+    "rulesA": 3,
+    "rulesB": 7,
+    "score": 0.436,
+    "signals": {
+      "categoryProfile": 0.9358,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.9119,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/coherence-engine/webui/src/components/causal-loop/CausalLoopEditor.css::cl-stats",
+    "unitB": "apps/coherence-engine/webui/src/components/causal-loop/CausalLoopEditor.css::cl-edge"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/ChronicleWizard/steps/GenerateStep.css",
+    "prefixA": "gs-lens",
+    "prefixB": "gs-roles",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.4359,
+    "signals": {
+      "categoryProfile": 0.7833,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.6002,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.25,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/ChronicleWizard/steps/GenerateStep.css::gs-lens",
+    "unitB": "apps/illuminator/webui/src/components/ChronicleWizard/steps/GenerateStep.css::gs-roles"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "flex-row",
+    "prefixB": "split-layout",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.4359,
+    "signals": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.6794,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::flex-row",
+    "unitB": "apps/name-forge/webui/src/App.css::split-layout"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/chronicler/webui/src/components/WikiExplorer.module.css",
+    "prefixA": "entity-link",
+    "prefixB": "title-button",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.434,
+    "signals": {
+      "categoryProfile": 0.967,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.7698,
+      "ruleExactMatch": 0.3333,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/chronicler/webui/src/components/WikiExplorer.module.css::entity-link",
+    "unitB": "apps/chronicler/webui/src/components/WikiExplorer.module.css::title-button"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-sd",
+    "prefixB": "era-narrative-movement",
+    "rulesA": 5,
+    "rulesB": 7,
+    "score": 0.4338,
+    "signals": {
+      "categoryProfile": 0.9923,
+      "customPropertyVocab": 0.8,
+      "propertyFrequency": 0.8146,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.1667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-sd",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-movement"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-thread",
+    "prefixB": "era-narrative-sd",
+    "rulesA": 8,
+    "rulesB": 5,
+    "score": 0.4332,
+    "signals": {
+      "categoryProfile": 0.9898,
+      "customPropertyVocab": 0.8,
+      "propertyFrequency": 0.8865,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.3077,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-thread",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-sd"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EntityCoveragePanel.css",
+    "prefixA": "ecp-section",
+    "prefixB": "ecp-event",
+    "rulesA": 6,
+    "rulesB": 3,
+    "score": 0.4329,
+    "signals": {
+      "categoryProfile": 0.9336,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.7114,
+      "ruleExactMatch": 0.2222,
+      "ruleSetMatch": 0.2222,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EntityCoveragePanel.css::ecp-section",
+    "unitB": "apps/illuminator/webui/src/components/EntityCoveragePanel.css::ecp-event"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "culture-form",
+    "prefixB": "rule-form",
+    "rulesA": 4,
+    "rulesB": 6,
+    "score": 0.432,
+    "signals": {
+      "categoryProfile": 0.9737,
+      "customPropertyVocab": 0.4,
+      "propertyFrequency": 0.9232,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.2,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::culture-form",
+    "unitB": "apps/name-forge/webui/src/App.css::rule-form"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "culture-form",
+    "prefixB": "domain-card",
+    "rulesA": 4,
+    "rulesB": 6,
+    "score": 0.4312,
+    "signals": {
+      "categoryProfile": 0.8819,
+      "customPropertyVocab": 0.3333,
+      "propertyFrequency": 0.7485,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::culture-form",
+    "unitB": "apps/name-forge/webui/src/App.css::domain-card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "pill-button",
+    "prefixB": "add-group",
+    "rulesA": 3,
+    "rulesB": 4,
+    "score": 0.4309,
+    "signals": {
+      "categoryProfile": 0.9366,
+      "customPropertyVocab": 0.1111,
+      "propertyFrequency": 0.9164,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5714,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::pill-button",
+    "unitB": "apps/name-forge/webui/src/App.css::add-group"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-template-visual-steps",
+    "prefixB": "static-page-toolbar",
+    "rulesA": 5,
+    "rulesB": 4,
+    "score": 0.4288,
+    "signals": {
+      "categoryProfile": 0.9431,
+      "customPropertyVocab": 0.3846,
+      "propertyFrequency": 0.8689,
+      "ruleExactMatch": 0.2222,
+      "ruleSetMatch": 0.2222,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-template-visual-steps",
+    "unitB": "apps/illuminator/webui/src/App.css::static-page-toolbar"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "workspace-title",
+    "prefixB": "results-empty",
+    "rulesA": 3,
+    "rulesB": 4,
+    "score": 0.4287,
+    "signals": {
+      "categoryProfile": 0.9449,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.5103,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::workspace-title",
+    "unitB": "apps/name-forge/webui/src/App.css::results-empty"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-identity-section",
+    "prefixB": "entity-link",
+    "rulesA": 6,
+    "rulesB": 6,
+    "score": 0.4279,
+    "signals": {
+      "categoryProfile": 0.9605,
+      "customPropertyVocab": 0.8,
+      "propertyFrequency": 0.801,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.1667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-identity-section",
+    "unitB": "apps/illuminator/webui/src/App.css::entity-link"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "packages/shared-components/src/styles/components/editor.css",
+    "prefixA": "expandable-card",
+    "prefixB": "modal-status",
+    "rulesA": 11,
+    "rulesB": 3,
+    "score": 0.4274,
+    "signals": {
+      "categoryProfile": 0.8165,
+      "customPropertyVocab": 0.4118,
+      "propertyFrequency": 0.7731,
+      "ruleExactMatch": 0.1429,
+      "ruleSetMatch": 0.4286,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "packages/shared-components/src/styles/components/editor.css::expandable-card",
+    "unitB": "packages/shared-components/src/styles/components/editor.css::modal-status"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-chronicle-ref",
+    "prefixB": "era-narrative-thread",
+    "rulesA": 8,
+    "rulesB": 8,
+    "score": 0.4262,
+    "signals": {
+      "categoryProfile": 0.8518,
+      "customPropertyVocab": 0.8,
+      "propertyFrequency": 0.8362,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.375,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-chronicle-ref",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-thread"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/lore-weave/webui/src/App.css",
+    "prefixA": "lw-btn",
+    "prefixB": "lw-tab",
+    "rulesA": 15,
+    "rulesB": 3,
+    "score": 0.4261,
+    "signals": {
+      "categoryProfile": 0.9669,
+      "customPropertyVocab": 0.35,
+      "propertyFrequency": 0.9445,
+      "ruleExactMatch": 0.1111,
+      "ruleSetMatch": 0.2222,
+      "selectorPrefixOverlap": 0.3333
+    },
+    "unitA": "apps/lore-weave/webui/src/App.css::lw-btn",
+    "unitB": "apps/lore-weave/webui/src/App.css::lw-tab"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "list-item",
+    "prefixB": "grammar-card",
+    "rulesA": 7,
+    "rulesB": 4,
+    "score": 0.4256,
+    "signals": {
+      "categoryProfile": 0.8914,
+      "customPropertyVocab": 0.2857,
+      "propertyFrequency": 0.8124,
+      "ruleExactMatch": 0.1818,
+      "ruleSetMatch": 0.3636,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::list-item",
+    "unitB": "apps/name-forge/webui/src/App.css::grammar-card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-quote",
+    "prefixB": "era-narrative-movement",
+    "rulesA": 4,
+    "rulesB": 7,
+    "score": 0.4255,
+    "signals": {
+      "categoryProfile": 0.9621,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.8463,
+      "ruleExactMatch": 0.1818,
+      "ruleSetMatch": 0.1818,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-quote",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-movement"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "strategy-badge",
+    "prefixB": "strategy-group",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.424,
+    "signals": {
+      "categoryProfile": 0.969,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.9211,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5714,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::strategy-badge",
+    "unitB": "apps/name-forge/webui/src/App.css::strategy-group"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-api",
+    "prefixB": "illuminator-input",
+    "rulesA": 7,
+    "rulesB": 4,
+    "score": 0.4235,
+    "signals": {
+      "categoryProfile": 0.9448,
+      "customPropertyVocab": 0.5833,
+      "propertyFrequency": 0.8534,
+      "ruleExactMatch": 0.1818,
+      "ruleSetMatch": 0.1818,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-api",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-input"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-nav",
+    "prefixB": "workspace-subtab",
+    "rulesA": 4,
+    "rulesB": 5,
+    "score": 0.4231,
+    "signals": {
+      "categoryProfile": 0.8937,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.7504,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.4444,
+      "selectorPrefixOverlap": 0.25
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-nav",
+    "unitB": "apps/illuminator/webui/src/App.css::workspace-subtab"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-api",
+    "prefixB": "illuminator-mode",
+    "rulesA": 7,
+    "rulesB": 3,
+    "score": 0.4223,
+    "signals": {
+      "categoryProfile": 0.9217,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.7672,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.2,
+      "selectorPrefixOverlap": 0.3333
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-api",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-mode"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "static-pages-list",
+    "prefixB": "entity-link",
+    "rulesA": 5,
+    "rulesB": 6,
+    "score": 0.4221,
+    "signals": {
+      "categoryProfile": 0.9316,
+      "customPropertyVocab": 0.7273,
+      "propertyFrequency": 0.7809,
+      "ruleExactMatch": 0.1818,
+      "ruleSetMatch": 0.1818,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::static-pages-list",
+    "unitB": "apps/illuminator/webui/src/App.css::entity-link"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "workshop-sidebar",
+    "prefixB": "guide-sidebar",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.422,
+    "signals": {
+      "categoryProfile": 0.8807,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.8573,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.25,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::workshop-sidebar",
+    "unitB": "apps/name-forge/webui/src/App.css::guide-sidebar"
+  },
+  {
+    "dominantSignal": "propertyFrequency",
+    "filePath": "apps/chronicler/webui/src/components/WikiExplorer.module.css",
+    "prefixA": "entity-card",
+    "prefixB": "entity-list",
+    "rulesA": 7,
+    "rulesB": 8,
+    "score": 0.4214,
+    "signals": {
+      "categoryProfile": 0.7304,
+      "customPropertyVocab": 0.5238,
+      "propertyFrequency": 0.7467,
+      "ruleExactMatch": 0.2667,
+      "ruleSetMatch": 0.2667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/chronicler/webui/src/components/WikiExplorer.module.css::entity-card",
+    "unitB": "apps/chronicler/webui/src/components/WikiExplorer.module.css::entity-list"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/ProgressPanel.css",
+    "prefixA": "pp-progress",
+    "prefixB": "pp-stat-label",
+    "rulesA": 4,
+    "rulesB": 4,
+    "score": 0.4208,
+    "signals": {
+      "categoryProfile": 0.8018,
+      "customPropertyVocab": 0.2,
+      "propertyFrequency": 0.603,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/ProgressPanel.css::pp-progress",
+    "unitB": "apps/illuminator/webui/src/components/ProgressPanel.css::pp-stat-label"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-api",
+    "prefixB": "llm-table",
+    "rulesA": 7,
+    "rulesB": 13,
+    "score": 0.4199,
+    "signals": {
+      "categoryProfile": 0.9824,
+      "customPropertyVocab": 0.375,
+      "propertyFrequency": 0.871,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.2,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-api",
+    "unitB": "apps/illuminator/webui/src/App.css::llm-table"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/chronicler/webui/src/components/WikiExplorer.module.css",
+    "prefixA": "page-item",
+    "prefixB": "entity-list",
+    "rulesA": 3,
+    "rulesB": 8,
+    "score": 0.419,
+    "signals": {
+      "categoryProfile": 0.9661,
+      "customPropertyVocab": 0.5263,
+      "propertyFrequency": 0.8488,
+      "ruleExactMatch": 0.1818,
+      "ruleSetMatch": 0.1818,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/chronicler/webui/src/components/WikiExplorer.module.css::page-item",
+    "unitB": "apps/chronicler/webui/src/components/WikiExplorer.module.css::entity-list"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-entity",
+    "prefixB": "illuminator-style-card",
+    "rulesA": 8,
+    "rulesB": 9,
+    "score": 0.4178,
+    "signals": {
+      "categoryProfile": 0.8153,
+      "customPropertyVocab": 0.5385,
+      "propertyFrequency": 0.7652,
+      "ruleExactMatch": 0.2353,
+      "ruleSetMatch": 0.2353,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-entity",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-style-card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/lore-weave/webui/src/App.css",
+    "prefixA": "lw-btn",
+    "prefixB": "lw-nav",
+    "rulesA": 15,
+    "rulesB": 4,
+    "score": 0.4176,
+    "signals": {
+      "categoryProfile": 0.9529,
+      "customPropertyVocab": 0.4286,
+      "propertyFrequency": 0.8927,
+      "ruleExactMatch": 0.1053,
+      "ruleSetMatch": 0.2105,
+      "selectorPrefixOverlap": 0.3333
+    },
+    "unitA": "apps/lore-weave/webui/src/App.css::lw-btn",
+    "unitB": "apps/lore-weave/webui/src/App.css::lw-nav"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "app-header",
+    "prefixB": "collapsible-content",
+    "rulesA": 3,
+    "rulesB": 4,
+    "score": 0.4176,
+    "signals": {
+      "categoryProfile": 0.8745,
+      "customPropertyVocab": 0.3333,
+      "propertyFrequency": 0.7701,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5714,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::app-header",
+    "unitB": "apps/name-forge/webui/src/App.css::collapsible-content"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-mode",
+    "prefixB": "preprint-subtab",
+    "rulesA": 3,
+    "rulesB": 3,
+    "score": 0.4167,
+    "signals": {
+      "categoryProfile": 0.9815,
+      "customPropertyVocab": 0.3,
+      "propertyFrequency": 0.9428,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.3333
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-mode",
+    "unitB": "apps/illuminator/webui/src/App.css::preprint-subtab"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-identity-section",
+    "prefixB": "static-page-modal",
+    "rulesA": 6,
+    "rulesB": 6,
+    "score": 0.4157,
+    "signals": {
+      "categoryProfile": 0.95,
+      "customPropertyVocab": 0.7778,
+      "propertyFrequency": 0.7562,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.1667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-identity-section",
+    "unitB": "apps/illuminator/webui/src/App.css::static-page-modal"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-nav",
+    "prefixB": "preprint-palette",
+    "rulesA": 4,
+    "rulesB": 19,
+    "score": 0.4143,
+    "signals": {
+      "categoryProfile": 0.9563,
+      "customPropertyVocab": 0.6667,
+      "propertyFrequency": 0.8624,
+      "ruleExactMatch": 0.087,
+      "ruleSetMatch": 0.1739,
+      "selectorPrefixOverlap": 0.2
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-nav",
+    "unitB": "apps/illuminator/webui/src/App.css::preprint-palette"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "static-pages-list",
+    "prefixB": "image-picker",
+    "rulesA": 5,
+    "rulesB": 10,
+    "score": 0.4122,
+    "signals": {
+      "categoryProfile": 0.926,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.8979,
+      "ruleExactMatch": 0.1333,
+      "ruleSetMatch": 0.1333,
+      "selectorPrefixOverlap": 0.3333
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::static-pages-list",
+    "unitB": "apps/illuminator/webui/src/App.css::image-picker"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css",
+    "prefixA": "htab-tone",
+    "prefixB": "htab-prep",
+    "rulesA": 4,
+    "rulesB": 7,
+    "score": 0.4122,
+    "signals": {
+      "categoryProfile": 0.8783,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.8219,
+      "ruleExactMatch": 0.1818,
+      "ruleSetMatch": 0.1818,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-tone",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-prep"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/ChroniclePanel.css",
+    "prefixA": "chron-header",
+    "prefixB": "chron-filter-bar",
+    "rulesA": 6,
+    "rulesB": 5,
+    "score": 0.412,
+    "signals": {
+      "categoryProfile": 0.6087,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.5284,
+      "ruleExactMatch": 0.1818,
+      "ruleSetMatch": 0.3636,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/ChroniclePanel.css::chron-header",
+    "unitB": "apps/illuminator/webui/src/components/ChroniclePanel.css::chron-filter-bar"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "list-viewer",
+    "prefixB": "group-section",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.4114,
+    "signals": {
+      "categoryProfile": 0.9113,
+      "customPropertyVocab": 0.2,
+      "propertyFrequency": 0.7156,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::list-viewer",
+    "unitB": "apps/name-forge/webui/src/App.css::group-section"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "culture-form",
+    "prefixB": "split-layout",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.4107,
+    "signals": {
+      "categoryProfile": 0.6667,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.5774,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.5714,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::culture-form",
+    "unitB": "apps/name-forge/webui/src/App.css::split-layout"
+  },
+  {
+    "dominantSignal": "propertyFrequency",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css",
+    "prefixA": "htab-tone",
+    "prefixB": "htab-annotate",
+    "rulesA": 4,
+    "rulesB": 5,
+    "score": 0.4091,
+    "signals": {
+      "categoryProfile": 0.9231,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.9309,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.2222,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-tone",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css::htab-annotate"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.css",
+    "prefixA": "rke-constraint",
+    "prefixB": "rke-verbs",
+    "rulesA": 4,
+    "rulesB": 3,
+    "score": 0.409,
+    "signals": {
+      "categoryProfile": 0.8682,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.825,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.css::rke-constraint",
+    "unitB": "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.css::rke-verbs"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "preprint-tree-node",
+    "prefixB": "preprint-picker-item",
+    "rulesA": 7,
+    "rulesB": 3,
+    "score": 0.4089,
+    "signals": {
+      "categoryProfile": 0.9362,
+      "customPropertyVocab": 0.3333,
+      "propertyFrequency": 0.8595,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.2,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::preprint-tree-node",
+    "unitB": "apps/illuminator/webui/src/App.css::preprint-picker-item"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-button",
+    "prefixB": "illuminator-btn",
+    "rulesA": 11,
+    "rulesB": 8,
+    "score": 0.4078,
+    "signals": {
+      "categoryProfile": 0.9948,
+      "customPropertyVocab": 0.4706,
+      "propertyFrequency": 0.885,
+      "ruleExactMatch": 0.1053,
+      "ruleSetMatch": 0.2105,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-button",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-btn"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/lore-weave/webui/src/App.css",
+    "prefixA": "lw-card",
+    "prefixB": "lw-section",
+    "rulesA": 4,
+    "rulesB": 4,
+    "score": 0.4077,
+    "signals": {
+      "categoryProfile": 0.9197,
+      "customPropertyVocab": 0.2,
+      "propertyFrequency": 0.7909,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.25,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/lore-weave/webui/src/App.css::lw-card",
+    "unitB": "apps/lore-weave/webui/src/App.css::lw-section"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "nf-nav",
+    "prefixB": "nf-api",
+    "rulesA": 4,
+    "rulesB": 5,
+    "score": 0.4073,
+    "signals": {
+      "categoryProfile": 0.9242,
+      "customPropertyVocab": 0.3333,
+      "propertyFrequency": 0.7131,
+      "ruleExactMatch": 0.2222,
+      "ruleSetMatch": 0.2222,
+      "selectorPrefixOverlap": 0.3333
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::nf-nav",
+    "unitB": "apps/name-forge/webui/src/App.css::nf-api"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/lore-weave/webui/src/App.css",
+    "prefixA": "lw-card",
+    "prefixB": "lw-detail",
+    "rulesA": 4,
+    "rulesB": 5,
+    "score": 0.4058,
+    "signals": {
+      "categoryProfile": 0.8611,
+      "customPropertyVocab": 0.4,
+      "propertyFrequency": 0.8427,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.4444,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/lore-weave/webui/src/App.css::lw-card",
+    "unitB": "apps/lore-weave/webui/src/App.css::lw-detail"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/coherence-engine/webui/src/components/causal-loop/CausalLoopEditor.css",
+    "prefixA": "cl-loop",
+    "prefixB": "cl-edge",
+    "rulesA": 6,
+    "rulesB": 7,
+    "score": 0.4056,
+    "signals": {
+      "categoryProfile": 0.9122,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.7641,
+      "ruleExactMatch": 0.1538,
+      "ruleSetMatch": 0.4615,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/coherence-engine/webui/src/components/causal-loop/CausalLoopEditor.css::cl-loop",
+    "unitB": "apps/coherence-engine/webui/src/components/causal-loop/CausalLoopEditor.css::cl-edge"
+  },
+  {
+    "dominantSignal": "customPropertyVocab",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+    "prefixA": "era-narrative-thread",
+    "prefixB": "era-narrative-movement",
+    "rulesA": 8,
+    "rulesB": 7,
+    "score": 0.4054,
+    "signals": {
+      "categoryProfile": 0.9916,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.8645,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.1333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-thread",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeViewer.css::era-narrative-movement"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "culture-resource",
+    "prefixB": "add-btn",
+    "rulesA": 6,
+    "rulesB": 5,
+    "score": 0.4054,
+    "signals": {
+      "categoryProfile": 0.9108,
+      "customPropertyVocab": 0.75,
+      "propertyFrequency": 0.7423,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.3636,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::culture-resource",
+    "unitB": "apps/name-forge/webui/src/App.css::add-btn"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "domain-stats",
+    "prefixB": "card",
+    "rulesA": 3,
+    "rulesB": 4,
+    "score": 0.4051,
+    "signals": {
+      "categoryProfile": 0.8909,
+      "customPropertyVocab": 0.2,
+      "propertyFrequency": 0.6944,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::domain-stats",
+    "unitB": "apps/name-forge/webui/src/App.css::card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/StyleLibraryEditor.css",
+    "prefixA": "style-editor-role",
+    "prefixB": "style-editor-status",
+    "rulesA": 5,
+    "rulesB": 3,
+    "score": 0.404,
+    "signals": {
+      "categoryProfile": 0.9487,
+      "customPropertyVocab": 0.25,
+      "propertyFrequency": 0.7334,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.25,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/StyleLibraryEditor.css::style-editor-role",
+    "unitB": "apps/illuminator/webui/src/components/StyleLibraryEditor.css::style-editor-status"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-queue-item",
+    "prefixB": "illuminator-entity",
+    "rulesA": 4,
+    "rulesB": 8,
+    "score": 0.4035,
+    "signals": {
+      "categoryProfile": 0.8137,
+      "customPropertyVocab": 0.3846,
+      "propertyFrequency": 0.7515,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-queue-item",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-entity"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/cosmographer/webui/src/components/SemanticPlane/SemanticPlane.css",
+    "prefixA": "sp-region",
+    "prefixB": "sp-entity",
+    "rulesA": 8,
+    "rulesB": 4,
+    "score": 0.4028,
+    "signals": {
+      "categoryProfile": 0.9616,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.8666,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/cosmographer/webui/src/components/SemanticPlane/SemanticPlane.css::sp-region",
+    "unitB": "apps/cosmographer/webui/src/components/SemanticPlane/SemanticPlane.css::sp-entity"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/EraNarrativeModal.css",
+    "prefixA": "era-narr",
+    "prefixB": "era-narr-content",
+    "rulesA": 13,
+    "rulesB": 4,
+    "score": 0.4017,
+    "signals": {
+      "categoryProfile": 0.9382,
+      "customPropertyVocab": 0.8,
+      "propertyFrequency": 0.8159,
+      "ruleExactMatch": 0.1176,
+      "ruleSetMatch": 0.1176,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/EraNarrativeModal.css::era-narr",
+    "unitB": "apps/illuminator/webui/src/components/EraNarrativeModal.css::era-narr-content"
+  },
+  {
+    "dominantSignal": "propertyFrequency",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-queue-item",
+    "prefixB": "illuminator-visual-identity",
+    "rulesA": 4,
+    "rulesB": 6,
+    "score": 0.4016,
+    "signals": {
+      "categoryProfile": 0.635,
+      "customPropertyVocab": 0.3,
+      "propertyFrequency": 0.7404,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.4,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-queue-item",
+    "unitB": "apps/illuminator/webui/src/App.css::illuminator-visual-identity"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-button",
+    "prefixB": "preprint-palette",
+    "rulesA": 11,
+    "rulesB": 19,
+    "score": 0.4011,
+    "signals": {
+      "categoryProfile": 0.9135,
+      "customPropertyVocab": 0.4375,
+      "propertyFrequency": 0.8967,
+      "ruleExactMatch": 0.0667,
+      "ruleSetMatch": 0.2667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-button",
+    "unitB": "apps/illuminator/webui/src/App.css::preprint-palette"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "app-header",
+    "prefixB": "main-content",
+    "rulesA": 3,
+    "rulesB": 5,
+    "score": 0.4008,
+    "signals": {
+      "categoryProfile": 0.9115,
+      "customPropertyVocab": 0.4286,
+      "propertyFrequency": 0.7089,
+      "ruleExactMatch": 0.0,
+      "ruleSetMatch": 0.5,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::app-header",
+    "unitB": "apps/name-forge/webui/src/App.css::main-content"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "rule-card",
+    "prefixB": "group-row",
+    "rulesA": 7,
+    "rulesB": 5,
+    "score": 0.4007,
+    "signals": {
+      "categoryProfile": 0.7597,
+      "customPropertyVocab": 0.5,
+      "propertyFrequency": 0.7071,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::rule-card",
+    "unitB": "apps/name-forge/webui/src/App.css::group-row"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "illuminator-input",
+    "prefixB": "static-page-summary",
+    "rulesA": 4,
+    "rulesB": 4,
+    "score": 0.4005,
+    "signals": {
+      "categoryProfile": 0.7462,
+      "customPropertyVocab": 0.4167,
+      "propertyFrequency": 0.7337,
+      "ruleExactMatch": 0.25,
+      "ruleSetMatch": 0.25,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::illuminator-input",
+    "unitB": "apps/illuminator/webui/src/App.css::static-page-summary"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/name-forge/webui/src/App.css",
+    "prefixA": "culture-card",
+    "prefixB": "rule-card",
+    "rulesA": 5,
+    "rulesB": 7,
+    "score": 0.4005,
+    "signals": {
+      "categoryProfile": 0.8206,
+      "customPropertyVocab": 0.3333,
+      "propertyFrequency": 0.7589,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.3333,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/name-forge/webui/src/App.css::culture-card",
+    "unitB": "apps/name-forge/webui/src/App.css::rule-card"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/components/chronicle-workspace/ContentTab.css",
+    "prefixA": "ctab-summary",
+    "prefixB": "ctab-tertiary",
+    "rulesA": 4,
+    "rulesB": 8,
+    "score": 0.4002,
+    "signals": {
+      "categoryProfile": 0.9597,
+      "customPropertyVocab": 0.5714,
+      "propertyFrequency": 0.7769,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.1667,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/components/chronicle-workspace/ContentTab.css::ctab-summary",
+    "unitB": "apps/illuminator/webui/src/components/chronicle-workspace/ContentTab.css::ctab-tertiary"
+  },
+  {
+    "dominantSignal": "categoryProfile",
+    "filePath": "apps/illuminator/webui/src/App.css",
+    "prefixA": "static-page-modal",
+    "prefixB": "workspace-overflow",
+    "rulesA": 6,
+    "rulesB": 4,
+    "score": 0.4001,
+    "signals": {
+      "categoryProfile": 0.9017,
+      "customPropertyVocab": 0.6,
+      "propertyFrequency": 0.6998,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.2,
+      "selectorPrefixOverlap": 0.0
+    },
+    "unitA": "apps/illuminator/webui/src/App.css::static-page-modal",
+    "unitB": "apps/illuminator/webui/src/App.css::workspace-overflow"
+  }
+]

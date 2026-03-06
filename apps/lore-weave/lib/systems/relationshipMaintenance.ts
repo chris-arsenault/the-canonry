@@ -1,4 +1,4 @@
-import { SimulationSystem, SystemResult } from '../engine/types';
+import { SimulationSystem, SystemResult, ActionContext } from '../engine/types';
 import { Relationship } from '../core/worldTypes';
 import { WorldRuntime } from '../runtime/worldRuntime';
 import type { RelationshipKindDefinition } from '@canonry/world-schema';
@@ -99,6 +99,46 @@ function areInProximity(
   );
 }
 
+function buildMaintenanceDescription(
+  decayed: number, reinforced: number, archived: number, removed: number, originalCount: number
+): string {
+  const parts: string[] = [];
+  if (decayed > 0) parts.push(`${decayed} decayed`);
+  if (reinforced > 0) parts.push(`${reinforced} reinforced`);
+  if (archived > 0) parts.push(`${archived} archived`);
+  if (removed > 0) parts.push(`${removed} removed (orphaned)`);
+  return parts.length > 0
+    ? `Relationship maintenance: ${parts.join(', ')} (${originalCount} total)`
+    : `Relationship maintenance: all ${originalCount} relationships stable`;
+}
+
+function computeUpdatedStrength(
+  rel: Relationship,
+  isYoung: boolean,
+  decayRate: DecayRate,
+  metricCtx: ReturnType<typeof createSystemContext>,
+  modifier: number,
+  proximityRelationshipKinds: string[],
+  reinforcementBonus: number,
+  maxStrength: number,
+  graphView: WorldRuntime
+): { strength: number; decayed: boolean; reinforced: boolean } {
+  let strength = rel.strength;
+  let decayed = false;
+  let reinforced = false;
+  if (!isYoung && decayRate !== 'none') {
+    const decayAmount = getDecayAmount(decayRate, metricCtx) * modifier;
+    strength = Math.max(0, strength - decayAmount);
+    decayed = true;
+  }
+  if (proximityRelationshipKinds.length > 0 &&
+      areInProximity(graphView, rel.src, rel.dst, proximityRelationshipKinds)) {
+    strength = Math.min(maxStrength, strength + reinforcementBonus * modifier);
+    reinforced = true;
+  }
+  return { strength, decayed, reinforced };
+}
+
 // =============================================================================
 // SYSTEM CREATION
 // =============================================================================
@@ -106,145 +146,98 @@ function areInProximity(
 /**
  * Create a Relationship Maintenance system with the given configuration.
  */
-export function createRelationshipMaintenanceSystem(config: RelationshipMaintenanceConfig): SimulationSystem {
-  // Extract config with defaults
-  const maintenanceFrequency = config.maintenanceFrequency ?? 5;
-  const cullThreshold = config.cullThreshold ?? 0.15;
-  const gracePeriod = config.gracePeriod ?? 20;
-  const reinforcementBonus = config.reinforcementBonus ?? 0.02;
-  const maxStrength = config.maxStrength ?? 1.0;
-  const proximityRelationshipKinds = config.proximityRelationshipKinds ?? [];
+class RelationshipMaintenanceSystem implements SimulationSystem {
+  readonly id: string;
+  readonly name: string;
+  state: unknown = null;
+  private readonly frequency: number;
+  private readonly cullThreshold: number;
+  private readonly gracePeriod: number;
+  private readonly reinforcementBonus: number;
+  private readonly maxStrength: number;
+  private readonly proximityKinds: string[];
 
-  return {
-    id: config.id || 'relationship_maintenance',
-    name: config.name || 'Relationship Maintenance',
+  constructor(config: RelationshipMaintenanceConfig) {
+    this.id = config.id || 'relationship_maintenance';
+    this.name = config.name || 'Relationship Maintenance';
+    this.frequency = config.maintenanceFrequency;
+    this.cullThreshold = config.cullThreshold;
+    this.gracePeriod = config.gracePeriod;
+    this.reinforcementBonus = config.reinforcementBonus;
+    this.maxStrength = config.maxStrength;
+    this.proximityKinds = config.proximityRelationshipKinds;
+  }
 
-    apply: (graphView: WorldRuntime, modifier: number = 1.0): SystemResult => {
-      // Only run every N ticks
-      if (graphView.tick % maintenanceFrequency !== 0) {
-        return {
-          relationshipsAdded: [],
-          entitiesModified: [],
-          pressureChanges: {},
-          description: 'Relationship maintenance dormant'
-        };
-      }
+  initialize(): void { /* no-op */ }
 
-      // Get all relationships including historical
-      const allRelationships = graphView.getAllRelationships({ includeHistorical: true });
-      const originalCount = allRelationships.filter(r => r.status !== 'historical').length;
-
-      let decayed = 0;
-      let reinforced = 0;
-      let archived = 0;
-      let removed = 0;
-
-      const metricCtx = createSystemContext(graphView);
-
-      const maintainedRelationships: Relationship[] = [];
-      const modifiedEntityIds = new Set<string>();
-
-      for (const rel of allRelationships) {
-        // Preserve historical relationships unchanged
-        if (rel.status === 'historical') {
-          maintainedRelationships.push(rel);
-          continue;
-        }
-
-        const srcEntity = graphView.getEntity(rel.src);
-        const dstEntity = graphView.getEntity(rel.dst);
-
-        // Remove relationships to non-existent entities (can't archive - no entity to reference)
-        if (!srcEntity || !dstEntity) {
-          removed++;
-          continue;
-        }
-
-        // Calculate relationship age
-        const age = Math.min(
-          graphView.tick - srcEntity.createdAt,
-          graphView.tick - dstEntity.createdAt
-        );
-
-        // Young relationships are protected
-        const isYoung = age < gracePeriod;
-
-        // Get relationship kind properties
-        const decayRate = getDecayRate(graphView, rel.kind);
-        const cullable = isCullable(graphView, rel.kind);
-
-        let strength = rel.strength ?? 0.5;
-
-        // === DECAY ===
-        // Apply decay to relationships that aren't young and have decay enabled
-        if (!isYoung && decayRate !== 'none') {
-          const decayAmount = getDecayAmount(decayRate, metricCtx) * modifier;
-          strength = Math.max(0, strength - decayAmount);
-          decayed++;
-        }
-
-        // === REINFORCEMENT ===
-        // Strengthen relationships when entities are in proximity
-        if (proximityRelationshipKinds.length > 0 &&
-            areInProximity(graphView, rel.src, rel.dst, proximityRelationshipKinds)) {
-          strength = Math.min(maxStrength, strength + reinforcementBonus * modifier);
-          reinforced++;
-        }
-
-        // === CULLING (now archives instead of deleting) ===
-        // Archive weak relationships that are cullable and past grace period
-        if (!isYoung && cullable && strength < cullThreshold) {
-          archived++;
-
-          // Mark as historical instead of removing
-          rel.status = 'historical';
-          rel.archivedAt = graphView.tick;
-
-          if (srcEntity) {
-            srcEntity.updatedAt = graphView.tick;
-            modifiedEntityIds.add(srcEntity.id);
-          }
-          if (dstEntity) {
-            dstEntity.updatedAt = graphView.tick;
-            modifiedEntityIds.add(dstEntity.id);
-          }
-
-          maintainedRelationships.push(rel);
-          continue;
-        }
-
-        // Update strength if changed
-        if (rel.strength !== strength) {
-          rel.strength = strength;
-        }
-
-        maintainedRelationships.push(rel);
-      }
-
-      // Update graph with all maintained relationships
-      graphView.setRelationships(maintainedRelationships);
-
-      // Build description
-      const parts: string[] = [];
-      if (decayed > 0) parts.push(`${decayed} decayed`);
-      if (reinforced > 0) parts.push(`${reinforced} reinforced`);
-      if (archived > 0) parts.push(`${archived} archived`);
-      if (removed > 0) parts.push(`${removed} removed (orphaned)`);
-
-      const description = parts.length > 0
-        ? `Relationship maintenance: ${parts.join(', ')} (${originalCount} total)`
-        : `Relationship maintenance: all ${originalCount} relationships stable`;
-
-      return {
-        relationshipsAdded: [],
-        entitiesModified: Array.from(modifiedEntityIds).map(id => ({
-          id,
-          changes: { updatedAt: graphView.tick }
-        })),
-        pressureChanges: {},
-        description
-      };
+  apply(graphView: WorldRuntime, modifier: number = 1.0): SystemResult {
+    if (graphView.tick % this.frequency !== 0) {
+      return { relationshipsAdded: [], relationshipsAdjusted: [], relationshipsToArchive: [], entitiesModified: [], pressureChanges: {}, description: 'Relationship maintenance dormant', details: {}, narrationsByGroup: {} };
     }
-  };
+
+    const allRels = graphView.getAllRelationships({ includeHistorical: true });
+    const originalCount = allRels.filter(r => r.status !== 'historical').length;
+    const stats = { decayed: 0, reinforced: 0, archived: 0, removed: 0 };
+    const metricCtx = createSystemContext(graphView);
+    const maintained: Relationship[] = [];
+    const modifiedIds = new Set<string>();
+
+    for (const rel of allRels) {
+      if (rel.status === 'historical') { maintained.push(rel); continue; }
+      this.processRelationship(rel, graphView, metricCtx, modifier, stats, maintained, modifiedIds);
+    }
+
+    graphView.setRelationships(maintained);
+    const ctx: ActionContext = { source: 'framework', sourceId: this.id, success: true };
+    return {
+      relationshipsAdded: [],
+      relationshipsAdjusted: [],
+      relationshipsToArchive: [],
+      entitiesModified: Array.from(modifiedIds).map(id => ({ id, changes: { updatedAt: graphView.tick }, actionContext: ctx, narrativeGroupId: '' })),
+      pressureChanges: {},
+      description: buildMaintenanceDescription(stats.decayed, stats.reinforced, stats.archived, stats.removed, originalCount),
+      details: {},
+      narrationsByGroup: {},
+    };
+  }
+
+  private processRelationship(
+    rel: Relationship, graphView: WorldRuntime,
+    metricCtx: ReturnType<typeof createSystemContext>, modifier: number,
+    stats: { decayed: number; reinforced: number; archived: number; removed: number },
+    maintained: Relationship[], modifiedIds: Set<string>
+  ): void {
+    const src = graphView.getEntity(rel.src);
+    const dst = graphView.getEntity(rel.dst);
+    if (!src || !dst) { stats.removed++; return; }
+
+    const age = Math.min(graphView.tick - src.createdAt, graphView.tick - dst.createdAt);
+    const isYoung = age < this.gracePeriod;
+    const decayRate = getDecayRate(graphView, rel.kind);
+    const cullable = isCullable(graphView, rel.kind);
+
+    const update = computeUpdatedStrength(rel, isYoung, decayRate, metricCtx, modifier, this.proximityKinds, this.reinforcementBonus, this.maxStrength, graphView);
+    if (update.decayed) stats.decayed++;
+    if (update.reinforced) stats.reinforced++;
+
+    if (!isYoung && cullable && update.strength < this.cullThreshold) {
+      stats.archived++;
+      rel.status = 'historical';
+      rel.archived = { occurred: true, tick: graphView.tick };
+      src.updatedAt = graphView.tick;
+      dst.updatedAt = graphView.tick;
+      modifiedIds.add(src.id);
+      modifiedIds.add(dst.id);
+      maintained.push(rel);
+      return;
+    }
+
+    if (rel.strength !== update.strength) rel.strength = update.strength;
+    maintained.push(rel);
+  }
+}
+
+export function createRelationshipMaintenanceSystem(config: RelationshipMaintenanceConfig): SimulationSystem {
+  return new RelationshipMaintenanceSystem(config);
 }
 

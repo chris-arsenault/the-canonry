@@ -2,13 +2,18 @@
  * Summary Revision Repository — Dexie-backed revision run storage
  */
 
-import { db } from './illuminatorDb';
-import type { SummaryRevisionRun, SummaryRevisionRunStatus, SummaryRevisionBatch } from '../summaryRevisionTypes';
+import { db } from "./illuminatorDb";
+import { generatePrefixedId } from "./generatePrefixedId";
+import type {
+  SummaryRevisionRun,
+  SummaryRevisionRunStatus,
+  SummaryRevisionBatch,
+} from "../summaryRevisionTypes";
 
 export type { SummaryRevisionRun, SummaryRevisionRunStatus, SummaryRevisionBatch };
 
 export function generateRevisionRunId(): string {
-  return `revrun_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return generatePrefixedId("revrun");
 }
 
 export async function createRevisionRun(
@@ -29,7 +34,7 @@ export async function createRevisionRun(
     runId,
     projectId,
     simulationRunId,
-    status: 'pending',
+    status: "pending",
     batches,
     currentBatchIndex: 0,
     patchDecisions: {},
@@ -54,16 +59,19 @@ export async function getRevisionRun(runId: string): Promise<SummaryRevisionRun 
 
 export async function updateRevisionRun(
   runId: string,
-  updates: Partial<Pick<SummaryRevisionRun,
-    | 'status'
-    | 'batches'
-    | 'currentBatchIndex'
-    | 'patchDecisions'
-    | 'error'
-    | 'totalInputTokens'
-    | 'totalOutputTokens'
-    | 'totalActualCost'
-  >>
+  updates: Partial<
+    Pick<
+      SummaryRevisionRun,
+      | "status"
+      | "batches"
+      | "currentBatchIndex"
+      | "patchDecisions"
+      | "error"
+      | "totalInputTokens"
+      | "totalOutputTokens"
+      | "totalActualCost"
+    >
+  >
 ): Promise<SummaryRevisionRun> {
   const run = await db.summaryRevisionRuns.get(runId);
   if (!run) throw new Error(`Revision run ${runId} not found`);
@@ -72,7 +80,7 @@ export async function updateRevisionRun(
   if (updates.batches !== undefined) run.batches = updates.batches;
   if (updates.currentBatchIndex !== undefined) run.currentBatchIndex = updates.currentBatchIndex;
   if (updates.patchDecisions !== undefined) run.patchDecisions = updates.patchDecisions;
-  if (updates.error !== undefined) (run as any).error = updates.error;
+  if (updates.error !== undefined) (run as Record<string, unknown>).error = updates.error;
   if (updates.totalInputTokens !== undefined) run.totalInputTokens = updates.totalInputTokens;
   if (updates.totalOutputTokens !== undefined) run.totalOutputTokens = updates.totalOutputTokens;
   if (updates.totalActualCost !== undefined) run.totalActualCost = updates.totalActualCost;

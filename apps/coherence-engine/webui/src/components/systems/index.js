@@ -5,4 +5,4 @@
  * Internal modules (cards, tabs, shared) are used internally.
  */
 
-export { default, SystemsEditor } from './SystemsEditor';
+export { default, SystemsEditor } from "./SystemsEditor";

@@ -3,7 +3,6 @@ import { testDomain } from "../../generate.js";
 import type {
   DiffusenessReport,
   ValidationConfig,
-  NearestNeighborStats,
 } from "../validation.js";
 import {
   findNearestNeighbors,
@@ -24,7 +23,7 @@ export function validateDiffuseness(
   const minShapeNN_p5 = config.minShapeNN_p5 ?? 0.2;
 
   // Generate samples
-  const testResult = testDomain(domain, sampleSize, config.seed);
+  const testResult = testDomain(domain, sampleSize, config.seed ?? "diffuseness");
   const samples = testResult.samples;
 
   // Find nearest neighbors using raw Levenshtein
@@ -58,8 +57,9 @@ export function validateDiffuseness(
   // Additional checks
   if (levenshteinStats.min < 0.1) {
     const veryClose = levenshteinNN.filter((nn) => nn.distance < 0.1);
+    const closeExamples = veryClose.slice(0, 3).map((nn) => `"${nn.name}" \u2194 "${nn.nearestName}"`).join(", ");
     issues.push(
-      `${veryClose.length} name pairs are very similar (distance < 0.1). Examples: ${veryClose.slice(0, 3).map((nn) => `"${nn.name}" ↔ "${nn.nearestName}"`).join(", ")}`
+      `${veryClose.length} name pairs are very similar (distance < 0.1). Examples: ${closeExamples}`
     );
   }
 
@@ -116,7 +116,7 @@ export function findSimilarClusters(
 export function analyzeDiversity(
   domain: NamingDomain,
   sampleSize: number = 500,
-  seed?: string
+  seed: string
 ): {
   uniqueStarts: number;
   uniqueEndings: number;

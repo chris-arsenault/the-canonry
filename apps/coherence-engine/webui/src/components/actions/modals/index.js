@@ -2,4 +2,4 @@
  * Modal components for ActionsEditor
  */
 
-export { ActionModal } from './ActionModal';
+export { ActionModal } from "./ActionModal";

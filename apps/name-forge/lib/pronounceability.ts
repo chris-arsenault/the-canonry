@@ -59,8 +59,8 @@ function isVowel(phoneme: string): boolean {
 /**
  * Get sonority rank for a phoneme
  */
-function getSonority(phoneme: string, customRanks?: Record<string, number>): number {
-  if (customRanks && phoneme in customRanks) {
+function getSonority(phoneme: string, customRanks: Record<string, number>): number {
+  if (phoneme in customRanks) {
     return customRanks[phoneme];
   }
   if (phoneme in DEFAULT_SONORITY) {
@@ -126,7 +126,7 @@ export function checkVowelSpacing(name: string): number {
 export function scoreSonoritySequencing(
   name: string,
   phonemes: string[],
-  customRanks?: Record<string, number>
+  customRanks: Record<string, number>
 ): number {
   if (phonemes.length === 0) return 1.0;
 
@@ -243,7 +243,7 @@ export function scorePronounceability(
   profile: PhonologyProfile
 ): number {
   const templateScore = scoreTemplateLegality(name, syllables, profile.syllableTemplates);
-  const sonorityScore = scoreSonoritySequencing(name, phonemes, profile.sonorityRanks);
+  const sonorityScore = scoreSonoritySequencing(name, phonemes, profile.sonorityRanks ?? {});
   const harmonicScore = scoreHarmonicConstraints(name, profile);
 
   // Weighted combination

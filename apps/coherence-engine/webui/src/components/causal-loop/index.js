@@ -2,4 +2,4 @@
  * Causal Loop diagram components
  */
 
-export { default, CausalLoopEditor } from './CausalLoopEditor';
+export { default, CausalLoopEditor } from "./CausalLoopEditor";

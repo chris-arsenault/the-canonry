@@ -4,12 +4,10 @@
  * Stateless. No caching, no subscriptions.
  */
 
-import { db } from './illuminatorDb';
-import type { RunIndexRecord } from './indexTypes';
+import { db } from "./illuminatorDb";
+import type { RunIndexRecord } from "./indexTypes";
 
-export async function getRunIndexes(
-  simulationRunId: string,
-): Promise<RunIndexRecord | undefined> {
+export async function getRunIndexes(simulationRunId: string): Promise<RunIndexRecord | undefined> {
   return db.runIndexes.get(simulationRunId);
 }
 

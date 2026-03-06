@@ -2,9 +2,10 @@
  * ActionModal - Modal for editing action configuration
  */
 
-import React, { useState } from 'react';
-import { TABS } from '../constants';
-import { ModalShell } from '../../shared';
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import { TABS } from "../constants";
+import { ModalShell } from "../../shared";
 import {
   OverviewTab,
   ActorTab,
@@ -13,26 +14,30 @@ import {
   VariablesTab,
   OutcomeTab,
   ProbabilityTab,
-} from '../tabs';
+} from "../tabs";
 
 export function ActionModal({ action, onChange, onClose, onDelete, schema, pressures }) {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'overview':
+      case "overview":
         return <OverviewTab action={action} onChange={onChange} onDelete={onDelete} />;
-      case 'actor':
-        return <ActorTab action={action} onChange={onChange} schema={schema} pressures={pressures} />;
-      case 'instigator':
+      case "actor":
+        return (
+          <ActorTab action={action} onChange={onChange} schema={schema} pressures={pressures} />
+        );
+      case "instigator":
         return <InstigatorTab action={action} onChange={onChange} schema={schema} />;
-      case 'targeting':
+      case "targeting":
         return <TargetingTab action={action} onChange={onChange} schema={schema} />;
-      case 'variables':
+      case "variables":
         return <VariablesTab action={action} onChange={onChange} schema={schema} />;
-      case 'outcome':
-        return <OutcomeTab action={action} onChange={onChange} schema={schema} pressures={pressures} />;
-      case 'probability':
+      case "outcome":
+        return (
+          <OutcomeTab action={action} onChange={onChange} schema={schema} pressures={pressures} />
+        );
+      case "probability":
         return <ProbabilityTab action={action} onChange={onChange} pressures={pressures} />;
       default:
         return null;
@@ -54,3 +59,12 @@ export function ActionModal({ action, onChange, onClose, onDelete, schema, press
     </ModalShell>
   );
 }
+
+ActionModal.propTypes = {
+  action: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  schema: PropTypes.object,
+  pressures: PropTypes.array,
+};

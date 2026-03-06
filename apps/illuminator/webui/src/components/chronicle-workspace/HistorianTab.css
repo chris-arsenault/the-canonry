@@ -1,0 +1,193 @@
+/* HistorianTab - prefix: htab */
+/* Shared: panel-utilities.css provides .ilu-section, .ilu-action-btn, .ilu-empty */
+/* Shared: viewer.css provides .viewer-section, .viewer-section-title */
+
+/* Section spacing (composes with .viewer-section) */
+.htab-section-spacing {
+  margin-bottom: 20px;
+}
+
+/* Local section title override (composes with .viewer-section-title) */
+.htab-section-title-local {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Tone Assignment */
+.htab-tone-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.htab-tone-ranking {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.htab-tone-rank-item {
+  opacity: var(--htab-rank-opacity, 1);
+}
+
+.htab-tone-detect-btn {
+  padding: 2px 8px;
+  font-size: 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+.htab-tone-detect-btn:not(:disabled) {
+  cursor: pointer;
+}
+
+.htab-tone-detect-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.htab-tone-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.htab-tone-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-weight: 400;
+  opacity: 0.7;
+  background: transparent;
+}
+
+.htab-tone-btn-active {
+  background: var(--bg-tertiary);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* Annotate section */
+.htab-annotate-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Shared: compose with .ilu-action-btn */
+.htab-annotate-btn {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.htab-annotate-btn-symbol {
+  font-size: 14px;
+}
+
+.htab-annotate-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Margin notes wrapper */
+.htab-margin-notes {
+  margin-bottom: 20px;
+}
+
+/* Historian Prep */
+.htab-prep-description {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.htab-prep-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Shared: compose with .ilu-action-btn */
+.htab-prep-btn {
+  padding: 8px 16px;
+}
+
+.htab-prep-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.htab-prep-content {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow: auto;
+}
+
+/* Lore Integration */
+.htab-lore-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* BackportLoreButton */
+.htab-backport-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Shared: compose with .ilu-action-btn */
+.htab-backport-btn {
+  padding: 8px 16px;
+}
+
+.htab-backport-status {
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.htab-backport-status-complete {
+  color: #10b981;
+}
+
+.htab-backport-status-partial {
+  color: #f59e0b;
+}
+
+/* Empty state */
+/* Shared: compose with .ilu-empty */
+.htab-empty {
+  /* base: .ilu-empty */
+}
+
+/* Section title with bottom margin */
+.htab-section-title-mb8 {
+  margin-bottom: 8px;
+}
+
+.htab-section-title-mb12 {
+  margin-bottom: 12px;
+}

@@ -2,13 +2,14 @@
  * Dynamics Generation Repository — Dexie-backed dynamics run storage
  */
 
-import { db } from './illuminatorDb';
-import type { DynamicsRun, DynamicsRunStatus } from '../dynamicsGenerationTypes';
+import { db } from "./illuminatorDb";
+import { generatePrefixedId } from "./generatePrefixedId";
+import type { DynamicsRun, DynamicsRunStatus } from "../dynamicsGenerationTypes";
 
 export type { DynamicsRun, DynamicsRunStatus };
 
 export function generateRunId(): string {
-  return `dynrun_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return generatePrefixedId("dynrun");
 }
 
 export async function createDynamicsRun(
@@ -22,7 +23,7 @@ export async function createDynamicsRun(
     runId,
     projectId,
     simulationRunId,
-    status: 'pending',
+    status: "pending",
     messages: [],
     totalInputTokens: 0,
     totalOutputTokens: 0,
@@ -41,16 +42,19 @@ export async function getDynamicsRun(runId: string): Promise<DynamicsRun | undef
 
 export async function updateDynamicsRun(
   runId: string,
-  updates: Partial<Pick<DynamicsRun,
-    | 'status'
-    | 'messages'
-    | 'proposedDynamics'
-    | 'userFeedback'
-    | 'error'
-    | 'totalInputTokens'
-    | 'totalOutputTokens'
-    | 'totalActualCost'
-  >>
+  updates: Partial<
+    Pick<
+      DynamicsRun,
+      | "status"
+      | "messages"
+      | "proposedDynamics"
+      | "userFeedback"
+      | "error"
+      | "totalInputTokens"
+      | "totalOutputTokens"
+      | "totalActualCost"
+    >
+  >
 ): Promise<DynamicsRun> {
   const run = await db.dynamicsRuns.get(runId);
   if (!run) throw new Error(`Dynamics run ${runId} not found`);

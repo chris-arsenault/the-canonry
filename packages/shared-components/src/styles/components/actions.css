@@ -92,37 +92,6 @@
   margin-top: var(--spacing-lg);
 }
 
-/* Enable toggle */
-.enable-toggle {
-  width: 36px;
-  height: 20px;
-  border-radius: 10px;
-  background-color: #374151;
-  cursor: pointer;
-  position: relative;
-  transition: background-color var(--transition-normal);
-  flex-shrink: 0;
-}
-
-.enable-toggle-on {
-  background-color: var(--color-success);
-}
-
-.enable-toggle-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: var(--radius-full);
-  background-color: #fff;
-  transition: transform var(--transition-normal);
-}
-
-.enable-toggle-on .enable-toggle-knob {
-  transform: translateX(16px);
-}
-
 /* Add card (dashed border style) */
 .actions-add-card {
   background-color: transparent;

@@ -11,7 +11,8 @@
  * assertions instead: (?<!\w) and (?!\w).
  */
 
-import React from 'react';
+import React from "react";
+import type { Optional } from "@the-canonry/shared-components";
 
 // ============================================================================
 // Core Utilities
@@ -21,7 +22,7 @@ import React from 'react';
  * Escape special regex characters in a string
  */
 export function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
@@ -39,8 +40,8 @@ export function buildNamePattern(name: string): string {
   const escaped = escapeRegex(name);
   const firstChar = name.charAt(0);
   const lastChar = name.charAt(name.length - 1);
-  const startBoundary = /\w/.test(firstChar) ? '\\b' : '(?<!\\w)';
-  const endBoundary = /\w/.test(lastChar) ? '\\b' : '(?!\\w)';
+  const startBoundary = /\w/.test(firstChar) ? "\\b" : "(?<!\\w)";
+  const endBoundary = /\w/.test(lastChar) ? "\\b" : "(?!\\w)";
   return `${startBoundary}${escaped}${endBoundary}`;
 }
 
@@ -51,18 +52,13 @@ export function buildNamePattern(name: string): string {
  * @param names - Array of names to match (minimum 3 chars each)
  * @param flags - Regex flags (default: 'gi' for global, case-insensitive)
  */
-export function buildCombinedPattern(
-  names: string[],
-  flags: string = 'gi'
-): RegExp | null {
-  const validNames = names
-    .filter((name) => name.length >= 3)
-    .sort((a, b) => b.length - a.length); // Longer names first
+export function buildCombinedPattern(names: string[], flags: string = "gi"): RegExp | null {
+  const validNames = names.filter((name) => name.length >= 3).sort((a, b) => b.length - a.length); // Longer names first
 
   if (validNames.length === 0) return null;
 
   const patterns = validNames.map(buildNamePattern);
-  return new RegExp(`(${patterns.join('|')})`, flags);
+  return new RegExp(`(${patterns.join("|")})`, flags);
 }
 
 // ============================================================================
@@ -75,10 +71,10 @@ export function buildCombinedPattern(
 function isInsideWikilink(text: string, position: number): boolean {
   let depth = 0;
   for (let i = 0; i < position; i++) {
-    if (text[i] === '[' && text[i + 1] === '[') {
+    if (text[i] === "[" && text[i + 1] === "[") {
       depth++;
       i++; // Skip next char
-    } else if (text[i] === ']' && text[i + 1] === ']') {
+    } else if (text[i] === "]" && text[i + 1] === "]") {
       depth = Math.max(0, depth - 1);
       i++; // Skip next char
     }
@@ -90,14 +86,11 @@ function isInsideWikilink(text: string, position: number): boolean {
  * Apply wikilinks to a single section - wraps entity/page name mentions with [[...]] syntax.
  * Only links the first occurrence of each name per section (Wikipedia style).
  */
-function applyWikiLinksToSection(
-  section: string,
-  combinedPattern: RegExp
-): string {
+function applyWikiLinksToSection(section: string, combinedPattern: RegExp): string {
   // Track which names have been linked in this section (lowercase for case-insensitive matching)
   const linkedInSection = new Set<string>();
 
-  return section.replace(combinedPattern, (match, _group, offset) => {
+  return section.replace(combinedPattern, (match: string, _group: string, offset: number) => {
     // Check if this position is already inside a wikilink
     if (isInsideWikilink(section, offset)) {
       return match;
@@ -134,7 +127,7 @@ export function applyWikiLinks(
 
   // Split by section headings (## or #), keeping the delimiter
   // This regex captures the heading line so we can preserve it
-  const sectionSplitRegex = /^(#{1,3}\s+.*)$/gm;
+  const sectionSplitRegex = /^(#{1,3}\s+.*)$/gm; // eslint-disable-line sonarjs/slow-regex -- single markdown lines, no backtracking risk
   const parts = content.split(sectionSplitRegex);
 
   // Process each part - headings pass through, content gets wiki-linked
@@ -149,7 +142,7 @@ export function applyWikiLinks(
     }
   }
 
-  return result.join('');
+  return result.join("");
 }
 
 // ============================================================================
@@ -163,21 +156,76 @@ export interface LinkableEntity {
 
 export interface LinkifyOptions {
   /** CSS styles for the link element */
-  linkStyle?: React.CSSProperties;
+  linkStyle: Optional<React.CSSProperties>;
   /** Whether to link only the first occurrence of each name (default: true) */
-  firstOccurrenceOnly?: boolean;
+  firstOccurrenceOnly: Optional<boolean>;
   /** Callback when mouse enters a link (for hover previews) */
-  onHoverEnter?: (entityId: string, e: React.MouseEvent) => void;
+  onHoverEnter: Optional<(entityId: string, e: React.MouseEvent) => void>;
   /** Callback when mouse leaves a link */
-  onHoverLeave?: () => void;
+  onHoverLeave: Optional<() => void>;
 }
 
 const defaultLinkStyle: React.CSSProperties = {
-  color: 'var(--color-accent, #c49a5c)',
-  cursor: 'pointer',
-  borderBottom: '1px dotted var(--color-accent, #c49a5c)',
-  textDecoration: 'none',
+  color: "var(--color-accent, #c49a5c)",
+  cursor: "pointer",
+  borderBottom: "1px dotted var(--color-accent, #c49a5c)",
+  textDecoration: "none",
 };
+
+/** Build a clickable link element for an entity match. */
+function buildEntityLinkElement(
+  entityId: string,
+  matchText: string,
+  matchIndex: number,
+  linkStyle: React.CSSProperties,
+  onNavigate: (entityId: string) => void,
+  onHoverEnter: ((id: string, e: React.MouseEvent) => void) | undefined,
+  onHoverLeave: (() => void) | undefined
+): React.ReactElement {
+  return React.createElement("span", {
+    key: `${entityId}-${matchIndex}`,
+    style: linkStyle,
+    onClick: (e: React.MouseEvent) => { e.stopPropagation(); onNavigate(entityId); },
+    onMouseEnter: onHoverEnter ? (e: React.MouseEvent) => onHoverEnter(entityId, e) : undefined,
+    onMouseLeave: onHoverLeave,
+  }, matchText);
+}
+
+/** Process one React node (string or non-string) for a single entity match. */
+function replaceEntityInPart(
+  part: React.ReactNode,
+  entityId: string,
+  entityName: string,
+  firstOccurrenceOnly: boolean,
+  alreadyFound: boolean,
+  linkStyle: React.CSSProperties,
+  onNavigate: (entityId: string) => void,
+  onHoverEnter: ((id: string, e: React.MouseEvent) => void) | undefined,
+  onHoverLeave: (() => void) | undefined
+): { nodes: React.ReactNode[]; found: boolean } {
+  if (typeof part !== "string") return { nodes: [part], found: false };
+  if (firstOccurrenceOnly && alreadyFound) return { nodes: [part], found: false };
+
+  const regex = new RegExp(buildNamePattern(entityName), "gi");
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  const segments: React.ReactNode[] = [];
+  let found = false;
+
+  while ((match = regex.exec(part)) !== null) {
+    if (match.index > lastIndex) segments.push(part.slice(lastIndex, match.index));
+    segments.push(buildEntityLinkElement(entityId, match[0], match.index, linkStyle, onNavigate, onHoverEnter, onHoverLeave));
+    lastIndex = regex.lastIndex;
+    found = true;
+    if (firstOccurrenceOnly) break;
+  }
+
+  if (segments.length > 0) {
+    if (lastIndex < part.length) segments.push(part.slice(lastIndex));
+    return { nodes: segments, found };
+  }
+  return { nodes: [part], found: false };
+}
 
 /**
  * Convert text to React nodes with clickable entity links.
@@ -188,97 +236,35 @@ const defaultLinkStyle: React.CSSProperties = {
  * @param onNavigate - Callback when an entity link is clicked
  * @param options - Optional configuration
  */
+// eslint-disable-next-line sonarjs/function-return-type, complexity -- returns React.ReactNode by design; branches handle entity match deduplication, length filtering, and first-occurrence tracking across fragmented text nodes
 export function linkifyText(
   text: string,
   entities: LinkableEntity[],
   onNavigate: (entityId: string) => void,
   options: LinkifyOptions = {}
 ): React.ReactNode {
-  const {
-    linkStyle = defaultLinkStyle,
-    firstOccurrenceOnly = true,
-    onHoverEnter,
-    onHoverLeave,
-  } = options;
+  const { linkStyle = defaultLinkStyle, firstOccurrenceOnly = true, onHoverEnter, onHoverLeave } = options;
 
-  // Sort by name length (longest first) to match longer names first
   const sortedEntities = [...entities].sort((a, b) => b.name.length - a.name.length);
-
   let result: React.ReactNode[] = [text];
   const linkedNames = new Set<string>();
 
   for (const { name, id } of sortedEntities) {
     if (name.length < 3) continue;
-
-    // Skip if we already linked this name and firstOccurrenceOnly is true
     const nameLower = name.toLowerCase();
     if (firstOccurrenceOnly && linkedNames.has(nameLower)) continue;
 
-    const regex = new RegExp(buildNamePattern(name), 'gi');
-    const newResult: React.ReactNode[] = [];
     let foundMatch = false;
-
+    const newResult: React.ReactNode[] = [];
     for (const part of result) {
-      if (typeof part !== 'string') {
-        newResult.push(part);
-        continue;
-      }
-
-      // Skip if firstOccurrenceOnly and we already found a match for this name
-      if (firstOccurrenceOnly && foundMatch) {
-        newResult.push(part);
-        continue;
-      }
-
-      let lastIndex = 0;
-      let match: RegExpExecArray | null;
-      const segments: React.ReactNode[] = [];
-
-      while ((match = regex.exec(part)) !== null) {
-        // Add text before match
-        if (match.index > lastIndex) {
-          segments.push(part.slice(lastIndex, match.index));
-        }
-
-        // Add linked entity
-        segments.push(
-          React.createElement(
-            'span',
-            {
-              key: `${id}-${match.index}`,
-              style: linkStyle,
-              onClick: (e: React.MouseEvent) => {
-                e.stopPropagation();
-                onNavigate(id);
-              },
-              onMouseEnter: onHoverEnter ? (e: React.MouseEvent) => onHoverEnter(id, e) : undefined,
-              onMouseLeave: onHoverLeave,
-            },
-            match[0]
-          )
-        );
-
-        lastIndex = regex.lastIndex;
-        foundMatch = true;
-
-        // If firstOccurrenceOnly, stop after first match
-        if (firstOccurrenceOnly) break;
-      }
-
-      if (segments.length > 0) {
-        // Add remaining text after last match
-        if (lastIndex < part.length) {
-          segments.push(part.slice(lastIndex));
-        }
-        newResult.push(...segments);
-      } else {
-        newResult.push(part);
-      }
+      const { nodes, found } = replaceEntityInPart(
+        part, id, name, firstOccurrenceOnly, foundMatch,
+        linkStyle, onNavigate, onHoverEnter, onHoverLeave
+      );
+      newResult.push(...nodes);
+      if (found) foundMatch = true;
     }
-
-    if (foundMatch) {
-      linkedNames.add(nameLower);
-    }
+    if (foundMatch) linkedNames.add(nameLower);
     result = newResult;
   }
 

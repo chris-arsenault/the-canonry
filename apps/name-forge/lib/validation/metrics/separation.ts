@@ -8,10 +8,50 @@ import type {
 } from "../validation.js";
 import { extractFeatures, calculateCentroid, buildVocabulary } from "../analysis/features.js";
 import {
-  NearestCentroidClassifier,
   crossValidate,
 } from "../analysis/classifier.js";
 import { euclideanDistance } from "../analysis/distance.js";
+
+function groupFeaturesByDomain(featureVectors: FeatureVector[]): Map<string, FeatureVector[]> {
+  const byDomain = new Map<string, FeatureVector[]>();
+  for (const fv of featureVectors) {
+    if (!byDomain.has(fv.domainId)) byDomain.set(fv.domainId, []);
+    byDomain.get(fv.domainId)!.push(fv);
+  }
+  return byDomain;
+}
+
+function buildConfusionMatrixRecord(
+  cvConfusion: Map<string, Map<string, number>>
+): Record<string, Record<string, number>> {
+  const result: Record<string, Record<string, number>> = {};
+  for (const [actual, predictions] of cvConfusion) {
+    result[actual] = {};
+    for (const [predicted, count] of predictions) {
+      result[actual][predicted] = count;
+    }
+  }
+  return result;
+}
+
+/** Find domain pairs with high confusion rates (> 30%). */
+function findHighConfusionPairs(confusionMatrix: Map<string, Map<string, number>>): string[] {
+  const issues: string[] = [];
+  for (const [actual, predictions] of confusionMatrix) {
+    const totalActual = Array.from(predictions.values()).reduce(
+      (sum, count) => sum + count,
+      0
+    );
+    for (const [predicted, count] of predictions) {
+      if (actual !== predicted && count / totalActual > 0.3) {
+        issues.push(
+          `High confusion: ${actual} misclassified as ${predicted} ${((count / totalActual) * 100).toFixed(1)}% of the time`
+        );
+      }
+    }
+  }
+  return issues;
+}
 
 /**
  * Validate separation between multiple domains
@@ -33,7 +73,7 @@ export function validateSeparation(
   const allFeatureVectors: FeatureVector[] = [];
 
   for (const domain of domains) {
-    const testResult = testDomain(domain, sampleSize, config.seed);
+    const testResult = testDomain(domain, sampleSize, config.seed ?? "separation");
 
     for (const name of testResult.samples) {
       const fv = extractFeatures(name, domain.id);
@@ -44,14 +84,7 @@ export function validateSeparation(
   // Build vocabulary and calculate centroids
   const vocabulary = buildVocabulary(allFeatureVectors);
   const centroids: Centroid[] = [];
-
-  const byDomain = new Map<string, FeatureVector[]>();
-  for (const fv of allFeatureVectors) {
-    if (!byDomain.has(fv.domainId)) {
-      byDomain.set(fv.domainId, []);
-    }
-    byDomain.get(fv.domainId)!.push(fv);
-  }
+  const byDomain = groupFeaturesByDomain(allFeatureVectors);
 
   for (const [domainId, vectors] of byDomain) {
     const centroidFeatures = calculateCentroid(
@@ -84,13 +117,7 @@ export function validateSeparation(
   const cvResult = crossValidate(allFeatureVectors, 5);
 
   // Build confusion matrix in the expected format
-  const confusionMatrix: Record<string, Record<string, number>> = {};
-  for (const [actual, predictions] of cvResult.confusionMatrix) {
-    confusionMatrix[actual] = {};
-    for (const [predicted, count] of predictions) {
-      confusionMatrix[actual][predicted] = count;
-    }
-  }
+  const confusionMatrix = buildConfusionMatrixRecord(cvResult.confusionMatrix);
 
   // Determine pass/fail
   const issues: string[] = [];
@@ -115,20 +142,8 @@ export function validateSeparation(
   }
 
   // Check for specific domain pairs with high confusion
-  for (const [actual, predictions] of cvResult.confusionMatrix) {
-    const totalActual = Array.from(predictions.values()).reduce(
-      (sum, count) => sum + count,
-      0
-    );
-
-    for (const [predicted, count] of predictions) {
-      if (actual !== predicted && count / totalActual > 0.3) {
-        issues.push(
-          `High confusion: ${actual} misclassified as ${predicted} ${((count / totalActual) * 100).toFixed(1)}% of the time`
-        );
-      }
-    }
-  }
+  const confusionIssues = findHighConfusionPairs(cvResult.confusionMatrix);
+  issues.push(...confusionIssues);
 
   return {
     domains: domains.map((d) => d.id),
@@ -149,7 +164,7 @@ export function compareDomains(
   domain1: NamingDomain,
   domain2: NamingDomain,
   sampleSize: number = 200,
-  seed?: string
+  seed: string
 ): {
   centroidDistance: number;
   classifierAccuracy: number;
@@ -167,15 +182,15 @@ export function compareDomains(
       0
     );
   const domain1MisclassifiedAs2 =
-    (report.confusionMatrix[domain1.id]?.[domain2.id] ?? 0) / domain1Total;
+    (report.confusionMatrix[domain1.id][domain2.id]) / domain1Total;
 
   const domain2Total =
-    Object.values(report.confusionMatrix[domain2.id] ?? {}).reduce(
+    Object.values(report.confusionMatrix[domain2.id]).reduce(
       (sum, count) => sum + count,
       0
     );
   const domain2MisclassifiedAs1 =
-    (report.confusionMatrix[domain2.id]?.[domain1.id] ?? 0) / domain2Total;
+    (report.confusionMatrix[domain2.id][domain1.id]) / domain2Total;
 
   return {
     centroidDistance,

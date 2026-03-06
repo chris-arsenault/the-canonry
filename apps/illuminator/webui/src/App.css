@@ -1,78 +1,21 @@
-/* Arctic Blue Theme - Illuminator (with Purple accent for enrichment) */
+/* Arctic Blue Theme — Shared base (backgrounds, borders, text, spacing, fonts, reset) */
+@import "@the-canonry/shared-components/styles/arctic-theme-base";
+
+/* Illuminator accent overrides (purple for enrichment/magic) */
 :root {
-  /* Backgrounds - Arctic deep blues */
-  --bg-primary: #0a1929;
-  --bg-secondary: #1e3a5f;
-  --bg-tertiary: #2d4a6f;
-  --bg-sidebar: #0c1f2e;
-
-  /* Borders - Blue tinted */
-  --border-color: rgb(59 130 246 / 30%);
-  --border-light: rgb(59 130 246 / 50%);
-
-  /* Text - Ice white tones */
-  --text-color: #fff;
-  --text-secondary: #93c5fd;
-  --text-muted: #60a5fa;
-
-  /* Illuminator accent (purple for enrichment/magic within arctic theme) */
   --accent-color: #a855f7;
   --accent-hover: #c084fc;
-
-  /* Arctic theme variables */
-  --arctic-deep: #0a1929;
-  --arctic-dark: #1e3a5f;
-  --arctic-mid: #2d4a6f;
-  --arctic-ice: #3b82f6;
-  --arctic-frost: #60a5fa;
-  --arctic-light: #93c5fd;
   --purple-accent: #a855f7;
   --purple-dark: #9333ea;
-
-  /* Consistent spacing scale */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 24px;
-
-  /* Consistent font sizes */
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-base: 13px;
-  --text-lg: 14px;
-  --text-xl: 16px;
-  --text-2xl: 20px;
-
-  /* Component colors */
-  --card-bg: var(--bg-secondary);
-  --card-border: var(--border-color);
-  --input-bg: var(--bg-tertiary);
-
-  /* Semantic colors */
-  --danger: #ef4444;
-  --success: #22c55e;
-  --warning: #f59e0b;
 
   /* Buttons */
   --button-primary: #a855f7;
   --button-primary-hover: #c084fc;
-}
 
-/* Reset & Base */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  font-size: var(--text-base);
-  line-height: 1.5;
-  background: var(--bg-primary);
-  color: var(--text-color);
+  /* Canonical overrides for shared-components (accent differs from default theme) */
+  --color-accent: #a855f7;
+  --color-accent-light: #c084fc;
+  --gradient-accent: linear-gradient(135deg, #a855f7 0%, #c084fc 100%);
 }
 
 /* Illuminator Container */
@@ -240,31 +183,9 @@ body {
   overflow: auto;
 }
 
-/* Empty State */
+/* Empty State — extends shared EmptyState with full-height layout */
 .illuminator-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   height: 100%;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.illuminator-empty-state-icon {
-  font-size: 48px;
-  margin-bottom: var(--space-lg);
-}
-
-.illuminator-empty-state-title {
-  font-size: var(--text-xl);
-  color: var(--text-color);
-  margin-bottom: var(--space-sm);
-}
-
-.illuminator-empty-state-desc {
-  font-size: var(--text-sm);
-  max-width: 400px;
 }
 
 /* Cards */
@@ -440,6 +361,7 @@ body {
   height: 100%;
   background: var(--accent-color);
   transition: width 0.3s ease;
+  width: var(--pp-bar-width);
 }
 
 /* Entity card in results */
@@ -560,7 +482,7 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: var(--space-md);
-  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, "Ubuntu Mono", monospace;
   font-size: var(--text-xs);
   line-height: 1.6;
   color: var(--text-secondary);
@@ -796,7 +718,7 @@ body {
   border-radius: 6px;
   color: var(--text-color);
   font-size: var(--text-sm);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   line-height: 1.6;
   resize: vertical;
   min-height: 80px;
@@ -832,7 +754,7 @@ body {
   padding: 2px 6px;
   background: rgb(168 85 247 / 15%);
   border-radius: 3px;
-  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, "Ubuntu Mono", monospace;
   font-size: var(--text-xs);
   color: var(--accent-hover);
 }
@@ -2014,8 +1936,19 @@ body {
   box-shadow: 0 20px 40px rgb(0 0 0 / 40%);
 }
 
-.static-page-modal.image-picker-modal {
+/* ImageRefPicker modal sizing (structure provided by ModalShell) */
+.modal.image-picker-modal {
   width: 700px;
+  max-width: 90vw;
+  height: auto;
+  max-height: 85vh;
+}
+
+.image-picker-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
 .static-page-modal-header {
@@ -2069,6 +2002,14 @@ body {
 .static-page-search-input:focus {
   outline: none;
   border-color: var(--accent-color);
+}
+
+/* EntityLinkPicker modal sizing (structure provided by ModalShell) */
+.modal.entity-link-picker-modal {
+  width: 500px;
+  max-width: 90vw;
+  height: auto;
+  max-height: 80vh;
 }
 
 /* Entity link picker list */
@@ -2268,13 +2209,13 @@ body {
   transition: opacity 0.15s ease;
 }
 
-.preprint-action-button:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
 .preprint-action-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.preprint-action-button:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 .preprint-action-button.small {
@@ -2539,7 +2480,7 @@ body {
 .preprint-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgb(0 0 0 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2821,7 +2762,9 @@ body {
   border-radius: var(--radius-md, 6px);
   cursor: pointer;
   background: transparent;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .preprint-export-format-option:hover {
@@ -2865,14 +2808,14 @@ body {
   min-width: 140px;
 }
 
+.preprint-export-input {
+  min-width: 180px;
+}
+
 .preprint-export-select:focus,
 .preprint-export-input:focus {
   outline: none;
   border-color: var(--accent-color);
-}
-
-.preprint-export-input {
-  min-width: 180px;
 }
 
 /* ============================================================================
@@ -2977,7 +2920,7 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
   z-index: 10;
   padding: 4px;
 }
@@ -3046,15 +2989,6 @@ body {
   min-width: 60px;
 }
 
-.illuminator-coverage-table tr:last-child td {
-  border-bottom: none;
-}
-
-.illuminator-coverage-table td:last-child,
-.illuminator-coverage-table th:last-child {
-  border-right: none;
-}
-
 .illuminator-coverage-sticky {
   position: sticky;
   left: 0;
@@ -3115,13 +3049,13 @@ body {
 
 .illuminator-coverage-hit {
   background: var(--success, #22c55e);
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgb(0 0 0 / 30%);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 25%);
 }
 
 .illuminator-coverage-miss {
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  background: rgba(15, 23, 42, 0.2);
+  border: 1px solid rgb(148 163 184 / 50%);
+  background: rgb(15 23 42 / 20%);
   opacity: 0.5;
 }
 
@@ -3218,15 +3152,24 @@ body {
   text-align: center;
 }
 
-.entity-coverage-table tr:last-child td {
-  border-bottom: none;
-}
-
 .entity-coverage-table .ec-empty td {
   text-align: center;
   color: var(--text-muted);
   font-size: 11px;
   padding: 12px 10px;
+}
+
+.illuminator-coverage-table td:last-child,
+.illuminator-coverage-table th:last-child {
+  border-right: none;
+}
+
+.illuminator-coverage-table tr:last-child td {
+  border-bottom: none;
+}
+
+.entity-coverage-table tr:last-child td {
+  border-bottom: none;
 }
 
 /* ── Entity Coverage 2-column Grid ───────────────────────────────── */

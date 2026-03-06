@@ -44,7 +44,7 @@
   box-shadow: var(--shadow-lg);
 }
 
-.dropdownUp {
+.dropdown-up {
   composes: dropdown;
   top: auto;
   bottom: 100%;
@@ -75,18 +75,18 @@
   background-color: var(--color-bg-tertiary);
 }
 
-.resultSelected {
+.result-selected {
   composes: result;
   background-color: var(--color-bg-tertiary);
 }
 
-.resultType {
+.result-type {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin-left: var(--spacing-sm);
 }
 
-.noResults {
+.no-results {
   padding: var(--spacing-sm);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);

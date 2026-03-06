@@ -21,14 +21,13 @@
  *   relationships don't also emit separate relationship_formed events)
  */
 
-import type { NarrativeEvent, Polarity, RelationshipKindDefinition, EntityKindDefinition, TagDefinition, ExecutionContext, NarrativeEntityRef, ParticipantEffect } from '@canonry/world-schema';
+import type { NarrativeEvent, NarrativeEntityRef, Polarity, RelationshipKindDefinition, EntityKindDefinition, TagDefinition, ParticipantEffect } from '@canonry/world-schema';
 import { FRAMEWORK_RELATIONSHIP_KINDS, FRAMEWORK_TAGS } from '@canonry/world-schema';
 import type { HardState } from '../core/worldTypes.js';
 import type { Graph, NarrativeConfig } from '../engine/types.js';
 import { NarrativeEventBuilder, type NarrativeContext } from './narrativeEventBuilder.js';
 import { SemanticEnricher, type EnrichmentContext } from './semanticEnricher.js';
 import type { MutationTracker, ContextMutationGroup, EntityCreatedData, RelationshipCreatedData, RelationshipArchivedData, FieldChangeData, TagChangeData } from './mutationTracker.js';
-import { contextKey } from './mutationTracker.js';
 import { getProminenceValue } from './significanceCalculator.js';
 
 /**
@@ -39,7 +38,7 @@ interface PendingStateChange {
   field: string;
   previousValue: unknown;
   newValue: unknown;
-  catalyst?: { entityId: string; actionType: string; success?: boolean };
+  catalyst: { entityId: string; actionType: string; success: boolean };
 }
 
 /**
@@ -50,7 +49,7 @@ interface RelationshipSnapshot {
   src: string;
   dst: string;
   createdAt: number;
-  polarity?: Polarity;
+  polarity: Polarity;
 }
 
 /**
@@ -68,8 +67,8 @@ interface PendingTagChange {
   entityId: string;
   tag: string;
   changeType: 'added' | 'removed';
-  value?: string | boolean;
-  catalyst?: { entityId: string; actionType: string; success?: boolean };
+  value: string | boolean;
+  catalyst: { entityId: string; actionType: string; success: boolean };
 }
 
 /**
@@ -88,9 +87,9 @@ interface PendingCreationBatch {
   templateName: string;
   entityIds: string[];
   relationships: RelationshipSummary[];
-  description?: string;
+  description: string;
   /** Domain-controlled narration from narrationTemplate */
-  narration?: string;
+  narration: string;
 }
 
 /**
@@ -99,7 +98,7 @@ interface PendingCreationBatch {
 export interface NarrativeSchemaSlice {
   relationshipKinds: RelationshipKindDefinition[];
   entityKinds: EntityKindDefinition[];
-  tagRegistry?: TagDefinition[];
+  tagRegistry: TagDefinition[];
 }
 
 /**
@@ -154,9 +153,9 @@ export class StateChangeTracker {
    */
   private systemNames: Map<string, string> = new Map();
 
-  constructor(config: NarrativeConfig, mutationTracker?: MutationTracker) {
+  constructor(config: NarrativeConfig, mutationTracker: MutationTracker) {
     this.config = config;
-    this.mutationTracker = mutationTracker ?? null;
+    this.mutationTracker = mutationTracker;
   }
 
   /**
@@ -198,38 +197,41 @@ export class StateChangeTracker {
    */
   setSchema(schema: NarrativeSchemaSlice): void {
     this.schema = schema;
+    this.buildRelationshipPolarityCache(schema);
+    this.buildEntityKindCaches(schema);
+    this.buildTagRegistryCache(schema);
+  }
 
-    // Build lookup caches
+  private buildRelationshipPolarityCache(schema: NarrativeSchemaSlice): void {
     this.relationshipPolarityCache.clear();
     for (const rel of schema.relationshipKinds) {
-      if (rel.polarity) {
+      if (rel.polarity !== 'neutral') {
         this.relationshipPolarityCache.set(rel.kind, rel.polarity);
       }
     }
+  }
 
+  private buildEntityKindCaches(schema: NarrativeSchemaSlice): void {
     this.statusPolarityCache.clear();
     this.authoritySubtypeCache.clear();
     for (const entityKind of schema.entityKinds) {
-      // Cache status polarities as "entityKind:statusId" -> polarity
       for (const status of entityKind.statuses) {
-        if (status.polarity) {
+        if (status.polarity !== 'neutral') {
           this.statusPolarityCache.set(`${entityKind.kind}:${status.id}`, status.polarity);
         }
       }
-      // Cache authority subtypes
       for (const subtype of entityKind.subtypes) {
         if (subtype.isAuthority) {
           this.authoritySubtypeCache.add(`${entityKind.kind}:${subtype.id}`);
         }
       }
     }
+  }
 
-    // Build tag registry cache
+  private buildTagRegistryCache(schema: NarrativeSchemaSlice): void {
     this.tagRegistry.clear();
-    if (schema.tagRegistry) {
-      for (const tag of schema.tagRegistry) {
-        this.tagRegistry.set(tag.tag, tag);
-      }
+    for (const tag of schema.tagRegistry) {
+      this.tagRegistry.set(tag.tag, tag);
     }
   }
 
@@ -274,7 +276,14 @@ export class StateChangeTracker {
     this.pendingCreationBatches = [];
     this.pendingNarrations.clear();
 
-    // Snapshot active relationships at tick start (for dissolution detection)
+    this.snapshotRelationships(graph);
+    this.snapshotPartOfRelationships(graph);
+    this.snapshotAuthorityConnections(graph);
+    this.initializeEventBuilder(graph, tick, eraId);
+    this.initializeSemanticEnricher(graph);
+  }
+
+  private snapshotRelationships(graph: Graph): void {
     this.relationshipSnapshotAtTickStart.clear();
     for (const rel of graph.getRelationships({ includeHistorical: false })) {
       const key = this.relationshipKey(rel.src, rel.dst, rel.kind);
@@ -282,63 +291,61 @@ export class StateChangeTracker {
         kind: rel.kind,
         src: rel.src,
         dst: rel.dst,
-        createdAt: rel.createdAt ?? 0,
-        polarity: this.getRelationshipPolarity(rel.kind),
+        createdAt: rel.createdAt,
+        polarity: this.getRelationshipPolarity(rel.kind) ?? 'neutral',
       });
     }
+  }
 
-    // Snapshot part_of relationships at tick start (for coalescence/succession detection)
+  private snapshotPartOfRelationships(graph: Graph): void {
     this.partOfSnapshotAtTickStart.clear();
     for (const rel of graph.getRelationships({ includeHistorical: false })) {
-      if (rel.kind === FRAMEWORK_RELATIONSHIP_KINDS.PART_OF) {
-        const containerId = rel.dst;
-        let snapshot = this.partOfSnapshotAtTickStart.get(containerId);
-        if (!snapshot) {
-          snapshot = { memberIds: new Set() };
-          this.partOfSnapshotAtTickStart.set(containerId, snapshot);
-        }
-        snapshot.memberIds.add(rel.src);
+      if (rel.kind !== FRAMEWORK_RELATIONSHIP_KINDS.PART_OF) continue;
+      const containerId = rel.dst;
+      let snapshot = this.partOfSnapshotAtTickStart.get(containerId);
+      if (!snapshot) {
+        snapshot = { memberIds: new Set() };
+        this.partOfSnapshotAtTickStart.set(containerId, snapshot);
       }
+      snapshot.memberIds.add(rel.src);
     }
+  }
 
-    // Snapshot authority connections at tick start (for first-authority detection)
+  private snapshotAuthorityConnections(graph: Graph): void {
     this.authorityConnectionsAtTickStart.clear();
-    const addAuthorityConnection = (targetId: string, authorityId: string) => {
-      let authorities = this.authorityConnectionsAtTickStart.get(targetId);
-      if (!authorities) {
-        authorities = new Set<string>();
-        this.authorityConnectionsAtTickStart.set(targetId, authorities);
-      }
-      authorities.add(authorityId);
-    };
     for (const rel of graph.getRelationships({ includeHistorical: false })) {
       const srcEntity = graph.getEntity(rel.src);
       const dstEntity = graph.getEntity(rel.dst);
       if (!srcEntity || !dstEntity) continue;
-      const srcIsAuthority = this.isAuthoritySubtype(srcEntity.kind, srcEntity.subtype);
-      const dstIsAuthority = this.isAuthoritySubtype(dstEntity.kind, dstEntity.subtype);
-      if (srcIsAuthority) addAuthorityConnection(rel.dst, rel.src);
-      if (dstIsAuthority) addAuthorityConnection(rel.src, rel.dst);
+      if (this.isAuthoritySubtype(srcEntity.kind, srcEntity.subtype)) {
+        this.addAuthorityConnection(rel.dst, rel.src);
+      }
+      if (this.isAuthoritySubtype(dstEntity.kind, dstEntity.subtype)) {
+        this.addAuthorityConnection(rel.src, rel.dst);
+      }
     }
+  }
 
-    // Create or update the event builder context with polarity lookups
+  private addAuthorityConnection(targetId: string, authorityId: string): void {
+    let authorities = this.authorityConnectionsAtTickStart.get(targetId);
+    if (!authorities) {
+      authorities = new Set<string>();
+      this.authorityConnectionsAtTickStart.set(targetId, authorities);
+    }
+    authorities.add(authorityId);
+  }
+
+  private initializeEventBuilder(graph: Graph, tick: number, eraId: string): void {
     const context: NarrativeContext = {
       tick,
       eraId,
       getEntity: (id: string) => graph.getEntity(id),
-      getEntityRelationships: (id: string) => {
-        return graph.getEntityRelationships(id).map(r => ({
-          kind: r.kind,
-          src: r.src,
-          dst: r.dst,
-        }));
-      },
+      getEntityRelationships: (id: string) => graph.getEntityRelationships(id).map(r => ({ kind: r.kind, src: r.src, dst: r.dst })),
       getRelationshipPolarity: (kind: string) => this.getRelationshipPolarity(kind),
       getStatusPolarity: (entityKind: string, status: string) => this.getStatusPolarity(entityKind, status),
       getRelationshipVerb: (kind: string, action: 'formed' | 'ended' | 'inverseFormed' | 'inverseEnded') => {
-        // Look up verb from schema if available
         const relDef = this.schema?.relationshipKinds.find(r => r.kind === kind);
-        return relDef?.verbs?.[action as keyof typeof relDef.verbs];
+        return relDef?.verbs[action];
       },
     };
 
@@ -347,18 +354,14 @@ export class StateChangeTracker {
     } else {
       this.eventBuilder.updateContext(context);
     }
+  }
 
-    // Create or update the semantic enricher context
+  private initializeSemanticEnricher(graph: Graph): void {
     const enrichmentContext: EnrichmentContext = {
       getEntity: (id: string) => graph.getEntity(id),
-      getEntityRelationships: (id: string) => graph.getEntityRelationships(id).map(r => ({
-        kind: r.kind,
-        src: r.src,
-        dst: r.dst,
-      })),
+      getEntityRelationships: (id: string) => graph.getEntityRelationships(id).map(r => ({ kind: r.kind, src: r.src, dst: r.dst })),
       isNegativeRelationship: (kind: string) => this.getRelationshipPolarity(kind) === 'negative',
       isAuthoritySubtype: (subtype: string) => {
-        // Check all entity kinds for this subtype being an authority
         for (const [key] of this.authoritySubtypeCache) {
           if (key.endsWith(`:${subtype}`)) return true;
         }
@@ -391,17 +394,9 @@ export class StateChangeTracker {
     field: string,
     previousValue: unknown,
     newValue: unknown,
-    catalyst?: { entityId: string; actionType: string }
+    catalyst: { entityId: string; actionType: string; success: boolean }
   ): void {
     if (!this.config.enabled) return;
-
-    // Debug logging for prominence tracking
-    if (StateChangeTracker.DEBUG_PROMINENCE && field === 'prominence') {
-      console.log(`[PROMINENCE-TRACK] entityId=${entityId} prev=${previousValue} new=${newValue} catalyst=${catalyst?.actionType}`);
-      if (previousValue === newValue) {
-        console.log(`  SKIPPED: previousValue === newValue`);
-      }
-    }
 
     if (previousValue === newValue) return; // No actual change
 
@@ -421,10 +416,6 @@ export class StateChangeTracker {
     existing.push(pending);
     this.pendingChanges.set(entityId, existing);
 
-    // Debug: confirm recording
-    if (StateChangeTracker.DEBUG_PROMINENCE && field === 'prominence') {
-      console.log(`  RECORDED: ${previousValue} -> ${newValue}`);
-    }
   }
 
   /**
@@ -434,7 +425,7 @@ export class StateChangeTracker {
   recordEntityChange(
     entity: HardState,
     changes: Partial<HardState>,
-    catalyst?: { entityId: string; actionType: string; success?: boolean }
+    catalyst: { entityId: string; actionType: string; success: boolean }
   ): void {
     if (!this.config.enabled) return;
 
@@ -459,7 +450,7 @@ export class StateChangeTracker {
     tag: string,
     changeType: 'added' | 'removed',
     value: string | boolean | undefined,
-    catalyst?: { entityId: string; actionType: string; success?: boolean }
+    catalyst: { entityId: string; actionType: string; success: boolean }
   ): void {
     if (!this.config.enabled) return;
 
@@ -473,7 +464,7 @@ export class StateChangeTracker {
       entityId,
       tag,
       changeType,
-      value,
+      value: value ?? (changeType === 'added' ? true : false),
       catalyst,
     };
 
@@ -498,8 +489,8 @@ export class StateChangeTracker {
     templateName: string,
     entityIds: string[],
     relationships: RelationshipSummary[],
-    description?: string,
-    narration?: string
+    description: string,
+    narration: string
   ): void {
     if (!this.config.enabled) return;
 
@@ -529,21 +520,7 @@ export class StateChangeTracker {
     this.pendingNarrations.set(key, narration);
   }
 
-  /**
-   * Record narrations from a system result.
-   * Each narration is recorded with the system context.
-   *
-   * @param systemId - The system identifier
-   * @param narrations - Array of narration texts from the system
-   * @deprecated Use recordNarrationsByGroup for proper per-entity attribution
-   */
-  recordSystemNarrations(systemId: string, narrations: string[]): void {
-    if (!this.config.enabled || narrations.length === 0) return;
 
-    // Join multiple narrations into one (or use the first one)
-    const combinedNarration = narrations.join(' ');
-    this.recordNarration('system', systemId, combinedNarration);
-  }
 
   /**
    * Record narrations keyed by narrative group ID.
@@ -627,7 +604,7 @@ export class StateChangeTracker {
     const events: NarrativeEvent[] = [];
     const contextGroups = this.mutationTracker.getMutationsByContext();
 
-    for (const [key, group] of contextGroups) {
+    for (const [, group] of contextGroups) {
       const event = this.buildEventForContext(group);
       if (event && event.significance >= this.config.minSignificance) {
         events.push(event);
@@ -644,13 +621,10 @@ export class StateChangeTracker {
   private buildEventForContext(group: ContextMutationGroup): NarrativeEvent | null {
     if (!this.eventBuilder || !this.graph) return null;
 
-    const { context, entitiesCreated, relationshipsCreated, relationshipsArchived, tagsAdded, tagsRemoved, fieldsChanged } = group;
+    const { context, entitiesCreated, fieldsChanged } = group;
 
     // Determine the primary event type based on what happened
     const hasEntities = entitiesCreated.length > 0;
-    const hasRelationships = relationshipsCreated.length > 0;
-    const hasArchivals = relationshipsArchived.length > 0;
-    const hasTagChanges = tagsAdded.length > 0 || tagsRemoved.length > 0;
     const hasFieldChanges = fieldsChanged.length > 0;
 
     // Template contexts with entity creation → creation_batch
@@ -687,60 +661,24 @@ export class StateChangeTracker {
 
     const { context, entitiesCreated, relationshipsCreated, tagsAdded, tagsRemoved, fieldsChanged } = group;
 
-    // If nothing happened, skip
     if (entitiesCreated.length === 0 && relationshipsCreated.length === 0) return null;
 
-    // Build participant effects using the event builder
     const participantEffects = this.eventBuilder.buildParticipantEffects(
-      entitiesCreated,
-      relationshipsCreated,
-      [], // templates don't typically archive relationships
-      tagsAdded,
-      tagsRemoved,
-      fieldsChanged
+      entitiesCreated, relationshipsCreated, [], tagsAdded, tagsRemoved, fieldsChanged
     );
-
     if (participantEffects.length === 0) return null;
 
-    // Primary entity is the first created entity, or first affected if none created
-    const primaryEntity = entitiesCreated.length > 0
-      ? participantEffects.find(p => p.effects.some(e => e.type === 'created'))?.entity
-      : participantEffects[0]?.entity;
+    const primaryEntity = this.findPrimaryEntity(participantEffects, entitiesCreated.length > 0);
 
-    if (!primaryEntity) return null;
-
-    // Check for domain-controlled narration from the pending creation batch
-    const creationBatch = this.pendingCreationBatches.find(b => b.templateId === context.sourceId);
-    const narration = creationBatch?.narration;
-
-    // Debug: log narration lookup
-    if (!narration) {
-      const matchingBatch = this.pendingCreationBatches.find(b => b.templateId === context.sourceId);
-      if (!matchingBatch && this.pendingCreationBatches.length > 0) {
-        console.warn(`[StateChangeTracker] No batch found for template "${context.sourceId}". Available: [${this.pendingCreationBatches.map(b => b.templateId).join(', ')}]`);
-      } else if (matchingBatch && !matchingBatch.narration) {
-        console.debug(`[StateChangeTracker] Batch "${context.sourceId}" has no narration (template lacks narrationTemplate)`);
-      }
-    } else {
-      console.debug(`[StateChangeTracker] Using narration for "${context.sourceId}": ${narration.slice(0, 60)}...`);
-    }
-
-    // Use narration if available, otherwise build description summarizing what happened
+    const narration = this.resolveTemplateNarration(context.sourceId);
     const description = narration || this.buildTemplateDescription(
-      entitiesCreated,
-      relationshipsCreated,
-      participantEffects,
-      context.sourceId
+      entitiesCreated, relationshipsCreated, participantEffects, context.sourceId
     );
 
-    // Calculate significance
     const significance = Math.min(1.0,
-      (entitiesCreated.length * 0.3) +
-      (relationshipsCreated.length * 0.1) +
-      0.2 // base significance for template execution
+      (entitiesCreated.length * 0.3) + (relationshipsCreated.length * 0.1) + 0.2
     );
 
-    // Build narrative tags
     const entityKinds = new Set(participantEffects.map(p => p.entity.kind));
     const narrativeTags = ['creation', ...entityKinds];
     if (participantEffects.some(p => p.effects.every(e => e.type !== 'created'))) {
@@ -750,7 +688,7 @@ export class StateChangeTracker {
     return {
       id: `tpl-${context.sourceId}-${context.tick}`,
       tick: context.tick,
-      era: this.graph.currentEra?.id || 'unknown',
+      era: this.graph.currentEra.id,
       eventKind: 'creation_batch',
       significance,
       subject: primaryEntity,
@@ -758,11 +696,43 @@ export class StateChangeTracker {
       participantEffects,
       description,
       causedBy: {
+        hasCause: true,
+        eventId: '',
         entityId: context.sourceId,
         actionType: context.sourceId,
+        success: context.success,
       },
       narrativeTags,
     };
+  }
+
+  private findPrimaryEntity(
+    participantEffects: ParticipantEffect[],
+    hasCreatedEntities: boolean
+  ): NarrativeEntityRef {
+    if (hasCreatedEntities) {
+      const creator = participantEffects.find(p => p.effects.some(e => e.type === 'created'));
+      if (creator) return creator.entity;
+    }
+    return participantEffects[0].entity;
+  }
+
+  private resolveTemplateNarration(sourceId: string): string | undefined {
+    const creationBatch = this.pendingCreationBatches.find(b => b.templateId === sourceId);
+    const narration = creationBatch?.narration;
+
+    if (!narration) {
+      const matchingBatch = this.pendingCreationBatches.find(b => b.templateId === sourceId);
+      if (!matchingBatch && this.pendingCreationBatches.length > 0) {
+        console.warn(`[StateChangeTracker] No batch found for template "${sourceId}". Available: [${this.pendingCreationBatches.map(b => b.templateId).join(', ')}]`);
+      } else if (matchingBatch && !matchingBatch.narration) {
+        console.debug(`[StateChangeTracker] Batch "${sourceId}" has no narration (template lacks narrationTemplate)`);
+      }
+    } else {
+      console.debug(`[StateChangeTracker] Using narration for "${sourceId}": ${narration.slice(0, 60)}...`);
+    }
+
+    return narration;
   }
 
   /**
@@ -776,34 +746,12 @@ export class StateChangeTracker {
   ): string {
     const parts: string[] = [];
 
-    // Count created entities by kind
-    const kindCounts = new Map<string, number>();
-    for (const e of entitiesCreated) {
-      kindCounts.set(e.kind, (kindCounts.get(e.kind) || 0) + 1);
-    }
+    const creationPart = this.describeCreations(entitiesCreated);
+    if (entitiesCreated.length > 0) parts.push(creationPart);
 
-    if (kindCounts.size > 0) {
-      const entityParts: string[] = [];
-      for (const [kind, count] of kindCounts) {
-        entityParts.push(`${count} ${kind}${count > 1 ? 's' : ''}`);
-      }
-      parts.push(`${entityParts.join(', ')} created`);
-    }
+    const recruitedPart = this.describeRecruited(entitiesCreated, participantEffects);
+    if (recruitedPart) parts.push(recruitedPart);
 
-    // Count recruited (existing entities that got effects but weren't created)
-    const createdIds = new Set(entitiesCreated.map(e => e.entityId));
-    const recruited = participantEffects.filter(p => !createdIds.has(p.entity.id));
-    if (recruited.length > 0) {
-      if (recruited.length === 1) {
-        parts.push(`${recruited[0].entity.name} recruited`);
-      } else if (recruited.length <= 3) {
-        parts.push(`${recruited.map(r => r.entity.name).join(', ')} recruited`);
-      } else {
-        parts.push(`${recruited.length} existing entities recruited`);
-      }
-    }
-
-    // Relationship summary
     if (relationshipsCreated.length > 0) {
       parts.push(`${relationshipsCreated.length} relationship${relationshipsCreated.length > 1 ? 's' : ''} formed`);
     }
@@ -812,6 +760,18 @@ export class StateChangeTracker {
     return parts.length > 0
       ? `${parts.join(', ')}, due to ${templateName}.`
       : `Template ${templateName} executed.`;
+  }
+
+  private describeRecruited(
+    entitiesCreated: EntityCreatedData[],
+    participantEffects: ParticipantEffect[]
+  ): string | null {
+    const createdIds = new Set(entitiesCreated.map(e => e.entityId));
+    const recruited = participantEffects.filter(p => !createdIds.has(p.entity.id));
+    if (recruited.length === 0) return null;
+    if (recruited.length === 1) return `${recruited[0].entity.name} recruited`;
+    if (recruited.length <= 3) return `${recruited.map(r => r.entity.name).join(', ')} recruited`;
+    return `${recruited.length} existing entities recruited`;
   }
 
   /**
@@ -883,7 +843,7 @@ export class StateChangeTracker {
     return {
       id: `sys-${context.sourceId}-${context.tick}`,
       tick: context.tick,
-      era: this.graph.currentEra?.id || 'unknown',
+      era: this.graph.currentEra.id,
       eventKind: 'state_change',
       significance,
       subject: primaryEntity,
@@ -891,7 +851,11 @@ export class StateChangeTracker {
       participantEffects,
       description,
       causedBy: {
+        hasCause: true,
+        eventId: '',
+        entityId: '',
         actionType: `system:${context.sourceId}`,
+        success: context.success,
       },
       narrativeTags,
     };
@@ -966,7 +930,7 @@ export class StateChangeTracker {
     return {
       id: `act-${context.sourceId}-${context.tick}`,
       tick: context.tick,
-      era: this.graph.currentEra?.id || 'unknown',
+      era: this.graph.currentEra.id,
       eventKind: 'state_change',
       significance,
       subject: primaryEntity,
@@ -974,6 +938,9 @@ export class StateChangeTracker {
       participantEffects,
       description,
       causedBy: {
+        hasCause: true,
+        eventId: '',
+        entityId: '',
         actionType: `action:${context.sourceId}`,
         success: context.success,
       },
@@ -1024,15 +991,16 @@ export class StateChangeTracker {
       : ['framework', sourceLabel, ...entityKinds];
 
     return {
-      id: `fw-${context.tick}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `fw-${context.tick}-${crypto.randomUUID().slice(0, 11)}`,
       tick: context.tick,
-      era: this.graph.currentEra?.id || 'unknown',
+      era: this.graph.currentEra.id,
       eventKind: 'state_change',
       significance: 0.3,
       subject: primaryEntity,
       action: 'framework_update',
       participantEffects,
       description,
+      causedBy: { hasCause: false, eventId: '', entityId: '', actionType: '', success: true },
       narrativeTags,
     };
   }
@@ -1126,7 +1094,7 @@ export class StateChangeTracker {
   private buildUnifiedDescription(
     entitiesCreated: EntityCreatedData[],
     relationshipsCreated: RelationshipCreatedData[],
-    relationshipsArchived: RelationshipArchivedData[],
+    _relationshipsArchived: RelationshipArchivedData[],
     tagsAdded: TagChangeData[],
     tagsRemoved: TagChangeData[],
     fieldsChanged: FieldChangeData[],
@@ -1134,124 +1102,143 @@ export class StateChangeTracker {
     sourceId: string,
     sourceType: 'system' | 'action' | 'framework'
   ): string {
-    const parts: string[] = [];
+    const counts = this.countEffectsByType(participantEffects);
+    const parts = this.buildDescriptionParts(
+      counts, entitiesCreated, relationshipsCreated,
+      tagsAdded, tagsRemoved, fieldsChanged
+    );
+    const whoSummary = this.formatParticipantSummary(participantEffects);
 
-    // Count effects by type across all participants
-    let createdCount = 0;
-    let relationshipFormedCount = 0;
-    let relationshipEndedCount = 0;
-    let tagGainedCount = 0;
-    let tagLostCount = 0;
-    let fieldChangedCount = 0;
-    let endedCount = 0;
+    return this.formatFinalDescription(parts, whoSummary, sourceId, sourceType);
+  }
 
+  private countEffectsByType(participantEffects: ParticipantEffect[]): Record<string, number> {
+    const counts: Record<string, number> = {
+      created: 0, relationship_formed: 0, relationship_ended: 0,
+      tag_gained: 0, tag_lost: 0, field_changed: 0, ended: 0,
+    };
     for (const p of participantEffects) {
       for (const e of p.effects) {
-        switch (e.type) {
-          case 'created': createdCount++; break;
-          case 'relationship_formed': relationshipFormedCount++; break;
-          case 'relationship_ended': relationshipEndedCount++; break;
-          case 'tag_gained': tagGainedCount++; break;
-          case 'tag_lost': tagLostCount++; break;
-          case 'field_changed': fieldChangedCount++; break;
-          case 'ended': endedCount++; break;
-        }
+        counts[e.type] = (counts[e.type] || 0) + 1;
       }
     }
+    return counts;
+  }
 
-    // Build summary parts
-    if (createdCount > 0) {
-      const kindCounts = new Map<string, number>();
-      for (const e of entitiesCreated) {
-        kindCounts.set(e.kind, (kindCounts.get(e.kind) || 0) + 1);
-      }
-      const kindParts: string[] = [];
-      for (const [kind, count] of kindCounts) {
-        kindParts.push(`${count} ${kind}${count > 1 ? 's' : ''}`);
-      }
-      parts.push(`${kindParts.join(', ')} created`);
+  private buildDescriptionParts(
+    counts: Record<string, number>,
+    entitiesCreated: EntityCreatedData[],
+    relationshipsCreated: RelationshipCreatedData[],
+    tagsAdded: TagChangeData[],
+    tagsRemoved: TagChangeData[],
+    fieldsChanged: FieldChangeData[]
+  ): string[] {
+    const parts: string[] = [];
+
+    if (counts.created > 0) {
+      parts.push(this.describeCreations(entitiesCreated));
+    }
+    if (counts.relationship_formed > 0) {
+      parts.push(this.describeRelationshipsFormed(relationshipsCreated, counts.relationship_formed));
+    }
+    if (counts.relationship_ended > 0) {
+      parts.push(`${counts.relationship_ended} relationship${counts.relationship_ended > 1 ? 's' : ''} ended`);
+    }
+    if (counts.tag_gained > 0) {
+      parts.push(this.describeTagsChanged(tagsAdded, counts.tag_gained, 'gained'));
+    }
+    if (counts.tag_lost > 0) {
+      parts.push(this.describeTagsChanged(tagsRemoved, counts.tag_lost, 'lost'));
+    }
+    if (counts.field_changed > 0 || counts.ended > 0) {
+      this.describeFieldAndEndedChanges(fieldsChanged, counts.ended, parts);
     }
 
-    if (relationshipFormedCount > 0) {
-      const kindCounts = new Map<string, number>();
-      for (const r of relationshipsCreated) {
-        kindCounts.set(r.kind, (kindCounts.get(r.kind) || 0) + 1);
-      }
-      if (kindCounts.size === 1) {
-        const [kind, count] = [...kindCounts.entries()][0];
-        // Format relationship kind: replace underscores with spaces for readability
-        const formattedKind = kind.replace(/_/g, ' ');
-        parts.push(`${count} ${formattedKind} relationship${count > 1 ? 's' : ''} formed`);
-      } else {
-        parts.push(`${relationshipFormedCount} relationships formed`);
-      }
+    return parts;
+  }
+
+  private describeCreations(entitiesCreated: EntityCreatedData[]): string {
+    const kindCounts = new Map<string, number>();
+    for (const e of entitiesCreated) {
+      kindCounts.set(e.kind, (kindCounts.get(e.kind) || 0) + 1);
     }
-
-    if (relationshipEndedCount > 0) {
-      parts.push(`${relationshipEndedCount} relationship${relationshipEndedCount > 1 ? 's' : ''} ended`);
+    const kindParts: string[] = [];
+    for (const [kind, count] of kindCounts) {
+      kindParts.push(`${count} ${kind}${count > 1 ? 's' : ''}`);
     }
+    return `${kindParts.join(', ')} created`;
+  }
 
-    if (tagGainedCount > 0) {
-      const uniqueTags = [...new Set(tagsAdded.map(t => t.tag))];
-      if (uniqueTags.length <= 2) {
-        // Format tag names: replace underscores with spaces for readability
-        const formatted = uniqueTags.map(t => t.replace(/_/g, ' '));
-        parts.push(`gained ${formatted.join(', ')}`);
-      } else {
-        parts.push(`gained ${tagGainedCount} tags`);
-      }
+  private describeRelationshipsFormed(
+    relationshipsCreated: RelationshipCreatedData[],
+    totalFormed: number
+  ): string {
+    const kindCounts = new Map<string, number>();
+    for (const r of relationshipsCreated) {
+      kindCounts.set(r.kind, (kindCounts.get(r.kind) || 0) + 1);
     }
-
-    if (tagLostCount > 0) {
-      const uniqueTags = [...new Set(tagsRemoved.map(t => t.tag))];
-      if (uniqueTags.length <= 2) {
-        // Format tag names: replace underscores with spaces for readability
-        const formatted = uniqueTags.map(t => t.replace(/_/g, ' '));
-        parts.push(`lost ${formatted.join(', ')}`);
-      } else {
-        parts.push(`lost ${tagLostCount} tags`);
-      }
+    if (kindCounts.size === 1) {
+      const [kind, count] = [...kindCounts.entries()][0];
+      const formattedKind = kind.replace(/_/g, ' ');
+      return `${count} ${formattedKind} relationship${count > 1 ? 's' : ''} formed`;
     }
+    return `${totalFormed} relationships formed`;
+  }
 
-    if (fieldChangedCount > 0 || endedCount > 0) {
-      const prominenceChanges = fieldsChanged.filter(f => f.field === 'prominence');
-      const statusChanges = fieldsChanged.filter(f => f.field === 'status');
-
-      if (prominenceChanges.length > 0) {
-        const rising = prominenceChanges.filter(f => this.isProminenceIncrease(f.oldValue, f.newValue));
-        const falling = prominenceChanges.filter(f => !this.isProminenceIncrease(f.oldValue, f.newValue));
-        if (rising.length > 0) parts.push(`${rising.length} gained prominence`);
-        if (falling.length > 0) parts.push(`${falling.length} lost prominence`);
-      }
-
-      if (endedCount > 0) {
-        parts.push(`${endedCount} passed into history`);
-      }
+  private describeTagsChanged(
+    tags: TagChangeData[],
+    count: number,
+    verb: 'gained' | 'lost'
+  ): string {
+    const uniqueTags = [...new Set(tags.map(t => t.tag))];
+    if (uniqueTags.length <= 2) {
+      const formatted = uniqueTags.map(t => t.replace(/_/g, ' '));
+      return `${verb} ${formatted.join(', ')}`;
     }
+    return `${verb} ${count} tags`;
+  }
 
-    // Format participants summary
+  private describeFieldAndEndedChanges(
+    fieldsChanged: FieldChangeData[],
+    endedCount: number,
+    parts: string[]
+  ): void {
+    const prominenceChanges = fieldsChanged.filter(f => f.field === 'prominence');
+    if (prominenceChanges.length > 0) {
+      const rising = prominenceChanges.filter(f => this.isProminenceIncrease(f.oldValue, f.newValue));
+      const falling = prominenceChanges.filter(f => !this.isProminenceIncrease(f.oldValue, f.newValue));
+      if (rising.length > 0) parts.push(`${rising.length} gained prominence`);
+      if (falling.length > 0) parts.push(`${falling.length} lost prominence`);
+    }
+    if (endedCount > 0) {
+      parts.push(`${endedCount} passed into history`);
+    }
+  }
+
+  private formatParticipantSummary(participantEffects: ParticipantEffect[]): string {
     const participantNames = participantEffects.slice(0, 3).map(p => p.entity.name);
     const moreCount = participantEffects.length > 3 ? ` +${participantEffects.length - 3} others` : '';
-    const whoSummary = participantNames.length > 0
+    return participantNames.length > 0
       ? `${participantNames.join(', ')}${moreCount}`
       : 'entities';
+  }
 
-    // Build final description
+  private formatFinalDescription(
+    parts: string[],
+    whoSummary: string,
+    sourceId: string,
+    sourceType: 'system' | 'action' | 'framework'
+  ): string {
     const sourceName = this.getSystemDisplayName(sourceId);
 
     if (parts.length === 0) {
-      // Framework events with no specific effects - use generic description
-      if (sourceType === 'framework') {
-        return `${whoSummary} changed.`;
-      }
+      if (sourceType === 'framework') return `${whoSummary} changed.`;
       return `${sourceName} affected ${whoSummary}.`;
     }
 
-    // Framework events don't need "due to Framework" - it's mechanical
     if (sourceType === 'framework') {
       return `${whoSummary}: ${parts.join(', ')}.`;
     }
-
     return `${whoSummary}: ${parts.join(', ')}, due to ${sourceName}.`;
   }
 

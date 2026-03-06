@@ -1,0 +1,14 @@
+.et-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.et-label-inline {
+  margin-bottom: 0;
+}
+
+.et-comment {
+  margin-top: 0;
+  margin-left: 8px;
+}

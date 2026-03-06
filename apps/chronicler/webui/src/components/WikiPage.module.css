@@ -31,7 +31,7 @@
    Chronicle Cover Hero
    =================== */
 
-.coverHero {
+.cover-hero {
   position: relative;
   width: 100%;
   height: 400px;
@@ -40,14 +40,23 @@
   overflow: hidden;
 }
 
-.coverHeroImage {
+.cover-hero-image-btn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.cover-hero-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.coverHeroOverlay {
+.cover-hero-overlay {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -55,9 +64,9 @@
   height: 65%;
   background: linear-gradient(
     transparent 0%,
-    rgba(26, 22, 17, 0.4) 30%,
-    rgba(24, 26, 30, 0.6) 50%,
-    rgba(26, 22, 17, 0.85) 70%,
+    rgb(26 22 17 / 40%) 30%,
+    rgb(24 26 30 / 60%) 50%,
+    rgb(26 22 17 / 85%) 70%,
     var(--color-bg-primary) 100%
   );
   display: flex;
@@ -65,7 +74,7 @@
   padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
 }
 
-.chronicleTitle {
+.chronicle-title {
   font-family: var(--font-family-display);
   font-size: 40px;
   font-weight: var(--font-weight-bold);
@@ -76,14 +85,16 @@
   margin-bottom: var(--spacing-sm);
 }
 
-.chronicleTitleHero {
+.chronicle-title-hero {
   font-family: var(--font-family-display);
   font-size: 40px;
   font-weight: var(--font-weight-bold);
   color: #e8dcc8;
   letter-spacing: -0.02em;
   line-height: var(--line-height-tight);
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.8), 0 1px 4px rgba(0, 0, 0, 0.6);
+  text-shadow:
+    0 2px 16px rgb(0 0 0 / 80%),
+    0 1px 4px rgb(0 0 0 / 60%);
   width: 100%;
   text-align: center;
 }
@@ -106,17 +117,17 @@
   margin-bottom: var(--spacing-md);
 }
 
-.breadcrumbLink {
+.breadcrumb-link {
   color: var(--color-accent);
   cursor: pointer;
   text-decoration: none;
 }
 
-.breadcrumbLink:hover {
+.breadcrumb-link:hover {
   text-decoration: underline;
 }
 
-.breadcrumbCurrent {
+.breadcrumb-current {
   color: var(--color-text-secondary);
 }
 
@@ -128,7 +139,7 @@
   display: flow-root;
 }
 
-.contentColumn {
+.content-column {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2xl);
@@ -153,7 +164,7 @@
   overflow: hidden;
 }
 
-.infoboxInline {
+.infobox-inline {
   width: 100%;
   position: static;
   margin-bottom: var(--spacing-xl);
@@ -163,7 +174,7 @@
   overflow: hidden;
 }
 
-.infoboxHeader {
+.infobox-header {
   padding: var(--spacing-sm) var(--spacing-md);
   background-color: var(--color-accent);
   color: var(--color-bg-primary);
@@ -174,7 +185,15 @@
 }
 
 /* Base infobox image - fallback for images without aspect metadata */
-.infoboxImage {
+.infobox-image-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.infobox-image {
   width: 100%;
   max-height: 320px;
   object-fit: contain;
@@ -183,7 +202,7 @@
   background: var(--color-bg-secondary);
 }
 
-.infoboxImageMobile {
+.infobox-image-mobile {
   width: 100%;
   max-height: 280px;
   object-fit: contain;
@@ -193,7 +212,7 @@
 }
 
 /* Aspect-specific infobox image classes */
-.infoboxImagePortrait {
+.infobox-image-portrait {
   width: 100%;
   height: 320px;
   object-fit: cover;
@@ -201,7 +220,7 @@
   cursor: zoom-in;
 }
 
-.infoboxImagePortraitMobile {
+.infobox-image-portrait-mobile {
   width: 100%;
   height: 280px;
   object-fit: cover;
@@ -209,7 +228,7 @@
   cursor: zoom-in;
 }
 
-.infoboxImageLandscape {
+.infobox-image-landscape {
   width: 100%;
   height: 160px;
   object-fit: cover;
@@ -217,7 +236,7 @@
   cursor: zoom-in;
 }
 
-.infoboxImageLandscapeMobile {
+.infobox-image-landscape-mobile {
   width: 100%;
   height: 180px;
   object-fit: cover;
@@ -225,7 +244,7 @@
   cursor: zoom-in;
 }
 
-.infoboxImageSquare {
+.infobox-image-square {
   width: 100%;
   height: 220px;
   object-fit: cover;
@@ -233,7 +252,7 @@
   cursor: zoom-in;
 }
 
-.infoboxImageSquareMobile {
+.infobox-image-square-mobile {
   width: 100%;
   height: 220px;
   object-fit: cover;
@@ -241,29 +260,29 @@
   cursor: zoom-in;
 }
 
-.infoboxBody {
+.infobox-body {
   padding: var(--spacing-sm);
 }
 
-.infoboxRow {
+.infobox-row {
   display: flex;
   padding: var(--spacing-xs) 0;
   border-bottom: 1px solid var(--color-border);
   font-size: var(--font-size-xs);
 }
 
-.infoboxRow:last-child {
+.infobox-row:last-child {
   border-bottom: none;
 }
 
-.infoboxLabel {
+.infobox-label {
   width: 80px;
   color: var(--color-text-muted);
   font-family: var(--font-family-ui);
   flex-shrink: 0;
 }
 
-.infoboxValue {
+.infobox-value {
   color: var(--color-text-secondary);
   flex: 1;
 }
@@ -281,7 +300,7 @@
   margin-bottom: var(--spacing-2xl);
 }
 
-.tocTitle {
+.toc-title {
   font-family: var(--font-family-ui);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
@@ -291,12 +310,13 @@
   margin-bottom: var(--spacing-sm);
 }
 
-.tocItem {
+.toc-item {
   font-family: var(--font-family-ui);
   font-size: var(--font-size-sm);
   color: var(--color-accent);
   cursor: pointer;
   padding: var(--spacing-xs) 0;
+  padding-left: var(--toc-indent, 0);
   display: block;
   text-decoration: none;
   border: none;
@@ -306,7 +326,7 @@
   transition: opacity var(--transition-fast);
 }
 
-.tocItem:hover {
+.toc-item:hover {
   opacity: 0.8;
 }
 
@@ -318,7 +338,7 @@
   margin-bottom: var(--spacing-3xl);
 }
 
-.sectionHeading {
+.section-heading {
   font-family: var(--font-family-display);
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
@@ -328,7 +348,7 @@
 }
 
 /* SVG filigree divider rendered after section headings */
-.sectionDividerSvg {
+.section-divider-svg {
   display: block;
   width: 160px;
   height: 20px;
@@ -336,7 +356,7 @@
 }
 
 /* Clickable section heading with expand/collapse arrow */
-.sectionHeadingToggle {
+.section-heading-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -348,20 +368,20 @@
   padding: 0;
 }
 
-.expandArrow {
+.expand-arrow {
   font-size: 14px;
   color: var(--color-text-muted);
   transition: transform 0.2s ease;
 }
 
-.expandArrowOpen {
+.expand-arrow-open {
   font-size: 14px;
   color: var(--color-text-muted);
   transition: transform 0.2s ease;
   transform: rotate(90deg);
 }
 
-.sectionWithImages {
+.section-with-images {
   position: relative;
 }
 
@@ -372,30 +392,33 @@
    On narrow viewports, falls back to inline callouts.
    =================== */
 
-.sidenoteColumn {
+.sidenote-column {
   position: absolute;
   top: 0;
   right: -260px;
   width: 240px;
 }
 
-.sidenoteCallout {
+.sidenote-callout {
   position: absolute;
+  top: var(--sidenote-top, 0);
   width: 100%;
 }
 
 /* Inline fallback: floated callouts for narrow viewports */
-.inlineCallouts {
+.inline-callouts {
   display: none;
 }
 
 /* Wide viewports: sidenotes visible, inline hidden */
+
 /* Narrow viewports: sidenotes hidden, inline visible */
-@media (max-width: 1300px) {
-  .sidenoteColumn {
+@media (width <= 1300px) {
+  .sidenote-column {
     display: none;
   }
-  .inlineCallouts {
+
+  .inline-callouts {
     display: contents;
   }
 }
@@ -412,23 +435,12 @@
    Drop Cap for Chronicles
    =================== */
 
-.chronicleBody {
+.chronicle-body {
   /* Wrapper for chronicle content - used for document type differentiation */
 }
 
-.chronicleBody[data-dropcap] .markdownSection[data-first] p:first-of-type::first-letter {
-  float: left;
-  font-family: var(--font-family-display);
-  font-size: 3.5em;
-  line-height: 0.8;
-  padding-right: 8px;
-  padding-top: 4px;
-  color: var(--color-accent);
-  font-weight: var(--font-weight-bold);
-}
-
 /* Drop cap after horizontal rules (narrative starts after preamble) */
-.chronicleBody .markdownSection hr + p::first-letter {
+.chronicle-body .markdown-section hr + p::first-letter {
   float: left;
   font-family: var(--font-family-display);
   font-size: 3.5em;
@@ -440,11 +452,11 @@
 }
 
 /* Disable hr+p drop caps for verse/centered styles (stanzas use Roman numeral markers) */
-.chronicleBody[data-style="folk-song"] .markdownSection hr + p::first-letter,
-.chronicleBody[data-style="nursery-rhymes"] .markdownSection hr + p::first-letter,
-.chronicleBody[data-style="haiku-collection"] .markdownSection hr + p::first-letter,
-.chronicleBody[data-style="wanted-notice"] .markdownSection hr + p::first-letter,
-.chronicleBody[data-style="tavern-notices"] .markdownSection hr + p::first-letter {
+.chronicle-body[data-style="folk-song"] .markdown-section hr + p::first-letter,
+.chronicle-body[data-style="nursery-rhymes"] .markdown-section hr + p::first-letter,
+.chronicle-body[data-style="haiku-collection"] .markdown-section hr + p::first-letter,
+.chronicle-body[data-style="wanted-notice"] .markdown-section hr + p::first-letter,
+.chronicle-body[data-style="tavern-notices"] .markdown-section hr + p::first-letter {
   float: none;
   font-size: inherit;
   line-height: inherit;
@@ -453,18 +465,29 @@
   color: inherit;
 }
 
+.chronicle-body[data-dropcap] .markdown-section[data-first] p:first-of-type::first-letter {
+  float: left;
+  font-family: var(--font-family-display);
+  font-size: 3.5em;
+  line-height: 0.8;
+  padding-right: 8px;
+  padding-top: 4px;
+  color: var(--color-accent);
+  font-weight: var(--font-weight-bold);
+}
+
 /* ===================
    Entity Links
    =================== */
 
-.entityLink {
+.entity-link {
   color: var(--color-accent);
   cursor: pointer;
   border-bottom: 1px dotted var(--color-accent);
   text-decoration: none;
 }
 
-.entityLink:hover {
+.entity-link:hover {
   opacity: 0.8;
 }
 
@@ -477,7 +500,7 @@
   padding-top: var(--spacing-sm);
 }
 
-.backlinksTitle {
+.backlinks-title {
   font-family: var(--font-family-ui);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
@@ -487,7 +510,7 @@
   margin-bottom: var(--spacing-sm);
 }
 
-.backlinkItem {
+.backlink-item {
   font-size: var(--font-size-sm);
   color: var(--color-accent);
   cursor: pointer;
@@ -499,7 +522,7 @@
   transition: opacity var(--transition-fast);
 }
 
-.backlinkItem:hover {
+.backlink-item:hover {
   opacity: 0.8;
 }
 
@@ -507,41 +530,43 @@
    Chronicle Gallery
    =================== */
 
-.gallerySection {
+.gallery-section {
   margin-bottom: var(--spacing-2xl);
 }
 
-.galleryGrid {
+.gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: var(--spacing-md);
   margin-top: var(--spacing-sm);
 }
 
-.galleryCard {
+.gallery-card {
   border: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast);
   text-align: left;
   padding: 0;
 }
 
-.galleryCard:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+.gallery-card:hover {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
   border-color: var(--color-accent);
 }
 
-.galleryImage {
+.gallery-image {
   width: 100%;
   aspect-ratio: 3 / 2;
   object-fit: cover;
   display: block;
 }
 
-.galleryPlaceholder {
+.gallery-placeholder {
   width: 100%;
   aspect-ratio: 3 / 2;
   display: flex;
@@ -553,7 +578,7 @@
   opacity: 0.5;
 }
 
-.galleryTitle {
+.gallery-title {
   padding: var(--spacing-xs) var(--spacing-sm);
   font-family: var(--font-family-display);
   font-size: var(--font-size-xs);
@@ -563,7 +588,7 @@
   text-overflow: ellipsis;
 }
 
-.moreText {
+.more-text {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin-top: var(--spacing-sm);
@@ -579,14 +604,14 @@
   border-top: 1px solid var(--color-border-light);
 }
 
-.categoriesLabel {
+.categories-label {
   font-family: var(--font-family-ui);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin-bottom: var(--spacing-sm);
 }
 
-.categoryTag {
+.category-tag {
   display: inline-block;
   padding: var(--spacing-xs) var(--spacing-sm);
   margin: 0 var(--spacing-xs) var(--spacing-xs) 0;
@@ -600,7 +625,7 @@
   transition: background-color var(--transition-fast);
 }
 
-.categoryTag:hover {
+.category-tag:hover {
   background-color: var(--color-accent-hover);
 }
 
@@ -608,19 +633,19 @@
    Disambiguation Notice
    =================== */
 
-.disambiguationNotice {
+.disambiguation-notice {
   margin-bottom: var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-sm);
   font-style: italic;
   color: var(--color-text-muted);
-  background-color: rgba(196, 154, 92, 0.08);
+  background-color: rgb(196 154 92 / 8%);
   border-radius: var(--radius-sm);
   border-left: 3px solid var(--color-accent);
   line-height: var(--line-height-relaxed);
 }
 
-.disambiguationLink {
+.disambiguation-link {
   color: var(--color-accent);
   cursor: pointer;
   margin-left: var(--spacing-xs);
@@ -628,7 +653,7 @@
   font-weight: var(--font-weight-medium);
 }
 
-.disambiguationLink:hover {
+.disambiguation-link:hover {
   text-decoration: underline;
 }
 
@@ -636,54 +661,62 @@
    Chronicle Images - Editorial Style
    =================== */
 
-.imageThumbRight {
+.image-thumb-right {
   float: right;
   clear: right;
   margin: var(--spacing-sm) 0 var(--spacing-md) var(--spacing-xl);
 }
 
-.imageThumbLeft {
+.image-thumb-left {
   float: left;
   clear: left;
   margin: var(--spacing-sm) var(--spacing-xl) var(--spacing-md) 0;
 }
 
-.imageSmall {
+.image-small {
   width: 170px;
 }
 
-.imageMedium {
+.image-medium {
   width: 240px;
 }
 
-.imageLarge {
+.image-large {
   width: 380px;
 }
 
-.imageLargeLeft {
+.image-large-left {
   margin-left: 0;
   margin-right: auto;
 }
 
-.imageLargeRight {
+.image-large-right {
   margin-left: auto;
   margin-right: 0;
 }
 
-.imageFullWidth {
+.image-full-width {
   width: 100%;
   margin: var(--spacing-2xl) 0;
 }
 
-.figureImage {
+.figure-image-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.figure-image {
   width: 100%;
   display: block;
   border-radius: var(--radius-sm);
   cursor: zoom-in;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 30%);
 }
 
-.imageCaption {
+.image-caption {
   font-family: var(--font-family-ui);
   font-size: var(--font-size-sm);
   font-style: italic;
@@ -693,7 +726,7 @@
   text-align: center;
 }
 
-.imagePlaceholder {
+.image-placeholder {
   width: 100%;
   height: 100px;
   display: flex;
@@ -713,7 +746,7 @@
    Seed Button
    =================== */
 
-.seedButton {
+.seed-button {
   padding: var(--spacing-xs) var(--spacing-sm);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-xs);
@@ -729,7 +762,7 @@
   transition: all var(--transition-fast);
 }
 
-.seedButton:hover {
+.seed-button:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
@@ -738,8 +771,10 @@
    Entity Preview Card (hover)
    =================== */
 
-.previewCard {
+.preview-card {
   position: fixed;
+  left: var(--preview-left, 0);
+  top: var(--preview-top, 0);
   z-index: var(--z-modal);
   width: 260px;
   background-color: var(--color-bg-secondary);
@@ -750,7 +785,7 @@
   pointer-events: none;
 }
 
-.previewHeader {
+.preview-header {
   display: flex;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-sm);
@@ -758,7 +793,7 @@
   color: var(--color-bg-primary);
 }
 
-.previewThumbnail {
+.preview-thumbnail {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-sm);
@@ -766,11 +801,11 @@
   flex-shrink: 0;
 }
 
-.previewThumbnailPlaceholder {
+.preview-thumbnail-placeholder {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-sm);
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgb(0 0 0 / 20%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -778,7 +813,7 @@
   flex-shrink: 0;
 }
 
-.previewTitle {
+.preview-title {
   font-family: var(--font-family-display);
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-base);
@@ -788,18 +823,18 @@
   align-items: center;
 }
 
-.previewBody {
+.preview-body {
   padding: var(--spacing-sm) var(--spacing-sm);
 }
 
-.previewBadges {
+.preview-badges {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-xs);
   margin-bottom: var(--spacing-sm);
 }
 
-.previewBadge {
+.preview-badge {
   display: inline-block;
   padding: 2px var(--spacing-xs);
   font-family: var(--font-family-ui);
@@ -809,19 +844,19 @@
   color: var(--color-text-secondary);
 }
 
-.previewBadgeKind {
-  composes: previewBadge;
+.preview-badge-kind {
+  composes: preview-badge;
   background-color: var(--color-accent-hover);
   color: var(--color-accent-light);
 }
 
-.previewBadgeStatus {
-  composes: previewBadge;
-  background-color: rgba(196, 164, 112, 0.15);
+.preview-badge-status {
+  composes: preview-badge;
+  background-color: rgb(196 164 112 / 15%);
   color: var(--color-text-muted);
 }
 
-.previewSummary {
+.preview-summary {
   font-size: var(--font-size-xs);
   line-height: var(--line-height-relaxed);
   color: var(--color-text-secondary);
@@ -831,36 +866,55 @@
    Markdown Section
    =================== */
 
-.markdownSection {
+.markdown-section {
   font-size: var(--font-size-base);
   line-height: var(--line-height-relaxed);
   color: var(--color-text-secondary);
 }
 
 /* ===================
+   Layout Engine - Centered Mode
+   For poetry, songs, verse without images. Text centered, no grid.
+   =================== */
+
+.centered-layout {
+  text-align: center;
+}
+
+.centered-layout .markdown-section {
+  text-align: center;
+}
+
+/* ===================
    Document Type Visual Differentiation
-   Applied via data-style attribute on .chronicleBody
+   Applied via data-style attribute on .chronicle-body
    =================== */
 
 /* Verse forms: folk songs, nursery rhymes, haiku */
-.chronicleBody[data-style="folk-song"] .markdownSection,
-.chronicleBody[data-style="nursery-rhymes"] .markdownSection,
-.chronicleBody[data-style="haiku-collection"] .markdownSection {
+.chronicle-body[data-style="folk-song"] .markdown-section,
+.chronicle-body[data-style="nursery-rhymes"] .markdown-section,
+.chronicle-body[data-style="haiku-collection"] .markdown-section {
   text-align: center;
   font-style: italic;
   line-height: 2;
 }
 
 /* Force centering on wmde-markdown for verse styles (library sets text-align: left) */
-.chronicleBody[data-style="folk-song"] :global(.wmde-markdown),
-.chronicleBody[data-style="nursery-rhymes"] :global(.wmde-markdown),
-.chronicleBody[data-style="haiku-collection"] :global(.wmde-markdown) {
+.chronicle-body[data-style="folk-song"] :global(.wmde-markdown),
+.chronicle-body[data-style="nursery-rhymes"] :global(.wmde-markdown),
+.chronicle-body[data-style="haiku-collection"] :global(.wmde-markdown) {
   text-align: center !important;
 }
 
-.chronicleBody[data-dropcap][data-style="folk-song"] .markdownSection[data-first] p:first-of-type::first-letter,
-.chronicleBody[data-dropcap][data-style="nursery-rhymes"] .markdownSection[data-first] p:first-of-type::first-letter,
-.chronicleBody[data-dropcap][data-style="haiku-collection"] .markdownSection[data-first] p:first-of-type::first-letter {
+.chronicle-body[data-dropcap][data-style="folk-song"]
+  .markdown-section[data-first]
+  p:first-of-type::first-letter,
+.chronicle-body[data-dropcap][data-style="nursery-rhymes"]
+  .markdown-section[data-first]
+  p:first-of-type::first-letter,
+.chronicle-body[data-dropcap][data-style="haiku-collection"]
+  .markdown-section[data-first]
+  p:first-of-type::first-letter {
   float: none;
   font-size: inherit;
   line-height: inherit;
@@ -868,21 +922,23 @@
 }
 
 /* Letters / Correspondence - epistolary feel */
-.chronicleBody[data-style="collected-letters"] .markdownSection {
+.chronicle-body[data-style="collected-letters"] .markdown-section {
   padding-left: var(--spacing-lg);
   border-left: 2px solid var(--color-border);
 }
 
 /* Wanted Notice - poster-like treatment */
-.chronicleBody[data-style="wanted-notice"] .markdownSection {
+.chronicle-body[data-style="wanted-notice"] .markdown-section {
   text-align: center;
   border: 2px solid var(--color-accent);
   border-radius: var(--radius-md);
   padding: var(--spacing-xl);
-  background: rgba(196, 154, 92, 0.04);
+  background: rgb(196 154 92 / 4%);
 }
 
-.chronicleBody[data-dropcap][data-style="wanted-notice"] .markdownSection[data-first] p:first-of-type::first-letter {
+.chronicle-body[data-dropcap][data-style="wanted-notice"]
+  .markdown-section[data-first]
+  p:first-of-type::first-letter {
   float: none;
   font-size: inherit;
   line-height: inherit;
@@ -890,20 +946,22 @@
 }
 
 /* Sacred Text - reverential, generous margins */
-.chronicleBody[data-style="sacred-text"] .markdownSection {
+.chronicle-body[data-style="sacred-text"] .markdown-section {
   padding: 0 var(--spacing-2xl);
   line-height: 2;
 }
 
 /* Interrogation Record - bureaucratic feel */
-.chronicleBody[data-style="interrogation-record"] .markdownSection {
+.chronicle-body[data-style="interrogation-record"] .markdown-section {
   font-family: "Courier New", Courier, monospace;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-relaxed);
   letter-spacing: 0.02em;
 }
 
-.chronicleBody[data-dropcap][data-style="interrogation-record"] .markdownSection[data-first] p:first-of-type::first-letter {
+.chronicle-body[data-dropcap][data-style="interrogation-record"]
+  .markdown-section[data-first]
+  p:first-of-type::first-letter {
   float: none;
   font-size: inherit;
   line-height: inherit;
@@ -912,42 +970,44 @@
 }
 
 /* Personal Diary - warm, intimate */
-.chronicleBody[data-style="personal-diary"] .markdownSection {
-  background: rgba(196, 154, 92, 0.03);
+.chronicle-body[data-style="personal-diary"] .markdown-section {
+  background: rgb(196 154 92 / 3%);
   padding: var(--spacing-lg);
   border-radius: var(--radius-md);
   letter-spacing: 0.01em;
 }
 
 /* Herald's Dispatch / Field Report - formal header feel */
-.chronicleBody[data-style="heralds-dispatch"] .markdownSection,
-.chronicleBody[data-style="field-report"] .markdownSection {
+.chronicle-body[data-style="heralds-dispatch"] .markdown-section,
+.chronicle-body[data-style="field-report"] .markdown-section {
   border-top: 2px solid var(--color-border);
   padding-top: var(--spacing-md);
 }
 
 /* Diplomatic Accord - formal document */
-.chronicleBody[data-style="diplomatic-accord"] .markdownSection {
+.chronicle-body[data-style="diplomatic-accord"] .markdown-section {
   padding: var(--spacing-md) var(--spacing-xl);
   border-left: 3px double var(--color-accent);
   line-height: 2;
 }
 
 /* Chronicle Entry - archival (frost-tinted border nods to the ice) */
-.chronicleBody[data-style="chronicle-entry"] .markdownSection {
+.chronicle-body[data-style="chronicle-entry"] .markdown-section {
   border-left: 3px solid var(--color-frost, #8ab4c4);
   padding-left: var(--spacing-lg);
 }
 
 /* Tavern Notice Board - community feel */
-.chronicleBody[data-style="tavern-notices"] .markdownSection {
-  background: rgba(196, 154, 92, 0.04);
+.chronicle-body[data-style="tavern-notices"] .markdown-section {
+  background: rgb(196 154 92 / 4%);
   border: 1px dashed var(--color-border);
   padding: var(--spacing-lg);
   border-radius: var(--radius-sm);
 }
 
-.chronicleBody[data-dropcap][data-style="tavern-notices"] .markdownSection[data-first] p:first-of-type::first-letter {
+.chronicle-body[data-dropcap][data-style="tavern-notices"]
+  .markdown-section[data-first]
+  p:first-of-type::first-letter {
   float: none;
   font-size: inherit;
   line-height: inherit;
@@ -961,9 +1021,11 @@
    Used for short content, verse, and document styles with images.
    =================== */
 
-.marginLayout {
+.margin-layout {
   display: grid;
+
   /* Expand from .main (740px) to .container (1000px) using negative margins */
+
   /* Each margin column: 200px for images; center: remaining ~560px for text */
   grid-template-columns: 200px 1fr 200px;
   gap: 0 var(--spacing-lg);
@@ -973,32 +1035,32 @@
   margin-right: -130px;
 }
 
-.marginLeft,
-.marginRight {
+.margin-left,
+.margin-right {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
   padding-top: var(--spacing-xs);
 }
 
-.marginCenter {
+.margin-center {
   min-width: 0;
 }
 
 /* Margin images: fill the column width */
-.marginImage {
+.margin-image {
   width: 100%;
 }
 
-.marginImage .figureImage {
+.margin-image .figure-image {
   width: 100%;
 }
 
 /* Margin callout: compact for side column */
-.marginCallout {
+.margin-callout {
   padding: var(--spacing-sm);
-  border-left: 2px solid var(--color-accent);
-  background: rgba(196, 154, 92, 0.04);
+  border-left: 2px solid var(--note-color, var(--color-accent));
+  background: rgb(196 154 92 / 4%);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-size: var(--font-size-xs);
   font-family: Georgia, "Times New Roman", serif;
@@ -1007,7 +1069,7 @@
   line-height: var(--line-height-relaxed);
 }
 
-.marginCalloutLabel {
+.margin-callout-label {
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1015,41 +1077,28 @@
   margin-bottom: 4px;
   font-style: normal;
   font-family: var(--font-family-ui);
+  color: var(--note-color);
 }
 
 /* On small screens, collapse margins to inline */
-@media (max-width: 640px) {
-  .marginLayout {
+@media (width <= 640px) {
+  .margin-layout {
     display: block;
     width: 100%;
     margin-left: 0;
     margin-right: 0;
   }
 
-  .marginLeft,
-  .marginRight {
-    flex-direction: row;
-    flex-wrap: wrap;
+  .margin-left,
+  .margin-right {
+    flex-flow: row wrap;
     gap: var(--spacing-sm);
     margin: var(--spacing-md) 0;
   }
 
-  .marginImage {
+  .margin-image {
     max-width: 45%;
   }
-}
-
-/* ===================
-   Layout Engine - Centered Mode
-   For poetry, songs, verse without images. Text centered, no grid.
-   =================== */
-
-.centeredLayout {
-  text-align: center;
-}
-
-.centeredLayout .markdownSection {
-  text-align: center;
 }
 
 /* ===================
@@ -1057,7 +1106,7 @@
    HR elements get a frost-tinted gradient line
    =================== */
 
-.markdownSection :global(hr) {
+.markdown-section :global(hr) {
   border: none;
   height: 24px;
   background: transparent;
@@ -1069,14 +1118,14 @@
 }
 
 /* Frost edge for infobox top */
-.frostEdge {
+.frost-edge {
   display: block;
   width: 100%;
   height: 10px;
 }
 
 /* Frost edge at bottom of cover hero image */
-.frostEdgeHero {
+.frost-edge-hero {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -1087,7 +1136,7 @@
 }
 
 /* Frost edge as section divider (backlinks, chronicles) */
-.frostEdgeDivider {
+.frost-edge-divider {
   display: block;
   width: 100%;
   height: 10px;
@@ -1100,31 +1149,31 @@
    =================== */
 
 /* Content width overrides */
-.chronicleBody[data-content-width="narrow"] {
+.chronicle-body[data-content-width="narrow"] {
   max-width: 52ch;
   margin-left: auto;
   margin-right: auto;
 }
 
-.chronicleBody[data-content-width="wide"] {
+.chronicle-body[data-content-width="wide"] {
   max-width: 90ch;
 }
 
 /* Text alignment overrides */
-.chronicleBody[data-text-align="center"] .markdownSection {
+.chronicle-body[data-text-align="center"] .markdown-section {
   text-align: center;
 }
 
-.chronicleBody[data-text-align="center"] :global(.wmde-markdown) {
+.chronicle-body[data-text-align="center"] :global(.wmde-markdown) {
   text-align: center !important;
 }
 
-.chronicleBody[data-text-align="justify"] .markdownSection {
+.chronicle-body[data-text-align="justify"] .markdown-section {
   text-align: justify;
   hyphens: auto;
 }
 
-.chronicleBody[data-text-align="justify"] :global(.wmde-markdown) {
+.chronicle-body[data-text-align="justify"] :global(.wmde-markdown) {
   text-align: justify !important;
   hyphens: auto;
 }
@@ -1134,7 +1183,7 @@
    Collected historian notes rendered at section bottom
    =================== */
 
-.footnoteList {
+.footnote-list {
   margin: 1.5em 0 0;
   padding: 1em 0 0;
   border-top: 1px solid var(--color-border, #4a4035);
@@ -1142,19 +1191,19 @@
   counter-reset: footnote;
 }
 
-.footnoteItem {
+.footnote-item {
   display: flex;
   gap: 8px;
   align-items: baseline;
   padding: 6px 0 6px 12px;
-  border-left: 2px solid var(--color-border, #4a4035);
+  border-left: 2px solid var(--note-color, var(--color-border, #4a4035));
   font-size: var(--font-size-sm, 13px);
   line-height: 1.6;
   color: var(--color-text-secondary, #c4b99a);
   counter-increment: footnote;
 }
 
-.footnoteItem::before {
+.footnote-item::before {
   content: counter(footnote) ".";
   flex-shrink: 0;
   min-width: 1.5em;
@@ -1163,7 +1212,7 @@
   font-family: var(--font-family-ui, system-ui, sans-serif);
 }
 
-.footnoteLabel {
+.footnote-label {
   flex-shrink: 0;
   font-size: 10px;
   font-weight: 700;
@@ -1171,10 +1220,113 @@
   letter-spacing: 0.5px;
   font-family: var(--font-family-ui, system-ui, sans-serif);
   font-style: normal;
+  color: var(--note-color);
 }
 
-.footnoteText {
+.footnote-text {
   font-family: Georgia, "Times New Roman", serif;
   font-style: italic;
 }
 
+/* ===================
+   Inline Style Extractions
+   Classes below replace inline styles from WikiPage.tsx
+   =================== */
+
+/* Cover hero image with optional zoom cursor */
+.cover-hero-image-clickable {
+  cursor: zoom-in;
+}
+
+/* Era narrative subtitle: centered italic */
+.era-narrative-subtitle {
+  text-align: center;
+  font-style: italic;
+  opacity: 0.7;
+  font-size: var(--font-size-sm);
+}
+
+/* Historian note index label spacing */
+.note-index-label {
+  margin-right: 4px;
+}
+
+/* Flow-mode historian callout (floated right) */
+.flow-callout {
+  float: right;
+  clear: right;
+  width: 300px;
+  margin: 4px -40px 8px 20px;
+  padding: 14px 16px;
+  background: rgb(196 154 92 / 6%);
+  border-left: 3px solid var(--note-color, var(--color-accent));
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: var(--color-text-secondary, #c4b99a);
+  line-height: 1.7;
+}
+
+/* Historian note type label (shared between flow, tooltip, unmatched) */
+.note-type-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-style: normal;
+  font-family: var(--font-family-ui, system-ui, sans-serif);
+  color: var(--note-color);
+}
+
+/* Footnote tooltip: positioned callout on hover */
+.footnote-tooltip {
+  position: fixed;
+  left: var(--tooltip-left, 0);
+  top: var(--tooltip-top, 0);
+  width: 340px;
+  padding: 12px 16px;
+  background: var(--color-bg-elevated, #3a3228);
+  border-left: 3px solid var(--note-color, var(--color-accent));
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 40%);
+  font-size: 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: var(--color-text-secondary, #c4b99a);
+  line-height: 1.7;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Unmatched historian notes container */
+.unmatched-notes-section {
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
+/* Unmatched notes heading */
+.unmatched-notes-heading {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent, #c49a5c);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-family: var(--font-family-ui, system-ui, sans-serif);
+}
+
+/* Individual unmatched note card */
+.unmatched-note-card {
+  margin: 6px 0 6px 16px;
+  padding: 10px 14px;
+  background: rgb(196 154 92 / 6%);
+  border-left: 3px solid var(--note-color, var(--color-accent));
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: var(--color-text-secondary, #c4b99a);
+  line-height: 1.7;
+}

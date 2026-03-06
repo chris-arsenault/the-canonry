@@ -5,18 +5,18 @@
  * Includes deduplication of existing palette items.
  */
 
-import { LLMClient } from './llmClient';
+import { LLMClient } from "./llmClient";
 import {
   getPalette,
   updatePaletteItems,
   getHistoricalTraits,
   type TraitPalette,
   type PaletteItem,
-} from './db/traitRepository';
-import { saveCostRecordWithDefaults } from './db/costRepository';
-import { runTextCall } from './llmTextCall';
-import { parseJsonObject } from './jsonParsing';
-import { getCallConfig } from './llmModelSettings';
+} from "./db/traitRepository";
+import { saveCostRecordWithDefaults } from "./db/costRepository";
+import { runTextCall } from "./llmTextCall";
+import { parseJsonObject } from "./jsonParsing";
+import { getCallConfig } from "./llmModelSettings";
 
 // ============================================================================
 // Types
@@ -25,8 +25,8 @@ import { getCallConfig } from './llmModelSettings';
 export interface PaletteExpansionRequest {
   projectId: string;
   entityKind: string;
-  worldContext: string;         // Brief world description for tone
-  simulationRunId?: string;     // For cost tracking
+  worldContext: string; // Brief world description for tone
+  simulationRunId?: string; // For cost tracking
 }
 
 export interface PaletteExpansionResult {
@@ -70,18 +70,20 @@ function buildExpansionPrompt(
   currentPalette: PaletteItem[],
   historicalTraits: string[]
 ): string {
-  const paletteSection = currentPalette.length > 0
-    ? currentPalette.map(p =>
-      `- [${p.id}] ${p.category} (used ${p.timesUsed}x): ${p.description}`
-    ).join('\n')
-    : '(no categories yet)';
+  const paletteSection =
+    currentPalette.length > 0
+      ? currentPalette
+          .map((p) => `- [${p.id}] ${p.category} (used ${p.timesUsed}x): ${p.description}`)
+          .join("\n")
+      : "(no categories yet)";
 
   // Dedupe and limit historical traits
   const uniqueTraits = [...new Set(historicalTraits)];
   const traitSample = uniqueTraits.slice(0, 50);
-  const traitsSection = traitSample.length > 0
-    ? traitSample.map(t => `- ${t}`).join('\n')
-    : '(no traits generated yet)';
+  const traitsSection =
+    traitSample.length > 0
+      ? traitSample.map((t) => `- ${t}`).join("\n")
+      : "(no traits generated yet)";
 
   return `You are designing a VISUAL TRAIT PALETTE for "${entityKind}" entities.
 
@@ -93,7 +95,7 @@ ${paletteSection}
 
 ## Traits Already Generated (avoid similarity to these)
 ${traitsSection}
-${uniqueTraits.length > 50 ? `\n... and ${uniqueTraits.length - 50} more` : ''}
+${uniqueTraits.length > 50 ? `\n... and ${uniqueTraits.length - 50} more` : ""}
 
 ## Your Task
 
@@ -163,7 +165,7 @@ Prefer:
 // ============================================================================
 
 function parseExpansionResponse(text: string): ExpansionResponse {
-  const parsed = parseJsonObject<Record<string, unknown>>(text, 'palette expansion response');
+  const parsed = parseJsonObject<Record<string, unknown>>(text, "palette expansion response");
 
   // Validate structure
   const result: ExpansionResponse = {
@@ -174,36 +176,42 @@ function parseExpansionResponse(text: string): ExpansionResponse {
 
   if (Array.isArray(parsed.removedCategories)) {
     result.removedCategories = parsed.removedCategories.filter(
-      (id: unknown) => typeof id === 'string'
+      (id: unknown) => typeof id === "string"
     );
   }
 
   if (Array.isArray(parsed.mergedCategories)) {
     result.mergedCategories = parsed.mergedCategories
-      .filter((m: unknown) =>
-        m && typeof m === 'object' &&
-        typeof (m as Record<string, unknown>).keepId === 'string' &&
-        Array.isArray((m as Record<string, unknown>).mergeFromIds)
+      .filter(
+        (m: unknown) =>
+          m &&
+          typeof m === "object" &&
+          typeof (m as Record<string, unknown>).keepId === "string" &&
+          Array.isArray((m as Record<string, unknown>).mergeFromIds)
       )
       .map((m: Record<string, unknown>) => ({
         keepId: m.keepId as string,
-        mergeFromIds: (m.mergeFromIds as unknown[]).filter(id => typeof id === 'string') as string[],
-        newDescription: typeof m.newDescription === 'string' ? m.newDescription : '',
+        mergeFromIds: (m.mergeFromIds as unknown[]).filter(
+          (id) => typeof id === "string"
+        ),
+        newDescription: typeof m.newDescription === "string" ? m.newDescription : "",
       }));
   }
 
   if (Array.isArray(parsed.newCategories)) {
     result.newCategories = parsed.newCategories
-      .filter((c: unknown) =>
-        c && typeof c === 'object' &&
-        typeof (c as Record<string, unknown>).category === 'string' &&
-        typeof (c as Record<string, unknown>).description === 'string'
+      .filter(
+        (c: unknown) =>
+          c &&
+          typeof c === "object" &&
+          typeof (c as Record<string, unknown>).category === "string" &&
+          typeof (c as Record<string, unknown>).description === "string"
       )
       .map((c: Record<string, unknown>) => ({
         category: c.category as string,
         description: c.description as string,
         examples: Array.isArray(c.examples)
-          ? (c.examples as unknown[]).filter(e => typeof e === 'string') as string[]
+          ? ((c.examples as unknown[]).filter((e) => typeof e === "string"))
           : [],
       }));
   }
@@ -222,11 +230,11 @@ export async function expandPalette(
   const { projectId, entityKind, worldContext } = request;
 
   if (!llmClient.isEnabled()) {
-    return { success: false, error: 'LLM client not configured' };
+    return { success: false, error: "LLM client not configured" };
   }
 
   // Get model settings for palette expansion
-  const callConfig = getCallConfig('palette.expansion');
+  const callConfig = getCallConfig("palette.expansion");
   const { model } = callConfig;
 
   // Gather current state
@@ -242,7 +250,7 @@ export async function expandPalette(
 
   const expansionCall = await runTextCall({
     llmClient,
-    callType: 'palette.expansion',
+    callType: "palette.expansion",
     callConfig,
     systemPrompt: EXPANSION_SYSTEM_PROMPT,
     prompt,
@@ -253,7 +261,7 @@ export async function expandPalette(
   if (result.error || !result.text) {
     return {
       success: false,
-      error: result.error || 'Empty response from LLM',
+      error: result.error || "Empty response from LLM",
     };
   }
 
@@ -264,7 +272,7 @@ export async function expandPalette(
   } catch (err) {
     return {
       success: false,
-      error: `Failed to parse expansion response: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      error: `Failed to parse expansion response: ${err instanceof Error ? err.message : "Unknown error"}`,
     };
   }
 
@@ -287,7 +295,7 @@ export async function expandPalette(
   await saveCostRecordWithDefaults({
     projectId,
     simulationRunId: request.simulationRunId,
-    type: 'paletteExpansion',
+    type: "paletteExpansion",
     model,
     estimatedCost: cost.estimated,
     actualCost: cost.actual,

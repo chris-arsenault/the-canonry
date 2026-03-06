@@ -151,7 +151,7 @@
 }
 
 /* Category toggle button */
-.btn-toggle-category {
+.btn-switch-category {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -163,12 +163,12 @@
   background-color: transparent;
 }
 
-.btn-toggle-category:hover {
+.btn-switch-category:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
 
-.btn-toggle-category-active {
+.btn-switch-category-active {
   background-color: rgb(34 197 94 / 15%);
   border-color: var(--color-success);
   color: var(--color-success);

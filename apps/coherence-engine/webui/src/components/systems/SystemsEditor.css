@@ -1,0 +1,19 @@
+/* SystemsEditor companion styles */
+.se-add-card-wrap {
+  max-width: 320px;
+}
+
+.se-add-icon {
+  font-size: 24px;
+}
+
+.se-type-picker-modal {
+  max-width: 600px;
+  height: auto;
+  max-height: 80vh;
+}
+
+.se-type-picker-content {
+  padding: var(--spacing-2xl);
+  overflow-y: auto;
+}

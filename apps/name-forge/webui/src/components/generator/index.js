@@ -1,1 +1,1 @@
-export { default as GenerateTab } from './GenerateTab';
+export { default as GenerateTab } from "./GenerateTab";

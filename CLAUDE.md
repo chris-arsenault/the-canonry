@@ -23,7 +23,7 @@ The architecture provides a **domain-agnostic TypeScript framework** with **JSON
 ## Repository Structure
 
 ```
-penguin-tales/                    # Repository root
+the-canonry/                    # Repository root
 ├── apps/
 │   ├── lore-weave/              # World generation framework
 │   │   ├── lib/                 # Core library
@@ -193,6 +193,50 @@ const config: EngineConfig = {
   maxTicks: 500                 // Maximum simulation ticks
 };
 ```
+
+## Lint Fix Discipline
+
+A lint violation is a signal about code quality, not a warning to silence.
+
+**Before fixing any lint violation, state in one sentence what the code is doing wrong** — not what the linter reports, but the underlying quality problem. If you cannot state it, read the rule's documentation and understand the code before touching anything.
+
+The fix must solve the stated problem. A fix that makes the violation disappear without solving the problem is not a fix.
+
+**Examples of the required reasoning:**
+
+| Violation | Wrong (restates the error) | Right (names the problem) |
+|---|---|---|
+| `max-lines-per-function` | "function is too long" | "this function handles HTTP, parses response, and formats output — three responsibilities" |
+| `no-unnecessary-condition` | "`x !== undefined` is flagged" | "the type says x is always defined here, so either the guard is dead or the type is wrong — determine which" |
+| `simulationRunId: string \| null` | "callers pass null so the type needs null" | "callers that pass null are wrong — a saved slot always has a run, fix the callers" |
+| `no-unused-vars` | "variable is not used" | "this is dead code — either the feature was removed incompletely or the call site is missing" |
+| `complexity` | "too many branches" | "this conditional has no clear decision structure — needs decomposition or early returns" |
+
+**Prohibited shortcuts — these are not fixes:**
+- Prefixing unused variables with `_` instead of removing or actually using them
+- Splitting a function at arbitrary lines to hit a line count
+- Extracting logic into helpers purely to reduce measured complexity with no improvement to clarity
+- Widening types (`| null`, `| undefined`, `any`) to accommodate callers that are passing wrong values
+- Adding `eslint-disable` as a first response to any violation
+
+**Empirical absence is not evidence of intentional optionality.**
+
+Finding that some callers omit a field, or that some data records lack a value,
+does not mean the field should be `Optional<T>`. Absence has three possible causes:
+
+1. **Bug** — all instances should have the value; the missing ones are wrong
+2. **Type mismatch** — there are two distinct types conflated into one type; model them as a discriminated union instead
+3. **Intentional optionality** — absence is a valid designed state
+
+(1) and (2) are far more common than (3). Before using `Optional<T>`, rule out (1) and (2) explicitly. If you cannot determine which case applies from context, **ask** — do not default to `Optional<T>` as a safe middle ground.
+
+Example: `craftPosture?: string` on a `NarrativeStyle`. Some styles lack it. The naive fix is `Optional<string>`. The correct question is: should all styles have a craft posture? If yes — fix the data, make it required. If no — are there two kinds of style? Model them as `DocumentStyle | StoryStyle`, not one type with optional fields.
+
+**`eslint-disable` format when genuinely needed:**
+```typescript
+// eslint-disable-next-line rule-name -- reason: [why this case is a correct exception to the rule's intent]
+```
+The reason must justify the exception semantically. "Type error" and "needed for compatibility" are not reasons.
 
 ## Refactoring Rules
 

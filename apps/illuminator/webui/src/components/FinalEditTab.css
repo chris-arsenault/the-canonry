@@ -1,0 +1,16 @@
+/* FinalEditTab — prefix: fet */
+
+.fet-section {
+  margin-bottom: 16px;
+}
+
+.fet-heading {
+  margin: 0;
+  font-size: 14px;
+}
+
+.fet-subtitle {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}

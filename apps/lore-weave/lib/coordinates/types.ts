@@ -5,9 +5,6 @@
  */
 
 import type {
-  CircleBounds,
-  RectBounds,
-  PolygonBounds,
   RegionBounds,
   SemanticRegion,
 } from '@canonry/world-schema';
@@ -96,22 +93,16 @@ export type Region = SemanticRegion;
 /**
  * Result of emergent region creation.
  */
-export interface EmergentRegionResult {
-  success: boolean;
-  region?: Region;
-  failureReason?: string;
-}
+export type EmergentRegionResult =
+  | { success: true; region: Region }
+  | { success: false; failureReason: string };
 
 /**
  * Result of finding a sparse area on a semantic plane.
  */
-export interface SparseAreaResult {
-  success: boolean;
-  coordinates?: Point;
-  /** Minimum distance to nearest entity (score of how "sparse" the area is) */
-  minDistanceToEntity?: number;
-  failureReason?: string;
-}
+export type SparseAreaResult =
+  | { success: true; coordinates: Point; minDistanceToEntity: number }
+  | { success: false; failureReason: string };
 
 /**
  * Options for finding a sparse area.
@@ -122,7 +113,7 @@ export interface SparseAreaOptions {
   /** Bias toward plane edges/periphery (default: false) */
   preferPeriphery: boolean;
   /** Maximum sampling attempts (default: 50) */
-  maxAttempts?: number;
+  maxAttempts: number;
   /** Existing entity positions to avoid */
   existingPositions: Point[];
 }
@@ -138,7 +129,7 @@ export interface RegionLookupResult {
   all: Region[];
 
   /** Nearest region if not in any */
-  nearest?: {
+  nearest: {
     region: Region;
     distance: number;
   };

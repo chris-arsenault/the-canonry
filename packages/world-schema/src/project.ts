@@ -34,11 +34,11 @@ export interface WorldSeedProject {
   /** All relationship kinds in this world */
   relationshipKinds: RelationshipKindDefinition[];
   /** Axis definitions referenced by semantic planes */
-  axisDefinitions?: AxisDefinition[];
+  axisDefinitions: AxisDefinition[];
   /** Tag registry for schema governance */
-  tagRegistry?: TagDefinition[];
-  /** Optional UI configuration */
-  uiConfig?: DomainUIConfig;
+  tagRegistry: TagDefinition[];
+  /** UI configuration */
+  uiConfig: DomainUIConfig;
 
   // === CULTURES ===
 
@@ -63,7 +63,7 @@ export interface ProjectMetadata {
   createdAt: string;
   updatedAt: string;
   /** Summary counts for display */
-  counts?: {
+  counts: {
     entityKinds: number;
     relationshipKinds: number;
     cultures: number;

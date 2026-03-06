@@ -1,0 +1,278 @@
+.ee-container {
+  display: flex;
+  gap: 24px;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.ee-list-panel {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ee-header {
+  margin-bottom: 16px;
+}
+
+.ee-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #ffffff;
+}
+
+.ee-subtitle {
+  color: #93c5fd;
+  font-size: 14px;
+}
+
+.ee-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ee-add-button {
+  padding: 8px 16px;
+  font-size: 13px;
+  background-color: #60a5fa;
+  color: #0a1929;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.ee-filter-select {
+  padding: 8px 12px;
+  font-size: 13px;
+  background-color: #2d4a6f;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  color: #ffffff;
+  flex: 1;
+  font-family: inherit;
+}
+
+.ee-entity-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ee-entity-item {
+  padding: 12px;
+  background-color: #1e3a5f;
+  border-radius: 6px;
+  cursor: pointer;
+  border-width: 2px;
+  border-style: solid;
+  border-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ee-entity-item-selected {
+  border-color: #60a5fa;
+}
+
+.ee-entity-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--ee-entity-color-bg);
+}
+
+.ee-entity-info {
+  flex: 1;
+}
+
+.ee-entity-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.ee-entity-meta {
+  font-size: 11px;
+  color: #60a5fa;
+}
+
+.ee-entity-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ee-form-panel {
+  flex: 1;
+  background-color: #1e3a5f;
+  border-radius: 8px;
+  padding: 20px;
+  overflow-y: auto;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.ee-form-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #ffffff;
+}
+
+.ee-form-group {
+  margin-bottom: 16px;
+}
+
+.ee-form-group-flex {
+  margin-bottom: 16px;
+  flex: 1;
+}
+
+.ee-label {
+  font-size: 12px;
+  color: #93c5fd;
+  margin-bottom: 6px;
+  display: block;
+  font-weight: 500;
+}
+
+.ee-input {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  background-color: #2d4a6f;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  color: #ffffff;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.ee-select {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  background-color: #2d4a6f;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  color: #ffffff;
+  font-family: inherit;
+}
+
+.ee-textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  background-color: #2d4a6f;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  color: #ffffff;
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.ee-row {
+  display: flex;
+  gap: 12px;
+}
+
+.ee-delete-button {
+  padding: 10px 20px;
+  font-size: 13px;
+  background-color: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 24px;
+  font-family: inherit;
+}
+
+.ee-empty-state {
+  color: #60a5fa;
+  font-size: 14px;
+  text-align: center;
+  padding: 40px;
+}
+
+.ee-empty-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #60a5fa;
+}
+
+.ee-name-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.ee-name-input {
+  flex: 1;
+}
+
+.ee-generate-button {
+  padding: 10px 14px;
+  font-size: 13px;
+  background-color: #60a5fa;
+  color: #0a1929;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.ee-generate-button-disabled {
+  background-color: #1e3a5f;
+  color: #60a5fa;
+  cursor: not-allowed;
+}
+
+.ee-coords-display {
+  display: flex;
+  gap: 16px;
+  padding: 10px 12px;
+  background-color: #2d4a6f;
+  border-radius: 4px;
+  font-size: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.ee-coord-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ee-coord-label {
+  font-weight: 600;
+  color: #60a5fa;
+}
+
+.ee-coord-value {
+  color: #ffffff;
+}
+
+.ee-coord-hint {
+  font-size: 11px;
+  color: #60a5fa;
+  margin-top: 6px;
+}
+
+.ee-generate-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 6px;
+}

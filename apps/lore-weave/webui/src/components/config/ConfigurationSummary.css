@@ -1,0 +1,17 @@
+.cs-warning-gap {
+  margin-top: 8px;
+}
+
+.cs-compact-placeholder {
+  height: auto;
+  padding: 20px;
+}
+
+.cs-padded-card {
+  padding: var(--spacing-lg, 16px) var(--spacing-xl, 24px);
+}
+
+.cs-culture-badge {
+  border-color: var(--cs-culture-badge-border, var(--lw-border-color));
+  color: var(--cs-culture-badge-color, var(--lw-text-secondary));
+}

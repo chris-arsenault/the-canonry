@@ -1,0 +1,84 @@
+.rke-container {
+  max-width: 900px;
+}
+
+.rke-name-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.rke-actions-flow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rke-constraint-label {
+  margin-bottom: 8px;
+}
+
+.rke-constraint-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rke-constraint-col {
+  flex: 1;
+}
+
+.rke-constraint-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.rke-chip-list-flush {
+  margin-bottom: 0;
+}
+
+.rke-arrow {
+  font-size: 16px;
+}
+
+.rke-maintenance-label {
+  margin-bottom: 8px;
+}
+
+.rke-maintenance-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.rke-maintenance-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rke-cullable-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.rke-verbs-label {
+  margin-bottom: 8px;
+}
+
+.rke-verbs-hint {
+  margin-bottom: 8px;
+}
+
+.rke-verbs-row {
+  display: flex;
+  gap: 12px;
+}
+
+.rke-verb-form {
+  flex: 1;
+}

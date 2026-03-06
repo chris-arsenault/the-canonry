@@ -6,26 +6,26 @@
  */
 
 export type CostType =
-  | 'description'
-  | 'image'
-  | 'imagePrompt'      // Claude call to format image prompt
-  | 'chronicleValidation'
-  | 'chronicleRevision'
-  | 'chronicleSummary'
-  | 'chronicleImageRefs'
-  | 'chronicleCoverImageScene'
-  | 'chronicleV2'          // Single-shot V2 pipeline generation
-  | 'chroniclePerspective' // Perspective synthesis for chronicle
-  | 'paletteExpansion'     // Trait palette expansion/deduplication
-  | 'dynamicsGeneration'  // World dynamics synthesis turn
-  | 'summaryRevision'    // Batch summary/description revision
-  | 'chronicleLoreBackport' // Chronicle lore backport to cast entities
-  | 'historianReview'       // Historian scholarly annotations
-  | 'historianEdition'     // Historian-voiced description synthesis
-  | 'historianChronology' // Historian-assigned era year chronology
-  | 'historianPrep'       // Historian reading notes for a chronicle
-  | 'eraNarrative'        // Era narrative chapter/thread generation
-  | 'chronicleQuickCheck'; // Quick check for unanchored entity references
+  | "description"
+  | "image"
+  | "imagePrompt" // Claude call to format image prompt
+  | "chronicleValidation"
+  | "chronicleRevision"
+  | "chronicleSummary"
+  | "chronicleImageRefs"
+  | "chronicleCoverImageScene"
+  | "chronicleV2" // Single-shot V2 pipeline generation
+  | "chroniclePerspective" // Perspective synthesis for chronicle
+  | "paletteExpansion" // Trait palette expansion/deduplication
+  | "dynamicsGeneration" // World dynamics synthesis turn
+  | "summaryRevision" // Batch summary/description revision
+  | "chronicleLoreBackport" // Chronicle lore backport to cast entities
+  | "historianReview" // Historian scholarly annotations
+  | "historianEdition" // Historian-voiced description synthesis
+  | "historianChronology" // Historian-assigned era year chronology
+  | "historianPrep" // Historian reading notes for a chronicle
+  | "eraNarrative" // Era narrative chapter/thread generation
+  | "chronicleQuickCheck"; // Quick check for unanchored entity references
 
 export interface CostRecord {
   id: string;
@@ -50,7 +50,7 @@ export interface CostRecord {
   outputTokens: number;
 }
 
-export type CostRecordInput = Omit<CostRecord, 'id' | 'timestamp'> & {
+export type CostRecordInput = Omit<CostRecord, "id" | "timestamp"> & {
   id?: string;
   timestamp?: number;
 };

@@ -1,0 +1,135 @@
+/* ResultsPanel — rp- prefix */
+
+.rp-clickable-btn {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.rp-clickable-image {
+  cursor: pointer;
+}
+
+.rp-placeholder-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 32px;
+}
+
+.rp-section-heading {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.rp-description-heading {
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.rp-select-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.rp-select-label-text {
+  font-size: 12px;
+}
+
+.rp-regen-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.rp-autosave-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rp-empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+}
+
+.rp-stats-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+/* Base: ilu-stat-value, ilu-stat-label from panel-utilities.css.
+ * Overrides below for flex-layout sizing. */
+.rp-stat-value {
+  font-size: 18px;
+}
+
+.rp-stat-label {
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.rp-filter-wrapper {
+  margin-left: auto;
+}
+
+.rp-filter-select {
+  width: 140px;
+}
+
+.rp-selection-bar {
+  position: sticky;
+  bottom: 16px;
+}
+
+.rp-selection-count {
+  font-size: 13px;
+}
+
+.rp-selection-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ImagePreviewModal */
+.rp-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 90%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.rp-preview-image {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.rp-preview-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgb(255 255 255 / 20%);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}

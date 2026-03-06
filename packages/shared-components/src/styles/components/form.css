@@ -214,6 +214,14 @@
   min-width: 40px;
 }
 
+.pressure-changes-delta-input {
+  width: 80px;
+}
+
+.pressure-changes-add-select {
+  max-width: 200px;
+}
+
 /* Chip container / list */
 .chip-container,
 .chip-list {

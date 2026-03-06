@@ -1,0 +1,36 @@
+/* WorkspaceHeader.css -- co-located styles for WorkspaceHeader.jsx
+ * Base button styles: ilu-action-btn (panel-utilities.css)
+ */
+
+.wsh-btn-accept {
+  padding: 8px 18px;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.wsh-btn-accept:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Compose with: ilu-action-btn — size override */
+.wsh-btn-unpublish {
+  padding: 8px 16px;
+}
+
+/* Compose with: ilu-action-btn — size override */
+.wsh-btn-regenerate {
+  padding: 8px 16px;
+}
+
+/* Compose with: ilu-action-btn — size/line-height overrides for icon button */
+.wsh-btn-overflow {
+  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 1;
+}

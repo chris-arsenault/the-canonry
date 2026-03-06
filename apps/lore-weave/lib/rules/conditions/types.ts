@@ -78,8 +78,8 @@ export type Condition =
 export interface PressureCondition {
   type: 'pressure';
   pressureId: string;
-  min?: number;
-  max?: number;
+  min: number;
+  max: number;
 }
 
 /**
@@ -90,7 +90,7 @@ export interface PressureCompareCondition {
   type: 'pressure_compare';
   pressureA: string;
   pressureB: string;
-  operator?: ComparisonOperator; // Default: '>'
+  operator: ComparisonOperator; // Default: '>'
 }
 
 /**
@@ -114,11 +114,11 @@ export interface PressureAnyAboveCondition {
 export interface EntityCountCondition {
   type: 'entity_count';
   kind: string;
-  subtype?: string;
-  status?: string;
-  min?: number;
-  max?: number;
-  overshootFactor?: number; // For max checks, default 1.5
+  subtype: string;
+  status: string;
+  min: number;
+  max: number;
+  overshootFactor: number; // For max checks, default 1.5
 }
 
 // =============================================================================
@@ -131,10 +131,10 @@ export interface EntityCountCondition {
  */
 export interface RelationshipCountCondition {
   type: 'relationship_count';
-  relationshipKind?: string;
-  direction?: Direction;
-  min?: number;
-  max?: number;
+  relationshipKind: string;
+  direction: Direction;
+  min: number;
+  max: number;
 }
 
 /**
@@ -144,11 +144,11 @@ export interface RelationshipCountCondition {
 export interface RelationshipExistsCondition {
   type: 'relationship_exists';
   relationshipKind: string;
-  with?: string; // Entity reference
-  direction?: Direction;
-  targetKind?: string;
-  targetSubtype?: string;
-  targetStatus?: string;
+  with: string; // Entity reference
+  direction: Direction;
+  targetKind: string;
+  targetSubtype: string;
+  targetStatus: string;
 }
 
 // =============================================================================
@@ -162,9 +162,9 @@ export interface RelationshipExistsCondition {
 export interface TagExistsCondition {
   type: 'tag_exists';
   /** Optional entity reference (defaults to ctx.self) */
-  entity?: string;
+  entity: string;
   tag: string;
-  value?: string | boolean;
+  value: string | boolean;
 }
 
 /**
@@ -174,7 +174,7 @@ export interface TagExistsCondition {
 export interface LacksTagCondition {
   type: 'lacks_tag';
   /** Optional entity reference (defaults to ctx.self) */
-  entity?: string;
+  entity: string;
   tag: string;
 }
 
@@ -189,7 +189,7 @@ export interface LacksTagCondition {
 export interface StatusCondition {
   type: 'status';
   status: string;
-  not?: boolean; // If true, check that status does NOT match
+  not: boolean; // If true, check that status does NOT match
 }
 
 /**
@@ -198,8 +198,8 @@ export interface StatusCondition {
  */
 export interface ProminenceCondition {
   type: 'prominence';
-  min?: ProminenceLabel; // Minimum prominence level
-  max?: ProminenceLabel; // Maximum prominence level
+  min: ProminenceLabel; // Minimum prominence level
+  max: ProminenceLabel; // Maximum prominence level
 }
 
 // =============================================================================
@@ -213,7 +213,7 @@ export interface ProminenceCondition {
 export interface TimeElapsedCondition {
   type: 'time_elapsed';
   minTicks: number;
-  since?: 'created' | 'updated'; // Default: 'updated'
+  since: 'created' | 'updated'; // Default: 'updated'
 }
 
 /**
@@ -239,7 +239,7 @@ export interface GrowthPhasesCompleteCondition {
   type: 'growth_phases_complete';
   minPhases: number;
   /** Optional explicit era id (defaults to current era) */
-  eraId?: string;
+  eraId: string;
 }
 
 // =============================================================================
@@ -299,11 +299,11 @@ export interface ComponentSizeCondition {
   /** Relationship kind(s) defining the subgraph edges */
   relationshipKinds: string[];
   /** Minimum component size (inclusive) */
-  min?: number;
+  min: number;
   /** Maximum component size (inclusive) */
-  max?: number;
+  max: number;
   /** Minimum relationship strength to follow (default: 0) */
-  minStrength?: number;
+  minStrength: number;
 }
 
 // =============================================================================
@@ -327,7 +327,7 @@ export interface EntityHasRelationshipCondition {
   type: 'entity_has_relationship';
   entity: string;
   relationshipKind: string;
-  direction?: Direction;
+  direction: Direction;
 }
 
 // =============================================================================

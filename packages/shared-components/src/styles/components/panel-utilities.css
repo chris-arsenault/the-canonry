@@ -1,0 +1,302 @@
+/**
+ * Panel utility classes — shared structural patterns for dense information panels.
+ *
+ * These classes extract the most commonly duplicated CSS patterns across
+ * Illuminator panel/tab components. Components should compose these alongside
+ * their prefixed component-specific classes.
+ *
+ * Usage:  className="ilu-section htab-section"
+ *   The ilu-* class provides the base structural pattern.
+ *   The component-prefixed class adds/overrides unique properties.
+ *
+ * Canonical reference: apps/illuminator/webui/src/components/ActivityPanel.css
+ * ADR: docs/adr/029-panel-css-utilities.md
+ */
+
+/* ── Section card container ──
+ * Padded container with bg-secondary, border, radius.
+ * Used by: htab-section, pt-checklist, vtab-section, itab-cover-section,
+ *          itab-compat-panel, enrtab-container, crv-refinements, crv-panel, etc.
+ */
+.ilu-section {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.ilu-section-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ilu-section-mb {
+  margin-bottom: 16px;
+}
+
+/* ── Overflow container ──
+ * Container without padding, with overflow hidden. For containers that have
+ * a separate header bar and body section.
+ * Used by: crv-checks-panel, crp-synth, crp-acv, ref-tab-synth, ref-tab-fcv,
+ *          ctab-viewer, ctab-summary-section, ctab-tertiary-section, etc.
+ */
+.ilu-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ── Collapsible header bar ──
+ * Header bar inside a container, with bg-tertiary background.
+ * Used by: crp-synth-header, crp-acv-header, ref-tab-synth-header,
+ *          ref-tab-fcv-header, ctab-viewer-toolbar, ctab-summary-header,
+ *          vtab-report-header, etc.
+ */
+.ilu-container-header {
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+}
+
+.ilu-container-header-bordered {
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* ── Action button ──
+ * Standard action button with bg-tertiary, border, rounded.
+ * Used by: cic-action-btn, enrtab-button, htab-annotate-btn, htab-prep-btn,
+ *          htab-backport-btn, pt-refrow-btn, vtab-action-btn, vtab-regen-btn,
+ *          events-panel-export-btn, events-panel-clear-filters-btn, etc.
+ */
+.ilu-action-btn {
+  padding: 8px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.ilu-action-btn:not(:disabled) {
+  cursor: pointer;
+}
+
+.ilu-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Smaller variant */
+.ilu-action-btn-sm {
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.ilu-action-btn-sm:not(:disabled) {
+  cursor: pointer;
+}
+
+.ilu-action-btn-sm:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ── Active version badge (green pill) ──
+ * Pill-shaped badge indicating the active/current version.
+ * Used by: hec-active-badge, cvs-active-badge.
+ */
+.ilu-active-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgb(16 185 129 / 15%);
+  color: #10b981;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* ── Compact select ──
+ * Smaller select input for version/comparison selectors in toolbars.
+ * Compose with component class to set min-width.
+ * Used by: hec-select, hec-compare-select, cvs-select-version, cvs-select-compare.
+ */
+.ilu-compact-select {
+  width: auto;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+
+/* ── Empty state ──
+ * Centered empty state text.
+ * Used by: ap-empty-state, cip-empty-state, events-panel-empty,
+ *          crv-empty, dmw-empty-state, htab-empty, itab-empty, etc.
+ */
+.ilu-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 24px;
+  text-align: center;
+}
+
+/* ── Footer actions row ──
+ * Row of actions at the bottom of a dialog or panel.
+ * Used by: bcm-footer, dmw-footer, cfr-footer.
+ */
+.ilu-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Warning banner ──
+ * Amber-tinted warning banner.
+ * Used by: pp-key-warning, itab-version-warning, crv-stale-warning.
+ */
+.ilu-warning-banner {
+  padding: 12px 16px;
+  background: rgb(245 158 11 / 10%);
+  border: 1px solid rgb(245 158 11 / 30%);
+  border-radius: 4px;
+}
+
+/* ── Error banner ──
+ * Red-tinted error banner.
+ * Used by: cfr-error-banner, dmw-review-error, cip-error-message.
+ */
+.ilu-error-banner {
+  padding: 8px 14px;
+  background: rgb(239 68 68 / 10%);
+  border-radius: 6px;
+  border: 1px solid rgb(239 68 68 / 30%);
+  font-size: 11px;
+  color: #ef4444;
+}
+
+/* ── Status colors ──
+ * Inline status color utilities. Used pervasively across all panel CSS.
+ */
+.ilu-status-success { color: #10b981; }
+.ilu-status-warning { color: #f59e0b; }
+.ilu-status-error { color: #ef4444; }
+
+/* ── Footer button sizing ──
+ * Standard footer button sizing for dialog footers.
+ * Used by: bcm-footer-btn, rfm-footer-btn, dmw-footer-btn.
+ */
+.ilu-footer-btn {
+  padding: 6px 16px;
+  font-size: 12px;
+}
+
+/* ── Section heading (uppercase label) ──
+ * Small uppercase label for section headings within panels.
+ * Used by: bcm-section-label, cfr-context-heading, cfr-field-label, etc.
+ */
+.ilu-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* ── Selection bar ──
+ * Sticky bar showing selected-item count with bulk actions.
+ * Used by: eq-selection-bar, eb-selection-bar, rp-selection-bar.
+ */
+.ilu-selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-color);
+  border-radius: 6px;
+}
+
+/* ── Stats grid ──
+ * Grid of stat cards with large values and muted labels.
+ * Used by: tps-stats-grid, storage-panel-stats-grid, rp-stats-bar.
+ */
+.ilu-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ilu-stat-card {
+  padding: 10px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.ilu-stat-value {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.ilu-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ── Thumbnail cover image ──
+ * Absolute-positioned image filling its container with cover fit.
+ * Used by: cip-thumb-img, ipm-thumbnail-img, storage-panel-thumbnail-img.
+ */
+.ilu-thumb-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Muted hint text (12px) ──
+ * Base muted description / hint text at standard size.
+ * Compose with component-prefixed classes for spacing overrides.
+ * Used by: cfgp-section-desc, cfgp-about-text, cpanel-section-hint,
+ *          cpanel-empty-hint, itc-sync-hint, stsel-compact-label, stsel-label, etc.
+ */
+.ilu-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Muted hint text (11px) ──
+ * Smaller muted text for secondary annotations, sub-hints, descriptions.
+ * Used by: cfgp-hint, cfgp-checkbox-hint, bcam-chronicle-tone,
+ *          itc-sync-summary, stsel-description, cpanel-clear-button, etc.
+ */
+.ilu-hint-sm {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ── Thumbnail placeholder ──
+ * Absolute-positioned centered placeholder for loading/missing thumbnails.
+ * Used by: cip-thumb-loading, ipm-thumbnail-placeholder, storage-panel-thumbnail-placeholder.
+ */
+.ilu-thumb-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 11px;
+}

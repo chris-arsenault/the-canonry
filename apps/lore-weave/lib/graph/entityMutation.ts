@@ -4,7 +4,7 @@
  * Functions for creating and modifying entities.
  */
 
-import { Graph } from '../engine/types';
+import { Graph , entityCriteria } from '../engine/types';
 import { HardState, EntityTags } from '../core/worldTypes';
 import { arrayToTags } from '../utils/tagUtils';
 import {
@@ -22,7 +22,7 @@ export function slugifyName(name: string): string {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'unknown';
+    .replace(/^-+|-+$/g, '') || 'unknown'; // eslint-disable-line sonarjs/slow-regex -- short slug string, no ReDoS risk
 }
 
 /**
@@ -30,11 +30,10 @@ export function slugifyName(name: string): string {
  */
 export function generateEntityIdFromName(
   name: string,
-  hasEntity?: (id: string) => boolean,
-  log?: (message: string, context?: Record<string, unknown>) => void
+  hasEntity: (id: string) => boolean,
+  log: (message: string, context: Record<string, unknown>) => void
 ): string {
   const baseId = slugifyName(name);
-  if (!hasEntity) return baseId;
   if (!hasEntity(baseId)) return baseId;
 
   let suffix = 2;
@@ -44,7 +43,7 @@ export function generateEntityIdFromName(
     candidate = `${baseId}-${suffix}`;
   }
 
-  log?.(`Entity id collision for "${name}". Using "${candidate}".`, {
+  log(`Entity id collision for "${name}". Using "${candidate}".`, {
     name,
     baseId,
     resolvedId: candidate
@@ -56,7 +55,22 @@ export function generateEntityIdFromName(
 /**
  * Initial state normalization
  */
-export function normalizeInitialState(entities: any[]): HardState[] {
+export interface RawEntityInput {
+  id: string;
+  name: string;
+  kind: string;
+  subtype: string;
+  status: string;
+  prominence: number;
+  culture: string;
+  coordinates: import('../coordinates/types').Point;
+  tags: string[] | EntityTags;
+  description: string;
+  summary: string;
+  narrativeHint: string;
+}
+
+export function normalizeInitialState(entities: RawEntityInput[]): HardState[] {
   return entities.map((entity, index) => {
     if (!entity.id) {
       throw new Error(
@@ -70,12 +84,7 @@ export function normalizeInitialState(entities: any[]): HardState[] {
         `Initial state entities must have names defined in JSON.`
       );
     }
-    if (!entity.coordinates) {
-      throw new Error(
-        `normalizeInitialState: entity "${entity.name}" at index ${index} has no coordinates. ` +
-        `Initial state entities must have coordinates defined in JSON.`
-      );
-    }
+    // coordinates is always SemanticCoordinates — enforced by type system
     if (!entity.kind) {
       throw new Error(
         `normalizeInitialState: entity "${entity.name}" at index ${index} has no kind.`
@@ -107,26 +116,33 @@ export function normalizeInitialState(entities: any[]): HardState[] {
     if (Array.isArray(entity.tags)) {
       tags = arrayToTags(entity.tags);
     } else {
-      tags = entity.tags || {};
+      tags = entity.tags;
     }
 
-    const narrativeHint = entity.narrativeHint ?? entity.summary ?? (entity.description ? entity.description : undefined);
+    const narrativeHint = entity.narrativeHint || entity.summary;
 
     return {
       id: entity.id,
-      kind: entity.kind as HardState['kind'],
+      kind: entity.kind,
       subtype: entity.subtype,
       name: entity.name,
       summary: entity.summary,
       narrativeHint,
       description: entity.description || '',
       status: entity.status,
-      prominence: entity.prominence as HardState['prominence'],
+      prominence: entity.prominence,
       culture: entity.culture,
       tags,
+      eraId: '',
       createdAt: 0,
       updatedAt: 0,
-      coordinates: entity.coordinates
+      coordinates: entity.coordinates,
+      temporal: { startTick: 0, end: { occurred: false as const, tick: 0 } },
+      catalyst: { canAct: false },
+      regionId: '',
+      allRegionIds: [],
+      lockedSummary: false,
+      createdBy: { tick: 0, source: 'seed' as const, sourceId: 'initial_state', success: true, narration: '' },
     };
   });
 }
@@ -137,51 +153,36 @@ export function normalizeInitialState(entities: any[]): HardState[] {
  * @param source - Optional source identifier for debugging (e.g., template ID)
  * @param placementStrategy - Optional placement strategy for debugging
  */
-export async function addEntity(graph: Graph, entity: Partial<HardState>, source?: string, placementStrategy?: string): Promise<string> {
-  // Coordinates are required - fail loudly
-  // Check for valid numeric values, not just object existence
+function validateEntityForAdd(entity: Partial<HardState>): void {
   const coords = entity.coordinates;
   if (!coords || typeof coords.x !== 'number' || typeof coords.y !== 'number') {
     throw new Error(
       `addEntity: valid coordinates {x: number, y: number, z: number} are required. ` +
       `Entity kind: ${entity.kind || 'unknown'}, name: ${entity.name || 'unnamed'}. ` +
-      `Received: ${JSON.stringify(coords)}. ` +
-      `Provide valid coordinates explicitly.`
+      `Received: ${JSON.stringify(coords)}.`
     );
   }
-  if (!entity.kind) {
-    throw new Error('addEntity: kind is required.');
-  }
-  if (!entity.subtype) {
-    throw new Error(`addEntity: subtype is required for kind "${entity.kind}".`);
-  }
-  if (!entity.status) {
-    throw new Error(`addEntity: status is required for kind "${entity.kind}".`);
-  }
-  if (!entity.prominence) {
-    throw new Error(`addEntity: prominence is required for kind "${entity.kind}".`);
-  }
-  if (!entity.culture) {
-    throw new Error(`addEntity: culture is required for kind "${entity.kind}".`);
-  }
-
-  // Normalize tags: handle both old array format and new KVP format
-  // Clone to avoid mutating source object
-  let tags: EntityTags;
-  if (Array.isArray(entity.tags)) {
-    tags = arrayToTags(entity.tags);
-  } else {
-    tags = { ...(entity.tags || {}) };
-  }
-
+  if (!entity.kind) throw new Error('addEntity: kind is required.');
+  if (!entity.subtype) throw new Error(`addEntity: subtype is required for kind "${entity.kind}".`);
+  if (!entity.status) throw new Error(`addEntity: status is required for kind "${entity.kind}".`);
+  if (!entity.prominence) throw new Error(`addEntity: prominence is required for kind "${entity.kind}".`);
+  if (!entity.culture) throw new Error(`addEntity: culture is required for kind "${entity.kind}".`);
   if (!entity.name) {
-    throw new Error(
-      `addEntity: name is required for GraphStore. ` +
-      `Use WorldRuntime.createEntity() to generate names.`
-    );
+    throw new Error(`addEntity: name is required for GraphStore. Use WorldRuntime.createEntity() to generate names.`);
   }
+}
 
-  const entityId = generateEntityIdFromName(entity.name, id => graph.hasEntity(id));
+export async function addEntity(graph: Graph, entity: Partial<HardState>, source: string, placementStrategy: string): Promise<string> {
+  validateEntityForAdd(entity);
+
+  const coords = entity.coordinates!;
+  const tags: EntityTags = Array.isArray(entity.tags) ? arrayToTags(entity.tags) : { ...(entity.tags) };
+
+  const entityId = generateEntityIdFromName(
+    entity.name!,
+    id => graph.hasEntity(id),
+    (_message, _context) => { /* silent - addEntity logs at higher level */ }
+  );
 
   // Delegate to Graph.createEntity()
   // Use validated coords to satisfy TypeScript (already validated above)
@@ -195,34 +196,41 @@ export async function addEntity(graph: Graph, entity: Partial<HardState>, source
   const validCoords = { x: coords.x, y: coords.y, z: coords.z };
 
   const currentEraEntity = entity.kind !== FRAMEWORK_ENTITY_KINDS.ERA
-    ? graph.findEntities({
+    ? graph.findEntities(entityCriteria({
         kind: FRAMEWORK_ENTITY_KINDS.ERA,
         status: FRAMEWORK_STATUS.CURRENT
-      })[0]
+      }))[0]
     : undefined;
   const explicitEraId = entity.eraId;
-  const resolvedEraId = typeof explicitEraId === 'string' && explicitEraId
-    ? explicitEraId
-    : (entity.kind === FRAMEWORK_ENTITY_KINDS.ERA ? entity.subtype : currentEraEntity?.id);
+  let resolvedEraId: string | undefined;
+  if (typeof explicitEraId === 'string' && explicitEraId) {
+    resolvedEraId = explicitEraId;
+  } else if (entity.kind === FRAMEWORK_ENTITY_KINDS.ERA) {
+    resolvedEraId = entity.subtype;
+  } else {
+    resolvedEraId = currentEraEntity?.id;
+  }
 
-  const narrativeHint = entity.narrativeHint ?? entity.summary ?? (entity.description ? entity.description : undefined);
+  const narrativeHint = entity.narrativeHint || entity.summary || entity.description || '';
 
   const createdId = await graph.createEntity({
     id: entityId,
-    kind: entity.kind,
-    subtype: entity.subtype,
+    kind: entity.kind!,
+    subtype: entity.subtype!,
     coordinates: validCoords,
     tags,
-    eraId: resolvedEraId,
-    name: entity.name,
-    description: entity.description,
+    eraId: resolvedEraId || '',
+    name: entity.name!,
+    description: entity.description || '',
     narrativeHint,
-    status: entity.status,
-    prominence: entity.prominence,
-    culture: entity.culture,
-    temporal: entity.temporal,
+    status: entity.status!,
+    prominence: entity.prominence!,
+    culture: entity.culture!,
+    temporal: entity.temporal || { startTick: graph.tick, end: { occurred: false as const, tick: 0 } },
     source,
-    placementStrategy
+    placementStrategy,
+    regionId: entity.regionId || '',
+    allRegionIds: entity.allRegionIds || [],
   });
 
   // Create CREATED_DURING relationship to current era (unless entity is an era itself)

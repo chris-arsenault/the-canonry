@@ -21,7 +21,7 @@ export function generateSyllable(
   const template = pickWeighted(
     rng,
     profile.syllableTemplates,
-    profile.templateWeights
+    profile.templateWeights ?? []
   );
 
   // Build syllable by replacing C and V with phonemes
@@ -32,12 +32,12 @@ export function generateSyllable(
       const consonant = pickWeighted(
         rng,
         profile.consonants,
-        profile.consonantWeights
+        profile.consonantWeights ?? []
       );
       syllable += consonant;
     } else if (symbol === "V") {
       // Pick a vowel
-      const vowel = pickWeighted(rng, profile.vowels, profile.vowelWeights);
+      const vowel = pickWeighted(rng, profile.vowels, profile.vowelWeights ?? []);
       syllable += vowel;
     } else {
       // Literal character (for templates like "CVC-")
@@ -78,7 +78,6 @@ export function generateWord(
   while (attempts < maxAttempts) {
     attempts++;
 
-    const syllables: string[] = [];
     let word = "";
     let valid = true;
 
@@ -98,7 +97,6 @@ export function generateWord(
         break;
       }
 
-      syllables.push(syllable);
       word += syllable;
     }
 

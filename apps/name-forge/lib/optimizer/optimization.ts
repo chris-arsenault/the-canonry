@@ -98,7 +98,7 @@ export interface ParameterVector {
   lengthMax: number;
 
   // Optional: favored cluster boost
-  favoredClusterBoost?: number;
+  favoredClusterBoost: number;
 }
 
 /**
@@ -112,9 +112,9 @@ export interface EvaluationResult {
     capacity: number;
     diffuseness: number;
     separation: number;
-    pronounceability?: number;
-    length?: number;
-    style?: number;
+    pronounceability: number;
+    length: number;
+    style: number;
   };
   iteration: number;
   timestamp: number;
@@ -143,7 +143,7 @@ export interface ParameterBounds {
   lengthMax: { min: number; max: number };
   apostropheRate: { min: number; max: number };
   hyphenRate: { min: number; max: number };
-  favoredClusterBoost?: { min: number; max: number };
+  favoredClusterBoost: { min: number; max: number };
 }
 
 export const DEFAULT_BOUNDS: ParameterBounds = {

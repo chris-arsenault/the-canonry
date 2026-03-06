@@ -1,1 +1,1 @@
-export { default as CultureSidebar } from './CultureSidebar';
+export { default as CultureSidebar } from "./CultureSidebar";

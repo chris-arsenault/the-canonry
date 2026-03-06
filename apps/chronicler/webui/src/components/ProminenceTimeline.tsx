@@ -8,25 +8,30 @@
  * - Hover tooltips with details
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
-import { prominenceLabelFromScale, type ProminenceScale, type NarrativeEvent } from '@canonry/world-schema';
-import styles from './ProminenceTimeline.module.css';
+import React, { useMemo, useState, useCallback } from "react";
+import {
+  prominenceLabelFromScale,
+  type ProminenceScale,
+  type NarrativeEvent,
+} from "@canonry/world-schema";
+import type { Optional } from "@the-canonry/shared-components";
+import styles from "./ProminenceTimeline.module.css";
 
 // Prominence level colors used in SVG - warm palette
 const PROMINENCE_COLORS = {
-  forgotten: '#6b6155',   // warm gray
-  marginal: '#d4a017',    // warm amber
-  recognized: '#c49a5c',  // burnished gold
-  renowned: '#8b7355',    // warm brown
-  mythic: '#d4aa6c',      // light gold
+  forgotten: "#6b6155", // warm gray
+  marginal: "#d4a017", // warm amber
+  recognized: "#c49a5c", // burnished gold
+  renowned: "#8b7355", // warm brown
+  mythic: "#d4aa6c", // light gold
 };
 
 // SVG graph colors - warm palette
 const graphColors = {
-  line: '#c49a5c',
-  marker: '#d4a017',
-  levelLine: 'rgba(232, 220, 200, 0.1)',
-  textMuted: '#8a7d6b',
+  line: "#c49a5c",
+  marker: "#d4a017",
+  levelLine: "rgba(232, 220, 200, 0.1)",
+  textMuted: "#8a7d6b",
 };
 
 interface ProminenceDataPoint {
@@ -42,13 +47,33 @@ interface ProminenceDataPoint {
 interface ProminenceTimelineProps {
   events: NarrativeEvent[];
   entityId: string;
-  initialProminence?: number;
+  initialProminence: Optional<number>;
   prominenceScale: ProminenceScale;
 }
 
-/**
- * Extract prominence change data points from narrative events
- */
+interface GraphMetrics {
+  allPoints: Array<{ tick: number; value: number }>;
+  xScale: (tick: number) => number;
+  yScale: (value: number) => number;
+}
+
+interface ProminenceLevel {
+  threshold: number;
+  label: string;
+  color: string;
+}
+
+// --- Data extraction ---
+
+function findCrossedThreshold(thresholds: number[], previousValue: number, newValue: number): number | null {
+  for (const threshold of thresholds) {
+    const crossedUp = previousValue < threshold && newValue >= threshold;
+    const crossedDown = previousValue >= threshold && newValue < threshold;
+    if (crossedUp || crossedDown) return threshold;
+  }
+  return null;
+}
+
 function extractProminenceData(
   events: NarrativeEvent[],
   entityId: string,
@@ -58,29 +83,16 @@ function extractProminenceData(
   const dataPoints: ProminenceDataPoint[] = [];
   const thresholds = prominenceScale.thresholds;
 
-  // Sort events by tick
   const sortedEvents = [...events].sort((a, b) => a.tick - b.tick);
 
   for (const event of sortedEvents) {
-    const participant = event.participantEffects?.find(p => p.entity.id === entityId);
+    const participant = event.participantEffects?.find((p) => p.entity.id === entityId);
     if (!participant) continue;
 
     for (const effect of participant.effects) {
-      if (effect.type === 'field_changed' && effect.field === 'prominence') {
+      if (effect.type === "field_changed" && effect.field === "prominence") {
         const previousValue = effect.previousValue as number;
         const newValue = effect.newValue as number;
-
-        // Check if this change crosses a threshold (1, 2, 3, or 4)
-        let crossesThreshold: number | null = null;
-        for (const threshold of thresholds) {
-          const crossedUp = previousValue < threshold && newValue >= threshold;
-          const crossedDown = previousValue >= threshold && newValue < threshold;
-          if (crossedUp || crossedDown) {
-            crossesThreshold = threshold;
-            break;
-          }
-        }
-
         dataPoints.push({
           tick: event.tick,
           era: event.era,
@@ -88,7 +100,7 @@ function extractProminenceData(
           newValue,
           description: effect.description,
           eventId: event.id,
-          crossesThreshold,
+          crossesThreshold: findCrossedThreshold(thresholds, previousValue, newValue),
         });
       }
     }
@@ -97,24 +109,180 @@ function extractProminenceData(
   return dataPoints;
 }
 
+// --- Graph computation ---
+
+function computeGraphMetrics(dataPoints: ProminenceDataPoint[]): GraphMetrics | null {
+  if (dataPoints.length === 0) return null;
+
+  const firstPoint = { tick: dataPoints[0].tick, value: dataPoints[0].previousValue };
+  const allPoints = [firstPoint, ...dataPoints.map((p) => ({ tick: p.tick, value: p.newValue }))];
+
+  const minTick = 0;
+  const maxTick = Math.max(...allPoints.map((p) => p.tick), 1);
+
+  return {
+    allPoints,
+    xScale: (tick: number) => ((tick - minTick) / (maxTick - minTick)) * 100,
+    yScale: (value: number) => ((5 - value) / 5) * 100,
+  };
+}
+
+function buildLinePath(metrics: GraphMetrics): string {
+  if (metrics.allPoints.length === 0) return "";
+
+  const points = metrics.allPoints;
+  const parts: string[] = [
+    `M ${metrics.xScale(points[0].tick)} ${metrics.yScale(points[0].value)}`,
+  ];
+
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    parts.push(`L ${metrics.xScale(curr.tick)} ${metrics.yScale(prev.value)}`);
+    parts.push(`L ${metrics.xScale(curr.tick)} ${metrics.yScale(curr.value)}`);
+  }
+
+  return parts.join(" ");
+}
+
+// --- Sub-components ---
+
+function ProminenceGraphSvg({
+  metrics,
+  linePath,
+  prominenceLevels,
+  thresholdCrossings,
+  prominenceScale,
+  onPointHover,
+}: Readonly<{
+  metrics: GraphMetrics;
+  linePath: string;
+  prominenceLevels: ProminenceLevel[];
+  thresholdCrossings: ProminenceDataPoint[];
+  prominenceScale: ProminenceScale;
+  onPointHover: (point: ProminenceDataPoint | null, e?: React.MouseEvent) => void;
+}>) {
+  return (
+    <svg className={styles.svg} viewBox="0 0 100 100" preserveAspectRatio="none">
+      {prominenceLevels.map((level, i) => {
+        const nextThreshold = prominenceLevels[i + 1]?.threshold ?? prominenceScale.max;
+        return (
+          <rect
+            key={level.label}
+            x={0}
+            y={metrics.yScale(nextThreshold)}
+            width={100}
+            height={metrics.yScale(level.threshold) - metrics.yScale(nextThreshold)}
+            fill={level.color}
+            opacity={0.1}
+          />
+        );
+      })}
+
+      {prominenceScale.thresholds.map((threshold) => (
+        <line
+          key={`grid-${threshold}`}
+          x1={0} y1={metrics.yScale(threshold)}
+          x2={100} y2={metrics.yScale(threshold)}
+          stroke={graphColors.levelLine}
+          strokeWidth={0.2}
+        />
+      ))}
+
+      <path d={linePath} fill="none" stroke={graphColors.line} strokeWidth={0.8} vectorEffect="non-scaling-stroke" />
+
+      {thresholdCrossings.map((point, i) => (
+        <line
+          key={`crossing-${i}`}
+          x1={metrics.xScale(point.tick)} y1={0}
+          x2={metrics.xScale(point.tick)} y2={100}
+          stroke={graphColors.marker} strokeWidth={0.5} opacity={0.7}
+        />
+      ))}
+
+      {thresholdCrossings.map((point, i) => (
+        <circle
+          key={`point-${i}`}
+          cx={metrics.xScale(point.tick)}
+          cy={metrics.yScale(point.newValue)}
+          r={2}
+          fill={graphColors.marker}
+          className={styles.dataPoint}
+          onMouseEnter={(e) => onPointHover(point, e)}
+          onMouseLeave={() => onPointHover(null)}
+        />
+      ))}
+    </svg>
+  );
+}
+
+function ProminenceTooltip({
+  hoveredPoint,
+  prominenceScale,
+}: Readonly<{
+  hoveredPoint: { point: ProminenceDataPoint; x: number; y: number };
+  prominenceScale: ProminenceScale;
+}>) {
+  const resolveLabel = (value: number) => prominenceLabelFromScale(value, prominenceScale);
+  const resolveColor = (value: number) => {
+    const label = resolveLabel(value);
+    return PROMINENCE_COLORS[label as keyof typeof PROMINENCE_COLORS];
+  };
+
+  return (
+    <div
+      className={styles.tooltip}
+      style={{
+        "--tooltip-left": `${hoveredPoint.x + 10}px`,
+        "--tooltip-top": `${hoveredPoint.y - 40}px`,
+      } as React.CSSProperties}
+    >
+      <div className={styles.tooltipValue}>
+        <span
+          style={{ "--prominence-color": resolveColor(hoveredPoint.point.previousValue) } as React.CSSProperties}
+          className={styles.transitionColor}
+        >
+          {resolveLabel(hoveredPoint.point.previousValue)}
+        </span>
+        {" "}
+        <span
+          style={{ "--prominence-color": graphColors.textMuted } as React.CSSProperties}
+          className={styles.transitionColor}
+        >
+          &rarr;
+        </span>
+        {" "}
+        <span
+          style={{ "--prominence-color": resolveColor(hoveredPoint.point.newValue) } as React.CSSProperties}
+          className={styles.transitionColor}
+        >
+          {resolveLabel(hoveredPoint.point.newValue)}
+        </span>
+      </div>
+      <div className={styles.tooltipDescription}>{hoveredPoint.point.description}</div>
+    </div>
+  );
+}
+
+// --- Main component ---
 
 export default function ProminenceTimeline({
   events,
   entityId,
   initialProminence = 2.5,
   prominenceScale,
-}: ProminenceTimelineProps) {
+}: Readonly<ProminenceTimelineProps>) {
   const [hoveredPoint, setHoveredPoint] = useState<{
     point: ProminenceDataPoint;
     x: number;
     y: number;
   } | null>(null);
 
-  // Extract prominence data from events
   const dataPoints = useMemo(
     () => extractProminenceData(events, entityId, initialProminence, prominenceScale),
     [events, entityId, initialProminence, prominenceScale]
   );
+
   const prominenceLevels = useMemo(() => {
     return prominenceScale.labels.map((label, index) => ({
       threshold: index === 0 ? prominenceScale.min : prominenceScale.thresholds[index - 1],
@@ -123,195 +291,41 @@ export default function ProminenceTimeline({
     }));
   }, [prominenceScale]);
 
-  // Calculate graph dimensions and scales
-  const graphMetrics = useMemo(() => {
-    if (dataPoints.length === 0) {
-      return null;
-    }
+  const graphMetrics = useMemo(() => computeGraphMetrics(dataPoints), [dataPoints]);
+  const thresholdCrossings = useMemo(() => dataPoints.filter((p) => p.crossesThreshold !== null), [dataPoints]);
+  const linePath = useMemo(() => (graphMetrics ? buildLinePath(graphMetrics) : ""), [graphMetrics]);
 
-    // Start line from first data point (entity's initial prominence), not tick 0
-    // First point is the previousValue at the first event tick, then each subsequent newValue
-    const firstPoint = { tick: dataPoints[0].tick, value: dataPoints[0].previousValue };
-    const allPoints = [firstPoint, ...dataPoints.map(p => ({ tick: p.tick, value: p.newValue }))];
-
-    // Ribbon spans full era, but line only starts from first event
-    const minTick = 0;
-    const maxTick = Math.max(...allPoints.map(p => p.tick), 1);
-    const minValue = 0;
-    const maxValue = 5;
-
-    // Graph dimensions (full width ribbon)
-    const leftPadding = 0;
-    const rightPadding = 0;
-    const topPadding = 0;
-    const bottomPadding = 0;
-
-    return {
-      allPoints,
-      minTick,
-      maxTick,
-      minValue,
-      maxValue,
-      leftPadding,
-      rightPadding,
-      topPadding,
-      bottomPadding,
-      xScale: (tick: number) => leftPadding + ((tick - minTick) / (maxTick - minTick)) * (100 - leftPadding - rightPadding),
-      yScale: (value: number) => topPadding + ((maxValue - value) / (maxValue - minValue)) * (100 - topPadding - bottomPadding),
-    };
-  }, [dataPoints]);
-
-  // Find threshold crossings
-  const thresholdCrossings = useMemo(() => {
-    return dataPoints.filter(p => p.crossesThreshold !== null);
-  }, [dataPoints]);
-
-  // Build SVG path for the line
-  const linePath = useMemo(() => {
-    if (!graphMetrics || graphMetrics.allPoints.length === 0) return '';
-
-    const points = graphMetrics.allPoints;
-    const pathParts: string[] = [];
-
-    // Start at first point
-    pathParts.push(`M ${graphMetrics.xScale(points[0].tick)} ${graphMetrics.yScale(points[0].value)}`);
-
-    // Step line (horizontal then vertical to show discrete changes)
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-      // Horizontal line to new tick
-      pathParts.push(`L ${graphMetrics.xScale(curr.tick)} ${graphMetrics.yScale(prev.value)}`);
-      // Vertical line to new value
-      pathParts.push(`L ${graphMetrics.xScale(curr.tick)} ${graphMetrics.yScale(curr.value)}`);
-    }
-
-    return pathParts.join(' ');
-  }, [graphMetrics]);
-
-  // Handle point hover
-  const handlePointHover = useCallback((point: ProminenceDataPoint | null, e?: React.MouseEvent) => {
-    if (point && e) {
-      const rect = (e.target as SVGElement).closest('svg')?.getBoundingClientRect();
-      if (rect) {
-        setHoveredPoint({
-          point,
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-        });
+  const handlePointHover = useCallback(
+    (point: ProminenceDataPoint | null, e?: React.MouseEvent) => {
+      if (point && e) {
+        const rect = (e.target as SVGElement).closest("svg")?.getBoundingClientRect();
+        if (rect) {
+          setHoveredPoint({ point, x: e.clientX - rect.left, y: e.clientY - rect.top });
+        }
+      } else {
+        setHoveredPoint(null);
       }
-    } else {
-      setHoveredPoint(null);
-    }
-  }, []);
+    },
+    []
+  );
 
-  const resolveLabel = (value: number) => prominenceLabelFromScale(value, prominenceScale);
-  const resolveColor = (value: number) => {
-    const label = resolveLabel(value);
-    return PROMINENCE_COLORS[label as keyof typeof PROMINENCE_COLORS];
-  };
-
-  if (dataPoints.length === 0) {
-    return null; // Don't render anything if no prominence changes
-  }
+  if (dataPoints.length === 0) return null;
+  if (!graphMetrics) return null;
 
   return (
     <div className={styles.container}>
       <div className={styles.title}>Prominence Over Time</div>
-
       <div className={styles.graphContainer}>
-        <svg className={styles.svg} viewBox="0 0 100 100" preserveAspectRatio="none">
-          {graphMetrics && (
-            <>
-              {/* Background level bands */}
-              {prominenceLevels.map((level, i) => {
-                const nextThreshold = prominenceLevels[i + 1]?.threshold ?? prominenceScale.max;
-                return (
-                  <rect
-                    key={level.label}
-                    x={0}
-                    y={graphMetrics.yScale(nextThreshold)}
-                    width={100}
-                    height={graphMetrics.yScale(level.threshold) - graphMetrics.yScale(nextThreshold)}
-                    fill={level.color}
-                    opacity={0.1}
-                  />
-                );
-              })}
-
-              {/* Horizontal grid lines for each level threshold */}
-              {prominenceScale.thresholds.map((threshold) => (
-                <line
-                  key={`grid-${threshold}`}
-                  x1={0}
-                  y1={graphMetrics.yScale(threshold)}
-                  x2={100}
-                  y2={graphMetrics.yScale(threshold)}
-                  stroke={graphColors.levelLine}
-                  strokeWidth={0.2}
-                />
-              ))}
-
-              {/* Main line */}
-              <path
-                d={linePath}
-                fill="none"
-                stroke={graphColors.line}
-                strokeWidth={0.8}
-                vectorEffect="non-scaling-stroke"
-              />
-
-              {/* Threshold crossing markers (vertical lines) */}
-              {thresholdCrossings.map((point, i) => (
-                <g key={`crossing-${i}`}>
-                  <line
-                    x1={graphMetrics.xScale(point.tick)}
-                    y1={0}
-                    x2={graphMetrics.xScale(point.tick)}
-                    y2={100}
-                    stroke={graphColors.marker}
-                    strokeWidth={0.5}
-                    opacity={0.7}
-                  />
-                </g>
-              ))}
-
-              {/* Data points - only show threshold crossings as dots */}
-              {thresholdCrossings.map((point, i) => (
-                <circle
-                  key={`point-${i}`}
-                  cx={graphMetrics.xScale(point.tick)}
-                  cy={graphMetrics.yScale(point.newValue)}
-                  r={2}
-                  fill={graphColors.marker}
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={(e) => handlePointHover(point, e)}
-                  onMouseLeave={() => handlePointHover(null)}
-                />
-              ))}
-            </>
-          )}
-        </svg>
-
-        {/* Tooltip - shows narrative description on hover */}
+        <ProminenceGraphSvg
+          metrics={graphMetrics}
+          linePath={linePath}
+          prominenceLevels={prominenceLevels}
+          thresholdCrossings={thresholdCrossings}
+          prominenceScale={prominenceScale}
+          onPointHover={handlePointHover}
+        />
         {hoveredPoint && (
-          <div
-            className={styles.tooltip}
-            style={{ left: hoveredPoint.x + 10, top: hoveredPoint.y - 40 }}
-          >
-            <div className={styles.tooltipValue}>
-              <span style={{ color: resolveColor(hoveredPoint.point.previousValue) }}>
-                {resolveLabel(hoveredPoint.point.previousValue)}
-              </span>
-              <span style={{ color: graphColors.textMuted }}>&rarr;</span>
-              <span style={{ color: resolveColor(hoveredPoint.point.newValue) }}>
-                {resolveLabel(hoveredPoint.point.newValue)}
-              </span>
-            </div>
-            <div className={styles.tooltipDescription}>
-              {hoveredPoint.point.description}
-            </div>
-          </div>
+          <ProminenceTooltip hoveredPoint={hoveredPoint} prominenceScale={prominenceScale} />
         )}
       </div>
     </div>

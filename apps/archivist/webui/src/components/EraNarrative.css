@@ -1,14 +1,12 @@
-/* EraNarrative Component Styles */
+/* EraNarrative Component Styles
+ * Structural base (overlay, close button, footer): archivist-section.css */
 
 .era-narrative-overlay {
-  position: fixed;
-  inset: 0;
+  --_section-separator: var(--color-bg-blue-20);
+  --_section-accent: var(--color-blue-400);
+  --_section-text: var(--color-indigo-200);
   background: rgb(0 0 0 / 85%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: var(--z-modal-above);
-  padding: var(--spacing-2xl);
   animation: fade-in 0.3s ease-out;
 }
 
@@ -112,20 +110,14 @@
 
 .era-narrative-content {
   padding: var(--spacing-4xl);
-  font-family: var(--font-serif);
   font-size: var(--font-size-lg);
   line-height: 1.9;
-  color: var(--color-indigo-200);
-  font-style: italic;
   text-align: justify;
 }
 
 .era-narrative-footer {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
   padding: var(--spacing-xl) var(--spacing-4xl);
-  border-top: 1px solid var(--color-bg-blue-20);
   background: var(--color-bg-blue-5);
 }
 
@@ -138,23 +130,12 @@
 }
 
 .era-narrative-close {
-  padding: var(--spacing-md) var(--spacing-3xl);
   background: var(--gradient-accent-blue);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
   color: var(--color-blue-200);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: all var(--transition-normal);
 }
 
 .era-narrative-close:hover {
   background: linear-gradient(135deg, var(--color-bg-blue-40) 0%, var(--color-bg-blue-40) 100%);
   border-color: var(--color-blue-400);
-  color: var(--color-text-primary);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
 }

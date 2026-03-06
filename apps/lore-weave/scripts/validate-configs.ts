@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 const ajv = new Ajv({ allErrors: true, verbose: true });
 
 const SCHEMA_DIR = path.join(__dirname, '../lib/schemas');
-const CONFIG_DIR = '/home/tsonu/src/penguin-tales/apps/canonry/webui/public/default-project';
+const CONFIG_DIR = '/home/tsonu/src/the-canonry/apps/canonry/webui/public/default-project';
 
 interface ValidationResult {
   file: string;

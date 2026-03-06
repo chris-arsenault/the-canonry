@@ -9,10 +9,10 @@
  * the nav list only re-renders when nav item fields change, not when the full
  * record's heavy content (assembledContent, generationHistory, etc.) changes.
  */
-import type { ChronicleRecord } from './chronicleRepository';
-import { isNoteActive } from '../historianTypes';
-import { deriveStatus } from '../../hooks/useChronicleGeneration';
-import { computeBackportProgress } from '../chronicleTypes';
+import type { ChronicleRecord } from "./chronicleRepository";
+import { isNoteActive } from "../historianTypes";
+import { deriveStatus } from "../../hooks/useChronicleGeneration";
+import { computeBackportProgress } from "../chronicleTypes";
 
 export interface ChronicleNavItem {
   id: string;
@@ -39,7 +39,7 @@ export interface ChronicleNavItem {
   updatedAt: number;
   // Fields needed for filtering/sorting in the nav list
   selectedEntityIds?: string[];
-  roleAssignments?: ChronicleRecord['roleAssignments'];
+  roleAssignments?: ChronicleRecord["roleAssignments"];
   wordCount: number;
   focalEraName?: string;
   focalEraOrder?: number;
@@ -51,7 +51,7 @@ export interface ChronicleNavItem {
   hasSummary: boolean;
   toneRanking?: [string, string, string];
   assignedTone?: string;
-  eraNarrativeWeight?: 'structural' | 'contextual' | 'flavor';
+  eraNarrativeWeight?: "structural" | "contextual" | "flavor";
 }
 
 export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
@@ -64,11 +64,18 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
       ? record.roleAssignments
           .filter((r) => r.isPrimary)
           .map((r) => r.entityName)
-          .join(' & ') || record.roleAssignments[0]?.entityName
-      : '') ||
-    'Untitled Chronicle';
+          .join(" & ") || record.roleAssignments[0]?.entityName
+      : "") ||
+    "Untitled Chronicle";
 
   const backportProgress = computeBackportProgress(record);
+
+  let focalEraOrder: number | undefined;
+  if (typeof record.temporalContext?.focalEra?.order === "number") {
+    focalEraOrder = record.temporalContext.focalEra.order;
+  } else if (typeof record.temporalContext?.focalEra?.startTick === "number") {
+    focalEraOrder = record.temporalContext.focalEra.startTick;
+  }
 
   return {
     id: record.chronicleId,
@@ -84,27 +91,27 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
     narrativeStyleName: record.narrativeStyle?.name,
     perspectiveSynthesis: !!record.perspectiveSynthesis,
     combineInstructions: !!record.combineInstructions,
-    coverImageComplete: record.coverImage?.status === 'complete',
+    coverImageComplete: record.coverImage?.status === "complete",
     backportDone: backportProgress.done,
     backportTotal: backportProgress.total,
     historianNoteCount,
     lens: record.lens ? { entityName: record.lens.entityName } : undefined,
     imageRefCompleteCount:
       record.imageRefs?.refs?.filter(
-        (r: { type: string; status?: string }) => r.type === 'prompt_request' && r.status === 'complete',
+        (r: { type: string; status?: string }) =>
+          r.type === "prompt_request" && r.status === "complete"
       ).length || 0,
     failureStep: record.failureStep,
     createdAt: record.createdAt || 0,
     updatedAt: record.updatedAt || 0,
     selectedEntityIds: record.selectedEntityIds,
     roleAssignments: record.roleAssignments,
-    wordCount: ((record.finalContent || record.assembledContent || '').trim().split(/\s+/).filter(Boolean).length),
+    wordCount: (record.finalContent || record.assembledContent || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length,
     focalEraName: record.temporalContext?.focalEra?.name,
-    focalEraOrder: typeof record.temporalContext?.focalEra?.order === 'number'
-      ? record.temporalContext.focalEra.order
-      : (typeof record.temporalContext?.focalEra?.startTick === 'number'
-        ? record.temporalContext.focalEra.startTick
-        : undefined),
+    focalEraOrder,
     focalEraStartTick: record.temporalContext?.focalEra?.startTick,
     eraYear: record.eraYear,
     hasTemporalNarrative: !!record.perspectiveSynthesis?.temporalNarrative,

@@ -7,8 +7,9 @@
  * - Cells: S=Source, D=Destination, B=Both, -=Neither
  */
 
-import { useMemo, useCallback } from 'react';
-import { CoverageMatrix } from '@penguin-tales/shared-components';
+import React, { useMemo, useCallback } from "react";
+import PropTypes from "prop-types";
+import { CoverageMatrix } from "@the-canonry/shared-components";
 
 export default function RelationshipKindMatrix({
   relationshipKinds = [],
@@ -43,7 +44,7 @@ export default function RelationshipKindMatrix({
 
     // Count relationships that have explicit constraints
     const constrainedRels = relationshipKinds.filter(
-      (r) => (r.srcKinds?.length > 0) || (r.dstKinds?.length > 0)
+      (r) => r.srcKinds?.length > 0 || r.dstKinds?.length > 0
     ).length;
 
     // Count relationships with no constraints (wildcard)
@@ -57,17 +58,14 @@ export default function RelationshipKindMatrix({
       (rel.dstKinds || []).forEach((k) => usedAsDestination.add(k));
     });
 
-    // If a relationship has no constraints, it can relate any entity kind
-    const hasWildcards = wildcardRels > 0;
-
     const result = [
-      { label: 'Relationships', value: totalRels },
-      { label: 'Entity Kinds', value: totalEntityKinds },
-      { label: 'Constrained', value: constrainedRels },
+      { label: "Relationships", value: totalRels },
+      { label: "Entity Kinds", value: totalEntityKinds },
+      { label: "Constrained", value: constrainedRels },
     ];
 
     if (wildcardRels > 0) {
-      result.push({ label: 'Wildcards', value: wildcardRels, variant: 'warning' });
+      result.push({ label: "Wildcards", value: wildcardRels, variant: "warning" });
     }
 
     return result;
@@ -75,67 +73,73 @@ export default function RelationshipKindMatrix({
 
   // Get cell value for a relationship × entity kind intersection
   const getCellValue = useCallback((rowId, columnId, row) => {
-    const isSource = row.srcKinds.length === 0 || row.srcKinds.includes(columnId);
-    const isDestination = row.dstKinds.length === 0 || row.dstKinds.includes(columnId);
-
     // Check if explicitly constrained vs wildcard
     const srcExplicit = row.srcKinds.length > 0 && row.srcKinds.includes(columnId);
     const dstExplicit = row.dstKinds.length > 0 && row.dstKinds.includes(columnId);
     const srcWildcard = row.srcKinds.length === 0;
     const dstWildcard = row.dstKinds.length === 0;
 
-    if (srcExplicit && dstExplicit) return 'both';
-    if (srcExplicit) return 'primary';  // explicitly source
-    if (dstExplicit) return 'secondary';  // explicitly destination
-    if (srcWildcard && dstWildcard) return 'both';  // wildcard both
-    if (srcWildcard) return 'primary';  // wildcard source
-    if (dstWildcard) return 'secondary';  // wildcard destination
-    return 'none';
+    if (srcExplicit && dstExplicit) return "both";
+    if (srcExplicit) return "primary"; // explicitly source
+    if (dstExplicit) return "secondary"; // explicitly destination
+    if (srcWildcard && dstWildcard) return "both"; // wildcard both
+    if (srcWildcard) return "primary"; // wildcard source
+    if (dstWildcard) return "secondary"; // wildcard destination
+    return "none";
   }, []);
 
   // Custom cell display for relationship coverage
   const getCellDisplay = useCallback((value) => {
     switch (value) {
-      case 'both':
-        return { icon: 'B', className: 'both', title: 'Both source and destination' };
-      case 'primary':
-        return { icon: 'S', className: 'primary', title: 'Source only' };
-      case 'secondary':
-        return { icon: 'D', className: 'secondary', title: 'Destination only' };
-      case 'none':
+      case "both":
+        return { icon: "B", className: "both", title: "Both source and destination" };
+      case "primary":
+        return { icon: "S", className: "primary", title: "Source only" };
+      case "secondary":
+        return { icon: "D", className: "secondary", title: "Destination only" };
+      case "none":
       default:
-        return { icon: '-', className: 'none', title: 'Not allowed' };
+        return { icon: "-", className: "none", title: "Not allowed" };
     }
   }, []);
 
   // Handle row click to navigate to relationship
-  const handleRowClick = useCallback((rowId) => {
-    if (onNavigateToRelationship) {
-      onNavigateToRelationship(rowId);
-    }
-  }, [onNavigateToRelationship]);
+  const handleRowClick = useCallback(
+    (rowId) => {
+      if (onNavigateToRelationship) {
+        onNavigateToRelationship(rowId);
+      }
+    },
+    [onNavigateToRelationship]
+  );
 
   // Filter options
-  const filterOptions = useMemo(() => [
-    {
-      id: 'wildcards',
-      label: 'Wildcards Only',
-      filter: (row) => row.srcKinds.length === 0 || row.dstKinds.length === 0,
-    },
-    {
-      id: 'constrained',
-      label: 'Constrained Only',
-      filter: (row) => row.srcKinds.length > 0 && row.dstKinds.length > 0,
-    },
-  ], []);
+  const filterOptions = useMemo(
+    () => [
+      {
+        id: "wildcards",
+        label: "Wildcards Only",
+        filter: (row) => row.srcKinds.length === 0 || row.dstKinds.length === 0,
+      },
+      {
+        id: "constrained",
+        label: "Constrained Only",
+        filter: (row) => row.srcKinds.length > 0 && row.dstKinds.length > 0,
+      },
+    ],
+    []
+  );
 
   // Legend items
-  const legend = useMemo(() => [
-    { icon: 'S', className: 'primary', label: 'Can be source' },
-    { icon: 'D', className: 'secondary', label: 'Can be destination' },
-    { icon: 'B', className: 'both', label: 'Both source and destination' },
-    { icon: '-', className: 'none', label: 'Not allowed' },
-  ], []);
+  const legend = useMemo(
+    () => [
+      { icon: "S", className: "primary", label: "Can be source" },
+      { icon: "D", className: "secondary", label: "Can be destination" },
+      { icon: "B", className: "both", label: "Both source and destination" },
+      { icon: "-", className: "none", label: "Not allowed" },
+    ],
+    []
+  );
 
   return (
     <CoverageMatrix
@@ -164,19 +168,25 @@ function getStatusBadges(rel) {
   const dstCount = rel.dstKinds?.length || 0;
 
   if (srcCount === 0 && dstCount === 0) {
-    badges.push({ label: 'Wildcard', variant: 'warning' });
+    badges.push({ label: "Wildcard", variant: "warning" });
   } else {
     if (srcCount > 0) {
-      badges.push({ label: `${srcCount} src`, variant: 'primary' });
+      badges.push({ label: `${srcCount} src`, variant: "primary" });
     } else {
-      badges.push({ label: 'Any src', variant: 'secondary' });
+      badges.push({ label: "Any src", variant: "secondary" });
     }
     if (dstCount > 0) {
-      badges.push({ label: `${dstCount} dst`, variant: 'primary' });
+      badges.push({ label: `${dstCount} dst`, variant: "primary" });
     } else {
-      badges.push({ label: 'Any dst', variant: 'secondary' });
+      badges.push({ label: "Any dst", variant: "secondary" });
     }
   }
 
   return badges;
 }
+
+RelationshipKindMatrix.propTypes = {
+  relationshipKinds: PropTypes.array,
+  entityKinds: PropTypes.array,
+  onNavigateToRelationship: PropTypes.func,
+};

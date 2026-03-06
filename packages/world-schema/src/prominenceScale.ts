@@ -19,10 +19,10 @@ export interface ProminenceScale {
 }
 
 export interface BuildProminenceScaleOptions {
-  labels?: ProminenceLabel[];
-  distribution?: number[];
-  min?: number;
-  max?: number;
+  labels: ProminenceLabel[];
+  distribution: number[];
+  min: number;
+  max: number;
 }
 
 const DEFAULT_MIN = 0;
@@ -37,8 +37,8 @@ function defaultThresholds(min: number, max: number, count: number): number[] {
   return Array.from({ length: count - 1 }, (_, index) => min + step * (index + 1));
 }
 
-function normalizeDistribution(values: number[] | undefined, count: number): number[] {
-  if (!values || values.length !== count) {
+function normalizeDistribution(values: number[], count: number): number[] {
+  if (values.length !== count) {
     return Array.from({ length: count }, () => 1 / count);
   }
 
@@ -65,17 +65,20 @@ function quantile(sorted: number[], p: number): number {
   return sorted[lower] + (sorted[upper] - sorted[lower]) * weight;
 }
 
+export const DEFAULT_BUILD_OPTIONS: BuildProminenceScaleOptions = {
+  labels: PROMINENCE_LABELS,
+  distribution: DEFAULT_PROMINENCE_DISTRIBUTION,
+  min: DEFAULT_MIN,
+  max: DEFAULT_MAX,
+};
+
 export function buildProminenceScale(
   values: number[],
-  options: BuildProminenceScaleOptions = {}
+  overrides: Partial<BuildProminenceScaleOptions> = {}
 ): ProminenceScale {
-  const labels = options.labels ?? PROMINENCE_LABELS;
-  const min = typeof options.min === 'number' ? options.min : DEFAULT_MIN;
-  const max = typeof options.max === 'number' ? options.max : DEFAULT_MAX;
-  const distribution = normalizeDistribution(
-    options.distribution ?? DEFAULT_PROMINENCE_DISTRIBUTION,
-    labels.length
-  );
+  const options = { ...DEFAULT_BUILD_OPTIONS, ...overrides };
+  const { labels, min, max } = options;
+  const distribution = normalizeDistribution(options.distribution, labels.length);
 
   const numericValues = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
 
@@ -110,7 +113,7 @@ export function prominenceLabelFromScale(
   scale: ProminenceScale
 ): ProminenceLabel {
   if (typeof value === 'string' && scale.labels.includes(value)) {
-    return value as ProminenceLabel;
+    return value;
   }
 
   if (typeof value !== 'number' || !Number.isFinite(value)) {

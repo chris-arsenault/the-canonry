@@ -5,7 +5,7 @@
  * Categories provide the semantic foundation for plane classification.
  */
 
-import type { CategoryDefinition, CategoryId, DomainClass, CategoryRelationship } from '../types/index.js';
+import type { CategoryDefinition, CategoryId, DomainClass } from '../types/index.js';
 
 // Import domain-specific categories
 import { PHYSICAL_CATEGORIES } from './domains/physical.js';
@@ -112,7 +112,7 @@ export function getValidChildren(categoryId: CategoryId): CategoryId[] {
 
   const validChildren: CategoryId[] = [];
 
-  for (const [id, candidate] of CATEGORY_REGISTRY) {
+  for (const [id] of CATEGORY_REGISTRY) {
     if (id === categoryId) continue;
     if (canBeChildOf(id, categoryId)) {
       validChildren.push(id);

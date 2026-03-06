@@ -2,7 +2,6 @@ import type { FeatureVector, Centroid, ClassificationResult } from "../validatio
 import {
   featureVectorToArray,
   buildVocabulary,
-  calculateCentroid,
   normalizeFeatures,
 } from "./features.js";
 import { euclideanDistance } from "./distance.js";
@@ -142,7 +141,7 @@ export class NearestCentroidClassifier {
     }
 
     const dimensions = vectors[0].length;
-    const mean = new Array(dimensions).fill(0);
+    const mean: number[] = new Array<number>(dimensions).fill(0);
 
     for (const vec of vectors) {
       for (let i = 0; i < dimensions; i++) {
@@ -196,6 +195,7 @@ export function crossValidate(
   }
 
   // Shuffle data
+  // eslint-disable-next-line sonarjs/pseudo-random -- non-security shuffle for k-fold cross-validation
   const shuffled = [...featureVectors].sort(() => Math.random() - 0.5);
 
   // Perform k-fold CV
@@ -218,8 +218,10 @@ export function crossValidate(
       const predicted = classifier.predict(fv);
       const actual = fv.domainId;
       const correct = predicted === actual;
+      const distances = [...classifier.getCentroidDistances(fv).values()].sort((a, b) => a - b);
+      const confidence = distances.length >= 2 && distances[1] > 0 ? 1 - distances[0] / distances[1] : 1;
 
-      results.push({ predicted, actual, correct });
+      results.push({ predicted, actual, correct, confidence });
 
       // Update confusion matrix
       const actualCount = confusionMatrix.get(actual)!.get(predicted) ?? 0;

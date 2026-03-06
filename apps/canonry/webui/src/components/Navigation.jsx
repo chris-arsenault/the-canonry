@@ -2,103 +2,57 @@
  * Navigation - Tab bar for switching between tools
  */
 
-import React from 'react';
-import { colors, typography, spacing, radius, getAccentColor, getAccentGradient, getHoverBg } from '../theme';
-
-const styles = {
-  nav: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.xs,
-    padding: `${spacing.sm} ${spacing.lg}`,
-    backgroundColor: colors.bgSidebar,
-    borderBottom: `1px solid ${colors.border}`,
-  },
-  tabsContainer: {
-    display: 'flex',
-    gap: spacing.xs,
-    flex: 1,
-  },
-  tab: {
-    padding: `${spacing.md} ${spacing.xl}`,
-    fontSize: typography.sizeLg,
-    fontWeight: typography.weightMedium,
-    fontFamily: typography.fontFamily,
-    border: 'none',
-    borderRadius: `${radius.md} ${radius.md} 0 0`,
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-  },
-  tabInactive: {
-    backgroundColor: 'transparent',
-    color: colors.textSecondary,
-  },
-  tabDisabled: {
-    backgroundColor: 'transparent',
-    color: colors.textMuted,
-    opacity: 0.5,
-    cursor: 'not-allowed',
-  },
-  badge: {
-    marginLeft: spacing.sm,
-    padding: `2px ${spacing.sm}`,
-    fontSize: typography.sizeXs,
-    backgroundColor: colors.bgTertiary,
-    borderRadius: '10px',
-    color: colors.textMuted,
-  },
-  helpButton: {
-    padding: `${spacing.sm} ${spacing.md}`,
-    fontSize: typography.sizeMd,
-    fontWeight: typography.weightMedium,
-    fontFamily: typography.fontFamily,
-    backgroundColor: 'transparent',
-    color: colors.textSecondary,
-    border: `1px solid ${colors.border}`,
-    borderRadius: radius.md,
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-};
+import React from "react";
+import PropTypes from "prop-types";
+import {
+  colors,
+  getAccentColor,
+  getAccentGradient,
+  getHoverBg,
+} from "../theme";
+import "./Navigation.css";
 
 const TABS = [
-  { id: 'enumerist', label: 'Enumerist', enabled: true },
-  { id: 'names', label: 'Name Forge', enabled: true },
-  { id: 'cosmography', label: 'Cosmographer', enabled: true },
-  { id: 'coherence', label: 'Coherence Engine', enabled: true },
-  { id: 'simulation', label: 'Lore Weave', enabled: true },
-  { id: 'illuminator', label: 'Illuminator', enabled: true },
-  { id: 'archivist', label: 'Archivist', enabled: true },
-  { id: 'chronicler', label: 'Chronicler', enabled: true },
+  { id: "enumerist", label: "Enumerist", enabled: true },
+  { id: "names", label: "Name Forge", enabled: true },
+  { id: "cosmography", label: "Cosmographer", enabled: true },
+  { id: "coherence", label: "Coherence Engine", enabled: true },
+  { id: "simulation", label: "Lore Weave", enabled: true },
+  { id: "illuminator", label: "Illuminator", enabled: true },
+  { id: "archivist", label: "Archivist", enabled: true },
+  { id: "chronicler", label: "Chronicler", enabled: true },
 ];
 
 export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsClick }) {
-  const getTabStyle = (tab) => {
+  const getTabClassName = (tab) => {
     if (!tab.enabled) {
-      return { ...styles.tab, ...styles.tabDisabled };
+      return "nav-tab nav-tab-disabled";
     }
     if (tab.id === activeTab) {
+      return "nav-tab nav-tab-active";
+    }
+    return "nav-tab nav-tab-inactive";
+  };
+
+  const getTabDynamicStyle = (tab) => {
+    if (tab.id === activeTab && tab.enabled) {
       return {
-        ...styles.tab,
-        background: getAccentGradient(tab.id),
-        color: colors.bgSidebar,
-        fontWeight: typography.weightSemibold,
+        '--nav-tab-bg': getAccentGradient(tab.id),
+        '--nav-tab-color': colors.bgSidebar,
       };
     }
-    return { ...styles.tab, ...styles.tabInactive };
+    return undefined;
   };
 
   return (
-    <nav style={styles.nav}>
-      <div style={styles.tabsContainer}>
+    <nav className="nav-bar">
+      <div className="nav-tabs-container">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => tab.enabled && onTabChange(tab.id)}
-            style={getTabStyle(tab)}
+            className={getTabClassName(tab)}
+            style={getTabDynamicStyle(tab)}
             disabled={!tab.enabled}
             onMouseEnter={(e) => {
               if (tab.enabled && tab.id !== activeTab) {
@@ -108,18 +62,18 @@ export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsC
             }}
             onMouseLeave={(e) => {
               if (tab.enabled && tab.id !== activeTab) {
-                e.target.style.backgroundColor = 'transparent';
+                e.target.style.backgroundColor = "transparent";
                 e.target.style.color = colors.textSecondary;
               }
             }}
           >
             {tab.label}
-            {tab.badge && <span style={styles.badge}>{tab.badge}</span>}
+            {tab.badge && <span className="nav-badge">{tab.badge}</span>}
           </button>
         ))}
       </div>
       <button
-        style={styles.helpButton}
+        className="nav-help-button"
         onClick={onAwsClick}
         onMouseEnter={(e) => {
           e.target.style.backgroundColor = colors.bgTertiary;
@@ -127,7 +81,7 @@ export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsC
           e.target.style.borderColor = colors.borderLight;
         }}
         onMouseLeave={(e) => {
-          e.target.style.backgroundColor = 'transparent';
+          e.target.style.backgroundColor = "transparent";
           e.target.style.color = colors.textSecondary;
           e.target.style.borderColor = colors.border;
         }}
@@ -136,7 +90,7 @@ export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsC
         AWS
       </button>
       <button
-        style={styles.helpButton}
+        className="nav-help-button"
         onClick={onHelpClick}
         onMouseEnter={(e) => {
           e.target.style.backgroundColor = colors.bgTertiary;
@@ -144,7 +98,7 @@ export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsC
           e.target.style.borderColor = colors.borderLight;
         }}
         onMouseLeave={(e) => {
-          e.target.style.backgroundColor = 'transparent';
+          e.target.style.backgroundColor = "transparent";
           e.target.style.color = colors.textSecondary;
           e.target.style.borderColor = colors.border;
         }}
@@ -155,3 +109,10 @@ export default function Navigation({ activeTab, onTabChange, onHelpClick, onAwsC
     </nav>
   );
 }
+
+Navigation.propTypes = {
+  activeTab: PropTypes.string.isRequired,
+  onTabChange: PropTypes.func.isRequired,
+  onHelpClick: PropTypes.func,
+  onAwsClick: PropTypes.func,
+};

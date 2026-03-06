@@ -56,10 +56,10 @@ export function executePhonotacticPipeline(
   domain: NamingDomain,
   options: {
     /** Number of morphology candidates to generate (default: 3) */
-    morphologyCandidates?: number;
+    morphologyCandidates: number;
     /** Maximum name length for morphology scoring (default: 20) */
-    maxMorphologyLength?: number;
-  } = {}
+    maxMorphologyLength: number;
+  } = { morphologyCandidates: 3, maxMorphologyLength: 20 }
 ): PipelineResult {
   const {
     morphologyCandidates = 3,

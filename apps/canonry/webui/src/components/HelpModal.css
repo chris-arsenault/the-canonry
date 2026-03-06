@@ -1,0 +1,7 @@
+.hm-title-colored {
+  color: var(--hm-title-color);
+}
+
+.hm-step-number-colored {
+  background-color: var(--hm-step-bg);
+}

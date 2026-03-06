@@ -1,0 +1,86 @@
+/* Visualization overlay panels — shared styles for graph and timeline views.
+ * Theme via CSS custom properties: set --viz-panel-start, --viz-panel-end,
+ * --viz-accent-10, --viz-accent-05 on a parent using .viz-theme-blue or
+ * .viz-theme-golden.
+ */
+
+/* Full-bleed container */
+.viz-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* WebGL fallback */
+.viz-no-webgl {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #0a1929;
+  color: #93c5fd;
+}
+
+.viz-no-webgl-inner {
+  text-align: center;
+  max-width: 400px;
+}
+
+.viz-no-webgl-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.viz-no-webgl-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.viz-no-webgl-message {
+  font-size: 13px;
+}
+
+/* Overlay panel backgrounds */
+.viz-legend {
+  background: linear-gradient(135deg, var(--viz-panel-start) 0%, var(--viz-panel-end) 100%);
+}
+
+.viz-legend-header {
+  background: var(--viz-accent-10);
+}
+
+.viz-legend-footer {
+  background: var(--viz-accent-05);
+}
+
+.viz-legend-swatch {
+  background-color: var(--viz-swatch-color);
+}
+
+.viz-controls {
+  background: linear-gradient(135deg, var(--viz-panel-start) 0%, var(--viz-panel-end) 100%);
+}
+
+.viz-controls-header {
+  background: var(--viz-accent-10);
+}
+
+/* Blue theme — graph views */
+.viz-theme-blue {
+  --viz-panel-start: rgba(30, 58, 95, 0.95);
+  --viz-panel-end: rgba(10, 25, 41, 0.95);
+  --viz-accent-10: rgba(59, 130, 246, 0.1);
+  --viz-accent-05: rgba(59, 130, 246, 0.05);
+}
+
+/* Golden theme — timeline views */
+.viz-theme-golden {
+  --viz-panel-start: rgba(50, 40, 20, 0.95);
+  --viz-panel-end: rgba(20, 15, 5, 0.95);
+  --viz-accent-10: rgba(255, 215, 0, 0.1);
+  --viz-accent-05: rgba(255, 215, 0, 0.05);
+}

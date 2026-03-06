@@ -1,0 +1,19 @@
+/* Shared utility classes for SchemaEditor sub-components.
+ * Both RelationshipKindEditor and TagRegistryEditor (and future editors)
+ * import this file to avoid duplicating identical CSS rules.
+ */
+
+.se-select-compact {
+  width: auto;
+  padding: 6px 10px;
+}
+
+.se-checkbox-sm {
+  width: 14px;
+  height: 14px;
+}
+
+.se-chip-framework {
+  pointer-events: none;
+  opacity: 0.6;
+}

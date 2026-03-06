@@ -29,13 +29,14 @@
   transform: scale(1.2);
 }
 
-.level-selector-dot-fill {
+.level-selector-dot-active {
+  transform: scale(1.2);
+}
+
+.level-selector-dot-fill-svg {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: 0;
   border-radius: var(--radius-full);
-  transition: height var(--transition-fast);
 }
 
 .level-selector-input {

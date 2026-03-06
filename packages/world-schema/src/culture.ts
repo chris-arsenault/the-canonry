@@ -35,33 +35,33 @@ export interface CultureDefinition {
   /** Display name */
   name: string;
   /** Human-readable description */
-  description?: string;
+  description: string;
   /** True if this culture is defined by the framework and is read-only in editors */
-  isFramework?: boolean;
+  isFramework: boolean;
 
   // === Lore-Weave: World Context ===
-  /** Associated location (homeland) if any */
-  homeland?: string;
+  /** Associated location (homeland), empty string if none */
+  homeland: string;
 
   // === Cosmographer: Visual Identity ===
   /** Hex color for visualization */
-  color?: string;
+  color: string;
   /** Axis biases per entity kind (key = entityKind.id) */
-  axisBiases?: Record<string, AxisBias>;
+  axisBiases: Record<string, AxisBias>;
   /** Home regions per entity kind (key = entityKind.id, value = region IDs) */
-  homeRegions?: Record<string, string[]>;
+  homeRegions: Record<string, string[]>;
 
   // === Name-Forge: Naming Resources ===
-  /** Naming configuration (domains, lexemes, grammars, profiles) */
-  naming?: CultureNamingData;
+  /** Naming configuration (empty arrays if no naming configured) */
+  naming: CultureNamingData;
 
   // === Illuminator: Visual Style Defaults ===
-  /** Default artistic style ID for entities of this culture */
-  defaultArtisticStyleId?: string;
+  /** Default artistic style ID for entities of this culture (empty string for no default) */
+  defaultArtisticStyleId: string;
   /** Default composition style by entity kind (key = entityKind.id, value = style ID) */
-  defaultCompositionStyles?: Record<string, string>;
+  defaultCompositionStyles: Record<string, string>;
   /** Additional style keywords specific to this culture (appended to image prompts) */
-  styleKeywords?: string[];
+  styleKeywords: string[];
 
   // === Illuminator: In-Universe Visual Identity ===
   /**
@@ -70,5 +70,5 @@ export interface CultureDefinition {
    * Values are descriptive text for image generation.
    * Which keys are used depends on the entity kind's visualIdentityKeys setting.
    */
-  visualIdentity?: Record<string, string>;
+  visualIdentity: Record<string, string>;
 }

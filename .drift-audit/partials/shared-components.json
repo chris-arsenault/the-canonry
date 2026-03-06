@@ -1,0 +1,537 @@
+[
+  {
+    "id": "modal-shell-adoption",
+    "name": "ModalShell Adoption Gap",
+    "type": "behavioral",
+    "domain": "Shared Component Adoption",
+    "description": "The shared ModalShell component provides overlay click-to-close (mouseDown guard), Escape key handling, body scroll lock, header with close button, and optional tabs. However, only 12 of ~34 modal files across the project use it. The remaining 22 modals reimplement the overlay/backdrop pattern ad-hoc with inconsistent behavior.",
+    "impact": "MEDIUM",
+    "total_files": 34,
+    "variants": [
+      {
+        "name": "uses-modal-shell",
+        "description": "Imports and uses the shared ModalShell component, getting overlay close, Escape key, scroll lock, and consistent styling for free.",
+        "file_count": 12,
+        "files": [
+          "apps/name-forge/webui/src/components/modals/ConditionsModal.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/CopyGrammarModal.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/profile/ProfileModal.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/CopyLexemeModal.jsx",
+          "apps/illuminator/webui/src/components/RevisionFilterModal.jsx",
+          "apps/illuminator/webui/src/components/ImageRefPicker.jsx",
+          "apps/illuminator/webui/src/components/ToneAssignmentPreviewModal.jsx",
+          "apps/illuminator/webui/src/components/EntityLinkPicker.jsx",
+          "apps/illuminator/webui/src/components/HistoryCompressionPreviewModal.jsx",
+          "apps/coherence-engine/webui/src/components/generators/GeneratorModal.jsx",
+          "apps/coherence-engine/webui/src/components/actions/ActionModal.jsx",
+          "apps/coherence-engine/webui/src/components/systems/SystemModal.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/RevisionFilterModal.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/ModalShell.jsx",
+            "start_line": 42,
+            "end_line": 77,
+            "snippet": "// Canonical ModalShell: overlay mouseDown guard, Escape key, scroll lock\nconst handleKeyDown = useCallback((e) => {\n  if (e.key === 'Escape' && !preventOverlayClose) onClose();\n}, [onClose, preventOverlayClose]);\n\nuseEffect(() => {\n  document.addEventListener('keydown', handleKeyDown);\n  return () => document.removeEventListener('keydown', handleKeyDown);\n}, [handleKeyDown]);\n\nuseEffect(() => {\n  const prev = document.body.style.overflow;\n  document.body.style.overflow = 'hidden';\n  return () => { document.body.style.overflow = prev; };\n}, []);\n\nconst handleOverlayMouseDown = (e) => {\n  mouseDownOnOverlay.current = e.target === e.currentTarget;\n};\nconst handleOverlayClick = (e) => {\n  if (!preventOverlayClose && mouseDownOnOverlay.current && e.target === e.currentTarget) onClose();\n};"
+          }
+        ],
+        "implementation_details": "ModalShell provides: overlay mouseDown guard (prevents drag-from-modal close), Escape key listener via useEffect, body scroll lock on mount, preventOverlayClose prop, header with icon/title/close button, optional tabbed sidebar, optional footer."
+      },
+      {
+        "name": "ad-hoc-custom-backdrop",
+        "description": "Implements a custom position:fixed overlay with per-component CSS. Some copy the mouseDown guard pattern, some use simple onClick, some have no overlay close at all. None have Escape key or scroll lock.",
+        "file_count": 22,
+        "files": [
+          "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+          "apps/illuminator/webui/src/components/EntityRenameModal.tsx",
+          "apps/illuminator/webui/src/components/BackportConfigModal.jsx",
+          "apps/illuminator/webui/src/components/BulkHistorianModal.jsx",
+          "apps/illuminator/webui/src/components/ImagePickerModal.jsx",
+          "apps/illuminator/webui/src/components/BulkBackportModal.jsx",
+          "apps/illuminator/webui/src/components/BulkChronicleAnnotationModal.jsx",
+          "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx",
+          "apps/illuminator/webui/src/components/ChronologyModal.jsx",
+          "apps/illuminator/webui/src/components/DynamicsGenerationModal.jsx",
+          "apps/illuminator/webui/src/components/EraNarrativeModal.jsx",
+          "apps/illuminator/webui/src/components/HistorianReviewModal.jsx",
+          "apps/illuminator/webui/src/components/InterleavedAnnotationModal.jsx",
+          "apps/illuminator/webui/src/components/ImageModal.jsx",
+          "apps/illuminator/webui/src/components/QuickCheckModal.jsx",
+          "apps/illuminator/webui/src/components/SummaryRevisionModal.jsx",
+          "apps/archivist/webui/src/components/RelationshipStoryModal.tsx",
+          "apps/canonry/webui/src/components/HelpModal.jsx",
+          "apps/lore-weave/webui/src/components/DebugSettingsModal.jsx",
+          "apps/coherence-engine/webui/src/components/pressures/modals/FactorEditorModal.jsx",
+          "apps/name-forge/webui/src/components/optimizer/ResultsModal.jsx",
+          "apps/illuminator/webui/src/components/StyleSelector.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+            "start_line": 225,
+            "end_line": 236,
+            "snippet": "// Ad-hoc backdrop: custom CSS, no Escape key, no scroll lock\n<div className=\"cem-backdrop\">\n  <div className=\"cem-card\">\n    <div className=\"cem-header\">\n      <h2 className=\"cem-title\">{title}</h2>\n    </div>\n    <div className=\"cem-body\">..."
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/CreateEntityModal.css",
+            "start_line": 1,
+            "end_line": 11,
+            "snippet": ".cem-backdrop {\n  position: fixed;\n  inset: 0;\n  z-index: 1000;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: rgba(0, 0, 0, 0.6);\n}"
+          },
+          {
+            "file": "apps/archivist/webui/src/components/RelationshipStoryModal.tsx",
+            "start_line": 17,
+            "end_line": 27,
+            "snippet": "// Archivist ad-hoc modal: has mouseDown guard, no Escape, no scroll lock\nconst mouseDownOnOverlay = useRef(false);\nconst handleOverlayMouseDown = (e: React.MouseEvent) => {\n  mouseDownOnOverlay.current = e.target === e.currentTarget;\n};\nconst handleOverlayClick = (e: React.MouseEvent) => {\n  if (mouseDownOnOverlay.current && e.target === e.currentTarget) onClose();\n};"
+          },
+          {
+            "file": "apps/archivist/webui/src/components/RelationshipStoryModal.css",
+            "start_line": 1,
+            "end_line": 12,
+            "snippet": ".relationship-story-overlay {\n  position: fixed;\n  inset: 0;\n  background: rgb(0 0 0 / 75%);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  z-index: var(--z-modal);\n  padding: var(--spacing-2xl);\n}"
+          }
+        ],
+        "implementation_details": "Each modal reinvents the overlay pattern with its own CSS class names (cem-backdrop, relationship-story-overlay, modal-overlay), its own z-index (1000, var(--z-modal)), its own background opacity (0.6, 0.7, 0.75), and inconsistent close behaviors. Some have mouseDown guard copied from ModalShell, others use simple onClick, and CreateEntityModal has no overlay close at all."
+      }
+    ],
+    "behavior_matrix": {
+      "ModalShell (shared)": {
+        "overlay_close": "mouseDown guard + currentTarget check",
+        "escape_close": "useEffect keydown listener",
+        "scroll_lock": "overflow:hidden on body mount",
+        "close_button": "btn-close in header",
+        "preventable": "preventOverlayClose prop"
+      },
+      "CreateEntityModal (illuminator)": {
+        "overlay_close": false,
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "custom cem-cancel button in footer",
+        "preventable": "N/A"
+      },
+      "RelationshipStoryModal (archivist)": {
+        "overlay_close": "mouseDown guard (duplicated pattern)",
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "custom relationship-story-close button",
+        "preventable": "N/A"
+      },
+      "HelpModal (canonry)": {
+        "overlay_close": "mouseDown guard (duplicated pattern)",
+        "escape_close": false,
+        "scroll_lock": false,
+        "close_button": "btn-close in header",
+        "preventable": "N/A"
+      }
+    },
+    "missing_behavior_complexity": {
+      "migration_to_ModalShell": "moderate — each ad-hoc modal needs its header/body restructured to fit ModalShell's slot pattern; some bulk-operation modals with progress UI may need the preventOverlayClose prop"
+    },
+    "analysis": "This is genuine drift, not intentional variation. The shared ModalShell already has every behavior (overlay close, Escape, scroll lock, preventOverlayClose for bulk operations) that these ad-hoc modals would need. The illuminator app is the worst offender with 17 of 22 ad-hoc modals — it appears that earlier modals predated ModalShell and newer ones imported it, creating a mixed state. The archivist modal copies the mouseDown guard logic verbatim but doesn't use ModalShell, which is the classic 'partial adoption' drift pattern. Unifying to ModalShell would eliminate ~22 custom CSS backdrop implementations and bring consistent Escape key + scroll lock behavior to all modals.",
+    "recommendation": "Migrate all 22 ad-hoc modals to use ModalShell. For bulk-operation modals that shouldn't close on accidental click, use the existing preventOverlayClose prop. Each migration is straightforward: wrap content in <ModalShell onClose={onClose} title={title}> and delete the custom backdrop CSS.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "raw-select-vs-shared-dropdowns",
+    "name": "Raw <select> Elements vs Shared Dropdown Components",
+    "type": "behavioral",
+    "domain": "Shared Component Adoption",
+    "description": "The shared library provides SearchableDropdown (popover with search), ReferenceDropdown (native select or searchable mode), and ChipSelect (multi-select with chips). However, 124 raw <select> elements exist across 50+ files in 8 apps. SearchableDropdown has zero direct imports outside shared-components. ReferenceDropdown is used only in coherence-engine (8 files). The vast majority of dropdowns are plain HTML <select> elements with no search, no consistent styling, and no shared behavior.",
+    "impact": "LOW",
+    "total_files": 50,
+    "variants": [
+      {
+        "name": "shared-reference-dropdown",
+        "description": "Uses the shared ReferenceDropdown component, which can render as a native select (simple mode) or searchable popover.",
+        "file_count": 8,
+        "files": [
+          "apps/coherence-engine/webui/src/components/systems/tabs/TagDiffusionTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/GraphContagionTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/ConnectionEvolutionTab.jsx",
+          "apps/coherence-engine/webui/src/components/shared/MutationCard.jsx",
+          "apps/coherence-engine/webui/src/components/generators/applicability/ApplicabilityRuleCard.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/filters/SelectionFilterCard.jsx",
+          "apps/coherence-engine/webui/src/components/pressures/modals/FactorEditorModal.jsx"
+        ],
+        "sample_file": "apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx",
+        "code_excerpts": [],
+        "implementation_details": "ReferenceDropdown used exclusively in coherence-engine for schema-reference dropdowns (entity kinds, relationship kinds, etc). No other app imports it."
+      },
+      {
+        "name": "raw-html-select-illuminator",
+        "description": "Plain HTML <select> elements with 'illuminator-select' CSS class. The illuminator app alone has 72 raw selects across 30 files — this is the largest concentration.",
+        "file_count": 30,
+        "files": [
+          "apps/illuminator/webui/src/components/EntityBrowser.jsx",
+          "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+          "apps/illuminator/webui/src/components/preprint/ExportView.tsx",
+          "apps/illuminator/webui/src/components/StyleSelector.jsx",
+          "apps/illuminator/webui/src/components/LLMCallConfigPanel.jsx",
+          "apps/illuminator/webui/src/components/ChronicleImagePanel.tsx",
+          "apps/illuminator/webui/src/components/EventsPanel.jsx",
+          "apps/illuminator/webui/src/components/ChroniclePanel.jsx",
+          "apps/illuminator/webui/src/components/EnrichmentQueue.jsx",
+          "apps/illuminator/webui/src/components/ImagePickerModal.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/EntityBrowser.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/EntityBrowser.jsx",
+            "start_line": 1320,
+            "end_line": 1344,
+            "snippet": "// EntityBrowser: 7 raw <select> elements for filtering\n<select\n  value={filters.kind}\n  onChange={(e) => setFilters((prev) => ({ ...prev, kind: e.target.value }))}\n  className=\"illuminator-select\"\n>\n  <option value=\"all\">All Kinds</option>\n  {filterOptions.kinds.map((kind) => (\n    <option key={kind} value={kind}>{kind}</option>\n  ))}\n</select>\n\n<select\n  value={filters.prominence}\n  onChange={(e) => setFilters((prev) => ({ ...prev, prominence: e.target.value }))}\n  className=\"illuminator-select\"\n>\n  <option value=\"all\">All Prominence</option>\n  {PROMINENCE_ORDER.map((p) => (\n    <option key={p} value={p}>{p}</option>\n  ))}\n</select>"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/CreateEntityModal.tsx",
+            "start_line": 244,
+            "end_line": 272,
+            "snippet": "// CreateEntityModal: 6 raw <select> elements for entity creation\n<select id=\"kind\"\n  value={kind}\n  onChange={(e) => handleKindChange(e.target.value)}\n  className=\"illuminator-select cem-full-width\"\n>\n  {entityKinds.map((k) => (\n    <option key={k.kind} value={k.kind}>\n      {k.description || k.kind}\n    </option>\n  ))}\n</select>"
+          }
+        ],
+        "implementation_details": "All illuminator selects use the same 'illuminator-select' CSS class and the same onChange -> setState pattern. No search capability, no shared styling beyond the CSS class. Lists like entity kinds and cultures could benefit from searchable dropdowns when the domain grows large."
+      },
+      {
+        "name": "raw-html-select-other-apps",
+        "description": "Plain HTML <select> elements in other apps using various CSS classes: cosmographer (14 selects in 3 files), name-forge (17 selects in 8 files), canonry (12 selects in 3 files).",
+        "file_count": 20,
+        "files": [
+          "apps/cosmographer/webui/src/components/EntityEditor/index.jsx",
+          "apps/cosmographer/webui/src/components/SemanticPlane/index.jsx",
+          "apps/cosmographer/webui/src/components/RelationshipEditor/index.jsx",
+          "apps/name-forge/webui/src/components/generator/GenerateTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/DomainTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/LexemesTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/GrammarsTab.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/EntityKindEditor.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/TagRegistryEditor.jsx",
+          "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.jsx"
+        ],
+        "sample_file": "apps/cosmographer/webui/src/components/EntityEditor/index.jsx",
+        "code_excerpts": [],
+        "implementation_details": "Each app uses its own CSS class for selects (cosmographer: various, name-forge: standard HTML, canonry: shared form styles). None use the shared SearchableDropdown or ReferenceDropdown components."
+      }
+    ],
+    "behavior_matrix": {
+      "SearchableDropdown (shared)": {
+        "search_filter": "yes — text input filters items by id/name",
+        "popover_dropdown": true,
+        "keyboard_nav": false,
+        "usage_count": "0 direct imports outside shared-components"
+      },
+      "ReferenceDropdown (shared)": {
+        "search_filter": "optional — supports simple (native) and searchable mode",
+        "popover_dropdown": "optional",
+        "keyboard_nav": false,
+        "usage_count": "8 files, all in coherence-engine"
+      },
+      "Raw <select> (illuminator)": {
+        "search_filter": false,
+        "popover_dropdown": false,
+        "keyboard_nav": "native browser behavior",
+        "usage_count": "72 instances in 30 files"
+      },
+      "Raw <select> (all other apps)": {
+        "search_filter": false,
+        "popover_dropdown": false,
+        "keyboard_nav": "native browser behavior",
+        "usage_count": "52 instances in 20+ files"
+      }
+    },
+    "missing_behavior_complexity": {
+      "migration_to_shared_dropdown": "significant — 124 raw selects is a large volume; many have dependent option lists (e.g., subtypes depend on selected kind), optgroups, or 'All X' sentinel values that SearchableDropdown/ReferenceDropdown don't currently support well"
+    },
+    "analysis": "This is partially drift and partially a gap in the shared component library's ergonomics. The shared SearchableDropdown has zero adoption despite being exported — this strongly suggests it doesn't fit the use cases (most selects have fewer than 20 options and don't need search). The shared ReferenceDropdown is adopted in coherence-engine but nowhere else, indicating it solves a coherence-engine-specific problem (schema references). The raw <select> pattern works fine for small option lists and is the browser-native form control — replacing all 124 instances would be massive effort for marginal UX gain. The real opportunity is not blanket replacement but rather targeted adoption: entity kind/culture dropdowns that could have 50+ options in large worlds would benefit from searchable behavior. This is more 'untapped potential' than 'harmful drift'.",
+    "recommendation": "Do not attempt blanket replacement. Instead: (1) For filter bars with many selects (EntityBrowser, EntityCoveragePanel), consider a dedicated FilterBar shared component that standardizes the filter-select pattern. (2) For entity kind/culture selects that may grow large, adopt ReferenceDropdown in searchable mode. (3) Improve SearchableDropdown to support sentinel values ('All X') and dependent options to make adoption more attractive.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "multi-select-chip-adoption",
+    "name": "ChipSelect vs Ad-Hoc Multi-Select Patterns",
+    "type": "behavioral",
+    "domain": "Shared Component Adoption",
+    "description": "The shared ChipSelect component provides multi-select with searchable dropdown and chip display. However, name-forge has an ad-hoc MultiSelectPills component that reimplements multi-select with a different UI pattern (pill buttons instead of chips). The MultiSelectPills file even contains a TODO comment acknowledging it should use ChipSelect.",
+    "impact": "LOW",
+    "total_files": 5,
+    "variants": [
+      {
+        "name": "shared-chip-select",
+        "description": "Uses the shared ChipSelect component from shared-components for multi-select with chips.",
+        "file_count": 4,
+        "files": [
+          "apps/coherence-engine/webui/src/components/generators/applicability/ApplicabilityRuleCard.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/filters/SelectionFilterCard.jsx",
+          "apps/coherence-engine/webui/src/components/pressures/modals/FactorEditorModal.jsx"
+        ],
+        "sample_file": "apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx",
+        "code_excerpts": [],
+        "implementation_details": "ChipSelect used exclusively in coherence-engine for multi-selecting entity kinds, subtypes, cultures, and tags."
+      },
+      {
+        "name": "ad-hoc-multi-select-pills",
+        "description": "Custom MultiSelectPills component in name-forge using pill buttons instead of chips/dropdown. Contains explicit TODO to replace with ChipSelect.",
+        "file_count": 3,
+        "files": [
+          "apps/name-forge/webui/src/components/workspace/tabs/profile/MultiSelectPills.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/profile/StrategyGroupEditor.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/profile/tabs/SingleGroupTab.jsx"
+        ],
+        "sample_file": "apps/name-forge/webui/src/components/workspace/tabs/profile/MultiSelectPills.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/name-forge/webui/src/components/workspace/tabs/profile/MultiSelectPills.jsx",
+            "start_line": 1,
+            "end_line": 49,
+            "snippet": "/**\n * Multi-select pills component for selecting multiple options\n * Note: Consider replacing with ChipSelect from shared-components in future\n */\nexport default function MultiSelectPills({ options, selected, onChange, allLabel = \"All\" }) {\n  const isAllSelected = selected.length === 0 || (selected.length === 1 && selected[0] === \"*\");\n  const handleToggle = (value) => {\n    if (value === \"*\") {\n      onChange([]);\n    } else {\n      const newSelected = selected.filter((s) => s !== \"*\");\n      if (newSelected.includes(value)) {\n        const filtered = newSelected.filter((s) => s !== value);\n        onChange(filtered.length === 0 ? [] : filtered);\n      } else {\n        onChange([...newSelected, value]);\n      }\n    }\n  };\n  return (\n    <div className=\"flex flex-wrap gap-xs\">\n      <button type=\"button\" onClick={() => handleToggle(\"*\")}\n        className={`pill-button ${isAllSelected ? \"selected-gold\" : \"\"}`}>\n        {allLabel}\n      </button>\n      {options.map((opt) => {\n        const isSelected = !isAllSelected && selected.includes(opt);\n        return (\n          <button key={opt} type=\"button\" onClick={() => handleToggle(opt)}\n            className={`pill-button ${isSelected ? \"selected-green\" : \"\"}`}>\n            {opt}\n          </button>\n        );\n      })}\n    </div>\n  );\n}"
+          }
+        ],
+        "implementation_details": "MultiSelectPills uses an 'All' wildcard button pattern and toggle pill buttons instead of a dropdown with chips. The UX is different from ChipSelect (always-visible pills vs dropdown selection) which may be intentional for small option sets. The component explicitly flags itself as a ChipSelect replacement candidate."
+      }
+    ],
+    "behavior_matrix": {
+      "ChipSelect (shared)": {
+        "selection_ui": "searchable dropdown with chip display",
+        "all_option": false,
+        "always_visible": "only selected chips are visible",
+        "search": true
+      },
+      "MultiSelectPills (name-forge)": {
+        "selection_ui": "always-visible pill buttons",
+        "all_option": "yes — '*' wildcard with gold highlight",
+        "always_visible": "all options always visible as buttons",
+        "search": false
+      }
+    },
+    "missing_behavior_complexity": {
+      "replace_with_chip_select": "trivial — ChipSelect API is compatible; main consideration is whether always-visible pills are a better UX for small option sets (entity kinds, prominence levels)"
+    },
+    "analysis": "This is acknowledged drift — the component itself contains a TODO comment ('Consider replacing with ChipSelect from shared-components in future'). The MultiSelectPills component provides a different UX paradigm (always-visible pill buttons) that may actually be superior for very small option sets (5-10 items) where a dropdown adds unnecessary interaction cost. ChipSelect's dropdown pattern is better for larger sets. Rather than a direct replacement, the shared library could benefit from a PillSelect variant or ChipSelect could gain an 'inline' mode that renders all options as toggleable pills when the option count is below a threshold.",
+    "recommendation": "Either (a) replace MultiSelectPills with ChipSelect if the dropdown UX is acceptable for name-forge's use case, or (b) add an 'inline' mode to ChipSelect that renders all options as toggleable pills when count is small. The 'All' wildcard pattern should be supported either way.",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "empty-state-adoption",
+    "name": "EmptyState Component Adoption Gap",
+    "type": "behavioral",
+    "domain": "Shared Component Adoption",
+    "description": "The shared EmptyState component provides a consistent icon + title + description pattern. However, only 3 files import it (2 in coherence-engine, 1 in illuminator). Meanwhile, 41 files across 8 apps render ad-hoc empty states using the same CSS class names ('empty-state', 'empty-state-icon', 'empty-state-title', 'empty-state-desc') or app-specific variants — matching the shared component's HTML structure exactly but without importing it.",
+    "impact": "LOW",
+    "total_files": 41,
+    "variants": [
+      {
+        "name": "imports-shared-empty-state",
+        "description": "Imports and uses the shared EmptyState component from @the-canonry/shared-components.",
+        "file_count": 3,
+        "files": [
+          "apps/coherence-engine/webui/src/components/eras/sections/ConditionsSection.jsx",
+          "apps/coherence-engine/webui/src/components/eras/sections/EffectsSection.jsx",
+          "apps/illuminator/webui/src/IlluminatorRemote.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/IlluminatorRemote.jsx",
+        "code_excerpts": [],
+        "implementation_details": "These files import and use <EmptyState icon='...' title='...' description='...' /> as intended."
+      },
+      {
+        "name": "ad-hoc-matching-structure",
+        "description": "Renders the exact same HTML structure as EmptyState (div.empty-state > div.empty-state-icon + div.empty-state-title + div.empty-state-desc) but inline in JSX instead of importing the component.",
+        "file_count": 12,
+        "files": [
+          "apps/coherence-engine/webui/src/components/generators/tabs/VariablesTab.jsx",
+          "apps/coherence-engine/webui/src/components/actions/tabs/VariablesTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/RelationshipsTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/CreationTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/applicability/ApplicabilityTab.jsx",
+          "apps/coherence-engine/webui/src/components/generators/filters/SelectionFiltersEditor.jsx",
+          "apps/coherence-engine/webui/src/components/pressures/PressuresEditor.jsx",
+          "apps/coherence-engine/webui/src/components/dependency-viewer/DependencyViewer.jsx",
+          "apps/coherence-engine/webui/src/components/causal-loop/CausalLoopEditor.jsx",
+          "apps/cosmographer/webui/src/components/AxisRegistry/index.jsx",
+          "apps/cosmographer/webui/src/components/EntityEditor/index.jsx",
+          "apps/cosmographer/webui/src/components/CultureEditor/index.jsx"
+        ],
+        "sample_file": "apps/coherence-engine/webui/src/components/generators/tabs/VariablesTab.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/coherence-engine/webui/src/components/generators/tabs/VariablesTab.jsx",
+            "start_line": 193,
+            "end_line": 201,
+            "snippet": "// Ad-hoc: identical HTML structure to shared EmptyState but inline\n{varEntries.length === 0 && !showAddForm ? (\n  <div className=\"empty-state\">\n    <div className=\"empty-state-icon\">\ud83d\udce6</div>\n    <div className=\"empty-state-title\">No variables defined</div>\n    <div className=\"empty-state-desc\">\n      Add variables to select additional entities for use in creation and relationships.\n    </div>\n  </div>\n) : ("
+          },
+          {
+            "file": "apps/coherence-engine/webui/src/components/generators/tabs/RelationshipsTab.jsx",
+            "start_line": 379,
+            "end_line": 387,
+            "snippet": "// Same ad-hoc pattern with different icon and text\n{relationships.length === 0 && saturationLimits.length === 0 ? (\n  <div className=\"empty-state\">\n    <div className=\"empty-state-icon\">\ud83d\udd17</div>\n    <div className=\"empty-state-title\">No relationships</div>\n    <div className=\"empty-state-desc\">\n      This generator doesn't create any relationships. Add relationships to connect entities.\n    </div>\n  </div>\n) : ("
+          }
+        ],
+        "implementation_details": "These files render the exact same DOM structure as the shared EmptyState component but do so inline. The CSS classes match because they import the shared styles. This is the easiest migration — a simple import + JSX replacement with no behavior change."
+      },
+      {
+        "name": "ad-hoc-custom-css-class",
+        "description": "Custom empty state implementations using app-specific CSS classes and different HTML structures.",
+        "file_count": 26,
+        "files": [
+          "apps/lore-weave/webui/src/components/results/ResultsViewer.jsx",
+          "apps/lore-weave/webui/src/components/dashboard/EpochTimeline.jsx",
+          "apps/lore-weave/webui/src/components/dashboard/FinalDiagnostics.jsx",
+          "apps/lore-weave/webui/src/components/dashboard/PopulationMetrics.jsx",
+          "apps/lore-weave/webui/src/components/dashboard/TemplateUsage.jsx",
+          "apps/lore-weave/webui/src/components/targets/DistributionTargetsEditor.jsx",
+          "apps/lore-weave/webui/src/components/validation/ValidationPanel.jsx",
+          "apps/lore-weave/webui/src/components/config/ConfigurationSummary.jsx",
+          "apps/illuminator/webui/src/components/ActivityPanel.jsx",
+          "apps/illuminator/webui/src/components/ChronicleImagePanel.tsx",
+          "apps/illuminator/webui/src/components/ResultsPanel.jsx",
+          "apps/illuminator/webui/src/components/PrePrintPanel.tsx",
+          "apps/cosmographer/webui/src/components/SemanticPlane/index.jsx",
+          "apps/cosmographer/webui/src/components/RelationshipEditor/index.jsx",
+          "apps/name-forge/webui/src/NameForgeRemote.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/DomainTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/GrammarsTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/LexemesTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/profile/ProfileTab.jsx",
+          "apps/name-forge/webui/src/components/workspace/tabs/profile/tabs/GroupsTab.jsx",
+          "apps/canonry/webui/src/components/ProjectManager.jsx",
+          "apps/archivist/webui/src/ArchivistRemote.tsx",
+          "apps/coherence-engine/webui/src/components/naming-profile-viewer/NamingProfileMappingViewer.jsx",
+          "apps/coherence-engine/webui/src/components/actions/tabs/ActorTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/ThresholdTriggerTab.jsx",
+          "apps/coherence-engine/webui/src/components/eras/ErasEditor.jsx"
+        ],
+        "sample_file": "apps/lore-weave/webui/src/components/results/ResultsViewer.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/lore-weave/webui/src/components/results/ResultsViewer.jsx",
+            "start_line": 48,
+            "end_line": 63,
+            "snippet": "// Lore-weave: custom empty state with app-specific CSS classes and action button\n{!results && (\n  <div className=\"lw-container\">\n    <div className=\"lw-empty-state rv-empty-state\">\n      <div className=\"lw-empty-icon\"></div>\n      <div className=\"lw-empty-title\">No Results Yet</div>\n      <div className=\"lw-empty-text\">\n        Run a simulation to see the generated world history here.\n      </div>\n      <button className=\"lw-btn lw-btn-primary\" onClick={onNewRun}>\n        Go to Run\n      </button>\n    </div>\n  </div>\n)}"
+          },
+          {
+            "file": "apps/cosmographer/webui/src/components/SemanticPlane/index.jsx",
+            "start_line": 625,
+            "end_line": 629,
+            "snippet": "// Cosmographer: minimal warning-style empty state\n{axisDefinitions.length === 0 && (\n  <div className=\"sp-no-axes-warning\">\n    No axes defined. Create axes in the Axis Registry first.\n  </div>\n)}"
+          }
+        ],
+        "implementation_details": "These files use app-specific CSS class prefixes (lw-empty-state, sp-no-axes-warning, etc.) and varying HTML structures. Some include action buttons (ResultsViewer's 'Go to Run'), some are minimal text-only warnings. The shared EmptyState component supports children for action buttons, so most of these could migrate."
+      }
+    ],
+    "behavior_matrix": {
+      "EmptyState (shared)": {
+        "structure": "div.empty-state > icon + title + desc + children",
+        "supports_action_button": "yes, via children prop",
+        "usage_count": "3 files"
+      },
+      "Ad-hoc matching structure": {
+        "structure": "same div.empty-state > icon + title + desc (inline JSX)",
+        "supports_action_button": "no (would need custom addition)",
+        "usage_count": "12 files"
+      },
+      "Ad-hoc custom CSS": {
+        "structure": "various (lw-empty-state, sp-no-axes-warning, etc.)",
+        "supports_action_button": "varies",
+        "usage_count": "26 files"
+      }
+    },
+    "missing_behavior_complexity": {
+      "migrate_matching_structure": "trivial — import EmptyState and replace inline JSX with <EmptyState icon='...' title='...' description='...' />; no behavior change",
+      "migrate_custom_css": "moderate — need to replace app-specific CSS classes with shared empty-state classes and restructure HTML to match EmptyState's slot pattern; some need className prop for custom styling"
+    },
+    "analysis": "This is clear drift with a simple root cause: the shared EmptyState component was created after many of these ad-hoc empty states were already written, and adoption never caught up. The 12 files using identical CSS class names (empty-state, empty-state-icon, empty-state-title, empty-state-desc) are the most obvious candidates — they already use the shared CSS but render the HTML inline instead of importing the component. These migrations are mechanical and risk-free. The 26 files with custom CSS classes are a larger effort but still straightforward since EmptyState supports className for custom styling and children for action buttons.",
+    "recommendation": "Phase 1: Migrate the 12 files that already use matching CSS classes — this is a find-and-replace level change. Phase 2: Migrate the 26 files with custom CSS, starting with coherence-engine (most files) and lore-weave (custom lw-empty-state pattern used consistently).",
+    "evidence_quality": "high",
+    "status": "pending"
+  },
+  {
+    "id": "enable-toggle-vs-checkbox",
+    "name": "EnableToggle vs Raw Checkbox Adoption",
+    "type": "behavioral",
+    "domain": "Shared Component Adoption",
+    "description": "The shared EnableToggle component provides a styled toggle switch with label, keyboard accessibility, and consistent styling. However, 83 raw <input type='checkbox'> elements exist across 7 apps. EnableToggle is only imported in 4 files in coherence-engine. Most checkboxes are wrapped in bare <label> elements with per-app CSS classes.",
+    "impact": "LOW",
+    "total_files": 30,
+    "variants": [
+      {
+        "name": "shared-enable-toggle",
+        "description": "Uses the shared EnableToggle component with styled toggle switch, keyboard support, and label.",
+        "file_count": 4,
+        "files": [
+          "apps/coherence-engine/webui/src/components/generators/cards/GeneratorListCard.jsx",
+          "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+          "apps/coherence-engine/webui/src/components/systems/cards/SystemListCard.jsx",
+          "apps/coherence-engine/webui/src/components/systems/tabs/OverviewTab.jsx"
+        ],
+        "sample_file": "apps/coherence-engine/webui/src/components/generators/tabs/OverviewTab.jsx",
+        "code_excerpts": [
+          {
+            "file": "packages/shared-components/src/components/EnableToggle.jsx",
+            "start_line": 16,
+            "end_line": 41,
+            "snippet": "// Canonical EnableToggle: styled toggle switch with keyboard support\nexport function EnableToggle({ enabled, onChange, onClick, label, className = '' }) {\n  const handleClick = (e) => {\n    if (onClick) onClick(e);\n    else if (onChange) onChange(!enabled);\n  };\n  return (\n    <div className={`flex items-center gap-lg ${className}`.trim()}>\n      <div onClick={handleClick}\n        className={`toggle ${enabled ? 'toggle-on' : ''}`}\n        role=\"button\" tabIndex={0}\n        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(e); }}>\n        <div className=\"toggle-knob\" />\n      </div>\n      {label && <span className=\"text-md text-muted\">{label}</span>}\n    </div>\n  );\n}"
+          }
+        ],
+        "implementation_details": "EnableToggle renders a visual toggle switch (not a native checkbox). Used for enable/disable toggles on generators and systems in coherence-engine."
+      },
+      {
+        "name": "raw-checkbox-label-pattern",
+        "description": "Raw <input type='checkbox'> wrapped in <label> with app-specific CSS classes. Most common in illuminator (39 instances) and coherence-engine (21 instances).",
+        "file_count": 26,
+        "files": [
+          "apps/illuminator/webui/src/components/EntityCoveragePanel.jsx",
+          "apps/illuminator/webui/src/components/EntityBrowser.jsx",
+          "apps/illuminator/webui/src/components/BackportConfigModal.jsx",
+          "apps/coherence-engine/webui/src/components/weight-matrix/WeightMatrixEditor.jsx",
+          "apps/archivist/webui/src/components/FilterPanel.tsx",
+          "apps/chronicler/webui/src/components/EntityTimeline.tsx",
+          "apps/canonry/webui/src/App.jsx",
+          "apps/name-forge/webui/src/components/generator/GenerateTab.jsx",
+          "apps/lore-weave/webui/src/components/runner/ParameterForm.jsx"
+        ],
+        "sample_file": "apps/illuminator/webui/src/components/EntityCoveragePanel.jsx",
+        "code_excerpts": [
+          {
+            "file": "apps/illuminator/webui/src/components/EntityCoveragePanel.jsx",
+            "start_line": 797,
+            "end_line": 801,
+            "snippet": "// Ad-hoc checkbox: bare input in label with app-specific CSS\n<label className=\"ecp-checkbox-label\">\n  <input type=\"checkbox\" checked={descOnly} onChange={e => setDescOnly(e.target.checked)} />\n  Has description\n</label>"
+          },
+          {
+            "file": "apps/illuminator/webui/src/components/EntityBrowser.jsx",
+            "start_line": 1385,
+            "end_line": 1392,
+            "snippet": "// Another ad-hoc checkbox in a filter bar\n<label className=\"eb-hide-completed-label\">\n  <input\n    type=\"checkbox\"\n    checked={hideCompleted}\n    onChange={(e) => setHideCompleted(e.target.checked)}\n  />\n  Hide completed\n</label>"
+          }
+        ],
+        "implementation_details": "Raw checkboxes use the browser's native checkbox appearance and are styled per-app (ecp-checkbox-label, eb-hide-completed-label, filter-checkbox-label, etc.). They serve as boolean filters in toolbars, which is a different UX role from EnableToggle's enable/disable toggle switch."
+      }
+    ],
+    "behavior_matrix": {
+      "EnableToggle (shared)": {
+        "visual_style": "custom toggle switch (knob slides)",
+        "keyboard_support": "Enter and Space via onKeyDown",
+        "label": "optional label prop",
+        "semantic_role": "enable/disable toggle",
+        "usage": "4 files in coherence-engine"
+      },
+      "Raw checkbox (ad-hoc)": {
+        "visual_style": "native browser checkbox",
+        "keyboard_support": "native (Space to toggle)",
+        "label": "<label> wrapper with per-app CSS class",
+        "semantic_role": "filter checkbox in toolbar",
+        "usage": "83 instances across 7 apps"
+      }
+    },
+    "missing_behavior_complexity": {
+      "replace_all_with_toggle": "significant and possibly wrong — many checkboxes serve as filter options in toolbars where native checkbox appearance is conventional; replacing all with toggle switches would change the visual language. Only enable/disable semantics benefit from the toggle pattern."
+    },
+    "analysis": "This is partially intentional variation rather than pure drift. The EnableToggle component renders a toggle switch (sliding knob) designed for 'enable/disable' semantics — turning a generator on/off, enabling a system. The raw checkboxes mostly serve as filter options in toolbars ('Hide completed', 'Has description', 'Show prominence-only events') where the native checkbox is the conventional UI pattern. Replacing filter checkboxes with toggle switches would be a UX regression. The real gap is that there's no shared FilterCheckbox component to standardize the label + checkbox + styling pattern used in filter bars across apps. Each app reinvents the label-wrapping and CSS classes independently.",
+    "recommendation": "Do not replace filter checkboxes with EnableToggle — these serve different semantic purposes. Instead, consider creating a shared FilterCheckbox component that standardizes the label-wrapper pattern used in filter bars. EnableToggle should continue to be used for enable/disable toggles, and its adoption in other apps (illuminator, name-forge) for generator/system enable controls should be encouraged.",
+    "evidence_quality": "high",
+    "status": "pending"
+  }
+]

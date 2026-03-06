@@ -1,0 +1,536 @@
+/* EntityDetailView.css - Extracted from inline styles
+ * Uses ilu-hint-sm / ilu-hint utility compositing in JSX for hint text pattern.
+ */
+
+/* ==========================================================================
+   MetadataRow
+   ========================================================================== */
+
+.edv-meta-row {
+  margin-bottom: 10px;
+}
+
+.edv-meta-row-label {
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.edv-meta-row-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+}
+
+/* ==========================================================================
+   ExpandableSection
+   ========================================================================== */
+
+.edv-expandable {
+  margin-bottom: 8px;
+}
+
+.edv-expandable-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.edv-expandable-arrow {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.edv-expandable-arrow-open {
+  transform: rotate(90deg);
+}
+
+.edv-expandable-title {
+  flex: 1;
+}
+
+.edv-expandable-chars {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.edv-expandable-content {
+  margin-top: 6px;
+  padding: 10px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   VisualTraitsList
+   ========================================================================== */
+
+.edv-traits {
+  margin-bottom: 16px;
+}
+
+.edv-traits-label {
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.edv-traits-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.edv-traits-tag {
+  padding: 4px 10px;
+  background: rgb(59 130 246 / 15%);
+  border: 1px solid rgb(59 130 246 / 25%);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   AliasesList
+   ========================================================================== */
+
+.edv-aliases {
+  margin-bottom: 16px;
+}
+
+.edv-aliases-label {
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edv-aliases-add-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.edv-aliases-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.edv-aliases-edit-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.edv-aliases-edit-input {
+  padding: 3px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--accent-color);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+  width: var(--edv-input-width);
+}
+
+.edv-aliases-edit-input-dynamic {
+  width: 120px;
+}
+
+.edv-aliases-tag {
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edv-aliases-tag-editable {
+  cursor: pointer;
+}
+
+.edv-aliases-remove {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-left: 2px;
+  line-height: 1;
+}
+
+.edv-aliases-empty {
+  font-style: italic;
+}
+
+/* ==========================================================================
+   EntityDetailView - Main layout
+   ========================================================================== */
+
+.edv {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Header bar */
+.edv-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.edv-back-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edv-header-info {
+  flex: 1;
+}
+
+.edv-entity-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.edv-entity-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.edv-esc-hint {
+  /* Uses ilu-hint-sm for font-size + color */
+}
+
+/* Two-column body */
+.edv-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Main content */
+.edv-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  min-width: 0;
+}
+
+/* Section label (shared across Summary, Visual Thesis, Full Description) */
+.edv-section-label {
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edv-section-label-wrap {
+  flex-wrap: wrap;
+}
+
+.edv-section-label-visual-thesis {
+  color: rgb(139 92 246 / 80%);
+}
+
+/* Small inline button (Edit, Undo, Rename, Patch Events, Add, Clear Notes) */
+.edv-inline-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.edv-inline-btn-ghost {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.edv-margin-notes-spaced {
+  margin-top: 12px;
+}
+
+/* Version hint */
+.edv-version-hint {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* Section spacing — renamed from edv-section to avoid viewer-pattern-drift */
+.edv-section-block {
+  margin-bottom: 20px;
+}
+
+/* Summary text */
+.edv-summary-text {
+  font-size: 15px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.edv-placeholder {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* Summary textarea */
+.edv-summary-textarea {
+  width: 100%;
+  min-height: 80px;
+  font-size: 15px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--accent-color);
+  border-radius: 4px;
+  resize: vertical;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Visual Thesis */
+.edv-visual-thesis {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+  padding: 12px 16px;
+  background: rgb(139 92 246 / 8%);
+  border: 1px solid rgb(139 92 246 / 20%);
+  border-radius: 8px;
+  font-style: italic;
+}
+
+/* Description textarea */
+.edv-desc-textarea {
+  width: 100%;
+  min-height: 200px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--accent-color);
+  border-radius: 4px;
+  resize: vertical;
+  font-family: inherit;
+  white-space: pre-wrap;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Description rendered */
+.edv-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* Markdown heading overrides */
+.edv-description h2,
+.edv-md-h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 16px 0 6px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 3px;
+}
+
+.edv-description h3,
+.edv-md-h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 12px 0 4px;
+}
+
+.edv-description p,
+.edv-md-p {
+  margin: 0 0 8px;
+}
+
+.edv-description ul,
+.edv-md-ul {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+}
+
+.edv-description ol,
+.edv-md-ol {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+}
+
+.edv-description li,
+.edv-md-li {
+  margin-bottom: 2px;
+}
+
+.edv-description table,
+.edv-md-table {
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 13px;
+  width: 100%;
+}
+
+.edv-description th,
+.edv-md-th {
+  border: 1px solid var(--border-color);
+  padding: 4px 8px;
+  text-align: left;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+}
+
+.edv-description td,
+.edv-md-td {
+  border: 1px solid var(--border-color);
+  padding: 4px 8px;
+}
+
+.edv-no-desc {
+  font-style: italic;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Backref separator */
+.edv-separator {
+  border-top: 1px solid var(--border-color);
+  margin: 8px 0 16px;
+}
+
+/* No enrichment fallback */
+.edv-no-enrichment {
+  padding: 40px;
+}
+
+/* Sidebar */
+.edv-sidebar {
+  width: 320px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border-color);
+  overflow-y: auto;
+  padding: 20px 16px;
+  background: var(--bg-secondary);
+}
+
+.edv-sidebar-title {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.edv-sidebar-divider {
+  border-top: 1px solid var(--border-color);
+  margin: 12px 0;
+}
+
+.edv-sidebar-section-label {
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Debug chain step labels */
+.edv-debug-step {
+  margin-bottom: 8px;
+}
+
+.edv-debug-step-label {
+  font-size: 10px;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.edv-debug-step-label-narrative {
+  color: rgb(59 130 246 / 80%);
+}
+
+.edv-debug-step-label-thesis {
+  color: rgb(139 92 246 / 80%);
+}
+
+.edv-debug-step-label-traits {
+  color: rgb(34 197 94 / 80%);
+}
+
+/* No debug info */
+.edv-no-debug {
+  font-style: italic;
+  margin-top: 12px;
+}
+
+/* Historian margin notes spacing */
+.edv-margin-notes {
+  margin-top: 12px;
+}

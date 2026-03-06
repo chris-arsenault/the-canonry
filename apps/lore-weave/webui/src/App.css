@@ -970,7 +970,7 @@
   font-size: var(--lw-text-lg);
 }
 
-.lw-error-box {
+.lw-issue-box {
   background-color: rgb(239 68 68 / 10%);
   border: 1px solid rgb(239 68 68 / 30%);
   border-radius: var(--lw-radius-lg);
@@ -1234,6 +1234,23 @@
 
 .lw-gap-lg {
   gap: var(--lw-space-lg);
+}
+
+/* Dashboard section utilities (shared across dashboard panels) */
+
+.lw-section-spacer {
+  margin-top: 16px;
+}
+
+.lw-section-label {
+  font-size: 12px;
+  color: var(--lw-text-muted);
+  margin-bottom: 8px;
+}
+
+.lw-section-label-hint {
+  margin-left: 8px;
+  opacity: 0.6;
 }
 
 /* ========================================

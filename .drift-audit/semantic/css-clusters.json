@@ -1,0 +1,946 @@
+[
+  {
+    "avgSimilarity": 0.4367,
+    "directorySpread": 2,
+    "id": "css-cluster-001",
+    "linkedComponents": [
+      "apps/illuminator/webui/src/components/BulkBackportModal.jsx::default",
+      "apps/illuminator/webui/src/components/BulkEraNarrativeModal.jsx::default",
+      "apps/illuminator/webui/src/components/BulkHistorianModal.jsx::default",
+      "apps/illuminator/webui/src/components/BulkOperationShell.jsx::BulkCost",
+      "apps/illuminator/webui/src/components/BulkOperationShell.jsx::BulkFailedList",
+      "apps/illuminator/webui/src/components/BulkOperationShell.jsx::BulkProgressBar",
+      "apps/illuminator/webui/src/components/BulkOperationShell.jsx::BulkTerminalMessage",
+      "apps/illuminator/webui/src/components/BulkOperationShell.jsx::default",
+      "apps/illuminator/webui/src/components/ChroniclePanel.jsx::default",
+      "apps/illuminator/webui/src/components/ChroniclePlanEditor.jsx::default",
+      "apps/illuminator/webui/src/components/ChronicleWizard/visualizations/NarrativeTimeline.tsx::default",
+      "apps/illuminator/webui/src/components/ChronologyModal.jsx::default",
+      "apps/illuminator/webui/src/components/CreateEntityModal.tsx::default",
+      "apps/illuminator/webui/src/components/DynamicsGenerationModal.jsx::default",
+      "apps/illuminator/webui/src/components/EntityRenameModal.tsx::default",
+      "apps/illuminator/webui/src/components/EraNarrativeModal.jsx::default",
+      "apps/illuminator/webui/src/components/EraNarrativeViewer.tsx::default",
+      "apps/illuminator/webui/src/components/HistorianConfigEditor.jsx::default",
+      "apps/illuminator/webui/src/components/HistorianReviewModal.jsx::default",
+      "apps/illuminator/webui/src/components/HistoryCompressionPreviewModal.jsx::default",
+      "apps/illuminator/webui/src/components/InterleavedAnnotationModal.jsx::default",
+      "apps/illuminator/webui/src/components/QuickCheckModal.jsx::default",
+      "apps/illuminator/webui/src/components/SummaryRevisionModal.jsx::default",
+      "apps/illuminator/webui/src/components/ThinkingViewer.tsx::ThinkingViewer",
+      "apps/illuminator/webui/src/components/ToneAssignmentPreviewModal.jsx::default",
+      "apps/illuminator/webui/src/components/chronicle-workspace/ChronicleWorkspace.jsx::default",
+      "packages/shared-components/src/components/ChronicleSeedViewer.jsx::ExpandableSeedSection",
+      "packages/shared-components/src/components/ChronicleSeedViewer.jsx::SeedModal",
+      "packages/shared-components/src/components/ChronicleSeedViewer.jsx::default"
+    ],
+    "memberCount": 23,
+    "members": [
+      "apps/illuminator/webui/src/components/BulkBackportModal.css",
+      "apps/illuminator/webui/src/components/BulkEraNarrativeModal.css",
+      "apps/illuminator/webui/src/components/BulkHistorianModal.css",
+      "apps/illuminator/webui/src/components/BulkOperationShell.css",
+      "apps/illuminator/webui/src/components/ChroniclePanel.css",
+      "apps/illuminator/webui/src/components/ChroniclePlanEditor.css",
+      "apps/illuminator/webui/src/components/ChronicleWizard/visualizations/NarrativeTimeline.css",
+      "apps/illuminator/webui/src/components/ChronologyModal.css",
+      "apps/illuminator/webui/src/components/CreateEntityModal.css",
+      "apps/illuminator/webui/src/components/DynamicsGenerationModal.css",
+      "apps/illuminator/webui/src/components/EntityRenameModal.css",
+      "apps/illuminator/webui/src/components/EraNarrativeModal.css",
+      "apps/illuminator/webui/src/components/EraNarrativeViewer.css",
+      "apps/illuminator/webui/src/components/HistorianConfigEditor.css",
+      "apps/illuminator/webui/src/components/HistorianReviewModal.css",
+      "apps/illuminator/webui/src/components/HistoryCompressionPreviewModal.css",
+      "apps/illuminator/webui/src/components/InterleavedAnnotationModal.css",
+      "apps/illuminator/webui/src/components/QuickCheckModal.css",
+      "apps/illuminator/webui/src/components/SummaryRevisionModal.css",
+      "apps/illuminator/webui/src/components/ThinkingViewer.css",
+      "apps/illuminator/webui/src/components/ToneAssignmentPreviewModal.css",
+      "apps/illuminator/webui/src/components/chronicle-workspace/ChronicleWorkspace.css",
+      "packages/shared-components/src/components/ChronicleSeedViewer.css"
+    ],
+    "rankScore": 20.0882,
+    "sharedCustomProperties": [
+      "--border-color",
+      "--text-muted"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9752,
+      "customPropertyVocab": 0.6726,
+      "propertyFrequency": 0.9314,
+      "ruleExactMatch": 0.0903,
+      "ruleSetMatch": 0.2341,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4445,
+    "directorySpread": 1,
+    "id": "css-cluster-002",
+    "linkedComponents": [
+      "apps/illuminator/webui/src/components/ActivityPanel.jsx::default",
+      "apps/illuminator/webui/src/components/BackportConfigModal.jsx::default",
+      "apps/illuminator/webui/src/components/ChronicleImagePanel.tsx::default",
+      "apps/illuminator/webui/src/components/ChronicleReviewPanel.jsx::default",
+      "apps/illuminator/webui/src/components/CohesionReportViewer.jsx::default",
+      "apps/illuminator/webui/src/components/CorpusFindReplace.tsx::default",
+      "apps/illuminator/webui/src/components/CoverImageControls.jsx::CoverImageControls",
+      "apps/illuminator/webui/src/components/CoverImageControls.jsx::CoverImagePreview",
+      "apps/illuminator/webui/src/components/DescriptionMotifWeaver.tsx::default",
+      "apps/illuminator/webui/src/components/EntityCoveragePanel.jsx::default",
+      "apps/illuminator/webui/src/components/EventsPanel.jsx::default",
+      "apps/illuminator/webui/src/components/HistorianMarginNotes.jsx::default",
+      "apps/illuminator/webui/src/components/ProgressPanel.jsx::default",
+      "apps/illuminator/webui/src/components/RevisionFilterModal.jsx::default",
+      "apps/illuminator/webui/src/components/chronicle-workspace/ContentTab.jsx::default",
+      "apps/illuminator/webui/src/components/chronicle-workspace/EnrichmentTab.jsx::default",
+      "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.jsx::default",
+      "apps/illuminator/webui/src/components/chronicle-workspace/ImagesTab.jsx::default",
+      "apps/illuminator/webui/src/components/chronicle-workspace/PipelineTab.jsx::default",
+      "apps/illuminator/webui/src/components/chronicle-workspace/ReferenceTab.jsx::default",
+      "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.jsx::default"
+    ],
+    "memberCount": 20,
+    "members": [
+      "apps/illuminator/webui/src/components/ActivityPanel.css",
+      "apps/illuminator/webui/src/components/BackportConfigModal.css",
+      "apps/illuminator/webui/src/components/ChronicleImagePanel.css",
+      "apps/illuminator/webui/src/components/ChronicleReviewPanel.css",
+      "apps/illuminator/webui/src/components/CohesionReportViewer.css",
+      "apps/illuminator/webui/src/components/CorpusFindReplace.css",
+      "apps/illuminator/webui/src/components/CoverImageControls.css",
+      "apps/illuminator/webui/src/components/DescriptionMotifWeaver.css",
+      "apps/illuminator/webui/src/components/EntityCoveragePanel.css",
+      "apps/illuminator/webui/src/components/EventsPanel.css",
+      "apps/illuminator/webui/src/components/HistorianMarginNotes.css",
+      "apps/illuminator/webui/src/components/ProgressPanel.css",
+      "apps/illuminator/webui/src/components/RevisionFilterModal.css",
+      "apps/illuminator/webui/src/components/chronicle-workspace/ContentTab.css",
+      "apps/illuminator/webui/src/components/chronicle-workspace/EnrichmentTab.css",
+      "apps/illuminator/webui/src/components/chronicle-workspace/HistorianTab.css",
+      "apps/illuminator/webui/src/components/chronicle-workspace/ImagesTab.css",
+      "apps/illuminator/webui/src/components/chronicle-workspace/PipelineTab.css",
+      "apps/illuminator/webui/src/components/chronicle-workspace/ReferenceTab.css",
+      "apps/illuminator/webui/src/components/chronicle-workspace/VersionsTab.css"
+    ],
+    "rankScore": 8.89,
+    "sharedCustomProperties": [
+      "--text-muted"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9751,
+      "customPropertyVocab": 0.6559,
+      "propertyFrequency": 0.9137,
+      "ruleExactMatch": 0.1119,
+      "ruleSetMatch": 0.2605,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4333,
+    "directorySpread": 1,
+    "id": "css-cluster-003",
+    "linkedComponents": [
+      "apps/illuminator/webui/src/components/BackrefImageEditor.jsx::default",
+      "apps/illuminator/webui/src/components/ChronicleImagePicker.jsx::default",
+      "apps/illuminator/webui/src/components/ChronicleWizard/steps/EntryPointStep.tsx::default",
+      "apps/illuminator/webui/src/components/ChronicleWizard/steps/EventResolutionStep.tsx::default",
+      "apps/illuminator/webui/src/components/ChronicleWizard/steps/GenerateStep.tsx::default",
+      "apps/illuminator/webui/src/components/ChronicleWizard/steps/RoleAssignmentStep.tsx::default",
+      "apps/illuminator/webui/src/components/ChronicleWizard/steps/StyleStep.tsx::default",
+      "apps/illuminator/webui/src/components/EnrichmentQueue.jsx::default",
+      "apps/illuminator/webui/src/components/EntityBrowser.jsx::default",
+      "apps/illuminator/webui/src/components/EntityDetailView.tsx::default",
+      "apps/illuminator/webui/src/components/ImagePickerModal.jsx::default",
+      "apps/illuminator/webui/src/components/ImageSettingsDrawer.tsx::ImageSettingsSummary",
+      "apps/illuminator/webui/src/components/ImageSettingsDrawer.tsx::ImageSettingsTrigger",
+      "apps/illuminator/webui/src/components/ImageSettingsDrawer.tsx::default",
+      "apps/illuminator/webui/src/components/ResultsPanel.jsx::default",
+      "apps/illuminator/webui/src/components/StoragePanel.jsx::default",
+      "apps/illuminator/webui/src/components/StyleLibraryEditor.jsx::default",
+      "apps/illuminator/webui/src/components/TraitPaletteSection.tsx::default",
+      "apps/illuminator/webui/src/components/WorldContextEditor.jsx::default"
+    ],
+    "memberCount": 17,
+    "members": [
+      "apps/illuminator/webui/src/components/BackrefImageEditor.css",
+      "apps/illuminator/webui/src/components/ChronicleImagePicker.css",
+      "apps/illuminator/webui/src/components/ChronicleWizard/steps/EntryPointStep.css",
+      "apps/illuminator/webui/src/components/ChronicleWizard/steps/EventResolutionStep.css",
+      "apps/illuminator/webui/src/components/ChronicleWizard/steps/GenerateStep.css",
+      "apps/illuminator/webui/src/components/ChronicleWizard/steps/RoleAssignmentStep.css",
+      "apps/illuminator/webui/src/components/ChronicleWizard/steps/StyleStep.css",
+      "apps/illuminator/webui/src/components/EnrichmentQueue.css",
+      "apps/illuminator/webui/src/components/EntityBrowser.css",
+      "apps/illuminator/webui/src/components/EntityDetailView.css",
+      "apps/illuminator/webui/src/components/ImagePickerModal.css",
+      "apps/illuminator/webui/src/components/ImageSettingsDrawer.css",
+      "apps/illuminator/webui/src/components/ResultsPanel.css",
+      "apps/illuminator/webui/src/components/StoragePanel.css",
+      "apps/illuminator/webui/src/components/StyleLibraryEditor.css",
+      "apps/illuminator/webui/src/components/TraitPaletteSection.css",
+      "apps/illuminator/webui/src/components/WorldContextEditor.css"
+    ],
+    "rankScore": 7.3661,
+    "sharedCustomProperties": [
+      "--text-muted"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9689,
+      "customPropertyVocab": 0.6078,
+      "propertyFrequency": 0.9161,
+      "ruleExactMatch": 0.1029,
+      "ruleSetMatch": 0.246,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4636,
+    "directorySpread": 2,
+    "id": "css-cluster-004",
+    "linkedComponents": [
+      "apps/coherence-engine/webui/src/components/dependency-viewer/DependencyViewer.jsx::DependencyViewer",
+      "apps/coherence-engine/webui/src/components/dependency-viewer/DependencyViewer.jsx::default",
+      "apps/coherence-engine/webui/src/components/dependency-viewer/components/DependencySection.jsx::DependencySection",
+      "apps/coherence-engine/webui/src/components/naming-profile-viewer/NamingProfileMappingViewer.jsx::NamingProfileMappingViewer",
+      "apps/coherence-engine/webui/src/components/naming-profile-viewer/NamingProfileMappingViewer.jsx::default",
+      "apps/coherence-engine/webui/src/components/validation/ValidationEditor.jsx::ValidationEditor",
+      "apps/coherence-engine/webui/src/components/validation/ValidationEditor.jsx::default",
+      "apps/coherence-engine/webui/src/components/validation/ValidationEditor.jsx::getValidationStatus",
+      "apps/coherence-engine/webui/src/components/validation/cards/IssueCard.jsx::IssueCard"
+    ],
+    "memberCount": 7,
+    "members": [
+      "apps/coherence-engine/webui/src/components/dependency-viewer/dependency-viewer.css",
+      "apps/coherence-engine/webui/src/components/naming-profile-viewer/naming-profile-viewer.css",
+      "apps/coherence-engine/webui/src/components/validation/validation.css",
+      "apps/coherence-engine/webui/src/styles/components/card.css",
+      "apps/coherence-engine/webui/src/styles/components/editor.css",
+      "packages/shared-components/src/styles/components/card.css",
+      "packages/shared-components/src/styles/components/editor.css"
+    ],
+    "rankScore": 6.4904,
+    "sharedCustomProperties": [
+      "--color-bg-card",
+      "--color-border",
+      "--color-border-light",
+      "--color-text",
+      "--color-text-dim",
+      "--color-text-muted",
+      "--font-size-lg",
+      "--font-size-sm",
+      "--font-size-xs",
+      "--font-weight-medium",
+      "--font-weight-semibold",
+      "--radius-sm",
+      "--spacing-lg",
+      "--spacing-md",
+      "--spacing-sm",
+      "--spacing-xl",
+      "--transition-fast"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9679,
+      "customPropertyVocab": 0.6457,
+      "propertyFrequency": 0.9298,
+      "ruleExactMatch": 0.1266,
+      "ruleSetMatch": 0.2963,
+      "selectorPrefixOverlap": 0.0849
+    }
+  },
+  {
+    "avgSimilarity": 0.6547,
+    "directorySpread": 3,
+    "id": "css-cluster-005",
+    "linkedComponents": [
+      "apps/archivist/webui/src/ArchivistRemote.tsx::ArchivistRemoteProps",
+      "apps/archivist/webui/src/ArchivistRemote.tsx::default"
+    ],
+    "memberCount": 3,
+    "members": [
+      "apps/archivist/webui/src/index.css",
+      "apps/coherence-engine/webui/src/styles/utilities.css",
+      "packages/shared-components/src/styles/utilities.css"
+    ],
+    "rankScore": 5.8923,
+    "sharedCustomProperties": [
+      "--font-size-base",
+      "--font-size-xl",
+      "--spacing-2xl",
+      "--spacing-md",
+      "--spacing-xl"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.926,
+      "customPropertyVocab": 0.5568,
+      "propertyFrequency": 0.8354,
+      "ruleExactMatch": 0.4892,
+      "ruleSetMatch": 0.6834,
+      "selectorPrefixOverlap": 0.4359
+    }
+  },
+  {
+    "avgSimilarity": 0.5343,
+    "directorySpread": 3,
+    "id": "css-cluster-006",
+    "linkedComponents": [
+      "apps/chronicler/webui/src/components/WikiSearch.tsx::default"
+    ],
+    "memberCount": 3,
+    "members": [
+      "apps/chronicler/webui/src/components/WikiSearch.module.css",
+      "apps/coherence-engine/webui/src/styles/components/dropdown.css",
+      "packages/shared-components/src/styles/components/dropdown.css"
+    ],
+    "rankScore": 4.8087,
+    "sharedCustomProperties": [
+      "--color-accent",
+      "--color-border",
+      "--font-size-sm",
+      "--font-size-xs",
+      "--radius-md",
+      "--spacing-xs",
+      "--transition-fast",
+      "--z-dropdown"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9619,
+      "customPropertyVocab": 0.4712,
+      "propertyFrequency": 0.8887,
+      "ruleExactMatch": 0.2208,
+      "ruleSetMatch": 0.5125,
+      "selectorPrefixOverlap": 0.3778
+    }
+  },
+  {
+    "avgSimilarity": 0.8593,
+    "directorySpread": 2,
+    "id": "css-cluster-007",
+    "linkedComponents": [],
+    "memberCount": 2,
+    "members": [
+      "apps/coherence-engine/webui/src/styles/components/level-selector.css",
+      "packages/shared-components/src/styles/components/level-selector.css"
+    ],
+    "rankScore": 3.4372,
+    "sharedCustomProperties": [
+      "--color-accent",
+      "--color-bg-card",
+      "--color-border",
+      "--color-text",
+      "--font-size-md",
+      "--font-weight-medium",
+      "--radius-full",
+      "--radius-md",
+      "--spacing-md",
+      "--spacing-xs",
+      "--transition-fast"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9768,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 0.9414,
+      "ruleExactMatch": 0.8,
+      "ruleSetMatch": 0.8,
+      "selectorPrefixOverlap": 0.6667
+    }
+  },
+  {
+    "avgSimilarity": 0.7941,
+    "directorySpread": 2,
+    "id": "css-cluster-008",
+    "linkedComponents": [],
+    "memberCount": 2,
+    "members": [
+      "apps/coherence-engine/webui/src/styles/components/form.css",
+      "packages/shared-components/src/styles/components/form.css"
+    ],
+    "rankScore": 3.1764,
+    "sharedCustomProperties": [
+      "--color-accent",
+      "--color-bg-card",
+      "--color-bg-dark",
+      "--color-border",
+      "--color-border-light",
+      "--color-danger",
+      "--color-text",
+      "--color-text-dim",
+      "--color-text-muted",
+      "--color-warning",
+      "--font-size-base",
+      "--font-size-lg",
+      "--font-size-sm",
+      "--font-size-xs",
+      "--font-weight-medium",
+      "--font-weight-semibold",
+      "--radius-md",
+      "--radius-pill",
+      "--spacing-lg",
+      "--spacing-md",
+      "--spacing-sm",
+      "--spacing-xl",
+      "--spacing-xs",
+      "--transition-fast"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9994,
+      "customPropertyVocab": 0.8,
+      "propertyFrequency": 0.9951,
+      "ruleExactMatch": 0.5211,
+      "ruleSetMatch": 0.8732,
+      "selectorPrefixOverlap": 0.8095
+    }
+  },
+  {
+    "avgSimilarity": 0.7902,
+    "directorySpread": 2,
+    "id": "css-cluster-009",
+    "linkedComponents": [],
+    "memberCount": 2,
+    "members": [
+      "apps/coherence-engine/webui/src/styles/components/section.css",
+      "packages/shared-components/src/styles/components/section.css"
+    ],
+    "rankScore": 3.1608,
+    "sharedCustomProperties": [
+      "--color-accent",
+      "--color-bg-card",
+      "--color-border",
+      "--color-border-light",
+      "--color-text",
+      "--color-text-dim",
+      "--color-text-muted",
+      "--font-size-2xl",
+      "--font-size-base",
+      "--font-size-lg",
+      "--font-size-md",
+      "--font-size-sm",
+      "--font-size-xl",
+      "--font-weight-semibold",
+      "--line-height-normal",
+      "--radius-lg",
+      "--radius-pill",
+      "--spacing-2xl",
+      "--spacing-lg",
+      "--spacing-md",
+      "--spacing-xl",
+      "--spacing-xs",
+      "--transition-fast",
+      "--transition-normal"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 0.7742,
+      "propertyFrequency": 0.9888,
+      "ruleExactMatch": 0.55,
+      "ruleSetMatch": 0.8,
+      "selectorPrefixOverlap": 1.0
+    }
+  },
+  {
+    "avgSimilarity": 0.6854,
+    "directorySpread": 2,
+    "id": "css-cluster-010",
+    "linkedComponents": [],
+    "memberCount": 2,
+    "members": [
+      "apps/coherence-engine/webui/src/styles/components/badge.css",
+      "packages/shared-components/src/styles/components/badge.css"
+    ],
+    "rankScore": 2.7416,
+    "sharedCustomProperties": [
+      "--color-bg-dark",
+      "--color-danger",
+      "--color-gray",
+      "--color-success",
+      "--color-text-dim",
+      "--color-warning",
+      "--font-size-xs",
+      "--font-weight-medium",
+      "--font-weight-semibold",
+      "--radius-sm",
+      "--spacing-md",
+      "--spacing-xs"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9931,
+      "customPropertyVocab": 0.6667,
+      "propertyFrequency": 0.9675,
+      "ruleExactMatch": 0.4444,
+      "ruleSetMatch": 0.5926,
+      "selectorPrefixOverlap": 0.8889
+    }
+  },
+  {
+    "avgSimilarity": 0.6591,
+    "directorySpread": 2,
+    "id": "css-cluster-011",
+    "linkedComponents": [
+      "apps/coherence-engine/webui/src/CoherenceEngineRemote.jsx::default",
+      "apps/cosmographer/webui/src/CosmographerRemote.jsx::default"
+    ],
+    "memberCount": 2,
+    "members": [
+      "apps/coherence-engine/webui/src/CoherenceEngineRemote.css",
+      "apps/cosmographer/webui/src/CosmographerRemote.css"
+    ],
+    "rankScore": 2.6364,
+    "sharedCustomProperties": [],
+    "signalBreakdown": {
+      "categoryProfile": 0.9849,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.9431,
+      "ruleExactMatch": 0.64,
+      "ruleSetMatch": 0.72,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4154,
+    "directorySpread": 1,
+    "id": "css-cluster-012",
+    "linkedComponents": [
+      "apps/illuminator/webui/src/components/BulkChronicleAnnotationModal.jsx::default",
+      "apps/illuminator/webui/src/components/ConfigPanel.jsx::default",
+      "apps/illuminator/webui/src/components/CostsPanel.jsx::default",
+      "apps/illuminator/webui/src/components/IlluminatorTabContent.jsx::default",
+      "apps/illuminator/webui/src/components/StyleSelector.jsx::NONE_ID",
+      "apps/illuminator/webui/src/components/StyleSelector.jsx::RANDOM_ID",
+      "apps/illuminator/webui/src/components/StyleSelector.jsx::default",
+      "apps/illuminator/webui/src/components/StyleSelector.jsx::resolveStyleSelection"
+    ],
+    "memberCount": 5,
+    "members": [
+      "apps/illuminator/webui/src/components/BulkChronicleAnnotationModal.css",
+      "apps/illuminator/webui/src/components/ConfigPanel.css",
+      "apps/illuminator/webui/src/components/CostsPanel.css",
+      "apps/illuminator/webui/src/components/IlluminatorTabContent.css",
+      "apps/illuminator/webui/src/components/StyleSelector.css"
+    ],
+    "rankScore": 2.077,
+    "sharedCustomProperties": [
+      "--text-muted"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9251,
+      "customPropertyVocab": 0.875,
+      "propertyFrequency": 0.7703,
+      "ruleExactMatch": 0.1036,
+      "ruleSetMatch": 0.2009,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.95,
+    "directorySpread": 1,
+    "id": "css-cluster-013",
+    "linkedComponents": [
+      "apps/coherence-engine/webui/src/components/actions/tabs/VariablesTab.jsx::VariablesTab",
+      "apps/coherence-engine/webui/src/components/actions/tabs/VariablesTab.jsx::default",
+      "apps/coherence-engine/webui/src/components/systems/tabs/ThresholdTriggerTab.jsx::ThresholdTriggerTab"
+    ],
+    "memberCount": 2,
+    "members": [
+      "apps/coherence-engine/webui/src/components/actions/tabs/VariablesTab.css",
+      "apps/coherence-engine/webui/src/components/systems/tabs/ThresholdTriggerTab.css"
+    ],
+    "rankScore": 1.9,
+    "sharedCustomProperties": [
+      "--spacing-md"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 1.0,
+      "customPropertyVocab": 1.0,
+      "propertyFrequency": 1.0,
+      "ruleExactMatch": 1.0,
+      "ruleSetMatch": 1.0,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4709,
+    "directorySpread": 2,
+    "id": "css-cluster-014",
+    "linkedComponents": [
+      "apps/illuminator/webui/src/IlluminatorRemote.jsx::default",
+      "apps/name-forge/webui/src/NameForgeRemote.jsx::default"
+    ],
+    "memberCount": 2,
+    "members": [
+      "apps/illuminator/webui/src/App.css",
+      "apps/name-forge/webui/src/App.css"
+    ],
+    "rankScore": 1.8836,
+    "sharedCustomProperties": [
+      "--bg-primary",
+      "--bg-secondary",
+      "--bg-sidebar",
+      "--bg-tertiary",
+      "--border-color",
+      "--card-bg",
+      "--card-border",
+      "--danger",
+      "--font-mono",
+      "--input-bg",
+      "--space-lg",
+      "--space-md",
+      "--space-sm",
+      "--space-xl",
+      "--space-xs",
+      "--text-base",
+      "--text-color",
+      "--text-lg",
+      "--text-md",
+      "--text-muted",
+      "--text-secondary",
+      "--text-sm",
+      "--text-xl",
+      "--text-xs"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9863,
+      "customPropertyVocab": 0.5106,
+      "propertyFrequency": 0.9856,
+      "ruleExactMatch": 0.092,
+      "ruleSetMatch": 0.382,
+      "selectorPrefixOverlap": 0.0199
+    }
+  },
+  {
+    "avgSimilarity": 0.5684,
+    "directorySpread": 1,
+    "id": "css-cluster-015",
+    "linkedComponents": [
+      "apps/archivist/webui/src/components/GraphView.tsx::default",
+      "apps/archivist/webui/src/components/GraphView3D.tsx::EdgeMetric",
+      "apps/archivist/webui/src/components/GraphView3D.tsx::default",
+      "apps/archivist/webui/src/components/TimelineView3D.tsx::EdgeMetric",
+      "apps/archivist/webui/src/components/TimelineView3D.tsx::default"
+    ],
+    "memberCount": 3,
+    "members": [
+      "apps/archivist/webui/src/components/GraphView.css",
+      "apps/archivist/webui/src/components/GraphView3D.css",
+      "apps/archivist/webui/src/components/TimelineView3D.css"
+    ],
+    "rankScore": 1.7052,
+    "sharedCustomProperties": [],
+    "signalBreakdown": {
+      "categoryProfile": 0.917,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.7775,
+      "ruleExactMatch": 0.4615,
+      "ruleSetMatch": 0.7308,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4242,
+    "directorySpread": 1,
+    "id": "css-cluster-016",
+    "linkedComponents": [
+      "apps/archivist/webui/src/components/ChainLinkSection.tsx::default",
+      "apps/archivist/webui/src/components/DiscoveryStory.tsx::default",
+      "apps/archivist/webui/src/components/EraNarrative.tsx::default",
+      "apps/archivist/webui/src/components/LoreSection.tsx::default"
+    ],
+    "memberCount": 4,
+    "members": [
+      "apps/archivist/webui/src/components/ChainLinkSection.css",
+      "apps/archivist/webui/src/components/DiscoveryStory.css",
+      "apps/archivist/webui/src/components/EraNarrative.css",
+      "apps/archivist/webui/src/components/LoreSection.css"
+    ],
+    "rankScore": 1.6968,
+    "sharedCustomProperties": [
+      "--font-serif",
+      "--font-size-base",
+      "--font-size-lg",
+      "--font-size-sm",
+      "--font-weight-bold",
+      "--radius-lg",
+      "--spacing-md",
+      "--spacing-xl"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9743,
+      "customPropertyVocab": 0.3754,
+      "propertyFrequency": 0.9429,
+      "ruleExactMatch": 0.0647,
+      "ruleSetMatch": 0.325,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4032,
+    "directorySpread": 2,
+    "id": "css-cluster-017",
+    "linkedComponents": [
+      "apps/coherence-engine/webui/src/components/weight-matrix/WeightMatrixEditor.jsx::default",
+      "packages/shared-components/src/components/CoverageMatrix/CoverageMatrix.jsx::default"
+    ],
+    "memberCount": 2,
+    "members": [
+      "apps/coherence-engine/webui/src/components/weight-matrix/WeightMatrixEditor.css",
+      "packages/shared-components/src/components/CoverageMatrix/CoverageMatrix.css"
+    ],
+    "rankScore": 1.6128,
+    "sharedCustomProperties": [],
+    "signalBreakdown": {
+      "categoryProfile": 0.9446,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.9356,
+      "ruleExactMatch": 0.0902,
+      "ruleSetMatch": 0.3759,
+      "selectorPrefixOverlap": 0.0122
+    }
+  },
+  {
+    "avgSimilarity": 0.4841,
+    "directorySpread": 1,
+    "id": "css-cluster-018",
+    "linkedComponents": [
+      "apps/illuminator/webui/src/components/HistorianEditionComparison.tsx::default",
+      "apps/illuminator/webui/src/components/chronicle-workspace/ChronicleVersionSelector.jsx::default",
+      "apps/illuminator/webui/src/components/chronicle-workspace/WorkspaceHeader.jsx::default"
+    ],
+    "memberCount": 3,
+    "members": [
+      "apps/illuminator/webui/src/components/HistorianEditionComparison.css",
+      "apps/illuminator/webui/src/components/chronicle-workspace/ChronicleVersionSelector.css",
+      "apps/illuminator/webui/src/components/chronicle-workspace/WorkspaceHeader.css"
+    ],
+    "rankScore": 1.4523,
+    "sharedCustomProperties": [
+      "--bg-tertiary",
+      "--border-color",
+      "--text-secondary"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9495,
+      "customPropertyVocab": 0.6333,
+      "propertyFrequency": 0.9083,
+      "ruleExactMatch": 0.175,
+      "ruleSetMatch": 0.3667,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4424,
+    "directorySpread": 1,
+    "id": "css-cluster-019",
+    "linkedComponents": [
+      "apps/lore-weave/webui/src/components/dashboard/EpochTimeline.jsx::default",
+      "apps/lore-weave/webui/src/components/dashboard/FinalDiagnostics.jsx::default",
+      "apps/lore-weave/webui/src/components/dashboard/PopulationMetrics.jsx::default"
+    ],
+    "memberCount": 3,
+    "members": [
+      "apps/lore-weave/webui/src/components/dashboard/EpochTimeline.css",
+      "apps/lore-weave/webui/src/components/dashboard/FinalDiagnostics.css",
+      "apps/lore-weave/webui/src/components/dashboard/PopulationMetrics.css"
+    ],
+    "rankScore": 1.3272,
+    "sharedCustomProperties": [
+      "--lw-text-muted"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9276,
+      "customPropertyVocab": 0.1056,
+      "propertyFrequency": 0.8427,
+      "ruleExactMatch": 0.2023,
+      "ruleSetMatch": 0.439,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.456,
+    "directorySpread": 1,
+    "id": "css-cluster-020",
+    "linkedComponents": [
+      "apps/cosmographer/webui/src/components/AxisRegistry/index.jsx::default",
+      "apps/cosmographer/webui/src/components/RelationshipEditor/index.jsx::default"
+    ],
+    "memberCount": 2,
+    "members": [
+      "apps/cosmographer/webui/src/components/AxisRegistry/AxisRegistry.css",
+      "apps/cosmographer/webui/src/components/RelationshipEditor/RelationshipEditor.css"
+    ],
+    "rankScore": 0.912,
+    "sharedCustomProperties": [],
+    "signalBreakdown": {
+      "categoryProfile": 0.9749,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.9594,
+      "ruleExactMatch": 0.1667,
+      "ruleSetMatch": 0.4667,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4341,
+    "directorySpread": 1,
+    "id": "css-cluster-021",
+    "linkedComponents": [
+      "apps/illuminator/webui/src/components/ChronicleWizard/visualizations/EnsembleConstellation.tsx::default",
+      "apps/illuminator/webui/src/components/ChronicleWizard/visualizations/TimelineBrush.tsx::default"
+    ],
+    "memberCount": 2,
+    "members": [
+      "apps/illuminator/webui/src/components/ChronicleWizard/visualizations/EnsembleConstellation.css",
+      "apps/illuminator/webui/src/components/ChronicleWizard/visualizations/TimelineBrush.css"
+    ],
+    "rankScore": 0.8682,
+    "sharedCustomProperties": [],
+    "signalBreakdown": {
+      "categoryProfile": 0.7071,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.6742,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.5714,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4293,
+    "directorySpread": 1,
+    "id": "css-cluster-022",
+    "linkedComponents": [
+      "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.jsx::default",
+      "apps/canonry/webui/src/components/SchemaEditor/TagRegistryEditor.jsx::default"
+    ],
+    "memberCount": 2,
+    "members": [
+      "apps/canonry/webui/src/components/SchemaEditor/RelationshipKindEditor.css",
+      "apps/canonry/webui/src/components/SchemaEditor/TagRegistryEditor.css"
+    ],
+    "rankScore": 0.8586,
+    "sharedCustomProperties": [],
+    "signalBreakdown": {
+      "categoryProfile": 0.8434,
+      "customPropertyVocab": 0.0,
+      "propertyFrequency": 0.8423,
+      "ruleExactMatch": 0.1961,
+      "ruleSetMatch": 0.4706,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4271,
+    "directorySpread": 1,
+    "id": "css-cluster-023",
+    "linkedComponents": [],
+    "memberCount": 2,
+    "members": [
+      "packages/shared-components/src/styles/components/empty-state.css",
+      "packages/shared-components/src/styles/components/error-boundary.css"
+    ],
+    "rankScore": 0.8542,
+    "sharedCustomProperties": [
+      "--color-text",
+      "--color-text-dim",
+      "--color-text-muted",
+      "--font-size-2xl",
+      "--font-weight-medium",
+      "--spacing-2xl",
+      "--spacing-4xl",
+      "--spacing-md",
+      "--spacing-xl"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9496,
+      "customPropertyVocab": 0.5625,
+      "propertyFrequency": 0.8292,
+      "ruleExactMatch": 0.2,
+      "ruleSetMatch": 0.2,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4119,
+    "directorySpread": 1,
+    "id": "css-cluster-024",
+    "linkedComponents": [],
+    "memberCount": 2,
+    "members": [
+      "packages/shared-components/src/styles/components/actions.css",
+      "packages/shared-components/src/styles/components/toggle.css"
+    ],
+    "rankScore": 0.8238,
+    "sharedCustomProperties": [
+      "--color-success",
+      "--color-text-muted",
+      "--radius-full",
+      "--spacing-lg",
+      "--transition-normal"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.8514,
+      "customPropertyVocab": 0.2083,
+      "propertyFrequency": 0.7438,
+      "ruleExactMatch": 0.2857,
+      "ruleSetMatch": 0.2857,
+      "selectorPrefixOverlap": 0.0
+    }
+  },
+  {
+    "avgSimilarity": 0.4038,
+    "directorySpread": 1,
+    "id": "css-cluster-025",
+    "linkedComponents": [
+      "apps/archivist/webui/src/components/EntityDetail.tsx::default",
+      "apps/archivist/webui/src/components/FilterPanel.tsx::EdgeMetric",
+      "apps/archivist/webui/src/components/FilterPanel.tsx::ViewMode",
+      "apps/archivist/webui/src/components/FilterPanel.tsx::default"
+    ],
+    "memberCount": 2,
+    "members": [
+      "apps/archivist/webui/src/components/EntityDetail.css",
+      "apps/archivist/webui/src/components/FilterPanel.css"
+    ],
+    "rankScore": 0.8076,
+    "sharedCustomProperties": [
+      "--color-bg-blue-20",
+      "--color-bg-dark-20",
+      "--color-bg-dark-40",
+      "--color-blue-300",
+      "--color-blue-400",
+      "--color-blue-500",
+      "--color-border",
+      "--color-border-light",
+      "--color-border-strong",
+      "--color-gray-400",
+      "--color-text-primary",
+      "--font-mono",
+      "--font-size-base",
+      "--font-size-lg",
+      "--font-size-sm",
+      "--font-size-xl",
+      "--font-size-xs",
+      "--font-weight-medium",
+      "--font-weight-semibold",
+      "--gradient-bg-panel",
+      "--radius-2xl",
+      "--radius-lg",
+      "--radius-md",
+      "--radius-xl",
+      "--shadow-xl",
+      "--spacing-2xl",
+      "--spacing-lg",
+      "--spacing-md",
+      "--spacing-sm",
+      "--spacing-xl",
+      "--spacing-xs",
+      "--transition-normal"
+    ],
+    "signalBreakdown": {
+      "categoryProfile": 0.9681,
+      "customPropertyVocab": 0.4324,
+      "propertyFrequency": 0.9109,
+      "ruleExactMatch": 0.0709,
+      "ruleSetMatch": 0.2411,
+      "selectorPrefixOverlap": 0.0
+    }
+  }
+]

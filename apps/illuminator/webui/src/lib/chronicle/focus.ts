@@ -1,4 +1,4 @@
-import type { ChronicleGenerationContext, NarrativeFocus } from './chronicleTypes';
+import type { ChronicleGenerationContext, NarrativeFocus } from "../chronicleTypes";
 
 export function applyFocusToContext(
   context: ChronicleGenerationContext,

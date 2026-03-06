@@ -59,10 +59,10 @@ interface GrammarExpansionContext {
  */
 function selectProfile(
   profiles: Profile[],
-  profileId?: string,
-  kind?: string
+  profileId: string,
+  kind: string
 ): Profile | null {
-  if (!profiles || profiles.length === 0) {
+  if (profiles.length === 0) {
     return null;
   }
 
@@ -74,7 +74,7 @@ function selectProfile(
   // 2. Find first profile with matching entityKind
   if (kind) {
     const kindMatch = profiles.find(
-      (p) => p.entityKinds && p.entityKinds.includes(kind)
+      (p) => p.entityKinds.includes(kind)
     );
     if (kindMatch) {
       return kindMatch;
@@ -88,7 +88,7 @@ function selectProfile(
   }
 
   // 4. Legacy behavior: if only one profile exists and has no entityKinds, use it
-  if (profiles.length === 1 && !profiles[0].entityKinds?.length) {
+  if (profiles.length === 1 && !profiles[0].entityKinds.length) {
     return profiles[0];
   }
 
@@ -123,6 +123,11 @@ export async function generate(
     seed,
   } = request;
 
+  // Normalize profiles — persisted data may lack entityKinds
+  for (const p of culture.profiles) {
+    if (!p.entityKinds) (p as { entityKinds: string[] }).entityKinds = [];
+  }
+
   // Find the profile using selection logic:
   // 1. If profileId specified, use that
   // 2. Otherwise, find first profile matching entityKind
@@ -131,9 +136,10 @@ export async function generate(
   const profile = selectProfile(culture.profiles, profileId, kind);
 
   if (!profile) {
-    const availableProfiles = culture.profiles.map(p =>
-      `${p.id}${p.entityKinds?.length ? ` (${p.entityKinds.join(', ')})` : ''}${p.isDefault ? ' [default]' : ''}`
-    ).join(', ');
+    const availableProfiles = culture.profiles.map(p => {
+      const kindsSuffix = p.entityKinds.length ? ` (${p.entityKinds.join(', ')})` : '';
+      return `${p.id}${kindsSuffix}${p.isDefault ? ' [default]' : ''}`;
+    }).join(', ');
     throw new Error(
       `No matching profile for entityKind "${kind || '(none)'}" in culture ${culture.id}. ` +
       `Available profiles: ${availableProfiles || 'none'}. ` +
@@ -142,7 +148,7 @@ export async function generate(
   }
 
   // Preload any Markov models referenced in grammars
-  const markovModels = await preloadModels(culture.grammars || []);
+  const markovModels = await preloadModels(culture.grammars);
 
   // Build generation context
   const rng = createRNG(seed || `gen-${Date.now()}`);
@@ -156,7 +162,7 @@ export async function generate(
   };
 
   // Find matching strategy group with debug info
-  const { matchingGroup, debugInfo: groupDebugInfo, usedFallback } = findMatchingGroup(
+  const { matchingGroup, debugInfo: groupDebugInfo } = findMatchingGroup(
     profile.strategyGroups,
     kind,
     subtype,
@@ -223,66 +229,70 @@ interface GroupMatchResult {
   usedFallback: boolean;
 }
 
+/** Check if a list-based condition matches a given value. */
+function checkListCondition(
+  condList: string[] | undefined,
+  value: string | undefined,
+  fieldName: string
+): { matched: boolean; reason: string } | null {
+  if (!condList || condList.length === 0) return null;
+  if (!value) {
+    return { matched: false, reason: `Requires ${fieldName} in [${condList.join(", ")}] but none provided` };
+  }
+  if (!condList.includes(value)) {
+    return { matched: false, reason: `${fieldName} "${value}" not in [${condList.join(", ")}]` };
+  }
+  return null;
+}
+
+/** Check if tag conditions match. */
+function checkTagCondition(
+  condTags: string[] | undefined,
+  tagMatchAll: boolean | undefined,
+  tags: string[]
+): { matched: boolean; reason: string } | null {
+  if (!condTags || condTags.length === 0) return null;
+  if (tagMatchAll) {
+    const missingTags = condTags.filter((t) => !tags.includes(t));
+    if (missingTags.length > 0) {
+      return { matched: false, reason: `Missing required tags: [${missingTags.join(", ")}]` };
+    }
+  } else {
+    if (!condTags.some((t) => tags.includes(t))) {
+      return { matched: false, reason: `No matching tags from [${condTags.join(", ")}]` };
+    }
+  }
+  return null;
+}
+
 /**
  * Check why a group matches or doesn't match
  */
 function checkGroupMatch(
   group: StrategyGroup,
-  kind?: string,
-  subtype?: string,
-  prominence?: string,
-  tags?: string[]
-): { matched: boolean; reason?: string } {
+  kind: string,
+  subtype: string,
+  prominence: string,
+  tags: string[]
+): { matched: boolean; reason: string } {
   const conditions = group.conditions;
   if (!conditions) {
     return { matched: true, reason: "No conditions (matches all)" };
   }
 
-  // Check entityKinds
-  if (conditions.entityKinds && conditions.entityKinds.length > 0) {
-    if (!kind) {
-      return { matched: false, reason: `Requires entityKind in [${conditions.entityKinds.join(", ")}] but none provided` };
-    }
-    if (!conditions.entityKinds.includes(kind)) {
-      return { matched: false, reason: `entityKind "${kind}" not in [${conditions.entityKinds.join(", ")}]` };
-    }
-  }
+  const kindResult = checkListCondition(conditions.entityKinds, kind, "entityKind");
+  if (kindResult) return kindResult;
 
-  // Check subtypes
-  if (conditions.subtypes && conditions.subtypes.length > 0) {
-    if (!subtype) {
-      return { matched: false, reason: `Requires subtype in [${conditions.subtypes.join(", ")}] but none provided` };
-    }
-    if (!conditions.subtypes.includes(subtype)) {
-      return { matched: false, reason: `subtype "${subtype}" not in [${conditions.subtypes.join(", ")}]` };
-    }
-  }
+  const subtypeResult = checkListCondition(conditions.subtypes, subtype, "subtype");
+  if (subtypeResult) return subtypeResult;
 
-  // Check prominence
-  if (conditions.prominence && conditions.prominence.length > 0) {
-    if (!prominence) {
-      return { matched: false, reason: `Requires prominence in [${conditions.prominence.join(", ")}] but none provided` };
-    }
-    if (!conditions.prominence.includes(prominence)) {
-      return { matched: false, reason: `prominence "${prominence}" not in [${conditions.prominence.join(", ")}]` };
-    }
-  }
+  const prominenceResult = checkListCondition(conditions.prominence, prominence, "prominence");
+  if (prominenceResult) return prominenceResult;
 
-  // Check tags
-  if (conditions.tags && conditions.tags.length > 0) {
-    if (conditions.tagMatchAll) {
-      const missingTags = conditions.tags.filter((t) => !tags?.includes(t));
-      if (missingTags.length > 0) {
-        return { matched: false, reason: `Missing required tags: [${missingTags.join(", ")}]` };
-      }
-    } else {
-      if (!conditions.tags.some((t) => tags?.includes(t))) {
-        return { matched: false, reason: `No matching tags from [${conditions.tags.join(", ")}]` };
-      }
-    }
-  }
+  const tagResult = checkTagCondition(conditions.tags, conditions.tagMatchAll, tags);
+  if (tagResult) return tagResult;
 
-  return { matched: true };
+  return { matched: true, reason: "All conditions matched" };
 }
 
 /**
@@ -291,14 +301,14 @@ function checkGroupMatch(
  */
 function findMatchingGroup(
   groups: StrategyGroup[],
-  kind?: string,
-  subtype?: string,
-  prominence?: string,
-  tags?: string[]
+  kind: string,
+  subtype: string,
+  prominence: string,
+  tags: string[]
 ): GroupMatchResult {
   const debugInfo: GroupMatchDebug[] = [];
 
-  if (!groups || groups.length === 0) {
+  if (groups.length === 0) {
     return { matchingGroup: null, debugInfo, usedFallback: true };
   }
 
@@ -372,8 +382,8 @@ interface SingleNameResult {
   name: string;
   strategyType: string;
   strategyDesc: string;
-  grammarId?: string;
-  domainId?: string;
+  grammarId: string;
+  domainId: string;
 }
 
 /**
@@ -384,11 +394,13 @@ function generateSingleName(
   ctx: GenerationContext,
   index: number
 ): SingleNameResult {
-  if (!group || !group.strategies || group.strategies.length === 0) {
+  if (!group || group.strategies.length === 0) {
     return {
       name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
       strategyType: "fallback",
       strategyDesc: "No strategies in group",
+      grammarId: "",
+      domainId: "",
     };
   }
 
@@ -404,6 +416,7 @@ function generateSingleName(
         strategyType: result.usedMarkov ? "markov" : "grammar",
         strategyDesc: `grammar:${strategy.grammarId}`,
         grammarId: strategy.grammarId,
+        domainId: "",
       };
     }
     // Grammar not found
@@ -412,6 +425,7 @@ function generateSingleName(
       strategyType: "fallback",
       strategyDesc: `grammar:${strategy.grammarId} NOT FOUND`,
       grammarId: strategy.grammarId,
+      domainId: "",
     };
   }
 
@@ -422,6 +436,7 @@ function generateSingleName(
         name: generatePhonotacticName(ctx.rng, domain),
         strategyType: "phonotactic",
         strategyDesc: `phonotactic:${strategy.domainId}`,
+        grammarId: "",
         domainId: strategy.domainId,
       };
     }
@@ -431,6 +446,7 @@ function generateSingleName(
         name: generatePhonotacticName(ctx.rng, ctx.domains[0]),
         strategyType: "phonotactic",
         strategyDesc: `phonotactic:${strategy.domainId} NOT FOUND, used ${ctx.domains[0].id}`,
+        grammarId: "",
         domainId: ctx.domains[0].id,
       };
     }
@@ -439,6 +455,7 @@ function generateSingleName(
       name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
       strategyType: "fallback",
       strategyDesc: `phonotactic:${strategy.domainId} NOT FOUND, no domains available`,
+      grammarId: "",
       domainId: strategy.domainId,
     };
   }
@@ -447,6 +464,8 @@ function generateSingleName(
     name: generateFallbackName(ctx.lexemeLists, ctx.rng, index),
     strategyType: "fallback",
     strategyDesc: `Unknown strategy type: ${strategy.type}`,
+    grammarId: "",
+    domainId: "",
   };
 }
 
@@ -492,7 +511,7 @@ function expandGrammar(
   ctx: GenerationContext
 ): { name: string; usedMarkov: boolean } {
   const startSymbol = grammar.start || "name";
-  const rules = grammar.rules || {};
+  const rules = grammar.rules;
   const expansionCtx: GrammarExpansionContext = {
     usedMarkov: false,
     userContext: ctx.userContext,
@@ -501,7 +520,7 @@ function expandGrammar(
   let name = expandSymbol(startSymbol, rules, ctx, expansionCtx, 0);
 
   // Apply grammar-level capitalization if specified
-  if (grammar.capitalization) {
+  if (grammar.capitalization !== "mixed") {
     name = applyCapitalization(name, grammar.capitalization);
   }
 
@@ -525,8 +544,8 @@ function productionNeedsMissingContext(
       const match = token.match(/context:([a-zA-Z_]+)/);
       if (match) {
         const key = match[1];
-        const value = userContext[key];
-        if (value === undefined || value === null || value === "") {
+         
+        if (!(key in userContext) || userContext[key] === "") {
           return true;
         }
       }
@@ -619,7 +638,7 @@ function resolveToken(
   rules: Record<string, string[][]>,
   ctx: GenerationContext,
   expansionCtx: GrammarExpansionContext,
-  depth: number
+  _depth: number
 ): string {
   // If no ^, resolve as simple token (may still have ~ modifier)
   if (!token.includes("^")) {
@@ -820,16 +839,6 @@ function parseModifiers(pattern: string): ParsedModifiers {
 }
 
 /**
- * Parse and remove capitalization modifier from a pattern (legacy wrapper).
- * E.g., "slot:foo~cap" → { pattern: "slot:foo", modifier: "cap" }
- * @deprecated Use parseModifiers instead
- */
-function parseCapitalizationModifier(pattern: string): { pattern: string; modifier: TokenCapitalization | null } {
-  const { pattern: p, capitalization } = parseModifiers(pattern);
-  return { pattern: p, modifier: capitalization };
-}
-
-/**
  * Resolve a segment that may have a literal prefix before a pattern.
  * E.g., "'slot:foo~cap" → "'" + resolve(slot:foo) with capitalization
  */
@@ -869,78 +878,64 @@ function resolveSegmentWithPrefix(
  * - "slot:core~chopL" → truncate left (silent → ent)
  * - "slot:core~chopL~cap" → truncate then capitalize (silent → Ent)
  */
+/** Resolve a pattern reference (slot:, domain:, markov:, context:) to a raw string. */
+function resolvePatternRef(
+  pattern: string,
+  token: string,
+  ctx: GenerationContext,
+  expansionCtx: GrammarExpansionContext
+): string | null {
+  if (pattern.startsWith("slot:")) {
+    const listId = pattern.substring(5);
+    const list = ctx.lexemeLists.find((l) => l.id === listId);
+    return list && list.entries.length > 0 ? pickRandom(ctx.rng, list.entries) : listId;
+  }
+  if (pattern.startsWith("domain:")) {
+    const domainId = pattern.substring(7);
+    const domain = ctx.domains.find((d) => d.id === domainId);
+    return domain ? generatePhonotacticName(ctx.rng, domain) : domainId;
+  }
+  if (pattern.startsWith("markov:")) {
+    return resolveMarkovRef(pattern.substring(7), ctx, expansionCtx);
+  }
+  if (pattern.startsWith("context:")) {
+    const key = pattern.substring(8);
+     
+    return key in expansionCtx.userContext && expansionCtx.userContext[key] !== "" ? String(expansionCtx.userContext[key]) : null;
+  }
+  return token; // literal
+}
+
+function resolveMarkovRef(modelId: string, ctx: GenerationContext, expansionCtx: GrammarExpansionContext): string {
+  const model = ctx.markovModels.get(modelId);
+  if (model) {
+    expansionCtx.usedMarkov = true;
+    return generateFromMarkovModel(model, ctx.rng);
+  }
+  if (ctx.domains.length > 0) {
+    return generatePhonotacticName(ctx.rng, ctx.domains[0]);
+  }
+  return modelId;
+}
+
 function resolveSimpleToken(
   token: string,
   ctx: GenerationContext,
   expansionCtx: GrammarExpansionContext
 ): string {
-  // Parse all modifiers (derivation + truncation + capitalization)
   const { pattern, derivation, truncation, capitalization } = parseModifiers(token);
 
-  let result: string;
+  const resolved = resolvePatternRef(pattern, token, ctx, expansionCtx);
+  if (resolved === null) return ""; // context key missing
 
-  // Handle slot:listId references (lexeme lists)
-  if (pattern.startsWith("slot:")) {
-    const listId = pattern.substring(5);
-    const list = ctx.lexemeLists.find((l) => l.id === listId);
-    if (list && list.entries.length > 0) {
-      result = pickRandom(ctx.rng, list.entries);
-    } else {
-      result = listId; // Return the ID if list not found
-    }
-  }
-  // Handle domain:domainId references (phonotactic generation)
-  else if (pattern.startsWith("domain:")) {
-    const domainId = pattern.substring(7);
-    const domain = ctx.domains.find((d) => d.id === domainId);
-    if (domain) {
-      result = generatePhonotacticName(ctx.rng, domain);
-    } else {
-      result = domainId; // Return the ID if domain not found
-    }
-  }
-  // Handle markov:modelId references
-  else if (pattern.startsWith("markov:")) {
-    const modelId = pattern.substring(7);
-    const model = ctx.markovModels.get(modelId);
+  let result = resolved;
 
-    if (model) {
-      expansionCtx.usedMarkov = true;
-      result = generateFromMarkovModel(model, ctx.rng);
-    } else if (ctx.domains.length > 0) {
-      // Fallback to phonotactic if model not available
-      result = generatePhonotacticName(ctx.rng, ctx.domains[0]);
-    } else {
-      result = modelId;
-    }
-  }
-  // Handle context:key references (user-provided context values)
-  else if (pattern.startsWith("context:")) {
-    const key = pattern.substring(8);
-    const value = expansionCtx.userContext[key];
-    if (value !== undefined && value !== null && value !== "") {
-      result = String(value);
-    } else {
-      // Context key missing - return empty and skip derivation/capitalization
-      return "";
-    }
-  }
-  // Return literal as-is
-  else {
-    result = token; // Use original token for literals (preserves ~ if not a modifier)
-  }
-
-  // Apply derivation first (e.g., hunt → hunter)
   if (derivation) {
     result = applyDerivation(result, derivation);
   }
-
-  // Apply truncation second (e.g., silent → ent)
   if (truncation) {
     result = applyTruncation(result, truncation, ctx.rng);
   }
-
-  // Wrap in capitalization marker if specified (applied later, after grammar-level)
   if (capitalization) {
     result = wrapCapitalizationMarker(result, capitalization);
   }
@@ -958,7 +953,7 @@ function resolveSimpleToken(
 function generateFromMarkovModel(
   model: MarkovModel,
   rng: () => number,
-  options: { minLength?: number; maxLength?: number } = {}
+  options: { minLength: number; maxLength: number } = { minLength: 3, maxLength: 12 }
 ): string {
   const { minLength = 3, maxLength = 12 } = options;
 
@@ -1013,7 +1008,7 @@ function generateFallbackName(
   rng: () => number,
   index: number
 ): string {
-  const nonEmptyLists = lexemeLists.filter((l) => l.entries?.length > 0);
+  const nonEmptyLists = lexemeLists.filter((l) => l.entries.length > 0);
 
   if (nonEmptyLists.length === 0) {
     return `Name-${index + 1}`;
@@ -1049,7 +1044,7 @@ function generateFallbackName(
 export function generateFromDomain(
   domain: NamingDomain,
   count: number = 10,
-  seed?: string
+  seed: string
 ): string[] {
   const rng = createRNG(seed || `domain-${Date.now()}`);
   const names: string[] = [];
@@ -1080,7 +1075,7 @@ export interface TestDomainResult {
 export function testDomain(
   domain: NamingDomain,
   sampleSize: number = 100,
-  seed?: string
+  seed: string = "default"
 ): TestDomainResult {
   const samples = generateFromDomain(domain, sampleSize, seed);
   const uniqueSet = new Set(samples);
@@ -1105,8 +1100,8 @@ export interface PreviewGrammarOptions {
   grammar: Grammar;
   domains: NamingDomain[];
   lexemeLists: LexemeList[];
-  count?: number;
-  seed?: string;
+  count: number;
+  seed: string;
 }
 
 /**
@@ -1120,7 +1115,7 @@ export async function previewGrammar(
 ): Promise<string[]> {
   const { grammar, domains, lexemeLists, count = 8, seed } = options;
 
-  if (!grammar || !grammar.rules || Object.keys(grammar.rules).length === 0) {
+  if (!grammar || Object.keys(grammar.rules).length === 0) {
     return [];
   }
 
@@ -1130,9 +1125,9 @@ export async function previewGrammar(
   const rng = createRNG(seed || `preview-${Date.now()}`);
   const ctx: GenerationContext = {
     rng,
-    domains: domains || [],
+    domains: domains,
     grammars: [grammar],
-    lexemeLists: lexemeLists || [],
+    lexemeLists: lexemeLists,
     markovModels,
     userContext: {},
   };

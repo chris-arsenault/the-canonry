@@ -1,24 +1,24 @@
-const CONFIG_KEY = 'canonry.aws.config';
-const TOKEN_KEY = 'canonry.aws.tokens';
+const CONFIG_KEY = "canonry.aws.config";
+const TOKEN_KEY = "canonry.aws.tokens";
 
 function safeParse(value, fallback) {
   if (!value) return fallback;
   try {
     return JSON.parse(value);
   } catch (err) {
-    console.warn('Failed to parse AWS config:', err);
+    console.warn("Failed to parse AWS config:", err);
     return fallback;
   }
 }
 
 export function loadAwsConfig() {
-  if (typeof localStorage === 'undefined') return null;
+  if (typeof localStorage === "undefined") return null;
   const stored = localStorage.getItem(CONFIG_KEY);
   return safeParse(stored, null);
 }
 
 export function saveAwsConfig(config) {
-  if (typeof localStorage === 'undefined') return;
+  if (typeof localStorage === "undefined") return;
   if (!config) {
     localStorage.removeItem(CONFIG_KEY);
     return;
@@ -27,13 +27,13 @@ export function saveAwsConfig(config) {
 }
 
 export function loadAwsTokens() {
-  if (typeof localStorage === 'undefined') return null;
+  if (typeof localStorage === "undefined") return null;
   const stored = localStorage.getItem(TOKEN_KEY);
   return safeParse(stored, null);
 }
 
 export function saveAwsTokens(tokens) {
-  if (typeof localStorage === 'undefined') return;
+  if (typeof localStorage === "undefined") return;
   if (!tokens) {
     localStorage.removeItem(TOKEN_KEY);
     return;
@@ -42,7 +42,7 @@ export function saveAwsTokens(tokens) {
 }
 
 export function clearAwsTokens() {
-  if (typeof localStorage === 'undefined') return;
+  if (typeof localStorage === "undefined") return;
   localStorage.removeItem(TOKEN_KEY);
 }
 

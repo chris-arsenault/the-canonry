@@ -48,10 +48,10 @@ export class EntityClusterBuilder {
    * @param strength - Optional relationship strength
    */
   relate(
-    fromIndex: number,
+    fromIndex: number | string,
     toIndex: number | string,
     kind: string,
-    strength?: number
+    strength: number
   ): this {
     const src = typeof fromIndex === 'number'
       ? `will-be-assigned-${fromIndex}`
@@ -61,7 +61,12 @@ export class EntityClusterBuilder {
       ? `will-be-assigned-${toIndex}`
       : toIndex;
 
-    const rel: Relationship = { kind, src, dst, strength: strength ?? 0.5 };
+    const rel: Relationship = {
+      kind, src, dst, strength,
+      distance: 0, category: '', createdAt: 0, catalyzedBy: '', status: 'active',
+      archived: { occurred: false as const, tick: 0 },
+      createdBy: { tick: 0, source: 'template', sourceId: '', success: true, narration: '' },
+    };
 
     this.relationships.push(rel);
     return this;
@@ -78,7 +83,7 @@ export class EntityClusterBuilder {
     fromIndex: number,
     toEntityId: string,
     kind: string,
-    strength?: number
+    strength: number
   ): this {
     return this.relate(fromIndex, toEntityId, kind, strength);
   }
@@ -94,9 +99,9 @@ export class EntityClusterBuilder {
     fromEntityId: string,
     toIndex: number,
     kind: string,
-    strength?: number
+    strength: number
   ): this {
-    return this.relate(fromEntityId as any, toIndex, kind, strength);
+    return this.relate(fromEntityId, toIndex, kind, strength);
   }
 
   /**
@@ -110,7 +115,7 @@ export class EntityClusterBuilder {
     fromIndex: number,
     toIndices: Array<number | string>,
     kind: string,
-    strength?: number
+    strength: number
   ): this {
     toIndices.forEach(toIndex => {
       this.relate(fromIndex, toIndex, kind, strength);
@@ -129,7 +134,7 @@ export class EntityClusterBuilder {
     fromIndices: number[],
     toIndex: number | string,
     kind: string,
-    strength?: number
+    strength: number
   ): this {
     fromIndices.forEach(fromIndex => {
       this.relate(fromIndex, toIndex, kind, strength);
@@ -148,7 +153,7 @@ export class EntityClusterBuilder {
     index1: number,
     index2: number,
     kind: string,
-    strength?: number
+    strength: number
   ): this {
     this.relate(index1, index2, kind, strength);
     this.relate(index2, index1, kind, strength);
@@ -177,7 +182,12 @@ export class EntityClusterBuilder {
     return {
       entities: this.entities,
       relationships: this.relationships,
-      description
+      description,
+      placementStrategies: [],
+      derivedTagsList: [],
+      placementDebugList: [],
+      resolvedVariables: {},
+      entityRefToIndex: {},
     };
   }
 

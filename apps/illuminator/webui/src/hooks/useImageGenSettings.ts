@@ -7,7 +7,7 @@
  * EntityBrowser, ChroniclePanel, and worker tasks.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from "react";
 
 export interface ImageGenSettings {
   artisticStyleId: string;
@@ -19,16 +19,16 @@ export interface ImageGenSettings {
   collapsedSections: string[];
 }
 
-const STORAGE_KEY = 'illuminator:imageGenSettings';
-const LEGACY_STYLE_KEY = 'illuminator:styleSelection';
+const STORAGE_KEY = "illuminator:imageGenSettings";
+const LEGACY_STYLE_KEY = "illuminator:styleSelection";
 
 const DEFAULTS: ImageGenSettings = {
-  artisticStyleId: 'random',
-  compositionStyleId: 'random',
-  colorPaletteId: 'random',
-  imageSize: 'auto',
-  imageQuality: 'auto',
-  selectedCultureId: '',
+  artisticStyleId: "random",
+  compositionStyleId: "random",
+  colorPaletteId: "random",
+  imageSize: "auto",
+  imageQuality: "auto",
+  selectedCultureId: "",
   collapsedSections: [],
 };
 
@@ -36,13 +36,13 @@ function loadSettings(): ImageGenSettings {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      return { ...DEFAULTS, ...JSON.parse(saved) };
+      return { ...DEFAULTS, ...(JSON.parse(saved) as Partial<ImageGenSettings>) };
     }
 
     // Migrate from legacy styleSelection key
     const legacyStyle = localStorage.getItem(LEGACY_STYLE_KEY);
     if (legacyStyle) {
-      const parsed = JSON.parse(legacyStyle);
+      const parsed = JSON.parse(legacyStyle) as Partial<ImageGenSettings>;
       const migrated: ImageGenSettings = {
         ...DEFAULTS,
         artisticStyleId: parsed.artisticStyleId || DEFAULTS.artisticStyleId,
@@ -72,11 +72,13 @@ export type ImageGenSettingsUpdater = (partial: Partial<ImageGenSettings>) => vo
  * also forwarded there (for syncing with parent shell).
  */
 export function useImageGenSettings(
-  onExternalSync?: (settings: ImageGenSettings) => void,
+  onExternalSync?: (settings: ImageGenSettings) => void
 ): [ImageGenSettings, ImageGenSettingsUpdater] {
   const [settings, setSettings] = useState<ImageGenSettings>(loadSettings);
   const externalSyncRef = useRef(onExternalSync);
-  externalSyncRef.current = onExternalSync;
+  useEffect(() => {
+    externalSyncRef.current = onExternalSync;
+  }, [onExternalSync]);
 
   const updateSettings = useCallback((partial: Partial<ImageGenSettings>) => {
     setSettings((prev) => ({ ...prev, ...partial }));

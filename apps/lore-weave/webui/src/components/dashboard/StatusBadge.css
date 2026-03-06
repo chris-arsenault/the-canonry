@@ -1,0 +1,4 @@
+.sb-badge {
+  background-color: var(--sb-badge-bg);
+  color: var(--sb-badge-color);
+}

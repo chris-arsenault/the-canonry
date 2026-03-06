@@ -1,0 +1,10 @@
+/* ContentTreeView styles */
+
+.ctv-empty-msg {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.ctv-toolbar-spacer {
+  flex: 1;
+}

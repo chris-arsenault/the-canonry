@@ -5,18 +5,20 @@
  * Shows all images in the library with filtering by entity kind and culture.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import {
   searchImagesWithFilters as searchImages,
   getImageFilterOptions,
   loadImage,
   formatBytes,
-} from '../lib/db/imageRepository';
+} from "../lib/db/imageRepository";
+import "./ImagePickerModal.css";
 
 /**
  * Lazy-loading thumbnail that only loads the blob when visible via IntersectionObserver.
  */
-function LazyThumbnail({ imageId, alt, style }) {
+function LazyThumbnail({ imageId, alt, className }) {
   const ref = useRef(null);
   const [url, setUrl] = useState(null);
   const urlRef = useRef(null);
@@ -36,7 +38,7 @@ function LazyThumbnail({ imageId, alt, style }) {
           });
         }
       },
-      { threshold: 0.1 },
+      { threshold: 0.1 }
     );
 
     observer.observe(ref.current);
@@ -50,13 +52,11 @@ function LazyThumbnail({ imageId, alt, style }) {
   }, [imageId]);
 
   return (
-    <div ref={ref} style={style}>
+    <div ref={ref} className={className}>
       {url ? (
-        <img src={url} alt={alt} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={url} alt={alt} className="ilu-thumb-cover" />
       ) : (
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '11px' }}>
-          Loading...
-        </div>
+        <div className="ilu-thumb-placeholder">Loading...</div>
       )}
     </div>
   );
@@ -66,21 +66,27 @@ function LazyThumbnail({ imageId, alt, style }) {
  * Format a timestamp to a readable date string
  */
 function formatDate(timestamp) {
-  if (!timestamp) return '';
-  return new Date(timestamp).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+  if (!timestamp) return "";
+  return new Date(timestamp).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
+
+LazyThumbnail.propTypes = {
+  imageId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  alt: PropTypes.string,
+  className: PropTypes.string,
+};
 
 export default function ImagePickerModal({
   isOpen,
   onClose,
   onSelect,
-  entityKind,
-  entityCulture,
+  entityKind: _entityKind,
+  entityCulture: _entityCulture,
   currentImageId,
 }) {
   const [images, setImages] = useState([]);
@@ -97,10 +103,10 @@ export default function ImagePickerModal({
   };
   const [loading, setLoading] = useState(true);
   const [selectedImageId, setSelectedImageId] = useState(null);
-  const [filterKind, setFilterKind] = useState('all');
-  const [filterCulture, setFilterCulture] = useState('all');
-  const [filterModel, setFilterModel] = useState('all');
-  const [searchText, setSearchText] = useState('');
+  const [filterKind, setFilterKind] = useState("all");
+  const [filterCulture, setFilterCulture] = useState("all");
+  const [filterModel, setFilterModel] = useState("all");
+  const [searchText, setSearchText] = useState("");
   const [expandedPrompt, setExpandedPrompt] = useState(null);
   const [filterOptions, setFilterOptions] = useState({ kinds: [], cultures: [], models: [] });
 
@@ -111,22 +117,22 @@ export default function ImagePickerModal({
     async function loadFilterOptions() {
       try {
         const [kinds, cultures, models] = await Promise.all([
-          getImageFilterOptions('entityKind'),
-          getImageFilterOptions('entityCulture'),
-          getImageFilterOptions('model'),
+          getImageFilterOptions("entity-kind"),
+          getImageFilterOptions("entityCulture"),
+          getImageFilterOptions("model"),
         ]);
         setFilterOptions({ kinds, cultures, models });
       } catch (err) {
-        console.error('Failed to load filter options:', err);
+        console.error("Failed to load filter options:", err);
       }
     }
 
     loadFilterOptions();
     // Reset filters on open
-    setFilterKind('all');
-    setFilterCulture('all');
-    setFilterModel('all');
-    setSearchText('');
+    setFilterKind("all");
+    setFilterCulture("all");
+    setFilterModel("all");
+    setSearchText("");
   }, [isOpen]);
 
   // Load images when filters change
@@ -137,15 +143,15 @@ export default function ImagePickerModal({
       setLoading(true);
       try {
         const filters = {};
-        if (filterKind !== 'all') filters.entityKind = filterKind;
-        if (filterCulture !== 'all') filters.entityCulture = filterCulture;
-        if (filterModel !== 'all') filters.model = filterModel;
+        if (filterKind !== "all") filters.entityKind = filterKind;
+        if (filterCulture !== "all") filters.entityCulture = filterCulture;
+        if (filterModel !== "all") filters.model = filterModel;
         if (searchText.trim()) filters.searchText = searchText.trim();
 
         const results = await searchImages(filters);
         setImages(results);
       } catch (err) {
-        console.error('Failed to load images:', err);
+        console.error("Failed to load images:", err);
       } finally {
         setLoading(false);
       }
@@ -153,8 +159,6 @@ export default function ImagePickerModal({
 
     loadData();
   }, [isOpen, filterKind, filterCulture, filterModel, searchText]);
-
-
 
   // Handle selection
   const handleSelect = useCallback(() => {
@@ -178,133 +182,118 @@ export default function ImagePickerModal({
     if (!isOpen) return;
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         handleClose();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
     };
   }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="illuminator-modal-overlay" onMouseDown={handleOverlayMouseDown} onClick={handleOverlayClick}>
-      <div
-        className="illuminator-modal"
-        style={{ maxWidth: '900px', maxHeight: '85vh' }}
-      >
+    <div
+      className="illuminator-modal-overlay"
+      onMouseDown={handleOverlayMouseDown}
+      onClick={handleOverlayClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOverlayClick(e); }}
+    >
+      <div className="illuminator-modal ipm-modal">
         <div className="illuminator-modal-header">
           <h3>Select Image from Library</h3>
-          <button onClick={handleClose} className="illuminator-modal-close">&times;</button>
+          <button onClick={handleClose} className="illuminator-modal-close">
+            &times;
+          </button>
         </div>
 
-        <div className="illuminator-modal-body" style={{ padding: '0' }}>
+        <div className="illuminator-modal-body ipm-body">
           {/* Filters */}
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '12px',
-            padding: '16px',
-            borderBottom: '1px solid var(--border-color)',
-            background: 'var(--bg-tertiary)',
-          }}>
+          <div className="ipm-filters">
             <div>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Search
-              </label>
-              <input
+              <label htmlFor="search" className="ipm-filter-label">Search</label>
+              <input id="search"
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Name or prompt..."
-                className="illuminator-input"
-                style={{ width: '160px' }}
+                className="illuminator-input ipm-search-input"
               />
             </div>
 
             <div>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Entity Kind
-              </label>
-              <select
+              <label htmlFor="entity-kind" className="ipm-filter-label">Entity Kind</label>
+              <select id="entity-kind"
                 value={filterKind}
                 onChange={(e) => setFilterKind(e.target.value)}
-                className="illuminator-select"
-                style={{ width: 'auto', minWidth: '120px' }}
+                className="illuminator-select ipm-filter-select"
               >
                 <option value="all">All Kinds</option>
                 {filterOptions.kinds.map((kind) => (
-                  <option key={kind} value={kind}>{kind}</option>
+                  <option key={kind} value={kind}>
+                    {kind}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Culture
-              </label>
-              <select
+              <label htmlFor="culture" className="ipm-filter-label">Culture</label>
+              <select id="culture"
                 value={filterCulture}
                 onChange={(e) => setFilterCulture(e.target.value)}
-                className="illuminator-select"
-                style={{ width: 'auto', minWidth: '120px' }}
+                className="illuminator-select ipm-filter-select"
               >
                 <option value="all">All Cultures</option>
                 {filterOptions.cultures.map((culture) => (
-                  <option key={culture} value={culture}>{culture}</option>
+                  <option key={culture} value={culture}>
+                    {culture}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Model
-              </label>
-              <select
+              <label htmlFor="model" className="ipm-filter-label">Model</label>
+              <select id="model"
                 value={filterModel}
                 onChange={(e) => setFilterModel(e.target.value)}
-                className="illuminator-select"
-                style={{ width: 'auto', minWidth: '120px' }}
+                className="illuminator-select ipm-filter-select"
               >
                 <option value="all">All Models</option>
                 {filterOptions.models.map((model) => (
-                  <option key={model} value={model}>{model}</option>
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
                 ))}
               </select>
             </div>
 
-            <div style={{ marginLeft: 'auto', alignSelf: 'flex-end' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                {images.length} images
-              </span>
+            <div className="ipm-filter-count-wrapper">
+              <span className="ipm-filter-count">{images.length} images</span>
             </div>
           </div>
 
           {/* Image grid */}
-          <div style={{ padding: '16px', maxHeight: '500px', overflowY: 'auto' }}>
-            {loading ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                Loading images...
-              </div>
-            ) : images.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div className="ipm-grid-container">
+            {loading && (
+              <div className="ilu-empty ipm-loading">Loading images...</div>
+            )}
+            {!loading && images.length === 0 && (
+              <div className="ilu-empty ipm-empty">
                 No images found. Try adjusting the filters or generate some images first.
               </div>
-            ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                  gap: '12px',
-                }}
-              >
+            )}
+            {!loading && images.length > 0 && (
+              <div className="ipm-grid">
                 {images.map((img) => {
                   const isSelected = selectedImageId === img.imageId;
                   const isCurrent = currentImageId === img.imageId;
@@ -313,93 +302,48 @@ export default function ImagePickerModal({
                     <div
                       key={img.imageId}
                       onClick={() => setSelectedImageId(img.imageId)}
-                      style={{
-                        position: 'relative',
-                        background: 'var(--bg-tertiary)',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        border: isSelected
-                          ? '2px solid var(--accent-color)'
-                          : isCurrent
-                          ? '2px solid var(--success)'
-                          : '2px solid transparent',
-                        opacity: isCurrent ? 0.7 : 1,
-                      }}
+                      className={`ipm-card ${isSelected ? "ipm-card-selected" : ""} ${isCurrent ? "ipm-card-current" : ""}`}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                     >
                       {/* Current badge */}
-                      {isCurrent && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '6px',
-                            right: '6px',
-                            zIndex: 1,
-                            padding: '2px 6px',
-                            background: 'var(--success)',
-                            color: 'white',
-                            borderRadius: '3px',
-                            fontSize: '9px',
-                            fontWeight: 600,
-                          }}
-                        >
-                          CURRENT
-                        </div>
-                      )}
+                      {isCurrent && <div className="ipm-current-badge">CURRENT</div>}
 
                       {/* Thumbnail — lazy-loaded via IntersectionObserver */}
                       <LazyThumbnail
                         imageId={img.imageId}
                         alt={img.entityName || img.imageId}
-                        style={{
-                          width: '100%',
-                          paddingTop: '100%',
-                          position: 'relative',
-                        }}
+                        className="ipm-thumbnail-wrapper"
                       />
 
                       {/* Info */}
-                      <div style={{ padding: '8px' }}>
-                        <div
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 500,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                          title={img.entityName}
-                        >
-                          {img.entityName || 'Unknown'}
+                      <div className="ipm-card-info">
+                        <div className="ipm-card-name" title={img.entityName}>
+                          {img.entityName || "Unknown"}
                         </div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        <div className="ipm-card-meta">
                           {img.entityKind}
                           {img.entityCulture && ` · ${img.entityCulture}`}
                         </div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        <div className="ipm-card-meta">
                           {formatDate(img.generatedAt)} · {formatBytes(img.size || 0)}
                         </div>
 
                         {/* Prompt preview */}
                         {(img.finalPrompt || img.originalPrompt) && (
                           <div
-                            style={{
-                              marginTop: '6px',
-                              padding: '4px 6px',
-                              background: 'rgba(0,0,0,0.2)',
-                              borderRadius: '4px',
-                              fontSize: '9px',
-                              color: 'var(--text-muted)',
-                              maxHeight: expandedPrompt === img.imageId ? '200px' : '40px',
-                              overflow: 'hidden',
-                              cursor: 'pointer',
-                              transition: 'max-height 0.2s ease',
-                            }}
+                            className={`ipm-card-prompt ${expandedPrompt === img.imageId ? "ipm-card-prompt-expanded" : "ipm-card-prompt-collapsed"}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setExpandedPrompt(expandedPrompt === img.imageId ? null : img.imageId);
+                              setExpandedPrompt(
+                                expandedPrompt === img.imageId ? null : img.imageId
+                              );
                             }}
                             title="Click to expand/collapse prompt"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                           >
                             {img.finalPrompt || img.originalPrompt}
                           </div>
@@ -414,7 +358,7 @@ export default function ImagePickerModal({
         </div>
 
         {/* Footer */}
-        <div className="illuminator-modal-footer" style={{ padding: '16px', borderTop: '1px solid var(--border-color)' }}>
+        <div className="illuminator-modal-footer ipm-footer">
           <button onClick={handleClose} className="illuminator-btn">
             Cancel
           </button>
@@ -423,10 +367,19 @@ export default function ImagePickerModal({
             disabled={!selectedImageId || selectedImageId === currentImageId}
             className="illuminator-btn illuminator-btn-primary"
           >
-            {selectedImageId === currentImageId ? 'Already Assigned' : 'Assign Image'}
+            {selectedImageId === currentImageId ? "Already Assigned" : "Assign Image"}
           </button>
         </div>
       </div>
     </div>
   );
 }
+
+ImagePickerModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  onSelect: PropTypes.func,
+  entityKind: PropTypes.string,
+  entityCulture: PropTypes.string,
+  currentImageId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};

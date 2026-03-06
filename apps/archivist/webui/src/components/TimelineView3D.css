@@ -1,0 +1,13 @@
+/* TimelineView3D Component Styles — component-specific only.
+ * Shared overlay panel styles live in visualization-overlay.css.
+ */
+
+/* Era swatch (non-round, golden) */
+.tv3d-era-swatch {
+  background-color: #FFD700;
+}
+
+/* Era link indicator */
+.tv3d-era-link {
+  background-color: #FFD700;
+}

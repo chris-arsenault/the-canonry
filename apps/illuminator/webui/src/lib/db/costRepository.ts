@@ -5,16 +5,17 @@
  * Costs are never deleted when entities/chronicles are regenerated.
  */
 
-import { db } from './illuminatorDb';
-import type { CostRecord, CostType, CostRecordInput, CostSummary } from '../costTypes';
+import { db } from "./illuminatorDb";
+import { generatePrefixedId } from "./generatePrefixedId";
+import type { CostRecord, CostType, CostRecordInput, CostSummary } from "../costTypes";
 
 // Re-export types for consumers
 export type { CostRecord, CostType, CostRecordInput, CostSummary };
 
-const LOG_PREFIX = '[CostStorage]';
+const LOG_PREFIX = "[CostStorage]";
 
 export function generateCostId(): string {
-  return `cost_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  return generatePrefixedId("cost", 9);
 }
 
 export function createCostRecord(input: CostRecordInput): CostRecord {
@@ -55,11 +56,11 @@ export async function saveCostRecordWithDefaults(input: CostRecordInput): Promis
 }
 
 export async function getCostsForProject(projectId: string): Promise<CostRecord[]> {
-  return db.costs.where('projectId').equals(projectId).toArray();
+  return db.costs.where("projectId").equals(projectId).toArray();
 }
 
 export async function getCostsForSimulation(simulationRunId: string): Promise<CostRecord[]> {
-  return db.costs.where('simulationRunId').equals(simulationRunId).toArray();
+  return db.costs.where("simulationRunId").equals(simulationRunId).toArray();
 }
 
 export async function getAllCosts(): Promise<CostRecord[]> {
@@ -67,10 +68,7 @@ export async function getAllCosts(): Promise<CostRecord[]> {
 }
 
 export async function getCostsInRange(startTime: number, endTime: number): Promise<CostRecord[]> {
-  return db.costs
-    .where('timestamp')
-    .between(startTime, endTime, true, true)
-    .toArray();
+  return db.costs.where("timestamp").between(startTime, endTime, true, true).toArray();
 }
 
 export function summarizeCosts(records: CostRecord[]): CostSummary {

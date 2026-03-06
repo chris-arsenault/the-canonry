@@ -1,0 +1,205 @@
+/* ChronicleReviewPanel — crp- prefix */
+/* Shared utilities available: .ilu-section, .ilu-container, .ilu-container-header,
+   .ilu-container-header-bordered, .ilu-action-btn, .ilu-empty, .ilu-footer,
+   .ilu-warning-banner, .ilu-error-banner, .ilu-section-label
+   (from packages/shared-components/src/styles/components/panel-utilities.css) */
+
+/* ========== PerspectiveSynthesisViewer ========== */
+
+/* Shared: compose with .ilu-container */
+.crp-synth {
+  margin-bottom: 16px;
+}
+
+/* Shared: compose with .ilu-container-header */
+.crp-synth-header {
+  gap: 12px;
+  cursor: pointer;
+}
+
+.crp-synth-header-expanded {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.crp-synth-toggle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.crp-synth-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.crp-synth-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.crp-synth-body {
+  padding: 16px;
+}
+
+.crp-synth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.crp-synth-tab {
+  padding: 6px 14px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.crp-synth-tab-active {
+  font-weight: 600;
+  background: var(--accent-primary);
+  color: white;
+}
+
+.crp-synth-tab-inactive {
+  font-weight: 400;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.crp-synth-subsection {
+  margin-bottom: 16px;
+}
+
+.crp-synth-subsection-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.crp-synth-subsection-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.crp-synth-block {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+.crp-synth-footer {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  margin-top: 8px;
+}
+
+/* ========== AssembledContentViewer ========== */
+
+/* Shared: compose with .ilu-container */
+.crp-acv {
+}
+
+/* Shared: compose with .ilu-container-header + .ilu-container-header-bordered */
+.crp-acv-header {
+  justify-content: space-between;
+}
+
+.crp-acv-word-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.crp-acv-diff-label {
+  margin-left: 8px;
+}
+
+.crp-acv-diff-added {
+  margin-left: 6px;
+  color: rgb(34 197 94 / 80%);
+}
+
+.crp-acv-diff-removed {
+  margin-left: 4px;
+  color: rgb(239 68 68 / 80%);
+}
+
+.crp-acv-copy-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.crp-acv-content {
+  padding: 20px;
+  max-height: 500px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+}
+
+.crp-acv-diff-part-added {
+  background: rgb(34 197 94 / 20%);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.crp-acv-diff-part-removed {
+  background: rgb(239 68 68 / 20%);
+  color: var(--text-secondary);
+  border-radius: 2px;
+  padding: 0 1px;
+  text-decoration: line-through;
+}
+
+/* ========== ValidationReadyView ========== */
+
+.crp-export-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.crp-export-btn {
+  padding: 8px 16px;
+  font-size: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.crp-preview-area {
+  margin-top: 24px;
+}
+
+.crp-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.crp-preview-title {
+  margin: 0;
+  font-size: 16px;
+}

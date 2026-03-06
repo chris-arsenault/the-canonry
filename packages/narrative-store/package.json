@@ -1,5 +1,5 @@
 {
-  "name": "@penguin-tales/narrative-store",
+  "name": "@the-canonry/narrative-store",
   "version": "1.0.0",
   "description": "Shared narrative history store with per-entity slices (Zustand)",
   "type": "module",
@@ -12,6 +12,6 @@
     "zustand": "^5.0.0"
   },
   "dependencies": {
-    "@canonry/world-schema": "file:../world-schema"
+    "@canonry/world-schema": "workspace:*"
   }
 }

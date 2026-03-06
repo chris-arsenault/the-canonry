@@ -41,12 +41,6 @@ export class SimulationEmitter implements ISimulationEmitter {
   private postFn: (event: SimulationEvent) => void;
 
   constructor(postFn: (event: SimulationEvent) => void) {
-    if (!postFn) {
-      throw new Error(
-        'SimulationEmitter: postFn is required. ' +
-        'Provide a function that handles emitted events (e.g., postMessage for web workers).'
-      );
-    }
     this.postFn = postFn;
   }
 
@@ -58,7 +52,7 @@ export class SimulationEmitter implements ISimulationEmitter {
     this.emit({ type: 'progress', payload });
   }
 
-  log(level: LogPayload['level'], message: string, context?: Record<string, unknown>): void {
+  log(level: LogPayload['level'], message: string, context: Record<string, unknown>): void {
     this.emit({
       type: 'log',
       payload: {

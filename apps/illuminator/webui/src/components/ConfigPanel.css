@@ -1,0 +1,53 @@
+/* ConfigPanel — prefix: cfgp
+ * Muted hint text: compose with ilu-hint / ilu-hint-sm from panel-utilities.css. */
+
+.cfgp-hint {
+  margin-top: 4px;
+}
+
+.cfgp-section-desc {
+  margin-bottom: 16px;
+}
+
+.cfgp-checkbox-spacer {
+  margin-bottom: 12px;
+}
+
+.cfgp-checkbox-hint {
+  margin-bottom: 16px;
+  margin-left: 24px;
+}
+
+.cfgp-checkbox-hint-tight {
+  margin-bottom: 12px;
+  margin-left: 24px;
+}
+
+.cfgp-indented-group {
+  margin-left: 24px;
+}
+
+.cfgp-workers-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cfgp-range-input {
+  flex: 1;
+}
+
+.cfgp-worker-count {
+  min-width: 24px;
+  text-align: right;
+  font-weight: 500;
+}
+
+.cfgp-about-text {
+  line-height: 1.6;
+}
+
+.cfgp-about-text-spaced {
+  line-height: 1.6;
+  margin-top: 12px;
+}

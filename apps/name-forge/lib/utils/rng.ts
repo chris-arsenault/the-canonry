@@ -4,7 +4,7 @@ import seedrandom from "seedrandom";
  * Create a seeded random number generator
  * Returns a function that produces random numbers in [0, 1)
  */
-export function createRNG(seed?: string): () => number {
+export function createRNG(seed: string): () => number {
   if (seed) {
     return seedrandom(seed);
   }
@@ -30,14 +30,14 @@ export function pickRandom<T>(rng: () => number, array: T[]): T {
 export function pickWeighted<T>(
   rng: () => number,
   array: T[],
-  weights?: number[]
+  weights: number[]
 ): T {
   if (array.length === 0) {
     throw new Error("Cannot pick from empty array");
   }
 
   // If no weights or weights length doesn't match, use uniform
-  if (!weights || weights.length !== array.length) {
+  if (weights.length !== array.length) {
     return pickRandom(rng, array);
   }
 

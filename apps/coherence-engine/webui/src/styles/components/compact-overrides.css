@@ -1,0 +1,469 @@
+/**
+ * Coherence Engine compact overrides
+ *
+ * These override shared-components base styles with tighter spacing
+ * appropriate for the configuration editor's information-dense layout.
+ * Shared-components CSS is loaded first (in CoherenceEngineRemote.jsx);
+ * these rules override only the properties that differ.
+ */
+
+/* Buttons: tighter padding for dense config forms */
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  padding: 8px 14px;
+}
+
+.add-card {
+  gap: var(--spacing-sm);
+  padding: 10px;
+  font-size: var(--font-size-sm);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.btn-tab {
+  gap: var(--spacing-md);
+  padding: 10px 12px;
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-md);
+}
+
+.btn-tab .btn-tab-icon {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+}
+
+/* Modal: tighter padding */
+.modal-header {
+  padding: 14px 20px;
+}
+
+.modal-body-single {
+  padding: var(--spacing-xl);
+}
+
+.modal-content {
+  padding: var(--spacing-xl);
+  background-color: var(--color-bg-elevated);
+}
+
+.modal-footer {
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+/* Toggle: smaller for compact forms */
+.toggle {
+  width: 30px;
+  height: 16px;
+  border-radius: 8px;
+}
+
+.toggle-knob {
+  width: 12px;
+  height: 12px;
+}
+
+.toggle-on .toggle-knob {
+  transform: translateX(14px);
+}
+
+.toggle-container {
+  gap: var(--spacing-sm);
+}
+
+.toggle-label {
+  font-size: var(--font-size-sm);
+}
+
+/* Section: tighter spacing for dense config layout */
+.section {
+  margin-bottom: 20px;
+}
+
+.section-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.section-title {
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  gap: var(--spacing-sm);
+}
+
+.section-icon {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+}
+
+.section-count {
+  font-size: var(--font-size-xs);
+  padding: 1px 6px;
+  color: var(--color-text-dim);
+  font-weight: var(--font-weight-medium);
+}
+
+.nested-section {
+  padding: 10px;
+  background-color: var(--color-bg-nested);
+  border-radius: var(--radius-md);
+  margin-top: 10px;
+}
+
+.nested-title {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.info-box {
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.category-header {
+  gap: var(--spacing-md);
+  padding: 10px 14px;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Form: compact sizing for dense config forms */
+.form-group,
+.input-group {
+  gap: var(--spacing-xs);
+}
+
+.form-grid {
+  gap: var(--spacing-lg);
+}
+
+.label {
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.4px;
+}
+
+.form-help-text {
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.alert {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.input {
+  padding: 6px 8px;
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-md);
+}
+
+.textarea {
+  padding: 6px 8px;
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-md);
+  min-height: 60px;
+}
+
+.select {
+  padding: 6px 8px;
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-md);
+}
+
+.checkbox {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.checkbox-label {
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.slider {
+  height: 4px;
+  border-radius: 2px;
+}
+
+.slider-row {
+  gap: var(--spacing-md);
+}
+
+.slider-value {
+  font-size: var(--font-size-md);
+  min-width: 32px;
+}
+
+.chip-container {
+  gap: var(--spacing-xs);
+}
+
+.chip {
+  gap: var(--spacing-xs);
+  padding: 3px 8px;
+  font-size: var(--font-size-xs);
+}
+
+.chip-remove {
+  font-size: var(--font-size-sm);
+}
+
+.chip-container-input {
+  padding: 4px;
+  min-height: 30px;
+}
+
+.chip-input {
+  min-width: 80px;
+  padding: 2px 4px;
+  font-size: var(--font-size-sm);
+}
+
+/* ==========================================================================
+   Card compact overrides
+   Previously in a separate card.css; now consolidated here.
+   Only properties that differ from shared-components/card.css are listed.
+   ========================================================================== */
+
+.card {
+  padding: 16px;
+}
+
+.item-card {
+  background-color: var(--color-bg-nested);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+
+  /* Override shared-components overflow:hidden — dropdowns must extend outside */
+  overflow: visible;
+}
+
+.item-card-header {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: transparent;
+}
+
+.item-card-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  line-height: 1;
+}
+
+.item-card-info {
+  margin-left: var(--spacing-md);
+}
+
+.item-card-title {
+  font-size: var(--font-size-md);
+  gap: var(--spacing-sm);
+}
+
+.item-card-subtitle {
+  font-size: var(--font-size-xs);
+  margin-top: 2px;
+}
+
+.item-card-body {
+  padding: var(--spacing-lg);
+  overflow: visible;
+}
+
+.nested-card {
+  background-color: var(--color-bg-nested);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  gap: var(--spacing-md);
+}
+
+.nested-card-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.nested-card-type {
+  font-size: var(--font-size-sm);
+}
+
+.nested-card-summary {
+  font-size: var(--font-size-xs);
+}
+
+.nested-card-coefficient {
+  font-size: var(--font-size-md);
+}
+
+.nested-card-empty {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-bg-nested);
+  border-radius: var(--radius-md);
+}
+
+.condition-card {
+  background-color: var(--color-bg-nested);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-sm);
+  overflow: visible;
+}
+
+.condition-card-header {
+  margin-bottom: var(--spacing-sm);
+}
+
+.condition-card-type {
+  gap: var(--spacing-sm);
+}
+
+.condition-card-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+.condition-card-label {
+  font-size: var(--font-size-sm);
+}
+
+.condition-card-summary {
+  font-size: var(--font-size-xs);
+  margin-top: 1px;
+}
+
+.number-input-narrow {
+  width: 80px;
+}
+
+.condition-list {
+  overflow: visible;
+}
+
+.btn-add-inline {
+  gap: var(--spacing-xs);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.empty-state-compact {
+  padding: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-bg-nested);
+  border-radius: var(--radius-md);
+}
+
+.summary-stat {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--color-bg-nested);
+  border-radius: var(--radius-md);
+}
+
+.card-footer {
+  margin-top: var(--spacing-xl);
+}
+
+.path-constraint-card {
+  background-color: var(--color-bg-nested);
+}
+
+/* ==========================================================================
+   Editor compact overrides
+   Previously in a separate editor.css; now consolidated here.
+   Only properties that differ from shared-components/editor.css are listed.
+   ========================================================================== */
+
+.input-grid {
+  gap: 10px;
+}
+
+.expandable-card-stats {
+  gap: var(--spacing-xl);
+}
+
+.expandable-card-content {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background-color: var(--color-bg-elevated);
+}
+
+.condition-editor {
+  padding: 8px 12px;
+  background-color: var(--color-bg-nested);
+  gap: var(--spacing-sm);
+}
+
+.condition-editor-header {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.condition-editor-header > *:first-child {
+  flex: 1;
+}
+
+.condition-editor-body {
+  padding-top: var(--spacing-sm);
+}
+
+.type-selector {
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+}
+
+.type-pill {
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.type-pill-icon {
+  font-size: var(--font-size-lg);
+}
+
+.type-description {
+  margin-top: var(--spacing-sm);
+}
+
+/* Dropdown: compact sizing for config editor menus */
+.dropdown-menu {
+  margin-top: 2px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 20px rgb(0 0 0 / 30%);
+  max-height: 240px;
+}
+
+.dropdown-menu-item {
+  gap: var(--spacing-sm);
+  padding: 6px var(--spacing-md);
+}
+
+.dropdown-menu-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+.dropdown-menu-label {
+  font-size: var(--font-size-sm);
+}
