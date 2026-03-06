@@ -118,6 +118,31 @@ export function BulkSummaryToast({ result, onDismiss }: Readonly<BulkSummaryToas
 }
 
 // ---------------------------------------------------------------------------
+// BulkImageRefToast
+// ---------------------------------------------------------------------------
+
+interface BulkImageRefToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function BulkImageRefToast({ result, onDismiss }: Readonly<BulkImageRefToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    const plural = result.count !== 1 ? "s" : "";
+    message = `Enqueued image ref regeneration for ${result.count} chronicle${plural}`;
+  } else {
+    message = "No chronicles with image refs to regenerate";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // ResetBackportToast
 // ---------------------------------------------------------------------------
 

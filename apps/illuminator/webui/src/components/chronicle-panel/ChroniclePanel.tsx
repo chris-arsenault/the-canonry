@@ -50,6 +50,7 @@ import {
   EraSummaryRefreshToast,
   TemporalCheckToast,
   BulkSummaryToast,
+  BulkImageRefToast,
   ResetBackportToast,
   ReconcileBackportToast,
 } from "./ChroniclePanelToasts";
@@ -222,6 +223,7 @@ export function ChroniclePanel({
   const bulk = useChronicleBulkOperations({
     simulationRunId, chronicleItems, onEnqueue, refresh,
     historianConfigured, historianConfig, skipCompletedPrep,
+    fullEntityMapRef,
   });
 
   // Era narratives
@@ -354,6 +356,7 @@ export function ChroniclePanel({
         isInterleavedActive={isInterleavedActive}
         onDownloadAnnotationReview={() => void downloadBulkAnnotationReviewExport(simulationRunId)}
         onAmendBriefs={handleAmendBriefs}
+        onBulkRegenerateImageRefs={bulk.handleBulkRegenerateImageRefs}
       />
 
       <div className="chron-main">
@@ -394,6 +397,7 @@ export function ChroniclePanel({
       {bulk.eraSummaryRefreshResult && <EraSummaryRefreshToast result={bulk.eraSummaryRefreshResult} onDismiss={() => bulk.setEraSummaryRefreshResult(null)} />}
       {bulk.temporalCheckResult && <TemporalCheckToast result={bulk.temporalCheckResult} onDismiss={() => bulk.setTemporalCheckResult(null)} />}
       {bulk.bulkSummaryResult && <BulkSummaryToast result={bulk.bulkSummaryResult} onDismiss={() => bulk.setBulkSummaryResult(null)} />}
+      {bulk.bulkImageRefResult && <BulkImageRefToast result={bulk.bulkImageRefResult} onDismiss={() => bulk.setBulkImageRefResult(null)} />}
       {bulk.resetBackportResult && <ResetBackportToast result={bulk.resetBackportResult} onDismiss={() => bulk.setResetBackportResult(null)} />}
       {bulk.reconcileBackportResult && <ReconcileBackportToast result={bulk.reconcileBackportResult} onDismiss={() => bulk.setReconcileBackportResult(null)} />}
 

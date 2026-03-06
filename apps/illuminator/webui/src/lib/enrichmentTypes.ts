@@ -318,7 +318,8 @@ export type ChronicleStep =
   | "image_refs"
   | "cover_image_scene" // Generate cover image scene description
   | "cover_image" // Generate cover image from scene description
-  | "regenerate_scene_description"; // Regenerate a single image ref's scene description
+  | "regenerate_scene_description" // Regenerate a single image ref's scene description
+  | "regenerate_image_refs"; // Regenerate all image refs: convert entity_refs, fix stale anchors
 
 /**
  * Worker task - what we send to the worker (single task)

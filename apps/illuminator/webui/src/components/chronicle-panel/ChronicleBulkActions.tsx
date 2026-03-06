@@ -65,6 +65,7 @@ export interface ChronicleBulkActionsProps {
   isInterleavedActive: boolean;
   onDownloadAnnotationReview: () => void;
   onAmendBriefs: () => void;
+  onBulkRegenerateImageRefs: () => void;
 }
 
 function formatToneProgress(progress: ToneRankingProgress): string | null {
@@ -121,6 +122,7 @@ export function ChronicleBulkActions({
   isInterleavedActive,
   onDownloadAnnotationReview,
   onAmendBriefs,
+  onBulkRegenerateImageRefs,
 }: Readonly<ChronicleBulkActionsProps>) {
   const handleRefreshEraSummaries = useCallback(() => {
     if (!onRefreshEraSummaries) return;
@@ -189,6 +191,13 @@ export function ChronicleBulkActions({
               title="Analyze canon fact coverage across all chronicles using Haiku"
             >
               {isFactCoverageActive ? "Analyzing..." : "Fact Coverage"}
+            </button>
+            <button
+              onClick={onBulkRegenerateImageRefs}
+              className="illuminator-button"
+              title="Regenerate image refs for all chronicles: convert entity refs to scene images, fix stale anchors"
+            >
+              Regenerate Image Refs
             </button>
           </div>
 

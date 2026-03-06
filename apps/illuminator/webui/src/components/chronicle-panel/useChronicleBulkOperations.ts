@@ -6,7 +6,7 @@
  * ChroniclePanel to reduce cyclomatic complexity.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type RefObject } from "react";
 import type { ChronicleNavItem, OperationResult, ResetBackportResult, TertiaryDetectResult } from "./chroniclePanelTypes";
 import { getEntitiesForRun, resetEntitiesToPreBackportState } from "../../lib/db/entityRepository";
 import {
@@ -79,6 +79,7 @@ interface UseChronicleBulkOperationsParams {
   historianConfigured: boolean;
   historianConfig: Record<string, unknown>;
   skipCompletedPrep: boolean;
+  fullEntityMapRef: RefObject<Map<string, Record<string, unknown>>>;
 }
 
 export function useChronicleBulkOperations({
@@ -90,6 +91,9 @@ export function useChronicleBulkOperations({
   historianConfig,
   skipCompletedPrep,
 }: UseChronicleBulkOperationsParams) {
+  // Bulk image ref regeneration
+  const [bulkImageRefResult, setBulkImageRefResult] = useState<OperationResult | null>(null);
+
   // Backport state
   const [showResetBackportModal, setShowResetBackportModal] = useState(false);
   const [resetBackportResult, setResetBackportResult] = useState<ResetBackportResult | null>(null);
@@ -266,6 +270,48 @@ export function useChronicleBulkOperations({
     onEnqueue(items);
   }, [chronicleItems, onEnqueue, historianConfigured, historianConfig, skipCompletedPrep]);
 
+  // ── Bulk image ref regeneration ──
+
+  const handleBulkRegenerateImageRefs = useCallback(() => {
+    const eligible = chronicleItems.filter(
+      (c) =>
+        (c.imageRefTotalCount ?? 0) > 0 &&
+        (c.status === "complete" || c.status === "assembly_ready"),
+    );
+    if (eligible.length === 0) {
+      setBulkImageRefResult({ success: true, count: 0 });
+      setTimeout(() => setBulkImageRefResult(null), 4000);
+      return;
+    }
+
+    // Build visual identities from the full entity map
+    const visualIdentities: Record<string, string> = {};
+    for (const [id, entity] of fullEntityMapRef.current) {
+      const enrichment = entity.enrichment as Record<string, unknown> | undefined;
+      const text = enrichment?.text as Record<string, unknown> | undefined;
+      const thesis = typeof text?.visualThesis === "string" ? text.visualThesis : undefined;
+      if (thesis) {
+        visualIdentities[id] = thesis;
+      }
+    }
+
+    const items = eligible.map((c) => {
+      const primaryRole = c.roleAssignments?.find((r) => r.isPrimary) || c.roleAssignments?.[0];
+      const entity = buildQueueEntity(primaryRole, c);
+      return {
+        entity,
+        type: "entityChronicle",
+        prompt: "",
+        chronicleStep: "regenerate_image_refs",
+        chronicleId: c.chronicleId,
+        visualIdentities,
+      };
+    });
+    onEnqueue(items);
+    setBulkImageRefResult({ success: true, count: eligible.length });
+    setTimeout(() => setBulkImageRefResult(null), 4000);
+  }, [chronicleItems, onEnqueue, fullEntityMapRef]);
+
   return {
     // Backport state & handlers
     showResetBackportModal,
@@ -294,6 +340,10 @@ export function useChronicleBulkOperations({
     handleBulkSummary,
     // Historian prep
     handleBulkHistorianPrep,
+    // Bulk image ref regeneration
+    bulkImageRefResult,
+    setBulkImageRefResult,
+    handleBulkRegenerateImageRefs,
   };
 }
 
