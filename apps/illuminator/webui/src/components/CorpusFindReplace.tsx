@@ -21,6 +21,7 @@ import {
   updateChronicleHistorianNotes,
 } from "../lib/db/chronicleRepository";
 import { useChronicleStore } from "../lib/db/chronicleStore";
+import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
 import { useEntityStore } from "../lib/db/entityStore";
 import { useEntityNavList } from "../lib/db/entitySelectors";
 import { setHistorianNotes } from "../lib/db/entityRepository";
@@ -787,7 +788,6 @@ function computeAutoRejectIds(
 
 export default function CorpusFindReplace() {
   const navEntities = useEntityNavList();
-  const chronicleNavItems = useChronicleStore((s) => s.navItems);
   const queue = useEnrichmentQueueStore((s) => s.queue);
 
   const [find, setFind] = useState("");
@@ -846,12 +846,26 @@ export default function CorpusFindReplace() {
     setError(null);
     const allMatches: CorpusMatch[] = [];
 
+    // Ensure chronicle store is initialized (it lazy-loads when ChroniclePanel mounts,
+    // but CorpusFindReplace may be opened without visiting that tab first)
+    const chronicleStore = useChronicleStore.getState();
+    if (!chronicleStore.initialized) {
+      const simRunId = useIlluminatorConfigStore.getState().simulationRunId;
+      if (simRunId) {
+        setScanProgress("Initializing chronicle index\u2026");
+        await useChronicleStore.getState().initialize(simRunId);
+      }
+    }
+
+    // Read nav items fresh (may have been populated by the initialize() above)
+    const navItems = useChronicleStore.getState().navItems;
+
     if (contexts.has("chronicleContent"))
-      allMatches.push(...(await scanChronicleContent(chronicleNavItems, find, caseSensitive, setScanProgress)));
+      allMatches.push(...(await scanChronicleContent(navItems, find, caseSensitive, setScanProgress)));
     if (contexts.has("chronicleTitles"))
-      allMatches.push(...(await scanChronicleTitles(chronicleNavItems, find, caseSensitive, setScanProgress)));
+      allMatches.push(...(await scanChronicleTitles(navItems, find, caseSensitive, setScanProgress)));
     if (contexts.has("chronicleAnnotations"))
-      allMatches.push(...(await scanChronicleAnnotations(chronicleNavItems, find, caseSensitive, setScanProgress)));
+      allMatches.push(...(await scanChronicleAnnotations(navItems, find, caseSensitive, setScanProgress)));
     if (contexts.has("entityAnnotations"))
       allMatches.push(...(await scanEntityAnnotations(navEntities, find, caseSensitive, setScanProgress)));
     if (contexts.has("eraNarrativeContent"))
