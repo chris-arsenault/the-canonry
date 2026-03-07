@@ -8,6 +8,16 @@
  */
 
 import "./styles/variables.css";
+import "./components/WikiPage.css";
+import "./components/WikiExplorer.css";
+import "./components/WikiNav.css";
+import "./components/WikiSearch.css";
+import "./components/EntityTimeline.css";
+import "./components/ProminenceTimeline.css";
+import "./components/ChronicleIndex.css";
+import "./components/ChroniclerStatusScreen.css";
+import "./components/ImageLightbox.css";
+import "./components/Ornaments.css";
 import type { Optional } from "@the-canonry/shared-components";
 import WikiExplorer from "./components/WikiExplorer.tsx";
 import ChroniclerStatusScreen from "./components/ChroniclerStatusScreen.tsx";
