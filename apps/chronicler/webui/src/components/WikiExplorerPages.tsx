@@ -4,7 +4,6 @@
 
 import React, { useMemo } from "react";
 import type { WikiPage } from "../types/world.ts";
-import styles from "./WikiExplorer.module.css";
 
 export function PagesIndex({ pages, onNavigate }: Readonly<{
   pages: WikiPage[]; onNavigate: (pageId: string) => void;
@@ -31,10 +30,10 @@ export function PagesIndex({ pages, onNavigate }: Readonly<{
         User-authored pages providing additional world context, cultural overviews, and lore articles.
       </p>
       {pages.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">📝</div>
-          <div className="empty-state-title">No pages yet</div>
-          <div className="empty-state-description">Create and publish pages in Illuminator to see them here.</div>
+        <div className="we-empty-state">
+          <div className="we-empty-state-icon">📝</div>
+          <div className="we-empty-state-title">No pages yet</div>
+          <div className="we-empty-state-description">Create and publish pages in Illuminator to see them here.</div>
         </div>
       ) : (
         <div className="page-list">
@@ -75,9 +74,9 @@ export function PageCategoryIndex({ namespace, pages, onNavigate }: Readonly<{
         {namespace === "General" ? "Pages without a namespace prefix." : `Pages in the ${namespace} namespace.`}
       </p>
       {filteredPages.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">📝</div>
-          <div className="empty-state-title">No pages in this category</div>
+        <div className="we-empty-state">
+          <div className="we-empty-state-icon">📝</div>
+          <div className="we-empty-state-title">No pages in this category</div>
         </div>
       ) : (
         <div className="page-list">

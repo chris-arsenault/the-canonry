@@ -3,7 +3,7 @@
  * Sidebar navigation for the Chronicler wiki
  */
 
-.container {
+.wn-container {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -18,11 +18,11 @@
   scrollbar-color: var(--color-border) transparent;
 }
 
-.section {
+.wn-section {
   margin-bottom: var(--spacing-lg);
 }
 
-.section-title {
+.wn-section-title {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -111,7 +111,16 @@
 }
 
 .nav-item-active {
-  composes: nav-item;
+  display: block;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1.5;
   background-color: var(--color-accent);
   color: var(--color-bg-primary);
   font-weight: var(--font-weight-medium);
@@ -122,14 +131,15 @@
   color: var(--color-bg-primary);
 }
 
-.badge {
+.wn-badge {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin-left: var(--spacing-sm);
 }
 
-.badge-active {
-  composes: badge;
+.wn-badge-active {
+  font-size: var(--font-size-xs);
+  margin-left: var(--spacing-sm);
   color: var(--color-bg-primary);
   opacity: 0.7;
 }
@@ -254,42 +264,124 @@
    Subtext/Meta
    =================== */
 
-.item-meta {
+.wn-item-meta {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin-left: var(--spacing-xs);
 }
 
-.item-meta-highlight {
-  composes: item-meta;
+.wn-item-meta-highlight {
+  font-size: var(--font-size-xs);
+  margin-left: var(--spacing-xs);
   color: var(--color-accent-light);
 }
 
 /* Era sub-section title: smaller, less padding than top-level */
 .era-section-title {
-  composes: section-title-collapsible;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-accent);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--transition-fast);
   padding-left: 4px;
   font-size: var(--font-size-sm);
 }
 
 /* Indented sub-items under an era section */
 .nav-item-indented {
-  composes: nav-item;
+  display: block;
+  width: 100%;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1.5;
+  padding: var(--spacing-sm) var(--spacing-md);
   padding-left: 24px;
 }
 
+.nav-item-indented:hover {
+  background-color: var(--color-accent-hover);
+  color: var(--color-accent);
+}
+
 .nav-item-indented-active {
-  composes: nav-item-active;
+  display: block;
+  width: 100%;
+  font-size: var(--font-size-sm);
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1.5;
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
+  font-weight: var(--font-weight-medium);
+  padding: var(--spacing-sm) var(--spacing-md);
   padding-left: 24px;
+}
+
+.nav-item-indented-active:hover {
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
 }
 
 /* Era narrative item: indented + italic */
 .nav-item-era-narrative {
-  composes: nav-item-indented;
+  display: block;
+  width: 100%;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1.5;
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-left: 24px;
   font-style: italic;
 }
 
+.nav-item-era-narrative:hover {
+  background-color: var(--color-accent-hover);
+  color: var(--color-accent);
+}
+
 .nav-item-era-narrative-active {
-  composes: nav-item-indented-active;
+  display: block;
+  width: 100%;
+  font-size: var(--font-size-sm);
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1.5;
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
+  font-weight: var(--font-weight-medium);
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-left: 24px;
   font-style: italic;
+}
+
+.nav-item-era-narrative-active:hover {
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
 }

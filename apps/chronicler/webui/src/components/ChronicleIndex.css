@@ -3,7 +3,7 @@
  * List view for accepted chronicles
  */
 
-.container {
+.ci-container {
   max-width: 900px;
   margin: 0 auto;
 }
@@ -125,14 +125,14 @@
   color: var(--color-text-primary);
 }
 
-.badge-group {
+.ci-badge-group {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
   flex-wrap: wrap;
 }
 
-.badge {
+.ci-badge {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   font-family: var(--font-family-ui);
@@ -144,15 +144,19 @@
   letter-spacing: 0.08em;
 }
 
-.badge-secondary {
-  composes: badge;
+.ci-badge-secondary {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-ui);
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-full);
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-secondary);
   text-transform: none;
   letter-spacing: 0.2px;
 }
 
-.item-meta {
+.ci-item-meta {
   font-size: var(--font-size-xs);
   font-family: var(--font-family-ui);
   color: var(--color-text-muted);

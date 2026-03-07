@@ -119,7 +119,7 @@ function EventEffectsList({
         const { icon, colorClass } = getEffectStyle(effect.type);
         return (
           <li key={idx} className="effect-item">
-            <span className={`$"effect-icon" ${colorClass}`}>{icon}</span>
+            <span className={`effect-icon ${colorClass}`}>{icon}</span>
             <span className="effect-description">
               {linkifyText(effect.description, linkableEntities, onNavigate, {
                 linkStyle: entityLinkStyle, onHoverEnter, onHoverLeave,
@@ -162,14 +162,14 @@ function EventRow({
         className={isExpanded ? "row-expanded" : "row"}
         onClick={() => canExpand && onToggle(event.id)}
       >
-        <td className={`$"td" $"td-tick"`}>{event.tick}</td>
-        <td className={`$"td" $"td-era"`}>{getEraName(event.era)}</td>
-        <td className={`$"td" $"td-event" ${getWeightClass(getWeightTier(event.significance ?? 0.5))}`}>
+        <td className="td td-tick">{event.tick}</td>
+        <td className="td td-era">{getEraName(event.era)}</td>
+        <td className={`td td-event ${getWeightClass(getWeightTier(event.significance ?? 0.5))}`}>
           {renderDescription(event)}
         </td>
-        <td className={`$"td" $"td-expand"`}>
+        <td className="td td-expand">
           {canExpand && (
-            <span className={`$"expand-icon" ${isExpanded ? "expand-icon-open" : ""}`}>▶</span>
+            <span className={`expand-icon ${isExpanded ? "expand-icon-open" : ""}`}>▶</span>
           )}
         </td>
       </tr>
@@ -212,9 +212,9 @@ export default function EntityTimeline({
 
   if (relevantEvents.length === 0 && !showProminenceOnly) {
     return (
-      <div className="container">
+      <div className="et-container">
         <ProminenceFilterCheckbox checked={showProminenceOnly} onChange={setShowProminenceOnly} />
-        <div className="empty-state">
+        <div className="et-empty-state">
           {loading ? "Loading narrative history..." : "No timeline events recorded for this entity."}
         </div>
       </div>
@@ -222,7 +222,7 @@ export default function EntityTimeline({
   }
 
   return (
-    <div className="container">
+    <div className="et-container">
       <ProminenceFilterCheckbox checked={showProminenceOnly} onChange={setShowProminenceOnly} />
       <table className="table">
         <thead>

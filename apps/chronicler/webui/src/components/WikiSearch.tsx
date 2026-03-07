@@ -123,7 +123,7 @@ export default function WikiSearch({
   const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => { if (isOpen) handleKeyDown(e); }, [isOpen, handleKeyDown]);
 
   return (
-    <div ref={containerRef} className="container">
+    <div ref={containerRef} className="ws-container">
       <input
         type="text" placeholder="Search..." value={query}
         onChange={handleInputChange} onFocus={handleInputFocus} onKeyDown={handleInputKeyDown}

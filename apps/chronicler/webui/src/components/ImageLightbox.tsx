@@ -66,11 +66,11 @@ export default function ImageLightbox({
       <button onClick={onClose} className="close-button">
         Close
       </button>
-      <div className="content">
+      <div className="lb-content">
         <img src={imageUrl} alt={title || "Expanded view"} className="image" />
         <div className="caption">
-          {title && <div className="title">{title}</div>}
-          {summary && <div className="summary">{summary}</div>}
+          {title && <div className="lb-title">{title}</div>}
+          {summary && <div className="lb-summary">{summary}</div>}
         </div>
       </div>
     </div>

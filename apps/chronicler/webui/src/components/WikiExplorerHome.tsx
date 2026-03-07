@@ -11,7 +11,6 @@ import {
   type ProminenceScale,
 } from "@canonry/world-schema";
 import ImageLightbox from "./ImageLightbox.tsx";
-import styles from "./WikiExplorer.module.css";
 
 function formatRelKind(kind: string): string {
   return kind.replace(/_/g, " ");
@@ -90,8 +89,8 @@ function FeaturedArticleSection({ featuredArticle, onNavigate }: Readonly<{
   const closeImageModal = useCallback(() => setActiveImage(null), []);
 
   return (
-    <div className="section">
-      <h2 className="section-title">Featured</h2>
+    <div className="we-section">
+      <h2 className="we-section-title">Featured</h2>
       <div className="featured-layout">
         <ImageDisplay
           imageId={featuredImageId}
@@ -133,15 +132,15 @@ function HistorianDeskSection({ facts, onNavigate }: Readonly<{
 }>) {
   if (facts.length === 0) return null;
   return (
-    <div className="section">
-      <h2 className="section-title">From the Historian&apos;s Desk</h2>
+    <div className="we-section">
+      <h2 className="we-section-title">From the Historian&apos;s Desk</h2>
       <ul className="did-you-know-list">
         {facts.map((fact, idx) => (
           <li key={idx} className="did-you-know-item">
             ...that{" "}
-            <button onClick={() => onNavigate(fact.srcEntity.id)} className="entity-link-bold">{fact.srcEntity.name}</button>{" "}
+            <button onClick={() => onNavigate(fact.srcEntity.id)} className="we-entity-link-bold">{fact.srcEntity.name}</button>{" "}
             has a <em>{formatRelKind(fact.kind)}</em> relationship with{" "}
-            <button onClick={() => onNavigate(fact.dstEntity.id)} className="entity-link-bold">{fact.dstEntity.name}</button>?
+            <button onClick={() => onNavigate(fact.dstEntity.id)} className="we-entity-link-bold">{fact.dstEntity.name}</button>?
           </li>
         ))}
       </ul>
@@ -154,8 +153,8 @@ function ErasOfHistorySection({ eras, eraNarrativeByEraId, onNavigate }: Readonl
 }>) {
   if (eras.length === 0) return null;
   return (
-    <div className="section">
-      <h2 className="section-title">Eras of History</h2>
+    <div className="we-section">
+      <h2 className="we-section-title">Eras of History</h2>
       <div className="era-list">
         {eras.map((era, idx) => {
           const narrativePageId = eraNarrativeByEraId.get(era.id);
@@ -177,8 +176,8 @@ function EntityListSection({ title, subtext, entities, totalLinks, onNavigate }:
   entities: HardState[]; totalLinks: Map<string, number>; onNavigate: (id: string) => void;
 }>) {
   return (
-    <div className="section">
-      <h2 className="section-title">{title}</h2>
+    <div className="we-section">
+      <h2 className="we-section-title">{title}</h2>
       {subtext && <p className="section-subtext">{subtext}</p>}
       <div className="entity-list-column">
         {entities.map((entity) => {
@@ -206,8 +205,8 @@ function BrowseByTypeSection({ kindDistribution, onNavigate }: Readonly<{
   kindDistribution: Array<[string, number]>; onNavigate: (id: string) => void;
 }>) {
   return (
-    <div className="section">
-      <h2 className="section-title">Browse by Type</h2>
+    <div className="we-section">
+      <h2 className="we-section-title">Browse by Type</h2>
       <div className="browse-type-grid">
         {kindDistribution.map(([kind, count]) => (
           <button key={kind} onClick={() => onNavigate(`category-kind-${kind}`)} className="browse-type-button">
@@ -225,8 +224,8 @@ function ChroniclesPreviewSection({ chronicles, onNavigate }: Readonly<{
   const handleViewAll = useCallback(() => onNavigate("chronicles"), [onNavigate]);
   if (chronicles.length === 0) return null;
   return (
-    <div className="section">
-      <h2 className="section-title">Chronicles</h2>
+    <div className="we-section">
+      <h2 className="we-section-title">Chronicles</h2>
       <div className="chronicles-list">
         {chronicles.slice(0, 4).map((chronicle) => (
           <button key={chronicle.id} onClick={() => onNavigate(chronicle.id)} className="chronicle-item">

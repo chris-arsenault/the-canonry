@@ -109,11 +109,11 @@ function CollapsibleSection({ label, count, expanded, onToggle, children }: Read
   label: string; count: Optional<number>; expanded: boolean; onToggle: () => void; children: React.ReactNode;
 }>) {
   return (
-    <div className="section">
+    <div className="wn-section">
       <button className="section-title-collapsible" onClick={onToggle} aria-expanded={expanded}>
         <span className="collapse-icon">{expanded ? "\u25BC" : "\u25B6"}</span>
         {label}
-        {count != null && <span className="badge">({count})</span>}
+        {count != null && <span className="wn-badge">({count})</span>}
       </button>
       {expanded && children}
     </div>
@@ -127,7 +127,7 @@ function EraNavButton({ label, id, count, currentPageId, onNavigate }: Readonly<
   return (
     <button className={isActive ? "nav-item-indented-active" : "nav-item-indented"} onClick={() => onNavigate(id)}>
       {label}
-      <span className={isActive ? "badge-active" : "badge"}>({count})</span>
+      <span className={isActive ? "wn-badge-active" : "wn-badge"}>({count})</span>
     </button>
   );
 }
@@ -142,7 +142,7 @@ function EraSection({ era, isExpanded, toggleEra, currentPageId, onNavigate, era
       <button className="era-section-title" onClick={handleToggle} aria-expanded={isExpanded}>
         <span className="collapse-icon">{isExpanded ? "\u25BC" : "\u25B6"}</span>
         {era.eraName}
-        <span className="badge">({era.all.length})</span>
+        <span className="wn-badge">({era.all.length})</span>
       </button>
       {isExpanded && (
         <>
@@ -168,14 +168,14 @@ function EncyclopediaSection({ categories, currentPageId, onNavigate }: Readonly
 }>) {
   if (categories.length === 0) return null;
   return (
-    <div className="section">
-      <div className="section-title">Encyclopedia</div>
+    <div className="wn-section">
+      <div className="wn-section-title">Encyclopedia</div>
       {categories.map((category) => {
         const isActive = currentPageId === `category-${category.id}`;
         return (
           <button key={category.id} className={isActive ? "nav-item-active" : "nav-item"} onClick={() => onNavigate(`category-${category.id}`)}>
             {category.name.replace("Kind: ", "")}
-            <span className={isActive ? "badge-active" : "badge"}>({category.pageCount})</span>
+            <span className={isActive ? "wn-badge-active" : "wn-badge"}>({category.pageCount})</span>
           </button>
         );
       })}
@@ -203,7 +203,7 @@ function FrontMatterAndLoreNav({ staticCategorized, expandedSections, toggleLore
   return (
     <>
       {staticCategorized.frontMatterPages.length > 0 && (
-        <div className="section">
+        <div className="wn-section">
           {staticCategorized.frontMatterPages.map((page) => (
             <NavPageButton key={page.id} page={page} currentPageId={currentPageId} onNavigate={onNavigate}
               displayName={page.title.includes(":") ? page.title.split(":")[1] : page.title} />
@@ -216,8 +216,8 @@ function FrontMatterAndLoreNav({ staticCategorized, expandedSections, toggleLore
         </CollapsibleSection>
       )}
       {staticCategorized.culturePages.length > 0 && (
-        <div className="section">
-          <div className="section-title">Cultures</div>
+        <div className="wn-section">
+          <div className="wn-section-title">Cultures</div>
           <StaticPageList pages={staticCategorized.culturePages} currentPageId={currentPageId} onNavigate={onNavigate} prefix="Cultures:" />
         </div>
       )}
@@ -232,8 +232,8 @@ function ChroniclesNavSection({ chroniclePages, eraData, expandedEras, toggleEra
 }>) {
   if (chroniclePages.length === 0) return null;
   return (
-    <div className="section">
-      <div className="section-title">Chronicles</div>
+    <div className="wn-section">
+      <div className="wn-section-title">Chronicles</div>
       {eraData.sortedEras.map((era) => (
         <EraSection key={era.eraId} era={era} isExpanded={expandedEras.has(era.eraId)}
           toggleEra={toggleEra} currentPageId={currentPageId} onNavigate={onNavigate}
@@ -276,7 +276,7 @@ export default function WikiNav({
   const handleNavAllCategories = useCallback(() => onNavigate("all-categories"), [onNavigate]);
 
   return (
-    <div className="container">
+    <div className="wn-container">
       {isDrawer && (
         <div className="drawer-header">
           <span className="drawer-title">Navigation</span>
@@ -296,11 +296,11 @@ export default function WikiNav({
             <NavPageButton key={page.id} page={page} currentPageId={currentPageId} onNavigate={onNavigate} />
           ))}
           <button className={currentPageId === "all-categories" ? "nav-item-active" : "nav-item"} onClick={handleNavAllCategories}>
-            All Categories <span className={currentPageId === "all-categories" ? "badge-active" : "badge"}>({categories.length})</span>
+            All Categories <span className={currentPageId === "all-categories" ? "wn-badge-active" : "wn-badge"}>({categories.length})</span>
           </button>
         </CollapsibleSection>
         {onRefreshIndex && (
-          <div className="section">
+          <div className="wn-section">
             <button className="refresh-button" onClick={onRefreshIndex} disabled={!!isRefreshing}>
               {isRefreshing && <span className="refresh-spinner">&orarr;</span>}
               {isRefreshing ? "Refreshing..." : "Refresh Index"}

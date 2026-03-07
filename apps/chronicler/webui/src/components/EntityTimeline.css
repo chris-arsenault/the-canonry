@@ -3,7 +3,7 @@
  * Expandable timeline of narrative events for an entity
  */
 
-.container {
+.et-container {
   width: 100%;
 }
 
@@ -45,17 +45,28 @@
 }
 
 .th-tick {
-  composes: th;
+  padding: var(--spacing-sm) var(--spacing-sm);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
   width: 60px;
 }
 
 .th-era {
-  composes: th;
+  padding: var(--spacing-sm) var(--spacing-sm);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
   width: 120px;
 }
 
 .th-expand {
-  composes: th;
+  padding: var(--spacing-sm) var(--spacing-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
   width: 40px;
   text-align: center;
 }
@@ -71,7 +82,9 @@
 }
 
 .row-expanded {
-  composes: row;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
   background-color: var(--color-accent-hover);
 }
 
@@ -155,7 +168,7 @@
   text-decoration: none;
 }
 
-.empty-state {
+.et-empty-state {
   padding: var(--spacing-xl);
   text-align: center;
   color: var(--color-text-muted);

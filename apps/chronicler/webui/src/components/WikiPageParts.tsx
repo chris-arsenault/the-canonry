@@ -26,7 +26,6 @@ import {
   HISTORIAN_NOTE_LABELS,
 } from "../lib/historianAnnotations.ts";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor.ts";
-import styles from "./WikiPage.module.css";
 
 // ============================================================================
 // Disambiguation
@@ -229,7 +228,7 @@ export function SectionBlock({
       {section.heading === "Relationships" && chronicleLinks.length > 0 && (
         <ChronicleGallery title="Chronicles" links={chronicleLinks} onNavigate={callbacks.onNavigate} />
       )}
-      <div id={section.id} className="section">
+      <div id={section.id} className="wp-section">
         {!hideHeading && (
           <>
             <h2 className="section-heading">{section.heading}</h2>

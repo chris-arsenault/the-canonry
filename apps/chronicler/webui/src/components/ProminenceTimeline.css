@@ -3,7 +3,7 @@
  * Visual prominence tracking over time
  */
 
-.container {
+.pt-container {
   width: 100%;
   background-color: var(--color-bg-secondary);
   border-radius: var(--radius-lg);
@@ -12,7 +12,7 @@
   margin-bottom: var(--spacing-md);
 }
 
-.title {
+.pt-title {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
@@ -67,7 +67,7 @@
   font-style: italic;
 }
 
-.empty-state {
+.pt-empty-state {
   text-align: center;
   padding: var(--spacing-2xl);
   color: var(--color-text-muted);

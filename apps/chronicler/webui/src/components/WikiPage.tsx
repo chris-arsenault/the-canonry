@@ -158,7 +158,7 @@ export default function WikiPageView({
   const hasRelationshipsSection = page.content.sections.some((s) => s.heading === "Relationships");
 
   return (
-    <div className="container">
+    <div className="wp-container">
       <div className="breadcrumbs">
         <span className="breadcrumb-link" onClick={handleGoHome} role="button" tabIndex={0} onKeyDown={handleHomeKeyDown}>Home</span>
         {" / "}<span>{breadcrumbTypeLabel(page, staticTitle.namespace)}</span>
@@ -169,32 +169,32 @@ export default function WikiPageView({
         <CoverHeroImage imageId={page.content.coverImageId} title={page.title} onOpen={handleCoverOpen} />
       )}
 
-      <div className="header">
+      <div className="wp-header">
         {isLongFormProse && !page.content.coverImageId && <h1 className="chronicle-title">{page.title}</h1>}
         {isEraNarrative && page.eraNarrative && (
           <div className="era-narrative-subtitle">Era Narrative (synthetic) · {page.eraNarrative.tone}</div>
         )}
         {!isLongFormProse && (
-          <h1 className="title">{page.type === "static" ? staticTitle.displayTitle : page.title}</h1>
+          <h1 className="wp-title">{page.type === "static" ? staticTitle.displayTitle : page.title}</h1>
         )}
         {disambiguation && disambiguation.length > 0 && (
           <DisambiguationNotice page={page} entityIndex={entityIndex} disambiguation={disambiguation} onNavigate={onNavigate} />
         )}
         {!isLongFormProse && page.type !== "static" && page.content.summary && (
-          <div className="summary">{page.content.summary}</div>
+          <div className="wp-summary">{page.content.summary}</div>
         )}
         {!isChronicle && seedData && (
           <button className="seed-button" onClick={toggleSeedModal}>View Generation Context</button>
         )}
       </div>
 
-      <div className={showInfoboxInline ? "content-column" : "content"}>
+      <div className={showInfoboxInline ? "wp-content-column" : "wp-content"}>
         <WikiPageInfobox page={page} variant={showInfoboxInline ? "inline" : "float"} isMobile={isMobile}
           imageId={infoboxImageId} effectiveAspect={effectiveAspect}
           onImageClick={handleInfoboxClick}
           onNavigateToEntity={onNavigateToEntity} />
 
-        <div className="main">
+        <div className="wp-main">
           {page.content.sections.length > 2 && <TableOfContents sections={page.content.sections} />}
           <div
             className={[isLongFormProse ? "chronicle-body" : "", layoutOverride?.customClass || ""].filter(Boolean).join(" ") || undefined}
@@ -222,7 +222,7 @@ export default function WikiPageView({
           )}
 
           {isEntityPage && (
-            <div id="timeline" className="section">
+            <div id="timeline" className="wp-section">
               <button className="section-heading-toggle" onClick={toggleTimeline}>
                 <span className={timelineOpen ? "expand-arrow-open" : "expand-arrow"}>&#x25B6;</span>
                 <h2 className="section-heading">Timeline</h2>

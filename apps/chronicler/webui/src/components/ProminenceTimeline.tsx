@@ -312,8 +312,8 @@ export default function ProminenceTimeline({
   if (!graphMetrics) return null;
 
   return (
-    <div className="container">
-      <div className="title">Prominence Over Time</div>
+    <div className="pt-container">
+      <div className="pt-title">Prominence Over Time</div>
       <div className="graph-container">
         <ProminenceGraphSvg
           metrics={graphMetrics}

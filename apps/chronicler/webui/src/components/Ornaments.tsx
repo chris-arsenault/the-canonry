@@ -237,7 +237,7 @@ export function ParchmentTexture({
 
   // Mirror tile is 2x WORK_SIZE
   const tileSize = WORK_SIZE * 2;
-  return <div aria-hidden className={`${className ?? ""} $"parchment-texture"`}
+  return <div aria-hidden className={`${className ?? ""} parchment-texture`}
    
   style={{
     "--parchment-url": `url(${textureUrl})`,
@@ -336,7 +336,7 @@ export function PageFrame({
 }: Readonly<{
   className: Optional<string>;
 }>) {
-  return <div aria-hidden="true" className={`${className ?? ""} $"page-frame"`}>
+  return <div aria-hidden="true" className={`${className ?? ""} page-frame`}>
       {/* Top-left */}
       <div className="corner-top-left">
         <ScrollCorner />

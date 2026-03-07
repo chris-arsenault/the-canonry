@@ -28,27 +28,39 @@
 }
 
 .corner-top-left {
-  composes: corner-base;
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
   top: 0;
   left: 0;
 }
 
 .corner-top-right {
-  composes: corner-base;
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
   top: 0;
   right: 0;
   transform: scaleX(-1);
 }
 
 .corner-bottom-left {
-  composes: corner-base;
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
   bottom: 0;
   left: 0;
   transform: scaleY(-1);
 }
 
 .corner-bottom-right {
-  composes: corner-base;
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
   bottom: 0;
   right: 0;
   transform: scale(-1);

@@ -131,9 +131,9 @@ function EraNarrativeCard({
     <button key={page.id} className="item" onClick={() => onNavigate(page.id)}>
       <div className="item-header">
         <span className="item-title">{page.title}</span>
-        <div className="badge-group">
-          <span className="badge">Era Narrative</span>
-          <span className="badge-secondary">synthetic</span>
+        <div className="ci-badge-group">
+          <span className="ci-badge">Era Narrative</span>
+          <span className="ci-badge-secondary">synthetic</span>
         </div>
       </div>
       {thesis && <div className="item-summary">{thesis}</div>}
@@ -182,12 +182,12 @@ function ChronicleCard({
     <button key={page.id} className="item" onClick={() => onNavigate(page.id)}>
       <div className="item-header">
         <span className="item-title">{page.title}</span>
-        <div className="badge-group">
-          <span className="badge">{formatLabel}</span>
-          {subtypeLabel && <span className="badge-secondary">{subtypeLabel}</span>}
+        <div className="ci-badge-group">
+          <span className="ci-badge">{formatLabel}</span>
+          {subtypeLabel && <span className="ci-badge-secondary">{subtypeLabel}</span>}
         </div>
       </div>
-      <div className="item-meta">
+      <div className="ci-item-meta">
         <span>Era: {eraLabel}</span>
         {isMultiEra && <span>Multi-era</span>}
         {primaryLabel && <span>Primary: {primaryLabel}</span>}
@@ -229,7 +229,7 @@ export default function ChronicleIndex({
 
   if (sorted.length === 0) {
     return (
-      <div className="container">
+      <div className="ci-container">
         <h1 className="heading">{heading}</h1>
         <p className="description">{description}</p>
         <div className="empty">No chronicles found.</div>
@@ -238,7 +238,7 @@ export default function ChronicleIndex({
   }
 
   return (
-    <div className="container">
+    <div className="ci-container">
       <h1 className="heading">{heading}</h1>
       <div className="description-row">
         <p className="description">{description}</p>

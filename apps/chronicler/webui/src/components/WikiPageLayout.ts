@@ -7,7 +7,6 @@
 
 import type { Optional } from "@the-canonry/shared-components";
 import type { WikiSection, WikiSectionImage, ImageAspect } from "../types/world.ts";
-import styles from "./WikiPage.module.css";
 
 /**
  * Layout modes for chronicle sections:
@@ -119,7 +118,7 @@ export function getImageClassName(
   // Block images
   if (size === "full-width") return "image-full-width";
   const alignClass = position === "right" ? "image-large-right" : "image-large-left";
-  return `$"image-large" ${alignClass}`;
+  return `image-large ${alignClass}`;
 }
 
 /**
@@ -139,10 +138,7 @@ export function classifyAspect(width: number, height: number): ImageAspect {
 export function getInfoboxImageClass(aspect: Optional<ImageAspect>, isMobile: boolean): string {
   const fallback = isMobile ? "infobox-image-mobile" : "infobox-image";
   if (!aspect) return fallback;
-  const capitalized = aspect.charAt(0).toUpperCase() + aspect.slice(1);
-  const mobileKey = `infoboxImage${capitalized}Mobile`;
-  const baseKey = `infoboxImage${capitalized}`;
-  const s = styles as Record<string, string>;
-  if (isMobile) return s[mobileKey] ?? s[baseKey] ?? fallback;
-  return s[baseKey] ?? fallback;
+  const base = `infobox-image-${aspect}`;
+  if (isMobile) return `${base}-mobile`;
+  return base;
 }

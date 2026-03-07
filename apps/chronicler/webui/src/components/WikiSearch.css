@@ -3,7 +3,7 @@
  * Search input with dropdown results
  */
 
-.container {
+.ws-container {
   position: relative;
 }
 
@@ -45,7 +45,16 @@
 }
 
 .dropdown-up {
-  composes: dropdown;
+  position: absolute;
+  left: 0;
+  right: 0;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  max-height: 300px;
+  overflow: auto;
+  z-index: var(--z-dropdown);
+  box-shadow: var(--shadow-lg);
   top: auto;
   bottom: 100%;
   margin-top: 0;
@@ -76,7 +85,17 @@
 }
 
 .result-selected {
-  composes: result;
+  display: block;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-ui);
+  color: var(--color-text-primary);
+  border: none;
+  border-bottom: 1px solid var(--color-border-light);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
   background-color: var(--color-bg-tertiary);
 }
 

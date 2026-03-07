@@ -3,7 +3,7 @@
  * Status/loading/error screens shown before chronicle data is available
  */
 
-.container {
+.cst-container {
   height: 100%;
   display: flex;
   align-items: center;
@@ -12,11 +12,11 @@
   color: var(--color-text-muted);
 }
 
-.content {
+.cst-content {
   text-align: center;
 }
 
-.title {
+.cst-title {
   font-size: var(--font-size-lg);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-sm);

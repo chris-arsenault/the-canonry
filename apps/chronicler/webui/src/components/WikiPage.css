@@ -9,16 +9,16 @@
    Container & Layout
    =================== */
 
-.container {
+.wp-container {
   max-width: var(--content-max-width-wide, 1000px);
   margin: 0 auto;
 }
 
-.header {
+.wp-header {
   margin-bottom: var(--spacing-2xl);
 }
 
-.title {
+.wp-title {
   font-family: var(--font-family-display);
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
@@ -99,7 +99,7 @@
   text-align: center;
 }
 
-.summary {
+.wp-summary {
   font-size: var(--font-size-base);
   line-height: var(--line-height-relaxed);
   color: var(--color-text-secondary);
@@ -135,17 +135,17 @@
    Content Layout
    =================== */
 
-.content {
+.wp-content {
   display: flow-root;
 }
 
-.content-column {
+.wp-content-column {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2xl);
 }
 
-.main {
+.wp-main {
   min-width: 0;
 }
 
@@ -334,7 +334,7 @@
    Sections
    =================== */
 
-.section {
+.wp-section {
   margin-bottom: var(--spacing-3xl);
 }
 
@@ -845,13 +845,21 @@
 }
 
 .preview-badge-kind {
-  composes: preview-badge;
+  display: inline-block;
+  padding: 2px var(--spacing-xs);
+  font-family: var(--font-family-ui);
+  font-size: 10px;
+  border-radius: 3px;
   background-color: var(--color-accent-hover);
   color: var(--color-accent-light);
 }
 
 .preview-badge-status {
-  composes: preview-badge;
+  display: inline-block;
+  padding: 2px var(--spacing-xs);
+  font-family: var(--font-family-ui);
+  font-size: 10px;
+  border-radius: 3px;
   background-color: rgb(196 164 112 / 15%);
   color: var(--color-text-muted);
 }

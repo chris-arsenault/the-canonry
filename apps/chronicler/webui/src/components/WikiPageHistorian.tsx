@@ -14,7 +14,6 @@ import {
   HISTORIAN_NOTE_ICONS,
   HISTORIAN_NOTE_LABELS,
 } from "../lib/historianAnnotations.ts";
-import styles from "./WikiPage.module.css";
 
 /**
  * HistorianCallout - Callout box for 'full' display notes.

@@ -51,7 +51,7 @@ function buildChronicleFilter(currentPageId: string | null) {
 
 function DataErrorScreen({ error }: Readonly<{ error: { message: string; details: string } }>) {
   return (
-    <div className="container">
+    <div className="we-container">
       <div className="error-container">
         <div className="error-card">
           <h2 className="error-title">{error.message}</h2>
@@ -254,7 +254,7 @@ export default function WikiExplorer({
   if (dataError) return <DataErrorScreen error={dataError} />;
 
   return (
-    <div className="container">
+    <div className="we-container">
       <WikiExplorerSidebar isMobile={isMobile} isSidebarOpen={isSidebarOpen}
         onOpenSidebar={openSidebar} onCloseSidebar={closeSidebar}>
         {/* eslint-disable-next-line local/max-jsx-props -- WikiNav genuinely requires 13 props covering navigation state, search, data sources, and mobile drawer control */}
@@ -267,10 +267,10 @@ export default function WikiExplorer({
           isRefreshing={data.isRefreshing} isDrawer={isMobile} onCloseDrawer={closeSidebar}
         />
       </WikiExplorerSidebar>
-      <div className="main">
+      <div className="we-main">
         <ParchmentTexture className="parchment-overlay" config={DEFAULT_PARCHMENT_CONFIG} prebakedUrl={prebakedParchmentUrl} />
         <PageFrame className="page-frame" />
-        <div className={isMobile ? "content-mobile" : "content"}>
+        <div className={isMobile ? "we-content-mobile" : "we-content"}>
           <WikiExplorerContent currentPageId={currentPageId} data={data}
             onNavigate={handleNavigate} onNavigateToEntity={handleNavigateToEntity}
             worldData={worldData} breakpoint={breakpoint} />

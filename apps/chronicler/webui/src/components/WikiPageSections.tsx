@@ -22,7 +22,6 @@ import {
   injectFootnotesWithGlobalIndex,
 } from "../lib/historianAnnotations.ts";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor.ts";
-import styles from "./WikiPage.module.css";
 
 // ============================================================================
 // SectionWithImages helpers

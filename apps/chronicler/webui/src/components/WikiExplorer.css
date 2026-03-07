@@ -12,7 +12,7 @@
    Main Layout
    =================== */
 
-.container {
+.we-container {
   display: flex;
   height: 100%;
   background-color: var(--color-bg-primary);
@@ -30,7 +30,7 @@
   overflow: hidden;
 }
 
-.main {
+.we-main {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -58,7 +58,7 @@
   z-index: 4;
 }
 
-.header {
+.we-header {
   position: relative;
   z-index: 2;
   padding: var(--spacing-md) var(--spacing-xl);
@@ -66,7 +66,7 @@
   background-color: var(--color-bg-secondary);
 }
 
-.content {
+.we-content {
   position: relative;
   z-index: 2;
   flex: 1;
@@ -75,7 +75,7 @@
   background-color: rgb(53 42 30 / 75%);
 }
 
-.content-mobile {
+.we-content-mobile {
   position: relative;
   z-index: 2;
   flex: 1;
@@ -207,7 +207,7 @@
   gap: var(--spacing-lg);
 }
 
-.section {
+.we-section {
   margin-bottom: var(--spacing-2xl);
   padding: 0;
   background-color: transparent;
@@ -215,7 +215,7 @@
   border: none;
 }
 
-.section-title {
+.we-section-title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
   font-family: var(--font-family-display);
@@ -353,7 +353,7 @@
    Entity Links
    =================== */
 
-.entity-link {
+.we-entity-link {
   background: none;
   border: none;
   padding: 0;
@@ -362,12 +362,15 @@
   font-size: inherit;
 }
 
-.entity-link:hover {
+.we-entity-link:hover {
   text-decoration: underline;
 }
 
-.entity-link-bold {
-  composes: entity-link;
+.we-entity-link-bold {
+  text-decoration: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-size: inherit;
   font-weight: var(--font-weight-medium);
 }
 
@@ -509,12 +512,18 @@
 }
 
 .era-dot-current {
-  composes: era-dot;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
   background-color: var(--color-accent);
 }
 
 .era-dot-historical {
-  composes: era-dot;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
   background-color: var(--color-text-muted);
 }
 
@@ -547,7 +556,7 @@
   line-height: var(--line-height-relaxed);
 }
 
-.empty-state {
+.we-empty-state {
   padding: var(--spacing-3xl) var(--spacing-xl);
   text-align: center;
   background-color: transparent;
@@ -555,19 +564,19 @@
   border: 1px solid var(--color-border-light);
 }
 
-.empty-state-icon {
+.we-empty-state-icon {
   font-size: 48px;
   margin-bottom: var(--spacing-lg);
 }
 
-.empty-state-title {
+.we-empty-state-title {
   font-size: var(--font-size-lg);
   font-family: var(--font-family-display);
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-sm);
 }
 
-.empty-state-description {
+.we-empty-state-description {
   font-size: var(--font-size-base);
   color: var(--color-text-muted);
 }

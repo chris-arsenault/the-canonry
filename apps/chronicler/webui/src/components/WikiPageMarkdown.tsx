@@ -9,7 +9,6 @@ import React, { useMemo, useCallback } from "react";
 import MDEditor from "@uiw/react-md-editor";
 import type { Optional } from "@the-canonry/shared-components";
 import { applyWikiLinks } from "../lib/wikiBuilder.ts";
-import styles from "./WikiPage.module.css";
 
 /** Encode a page ID for use in hash URLs, encoding each path segment. */
 function encodePageIdForHash(pageId: string): string {

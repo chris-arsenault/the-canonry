@@ -12,9 +12,9 @@ export default function ChroniclerStatusScreen({
 }: Readonly<ChroniclerStatusScreenProps>) {
   if (loading) {
     return (
-      <div className="container">
-        <div className="content">
-          <div className="title">Loading World Data</div>
+      <div className="cst-container">
+        <div className="cst-content">
+          <div className="cst-title">Loading World Data</div>
           <div className="detail">Reading from local storage...</div>
         </div>
       </div>
@@ -23,8 +23,8 @@ export default function ChroniclerStatusScreen({
 
   if (loadError) {
     return (
-      <div className="container">
-        <div className="content">
+      <div className="cst-container">
+        <div className="cst-content">
           <div className="icon">&#x2756;</div>
           <ErrorMessage title="World Data Unavailable" message={loadError} />
         </div>
@@ -33,10 +33,10 @@ export default function ChroniclerStatusScreen({
   }
 
   return (
-    <div className="container">
-      <div className="content">
+    <div className="cst-container">
+      <div className="cst-content">
         <div className="icon">&#x2756;</div>
-        <div className="title">No World Data</div>
+        <div className="cst-title">No World Data</div>
         <div className="detail">
           Run a simulation in Lore Weave and enrich it with Illuminator to view the world chronicle.
         </div>
