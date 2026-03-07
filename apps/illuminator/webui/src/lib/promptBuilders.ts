@@ -649,6 +649,17 @@ const SIZE_COMPOSITION_HINTS: Record<string, string> = {
 };
 
 /**
+ * Cast member for entity disambiguation in image prompts.
+ * Tells the image model what species/type each entity is.
+ */
+export interface CastMember {
+  name: string;
+  kind: string;
+  subtype?: string;
+  culture?: string;
+}
+
+/**
  * Context for building chronicle scene image prompts
  */
 export interface ChronicleSceneContext {
@@ -664,18 +675,38 @@ export interface ChronicleSceneContext {
     description?: string;
     speciesConstraint?: string;
   };
+  /** Entities involved in the scene — used for species/type disambiguation */
+  cast?: CastMember[];
+}
+
+/**
+ * Format a cast member as "Name (kind/subtype, culture)" or "Name (kind, culture)".
+ */
+function formatCastLabel(member: CastMember): string {
+  const type = member.subtype ? `${member.kind}/${member.subtype}` : member.kind;
+  return member.culture ? `${type}, ${member.culture}` : type;
+}
+
+/**
+ * Build a CAST section listing involved entities with their species/type.
+ */
+function buildCastSection(cast: CastMember[]): string {
+  if (cast.length === 0) return "";
+  const entries = cast.map((m) => `${m.name} (${formatCastLabel(m)})`);
+  return `CAST: ${entries.join(", ")}`;
 }
 
 /**
  * Build an image prompt for chronicle scene/montage images.
  * Rendering directives (STYLE/PALETTE/COMPOSITION) come first as primary authority.
- * No entity lookups — visual identity is baked into the scene description by the scene LLM.
+ * Cast context provides species/type disambiguation for involved entities.
+ * Scene description should be pre-annotated by the caller using annotateEntityNames.
  */
 export function buildChronicleScenePrompt(
   context: ChronicleSceneContext,
   styleInfo?: StyleInfo
 ): string {
-  const { sceneDescription, size, chronicleTitle, world } = context;
+  const { sceneDescription, size, chronicleTitle, world, cast } = context;
 
   // Rendering directives first — these are the primary visual authority
   const styleSection = styleInfo?.artisticPromptFragment
@@ -696,6 +727,9 @@ export function buildChronicleScenePrompt(
 
   const sizeHint = `SIZE HINT: ${compositionHint}`;
 
+  // Cast context for entity disambiguation
+  const castSection = cast?.length ? buildCastSection(cast) : "";
+
   // Scene content
   const worldDescSuffix = world?.description ? ` - ${world.description}` : "";
   const worldSection = world
@@ -712,6 +746,7 @@ export function buildChronicleScenePrompt(
     compositionSection,
     sizeHint,
     "",
+    castSection,
     `SCENE: ${sceneDescription}`,
     chronicleTitle ? `FROM: "${chronicleTitle}"` : "",
     "",

@@ -50,6 +50,8 @@ function ApiKeySection({
   setAnthropicApiKey,
   openaiApiKey,
   setOpenaiApiKey,
+  wavespeedApiKey,
+  setWavespeedApiKey,
   persistApiKeys,
   setPersistApiKeys,
 }) {
@@ -73,12 +75,21 @@ function ApiKeySection({
             className="illuminator-api-input"
           />
           <div className="illuminator-api-dropdown-title">OpenAI API Key</div>
-          <p className="illuminator-api-dropdown-hint">Required for image generation.</p>
+          <p className="illuminator-api-dropdown-hint">Required for OpenAI image models.</p>
           <input
             type="password"
             value={openaiApiKey}
             onChange={(e) => setOpenaiApiKey(e.target.value)}
             placeholder="sk-..."
+            className="illuminator-api-input"
+          />
+          <div className="illuminator-api-dropdown-title">WaveSpeed API Key</div>
+          <p className="illuminator-api-dropdown-hint">Required for WaveSpeed image models.</p>
+          <input
+            type="password"
+            value={wavespeedApiKey}
+            onChange={(e) => setWavespeedApiKey(e.target.value)}
+            placeholder="ws-..."
             className="illuminator-api-input"
           />
           <label className="isb-persist-label">
@@ -114,6 +125,8 @@ export default function IlluminatorSidebar({
   setAnthropicApiKey,
   openaiApiKey,
   setOpenaiApiKey,
+  wavespeedApiKey,
+  setWavespeedApiKey,
   persistApiKeys,
   setPersistApiKeys,
 }) {
@@ -151,6 +164,8 @@ export default function IlluminatorSidebar({
         setAnthropicApiKey={setAnthropicApiKey}
         openaiApiKey={openaiApiKey}
         setOpenaiApiKey={setOpenaiApiKey}
+        wavespeedApiKey={wavespeedApiKey}
+        setWavespeedApiKey={setWavespeedApiKey}
         persistApiKeys={persistApiKeys}
         setPersistApiKeys={setPersistApiKeys}
       />
@@ -173,6 +188,8 @@ ApiKeySection.propTypes = {
   setAnthropicApiKey: PropTypes.func.isRequired,
   openaiApiKey: PropTypes.string,
   setOpenaiApiKey: PropTypes.func.isRequired,
+  wavespeedApiKey: PropTypes.string,
+  setWavespeedApiKey: PropTypes.func.isRequired,
   persistApiKeys: PropTypes.bool,
   setPersistApiKeys: PropTypes.func.isRequired,
 };
@@ -190,6 +207,8 @@ IlluminatorSidebar.propTypes = {
   setAnthropicApiKey: PropTypes.func.isRequired,
   openaiApiKey: PropTypes.string,
   setOpenaiApiKey: PropTypes.func.isRequired,
+  wavespeedApiKey: PropTypes.string,
+  setWavespeedApiKey: PropTypes.func.isRequired,
   persistApiKeys: PropTypes.bool,
   setPersistApiKeys: PropTypes.func.isRequired,
 };

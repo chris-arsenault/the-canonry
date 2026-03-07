@@ -5,7 +5,6 @@
 import React, { useMemo, useState } from "react";
 import type { Optional } from "@the-canonry/shared-components";
 import type { WikiPage } from "../types/world.ts";
-import styles from "./ChronicleIndex.module.css";
 
 interface ChronicleIndexProps {
   chronicles: WikiPage[];
@@ -129,15 +128,15 @@ function EraNarrativeCard({
 }: Readonly<{ page: WikiPage; onNavigate: (id: string) => void }>) {
   const thesis = page.content?.summary || "";
   return (
-    <button key={page.id} className={styles.item} onClick={() => onNavigate(page.id)}>
-      <div className={styles.itemHeader}>
-        <span className={styles.itemTitle}>{page.title}</span>
-        <div className={styles.badgeGroup}>
-          <span className={styles.badge}>Era Narrative</span>
-          <span className={styles.badgeSecondary}>synthetic</span>
+    <button key={page.id} className="item" onClick={() => onNavigate(page.id)}>
+      <div className="item-header">
+        <span className="item-title">{page.title}</span>
+        <div className="badge-group">
+          <span className="badge">Era Narrative</span>
+          <span className="badge-secondary">synthetic</span>
         </div>
       </div>
-      {thesis && <div className={styles.itemSummary}>{thesis}</div>}
+      {thesis && <div className="item-summary">{thesis}</div>}
     </button>
   );
 }
@@ -180,20 +179,20 @@ function ChronicleCard({
   const { eraLabel, isMultiEra, formatLabel, subtypeLabel, primaryLabel, summary } = extractChronicleCardData(page);
 
   return (
-    <button key={page.id} className={styles.item} onClick={() => onNavigate(page.id)}>
-      <div className={styles.itemHeader}>
-        <span className={styles.itemTitle}>{page.title}</span>
-        <div className={styles.badgeGroup}>
-          <span className={styles.badge}>{formatLabel}</span>
-          {subtypeLabel && <span className={styles.badgeSecondary}>{subtypeLabel}</span>}
+    <button key={page.id} className="item" onClick={() => onNavigate(page.id)}>
+      <div className="item-header">
+        <span className="item-title">{page.title}</span>
+        <div className="badge-group">
+          <span className="badge">{formatLabel}</span>
+          {subtypeLabel && <span className="badge-secondary">{subtypeLabel}</span>}
         </div>
       </div>
-      <div className={styles.itemMeta}>
+      <div className="item-meta">
         <span>Era: {eraLabel}</span>
         {isMultiEra && <span>Multi-era</span>}
         {primaryLabel && <span>Primary: {primaryLabel}</span>}
       </div>
-      {summary && <div className={styles.itemSummary}>{summary}</div>}
+      {summary && <div className="item-summary">{summary}</div>}
     </button>
   );
 }
@@ -230,24 +229,24 @@ export default function ChronicleIndex({
 
   if (sorted.length === 0) {
     return (
-      <div className={styles.container}>
-        <h1 className={styles.heading}>{heading}</h1>
-        <p className={styles.description}>{description}</p>
-        <div className={styles.empty}>No chronicles found.</div>
+      <div className="container">
+        <h1 className="heading">{heading}</h1>
+        <p className="description">{description}</p>
+        <div className="empty">No chronicles found.</div>
       </div>
     );
   }
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.heading}>{heading}</h1>
-      <div className={styles.descriptionRow}>
-        <p className={styles.description}>{description}</p>
-        <div className={styles.controls}>
-          <div className={styles.sortControl}>
-            <span className={styles.sortLabel}>Sort</span>
+    <div className="container">
+      <h1 className="heading">{heading}</h1>
+      <div className="description-row">
+        <p className="description">{description}</p>
+        <div className="controls">
+          <div className="sort-control">
+            <span className="sort-label">Sort</span>
             <select
-              className={styles.sortSelect} value={sortMode}
+              className="sort-select" value={sortMode}
               onChange={(event) => setSortMode(event.target.value)}
             >
               {SORT_OPTIONS.map((option) => (
@@ -257,11 +256,11 @@ export default function ChronicleIndex({
           </div>
         </div>
       </div>
-      <div className={styles.list}>
+      <div className="list">
         {groupedByEra.map((group) => (
-          <div key={group.label} className={styles.group}>
-            <div className={styles.groupHeader}>{group.label}</div>
-            <div className={styles.groupItems}>
+          <div key={group.label} className="group">
+            <div className="group-header">{group.label}</div>
+            <div className="group-items">
               {eraNarrativeByEraName.has(group.label) && (
                 <EraNarrativeCard page={eraNarrativeByEraName.get(group.label)!} onNavigate={onNavigate} />
               )}

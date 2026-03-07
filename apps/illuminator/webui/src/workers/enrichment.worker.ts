@@ -31,7 +31,7 @@ import {
   executeTask as executeEnrichmentTask,
 } from "./enrichmentCore";
 import type { LLMClient } from "../lib/llmClient";
-import type { ImageClient } from "../lib/imageClient";
+import type { ImageClientInterface } from "./clients";
 import * as entityRepo from "../lib/db/entityRepository";
 
 // Worker context
@@ -43,7 +43,7 @@ const ctx: Worker = self as unknown as Worker;
 
 let config: WorkerConfig | null = null;
 let llmClient: LLMClient | null = null;
-let imageClient: ImageClient | null = null;
+let imageClient: ImageClientInterface | null = null;
 let currentTaskId: string | null = null;
 let isAborted = false;
 

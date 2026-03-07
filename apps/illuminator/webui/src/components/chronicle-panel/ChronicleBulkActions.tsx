@@ -6,7 +6,6 @@
  */
 
 import React, { useCallback } from "react";
-import type { ChronicleNavItem, HistorianConfig } from "./chroniclePanelTypes";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,7 +26,6 @@ interface BulkAnnotationProgress {
 export interface ChronicleBulkActionsProps {
   showBulkActions: boolean;
   onToggleBulkActions: () => void;
-  chronicleItems: ChronicleNavItem[];
   // Validation section
   onBulkTemporalCheck: () => void;
   onBulkDetectTertiary: () => void;
@@ -50,7 +48,6 @@ export interface ChronicleBulkActionsProps {
   onOpenResetBackportModal: () => void;
   // Historian section
   historianConfigured: boolean;
-  historianConfig: HistorianConfig;
   skipCompletedPrep: boolean;
   onSetSkipCompletedPrep: (value: boolean) => void;
   onOpenChronologyModal: () => void;
@@ -66,6 +63,16 @@ export interface ChronicleBulkActionsProps {
   onDownloadAnnotationReview: () => void;
   onAmendBriefs: () => void;
   onBulkRegenerateImageRefs: () => void;
+  onBulkTagImageRefs: () => void;
+  onAssignImageStyles: () => void;
+  onBulkGenerateSceneImages: () => void;
+  onAssignCoverImageStyles: () => void;
+  onBulkGenerateCoverImages: () => void;
+  onBulkClearImageRefs: () => void;
+  onBulkClearSceneImages: () => void;
+  onBulkGenerateCoverScenes: () => void;
+  onBulkClearCoverImages: () => void;
+  onBulkTagCoverImages: () => void;
 }
 
 function formatToneProgress(progress: ToneRankingProgress): string | null {
@@ -123,6 +130,16 @@ export function ChronicleBulkActions({
   onDownloadAnnotationReview,
   onAmendBriefs,
   onBulkRegenerateImageRefs,
+  onBulkTagImageRefs,
+  onAssignImageStyles,
+  onBulkGenerateSceneImages,
+  onAssignCoverImageStyles,
+  onBulkGenerateCoverImages,
+  onBulkClearImageRefs,
+  onBulkClearSceneImages,
+  onBulkGenerateCoverScenes,
+  onBulkClearCoverImages,
+  onBulkTagCoverImages,
 }: Readonly<ChronicleBulkActionsProps>) {
   const handleRefreshEraSummaries = useCallback(() => {
     if (!onRefreshEraSummaries) return;
@@ -192,12 +209,92 @@ export function ChronicleBulkActions({
             >
               {isFactCoverageActive ? "Analyzing..." : "Fact Coverage"}
             </button>
+          </div>
+
+          {/* Scene Images */}
+          <div className="chron-bulk-section viewer-section-inline">
+            <span className="chron-bulk-section-label">Scene Images</span>
             <button
               onClick={onBulkRegenerateImageRefs}
               className="illuminator-button"
               title="Regenerate image refs for all chronicles: convert entity refs to scene images, fix stale anchors"
             >
-              Regenerate Image Refs
+              Regenerate Refs
+            </button>
+            <button
+              onClick={onBulkTagImageRefs}
+              className="illuminator-button"
+              title="Tag image refs with visual/atmospheric tags and suggest artistic + composition styles"
+            >
+              Tag Refs
+            </button>
+            <button
+              onClick={onAssignImageStyles}
+              className="illuminator-button"
+              title="Distribute styles/compositions/palettes across all tagged image refs for maximum coverage (deterministic, no LLM)"
+            >
+              Assign Styles
+            </button>
+            <button
+              onClick={() => void onBulkGenerateSceneImages()}
+              className="illuminator-button"
+              title="Generate images for all scene refs that have assigned styles but no image yet"
+            >
+              Generate Images
+            </button>
+            <button
+              onClick={onBulkClearSceneImages}
+              className="illuminator-button"
+              title="Clear generated images from all scene refs (keeps the refs and descriptions, removes images)"
+            >
+              Clear Images
+            </button>
+            <button
+              onClick={onBulkClearImageRefs}
+              className="illuminator-button"
+              title="Remove all image refs from all chronicles (use before bulk regenerate to start fresh)"
+            >
+              Clear All Refs
+            </button>
+          </div>
+
+          {/* Cover Images */}
+          <div className="chron-bulk-section viewer-section-inline">
+            <span className="chron-bulk-section-label">Cover Images</span>
+            <button
+              onClick={onBulkGenerateCoverScenes}
+              className="illuminator-button"
+              title="Generate cover image scene descriptions for all chronicles that are missing them"
+            >
+              Generate Scenes
+            </button>
+            <button
+              onClick={onBulkTagCoverImages}
+              className="illuminator-button"
+              title="Tag cover images with visual/atmospheric tags and suggest artistic + composition styles"
+            >
+              Tag Styles
+            </button>
+            <button
+              onClick={onAssignCoverImageStyles}
+              className="illuminator-button"
+              title="Distribute artistic styles and palettes across all tagged cover images for even coverage (composition is fixed by narrative style, deterministic, no LLM)"
+            >
+              Assign Styles
+            </button>
+            <button
+              onClick={() => void onBulkGenerateCoverImages()}
+              className="illuminator-button"
+              title="Generate cover images for all chronicles that have assigned styles but no image yet"
+            >
+              Generate Images
+            </button>
+            <button
+              onClick={onBulkClearCoverImages}
+              className="illuminator-button"
+              title="Clear generated cover images from all chronicles (keeps scene descriptions and style tags)"
+            >
+              Clear Images
             </button>
           </div>
 

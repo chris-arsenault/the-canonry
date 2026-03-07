@@ -17,8 +17,8 @@ build_app() {
     rm -rf dist
   fi
 
-  npm install
-  npm run build
+  pnpm install
+  pnpm run build
 
   sanity_check_dist "$app_path"
 }

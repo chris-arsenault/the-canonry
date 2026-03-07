@@ -36,5 +36,8 @@
 /* Matrix base (shared structural patterns for data matrix components) */
 @import url('./components/matrix-base.css');
 
+/* Image display */
+@import url('./components/image-display.css');
+
 /* Utilities */
 @import url('./utilities.css');

@@ -10,18 +10,20 @@ import type { StyleLibrary } from "@canonry/world-schema";
 import { updateChronicleImageRef, updateChronicleCoverImageStatus, applyImageRefSelections } from "../../lib/db/chronicleRepository";
 import { resolveStyleSelection } from "../StyleSelector";
 import { getCoverImageConfig } from "../../lib/coverImageStyles";
-import { buildChronicleScenePrompt } from "../../lib/promptBuilders";
+import { buildChronicleScenePrompt, type CastMember } from "../../lib/promptBuilders";
+import { annotateEntityNames } from "../../lib/annotateEntityNames";
+import type { EntityNavItem } from "../../lib/db/entityNav";
+import type { PersistedEntity } from "../../lib/db/illuminatorDb";
 
-function getVisualThesis(entity: Record<string, unknown> | undefined): string | undefined {
-  const enrichment = entity?.enrichment as Record<string, unknown> | undefined;
-  const text = enrichment?.text as Record<string, unknown> | undefined;
-  return typeof text?.visualThesis === "string" ? text.visualThesis : undefined;
+function getVisualThesis(entity: PersistedEntity | undefined): string | undefined {
+  const thesis = entity?.enrichment?.text?.visualThesis;
+  return typeof thesis === "string" ? thesis : undefined;
 }
 
 interface UseChronicleImageCallbacksParams {
   selectedItem: SelectedChronicleItem | undefined;
   generationContext: Record<string, unknown> | null;
-  fullEntityMapRef: React.RefObject<Map<string, Record<string, unknown>>>;
+  fullEntityMapRef: React.RefObject<Map<string, PersistedEntity>>;
   onEnqueue: (items: Array<Record<string, unknown>>) => void;
   refreshChronicle: (id: string) => Promise<void>;
   chronicleStyleSelection: StyleSelection;
@@ -145,9 +147,22 @@ export function useChronicleImageCallbacks({
       artisticPromptFragment: resolved.artisticStyle?.promptFragment,
       colorPalettePromptFragment: resolved.colorPalette?.promptFragment,
     };
+    // Build cast from chronicle's declared cast (role assignments)
+    const cast: CastMember[] = [];
+    for (const ra of selectedItem.roleAssignments || []) {
+      const entity = fullEntityMapRef.current.get(ra.entityId);
+      if (entity && entity.kind !== "era") {
+        cast.push({ name: entity.name, kind: entity.kind, subtype: entity.subtype, culture: entity.culture });
+      }
+    }
+
+    // Annotate entity names across all entities for species/type disambiguation
+    const entityNavMap = fullEntityMapRef.current as unknown as Map<string, EntityNavItem>;
+    const annotatedScene = annotateEntityNames(coverImage.sceneDescription, entityNavMap);
+
     const prompt = buildChronicleScenePrompt(
       {
-        sceneDescription: coverImage.sceneDescription,
+        sceneDescription: annotatedScene,
         size: "medium",
         chronicleTitle: selectedItem.title || selectedItem.name,
         world: worldContext
@@ -157,6 +172,7 @@ export function useChronicleImageCallbacks({
               speciesConstraint: worldContext.speciesConstraint,
             }
           : undefined,
+        cast,
       },
       styleInfo,
     );
@@ -184,10 +200,11 @@ export function useChronicleImageCallbacks({
     refreshChronicle,
     chronicleImageSize,
     chronicleImageQuality,
+    fullEntityMapRef,
   ]);
 
   const handleGenerateChronicleImage = useCallback(
-    (ref: { refId: string; sceneDescription: string }, prompt: string, _styleInfo: Record<string, unknown>) => {
+    (ref: { refId: string; sceneDescription: string }, prompt: string, _styleInfo: Record<string, unknown>, imageSizeOverride?: string) => {
       if (!selectedItem?.chronicleId) return;
       void updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
         status: "generating",
@@ -205,7 +222,7 @@ export function useChronicleImageCallbacks({
         imageRefId: ref.refId,
         sceneDescription: ref.sceneDescription,
         imageType: "chronicle",
-        imageSize: chronicleImageSize,
+        imageSize: imageSizeOverride || chronicleImageSize,
         imageQuality: chronicleImageQuality,
       }]);
     },
@@ -280,6 +297,14 @@ export function useChronicleImageCallbacks({
     [selectedItem, refreshChronicle],
   );
 
+  const handleResetCoverImage = useCallback(() => {
+    if (!selectedItem?.chronicleId || !selectedItem?.coverImage) return;
+    void updateChronicleCoverImageStatus(selectedItem.chronicleId, {
+      status: "pending",
+      error: undefined,
+    }).then(() => refreshChronicle(selectedItem.chronicleId));
+  }, [selectedItem, refreshChronicle]);
+
   const handleSelectExistingCoverImage = useCallback(
     async (imageId: string) => {
       if (!selectedItem?.chronicleId || !selectedItem?.coverImage) return;
@@ -298,6 +323,7 @@ export function useChronicleImageCallbacks({
     handleRegenerateDescription,
     handleGenerateCoverImageScene,
     handleGenerateCoverImage,
+    handleResetCoverImage,
     handleGenerateChronicleImage,
     handleResetChronicleImage,
     handleUpdateChronicleAnchorText,

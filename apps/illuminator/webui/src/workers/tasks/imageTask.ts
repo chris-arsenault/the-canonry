@@ -96,7 +96,7 @@ export const imageTask = {
     const { config, llmClient, imageClient, isAborted } = context;
 
     if (!imageClient.isEnabled()) {
-      return { success: false, error: "Image generation not configured - missing OpenAI API key" };
+      return { success: false, error: "Image generation not configured - missing API key for selected image model" };
     }
 
     const imageModel = config.imageModel || "dall-e-3";

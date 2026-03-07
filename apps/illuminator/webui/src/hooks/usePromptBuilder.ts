@@ -15,6 +15,7 @@ import {
   buildImagePromptFromGuidance,
   getVisualConfigFromGuidance,
 } from "../lib/promptBuilders";
+import { getSizeForAspect } from "../lib/imageSettings";
 import type {
   EntityGuidance,
   CultureIdentities,
@@ -28,18 +29,13 @@ import type {
   CanonrySchemaSlice,
   StyleLibrary,
   WorldRelationship,
+  StyleSelection,
 } from "@canonry/world-schema";
 import type { PersistedEntity } from "../lib/db/illuminatorDb";
 import type { EntityNavItem } from "../lib/db/entityNav";
 import type { EraTemporalEntry } from "../lib/db/indexTypes";
 
 // --- Types ---
-
-interface StyleSelection {
-  artisticStyleId: string;
-  compositionStyleId: string;
-  colorPaletteId: string;
-}
 
 interface EraInfo {
   name: string;
@@ -90,6 +86,7 @@ export interface UsePromptBuilderParams {
   config: PromptBuilderConfig;
   prominenceScale: ProminenceScale;
   styleLibrary: StyleLibrary;
+  imageModel: string;
   eraTemporalInfo: EraTemporalEntry[];
   eraTemporalInfoByKey: Map<string, EraTemporalEntry>;
 }
@@ -97,6 +94,9 @@ export interface UsePromptBuilderParams {
 export interface UsePromptBuilderReturn {
   buildPrompt: (entity: PersistedEntity, type: "description" | "image") => string;
   getVisualConfig: (entity: PersistedEntity) => Record<string, unknown>;
+  /** Resolve per-entity image size from the randomly-picked composition's aspect.
+   *  Returns a WxH size string when the composition defines an aspect; undefined otherwise. */
+  resolveImageSize: (entity: PersistedEntity) => string | undefined;
 }
 
 // --- Module-level helpers to reduce callback complexity ---
@@ -293,6 +293,7 @@ export function usePromptBuilder({
   config,
   prominenceScale,
   styleLibrary,
+  imageModel,
   eraTemporalInfo,
   eraTemporalInfoByKey,
 }: UsePromptBuilderParams): UsePromptBuilderReturn {
@@ -359,5 +360,21 @@ export function usePromptBuilder({
     ]
   );
 
-  return { buildPrompt, getVisualConfig };
+  const resolveImageSize = useCallback(
+    (entity: PersistedEntity): string | undefined => {
+      const resolved = resolveStyleSelection({
+        selection: styleSelection,
+        entityCultureId: entity.culture,
+        entityKind: entity.kind,
+        cultures: worldSchema?.cultures || [],
+        styleLibrary,
+      });
+      const aspect = resolved.compositionStyle?.defaultImageAspect;
+      if (!aspect) return undefined;
+      return getSizeForAspect(imageModel, aspect);
+    },
+    [styleSelection, worldSchema, styleLibrary, imageModel]
+  );
+
+  return { buildPrompt, getVisualConfig, resolveImageSize };
 }

@@ -37,6 +37,7 @@ import {
 import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
 import { resolveAnchorPhrase } from "../../lib/fuzzyAnchor";
 import { executeRegenerateImageRefsStep } from "./chronicleImageRefsTask";
+import { executeTagImageRefsStep } from "./chronicleTagImageRefsTask";
 import {
   selectEntitiesV2,
   buildV2Prompt,
@@ -373,9 +374,6 @@ function dispatchPostGenerationStep(
     case "title":
       return executeTitleStep(task, chronicleRecord, context);
     case "image_refs":
-      if (!task.chronicleContext) {
-        return { success: false, error: "Chronicle context required for image refs step" };
-      }
       return executeImageRefsStep(task, chronicleRecord, context);
     case "cover_image_scene":
       return executeCoverImageSceneStep(task, chronicleRecord, context);
@@ -385,6 +383,8 @@ function dispatchPostGenerationStep(
       return executeCoverImageStep(task, chronicleRecord, context);
     case "regenerate_image_refs":
       return executeRegenerateImageRefsStep(task, context);
+    case "tag_image_refs":
+      return executeTagImageRefsStep(task, context);
     default:
       return { success: false, error: `Unknown step: ${step}` };
   }
@@ -2203,16 +2203,23 @@ ${chunk.text}
   return `You are adding image references to a chronicle. Your task is to identify optimal placement points for images that enhance the narrative.
 
 ## Visual Identities
-These describe what entities look like — incorporate them into scene descriptions so the image generator knows what figures look like.
+"Entities" in this world include people, places, landmarks, artifacts, institutions, phenomena, and events — not just characters. The identities below describe what each entity looks like visually.
 ${visualDisplay}
 
 ## Instructions
 The chronicle has been divided into ${chunks.length} chunks. For EACH chunk, decide whether it deserves an image (0 or 1 per chunk). This ensures images are distributed throughout the narrative.
 
+Aim for visual variety across the chronicle. Mix scene types:
+- **Character moments** — a figure in action, a meeting, a confrontation
+- **Landscapes and places** — a city, a ruin, a coastline, a sacred grove
+- **Artifacts and objects** — a weapon, a treaty document, a symbol of power
+- **Groups and crowds** — armies, councils, migrations, ceremonies
+- **Atmosphere and environment** — weather, lighting, mood, aftermath
+
 For each image, provide a scene description:
-- Describe a vivid 1-2 sentence scene capturing the dramatic moment
-- Include visual details of involved entities using the Visual Identities above
-- Include involvedEntityIds with at least one entity that appears in the scene
+- Write a vivid 1-2 sentence description of the visual scene
+- Use the Visual Identities above for any entities that appear
+- involvedEntityIds should list entities relevant to the scene (the place it depicts, the artifact shown, the people present, etc.)
 
 ## Output Format
 Return a JSON object:
@@ -2233,13 +2240,13 @@ Return a JSON object:
 - small: 150px, supplementary/margin images
 - medium: 300px, standard images
 - large: 450px, key scenes
-- full-width: 100%, establishing shots
+- full-width: 100%, establishing shots, landscapes, panoramas
 
 ## Rules
 - Suggest 0 or 1 image per chunk (total 2-5 images for the whole chronicle)
 - anchorText MUST be an exact phrase from that chunk's text
 - involvedEntityIds MUST use IDs from the Visual Identities list
-- involvedEntityIds MUST contain at least one entity ID
+- involvedEntityIds should list at least one entity, but can be empty for pure atmosphere/environment scenes
 - Return valid JSON only, no markdown
 
 ## Chronicle Chunks

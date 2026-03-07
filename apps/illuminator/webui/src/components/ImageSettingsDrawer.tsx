@@ -10,38 +10,13 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from "react"
 import { createPortal } from "react-dom";
 import { getSizeOptions, getQualityOptions } from "../lib/imageSettings";
 import { DEFAULT_RANDOM_EXCLUSIONS, filterStylesForComposition, filterCompositionsForStyle } from "@canonry/world-schema";
+import type { StyleLibrary } from "@canonry/world-schema";
 import type { ImageGenSettings } from "../hooks/useImageGenSettings";
+import type { Culture } from "./chronicle-panel/chroniclePanelTypes";
 import "./ImageSettingsDrawer.css";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
-interface StyleLibrary {
-  artisticStyles: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    promptFragment?: string;
-    category?: string;
-  }>;
-  compositionStyles: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    promptFragment?: string;
-    targetCategory?: string;
-  }>;
-  colorPalettes: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    promptFragment?: string;
-    swatchColors?: string[];
-  }>;
-}
-interface Culture {
-  id: string;
-  name: string;
-}
 interface ImageSettingsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -77,22 +52,17 @@ const ARTISTIC_CATEGORY_LABELS: Record<string, string> = {
   document: "Document"
 };
 const ARTISTIC_CATEGORY_ORDER = ["painting", "ink-print", "digital", "camera", "experimental", "document"];
-const PALETTE_GROUPS: Array<{
-  label: string;
-  ids: string[];
-}> = [{
-  label: "Hues",
-  ids: ["crimson-dynasty", "amber-blaze", "gilded-sunlight", "verdant-jungle", "arctic-cyan", "midnight-sapphire", "electric-magenta", "borealis"]
-}, {
-  label: "Special",
-  ids: ["monochrome-noir", "volcanic-obsidian", "verdigris-patina"]
-}, {
-  label: "Natural",
-  ids: ["natural-daylight", "vivid-realism", "comic-bold"]
-}, {
-  label: "Contrast Pairs",
-  ids: ["blood-ivory", "ink-gold", "jade-obsidian", "azure-bone"]
-}];
+/** Display order and labels for palette groups (derived from ColorPalette.group field) */
+const PALETTE_GROUP_ORDER = ["hue", "special", "natural", "mood", "metallic", "contrast-pair", "metallic-triplet"];
+const PALETTE_GROUP_LABELS: Record<string, string> = {
+  "hue": "Hues",
+  "special": "Special",
+  "natural": "Natural",
+  "mood": "Mood & Atmosphere",
+  "metallic": "Metallic / Void",
+  "contrast-pair": "Contrast Pairs",
+  "metallic-triplet": "Metallic Triplets",
+};
 
 // ─── Sub-components ──────────────────────────────────────────────────────
 
@@ -290,13 +260,21 @@ export default function ImageSettingsDrawer({
     return styleLibrary?.colorPalettes.find(s => s.id === settings.colorPaletteId)?.name || settings.colorPaletteId;
   }, [settings.colorPaletteId, styleLibrary]);
 
-  // Group palettes by pre-defined groups
+  // Group palettes by their group field
   const palettesByGroup = useMemo(() => {
     if (!styleLibrary) return [];
-    const paletteMap = new Map(styleLibrary.colorPalettes.map(p => [p.id, p]));
-    return PALETTE_GROUPS.map(group => ({
-      label: group.label,
-      palettes: group.ids.map(id => paletteMap.get(id)).filter(Boolean)
+    const grouped = new Map<string, typeof styleLibrary.colorPalettes>();
+    for (const p of styleLibrary.colorPalettes) {
+      const g = (p as { group?: string }).group || "other";
+      const list = grouped.get(g) || [];
+      list.push(p);
+      grouped.set(g, list);
+    }
+    // Order by defined order, then any unknown groups at the end
+    const orderedKeys = [...PALETTE_GROUP_ORDER.filter(k => grouped.has(k)), ...[...grouped.keys()].filter(k => !PALETTE_GROUP_ORDER.includes(k))];
+    return orderedKeys.map(key => ({
+      label: PALETTE_GROUP_LABELS[key] || key,
+      palettes: grouped.get(key) || [],
     })).filter(g => g.palettes.length > 0);
   }, [styleLibrary]);
 
@@ -445,8 +423,8 @@ export default function ImageSettingsDrawer({
                   </div>
                 </div>
 
-                {/* Quality - segmented buttons */}
-                <div className="isd-output-group">
+                {/* Quality - segmented buttons (hidden for models without quality params) */}
+                {qualityOptions.length > 0 && <div className="isd-output-group">
                   <div className="isd-output-label">Quality</div>
                   <div className="isd-output-btns">
                     {qualityOptions.map(opt => {
@@ -458,7 +436,7 @@ export default function ImageSettingsDrawer({
                         </button>;
                 })}
                   </div>
-                </div>
+                </div>}
 
                 {/* Culture dropdown */}
                 {cultures && cultures.length > 0 && <div>

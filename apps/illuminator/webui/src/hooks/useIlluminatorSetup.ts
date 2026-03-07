@@ -8,6 +8,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { useImageStore, IndexedDBBackend } from "@the-canonry/image-store";
 import { useStyleLibrary } from "./useStyleLibrary";
 import { useImageGenSettings } from "./useImageGenSettings";
 import type { ImageGenSettings } from "./useImageGenSettings";
@@ -24,7 +25,7 @@ import { computeRunIndexes } from "../lib/db/indexComputation";
 import { upsertRunIndexes } from "../lib/db/indexRepository";
 import * as entityRepo from "../lib/db/entityRepository";
 import * as eventRepo from "../lib/db/eventRepository";
-import type { CanonrySchemaSlice } from "@canonry/world-schema";
+import type { CanonrySchemaSlice, StyleSelection } from "@canonry/world-schema";
 import type { SimulationSlotRecord, PersistedEntity } from "../lib/db/illuminatorDb";
 import type { EntityNavItem } from "../lib/db/entityNav";
 import type { EntityGuidance, CultureIdentities, WorldContext } from "../lib/promptBuilders";
@@ -32,12 +33,6 @@ import type { HistorianConfig } from "../lib/historianTypes";
 import type { ApplyEnrichmentOutput } from "../lib/enrichmentTypes";
 
 // --- Types ---
-
-interface StyleSelection {
-  artisticStyleId: string;
-  compositionStyleId: string;
-  colorPaletteId: string;
-}
 
 interface EraInfo {
   name: string;
@@ -56,6 +51,7 @@ interface WorldData {
 interface ApiKeys {
   anthropicApiKey: string;
   openaiApiKey: string;
+  wavespeedApiKey: string;
 }
 
 interface IlluminatorConfig {
@@ -208,6 +204,7 @@ function buildWorkerConfig(apiKeys: ApiKeys, config: IlluminatorConfig, imageGen
   return {
     anthropicApiKey: apiKeys.anthropicApiKey,
     openaiApiKey: apiKeys.openaiApiKey,
+    wavespeedApiKey: apiKeys.wavespeedApiKey,
     imageModel: config.imageModel,
     imageSize: imageGenSettings.imageSize,
     imageQuality: imageGenSettings.imageQuality,
@@ -242,6 +239,15 @@ export function useIlluminatorSetup({
 }: UseIlluminatorSetupParams) {
   // Style library
   const styleLib = useStyleLibrary();
+
+  // Ensure image store is initialized — Canonry (host) configures it via
+  // module federation singleton sharing, but if the singleton isn't shared
+  // (dev mode, federation mismatch) Illuminator needs its own backend.
+  useEffect(() => {
+    if (useImageStore.getState().initialized) return;
+    const backend = new IndexedDBBackend();
+    void useImageStore.getState().configure(backend);
+  }, []);
 
   // Image gen settings
   const [imageGenSettings, updateImageGenSettings] = useImageGenSettings(
@@ -316,9 +322,9 @@ export function useIlluminatorSetup({
   }, [queue, stats]);
   useChronicleQueueWatcher(queue);
   useEffect(() => {
-    if (apiKeys.anthropicApiKey || apiKeys.openaiApiKey)
+    if (apiKeys.anthropicApiKey || apiKeys.openaiApiKey || apiKeys.wavespeedApiKey)
       initializeWorker(buildWorkerConfig(apiKeys, config, imageGenSettings));
-  }, [apiKeys.anthropicApiKey, apiKeys.openaiApiKey, config, imageGenSettings.imageSize, imageGenSettings.imageQuality, initializeWorker]);
+  }, [apiKeys.anthropicApiKey, apiKeys.openaiApiKey, apiKeys.wavespeedApiKey, config, imageGenSettings.imageSize, imageGenSettings.imageQuality, initializeWorker]);
 
   // Config store sync
   useEffect(() => {

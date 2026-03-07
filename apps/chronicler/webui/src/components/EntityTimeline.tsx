@@ -11,7 +11,6 @@ import type { Optional } from "@the-canonry/shared-components";
 import { useExpandSet } from "@the-canonry/shared-components";
 import type { HardState } from "../types/world.ts";
 import { linkifyText } from "../lib/entityLinking.ts";
-import styles from "./EntityTimeline.module.css";
 
 type WeightTier = "high" | "mid-high" | "mid-low" | "low";
 
@@ -24,22 +23,22 @@ function getWeightTier(significance: number): WeightTier {
 
 function getWeightClass(tier: WeightTier): string {
   switch (tier) {
-    case "high": return styles.weightHigh;
-    case "mid-high": return styles.weightMidHigh;
-    case "mid-low": return styles.weightMidLow;
-    case "low": return styles.weightLow;
+    case "high": return "weight-high";
+    case "mid-high": return "weight-mid-high";
+    case "mid-low": return "weight-mid-low";
+    case "low": return "weight-low";
   }
 }
 
 function getEffectStyle(type: EntityEffect["type"]): { icon: string; colorClass: string } {
   switch (type) {
-    case "created": return { icon: "+", colorClass: styles.effectCreated };
-    case "ended": return { icon: "×", colorClass: styles.effectEnded };
-    case "relationship_formed": return { icon: "↔", colorClass: styles.effectRelationship };
-    case "relationship_ended": return { icon: "↮", colorClass: styles.effectEnded };
-    case "tag_gained": return { icon: "●", colorClass: styles.effectTag };
-    case "tag_lost": return { icon: "○", colorClass: styles.effectEnded };
-    case "field_changed": return { icon: "△", colorClass: styles.effectField };
+    case "created": return { icon: "+", colorClass: "effect-created" };
+    case "ended": return { icon: "×", colorClass: "effect-ended" };
+    case "relationship_formed": return { icon: "↔", colorClass: "effect-relationship" };
+    case "relationship_ended": return { icon: "↮", colorClass: "effect-ended" };
+    case "tag_gained": return { icon: "●", colorClass: "effect-tag" };
+    case "tag_lost": return { icon: "○", colorClass: "effect-ended" };
+    case "field_changed": return { icon: "△", colorClass: "effect-field" };
     default: return { icon: "•", colorClass: "" };
   }
 }
@@ -87,13 +86,13 @@ function ProminenceFilterCheckbox({
   onChange,
 }: Readonly<{ checked: boolean; onChange: (v: boolean) => void }>) {
   return (
-    <label className={styles.filterRow}>
+    <label className="filter-row">
       <input
         type="checkbox" checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className={styles.checkbox}
+        className="checkbox"
       />
-      <span className={styles.checkboxLabel}>Show prominence-only events</span>
+      <span className="checkbox-label">Show prominence-only events</span>
     </label>
   );
 }
@@ -112,16 +111,16 @@ function EventEffectsList({
   onHoverLeave: Optional<() => void>;
 }>) {
   if (effects.length === 0) {
-    return <span className={styles.noEffects}>No specific effects recorded</span>;
+    return <span className="no-effects">No specific effects recorded</span>;
   }
   return (
-    <ul className={styles.effectsList}>
+    <ul className="effects-list">
       {effects.map((effect, idx) => {
         const { icon, colorClass } = getEffectStyle(effect.type);
         return (
-          <li key={idx} className={styles.effectItem}>
-            <span className={`${styles.effectIcon} ${colorClass}`}>{icon}</span>
-            <span className={styles.effectDescription}>
+          <li key={idx} className="effect-item">
+            <span className={`$"effect-icon" ${colorClass}`}>{icon}</span>
+            <span className="effect-description">
               {linkifyText(effect.description, linkableEntities, onNavigate, {
                 linkStyle: entityLinkStyle, onHoverEnter, onHoverLeave,
               })}
@@ -160,23 +159,23 @@ function EventRow({
   return (
     <React.Fragment>
       <tr
-        className={isExpanded ? styles.rowExpanded : styles.row}
+        className={isExpanded ? "row-expanded" : "row"}
         onClick={() => canExpand && onToggle(event.id)}
       >
-        <td className={`${styles.td} ${styles.tdTick}`}>{event.tick}</td>
-        <td className={`${styles.td} ${styles.tdEra}`}>{getEraName(event.era)}</td>
-        <td className={`${styles.td} ${styles.tdEvent} ${getWeightClass(getWeightTier(event.significance ?? 0.5))}`}>
+        <td className={`$"td" $"td-tick"`}>{event.tick}</td>
+        <td className={`$"td" $"td-era"`}>{getEraName(event.era)}</td>
+        <td className={`$"td" $"td-event" ${getWeightClass(getWeightTier(event.significance ?? 0.5))}`}>
           {renderDescription(event)}
         </td>
-        <td className={`${styles.td} ${styles.tdExpand}`}>
+        <td className={`$"td" $"td-expand"`}>
           {canExpand && (
-            <span className={`${styles.expandIcon} ${isExpanded ? styles.expandIconOpen : ""}`}>▶</span>
+            <span className={`$"expand-icon" ${isExpanded ? "expand-icon-open" : ""}`}>▶</span>
           )}
         </td>
       </tr>
       {isExpanded && (
-        <tr className={styles.effectsRow}>
-          <td colSpan={4} className={styles.effectsCell}>
+        <tr className="effects-row">
+          <td colSpan={4} className="effects-cell">
             <EventEffectsList
               effects={effects} linkableEntities={linkableEntities}
               onNavigate={onNavigate} onHoverEnter={onHoverEnter} onHoverLeave={onHoverLeave}
@@ -213,9 +212,9 @@ export default function EntityTimeline({
 
   if (relevantEvents.length === 0 && !showProminenceOnly) {
     return (
-      <div className={styles.container}>
+      <div className="container">
         <ProminenceFilterCheckbox checked={showProminenceOnly} onChange={setShowProminenceOnly} />
-        <div className={styles.emptyState}>
+        <div className="empty-state">
           {loading ? "Loading narrative history..." : "No timeline events recorded for this entity."}
         </div>
       </div>
@@ -223,15 +222,15 @@ export default function EntityTimeline({
   }
 
   return (
-    <div className={styles.container}>
+    <div className="container">
       <ProminenceFilterCheckbox checked={showProminenceOnly} onChange={setShowProminenceOnly} />
-      <table className={styles.table}>
+      <table className="table">
         <thead>
-          <tr className={styles.headerRow}>
-            <th className={styles.thTick}>Tick</th>
-            <th className={styles.thEra}>Era</th>
-            <th className={styles.th}>Event</th>
-            <th className={styles.thExpand}></th>
+          <tr className="header-row">
+            <th className="th-tick">Tick</th>
+            <th className="th-era">Era</th>
+            <th className="th">Event</th>
+            <th className="th-expand"></th>
           </tr>
         </thead>
         <tbody>

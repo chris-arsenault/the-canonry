@@ -6,6 +6,11 @@ import { federationOnWarn, sharedDeps } from '../../../config/federation.js';
 export default defineConfig({
   define: {
     global: 'globalThis',
+    // readable-stream@2 (transitive AWS SDK dep) accesses process.browser
+    // and process.version without guards — shim them for the browser
+    'process.browser': 'true',
+    'process.version': '""',
+    'process.env': '({})',
   },
   resolve: {
     alias: {

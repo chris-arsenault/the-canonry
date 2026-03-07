@@ -15,7 +15,6 @@ import {
   type NarrativeEvent,
 } from "@canonry/world-schema";
 import type { Optional } from "@the-canonry/shared-components";
-import styles from "./ProminenceTimeline.module.css";
 
 // Prominence level colors used in SVG - warm palette
 const PROMINENCE_COLORS = {
@@ -163,7 +162,7 @@ function ProminenceGraphSvg({
   onPointHover: (point: ProminenceDataPoint | null, e?: React.MouseEvent) => void;
 }>) {
   return (
-    <svg className={styles.svg} viewBox="0 0 100 100" preserveAspectRatio="none">
+    <svg className="svg" viewBox="0 0 100 100" preserveAspectRatio="none">
       {prominenceLevels.map((level, i) => {
         const nextThreshold = prominenceLevels[i + 1]?.threshold ?? prominenceScale.max;
         return (
@@ -207,7 +206,7 @@ function ProminenceGraphSvg({
           cy={metrics.yScale(point.newValue)}
           r={2}
           fill={graphColors.marker}
-          className={styles.dataPoint}
+          className="data-point"
           onMouseEnter={(e) => onPointHover(point, e)}
           onMouseLeave={() => onPointHover(null)}
         />
@@ -231,35 +230,35 @@ function ProminenceTooltip({
 
   return (
     <div
-      className={styles.tooltip}
+      className="tooltip"
       style={{
         "--tooltip-left": `${hoveredPoint.x + 10}px`,
         "--tooltip-top": `${hoveredPoint.y - 40}px`,
       } as React.CSSProperties}
     >
-      <div className={styles.tooltipValue}>
+      <div className="tooltip-value">
         <span
           style={{ "--prominence-color": resolveColor(hoveredPoint.point.previousValue) } as React.CSSProperties}
-          className={styles.transitionColor}
+          className="transition-color"
         >
           {resolveLabel(hoveredPoint.point.previousValue)}
         </span>
         {" "}
         <span
           style={{ "--prominence-color": graphColors.textMuted } as React.CSSProperties}
-          className={styles.transitionColor}
+          className="transition-color"
         >
           &rarr;
         </span>
         {" "}
         <span
           style={{ "--prominence-color": resolveColor(hoveredPoint.point.newValue) } as React.CSSProperties}
-          className={styles.transitionColor}
+          className="transition-color"
         >
           {resolveLabel(hoveredPoint.point.newValue)}
         </span>
       </div>
-      <div className={styles.tooltipDescription}>{hoveredPoint.point.description}</div>
+      <div className="tooltip-description">{hoveredPoint.point.description}</div>
     </div>
   );
 }
@@ -313,9 +312,9 @@ export default function ProminenceTimeline({
   if (!graphMetrics) return null;
 
   return (
-    <div className={styles.container}>
-      <div className={styles.title}>Prominence Over Time</div>
-      <div className={styles.graphContainer}>
+    <div className="container">
+      <div className="title">Prominence Over Time</div>
+      <div className="graph-container">
         <ProminenceGraphSvg
           metrics={graphMetrics}
           linePath={linePath}

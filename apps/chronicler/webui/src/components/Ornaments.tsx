@@ -17,7 +17,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import type { Optional } from "@the-canonry/shared-components";
 import parchmentSrc from "../assets/textures/parchment.jpg";
 import vellumSrc from "../assets/textures/vellum.jpg";
-import ornStyles from "./Ornaments.module.css";
 
 /* =========================================
    Image processing pipeline
@@ -238,7 +237,7 @@ export function ParchmentTexture({
 
   // Mirror tile is 2x WORK_SIZE
   const tileSize = WORK_SIZE * 2;
-  return <div aria-hidden className={`${className ?? ""} ${ornStyles.parchmentTexture}`}
+  return <div aria-hidden className={`${className ?? ""} $"parchment-texture"`}
    
   style={{
     "--parchment-url": `url(${textureUrl})`,
@@ -267,10 +266,10 @@ function Slider({
   step: number;
   onChange: (v: number) => void;
 }>) {
-  return <div className={ornStyles.sliderRow}>
-      <span className={ornStyles.sliderLabel}>{label}</span>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(parseFloat(e.target.value))} className={ornStyles.sliderInput} />
-      <span className={ornStyles.sliderValue}>{step >= 1 ? value : value.toFixed(2)}</span>
+  return <div className="slider-row">
+      <span className="slider-label">{label}</span>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(parseFloat(e.target.value))} className="slider-input" />
+      <span className="slider-value">{step >= 1 ? value : value.toFixed(2)}</span>
     </div>;
 }
 export function ParchmentDebugPanel({
@@ -288,18 +287,18 @@ export function ParchmentDebugPanel({
   const handleOpen = useCallback(() => setOpen(true), []);
   const handleClose = useCallback(() => setOpen(false), []);
 
-  if (!open) return <button className={ornStyles.debugBtn} onClick={handleOpen}>Parchment Config</button>;
-  return <div className={ornStyles.debugPanel}>
-      <div className={ornStyles.debugHeader}>
-        <strong className={ornStyles.debugTitle}>Parchment Config</strong>
-        <button onClick={handleClose} className={ornStyles.debugClose}>✕</button>
+  if (!open) return <button className="debug-btn" onClick={handleOpen}>Parchment Config</button>;
+  return <div className="debug-panel">
+      <div className="debug-header">
+        <strong className="debug-title">Parchment Config</strong>
+        <button onClick={handleClose} className="debug-close">✕</button>
       </div>
 
       <Slider label="Opacity" value={config.opacity} min={0} max={1} step={0.01} onChange={setOpacity} />
       <Slider label="Blur radius" value={config.blurRadius} min={2} max={20} step={1} onChange={setBlurRadius} />
       <Slider label="Detail" value={config.detailStrength} min={0} max={3} step={0.1} onChange={setDetailStrength} />
 
-      <button onClick={handleReset} className={ornStyles.resetBtn}>Reset Defaults</button>
+      <button onClick={handleReset} className="reset-btn">Reset Defaults</button>
     </div>;
 }
 
@@ -337,21 +336,21 @@ export function PageFrame({
 }: Readonly<{
   className: Optional<string>;
 }>) {
-  return <div aria-hidden="true" className={`${className ?? ""} ${ornStyles.pageFrame}`}>
+  return <div aria-hidden="true" className={`${className ?? ""} $"page-frame"`}>
       {/* Top-left */}
-      <div className={ornStyles.cornerTopLeft}>
+      <div className="corner-top-left">
         <ScrollCorner />
       </div>
       {/* Top-right */}
-      <div className={ornStyles.cornerTopRight}>
+      <div className="corner-top-right">
         <ScrollCorner />
       </div>
       {/* Bottom-left */}
-      <div className={ornStyles.cornerBottomLeft}>
+      <div className="corner-bottom-left">
         <ScrollCorner />
       </div>
       {/* Bottom-right */}
-      <div className={ornStyles.cornerBottomRight}>
+      <div className="corner-bottom-right">
         <ScrollCorner />
       </div>
     </div>;
@@ -402,7 +401,7 @@ export function FrostEdge({
   position: Optional<"top" | "bottom">;
   className: Optional<string>;
 }>) {
-  return <svg aria-hidden="true" viewBox="0 0 260 12" className={[className ?? "", position === "bottom" ? ornStyles.frostFlipped : ""].filter(Boolean).join(" ")} fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+  return <svg aria-hidden="true" viewBox="0 0 260 12" className={[className ?? "", position === "bottom" ? "frost-flipped" : ""].filter(Boolean).join(" ")} fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       {/* Frost background band — visible blue-tinted bar */}
       <rect x="0" y="6" width="260" height="6" fill="#8ab4c4" opacity="0.12" />
       {/* Frost gradient fade at the bar edge */}

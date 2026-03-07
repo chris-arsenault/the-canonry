@@ -21,6 +21,7 @@ interface ImageRecordBase {
   originalPrompt: string;
   finalPrompt: string;
   revisedPrompt: string;
+  generatedAt?: number;
 }
 
 type ImageRecord =
@@ -45,10 +46,24 @@ interface ImageFile {
   blob: Blob;
 }
 
+interface ImageAlternateVersion {
+  imageId: string;
+  generatedAt: number;
+  url: string;
+}
+
+interface ImageAlternateGroup {
+  activeId: string;
+  versions: ImageAlternateVersion[];
+}
+
+type ImageAlternates = Record<string, ImageAlternateGroup>;
+
 interface ImageAssets {
   imageData: { generatedAt: string; totalImages: number; results: ImageEntry[] } | null;
   images: Record<string, string> | null;
   imageFiles: ImageFile[];
+  imageAlternates: ImageAlternates | null;
 }
 
 interface ImageStorageConfig {
@@ -347,6 +362,65 @@ async function processLocalImages(
 }
 
 // ---------------------------------------------------------------------------
+// Alternate image collection (S3 mode only)
+// ---------------------------------------------------------------------------
+
+function computeSlotKey(record: ImageRecord): string | null {
+  if (record.imageType === "chronicle") {
+    if (record.imageRefId === "__cover_image__") return `cover:${record.chronicleId}`;
+    return `scene:${record.chronicleId}:${record.imageRefId}`;
+  }
+  if (record.imageType === "entity") return `entity:${record.entityId}`;
+  return null;
+}
+
+function collectAlternates(
+  referencedIds: Set<string>,
+  allRecords: ImageRecord[],
+  storage: ImageStorageConfig,
+): ImageAlternates | null {
+  // Build slot → records index from ALL project images
+  const slotIndex = new Map<string, ImageRecord[]>();
+  for (const record of allRecords) {
+    const slot = computeSlotKey(record);
+    if (!slot) continue;
+    let list = slotIndex.get(slot);
+    if (!list) {
+      list = [];
+      slotIndex.set(slot, list);
+    }
+    list.push(record);
+  }
+
+  const alternates: ImageAlternates = {};
+  for (const imageId of referencedIds) {
+    const record = allRecords.find((r) => r.imageId === imageId);
+    if (!record) continue;
+    const slot = computeSlotKey(record);
+    if (!slot) continue;
+    const siblings = slotIndex.get(slot);
+    if (!siblings || siblings.length < 2) continue;
+
+    // Sort newest first
+    const sorted = [...siblings].sort((a, b) => (b.generatedAt ?? 0) - (a.generatedAt ?? 0));
+
+    const versions = sorted
+      .map((r) => ({
+        imageId: r.imageId,
+        generatedAt: r.generatedAt ?? 0,
+        url: (buildStorageImageUrl(storage, "raw", r.imageId) as string) || "",
+      }))
+      .filter((v) => v.url);
+
+    if (versions.length > 1) {
+      alternates[imageId] = { activeId: imageId, versions };
+    }
+  }
+
+  return Object.keys(alternates).length > 0 ? alternates : null;
+}
+
+// ---------------------------------------------------------------------------
 // Main image asset builder
 // ---------------------------------------------------------------------------
 
@@ -369,7 +443,7 @@ export async function buildBundleImageAssets({
 }: BuildBundleImageAssetsParams): Promise<ImageAssets> {
   const imageIds = collectReferencedImageIds(worldData, chronicles, staticPages, eraNarratives);
   if (imageIds.size === 0) {
-    return { imageData: null, images: null, imageFiles: [] };
+    return { imageData: null, images: null, imageFiles: [], imageAlternates: null };
   }
 
   const imageRecords = projectId ? ((await getImagesByProject(projectId)) as ImageRecord[]) : [];
@@ -396,8 +470,13 @@ export async function buildBundleImageAssets({
   }
 
   if (imageResults.length === 0) {
-    return { imageData: null, images: null, imageFiles: [] };
+    return { imageData: null, images: null, imageFiles: [], imageAlternates: null };
   }
+
+  const imageAlternates = mode === "s3" && storage
+    ? collectAlternates(imageIds, imageRecords, storage)
+    : null;
+
   return {
     imageData: {
       generatedAt: new Date().toISOString(),
@@ -406,5 +485,6 @@ export async function buildBundleImageAssets({
     },
     images,
     imageFiles,
+    imageAlternates,
   };
 }

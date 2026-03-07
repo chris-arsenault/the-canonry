@@ -633,6 +633,20 @@ export interface PromptRequestRef extends BaseChronicleImageRef {
   generatedImageId?: string;
   /** Error message if generation failed */
   error?: string;
+  /** Visual/atmospheric tags for style selection (e.g. "intimate", "dramatic-lighting") */
+  visualTags?: string[];
+  /** LLM-suggested artistic style ID (top pick) */
+  suggestedArtisticStyleId?: string;
+  /** LLM-suggested composition style ID (top pick) */
+  suggestedCompositionStyleId?: string;
+  /** LLM-suggested color palette ID (top pick) */
+  suggestedColorPaletteId?: string;
+  /** Ranked artistic style IDs (top 5, best first) */
+  rankedArtisticStyleIds?: string[];
+  /** Ranked composition style IDs (top 5, best first) */
+  rankedCompositionStyleIds?: string[];
+  /** Ranked color palette IDs (top 5, best first) */
+  rankedColorPaletteIds?: string[];
 }
 
 /** Union type for all chronicle image references */
@@ -703,6 +717,16 @@ export interface ChronicleCoverImage {
   generatedImageId?: string;
   /** Error message if generation failed */
   error?: string;
+  /** Visual/atmospheric tags from bulk tagging */
+  visualTags?: string[];
+  /** Suggested style assignments from bulk tagging */
+  suggestedArtisticStyleId?: string;
+  suggestedCompositionStyleId?: string;
+  suggestedColorPaletteId?: string;
+  /** Ranked lists from bulk tagging */
+  rankedArtisticStyleIds?: string[];
+  rankedCompositionStyleIds?: string[];
+  rankedColorPaletteIds?: string[];
 }
 
 // =============================================================================

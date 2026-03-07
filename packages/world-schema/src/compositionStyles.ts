@@ -43,6 +43,12 @@ export interface CompositionStyle {
    * Empty string for universal compositions.
    */
   targetCategory: CompositionCategory | '';
+  /**
+   * Default image aspect ratio for this composition.
+   * Used by bulk scene generation to pick the right image size.
+   * Falls back to "landscape" if not set.
+   */
+  defaultImageAspect?: 'square' | 'landscape' | 'portrait';
 }
 
 export const DEFAULT_COMPOSITION_STYLES: CompositionStyle[] = [

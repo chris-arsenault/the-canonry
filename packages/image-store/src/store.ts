@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import type { ImageBackend, ImageEntryMetadata, ImageSize, CachedUrl } from './types';
+import type { ImageBackend, ImageEntryMetadata, ImageSize, CachedUrl, AlternateGroup } from './types';
 
 export interface ImageStoreState {
   backend: ImageBackend | null;
   initialized: boolean;
   urlCache: Map<string, CachedUrl>;
   metadataCache: Map<string, ImageEntryMetadata>;
+  alternatesCache: Map<string, AlternateGroup | null>;
 
   /** Set the backend and initialize it. Cleans up previous backend. */
   configure: (backend: ImageBackend) => Promise<void>;
@@ -18,6 +19,9 @@ export interface ImageStoreState {
 
   /** Load metadata for a set of image IDs (cache-first). */
   loadMetadata: (imageIds: string[]) => Promise<Map<string, ImageEntryMetadata>>;
+
+  /** Load alternate versions for an image (cache-first). */
+  loadAlternates: (imageId: string) => Promise<AlternateGroup | null>;
 
   /** Revoke all object URLs and release backend resources. */
   cleanup: () => void;
@@ -99,6 +103,7 @@ export const useImageStore = create<ImageStoreState>((set, get) => ({
   initialized: false,
   urlCache: new Map(),
   metadataCache: new Map(),
+  alternatesCache: new Map(),
 
   configure: async (backend: ImageBackend) => {
     const prev = get().backend;
@@ -106,7 +111,7 @@ export const useImageStore = create<ImageStoreState>((set, get) => ({
       revokeAllUrls(get().urlCache);
       prev.cleanup();
     }
-    set({ backend, initialized: false, urlCache: new Map(), metadataCache: new Map() });
+    set({ backend, initialized: false, urlCache: new Map(), metadataCache: new Map(), alternatesCache: new Map() });
     await backend.initialize();
     set({ initialized: true });
   },
@@ -142,10 +147,21 @@ export const useImageStore = create<ImageStoreState>((set, get) => ({
     return result;
   },
 
+  loadAlternates: async (imageId: string) => {
+    const { backend, alternatesCache } = get();
+    if (!backend) return null;
+    if (alternatesCache.has(imageId)) return alternatesCache.get(imageId)!;
+    const group = await backend.getAlternates(imageId);
+    const newCache = new Map(get().alternatesCache);
+    newCache.set(imageId, group);
+    set({ alternatesCache: newCache });
+    return group;
+  },
+
   cleanup: () => {
     const { backend, urlCache } = get();
     revokeAllUrls(urlCache);
     if (backend) backend.cleanup();
-    set({ backend: null, initialized: false, urlCache: new Map(), metadataCache: new Map() });
+    set({ backend: null, initialized: false, urlCache: new Map(), metadataCache: new Map(), alternatesCache: new Map() });
   },
 }));

@@ -71,6 +71,7 @@ function processChronicleImageTask(
   chronicleIds: Set<string>
 ): void {
   if (!task.chronicleId || !task.imageRefId) return;
+
   const isCover = task.imageRefId === "__cover_image__";
   const imageId = task.result?.imageId ?? "";
   queueChronicleImageUpdate(
@@ -117,6 +118,7 @@ function queueEraNarrativeImageUpdate(
 function processEraNarrativeImageTask(task: QueueItem, updates: Promise<unknown>[]): void {
   const narrativeId = task.chronicleId;
   if (!narrativeId || !task.imageRefId) return;
+
   const isCover = task.imageRefId === "__cover_image__";
   const imageId = task.result?.imageId ?? "";
   queueEraNarrativeImageUpdate(
@@ -156,6 +158,11 @@ function dispatchCompletedTask(
     } else {
       console.log("[ChronicleQueueWatcher] No chronicleId found on task, triggering refreshAll");
       return true;
+    }
+    // Batch tasks may include additional chronicle IDs
+    const batchIds = (task as Record<string, unknown>).chronicleIds as string[] | undefined;
+    if (batchIds) {
+      for (const id of batchIds) chronicleIds.add(id);
     }
   }
   return false;

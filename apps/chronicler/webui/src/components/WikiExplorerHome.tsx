@@ -4,7 +4,7 @@
 
 import React, { useMemo, useState, useCallback } from "react";
 import type { Optional } from "@the-canonry/shared-components";
-import { useImageUrl } from "@the-canonry/image-store";
+import { ImageDisplay } from "@the-canonry/shared-components";
 import type { WorldState, WikiPage, HardState } from "../types/world.ts";
 import {
   prominenceLabelFromScale,
@@ -74,50 +74,45 @@ async function loadFullSizeImage(imageId: string, thumbnailUrl: string): Promise
   } catch { return thumbnailUrl; }
 }
 
-// eslint-disable-next-line complexity -- featured article card with image loading, metadata badges, and lightbox; conditional rendering of visual elements is inherent to the component
 function FeaturedArticleSection({ featuredArticle, onNavigate }: Readonly<{
   featuredArticle: HardState; onNavigate: (id: string) => void;
 }>) {
   const featuredImageId = featuredArticle.enrichment?.image?.imageId;
-  const { url: featuredImageUrl } = useImageUrl(featuredImageId);
   const [activeImage, setActiveImage] = useState<{
     url: string; title: string; summary: Optional<string>;
   } | null>(null);
 
-  const openFeaturedImage = useCallback(async () => {
-    if (!featuredImageUrl) return;
-    const imageId = featuredArticle.enrichment?.image?.imageId;
-    const fullUrl = imageId ? await loadFullSizeImage(imageId, featuredImageUrl) : featuredImageUrl;
+  const handleImageClick = useCallback(async (imageId: string, thumbUrl: string) => {
+    const fullUrl = await loadFullSizeImage(imageId, thumbUrl);
     setActiveImage({ url: fullUrl, title: featuredArticle.name, summary: featuredArticle.summary });
-  }, [featuredArticle, featuredImageUrl]);
+  }, [featuredArticle]);
 
   const closeImageModal = useCallback(() => setActiveImage(null), []);
 
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Featured</h2>
-      <div className={styles.featuredLayout}>
-        {featuredImageUrl && (
-          <button
-            onClick={() => void openFeaturedImage()}
-            className={styles.featuredImage}
-            aria-label={`Enlarge ${featuredArticle.name} image`}
-          >
-            <img src={featuredImageUrl} alt={featuredArticle.name} className={styles.featuredImageInner} />
+    <div className="section">
+      <h2 className="section-title">Featured</h2>
+      <div className="featured-layout">
+        <ImageDisplay
+          imageId={featuredImageId}
+          alt={featuredArticle.name}
+          className="featured-image-inner"
+          containerClassName="featured-image"
+          onClick={(id, url) => void handleImageClick(id, url)}
+          enableVersionCycling
+        />
+        <div className="featured-content">
+          <button onClick={() => onNavigate(featuredArticle.id)} className="title-button">
+            <h3 className="title-button-text">{featuredArticle.name}</h3>
           </button>
-        )}
-        <div className={styles.featuredContent}>
-          <button onClick={() => onNavigate(featuredArticle.id)} className={styles.titleButton}>
-            <h3 className={styles.titleButtonText}>{featuredArticle.name}</h3>
-          </button>
-          <div className={styles.featuredMeta}>
+          <div className="featured-meta">
             {featuredArticle.kind}
             {featuredArticle.subtype && featuredArticle.subtype !== featuredArticle.kind && <> · {featuredArticle.subtype}</>}
             {featuredArticle.culture && <> · {featuredArticle.culture}</>}
           </div>
-          <p className={styles.featuredSummary}>
+          <p className="featured-summary">
             {truncateSummary(featuredArticle.summary || "", 280)}{" "}
-            <button onClick={() => onNavigate(featuredArticle.id)} className={styles.inlineLink}>(Full article...)</button>
+            <button onClick={() => onNavigate(featuredArticle.id)} className="inline-link">(Full article...)</button>
           </p>
         </div>
       </div>
@@ -138,15 +133,15 @@ function HistorianDeskSection({ facts, onNavigate }: Readonly<{
 }>) {
   if (facts.length === 0) return null;
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>From the Historian&apos;s Desk</h2>
-      <ul className={styles.didYouKnowList}>
+    <div className="section">
+      <h2 className="section-title">From the Historian&apos;s Desk</h2>
+      <ul className="did-you-know-list">
         {facts.map((fact, idx) => (
-          <li key={idx} className={styles.didYouKnowItem}>
+          <li key={idx} className="did-you-know-item">
             ...that{" "}
-            <button onClick={() => onNavigate(fact.srcEntity.id)} className={styles.entityLinkBold}>{fact.srcEntity.name}</button>{" "}
+            <button onClick={() => onNavigate(fact.srcEntity.id)} className="entity-link-bold">{fact.srcEntity.name}</button>{" "}
             has a <em>{formatRelKind(fact.kind)}</em> relationship with{" "}
-            <button onClick={() => onNavigate(fact.dstEntity.id)} className={styles.entityLinkBold}>{fact.dstEntity.name}</button>?
+            <button onClick={() => onNavigate(fact.dstEntity.id)} className="entity-link-bold">{fact.dstEntity.name}</button>?
           </li>
         ))}
       </ul>
@@ -159,16 +154,16 @@ function ErasOfHistorySection({ eras, eraNarrativeByEraId, onNavigate }: Readonl
 }>) {
   if (eras.length === 0) return null;
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Eras of History</h2>
-      <div className={styles.eraList}>
+    <div className="section">
+      <h2 className="section-title">Eras of History</h2>
+      <div className="era-list">
         {eras.map((era, idx) => {
           const narrativePageId = eraNarrativeByEraId.get(era.id);
           return (
-            <button key={era.id} onClick={() => onNavigate(narrativePageId || era.id)} className={styles.eraButton}>
-              <span className={styles.eraNumber}>{idx + 1}</span>
-              <span className={styles.eraButtonName}>{era.name}</span>
-              {era.summary && <span className={styles.eraButtonSummary}>{truncateSummary(era.summary, 40)}</span>}
+            <button key={era.id} onClick={() => onNavigate(narrativePageId || era.id)} className="era-button">
+              <span className="era-number">{idx + 1}</span>
+              <span className="era-button-name">{era.name}</span>
+              {era.summary && <span className="era-button-summary">{truncateSummary(era.summary, 40)}</span>}
             </button>
           );
         })}
@@ -182,23 +177,23 @@ function EntityListSection({ title, subtext, entities, totalLinks, onNavigate }:
   entities: HardState[]; totalLinks: Map<string, number>; onNavigate: (id: string) => void;
 }>) {
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>{title}</h2>
-      {subtext && <p className={styles.sectionSubtext}>{subtext}</p>}
-      <div className={styles.entityListColumn}>
+    <div className="section">
+      <h2 className="section-title">{title}</h2>
+      {subtext && <p className="section-subtext">{subtext}</p>}
+      <div className="entity-list-column">
         {entities.map((entity) => {
           const linkCount = totalLinks.get(entity.id) || 0;
           return (
-            <button key={entity.id} onClick={() => onNavigate(entity.id)} className={styles.entityListItem}>
-              <div className={styles.entityListHeader}>
-                <span className={styles.entityListName}>{entity.name}</span>
-                <span className={styles.entityListBadge}>{linkCount} links</span>
+            <button key={entity.id} onClick={() => onNavigate(entity.id)} className="entity-list-item">
+              <div className="entity-list-header">
+                <span className="entity-list-name">{entity.name}</span>
+                <span className="entity-list-badge">{linkCount} links</span>
               </div>
-              <div className={styles.entityListMeta}>
+              <div className="entity-list-meta">
                 {entity.kind}
                 {entity.culture && <> · {entity.culture}</>}
               </div>
-              {entity.summary && <div className={styles.entityListSummary}>{truncateSummary(entity.summary, 80)}</div>}
+              {entity.summary && <div className="entity-list-summary">{truncateSummary(entity.summary, 80)}</div>}
             </button>
           );
         })}
@@ -211,12 +206,12 @@ function BrowseByTypeSection({ kindDistribution, onNavigate }: Readonly<{
   kindDistribution: Array<[string, number]>; onNavigate: (id: string) => void;
 }>) {
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Browse by Type</h2>
-      <div className={styles.browseTypeGrid}>
+    <div className="section">
+      <h2 className="section-title">Browse by Type</h2>
+      <div className="browse-type-grid">
         {kindDistribution.map(([kind, count]) => (
-          <button key={kind} onClick={() => onNavigate(`category-kind-${kind}`)} className={styles.browseTypeButton}>
-            {kind} <span className={styles.browseTypeCount}>({count})</span>
+          <button key={kind} onClick={() => onNavigate(`category-kind-${kind}`)} className="browse-type-button">
+            {kind} <span className="browse-type-count">({count})</span>
           </button>
         ))}
       </div>
@@ -230,20 +225,20 @@ function ChroniclesPreviewSection({ chronicles, onNavigate }: Readonly<{
   const handleViewAll = useCallback(() => onNavigate("chronicles"), [onNavigate]);
   if (chronicles.length === 0) return null;
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Chronicles</h2>
-      <div className={styles.chroniclesList}>
+    <div className="section">
+      <h2 className="section-title">Chronicles</h2>
+      <div className="chronicles-list">
         {chronicles.slice(0, 4).map((chronicle) => (
-          <button key={chronicle.id} onClick={() => onNavigate(chronicle.id)} className={styles.chronicleItem}>
+          <button key={chronicle.id} onClick={() => onNavigate(chronicle.id)} className="chronicle-item">
             <span>{chronicle.title}</span>
-            <span className={styles.chronicleFormat}>
+            <span className="chronicle-format">
               {chronicle.chronicle?.format === "story" ? "Story" : "Document"}
             </span>
           </button>
         ))}
       </div>
       {chronicles.length > 4 && (
-        <button onClick={handleViewAll} className={styles.viewAllButton}>
+        <button onClick={handleViewAll} className="view-all-button">
           View all {chronicles.length} chronicles &rarr;
         </button>
       )}
@@ -354,10 +349,10 @@ export function HomePage({
   const kindDistribution = useMemo(() => computeKindDistribution(worldData.hardState), [worldData.hardState]);
 
   return (
-    <div className={styles.homeContainer}>
-      <div className={styles.homeHeader}>
-        <h1 className={styles.homeTitle}>World Chronicle</h1>
-        <div className={styles.homeStats}>
+    <div className="home-container">
+      <div className="home-header">
+        <h1 className="home-title">World Chronicle</h1>
+        <div className="home-stats">
           {worldData.hardState.filter((e) => e.kind !== "era").length} entries
           {" · "}
           {eras.length > 0 && <>{eras.length} eras · </>}
@@ -366,13 +361,13 @@ export function HomePage({
       </div>
 
       {aboutPage && (
-        <div className={styles.aboutBanner}>
-          <div className={styles.aboutBannerText}>{aboutPage.content.summary || "Learn about this world and its lore."}</div>
-          <button onClick={() => onNavigate(aboutPage.id)} className={styles.aboutBannerButton}>Read more &rarr;</button>
+        <div className="about-banner">
+          <div className="about-banner-text">{aboutPage.content.summary || "Learn about this world and its lore."}</div>
+          <button onClick={() => onNavigate(aboutPage.id)} className="about-banner-button">Read more &rarr;</button>
         </div>
       )}
 
-      <div className={isMobile ? styles.homeGridMobile : styles.homeGrid}>
+      <div className={isMobile ? "home-grid-mobile" : "home-grid"}>
         <div>
           {featuredArticle && <FeaturedArticleSection featuredArticle={featuredArticle} onNavigate={onNavigate} />}
           <HistorianDeskSection facts={didYouKnow} onNavigate={onNavigate} />
@@ -382,7 +377,7 @@ export function HomePage({
           <EntityListSection title="Notable Figures" entities={linkStats.mostLinked} totalLinks={linkStats.totalLinks} onNavigate={onNavigate} />
           <EntityListSection title="Undiscovered" subtext="Corners of the world awaiting a curious reader" entities={linkStats.leastLinked} totalLinks={linkStats.totalLinks} onNavigate={onNavigate} />
           {linkStats.isolated.length > 0 && (
-            <div className={styles.sectionFootnote}>+ {linkStats.isolated.length} isolated entities with no connections</div>
+            <div className="section-footnote">+ {linkStats.isolated.length} isolated entities with no connections</div>
           )}
           <BrowseByTypeSection kindDistribution={kindDistribution} onNavigate={onNavigate} />
           <ChroniclesPreviewSection chronicles={chronicles} onNavigate={onNavigate} />

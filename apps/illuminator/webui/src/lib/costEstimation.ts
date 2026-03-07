@@ -20,6 +20,7 @@
  */
 
 import { LLM_CALL_METADATA, type LLMCallType } from "./llmCallTypes";
+import { isWaveSpeedModel } from "./imageSettings";
 
 // Rate per million tokens
 export interface TextModelRates {
@@ -183,6 +184,7 @@ export function estimateTextCostForCall(
  * Estimate cost for an image generation task
  */
 export function estimateImageCost(model: string, size: string, quality: string): number {
+  if (isWaveSpeedModel(model)) return 0.03; // Flat estimate — WaveSpeed pricing varies by model
   const rates = IMAGE_MODEL_RATES[model] || IMAGE_MODEL_RATES["dall-e-3"];
 
   if (rates.type === "token-based") {
@@ -225,6 +227,7 @@ export function calculateActualImageCost(
   quality: string,
   usage?: { inputTokens: number; outputTokens: number }
 ): number {
+  if (isWaveSpeedModel(model)) return 0.03; // Flat estimate — WaveSpeed pricing varies by model
   const rates = IMAGE_MODEL_RATES[model] || IMAGE_MODEL_RATES["dall-e-3"];
 
   if (rates.type === "token-based" && usage) {

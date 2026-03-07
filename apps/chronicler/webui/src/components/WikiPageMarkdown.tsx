@@ -142,7 +142,7 @@ export function MarkdownSection({
       onClick={handleClick}
       onMouseOver={handleMouseOver}
       onMouseOut={handleMouseOut}
-      className={styles.markdownSection}
+      className="markdown-section"
       {...(isFirstFragment ? { "data-first": "" } : {})}
       onBlur={handleMouseOut}
       onFocus={handleMouseOver}

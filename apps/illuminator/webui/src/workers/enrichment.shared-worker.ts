@@ -24,7 +24,7 @@ import {
   executeTask as executeEnrichmentTask,
 } from "./enrichmentCore";
 import type { LLMClient } from "../lib/llmClient";
-import type { ImageClient } from "../lib/imageClient";
+import type { ImageClientInterface } from "./clients";
 import * as entityRepo from "../lib/db/entityRepository";
 
 // Minimal SharedWorker global shape — full SharedWorkerGlobalScope is only
@@ -40,7 +40,7 @@ const ctx: SharedWorkerSelf = self as unknown as SharedWorkerSelf;
 
 let config: WorkerConfig | null = null;
 let llmClient: LLMClient | null = null;
-let imageClient: ImageClient | null = null;
+let imageClient: ImageClientInterface | null = null;
 
 // Track active tasks and their originating ports
 const activeTasks = new Map<string, { port: MessagePort; aborted: boolean }>();

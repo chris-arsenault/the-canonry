@@ -38,11 +38,11 @@ export function HistorianCallout({
   if (layoutMode === "margin") {
     return (
       <aside
-        className={styles.marginCallout}
+        className="margin-callout"
         style={{ "--note-color": color } as React.CSSProperties}
       >
-        <div className={styles.marginCalloutLabel}>
-          {indexLabel && <span className={styles.noteIndexLabel}>{indexLabel}</span>}
+        <div className="margin-callout-label">
+          {indexLabel && <span className="note-index-label">{indexLabel}</span>}
           {icon} {label}
         </div>
         {note.text}
@@ -52,9 +52,9 @@ export function HistorianCallout({
 
   // Flow mode: floated right callout
   return (
-    <aside className={styles.flowCallout} style={{ "--note-color": color } as React.CSSProperties}>
-      <div className={styles.noteTypeLabel}>
-        {indexLabel && <span className={styles.noteIndexLabel}>{indexLabel}</span>}
+    <aside className="flow-callout" style={{ "--note-color": color } as React.CSSProperties}>
+      <div className="note-type-label">
+        {indexLabel && <span className="note-index-label">{indexLabel}</span>}
         {icon} {label}
       </div>
       {note.text}
@@ -87,7 +87,7 @@ export function HistorianFootnoteTooltip({
 
   return (
     <div
-      className={styles.footnoteTooltip}
+      className="footnote-tooltip"
       style={
         {
           "--tooltip-left": `${left}px`,
@@ -96,8 +96,8 @@ export function HistorianFootnoteTooltip({
         } as React.CSSProperties
       }
     >
-      <div className={styles.noteTypeLabel}>
-        {indexLabel && <span className={styles.noteIndexLabel}>{indexLabel}</span>}
+      <div className="note-type-label">
+        {indexLabel && <span className="note-index-label">{indexLabel}</span>}
         {icon} {label}
       </div>
       {note.text}

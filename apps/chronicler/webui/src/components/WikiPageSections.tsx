@@ -137,7 +137,7 @@ function buildFlowFragments(
 
 function FootnoteList({ orderedNotes }: Readonly<{ orderedNotes: WikiHistorianNote[] }>) {
   return (
-    <ol className={styles.footnoteList}>
+    <ol className="footnote-list">
       {orderedNotes.map((note) => {
         const color = HISTORIAN_NOTE_COLORS[note.type] || HISTORIAN_NOTE_COLORS.commentary;
         const icon = HISTORIAN_NOTE_ICONS[note.type] || "\u2726";
@@ -145,13 +145,13 @@ function FootnoteList({ orderedNotes }: Readonly<{ orderedNotes: WikiHistorianNo
         return (
           <li
             key={note.noteId}
-            className={styles.footnoteItem}
+            className="footnote-item"
             style={{ "--note-color": color } as React.CSSProperties}
           >
-            <span className={styles.footnoteLabel}>
+            <span className="footnote-label">
               {icon} {label}
             </span>
-            <span className={styles.footnoteText}>{note.text}</span>
+            <span className="footnote-text">{note.text}</span>
           </li>
         );
       })}
@@ -346,7 +346,7 @@ export function SectionWithImages({
   };
 
   if (!hasInserts) {
-    const wrapperClass = layoutMode === "centered" ? styles.centeredLayout : undefined;
+    const wrapperClass = layoutMode === "centered" ? "centered-layout" : undefined;
     return (
       <div className={wrapperClass} {...footnoteEvents}>
         <MarkdownSection content={annotatedContent} {...contentProps} isFirstFragment={isFirstChronicleSection} />
@@ -360,14 +360,14 @@ export function SectionWithImages({
   if (layoutMode === "margin") {
     const { leftItems, rightItems } = distributeToMarginColumns(images, effectiveFullNoteInserts);
     return (
-      <div className={styles.marginLayout} {...footnoteEvents}>
-        <div className={styles.marginLeft}>
+      <div className="margin-layout" {...footnoteEvents}>
+        <div className="margin-left">
           <MarginColumn items={leftItems} prefix="ml" onImageOpen={onImageOpen} />
         </div>
-        <div className={styles.marginCenter}>
+        <div className="margin-center">
           <MarkdownSection content={annotatedContent} {...contentProps} isFirstFragment={isFirstChronicleSection} />
         </div>
-        <div className={styles.marginRight}>
+        <div className="margin-right">
           <MarginColumn items={rightItems} prefix="mr" onImageOpen={onImageOpen} />
         </div>
         {footnoteList}
@@ -381,10 +381,10 @@ export function SectionWithImages({
   const firstTextIndex = fragments.findIndex((f) => f.type !== "image");
 
   return (
-    <div className={styles.sectionWithImages} ref={sectionRef} {...footnoteEvents}>
+    <div className="section-with-images" ref={sectionRef} {...footnoteEvents}>
       {/* Inline fallback callouts: floated right, before text so float wraps (narrow viewports only) */}
       {effectiveFullNoteInserts.length > 0 && (
-        <div className={styles.inlineCallouts}>
+        <div className="inline-callouts">
           {effectiveFullNoteInserts.map(({ note, idx }) => (
             <HistorianCallout key={`il-${note.noteId}`} note={note} noteIndex={idx} layoutMode="flow" />
           ))}
@@ -396,7 +396,7 @@ export function SectionWithImages({
             <ChronicleImage key={`img-${fragment.image.refId}-${i}`} image={fragment.image} onOpen={onImageOpen} layoutMode="flow" />
           ) : (
             <React.Fragment key={`img-${fragment.image.refId}-${i}`}>
-              <div className={styles.clearfix} />
+              <div className="clearfix" />
               <ChronicleImage image={fragment.image} onOpen={onImageOpen} layoutMode="flow" />
             </React.Fragment>
           );
@@ -406,15 +406,15 @@ export function SectionWithImages({
           <MarkdownSection key={`text-${i}`} content={fragment.content} {...contentProps} isFirstFragment={isFirst} />
         );
       })}
-      <div className={styles.clearfix} />
+      <div className="clearfix" />
       {/* Sidenote column: absolutely positioned callouts in right margin (wide viewports) */}
       {effectiveFullNoteInserts.length > 0 && (
-        <div className={styles.sidenoteColumn}>
+        <div className="sidenote-column">
           {effectiveFullNoteInserts.map(({ note, idx }) => (
             <div
               key={`sn-${note.noteId}`}
               data-sidenote-callout-idx={idx}
-              className={styles.sidenoteCallout}
+              className="sidenote-callout"
               style={{ "--sidenote-top": `${resolvedPositions.get(idx) ?? 0}px` } as React.CSSProperties}
             >
               <HistorianCallout note={note} noteIndex={idx} layoutMode="margin" />

@@ -136,6 +136,7 @@ export default function EntityBrowser({
   onConfigChange,
   buildPrompt,
   getVisualConfig,
+  resolveImageSize,
   styleLibrary,
   imageGenSettings,
   onStartRevision,
@@ -226,6 +227,7 @@ export default function EntityBrowser({
     getStatus,
     buildPrompt,
     getVisualConfig,
+    resolveImageSize,
     config,
     imageGenSettings,
     prominenceScale

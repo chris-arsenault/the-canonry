@@ -8,13 +8,16 @@ export default function EnrichmentTab({
   refinements,
   onGenerateTitle,
   onGenerateSummary,
+  onGenerateImageRefs,
 }) {
   const titleState = refinements?.title || {};
   const summaryState = refinements?.summary || {};
+  const imageRefsState = refinements?.imageRefs || {};
   const formatTimestamp = (ts) => new Date(ts).toLocaleString();
 
   const titleDisabled = isGenerating || titleState.running;
   const summaryDisabled = isGenerating || summaryState.running;
+  const imageRefsDisabled = isGenerating || imageRefsState.running;
 
   return (
     <div>
@@ -53,7 +56,7 @@ export default function EnrichmentTab({
               <button
                 onClick={onGenerateTitle}
                 disabled={titleDisabled}
-                className={`enrtab-button ${titleDisabled ? "enrtab-button-disabled" : ""}`}
+                className={`ilu-action-btn enrtab-button ${titleDisabled ? "enrtab-button-disabled" : ""}`}
               >
                 {titleState.running ? "Generating..." : "Regenerate Title"}
               </button>
@@ -77,9 +80,40 @@ export default function EnrichmentTab({
               <button
                 onClick={onGenerateSummary}
                 disabled={summaryDisabled}
-                className={`enrtab-button ${summaryDisabled ? "enrtab-button-disabled" : ""}`}
+                className={`ilu-action-btn enrtab-button ${summaryDisabled ? "enrtab-button-disabled" : ""}`}
               >
                 {summaryState.running ? "Generating..." : "Regenerate Summary"}
+              </button>
+            </div>
+          )}
+
+          {/* Image Refs */}
+          {onGenerateImageRefs && (
+            <div className="enrtab-row">
+              <div>
+                <div className="enrtab-label">Image Refs</div>
+                <div className="enrtab-hint">
+                  Generate or regenerate scene image placement points throughout the chronicle.
+                </div>
+                {item.imageRefsGeneratedAt && (
+                  <div className="enrtab-timestamp">
+                    Last generated: {formatTimestamp(item.imageRefsGeneratedAt)}
+                    {item.imageRefs?.refs?.length > 0 && (
+                      <span> ({item.imageRefs.refs.length} refs)</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={onGenerateImageRefs}
+                disabled={imageRefsDisabled}
+                className={`ilu-action-btn enrtab-button ${imageRefsDisabled ? "enrtab-button-disabled" : ""}`}
+              >
+                {imageRefsState.running
+                  ? "Generating..."
+                  : item.imageRefs?.refs?.length > 0
+                    ? "Regenerate Image Refs"
+                    : "Generate Image Refs"}
               </button>
             </div>
           )}
@@ -95,4 +129,5 @@ EnrichmentTab.propTypes = {
   refinements: PropTypes.object,
   onGenerateTitle: PropTypes.func,
   onGenerateSummary: PropTypes.func,
+  onGenerateImageRefs: PropTypes.func,
 };

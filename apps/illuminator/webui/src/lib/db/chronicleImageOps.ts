@@ -15,6 +15,20 @@ import type {
 // ============================================================================
 
 /**
+ * Clear all image refs from a chronicle, resetting it to no-refs state.
+ */
+export async function clearChronicleImageRefs(chronicleId: string): Promise<void> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) return;
+  record.imageRefs = undefined;
+  record.imageRefsGeneratedAt = undefined;
+  record.imageRefsModel = undefined;
+  record.imageRefsTargetVersionId = undefined;
+  record.updatedAt = Date.now();
+  await db.chronicles.put(record);
+}
+
+/**
  * Update chronicle with image refs refinement
  */
 export async function updateChronicleImageRefs(
@@ -176,6 +190,44 @@ export async function applyImageRefSelections(
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);
+}
+
+/**
+ * Clear generated images from all prompt_request refs (keeps the ref, clears the image).
+ */
+export async function clearChronicleSceneImages(chronicleId: string): Promise<number> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record?.imageRefs?.refs) return 0;
+
+  let cleared = 0;
+  for (const ref of record.imageRefs.refs) {
+    if (ref.type === "prompt_request" && ref.generatedImageId) {
+      ref.generatedImageId = undefined;
+      ref.status = "pending";
+      ref.error = undefined;
+      cleared++;
+    }
+  }
+  if (cleared > 0) {
+    record.updatedAt = Date.now();
+    await db.chronicles.put(record);
+  }
+  return cleared;
+}
+
+/**
+ * Clear the generated image from a cover image (keeps scene description and tags).
+ */
+export async function clearChronicleCoverImage(chronicleId: string): Promise<boolean> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record?.coverImage?.generatedImageId) return false;
+
+  record.coverImage.generatedImageId = undefined;
+  record.coverImage.status = "pending";
+  record.coverImage.error = undefined;
+  record.updatedAt = Date.now();
+  await db.chronicles.put(record);
+  return true;
 }
 
 // ============================================================================

@@ -1,4 +1,4 @@
-import type { ImageBackend, ImageDimensions, ImageEntryMetadata, ImageGenerationInfo, ImageEntityInfo, ImageSize } from '../types';
+import type { ImageBackend, ImageDimensions, ImageEntryMetadata, ImageGenerationInfo, ImageEntityInfo, ImageSize, AlternateGroup } from '../types';
 
 const DB_NAME = 'illuminator';
 const IMAGES_STORE = 'images';
@@ -197,6 +197,10 @@ export class IndexedDBBackend implements ImageBackend {
     }
 
     return result;
+  }
+
+  getAlternates(_imageId: string): Promise<AlternateGroup | null> {
+    return Promise.resolve(null);
   }
 
   cleanup(): void {

@@ -31,6 +31,8 @@ export type LLMCallType =
   | "chronicle.factCoverage" // Classify canon fact presence in chronicle narratives
   | "chronicle.toneRanking" // Rank historian annotation tones by suitability for chronicle
   | "chronicle.bulkToneRanking" // Batch tone ranking — all chronicles in one call
+  | "chronicle.batchTagImageRefs" // Batch tag image refs across multiple chronicles
+  | "chronicle.batchTagCoverImages" // Batch tag cover images across multiple chronicles
 
   // Palette
   | "palette.expansion" // Trait palette curation
@@ -76,6 +78,8 @@ export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   "chronicle.factCoverage",
   "chronicle.toneRanking",
   "chronicle.bulkToneRanking",
+  "chronicle.batchTagImageRefs",
+  "chronicle.batchTagCoverImages",
   "palette.expansion",
   "dynamics.generation",
   "revision.summary",
@@ -375,6 +379,30 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     },
     recommendedModels: ["claude-sonnet-4-6"],
   },
+  "chronicle.batchTagImageRefs": {
+    label: "Batch Tag Image Refs",
+    description:
+      "Assigns artistic style, composition, and color palette rankings to image refs across multiple chronicles in one call",
+    category: "chronicle",
+    defaults: {
+      model: "claude-sonnet-4-6",
+      thinkingBudget: 10000,
+      maxTokens: 16384,
+    },
+    recommendedModels: ["claude-sonnet-4-6"],
+  },
+  "chronicle.batchTagCoverImages": {
+    label: "Batch Tag Cover Images",
+    description:
+      "Assigns artistic style, composition, and color palette rankings to cover images across multiple chronicles in one call",
+    category: "chronicle",
+    defaults: {
+      model: "claude-sonnet-4-6",
+      thinkingBudget: 10000,
+      maxTokens: 16384,
+    },
+    recommendedModels: ["claude-sonnet-4-6"],
+  },
   "palette.expansion": {
     label: "Palette Expansion",
     description: "Curates visual trait categories with extended reasoning",
@@ -592,6 +620,8 @@ export function getCallTypesByCategory(): Record<LLMCallCategory, LLMCallType[]>
       "chronicle.coverImageScene",
       "chronicle.toneRanking",
       "chronicle.bulkToneRanking",
+      "chronicle.batchTagImageRefs",
+      "chronicle.batchTagCoverImages",
     ],
     palette: ["palette.expansion"],
     dynamics: ["dynamics.generation"],

@@ -21,7 +21,6 @@ import WikiPageView from "./WikiPage.tsx";
 import { HomePage } from "./WikiExplorerHome.tsx";
 import { PagesIndex, PageCategoryIndex } from "./WikiExplorerPages.tsx";
 import { ParchmentTexture, PageFrame, DEFAULT_PARCHMENT_CONFIG } from "./Ornaments.tsx";
-import styles from "./WikiExplorer.module.css";
 
 function parseHashPageId(): string | null {
   const hash = window.location.hash;
@@ -52,12 +51,12 @@ function buildChronicleFilter(currentPageId: string | null) {
 
 function DataErrorScreen({ error }: Readonly<{ error: { message: string; details: string } }>) {
   return (
-    <div className={styles.container}>
-      <div className={styles.errorContainer}>
-        <div className={styles.errorCard}>
-          <h2 className={styles.errorTitle}>{error.message}</h2>
-          <p className={styles.errorDetails}>{error.details}</p>
-          <div className={styles.errorFix}>
+    <div className="container">
+      <div className="error-container">
+        <div className="error-card">
+          <h2 className="error-title">{error.message}</h2>
+          <p className="error-details">{error.details}</p>
+          <div className="error-fix">
             <strong>How to fix:</strong>
             <ol>
               <li>In the Canonry shell, click the <strong>&quot;Run Slots&quot;</strong> dropdown in the top navigation bar</li>
@@ -92,14 +91,14 @@ function WikiExplorerSidebar({ children, isMobile, isSidebarOpen, onOpenSidebar,
     if (e.key === "Enter" || e.key === " ") onCloseSidebar();
   }, [onCloseSidebar]);
 
-  if (!isMobile) return <div className={styles.sidebar}>{children}</div>;
+  if (!isMobile) return <div className="sidebar">{children}</div>;
   return (
     <>
-      <button className={styles.menuButton} onClick={onOpenSidebar} aria-label="Open navigation menu">☰</button>
+      <button className="menu-button" onClick={onOpenSidebar} aria-label="Open navigation menu">☰</button>
       {isSidebarOpen && (
         <>
-          <div className={styles.sidebarBackdrop} onClick={onCloseSidebar} role="button" tabIndex={0} onKeyDown={handleBackdropKeyDown} />
-          <div className={styles.sidebarDrawer}>{children}</div>
+          <div className="sidebar-backdrop" onClick={onCloseSidebar} role="button" tabIndex={0} onKeyDown={handleBackdropKeyDown} />
+          <div className="sidebar-drawer">{children}</div>
         </>
       )}
     </>
@@ -255,7 +254,7 @@ export default function WikiExplorer({
   if (dataError) return <DataErrorScreen error={dataError} />;
 
   return (
-    <div className={styles.container}>
+    <div className="container">
       <WikiExplorerSidebar isMobile={isMobile} isSidebarOpen={isSidebarOpen}
         onOpenSidebar={openSidebar} onCloseSidebar={closeSidebar}>
         {/* eslint-disable-next-line local/max-jsx-props -- WikiNav genuinely requires 13 props covering navigation state, search, data sources, and mobile drawer control */}
@@ -268,10 +267,10 @@ export default function WikiExplorer({
           isRefreshing={data.isRefreshing} isDrawer={isMobile} onCloseDrawer={closeSidebar}
         />
       </WikiExplorerSidebar>
-      <div className={styles.main}>
-        <ParchmentTexture className={styles.parchmentOverlay} config={DEFAULT_PARCHMENT_CONFIG} prebakedUrl={prebakedParchmentUrl} />
-        <PageFrame className={styles.pageFrame} />
-        <div className={isMobile ? styles.contentMobile : styles.content}>
+      <div className="main">
+        <ParchmentTexture className="parchment-overlay" config={DEFAULT_PARCHMENT_CONFIG} prebakedUrl={prebakedParchmentUrl} />
+        <PageFrame className="page-frame" />
+        <div className={isMobile ? "content-mobile" : "content"}>
           <WikiExplorerContent currentPageId={currentPageId} data={data}
             onNavigate={handleNavigate} onNavigateToEntity={handleNavigateToEntity}
             worldData={worldData} breakpoint={breakpoint} />

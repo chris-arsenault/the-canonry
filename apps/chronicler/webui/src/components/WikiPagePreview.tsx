@@ -7,15 +7,15 @@
 
 import React from "react";
 import type { Optional } from "@the-canonry/shared-components";
+import { ImageDisplay } from "@the-canonry/shared-components";
 import type { HardState } from "../types/world.ts";
 import { prominenceLabelFromScale, type ProminenceScale } from "@canonry/world-schema";
-import styles from "./WikiPage.module.css";
 
 export interface EntityPreviewCardProps {
   entity: HardState;
   summary: Optional<string>;
   position: { x: number; y: number };
-  imageUrl: Optional<string | null>;
+  imageId: Optional<string | null>;
   prominenceScale: ProminenceScale;
 }
 
@@ -23,7 +23,7 @@ export function EntityPreviewCard({
   entity,
   summary,
   position,
-  imageUrl,
+  imageId,
   prominenceScale,
 }: Readonly<EntityPreviewCardProps>) {
   // Position the card to the right of cursor, adjusting if it would go off-screen
@@ -53,29 +53,31 @@ export function EntityPreviewCard({
 
   return (
     <div
-      className={styles.previewCard}
+      className="preview-card"
       style={{ "--preview-left": `${left}px`, "--preview-top": `${top}px` } as React.CSSProperties}
     >
-      <div className={styles.previewHeader}>
-        {imageUrl ? (
-          <img src={imageUrl} alt="" className={styles.previewThumbnail} />
-        ) : (
-          <div className={styles.previewThumbnailPlaceholder}>{initial}</div>
-        )}
-        <div className={styles.previewTitle}>{entity.name}</div>
+      <div className="preview-header">
+        <ImageDisplay
+          imageId={imageId}
+          alt=""
+          className="preview-thumbnail"
+          enableVersionCycling
+          errorContent={<div className="preview-thumbnail-placeholder">{initial}</div>}
+        />
+        <div className="preview-title">{entity.name}</div>
       </div>
-      <div className={styles.previewBody}>
-        <div className={styles.previewBadges}>
-          <span className={styles.previewBadgeKind}>{entity.kind}</span>
-          {entity.subtype && <span className={styles.previewBadge}>{entity.subtype}</span>}
-          <span className={styles.previewBadgeStatus}>{entity.status}</span>
-          <span className={styles.previewBadge}>
+      <div className="preview-body">
+        <div className="preview-badges">
+          <span className="preview-badge-kind">{entity.kind}</span>
+          {entity.subtype && <span className="preview-badge">{entity.subtype}</span>}
+          <span className="preview-badge-status">{entity.status}</span>
+          <span className="preview-badge">
             {prominenceLabelFromScale(entity.prominence, prominenceScale)}
           </span>
-          {entity.culture && <span className={styles.previewBadge}>{entity.culture}</span>}
+          {entity.culture && <span className="preview-badge">{entity.culture}</span>}
         </div>
         {summary && (
-          <div className={styles.previewSummary}>
+          <div className="preview-summary">
             {summary.length > 250 ? `${summary.slice(0, 250)}...` : summary}
           </div>
         )}

@@ -1,10 +1,17 @@
 import { LLMClient } from "../lib/llmClient";
-import { ImageClient } from "../lib/imageClient";
+import { ImageClient, WaveSpeedImageClient, isWaveSpeedModel } from "../lib/imageClient";
+import type { ImageRequest, ImageResult } from "../lib/imageClient";
 import type { WorkerConfig } from "./types";
+
+export interface ImageClientInterface {
+  isEnabled(): boolean;
+  generate(req: ImageRequest): Promise<ImageResult>;
+  getStats(): { generated: number };
+}
 
 export function createClients(config: WorkerConfig): {
   llmClient: LLMClient;
-  imageClient: ImageClient;
+  imageClient: ImageClientInterface;
 } {
   // LLMClient model is set per-call; use a default for the base client
   const llmClient = new LLMClient({
@@ -13,13 +20,24 @@ export function createClients(config: WorkerConfig): {
     model: "claude-sonnet-4-6", // Default; overridden per call
   });
 
-  const imageClient = new ImageClient({
-    enabled: Boolean(config.openaiApiKey),
-    apiKey: config.openaiApiKey,
-    model: config.imageModel || "dall-e-3",
-    size: config.imageSize || "1024x1024",
-    quality: config.imageQuality || "standard",
-  });
+  const model = config.imageModel || "dall-e-3";
+  const baseImageConfig = {
+    model,
+    size: (config.imageSize || "1024x1024") as "1024x1024" | "1792x1024" | "1024x1792",
+    quality: (config.imageQuality || "standard") as "standard" | "hd",
+  };
+
+  const imageClient: ImageClientInterface = isWaveSpeedModel(model)
+    ? new WaveSpeedImageClient({
+        ...baseImageConfig,
+        enabled: Boolean(config.wavespeedApiKey),
+        apiKey: config.wavespeedApiKey,
+      })
+    : new ImageClient({
+        ...baseImageConfig,
+        enabled: Boolean(config.openaiApiKey),
+        apiKey: config.openaiApiKey,
+      });
 
   return { llmClient, imageClient };
 }

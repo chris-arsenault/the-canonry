@@ -8,7 +8,7 @@ import "./ContentTab.css";
 // Assembled Content Viewer (local)
 // ============================================================================
 
-function AssembledContentViewer({
+function ContentViewer({
   content,
   wordCount,
   onCopy,
@@ -125,7 +125,7 @@ function AssembledContentViewer({
   );
 }
 
-AssembledContentViewer.propTypes = {
+ContentViewer.propTypes = {
   content: PropTypes.any,
   wordCount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onCopy: PropTypes.func,
@@ -145,16 +145,10 @@ AssembledContentViewer.propTypes = {
 export default function ContentTab({
   item,
   isComplete,
-  versions,
-  selectedVersion,
-  compareToVersion,
-  selectedVersionId,
-  compareToVersionId,
-  activeVersionId,
+  versionState,
   onSelectVersion,
   onSelectCompareVersion,
   onSetActiveVersion,
-  onDeleteVersion,
   isGenerating,
   onQuickCheck,
   quickCheckRunning,
@@ -163,6 +157,8 @@ export default function ContentTab({
   onDetectTertiaryCast,
   onToggleTertiaryCast,
 }) {
+  const { versions, selectedVersion, compareToVersion, selectedVersionId, compareToVersionId, activeVersionId, handleDeleteVersion } = versionState;
+
   const content = isComplete
     ? item.finalContent
     : selectedVersion?.content || item.assembledContent;
@@ -334,13 +330,13 @@ export default function ContentTab({
             onSelectVersion={onSelectVersion}
             onSelectCompareVersion={onSelectCompareVersion}
             onSetActiveVersion={onSetActiveVersion}
-            onDeleteVersion={onDeleteVersion}
+            onDeleteVersion={handleDeleteVersion}
             disabled={isGenerating}
           />
         </div>
       )}
 
-      <AssembledContentViewer
+      <ContentViewer
         content={content}
         wordCount={wc}
         onCopy={() => copyToClipboard(content)}
@@ -359,16 +355,10 @@ export default function ContentTab({
 ContentTab.propTypes = {
   item: PropTypes.object,
   isComplete: PropTypes.bool,
-  versions: PropTypes.array,
-  selectedVersion: PropTypes.object,
-  compareToVersion: PropTypes.object,
-  selectedVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  compareToVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  activeVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  versionState: PropTypes.object,
   onSelectVersion: PropTypes.func,
   onSelectCompareVersion: PropTypes.func,
   onSetActiveVersion: PropTypes.func,
-  onDeleteVersion: PropTypes.func,
   isGenerating: PropTypes.bool,
   onQuickCheck: PropTypes.func,
   quickCheckRunning: PropTypes.bool,

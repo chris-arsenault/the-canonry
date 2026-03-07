@@ -88,5 +88,9 @@ export type {
 // Constants
 export * from './constants';
 
+// Image display
+export { ImageDisplay } from './components/ImageDisplay';
+export type { ImageDisplayProps } from './components/ImageDisplay';
+
 // Optionality type aliases
 export type { Optional, Nullable, Legacy } from './types/optionality.js';

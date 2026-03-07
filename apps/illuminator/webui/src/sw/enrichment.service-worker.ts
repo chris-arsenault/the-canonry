@@ -21,7 +21,7 @@ import {
   executeTask as executeEnrichmentTask,
 } from "../workers/enrichmentCore";
 import type { LLMClient } from "../lib/llmClient";
-import type { ImageClient } from "../lib/imageClient";
+import type { ImageClientInterface } from "../workers/clients";
 import * as entityRepo from "../lib/db/entityRepository";
 
 declare const self: ServiceWorkerGlobalScope;
@@ -70,7 +70,7 @@ function summarizeTask(task: WorkerTask): Record<string, unknown> {
 
 let config: WorkerConfig | null = null;
 let llmClient: LLMClient | null = null;
-let imageClient: ImageClient | null = null;
+let imageClient: ImageClientInterface | null = null;
 
 const handlePorts = new Map<string, MessagePort>();
 const pendingReady = new Set<string>();

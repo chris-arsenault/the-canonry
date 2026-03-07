@@ -1,12 +1,12 @@
 import type { WorkerTask } from "../../lib/enrichmentTypes";
 import type { LLMClient } from "../../lib/llmClient";
-import type { ImageClient } from "../../lib/imageClient";
+import type { ImageClientInterface } from "../clients";
 import type { TaskResult, WorkerConfig } from "../types";
 
 export interface TaskContext {
   config: WorkerConfig;
   llmClient: LLMClient;
-  imageClient: ImageClient;
+  imageClient: ImageClientInterface;
   isAborted: () => boolean;
   /** Callback to forward thinking deltas to the UI */
   onThinkingDelta?: (delta: string) => void;

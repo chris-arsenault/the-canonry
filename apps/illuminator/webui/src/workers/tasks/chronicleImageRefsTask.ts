@@ -93,7 +93,7 @@ function buildRegenerateImageRefsPrompt(
 ${content}
 
 ## Visual Identities
-These describe what entities look like — use them when writing scene descriptions.
+"Entities" in this world include people, places, landmarks, artifacts, institutions, phenomena, and events — not just characters. The identities below describe what each entity looks like visually.
 ${visualDisplay}
 
 ## Existing Image Refs
@@ -105,11 +105,13 @@ For EACH existing image ref, decide what to do:
 
 1. **Keep** (disposition: "kept") — Use when the ref is a prompt_request, its anchorText still exists VERBATIM in the chronicle text above, and the sceneDescription still fits the surrounding context. Return the ref unchanged (same refId, anchorText, sceneDescription, size, caption, involvedEntityIds).
 
-2. **Convert** (disposition: "converted") — Use for entity_ref refs. Write a new sceneDescription that captures the dramatic moment near the anchor point, incorporating the entity's visual identity. Find a valid anchorText in the current text (relocate if the original anchor is gone).
+2. **Convert** (disposition: "converted") — Use for entity_ref refs. Write a new sceneDescription for the scene near the anchor point. This could be a character moment, a landscape, an artifact, a crowd scene — whatever best fits the narrative context. Use the entity's visual identity for visual details. Find a valid anchorText in the current text (relocate if the original anchor is gone).
 
 3. **Relocate** (disposition: "relocated") — Use for prompt_request refs whose anchorText is NO LONGER in the chronicle text. Find a new anchorText in the current text where this scene is relevant. Update sceneDescription if the new context is significantly different. Preserve the original sceneDescription if it still fits.
 
 4. **Drop** — If a ref's scene is completely irrelevant to the current text, simply omit it from the output.
+
+Aim for visual variety — not every scene needs to show characters in action. Landscapes, artifacts, group scenes, and atmospheric shots make for a richer chronicle.
 
 ## Output Format
 Return a JSON object:
@@ -148,8 +150,9 @@ Return a JSON object:
 ## Rules
 - anchorText MUST be an exact phrase from the chronicle text (5-15 words)
 - For "kept" refs, return EXACTLY the same refId, anchorText, sceneDescription, and involvedEntityIds
-- For scene descriptions, incorporate visual identities so the image generator knows what figures look like
-- involvedEntityIds should use entity IDs from the Visual Identities list
+- For scene descriptions, use visual identities for any entities depicted
+- involvedEntityIds should list entities relevant to the scene (places, artifacts, people, etc.)
+- involvedEntityIds can be empty for pure atmosphere/environment scenes
 - Preserve size and caption from original refs where possible
 - Return valid JSON only, no markdown`;
 }

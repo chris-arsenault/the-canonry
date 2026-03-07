@@ -48,6 +48,7 @@ export interface EntityBrowserProps {
   onConfigChange: (partial: Partial<EntityBrowserConfig>) => void;
   buildPrompt: (entity: unknown, type: string) => string;
   getVisualConfig?: (entity: unknown) => Record<string, unknown>;
+  resolveImageSize?: (entity: unknown) => string | undefined;
   styleLibrary: StyleLibraryProp | null;
   imageGenSettings: ImageGenSettings;
   onStartRevision?: () => void;

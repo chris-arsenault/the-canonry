@@ -34,6 +34,7 @@ function EntitiesTab({ revisionFlow, historianFlow, ...props }) {
         onConfigChange={props.updateConfig}
         buildPrompt={props.buildPrompt}
         getVisualConfig={props.getVisualConfig}
+        resolveImageSize={props.resolveImageSize}
         styleLibrary={props.styleLibrary}
         imageGenSettings={props.imageGenSettings}
         onStartRevision={() => revisionFlow.handleOpenRevisionFilter()}
@@ -100,7 +101,7 @@ function CoverageTab(props) {
         simulationRunId={simulationRunId}
         onWorldContextChange={props.updateWorldContext}
       />
-      <EntityCoveragePanel simulationRunId={simulationRunId} />
+      <EntityCoveragePanel simulationRunId={simulationRunId} styleLibrary={props.styleLibrary} />
     </div>
   );
 }
@@ -320,6 +321,7 @@ EntitiesTab.propTypes = {
   updateConfig: PropTypes.func,
   buildPrompt: PropTypes.func,
   getVisualConfig: PropTypes.func,
+  resolveImageSize: PropTypes.func,
   styleLibrary: PropTypes.object,
   imageGenSettings: PropTypes.object,
   setActiveTab: PropTypes.func,

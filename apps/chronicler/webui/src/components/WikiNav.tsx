@@ -11,7 +11,6 @@ import type { Optional } from "@the-canonry/shared-components";
 import { useExpandSet } from "@the-canonry/shared-components";
 import type { WikiPage, WikiCategory } from "../types/world.ts";
 import WikiSearch from "./WikiSearch.tsx";
-import styles from "./WikiNav.module.css";
 
 interface WikiNavProps {
   categories: WikiCategory[];
@@ -98,7 +97,7 @@ function NavPageButton({ page, currentPageId, onNavigate, displayName }: Readonl
 }>) {
   return (
     <button
-      className={currentPageId === page.id ? styles.navItemActive : styles.navItem}
+      className={currentPageId === page.id ? "nav-item-active" : "nav-item"}
       onClick={() => onNavigate(page.id)}
     >
       {displayName ?? page.title}
@@ -110,11 +109,11 @@ function CollapsibleSection({ label, count, expanded, onToggle, children }: Read
   label: string; count: Optional<number>; expanded: boolean; onToggle: () => void; children: React.ReactNode;
 }>) {
   return (
-    <div className={styles.section}>
-      <button className={styles.sectionTitleCollapsible} onClick={onToggle} aria-expanded={expanded}>
-        <span className={styles.collapseIcon}>{expanded ? "\u25BC" : "\u25B6"}</span>
+    <div className="section">
+      <button className="section-title-collapsible" onClick={onToggle} aria-expanded={expanded}>
+        <span className="collapse-icon">{expanded ? "\u25BC" : "\u25B6"}</span>
         {label}
-        {count != null && <span className={styles.badge}>({count})</span>}
+        {count != null && <span className="badge">({count})</span>}
       </button>
       {expanded && children}
     </div>
@@ -126,9 +125,9 @@ function EraNavButton({ label, id, count, currentPageId, onNavigate }: Readonly<
 }>) {
   const isActive = currentPageId === id;
   return (
-    <button className={isActive ? styles.navItemIndentedActive : styles.navItemIndented} onClick={() => onNavigate(id)}>
+    <button className={isActive ? "nav-item-indented-active" : "nav-item-indented"} onClick={() => onNavigate(id)}>
       {label}
-      <span className={isActive ? styles.badgeActive : styles.badge}>({count})</span>
+      <span className={isActive ? "badge-active" : "badge"}>({count})</span>
     </button>
   );
 }
@@ -140,16 +139,16 @@ function EraSection({ era, isExpanded, toggleEra, currentPageId, onNavigate, era
   const handleToggle = useCallback(() => toggleEra(era.eraId), [toggleEra, era.eraId]);
   return (
     <div>
-      <button className={styles.eraSectionTitle} onClick={handleToggle} aria-expanded={isExpanded}>
-        <span className={styles.collapseIcon}>{isExpanded ? "\u25BC" : "\u25B6"}</span>
+      <button className="era-section-title" onClick={handleToggle} aria-expanded={isExpanded}>
+        <span className="collapse-icon">{isExpanded ? "\u25BC" : "\u25B6"}</span>
         {era.eraName}
-        <span className={styles.badge}>({era.all.length})</span>
+        <span className="badge">({era.all.length})</span>
       </button>
       {isExpanded && (
         <>
           {eraNarrativePage && (
             <button
-              className={currentPageId === eraNarrativePage.id ? styles.navItemEraNarrativeActive : styles.navItemEraNarrative}
+              className={currentPageId === eraNarrativePage.id ? "nav-item-era-narrative-active" : "nav-item-era-narrative"}
               onClick={() => onNavigate(eraNarrativePage.id)}
             >
               Era Narrative
@@ -169,14 +168,14 @@ function EncyclopediaSection({ categories, currentPageId, onNavigate }: Readonly
 }>) {
   if (categories.length === 0) return null;
   return (
-    <div className={styles.section}>
-      <div className={styles.sectionTitle}>Encyclopedia</div>
+    <div className="section">
+      <div className="section-title">Encyclopedia</div>
       {categories.map((category) => {
         const isActive = currentPageId === `category-${category.id}`;
         return (
-          <button key={category.id} className={isActive ? styles.navItemActive : styles.navItem} onClick={() => onNavigate(`category-${category.id}`)}>
+          <button key={category.id} className={isActive ? "nav-item-active" : "nav-item"} onClick={() => onNavigate(`category-${category.id}`)}>
             {category.name.replace("Kind: ", "")}
-            <span className={isActive ? styles.badgeActive : styles.badge}>({category.pageCount})</span>
+            <span className={isActive ? "badge-active" : "badge"}>({category.pageCount})</span>
           </button>
         );
       })}
@@ -204,7 +203,7 @@ function FrontMatterAndLoreNav({ staticCategorized, expandedSections, toggleLore
   return (
     <>
       {staticCategorized.frontMatterPages.length > 0 && (
-        <div className={styles.section}>
+        <div className="section">
           {staticCategorized.frontMatterPages.map((page) => (
             <NavPageButton key={page.id} page={page} currentPageId={currentPageId} onNavigate={onNavigate}
               displayName={page.title.includes(":") ? page.title.split(":")[1] : page.title} />
@@ -217,8 +216,8 @@ function FrontMatterAndLoreNav({ staticCategorized, expandedSections, toggleLore
         </CollapsibleSection>
       )}
       {staticCategorized.culturePages.length > 0 && (
-        <div className={styles.section}>
-          <div className={styles.sectionTitle}>Cultures</div>
+        <div className="section">
+          <div className="section-title">Cultures</div>
           <StaticPageList pages={staticCategorized.culturePages} currentPageId={currentPageId} onNavigate={onNavigate} prefix="Cultures:" />
         </div>
       )}
@@ -233,8 +232,8 @@ function ChroniclesNavSection({ chroniclePages, eraData, expandedEras, toggleEra
 }>) {
   if (chroniclePages.length === 0) return null;
   return (
-    <div className={styles.section}>
-      <div className={styles.sectionTitle}>Chronicles</div>
+    <div className="section">
+      <div className="section-title">Chronicles</div>
       {eraData.sortedEras.map((era) => (
         <EraSection key={era.eraId} era={era} isExpanded={expandedEras.has(era.eraId)}
           toggleEra={toggleEra} currentPageId={currentPageId} onNavigate={onNavigate}
@@ -277,14 +276,14 @@ export default function WikiNav({
   const handleNavAllCategories = useCallback(() => onNavigate("all-categories"), [onNavigate]);
 
   return (
-    <div className={styles.container}>
+    <div className="container">
       {isDrawer && (
-        <div className={styles.drawerHeader}>
-          <span className={styles.drawerTitle}>Navigation</span>
-          <button onClick={onCloseDrawer} className={styles.drawerClose} aria-label="Close navigation">&times;</button>
+        <div className="drawer-header">
+          <span className="drawer-title">Navigation</span>
+          <button onClick={onCloseDrawer} className="drawer-close" aria-label="Close navigation">&times;</button>
         </div>
       )}
-      <nav className={styles.nav}>
+      <nav className="nav">
         <FrontMatterAndLoreNav staticCategorized={staticCategorized} expandedSections={expandedSections}
           toggleLore={toggleLore} currentPageId={currentPageId} onNavigate={onNavigate} />
         <ChroniclesNavSection chroniclePages={chroniclePages} eraData={eraData}
@@ -296,24 +295,24 @@ export default function WikiNav({
           {staticCategorized.otherPages.map((page) => (
             <NavPageButton key={page.id} page={page} currentPageId={currentPageId} onNavigate={onNavigate} />
           ))}
-          <button className={currentPageId === "all-categories" ? styles.navItemActive : styles.navItem} onClick={handleNavAllCategories}>
-            All Categories <span className={currentPageId === "all-categories" ? styles.badgeActive : styles.badge}>({categories.length})</span>
+          <button className={currentPageId === "all-categories" ? "nav-item-active" : "nav-item"} onClick={handleNavAllCategories}>
+            All Categories <span className={currentPageId === "all-categories" ? "badge-active" : "badge"}>({categories.length})</span>
           </button>
         </CollapsibleSection>
         {onRefreshIndex && (
-          <div className={styles.section}>
-            <button className={styles.refreshButton} onClick={onRefreshIndex} disabled={!!isRefreshing}>
-              {isRefreshing && <span className={styles.refreshSpinner}>&orarr;</span>}
+          <div className="section">
+            <button className="refresh-button" onClick={onRefreshIndex} disabled={!!isRefreshing}>
+              {isRefreshing && <span className="refresh-spinner">&orarr;</span>}
               {isRefreshing ? "Refreshing..." : "Refresh Index"}
             </button>
           </div>
         )}
       </nav>
-      <div className={styles.bottomSection}>
+      <div className="bottom-section">
         <WikiSearch pages={pages} query={searchQuery} onQueryChange={onSearchQueryChange} onSelect={onNavigate} expandDirection="up" />
-        <div className={styles.bottomLinks}>
-          <button className={currentPageId === null ? styles.navItemActive : styles.bottomLink} onClick={onGoHome}>Home</button>
-          <button className={styles.bottomLink} onClick={handleRandomPage}>Random</button>
+        <div className="bottom-links">
+          <button className={currentPageId === null ? "nav-item-active" : "bottom-link"} onClick={onGoHome}>Home</button>
+          <button className="bottom-link" onClick={handleRandomPage}>Random</button>
         </div>
       </div>
     </div>

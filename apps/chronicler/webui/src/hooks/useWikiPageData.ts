@@ -320,7 +320,6 @@ export function useWikiPageData({ page, pages, entityIndex }: Readonly<UseWikiPa
   }, [hoveredBacklink, pages]);
 
   const hoveredImageId = hoveredEntity?.enrichment?.image?.imageId;
-  const { url: hoveredImageUrl } = useImageUrl(hoveredImageId);
 
   // Infobox image
   const infoboxEntity = entityIndex.get(page.id);
@@ -402,8 +401,8 @@ export function useWikiPageData({ page, pages, entityIndex }: Readonly<UseWikiPa
     handleEntityHoverLeave,
     hoveredEntity,
     hoveredSummary,
-    hoveredImageUrl,
-    infoboxImageUrl,
+    hoveredImageId,
+    infoboxImageId,
     infoboxImageAspect,
     openImageModal,
     handleInlineImageOpen,
