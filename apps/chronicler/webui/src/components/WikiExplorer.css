@@ -367,6 +367,9 @@
 }
 
 .we-entity-link-bold {
+  background: none;
+  border: none;
+  padding: 0;
   text-decoration: none;
   color: var(--color-accent);
   cursor: pointer;

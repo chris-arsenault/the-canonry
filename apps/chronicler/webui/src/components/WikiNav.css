@@ -10,7 +10,7 @@
   font-family: var(--font-family-ui);
 }
 
-.nav {
+.wn-nav {
   flex: 1;
   overflow: auto;
   padding: var(--spacing-sm);

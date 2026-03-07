@@ -283,7 +283,7 @@ export default function WikiNav({
           <button onClick={onCloseDrawer} className="drawer-close" aria-label="Close navigation">&times;</button>
         </div>
       )}
-      <nav className="nav">
+      <nav className="wn-nav">
         <FrontMatterAndLoreNav staticCategorized={staticCategorized} expandedSections={expandedSections}
           toggleLore={toggleLore} currentPageId={currentPageId} onNavigate={onNavigate} />
         <ChroniclesNavSection chroniclePages={chroniclePages} eraData={eraData}
