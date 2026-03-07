@@ -29,6 +29,7 @@ function ImageSettingsSection({
   styleLibrary,
   worldSchema,
   config,
+  updateConfig,
 }) {
   const imageSettingsOpen = useIlluminatorModals((s) => s.imageSettingsOpen);
   return (
@@ -40,6 +41,7 @@ function ImageSettingsSection({
       styleLibrary={styleLibrary}
       cultures={worldSchema?.cultures}
       imageModel={config.imageModel}
+      onImageModelChange={(model) => updateConfig({ imageModel: model })}
     />
   );
 }
@@ -252,6 +254,7 @@ export default function IlluminatorModals({
         styleLibrary={props.styleLibrary}
         worldSchema={props.worldSchema}
         config={props.config}
+        updateConfig={props.updateConfig}
       />
       <DynamicsSection dynamicsFlow={dynamicsFlow} />
       <RevisionSection revisionFlow={revisionFlow} />
@@ -276,6 +279,7 @@ ImageSettingsSection.propTypes = {
   styleLibrary: PropTypes.object,
   worldSchema: PropTypes.object,
   config: PropTypes.object,
+  updateConfig: PropTypes.func,
 };
 
 DynamicsSection.propTypes = {
@@ -313,6 +317,7 @@ IlluminatorModals.propTypes = {
   styleLibrary: PropTypes.object,
   worldSchema: PropTypes.object,
   config: PropTypes.object,
+  updateConfig: PropTypes.func,
   handleRenameApplied: PropTypes.func,
   handleCreateEntity: PropTypes.func,
   handleEditEntity: PropTypes.func,

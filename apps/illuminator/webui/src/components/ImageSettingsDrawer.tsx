@@ -8,7 +8,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { getSizeOptions, getQualityOptions } from "../lib/imageSettings";
+import { getSizeOptions, getQualityOptions, IMAGE_MODELS } from "../lib/imageSettings";
 import { DEFAULT_RANDOM_EXCLUSIONS, filterStylesForComposition, filterCompositionsForStyle } from "@canonry/world-schema";
 import type { StyleLibrary } from "@canonry/world-schema";
 import type { ImageGenSettings } from "../hooks/useImageGenSettings";
@@ -25,6 +25,7 @@ interface ImageSettingsDrawerProps {
   styleLibrary: StyleLibrary | null;
   cultures?: Culture[];
   imageModel: string;
+  onImageModelChange: (model: string) => void;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────
@@ -135,7 +136,8 @@ export default function ImageSettingsDrawer({
   onSettingsChange: externalOnChange,
   styleLibrary,
   cultures,
-  imageModel
+  imageModel,
+  onImageModelChange
 }: ImageSettingsDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -408,6 +410,27 @@ export default function ImageSettingsDrawer({
 
               {/* ─── Output Settings ─── */}
               <CollapsibleSection title="Output" sectionKey="output" collapsed={collapsedSet.has("output")} onToggle={toggleSection}>
+                {/* Model selector */}
+                <div className="isd-output-group">
+                  <div className="isd-output-label">Model</div>
+                  <select
+                    value={imageModel}
+                    onChange={e => onImageModelChange(e.target.value)}
+                    className="illuminator-select isd-culture-select"
+                  >
+                    <optgroup label="OpenAI">
+                      {IMAGE_MODELS.filter(m => m.provider === "openai").map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="WaveSpeed">
+                      {IMAGE_MODELS.filter(m => m.provider === "wavespeed").map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                  </select>
+                </div>
+
                 {/* Size - segmented buttons */}
                 <div className="isd-output-group">
                   <div className="isd-output-label">Size</div>
