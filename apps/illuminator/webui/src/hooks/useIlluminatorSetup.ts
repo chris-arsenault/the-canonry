@@ -324,7 +324,10 @@ export function useIlluminatorSetup({
   useEffect(() => {
     if (apiKeys.anthropicApiKey || apiKeys.openaiApiKey || apiKeys.wavespeedApiKey)
       initializeWorker(buildWorkerConfig(apiKeys, config, imageGenSettings));
-  }, [apiKeys.anthropicApiKey, apiKeys.openaiApiKey, apiKeys.wavespeedApiKey, config, imageGenSettings.imageSize, imageGenSettings.imageQuality, initializeWorker]);
+    // Use specific config fields rather than the whole object to prevent
+    // spurious re-init from the external config sync round-trip (which
+    // creates a new object reference with identical values).
+  }, [apiKeys.anthropicApiKey, apiKeys.openaiApiKey, apiKeys.wavespeedApiKey, config.imageModel, config.useClaudeForImagePrompt, config.claudeImagePromptTemplate, config.claudeChronicleImagePromptTemplate, config.globalImageRules, config.numWorkers, imageGenSettings.imageSize, imageGenSettings.imageQuality, initializeWorker]);
 
   // Config store sync
   useEffect(() => {

@@ -529,10 +529,9 @@ export function useEnrichmentQueue(
   useEffect(() => {
     return () => {
       for (const workerState of workersRef.current) {
-        if (workerState.worker.type === "dedicated") {
-          workerState.worker.terminate();
-        }
+        workerState.worker.terminate();
       }
+      resetWorkerPool();
       workersRef.current = [];
     };
   }, []);
@@ -540,12 +539,14 @@ export function useEnrichmentQueue(
   // Initialize workers (SharedWorker with fallback to dedicated Worker)
   const initialize = useCallback(
     (config: WorkerConfig) => {
-      // Terminate existing workers
+      // Terminate all existing workers and reset the global pool so fresh
+      // handles are created.  Reusing stale ServiceWorker/SharedWorker
+      // handles after a config change (e.g. model switch) can leave
+      // workers in a state where new tasks never start processing.
       for (const workerState of workersRef.current) {
-        if (workerState.worker.type === "dedicated") {
-          workerState.worker.terminate();
-        }
+        workerState.worker.terminate();
       }
+      resetWorkerPool();
       workersRef.current = [];
       taskWorkerMapRef.current.clear();
 
