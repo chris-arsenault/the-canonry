@@ -789,6 +789,9 @@ importers:
 
   packages/shared-components:
     dependencies:
+      '@the-canonry/image-store':
+        specifier: workspace:*
+        version: link:../image-store
       react:
         specifier: ^19.0.0
         version: 19.2.4
