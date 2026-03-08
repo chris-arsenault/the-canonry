@@ -179,57 +179,58 @@ export function getFluxGeneration(model: string): "flux-1" | "flux-2" | null {
 }
 
 // ---------------------------------------------------------------------------
-// Flux 2 Pro — structured, precise, hex-heavy. This model parses technical
-// detail well and rewards specificity.
+// Flux 2 Pro — deterministic JSON with LLM-synthesized subject/scene fields.
+// Style, palette, composition, background are extracted deterministically.
+// Only subject descriptions, scene summary, lighting, and mood go to Claude.
 // ---------------------------------------------------------------------------
 
-export const FLUX_2_IMAGE_PROMPT_TEMPLATE = `Rewrite the structured prompt below into a JSON image generation prompt optimized for Flux 2 Pro.
+export const FLUX_2_SUBJECT_SYNTHESIS_TEMPLATE = `Synthesize the visual description below into structured scene data for image generation.
 
-The input may be very long and redundant. Deduplicate and restructure — cut repetition ruthlessly but preserve all distinct visual details. Only visual and emotional content. Strip lore, backstory, names, world-building. Positive only — never write "avoid", "no", "without", or "don't". Honor the input style. Attach hex codes inline with colored objects.
-
-Output this exact JSON structure:
+Output this exact JSON — no code fences, no markdown, no explanation:
 
 {
-  "scene": "One sentence: the style/medium, the central subject, and the key action.",
+  "scene": "One sentence: the central subject/action and the key visual moment.",
   "subjects": [
-    { "description": "Self-contained visual description of subject with colors and distinctive details", "position": "spatial placement in frame" }
+    { "description": "Self-contained visual description with distinctive details and colors", "position": "spatial placement in frame" }
   ],
-  "style": "The artistic medium and rendering approach",
-  "color_palette": "Dominant colors with hex codes bound to objects",
-  "lighting": "Light sources, direction, quality",
-  "mood": "Emotional atmosphere in a few words",
-  "background": "Setting and environment details",
-  "composition": "Camera angle, framing, depth"
+  "lighting": "Light sources, direction, quality — derived from the scene",
+  "mood": "Emotional atmosphere in a few words"
 }
 
-Output valid JSON only, no explanation.
-{{globalImageRules}}
-Original prompt:
-{{prompt}}`;
+Rules:
+- Only visual and emotional content. Strip lore, names, backstory, world-building.
+- Positive only — never write "avoid", "no", "without", or "don't".
+- Maintain species exactly as specified — if the description says penguins, they must be penguins.
+- Each subject must be a self-contained visual block with all its distinctive details.
+- Use descriptive color language, not hex codes.
+- Output valid JSON only.
 
-export const FLUX_2_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `Rewrite the structured prompt below into a JSON image generation prompt optimized for Flux 2 Pro.
+Visual description:
+{{subjectText}}`;
 
-The input may be very long and redundant. Deduplicate and restructure — cut repetition ruthlessly but preserve all distinct visual details. Only visual and emotional content. Strip lore, names, world-building. Positive only — never write "avoid", "no", "without", or "don't". Honor the input style. Maintain species — characters must be described as their specified species. Attach hex codes inline with colored objects.
+export const FLUX_2_CHRONICLE_SUBJECT_SYNTHESIS_TEMPLATE = `Synthesize the scene description below into structured scene data for image generation.
 
-Output this exact JSON structure:
+Output this exact JSON — no code fences, no markdown, no explanation:
 
 {
-  "scene": "One sentence: the style/medium, the central action, and the key moment.",
+  "scene": "One sentence: the central action and key moment.",
   "subjects": [
-    { "description": "Self-contained visual description of character including species, colors, distinctive details, and what they are doing", "position": "spatial placement in frame" }
+    { "description": "Self-contained visual description of character including species, distinctive details, and what they are doing", "position": "spatial placement in frame" }
   ],
-  "style": "The artistic medium and rendering approach",
-  "color_palette": "Dominant colors with hex codes bound to objects",
-  "lighting": "Light sources, direction, quality",
-  "mood": "Emotional atmosphere in a few words",
-  "background": "Setting and environment details",
-  "composition": "Camera angle, framing, depth"
+  "lighting": "Light sources, direction, quality — derived from the scene",
+  "mood": "Emotional atmosphere in a few words"
 }
 
-Output valid JSON only, no explanation.
-{{globalImageRules}}
-Original prompt:
-{{prompt}}`;
+Rules:
+- Only visual and emotional content. Strip lore, names, world-building.
+- Positive only — never write "avoid", "no", "without", or "don't".
+- Maintain species — characters must be described as their specified species.
+- Each subject must be a self-contained visual block. Do not interleave attributes between characters.
+- Use descriptive color language, not hex codes.
+- Output valid JSON only.
+
+Scene description:
+{{subjectText}}`;
 
 // ---------------------------------------------------------------------------
 // Flux 1.1 Pro Ultra — natural prose. This model responds to prompts that
@@ -392,4 +393,172 @@ const MODEL_PROMPT_SUFFIX: Record<string, string> = {
  */
 export function getModelPromptSuffix(model: string): string | undefined {
   return MODEL_PROMPT_SUFFIX[model];
+}
+
+// ---------------------------------------------------------------------------
+// Prompt section parser — extracts labeled sections from structured prompts
+// ---------------------------------------------------------------------------
+
+const PROMPT_SECTION_LABELS = [
+  "IMAGE INSTRUCTIONS",
+  "SPECIES REQUIREMENT",
+  "SUBJECT",
+  "CONTEXT",
+  "VISUAL THESIS",
+  "SUPPORTING TRAITS",
+  "CULTURAL VISUAL IDENTITY",
+  "STYLE",
+  "COLOR PALETTE",
+  "COMPOSITION",
+  "RENDER",
+  "SETTING",
+  "AVOID",
+  "SIZE HINT",
+  "CAST",
+  "SCENE",
+  "FROM",
+  "WORLD",
+];
+
+const _labelAlt = PROMPT_SECTION_LABELS
+  .map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+  .join("|");
+const SECTION_HEADER_RE = new RegExp(`^(${_labelAlt})(?:\\s*\\([^)]*\\))?:\\s*(.*)$`);
+
+export interface ParsedPromptSections {
+  [label: string]: string;
+}
+
+/**
+ * Parse a structured prompt into labeled sections.
+ * Text before the first labeled section is stored under `_preamble`.
+ */
+export function parsePromptSections(prompt: string): ParsedPromptSections {
+  const sections: ParsedPromptSections = {};
+  const lines = prompt.split("\n");
+  let currentLabel = "_preamble";
+  let currentBody: string[] = [];
+
+  for (const line of lines) {
+    const match = line.match(SECTION_HEADER_RE);
+    if (match) {
+      const body = currentBody.join("\n").trim();
+      if (body) sections[currentLabel] = body;
+      currentLabel = match[1];
+      currentBody = match[2] ? [match[2]] : [];
+    } else {
+      currentBody.push(line);
+    }
+  }
+  const body = currentBody.join("\n").trim();
+  if (body) sections[currentLabel] = body;
+
+  return sections;
+}
+
+/**
+ * Extract and remove [Artist exemplar: Name] from a style string.
+ */
+function extractArtistExemplar(style: string): { cleaned: string; exemplar: string } {
+  const m = style.match(/\[Artist exemplar:\s*([^\]]+)\]/);
+  if (!m) return { cleaned: style, exemplar: "" };
+  return { cleaned: style.replace(m[0], "").trim(), exemplar: m[1].trim() };
+}
+
+/**
+ * Extract deterministic JSON fields from parsed prompt sections.
+ * These fields are mapped directly — no LLM involvement.
+ */
+export function extractDeterministicFlux2Fields(
+  sections: ParsedPromptSections,
+  isChronicle: boolean
+): Record<string, string> {
+  const rawStyle = sections["STYLE"] || "";
+  const { cleaned: styleBase, exemplar } = extractArtistExemplar(rawStyle);
+  let style = exemplar ? `${styleBase}, in the style of ${exemplar}` : styleBase;
+  if (sections["RENDER"]) style = `${style}. ${sections["RENDER"]}`;
+
+  // Strip duplicate "COLOR PALETTE:" prefix that buildCompositePrompt may add
+  const palette = (sections["COLOR PALETTE"] || "").replace(/^COLOR PALETTE:\s*/i, "");
+  const composition = sections["COMPOSITION"] || "";
+  const background = isChronicle
+    ? sections["WORLD"] || ""
+    : sections["SETTING"] || "";
+
+  return { style, color_palette: palette, composition, background };
+}
+
+/**
+ * Extract the visual description text to send to Claude for subject/scene synthesis.
+ * Includes only sections that need creative synthesis — not style/palette/composition.
+ */
+export function extractSubjectText(
+  sections: ParsedPromptSections,
+  isChronicle: boolean
+): string {
+  if (isChronicle) {
+    const parts = [
+      sections["SCENE"],
+      sections["CAST"] ? `CAST: ${sections["CAST"]}` : "",
+      sections["SPECIES REQUIREMENT"] ? `SPECIES: ${sections["SPECIES REQUIREMENT"]}` : "",
+      sections["SIZE HINT"] ? `SIZE: ${sections["SIZE HINT"]}` : "",
+    ];
+    const text = parts.filter(Boolean).join("\n");
+    return text || sections["_preamble"] || "";
+  }
+
+  const parts = [
+    sections["IMAGE INSTRUCTIONS"] ? `FOCUS: ${sections["IMAGE INSTRUCTIONS"]}` : "",
+    sections["SPECIES REQUIREMENT"] ? `SPECIES: ${sections["SPECIES REQUIREMENT"]}` : "",
+    sections["SUBJECT"],
+    sections["CONTEXT"],
+    sections["VISUAL THESIS"],
+    sections["SUPPORTING TRAITS"],
+    sections["CULTURAL VISUAL IDENTITY"],
+  ];
+  const text = parts.filter(Boolean).join("\n");
+  return text || sections["_preamble"] || "";
+}
+
+/**
+ * Merge deterministic fields with Claude-synthesized subject/scene data into a Flux 2 JSON prompt.
+ * Strips code fences from Claude's output before parsing.
+ */
+export function mergeFlux2JsonPrompt(
+  deterministicFields: Record<string, string>,
+  claudeOutput: string
+): string {
+  let cleaned = claudeOutput.trim();
+  cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+  cleaned = cleaned.trim();
+
+  let synthesized: Record<string, unknown>;
+  try {
+    synthesized = JSON.parse(cleaned);
+  } catch {
+    // If Claude output isn't valid JSON, wrap it as a simple prompt
+    return JSON.stringify({
+      scene: cleaned,
+      subjects: [{ description: cleaned, position: "centered in frame" }],
+      ...Object.fromEntries(Object.entries(deterministicFields).filter(([, v]) => v)),
+    });
+  }
+
+  const merged: Record<string, unknown> = {
+    scene: synthesized.scene || "",
+    subjects: synthesized.subjects || [{ description: cleaned, position: "centered in frame" }],
+    style: deterministicFields.style,
+    color_palette: deterministicFields.color_palette,
+    lighting: synthesized.lighting || "",
+    mood: synthesized.mood || "",
+    composition: deterministicFields.composition,
+  };
+  if (deterministicFields.background) merged.background = deterministicFields.background;
+
+  // Drop empty string fields
+  for (const [k, v] of Object.entries(merged)) {
+    if (v === "") delete merged[k];
+  }
+
+  return JSON.stringify(merged);
 }

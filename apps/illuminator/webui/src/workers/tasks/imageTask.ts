@@ -7,12 +7,15 @@ import { getCallConfig } from "./llmCallConfig";
 import {
   getModelPromptSuffix,
   resolveImageSize,
-  isFluxModel,
   getFluxGeneration,
   FLUX_1_IMAGE_PROMPT_TEMPLATE,
   FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE,
-  FLUX_2_IMAGE_PROMPT_TEMPLATE,
-  FLUX_2_CHRONICLE_IMAGE_PROMPT_TEMPLATE,
+  FLUX_2_SUBJECT_SYNTHESIS_TEMPLATE,
+  FLUX_2_CHRONICLE_SUBJECT_SYNTHESIS_TEMPLATE,
+  parsePromptSections,
+  extractDeterministicFlux2Fields,
+  extractSubjectText,
+  mergeFlux2JsonPrompt,
 } from "../../lib/imageSettings";
 import type { TaskHandler } from "./taskTypes";
 import type { LLMClient } from "../../lib/llmClient";
@@ -46,16 +49,13 @@ async function formatImagePromptWithClaude(
   callConfig: ResolvedLLMCallConfig,
   isChronicleImage?: boolean
 ): Promise<ImagePromptFormatResult> {
-  // Select template: Flux generation-specific templates take priority,
-  // then chronicle-specific, then the user's configured entity template.
+  // Select template: Flux 1 gets generation-specific templates,
+  // others use the user's configured template.
+  // Flux 2 is handled separately via formatFlux2Prompt — not this function.
   const imageModel = config.imageModel || "dall-e-3";
   let templateSource: string | undefined;
   const fluxGen = getFluxGeneration(imageModel);
-  if (fluxGen === "flux-2") {
-    templateSource = isChronicleImage
-      ? FLUX_2_CHRONICLE_IMAGE_PROMPT_TEMPLATE
-      : FLUX_2_IMAGE_PROMPT_TEMPLATE;
-  } else if (fluxGen === "flux-1") {
+  if (fluxGen === "flux-1") {
     templateSource = isChronicleImage
       ? FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE
       : FLUX_1_IMAGE_PROMPT_TEMPLATE;
@@ -114,6 +114,89 @@ async function formatImagePromptWithClaude(
   return { prompt: originalPrompt, formattingPrompt };
 }
 
+/**
+ * Format a Flux 2 prompt: deterministic JSON fields + LLM-synthesized subjects/scene.
+ * Style, palette, composition, background come directly from parsed sections.
+ * Claude only synthesizes scene, subjects, lighting, mood from the visual description.
+ */
+async function formatFlux2Prompt(
+  originalPrompt: string,
+  config: {
+    useClaudeForImagePrompt?: boolean;
+    imageModel?: string;
+  },
+  llmClient: LLMClient,
+  callConfig: ResolvedLLMCallConfig,
+  isChronicle: boolean
+): Promise<ImagePromptFormatResult> {
+  const sections = parsePromptSections(originalPrompt);
+  const deterministic = extractDeterministicFlux2Fields(sections, isChronicle);
+  const subjectText = extractSubjectText(sections, isChronicle);
+
+  // If no subject text, wrap preamble/original in minimal JSON with deterministic fields
+  if (!subjectText.trim()) {
+    const fallback = sections["_preamble"] || originalPrompt;
+    const json = JSON.stringify({
+      scene: fallback,
+      subjects: [{ description: fallback, position: "centered in frame" }],
+      ...Object.fromEntries(Object.entries(deterministic).filter(([, v]) => v)),
+    });
+    return { prompt: json };
+  }
+
+  // If Claude is disabled or not configured, use raw subject text in JSON structure
+  if (!config.useClaudeForImagePrompt || !llmClient.isEnabled()) {
+    const json = JSON.stringify({
+      scene: subjectText.substring(0, 300),
+      subjects: [{ description: subjectText, position: "centered in frame" }],
+      ...Object.fromEntries(Object.entries(deterministic).filter(([, v]) => v)),
+    });
+    return { prompt: json };
+  }
+
+  const template = isChronicle
+    ? FLUX_2_CHRONICLE_SUBJECT_SYNTHESIS_TEMPLATE
+    : FLUX_2_SUBJECT_SYNTHESIS_TEMPLATE;
+  const formattingPrompt = template.replace(/\{\{subjectText\}\}/g, subjectText);
+
+  try {
+    const formattingCall = await runTextCall({
+      llmClient,
+      callType: isChronicle ? "image.chronicleFormatting" : "image.promptFormatting",
+      callConfig,
+      systemPrompt:
+        "You are a prompt engineer for image generation. Output valid JSON only — no code fences, no markdown, no explanation.",
+      prompt: formattingPrompt,
+      temperature: 0.3,
+    });
+    const result = formattingCall.result;
+
+    if (result.text && !result.error) {
+      console.log("[Worker] Flux 2: synthesized subjects, merged with deterministic fields");
+      return {
+        prompt: mergeFlux2JsonPrompt(deterministic, result.text),
+        formattingPrompt,
+        cost: {
+          estimated: formattingCall.estimate.estimatedCost,
+          actual: formattingCall.usage.actualCost,
+          inputTokens: formattingCall.usage.inputTokens,
+          outputTokens: formattingCall.usage.outputTokens,
+        },
+      };
+    }
+  } catch (err) {
+    console.warn("[Worker] Flux 2 subject synthesis failed:", err);
+  }
+
+  // Fallback: deterministic fields + raw subject text
+  const json = JSON.stringify({
+    scene: subjectText.substring(0, 300),
+    subjects: [{ description: subjectText, position: "centered in frame" }],
+    ...Object.fromEntries(Object.entries(deterministic).filter(([, v]) => v)),
+  });
+  return { prompt: json, formattingPrompt };
+}
+
 export const imageTask = {
   type: "image",
   async execute(task, context) {
@@ -145,20 +228,28 @@ export const imageTask = {
         ? "image.chronicleFormatting"
         : "image.promptFormatting";
       const formattingConfig = getCallConfig(config, formattingCallType);
-      const formatResult = await formatImagePromptWithClaude(
-        originalPrompt,
-        config,
-        llmClient,
-        formattingConfig,
-        isChronicleImage
-      );
-      formattingPrompt = formatResult.formattingPrompt;
-      formatCost = formatResult.cost;
-      // Append per-model positive cues after Claude resynthesis
-      const modelSuffix = getModelPromptSuffix(imageModel);
-      finalPrompt = modelSuffix
-        ? `${formatResult.prompt}\n\n${modelSuffix}`
-        : formatResult.prompt;
+
+      const fluxGen = getFluxGeneration(imageModel);
+      if (fluxGen === "flux-2") {
+        // Flux 2: deterministic JSON fields + LLM-synthesized subjects/scene
+        const formatResult = await formatFlux2Prompt(
+          originalPrompt, config, llmClient, formattingConfig, isChronicleImage
+        );
+        formattingPrompt = formatResult.formattingPrompt;
+        formatCost = formatResult.cost;
+        finalPrompt = formatResult.prompt;
+      } else {
+        // Flux 1 and other models: full Claude reformatting
+        const formatResult = await formatImagePromptWithClaude(
+          originalPrompt, config, llmClient, formattingConfig, isChronicleImage
+        );
+        formattingPrompt = formatResult.formattingPrompt;
+        formatCost = formatResult.cost;
+        const modelSuffix = getModelPromptSuffix(imageModel);
+        finalPrompt = modelSuffix
+          ? `${formatResult.prompt}\n\n${modelSuffix}`
+          : formatResult.prompt;
+      }
     }
 
     // Save imagePrompt cost record if Claude was used
