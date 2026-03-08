@@ -350,7 +350,6 @@ export default function TestImagePanel({
 
   // Entity selection
   const [selectedNavEntity, setSelectedNavEntity] = useState(null);
-  const [entityPrompt, setEntityPrompt] = useState(null); // prompt built from entity via buildPrompt
 
   // Prompt section toggles
   const [toggles, setToggles] = useState({
@@ -392,27 +391,12 @@ export default function TestImagePanel({
   const queue = useEnrichmentQueueStore((s) => s.queue);
   const completedCount = results.filter((r) => r.status === "complete" && r.imageId).length;
 
-  // When entity selected, load full entity and build prompt via the existing pipeline
-  const handleEntitySelect = useCallback(
-    async (navEntity) => {
-      setSelectedNavEntity(navEntity);
-      if (!buildPrompt) {
-        setEntityPrompt(null);
-        return;
-      }
-      const fullEntity = await useEntityStore.getState().loadEntity(navEntity.id);
-      if (fullEntity) {
-        const built = buildPrompt(fullEntity, "image");
-        setEntityPrompt(built);
-        setPrompt(built);
-      }
-    },
-    [buildPrompt]
-  );
+  const handleEntitySelect = useCallback((navEntity) => {
+    setSelectedNavEntity(navEntity);
+  }, []);
 
   const handleEntityClear = useCallback(() => {
     setSelectedNavEntity(null);
-    setEntityPrompt(null);
   }, []);
 
   // Watch queue for test image task updates
@@ -471,63 +455,95 @@ export default function TestImagePanel({
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleGenerate = useCallback(() => {
-    if (!prompt.trim()) return;
+  const handleGenerate = useCallback(async () => {
+    const isEntityMode = !!selectedNavEntity;
 
-    // When entity is selected, the prompt already contains all sections from buildPrompt.
-    // Manual toggles (style/palette/composition/identity) only apply in manual mode.
-    const isEntityMode = !!entityPrompt;
-    const compositePrompt = isEntityMode
-      ? prompt // Already built by buildPrompt — use as-is (may be edited by user)
-      : buildCompositePrompt(prompt, toggles, fragments, visualIdentityText);
+    if (isEntityMode) {
+      // Entity mode: load full entity, build prompt via standard pipeline, enqueue
+      const fullEntity = await useEntityStore.getState().loadEntity(selectedNavEntity.id);
+      if (!fullEntity || !buildPrompt) return;
 
-    const entityId = `${TEST_ENTITY_PREFIX}${Date.now()}`;
-    pendingEntityIdsRef.current.add(entityId);
+      const builtPrompt = buildPrompt(fullEntity, "image");
+      const entityId = `${TEST_ENTITY_PREFIX}${Date.now()}`;
+      pendingEntityIdsRef.current.add(entityId);
 
-    // Build toggle summary for result card
-    const activeToggles = isEntityMode
-      ? ["entity"]
-      : Object.entries(toggles).filter(([, v]) => v).map(([k]) => k);
-
-    setResults((prev) => [
-      {
-        entityId,
-        prompt: compositePrompt,
-        basePrompt: isEntityMode ? (selectedNavEntity?.name || "Entity") : prompt.trim(),
-        toggles: activeToggles,
-        model: activeModel,
-        aspect: activeAspect,
-        status: "queued",
-        imageId: null,
-        url: null,
-        error: null,
-        createdAt: Date.now(),
-      },
-      ...prev,
-    ]);
-
-    const enqueue = getEnqueue();
-    enqueue([
-      {
-        entity: {
-          id: entityId,
-          name: selectedNavEntity?.name || "Test Image",
-          kind: selectedNavEntity?.kind || "test",
-          subtype: selectedNavEntity?.subtype || "",
-          prominence: "recognized",
-          culture: selectedNavEntity?.culture || "",
-          status: "active",
-          description: "",
-          tags: {},
+      setResults((prev) => [
+        {
+          entityId,
+          prompt: builtPrompt,
+          basePrompt: selectedNavEntity.name,
+          toggles: ["entity"],
+          model: activeModel,
+          aspect: activeAspect,
+          status: "queued",
+          imageId: null,
+          url: null,
+          error: null,
+          createdAt: Date.now(),
         },
-        type: "image",
-        prompt: compositePrompt,
-        skipPromptFormatting: isEntityMode ? false : !toggles.reformat,
-        imageSize: activeAspect,
-        imageType: "entity",
-      },
-    ]);
-  }, [prompt, entityPrompt, toggles, fragments, visualIdentityText, activeModel, activeAspect, selectedNavEntity]);
+        ...prev,
+      ]);
+
+      const enqueue = getEnqueue();
+      enqueue([
+        {
+          entity: { ...fullEntity, id: entityId },
+          type: "image",
+          prompt: builtPrompt,
+          imageSize: activeAspect,
+          imageType: "entity",
+        },
+      ]);
+    } else {
+      // Manual mode: composite prompt from textarea + toggled sections
+      if (!prompt.trim()) return;
+
+      const compositePrompt = buildCompositePrompt(prompt, toggles, fragments, visualIdentityText);
+      const entityId = `${TEST_ENTITY_PREFIX}${Date.now()}`;
+      pendingEntityIdsRef.current.add(entityId);
+
+      const activeToggles = Object.entries(toggles).filter(([, v]) => v).map(([k]) => k);
+
+      setResults((prev) => [
+        {
+          entityId,
+          prompt: compositePrompt,
+          basePrompt: prompt.trim(),
+          toggles: activeToggles,
+          model: activeModel,
+          aspect: activeAspect,
+          status: "queued",
+          imageId: null,
+          url: null,
+          error: null,
+          createdAt: Date.now(),
+        },
+        ...prev,
+      ]);
+
+      const enqueue = getEnqueue();
+      enqueue([
+        {
+          entity: {
+            id: entityId,
+            name: "Test Image",
+            kind: "test",
+            subtype: "",
+            prominence: "recognized",
+            culture: "",
+            status: "active",
+            description: "",
+            tags: {},
+          },
+          type: "image",
+          prompt: compositePrompt,
+          skipPromptFormatting: !toggles.reformat,
+          imageSize: activeAspect,
+          imageType: "entity",
+        },
+      ]);
+    }
+  }, [selectedNavEntity, buildPrompt, prompt, toggles, fragments, visualIdentityText, activeModel, activeAspect]);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -555,7 +571,7 @@ export default function TestImagePanel({
   }, []);
 
   const modelLabel = IMAGE_MODELS.find((m) => m.value === activeModel)?.label || activeModel;
-  const isEntityMode = !!entityPrompt;
+  const isEntityMode = !!selectedNavEntity;
 
   return (
     <div className="tip-container">
@@ -579,119 +595,110 @@ export default function TestImagePanel({
             />
           </div>
 
-          <textarea
-            className="tip-prompt-area"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isEntityMode
-              ? "Entity prompt loaded — edit freely or generate as-is"
-              : "A penguin holding a hammer on a bright red background"
-            }
-          />
-
-          {/* Manual mode toggles — hidden when entity is selected (prompt already has everything) */}
+          {/* Manual mode: textarea + section toggles */}
           {!isEntityMode && (
-            <div className="tip-toggles">
-              <label className="tip-toggle" title="Run through Claude reformatter (Flux template)">
-                <input
-                  type="checkbox"
-                  checked={toggles.reformat}
-                  onChange={() => toggleField("reformat")}
-                />
-                <span>Reformat</span>
-              </label>
+            <>
+              <textarea
+                className="tip-prompt-area"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="A penguin holding a hammer on a bright red background"
+              />
 
-              <label
-                className="tip-toggle"
-                title={fragments.artisticFragment || "No artistic style selected"}
-              >
-                <input
-                  type="checkbox"
-                  checked={toggles.style}
-                  onChange={() => toggleField("style")}
-                  disabled={!fragments.artisticFragment}
-                />
-                <span>Style</span>
-                {fragments.artisticName && (
-                  <span className="tip-toggle-detail">{fragments.artisticName}</span>
-                )}
-              </label>
+              <div className="tip-toggles">
+                <label className="tip-toggle" title="Run through Claude reformatter (Flux template)">
+                  <input
+                    type="checkbox"
+                    checked={toggles.reformat}
+                    onChange={() => toggleField("reformat")}
+                  />
+                  <span>Reformat</span>
+                </label>
 
-              <label
-                className="tip-toggle"
-                title={fragments.compositionFragment || "No composition selected"}
-              >
-                <input
-                  type="checkbox"
-                  checked={toggles.composition}
-                  onChange={() => toggleField("composition")}
-                  disabled={!fragments.compositionFragment}
-                />
-                <span>Composition</span>
-                {fragments.compositionName && (
-                  <span className="tip-toggle-detail">{fragments.compositionName}</span>
-                )}
-              </label>
+                <label
+                  className="tip-toggle"
+                  title={fragments.artisticFragment || "No artistic style selected"}
+                >
+                  <input
+                    type="checkbox"
+                    checked={toggles.style}
+                    onChange={() => toggleField("style")}
+                    disabled={!fragments.artisticFragment}
+                  />
+                  <span>Style</span>
+                  {fragments.artisticName && (
+                    <span className="tip-toggle-detail">{fragments.artisticName}</span>
+                  )}
+                </label>
 
-              <label
-                className="tip-toggle"
-                title={fragments.paletteFragment || "No palette selected"}
-              >
-                <input
-                  type="checkbox"
-                  checked={toggles.palette}
-                  onChange={() => toggleField("palette")}
-                  disabled={!fragments.paletteFragment}
-                />
-                <span>Palette</span>
-                {fragments.paletteName && (
-                  <span className="tip-toggle-detail">{fragments.paletteName}</span>
-                )}
-              </label>
+                <label
+                  className="tip-toggle"
+                  title={fragments.compositionFragment || "No composition selected"}
+                >
+                  <input
+                    type="checkbox"
+                    checked={toggles.composition}
+                    onChange={() => toggleField("composition")}
+                    disabled={!fragments.compositionFragment}
+                  />
+                  <span>Composition</span>
+                  {fragments.compositionName && (
+                    <span className="tip-toggle-detail">{fragments.compositionName}</span>
+                  )}
+                </label>
 
-              <label
-                className="tip-toggle"
-                title="Append culture visual identity to prompt"
-              >
-                <input
-                  type="checkbox"
-                  checked={toggles.identity}
-                  onChange={() => toggleField("identity")}
-                  disabled={availableCultures.length === 0}
-                />
-                <span>Visual Identity</span>
-                {toggles.identity && availableCultures.length > 0 && (
-                  <select
-                    className="tip-culture-select"
-                    value={selectedCulture}
-                    onChange={(e) => setSelectedCulture(e.target.value)}
-                  >
-                    <option value="">Pick culture...</option>
-                    {availableCultures.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </label>
-            </div>
+                <label
+                  className="tip-toggle"
+                  title={fragments.paletteFragment || "No palette selected"}
+                >
+                  <input
+                    type="checkbox"
+                    checked={toggles.palette}
+                    onChange={() => toggleField("palette")}
+                    disabled={!fragments.paletteFragment}
+                  />
+                  <span>Palette</span>
+                  {fragments.paletteName && (
+                    <span className="tip-toggle-detail">{fragments.paletteName}</span>
+                  )}
+                </label>
+
+                <label
+                  className="tip-toggle"
+                  title="Append culture visual identity to prompt"
+                >
+                  <input
+                    type="checkbox"
+                    checked={toggles.identity}
+                    onChange={() => toggleField("identity")}
+                    disabled={availableCultures.length === 0}
+                  />
+                  <span>Visual Identity</span>
+                  {toggles.identity && availableCultures.length > 0 && (
+                    <select
+                      className="tip-culture-select"
+                      value={selectedCulture}
+                      onChange={(e) => setSelectedCulture(e.target.value)}
+                    >
+                      <option value="">Pick culture...</option>
+                      {availableCultures.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </label>
+              </div>
+            </>
           )}
 
-          {/* Entity mode: always reformats, show toggle for reformat bypass */}
+          {/* Entity mode: uses full prompt pipeline, no manual controls needed */}
           {isEntityMode && (
-            <div className="tip-toggles">
-              <label className="tip-toggle" title="Run through Claude reformatter (Flux template)">
-                <input
-                  type="checkbox"
-                  checked={true}
-                  disabled
-                />
-                <span>Reformat (always on for entity prompts)</span>
-              </label>
-              <span className="tip-hint">Full prompt built from entity pipeline — style, palette, identity, thesis all included. Edit the textarea to modify.</span>
-            </div>
+            <span className="tip-hint">
+              Uses the same prompt pipeline as entity browser — style, palette, composition, identity, thesis all included.
+            </span>
           )}
 
           <div className="tip-settings-row">
@@ -726,7 +733,7 @@ export default function TestImagePanel({
             <button
               className="tip-generate-btn"
               onClick={handleGenerate}
-              disabled={!prompt.trim()}
+              disabled={isEntityMode ? !buildPrompt : !prompt.trim()}
             >
               Generate
             </button>
