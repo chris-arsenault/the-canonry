@@ -322,6 +322,7 @@ function TestImageTab(props) {
         globalAspect={props.imageGenSettings?.imageSize}
         styleLibrary={props.styleLibrary}
         imageGenSettings={props.imageGenSettings}
+        buildPrompt={props.buildPrompt}
       />
     </div>
   );
@@ -331,6 +332,7 @@ TestImageTab.propTypes = {
   config: PropTypes.object,
   imageGenSettings: PropTypes.object,
   styleLibrary: PropTypes.object,
+  buildPrompt: PropTypes.func,
 };
 
 EntitiesTab.propTypes = {

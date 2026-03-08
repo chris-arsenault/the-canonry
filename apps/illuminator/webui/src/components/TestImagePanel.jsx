@@ -4,6 +4,9 @@
  * Lets you isolate which prompt parameter causes image degradation by
  * toggling individual sections on/off: Claude reformat, artistic style,
  * composition, color palette, visual identity.
+ *
+ * Supports entity selection to auto-build the full composite prompt using
+ * the same buildPrompt() pipeline as the entity browser.
  */
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
@@ -13,6 +16,8 @@ import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
 import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
 import { loadImage, getImageBlob } from "../lib/db/imageRepository";
 import { IMAGE_MODELS, IMAGE_ASPECTS } from "../lib/imageSettings";
+import { useEntityNavList } from "../lib/db/entitySelectors";
+import { useEntityStore } from "../lib/db/entityStore";
 import ImageModal from "./ImageModal";
 import "./TestImagePanel.css";
 
@@ -253,17 +258,99 @@ function crc32(data) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
+/**
+ * Entity search dropdown with type-ahead filtering.
+ */
+function EntitySearchDropdown({ onSelect, selectedEntity, onClear }) {
+  const navList = useEntityNavList();
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef(null);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return navList.slice(0, 20);
+    const q = query.toLowerCase();
+    return navList
+      .filter((e) =>
+        e.name.toLowerCase().includes(q) ||
+        e.kind.toLowerCase().includes(q) ||
+        e.subtype.toLowerCase().includes(q) ||
+        (e.aliases || []).some((a) => a.toLowerCase().includes(q))
+      )
+      .slice(0, 20);
+  }, [navList, query]);
+
+  const handleSelect = useCallback(
+    (entity) => {
+      onSelect(entity);
+      setQuery("");
+      setOpen(false);
+    },
+    [onSelect]
+  );
+
+  if (selectedEntity) {
+    return (
+      <div className="tip-entity-selected">
+        <span className="tip-entity-name">{selectedEntity.name}</span>
+        <span className="tip-entity-kind">{selectedEntity.subtype} {selectedEntity.kind}</span>
+        <button className="tip-entity-clear" onClick={onClear} title="Clear entity selection">x</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="tip-entity-search">
+      <input
+        ref={inputRef}
+        className="tip-entity-input"
+        type="text"
+        value={query}
+        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        placeholder="Search entity..."
+      />
+      {open && filtered.length > 0 && (
+        <div className="tip-entity-dropdown">
+          {filtered.map((e) => (
+            <div
+              key={e.id}
+              className="tip-entity-option"
+              onMouseDown={() => handleSelect(e)}
+            >
+              <span className="tip-entity-option-name">{e.name}</span>
+              <span className="tip-entity-option-meta">{e.subtype} {e.kind} ({e.culture})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+EntitySearchDropdown.propTypes = {
+  onSelect: PropTypes.func.isRequired,
+  selectedEntity: PropTypes.object,
+  onClear: PropTypes.func.isRequired,
+};
+
 export default function TestImagePanel({
   globalModel,
   globalAspect,
   styleLibrary,
   imageGenSettings,
+  buildPrompt,
 }) {
   const [prompt, setPrompt] = useState("");
   const [results, setResults] = useState([]);
   const [imageModal, setImageModal] = useState({ open: false, imageId: "", title: "" });
   const [exporting, setExporting] = useState(false);
   const pendingEntityIdsRef = useRef(new Set());
+
+  // Entity selection
+  const [selectedNavEntity, setSelectedNavEntity] = useState(null);
+  const [entityPrompt, setEntityPrompt] = useState(null); // prompt built from entity via buildPrompt
 
   // Prompt section toggles
   const [toggles, setToggles] = useState({
@@ -274,7 +361,7 @@ export default function TestImagePanel({
     identity: false,
   });
 
-  // Culture selection for visual identity
+  // Culture selection for visual identity (manual mode only)
   const [selectedCulture, setSelectedCulture] = useState("");
 
   // Local aspect override ("" = use global)
@@ -303,8 +390,30 @@ export default function TestImagePanel({
   );
 
   const queue = useEnrichmentQueueStore((s) => s.queue);
-
   const completedCount = results.filter((r) => r.status === "complete" && r.imageId).length;
+
+  // When entity selected, load full entity and build prompt via the existing pipeline
+  const handleEntitySelect = useCallback(
+    async (navEntity) => {
+      setSelectedNavEntity(navEntity);
+      if (!buildPrompt) {
+        setEntityPrompt(null);
+        return;
+      }
+      const fullEntity = await useEntityStore.getState().loadEntity(navEntity.id);
+      if (fullEntity) {
+        const built = buildPrompt(fullEntity, "image");
+        setEntityPrompt(built);
+        setPrompt(built);
+      }
+    },
+    [buildPrompt]
+  );
+
+  const handleEntityClear = useCallback(() => {
+    setSelectedNavEntity(null);
+    setEntityPrompt(null);
+  }, []);
 
   // Watch queue for test image task updates
   useEffect(() => {
@@ -365,26 +474,26 @@ export default function TestImagePanel({
   const handleGenerate = useCallback(() => {
     if (!prompt.trim()) return;
 
-    const compositePrompt = buildCompositePrompt(
-      prompt,
-      toggles,
-      fragments,
-      visualIdentityText
-    );
+    // When entity is selected, the prompt already contains all sections from buildPrompt.
+    // Manual toggles (style/palette/composition/identity) only apply in manual mode.
+    const isEntityMode = !!entityPrompt;
+    const compositePrompt = isEntityMode
+      ? prompt // Already built by buildPrompt — use as-is (may be edited by user)
+      : buildCompositePrompt(prompt, toggles, fragments, visualIdentityText);
 
     const entityId = `${TEST_ENTITY_PREFIX}${Date.now()}`;
     pendingEntityIdsRef.current.add(entityId);
 
     // Build toggle summary for result card
-    const activeToggles = Object.entries(toggles)
-      .filter(([, v]) => v)
-      .map(([k]) => k);
+    const activeToggles = isEntityMode
+      ? ["entity"]
+      : Object.entries(toggles).filter(([, v]) => v).map(([k]) => k);
 
     setResults((prev) => [
       {
         entityId,
         prompt: compositePrompt,
-        basePrompt: prompt.trim(),
+        basePrompt: isEntityMode ? (selectedNavEntity?.name || "Entity") : prompt.trim(),
         toggles: activeToggles,
         model: activeModel,
         aspect: activeAspect,
@@ -402,23 +511,23 @@ export default function TestImagePanel({
       {
         entity: {
           id: entityId,
-          name: "Test Image",
-          kind: "test",
-          subtype: "",
+          name: selectedNavEntity?.name || "Test Image",
+          kind: selectedNavEntity?.kind || "test",
+          subtype: selectedNavEntity?.subtype || "",
           prominence: "recognized",
-          culture: "",
+          culture: selectedNavEntity?.culture || "",
           status: "active",
           description: "",
           tags: {},
         },
         type: "image",
         prompt: compositePrompt,
-        skipPromptFormatting: !toggles.reformat,
+        skipPromptFormatting: isEntityMode ? false : !toggles.reformat,
         imageSize: activeAspect,
         imageType: "entity",
       },
     ]);
-  }, [prompt, toggles, fragments, visualIdentityText, activeModel, activeAspect]);
+  }, [prompt, entityPrompt, toggles, fragments, visualIdentityText, activeModel, activeAspect, selectedNavEntity]);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -446,6 +555,7 @@ export default function TestImagePanel({
   }, []);
 
   const modelLabel = IMAGE_MODELS.find((m) => m.value === activeModel)?.label || activeModel;
+  const isEntityMode = !!entityPrompt;
 
   return (
     <div className="tip-container">
@@ -455,103 +565,134 @@ export default function TestImagePanel({
         </div>
         <p className="ilu-hint">
           Toggle prompt sections on/off to isolate which parameter degrades image quality.
+          Select an entity to use the full prompt pipeline.
         </p>
 
         <div className="tip-controls">
+          {/* Entity search */}
+          <div className="tip-entity-row">
+            <span className="tip-label">Entity</span>
+            <EntitySearchDropdown
+              onSelect={handleEntitySelect}
+              selectedEntity={selectedNavEntity}
+              onClear={handleEntityClear}
+            />
+          </div>
+
           <textarea
             className="tip-prompt-area"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="A penguin holding a hammer on a bright red background"
+            placeholder={isEntityMode
+              ? "Entity prompt loaded — edit freely or generate as-is"
+              : "A penguin holding a hammer on a bright red background"
+            }
           />
 
-          {/* Prompt section toggles */}
-          <div className="tip-toggles">
-            <label className="tip-toggle" title="Run through Claude reformatter (Flux template)">
-              <input
-                type="checkbox"
-                checked={toggles.reformat}
-                onChange={() => toggleField("reformat")}
-              />
-              <span>Reformat</span>
-            </label>
+          {/* Manual mode toggles — hidden when entity is selected (prompt already has everything) */}
+          {!isEntityMode && (
+            <div className="tip-toggles">
+              <label className="tip-toggle" title="Run through Claude reformatter (Flux template)">
+                <input
+                  type="checkbox"
+                  checked={toggles.reformat}
+                  onChange={() => toggleField("reformat")}
+                />
+                <span>Reformat</span>
+              </label>
 
-            <label
-              className="tip-toggle"
-              title={fragments.artisticFragment || "No artistic style selected"}
-            >
-              <input
-                type="checkbox"
-                checked={toggles.style}
-                onChange={() => toggleField("style")}
-                disabled={!fragments.artisticFragment}
-              />
-              <span>Style</span>
-              {fragments.artisticName && (
-                <span className="tip-toggle-detail">{fragments.artisticName}</span>
-              )}
-            </label>
+              <label
+                className="tip-toggle"
+                title={fragments.artisticFragment || "No artistic style selected"}
+              >
+                <input
+                  type="checkbox"
+                  checked={toggles.style}
+                  onChange={() => toggleField("style")}
+                  disabled={!fragments.artisticFragment}
+                />
+                <span>Style</span>
+                {fragments.artisticName && (
+                  <span className="tip-toggle-detail">{fragments.artisticName}</span>
+                )}
+              </label>
 
-            <label
-              className="tip-toggle"
-              title={fragments.compositionFragment || "No composition selected"}
-            >
-              <input
-                type="checkbox"
-                checked={toggles.composition}
-                onChange={() => toggleField("composition")}
-                disabled={!fragments.compositionFragment}
-              />
-              <span>Composition</span>
-              {fragments.compositionName && (
-                <span className="tip-toggle-detail">{fragments.compositionName}</span>
-              )}
-            </label>
+              <label
+                className="tip-toggle"
+                title={fragments.compositionFragment || "No composition selected"}
+              >
+                <input
+                  type="checkbox"
+                  checked={toggles.composition}
+                  onChange={() => toggleField("composition")}
+                  disabled={!fragments.compositionFragment}
+                />
+                <span>Composition</span>
+                {fragments.compositionName && (
+                  <span className="tip-toggle-detail">{fragments.compositionName}</span>
+                )}
+              </label>
 
-            <label
-              className="tip-toggle"
-              title={fragments.paletteFragment || "No palette selected"}
-            >
-              <input
-                type="checkbox"
-                checked={toggles.palette}
-                onChange={() => toggleField("palette")}
-                disabled={!fragments.paletteFragment}
-              />
-              <span>Palette</span>
-              {fragments.paletteName && (
-                <span className="tip-toggle-detail">{fragments.paletteName}</span>
-              )}
-            </label>
+              <label
+                className="tip-toggle"
+                title={fragments.paletteFragment || "No palette selected"}
+              >
+                <input
+                  type="checkbox"
+                  checked={toggles.palette}
+                  onChange={() => toggleField("palette")}
+                  disabled={!fragments.paletteFragment}
+                />
+                <span>Palette</span>
+                {fragments.paletteName && (
+                  <span className="tip-toggle-detail">{fragments.paletteName}</span>
+                )}
+              </label>
 
-            <label
-              className="tip-toggle"
-              title="Append culture visual identity to prompt"
-            >
-              <input
-                type="checkbox"
-                checked={toggles.identity}
-                onChange={() => toggleField("identity")}
-                disabled={availableCultures.length === 0}
-              />
-              <span>Visual Identity</span>
-              {toggles.identity && availableCultures.length > 0 && (
-                <select
-                  className="tip-culture-select"
-                  value={selectedCulture}
-                  onChange={(e) => setSelectedCulture(e.target.value)}
-                >
-                  <option value="">Pick culture...</option>
-                  {availableCultures.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </label>
-          </div>
+              <label
+                className="tip-toggle"
+                title="Append culture visual identity to prompt"
+              >
+                <input
+                  type="checkbox"
+                  checked={toggles.identity}
+                  onChange={() => toggleField("identity")}
+                  disabled={availableCultures.length === 0}
+                />
+                <span>Visual Identity</span>
+                {toggles.identity && availableCultures.length > 0 && (
+                  <select
+                    className="tip-culture-select"
+                    value={selectedCulture}
+                    onChange={(e) => setSelectedCulture(e.target.value)}
+                  >
+                    <option value="">Pick culture...</option>
+                    {availableCultures.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </label>
+            </div>
+          )}
+
+          {/* Entity mode: always reformats, show toggle for reformat bypass */}
+          {isEntityMode && (
+            <div className="tip-toggles">
+              <label className="tip-toggle" title="Run through Claude reformatter (Flux template)">
+                <input
+                  type="checkbox"
+                  checked={true}
+                  disabled
+                />
+                <span>Reformat (always on for entity prompts)</span>
+              </label>
+              <span className="tip-hint">Full prompt built from entity pipeline — style, palette, identity, thesis all included. Edit the textarea to modify.</span>
+            </div>
+          )}
 
           <div className="tip-settings-row">
             <span className="tip-label">Model</span>
@@ -664,4 +805,5 @@ TestImagePanel.propTypes = {
   globalAspect: PropTypes.string,
   styleLibrary: PropTypes.object,
   imageGenSettings: PropTypes.object,
+  buildPrompt: PropTypes.func,
 };

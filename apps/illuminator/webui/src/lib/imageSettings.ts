@@ -183,50 +183,50 @@ export function getFluxGeneration(model: string): "flux-1" | "flux-2" | null {
 // detail well and rewards specificity.
 // ---------------------------------------------------------------------------
 
-export const FLUX_2_IMAGE_PROMPT_TEMPLATE = `Rewrite the structured prompt below into a single image generation prompt optimized for Flux 2 Pro.
+export const FLUX_2_IMAGE_PROMPT_TEMPLATE = `Rewrite the structured prompt below into a JSON image generation prompt optimized for Flux 2 Pro.
 
-Guidelines:
+The input may be very long and redundant. Deduplicate and restructure — cut repetition ruthlessly but preserve all distinct visual details. Only visual and emotional content. Strip lore, backstory, names, world-building. Positive only — never write "avoid", "no", "without", or "don't". Honor the input style. Attach hex codes inline with colored objects.
 
-1. Lead with the style and subject together from the very first words. The style sets the medium — "a hyperdetailed charcoal drawing of...", "a 4K National Geographic photograph of...", "a cel-shaded rendering of...". Flux weights the opening most heavily, so the medium must be established immediately.
+Output this exact JSON structure:
 
-2. Attach hex codes inline with every colored object. Never group colors separately.
+{
+  "scene": "One sentence: the style/medium, the central subject, and the key action.",
+  "subjects": [
+    { "description": "Self-contained visual description of subject with colors and distinctive details", "position": "spatial placement in frame" }
+  ],
+  "style": "The artistic medium and rendering approach",
+  "color_palette": "Dominant colors with hex codes bound to objects",
+  "lighting": "Light sources, direction, quality",
+  "mood": "Emotional atmosphere in a few words",
+  "background": "Setting and environment details",
+  "composition": "Camera angle, framing, depth"
+}
 
-3. Only visual and emotional content. Strip lore, backstory, names, world-building. If you can't paint it, cut it.
-
-4. Positive only. Flux renders anything mentioned, including negatives. Invert every constraint into a vivid positive counterpart. Never write "avoid", "no", "without", or "don't".
-
-5. Honor the input style — work within whatever medium is specified rather than substituting a different one.
-
-6. Weave bold, saturated color language throughout every sentence, not just at the end.
-
-7. Close with a camera setup appropriate for the scene and a short mood/atmosphere sentence.
-
-Write fluid prose — unified artistic direction, not a feature list.
+Output valid JSON only, no explanation.
 {{globalImageRules}}
 Original prompt:
 {{prompt}}`;
 
-export const FLUX_2_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `Rewrite the structured prompt below into a single image generation prompt optimized for Flux 2 Pro.
+export const FLUX_2_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `Rewrite the structured prompt below into a JSON image generation prompt optimized for Flux 2 Pro.
 
-Guidelines:
+The input may be very long and redundant. Deduplicate and restructure — cut repetition ruthlessly but preserve all distinct visual details. Only visual and emotional content. Strip lore, names, world-building. Positive only — never write "avoid", "no", "without", or "don't". Honor the input style. Maintain species — characters must be described as their specified species. Attach hex codes inline with colored objects.
 
-1. Lead with the style and the scene's central action together from the very first words. The style sets the medium — establish it immediately. Flux weights the opening most heavily.
+Output this exact JSON structure:
 
-2. Attach hex codes inline with every colored object.
+{
+  "scene": "One sentence: the style/medium, the central action, and the key moment.",
+  "subjects": [
+    { "description": "Self-contained visual description of character including species, colors, distinctive details, and what they are doing", "position": "spatial placement in frame" }
+  ],
+  "style": "The artistic medium and rendering approach",
+  "color_palette": "Dominant colors with hex codes bound to objects",
+  "lighting": "Light sources, direction, quality",
+  "mood": "Emotional atmosphere in a few words",
+  "background": "Setting and environment details",
+  "composition": "Camera angle, framing, depth"
+}
 
-3. Only visual and emotional content. Strip lore, names, world-building context.
-
-4. Positive only — invert all negatives into vivid positive counterparts. Never write "avoid", "no", "without", or "don't".
-
-5. Honor the input style.
-
-6. Maintain species — characters must be described as their specified species with anatomical detail.
-
-7. Weave bold, saturated color language throughout.
-
-8. Close with a cinematographer's camera setup and a short atmosphere sentence.
-
-Write fluid prose — unified artistic direction, not a feature list.
+Output valid JSON only, no explanation.
 {{globalImageRules}}
 Original prompt:
 {{prompt}}`;
@@ -241,13 +241,15 @@ export const FLUX_1_IMAGE_PROMPT_TEMPLATE = `Synthesize the structured prompt be
 
 Style → Subject → Action/Context → Technical details
 
+The input may be very long and redundant. Deduplicate and restructure — cut repetition ruthlessly but preserve all distinct visual details. Every word in your output must contribute unique visual information. Front-load the most important elements since Flux weights earlier text more heavily.
+
 Output structure guidelines:
 
-1. STYLE FIRST. The very first words must establish the medium/style. "An oil painting of...", "A hyperdetailed charcoal drawing of...", "A watercolor rendering of...". This is the most important element — it must come before anything else.
+1. STYLE FIRST. The very first words must establish the medium/style. This is the most important element — it must come before anything else.
 
 2. If the input contains an [Artist exemplar: ...] tag, include "in the style of [artist name]" prominently in your opening style phrase. This anchors the visual medium on the target model. Always include the artist name when provided.
 
-3. Then SUBJECT with its visually distinctive details — the things that make this character/scene unique and recognizable. Preserve any specific visual details from the input that distinguish this subject from a generic version.
+3. Then SUBJECT with its visually distinctive details — the things that make this character/scene unique and recognizable.
 
 4. Then CONTEXT — setting, action, mood.
 
@@ -258,7 +260,6 @@ Additional rules:
 - Use rich color names, not hex codes. "Deep crimson", "molten gold", "bruised violet" — painter's language.
 - Only visual and emotional content. Strip lore, backstory, names, world-building.
 - Positive only. Never write "avoid", "no", "without", or "don't" — invert negatives into vivid positives.
-- Be as concise as possible while preserving every visually distinctive detail. Cut filler and repetition ruthlessly, but keep the details that make this subject unique.
 {{globalImageRules}}
 Original prompt:
 {{prompt}}`;
@@ -266,6 +267,8 @@ Original prompt:
 export const FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `Synthesize the structured prompt below into an image generation prompt following this exact structure:
 
 Style → Scene/Action → Characters with distinctive details → Technical details
+
+The input may be very long and redundant. Deduplicate and restructure — cut repetition ruthlessly but preserve all distinct visual details. Every word in your output must contribute unique visual information. Front-load the most important elements since Flux weights earlier text more heavily.
 
 Output structure guidelines:
 
@@ -275,7 +278,7 @@ Output structure guidelines:
 
 3. Then the SCENE — what is happening, the central action or moment.
 
-4. Then CHARACTERS with their visually distinctive details. Maintain species — characters must be described as their specified species. Preserve specific visual details that make each character recognizable.
+4. Then CHARACTERS — maintain species, describe each character as a self-contained block with their distinctive visual details. Do not interleave attributes between characters.
 
 5. Then TECHNICAL — lighting, camera, atmosphere as a closing detail.
 
@@ -284,7 +287,6 @@ Additional rules:
 - Use rich color names, not hex codes. Painter's language.
 - Only visual and emotional content. Strip lore, names, world-building.
 - Positive only — invert negatives into vivid positives. Never write "avoid", "no", "without", or "don't".
-- Be as concise as possible while preserving every visually distinctive detail. Cut filler and repetition ruthlessly, but keep the details that make this scene unique.
 {{globalImageRules}}
 Original prompt:
 {{prompt}}`;
