@@ -8,7 +8,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { getSizeOptions, getQualityOptions, IMAGE_MODELS } from "../lib/imageSettings";
+import { IMAGE_ASPECTS, getQualityOptions, IMAGE_MODELS } from "../lib/imageSettings";
 import { DEFAULT_RANDOM_EXCLUSIONS, filterStylesForComposition, filterCompositionsForStyle } from "@canonry/world-schema";
 import type { StyleLibrary } from "@canonry/world-schema";
 import type { ImageGenSettings } from "../hooks/useImageGenSettings";
@@ -280,8 +280,7 @@ export default function ImageSettingsDrawer({
     })).filter(g => g.palettes.length > 0);
   }, [styleLibrary]);
 
-  // Size/quality options for current model
-  const sizeOptions = useMemo(() => getSizeOptions(imageModel), [imageModel]);
+  // Quality options for current model
   const qualityOptions = useMemo(() => getQualityOptions(imageModel), [imageModel]);
 
   // Is the current selection a special value?
@@ -431,11 +430,11 @@ export default function ImageSettingsDrawer({
                   </select>
                 </div>
 
-                {/* Size - segmented buttons */}
+                {/* Aspect - segmented buttons */}
                 <div className="isd-output-group">
-                  <div className="isd-output-label">Size</div>
+                  <div className="isd-output-label">Aspect</div>
                   <div className="isd-output-btns">
-                    {sizeOptions.map(opt => {
+                    {IMAGE_ASPECTS.map(opt => {
                   const isSelected = settings.imageSize === opt.value;
                   return <button key={opt.value} onClick={() => onSettingsChange({
                     imageSize: opt.value

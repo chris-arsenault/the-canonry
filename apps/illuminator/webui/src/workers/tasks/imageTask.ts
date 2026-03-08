@@ -4,6 +4,7 @@ import { saveImage, generateImageId, extractImageDimensions } from "../../lib/db
 import { saveCostRecordWithDefaults } from "../../lib/db/costRepository";
 import { runTextCall } from "../../lib/llmTextCall";
 import { getCallConfig } from "./llmCallConfig";
+import { getModelNegativePrompt, resolveImageSize } from "../../lib/imageSettings";
 import type { TaskHandler } from "./taskTypes";
 import type { LLMClient } from "../../lib/llmClient";
 import type { ResolvedLLMCallConfig } from "../../lib/llmModelSettings";
@@ -101,7 +102,7 @@ export const imageTask = {
 
     const imageModel = config.imageModel || "dall-e-3";
     // Use task-level overrides if provided, otherwise fall back to global config
-    const imageSize = task.imageSize || config.imageSize || "1024x1024";
+    const imageSize = resolveImageSize(imageModel, task.imageSize || config.imageSize || "auto");
     const imageQuality = task.imageQuality || config.imageQuality || "standard";
     const estimatedCost = estimateImageCost(imageModel, imageSize, imageQuality);
 
@@ -119,7 +120,11 @@ export const imageTask = {
       formattingConfig,
       isChronicleImage
     );
-    const finalPrompt = formatResult.prompt;
+    // Append per-model negative cues after Claude resynthesis
+    const modelNegative = getModelNegativePrompt(imageModel);
+    const finalPrompt = modelNegative
+      ? `${formatResult.prompt}\n\n${modelNegative}`
+      : formatResult.prompt;
 
     // Save imagePrompt cost record if Claude was used
     if (formatResult.cost) {
@@ -142,7 +147,7 @@ export const imageTask = {
       return { success: false, error: "Task aborted" };
     }
 
-    const result = await imageClient.generate({ prompt: finalPrompt });
+    const result = await imageClient.generate({ prompt: finalPrompt, size: imageSize });
     const debug = result.debug;
 
     if (isAborted()) {

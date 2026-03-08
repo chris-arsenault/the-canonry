@@ -7,6 +7,7 @@
 
 import type { ImageConfig, ImageRequest, ImageResult } from "./imageClient.browser";
 import type { NetworkDebugInfo } from "./llmClient.browser";
+import { getModelExtraParams, getModelSizeParams } from "./imageSettings";
 
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const POLL_INTERVAL_MS = 1000;
@@ -33,11 +34,6 @@ interface WaveSpeedResultResponse {
     timings?: { inference: number };
     error?: string;
   };
-}
-
-/** Convert "1024x1024" to WaveSpeed's "1024*1024" format. */
-function toWaveSpeedSize(size: string): string {
-  return size.replace("x", "*");
 }
 
 export class WaveSpeedImageClient {
@@ -73,12 +69,12 @@ export class WaveSpeedImageClient {
   private async executeRequest(request: ImageRequest): Promise<ImageResult> {
     const model = this.config.model || "";
     const size = request.size || this.config.size || "1024x1024";
-    const wavespeedSize = toWaveSpeedSize(size);
-
-    const requestBody = { prompt: request.prompt, size: wavespeedSize };
+    const sizeParams = getModelSizeParams(model, size);
+    const extraParams = getModelExtraParams(model);
+    const requestBody = { prompt: request.prompt, ...sizeParams, ...extraParams };
     const rawRequest = JSON.stringify(requestBody);
 
-    console.log("[WaveSpeed] Submitting task", { model, promptChars: request.prompt.length, size: wavespeedSize });
+    console.log("[WaveSpeed] Submitting task", { model, promptChars: request.prompt.length, ...sizeParams });
 
     // Step 1: Submit task
     const submitResponse = await fetch(`${WAVESPEED_BASE}/${model}`, {

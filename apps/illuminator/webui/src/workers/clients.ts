@@ -1,5 +1,6 @@
 import { LLMClient } from "../lib/llmClient";
 import { ImageClient, WaveSpeedImageClient, isWaveSpeedModel } from "../lib/imageClient";
+import { resolveImageSize } from "../lib/imageSettings";
 import type { ImageRequest, ImageResult } from "../lib/imageClient";
 import type { WorkerConfig } from "./types";
 
@@ -23,8 +24,8 @@ export function createClients(config: WorkerConfig): {
   const model = config.imageModel || "dall-e-3";
   const baseImageConfig = {
     model,
-    size: (config.imageSize || "1024x1024") as "1024x1024" | "1792x1024" | "1024x1792",
-    quality: (config.imageQuality || "standard") as "standard" | "hd",
+    size: resolveImageSize(model, config.imageSize || "auto"),
+    quality: config.imageQuality || "standard",
   };
 
   const imageClient: ImageClientInterface = isWaveSpeedModel(model)
