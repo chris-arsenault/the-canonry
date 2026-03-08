@@ -146,6 +146,7 @@ export function useChronicleImageCallbacks({
         "cinematic montage composition, overlapping character silhouettes and scene elements, layered movie-poster layout, multiple focal points at different scales, dramatic depth layering, figures and settings blending into each other, NO TEXT NO TITLES NO LETTERING",
       artisticPromptFragment: resolved.artisticStyle?.promptFragment,
       colorPalettePromptFragment: resolved.colorPalette?.promptFragment,
+      artisticNegativePrompt: resolved.artisticStyle?.negativePrompt,
     };
     // Build cast from chronicle's declared cast (role assignments)
     const cast: CastMember[] = [];

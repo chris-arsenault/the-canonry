@@ -265,6 +265,7 @@ function buildEntityImagePrompt(entity: PersistedEntity, params: ImagePromptPara
     artisticPromptFragment: resolvedStyle.artisticStyle?.promptFragment,
     compositionPromptFragment: resolvedStyle.compositionStyle?.promptFragment,
     colorPalettePromptFragment: resolvedStyle.colorPalette?.promptFragment,
+    artisticNegativePrompt: resolvedStyle.artisticStyle?.negativePrompt,
     cultureKeywords: resolvedStyle.cultureKeywords,
   };
 

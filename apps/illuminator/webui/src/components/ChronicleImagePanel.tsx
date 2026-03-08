@@ -191,6 +191,7 @@ export default function ChronicleImagePanel({
       artisticPromptFragment: (resolved.artisticStyle as { promptFragment?: string } | null)?.promptFragment,
       compositionPromptFragment: (resolved.compositionStyle as { promptFragment?: string } | null)?.promptFragment,
       colorPalettePromptFragment: (resolved.colorPalette as { promptFragment?: string } | null)?.promptFragment,
+      artisticNegativePrompt: (resolved.artisticStyle as { negativePrompt?: string } | null)?.negativePrompt,
     };
   }, [styleSelection, derivedCultureId, cultures, styleLibrary, cultureIdentities]);
 
@@ -248,6 +249,7 @@ export default function ChronicleImagePanel({
         artisticPromptFragment: artistic?.promptFragment,
         compositionPromptFragment: composition?.promptFragment,
         colorPalettePromptFragment: palette?.promptFragment,
+        artisticNegativePrompt: artistic?.negativePrompt,
       };
 
       // Annotate entity names across all entities for species/type disambiguation

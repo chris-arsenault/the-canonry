@@ -31,6 +31,8 @@ export interface ArtisticStyle {
   keywords: string[];
   /** Visual medium category for filtering */
   category: ArtisticStyleCategory;
+  /** Per-style negative cues appended to the AVOID section of image prompts */
+  negativePrompt?: string;
 }
 
 export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
@@ -44,6 +46,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'oil painting style, rich textures, visible brushstrokes, painterly, classical technique',
     keywords: ['traditional', 'classical', 'painterly'],
     category: 'painting',
+    negativePrompt: 'photorealistic rendering, smooth digital finish, 3D render, CGI',
   },
   {
     id: 'watercolor',
@@ -52,6 +55,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'watercolor style, soft edges, fluid washes, delicate, translucent layers',
     keywords: ['soft', 'fluid', 'delicate'],
     category: 'painting',
+    negativePrompt: 'photorealistic, hyperdetailed skin texture, sharp digital edges, CGI, 3D render',
   },
   {
     id: 'impressionist',
@@ -60,6 +64,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'impressionist style, visible brushstrokes, light and color emphasis, atmospheric',
     keywords: ['atmospheric', 'light', 'expressive'],
     category: 'painting',
+    negativePrompt: 'photorealistic, sharp focus, hyperdetailed, CGI, 3D render',
   },
   {
     id: 'baroque-chiaroscuro',
@@ -68,6 +73,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'baroque chiaroscuro, dramatic tenebrism, deep shadows against illuminated subjects, Caravaggio style, rich oil pigments, theatrical lighting, Renaissance master painting technique',
     keywords: ['baroque', 'dramatic', 'contrast', 'classical'],
     category: 'painting',
+    negativePrompt: 'flat lighting, digital smoothness, CGI, 3D render',
   },
   {
     id: 'fantasy-illustration',
@@ -76,6 +82,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'fantasy book illustration, detailed, dramatic lighting, rich colors, epic scope',
     keywords: ['fantasy', 'dramatic', 'detailed'],
     category: 'painting',
+    negativePrompt: 'photorealistic, blemish-free CGI skin, uncanny valley, stock photo aesthetic, 3D render',
   },
 
   // ===========================
@@ -88,6 +95,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'pencil sketch, detailed linework, crosshatching, graphite, artistic study',
     keywords: ['linework', 'sketch', 'monochrome'],
     category: 'ink-print',
+    negativePrompt: 'color photograph, digital polish, 3D render',
   },
   {
     id: 'hyperdetailed-charcoal',
@@ -96,6 +104,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'hyperdetailed charcoal drawing, intricate textures, deep blacks, dramatic shading, splashes of bright saturated color breaking through the monochrome, selective color highlights, fine art quality',
     keywords: ['charcoal', 'hyperdetailed', 'selective-color', 'dramatic'],
     category: 'ink-print',
+    negativePrompt: 'full-color photograph, digital smoothness, 3D render',
   },
   {
     id: 'ukiyo-e',
@@ -104,6 +113,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'ukiyo-e style, Japanese woodblock print, flat color areas, bold outlines, traditional Edo period aesthetic, waves and nature motifs, organic flowing lines, limited color palette',
     keywords: ['japanese', 'traditional', 'woodblock', 'flat-color'],
     category: 'ink-print',
+    negativePrompt: 'photorealistic, gradient shading, 3D depth, CGI',
   },
   {
     id: 'art-nouveau',
@@ -112,6 +122,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'art nouveau style, elegant flowing lines, decorative, organic forms, ornamental',
     keywords: ['decorative', 'elegant', 'ornamental'],
     category: 'ink-print',
+    negativePrompt: 'photorealistic, sharp photography, 3D render, CGI',
   },
   {
     id: 'ink-wash',
@@ -120,6 +131,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'ink wash technique, sumi-e influence, tonal gradients, rice paper texture, deliberate brushwork, negative space, meditative composition',
     keywords: ['ink', 'wash', 'sumi-e', 'tonal'],
     category: 'ink-print',
+    negativePrompt: 'full-color, photorealistic, digital, 3D render',
   },
   {
     id: 'linocut',
@@ -128,6 +140,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'linocut print, bold contrast, hand-carved texture, visible gouge marks, relief printing, stark negative space, expressionist woodcut tradition',
     keywords: ['linocut', 'woodcut', 'relief', 'bold'],
     category: 'ink-print',
+    negativePrompt: 'smooth gradients, photorealistic, full-color, 3D render',
   },
 
   // ===========================
@@ -140,6 +153,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'digital concept art, clean lines, vibrant colors, polished, professional illustration',
     keywords: ['modern', 'clean', 'polished'],
     category: 'digital',
+    negativePrompt: 'photorealistic, uncanny valley, blemish-free CGI skin, stock photo',
   },
   {
     id: 'pixel-art',
@@ -148,6 +162,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'pixel art style, retro, limited palette, 16-bit aesthetic, crisp pixels',
     keywords: ['retro', 'pixel', '16-bit'],
     category: 'digital',
+    negativePrompt: 'photorealistic, smooth gradients, high-resolution photograph, 3D render',
   },
   {
     id: 'cel-shaded',
@@ -156,6 +171,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'cel-shaded rendering, hard shadow edges, flat color fills, bold outlines, anime-influenced lighting, clean gradients, stylized 3D aesthetic',
     keywords: ['cel-shaded', 'anime', 'flat-shading', 'stylized'],
     category: 'digital',
+    negativePrompt: 'photorealistic, soft blended shadows, uncanny valley, realistic skin texture',
   },
   {
     id: 'low-poly',
@@ -164,6 +180,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'low-poly 3D render, faceted geometric surfaces, flat-shaded triangles, crystalline forms, minimal polygon count aesthetic, sharp edges, subtle ambient occlusion',
     keywords: ['low-poly', 'geometric', 'faceted', '3d'],
     category: 'digital',
+    negativePrompt: 'photorealistic, smooth surfaces, high-polygon, organic curves',
   },
   {
     id: 'synthwave',
@@ -172,6 +189,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'synthwave aesthetic, neon glow, chrome reflections, retrowave grid horizon, 1980s futurism, scanline artifacts, gradient sky',
     keywords: ['synthwave', 'neon', 'retro-futuristic', 'vaporwave'],
     category: 'digital',
+    negativePrompt: 'natural lighting, photorealistic, muted colors, documentary style',
   },
   {
     id: 'cosmic-chrome',
@@ -185,6 +203,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
       'intricate gold filigree ornamentation on crowns and jewelry, monumental divine scale',
     keywords: ['chrome', 'sacred-geometry', 'void', 'iridescent', 'monumental', 'metallic'],
     category: 'digital',
+    negativePrompt: 'natural lighting, mundane setting, photojournalism',
   },
 
   // ===========================
@@ -241,6 +260,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'eldritch biomechanical horror, HR Giger influence, Beksinski dreamscape, organic-mechanical fusion, impossible anatomy, non-Euclidean architecture, visceral texture, alien grandeur, unsettling beauty',
     keywords: ['eldritch', 'biomechanical', 'giger', 'beksinski', 'horror'],
     category: 'experimental',
+    negativePrompt: 'clean aesthetic, friendly, stock photo, blemish-free, sanitized',
   },
   {
     id: 'datamosh-glitch',
@@ -249,6 +269,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'datamosh glitch art, corrupted video data, displaced color channels, pixel bleeding, compression artifacts, chromatic aberration, VHS decay, intentional digital malfunction',
     keywords: ['datamosh', 'glitch', 'corrupted', 'chromatic-aberration'],
     category: 'experimental',
+    negativePrompt: 'clean image, pristine, sharp focus, photorealistic',
   },
   {
     id: 'chromatic-shatter',
@@ -257,6 +278,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'chromatic shatter effect, fractured geometric planes, RGB channel separation at break points, prismatic light dispersion, sharp crystalline fragments, dimensional crack aesthetic',
     keywords: ['chromatic', 'shatter', 'prismatic', 'fractured'],
     category: 'experimental',
+    negativePrompt: 'intact surfaces, photorealistic, soft focus, natural',
   },
   {
     id: 'non-euclidean',
@@ -265,6 +287,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'non-Euclidean perspective, warped spatial dimensions, hyperbolic geometry, impossible vanishing points, curved horizon lines, space folding inward, fisheye distortion of reality, gravitational lensing effect, multiple simultaneous viewpoints',
     keywords: ['non-euclidean', 'warped', 'impossible', 'hyperbolic'],
     category: 'experimental',
+    negativePrompt: 'normal perspective, architectural accuracy, photorealistic',
   },
   {
     id: 'infrared',
@@ -285,6 +308,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'illuminated manuscript page, medieval codex style, gold leaf details, intricate decorative borders, calligraphic text suggestions, vellum texture, ornamental initial letters, monastic scriptorium quality, rich pigments on parchment',
     keywords: ['manuscript', 'medieval', 'illuminated', 'artifact'],
     category: 'document',
+    negativePrompt: 'modern typography, digital, photorealistic, 3D render',
   },
   {
     id: 'encyclopedia-plate',
@@ -293,6 +317,7 @@ export const DEFAULT_ARTISTIC_STYLES: ArtisticStyle[] = [
     promptFragment: 'encyclopedia illustration plate, detailed technical drawing, scientific journal quality, naturalist illustration, cross-section views, precise linework, Victorian-era scientific plate aesthetic, annotation arrows with numbers and symbols only, professional academic publication, no readable English text, not a children\'s book illustration',
     keywords: ['encyclopedia', 'scientific', 'technical', 'detailed'],
     category: 'document',
+    negativePrompt: 'modern digital illustration, CGI, 3D render, cartoon',
   },
   {
     id: 'museum-catalog',

@@ -598,6 +598,7 @@ export function useChronicleBulkOperations({
           artisticPromptFragment: artistic.promptFragment,
           compositionPromptFragment: composition.promptFragment,
           colorPalettePromptFragment: palette?.promptFragment,
+          artisticNegativePrompt: artistic.negativePrompt,
         };
 
         // Annotate entity names in scene description across all entities
@@ -711,6 +712,7 @@ export function useChronicleBulkOperations({
           "cinematic montage composition, overlapping character silhouettes and scene elements, layered movie-poster layout, multiple focal points at different scales, dramatic depth layering, figures and settings blending into each other, NO TEXT NO TITLES NO LETTERING",
         artisticPromptFragment: artistic.promptFragment,
         colorPalettePromptFragment: palette?.promptFragment,
+        artisticNegativePrompt: artistic.negativePrompt,
       };
 
       // Build cast

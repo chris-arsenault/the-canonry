@@ -938,6 +938,7 @@ export default function EraNarrativeViewer({
         "cinematic montage composition, overlapping character silhouettes and scene elements, layered movie-poster layout, multiple focal points at different scales, dramatic depth layering, figures and settings blending into each other, NO TEXT NO TITLES NO LETTERING",
       artisticPromptFragment: resolvedStyle.artisticStyle?.promptFragment,
       colorPalettePromptFragment: resolvedStyle.colorPalette?.promptFragment,
+      artisticNegativePrompt: resolvedStyle.artisticStyle?.negativePrompt,
     };
 
     const prompt = buildChronicleScenePrompt(

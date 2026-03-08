@@ -24,6 +24,7 @@ interface StyleBase {
   name: string;
   description?: string;
   promptFragment?: string;
+  negativePrompt?: string;
   keywords?: string[];
 }
 
@@ -190,6 +191,11 @@ function StyleCard({ style, onEdit, onDelete }: Readonly<StyleCardProps>) {
       <div className="illuminator-style-card-prompt">
         <strong>Prompt:</strong> {style.promptFragment}
       </div>
+      {style.negativePrompt && (
+        <div className="illuminator-style-card-prompt">
+          <strong>Avoid:</strong> {style.negativePrompt}
+        </div>
+      )}
       {style.keywords && style.keywords.length > 0 && (
         <div className="illuminator-style-card-keywords">
           {style.keywords.map((kw) => (
@@ -212,6 +218,7 @@ interface StyleEditFormData {
   name: string;
   description: string;
   promptFragment: string;
+  negativePrompt: string;
   keywords: string;
 }
 
@@ -221,6 +228,7 @@ function StyleEditModal({ style, type, onSave, onCancel }: Readonly<StyleEditMod
     name: style?.name || "",
     description: style?.description || "",
     promptFragment: style?.promptFragment || "",
+    negativePrompt: style?.negativePrompt || "",
     keywords: style?.keywords?.join(", ") || "",
   });
 
@@ -238,6 +246,9 @@ function StyleEditModal({ style, type, onSave, onCancel }: Readonly<StyleEditMod
       };
       if (formData.description.trim()) {
         result.description = formData.description.trim();
+      }
+      if (type === "artistic" && formData.negativePrompt.trim()) {
+        result.negativePrompt = formData.negativePrompt.trim();
       }
       if (type === "artistic" && formData.keywords.trim()) {
         result.keywords = formData.keywords
@@ -260,6 +271,10 @@ function StyleEditModal({ style, type, onSave, onCancel }: Readonly<StyleEditMod
   );
   const handlePromptChange = useCallback(
     (value: string) => handleChange("promptFragment", value),
+    [handleChange],
+  );
+  const handleNegativePromptChange = useCallback(
+    (value: string) => handleChange("negativePrompt", value),
     [handleChange],
   );
   const handleKeywordsChange = useCallback(
@@ -336,6 +351,24 @@ function StyleEditModal({ style, type, onSave, onCancel }: Readonly<StyleEditMod
               This text will be injected into the image generation prompt.
             </p>
           </div>
+
+          {type === "artistic" && (
+            <div className="illuminator-form-group">
+              <label className="illuminator-label">
+                Avoid (Negative Prompt)
+                <LocalTextArea
+                  value={formData.negativePrompt}
+                  onChange={handleNegativePromptChange}
+                  className="illuminator-textarea"
+                  rows={2}
+                  placeholder="e.g., photorealistic, CGI, 3D render"
+                />
+              </label>
+              <p className="ilu-hint-sm style-editor-hint-spacing">
+                Elements to avoid when this style is active. Appended to the AVOID section.
+              </p>
+            </div>
+          )}
 
           {type === "artistic" && (
             <div className="illuminator-form-group">

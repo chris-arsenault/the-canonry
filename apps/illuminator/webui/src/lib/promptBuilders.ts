@@ -21,6 +21,8 @@ export interface StyleInfo {
   compositionPromptFragment?: string;
   /** Color palette prompt fragment (e.g., "warm earth tones: terracotta, amber, ochre...") */
   colorPalettePromptFragment?: string;
+  /** Per-style negative cues (e.g., "photorealistic, CGI, 3D render") */
+  artisticNegativePrompt?: string;
   /** Additional culture-specific style keywords */
   cultureKeywords?: string[];
   /**
@@ -582,7 +584,7 @@ export function buildImagePromptFromGuidance(
     "",
     `SETTING: ${worldContext.name}`,
     "",
-    `AVOID: ${guidance.imageAvoid}`,
+    `AVOID: ${[guidance.imageAvoid, styleInfo?.artisticNegativePrompt].filter(Boolean).join(". ")}`,
   ];
 
   return parts
@@ -753,7 +755,7 @@ export function buildChronicleScenePrompt(
     worldSection,
     speciesSection,
     "",
-    "AVOID: Human figures, humanoid hands or fingers, human body proportions. Modern elements, anachronistic technology, text overlays, watermarks",
+    `AVOID: ${["Human figures, humanoid hands or fingers, human body proportions. Modern elements, anachronistic technology, text overlays, watermarks", styleInfo?.artisticNegativePrompt].filter(Boolean).join(". ")}`,
   ];
 
   return parts
