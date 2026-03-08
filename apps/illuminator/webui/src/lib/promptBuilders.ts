@@ -23,6 +23,8 @@ export interface StyleInfo {
   colorPalettePromptFragment?: string;
   /** Per-style negative cues (e.g., "photorealistic, CGI, 3D render") */
   artisticNegativePrompt?: string;
+  /** Named artist to anchor style (e.g. "in the style of Van Gogh") — used by Flux 1.1 */
+  artistExemplar?: string;
   /** Additional culture-specific style keywords */
   cultureKeywords?: string[];
   /**
@@ -547,7 +549,7 @@ export function buildImagePromptFromGuidance(
 
   // Style sections
   const styleSection = styleInfo?.artisticPromptFragment
-    ? `STYLE: ${styleInfo.artisticPromptFragment}`
+    ? `STYLE: ${styleInfo.artisticPromptFragment}${styleInfo.artistExemplar ? ` [Artist exemplar: ${styleInfo.artistExemplar}]` : ""}`
     : "";
 
   let colorPaletteSection = "";
@@ -712,7 +714,7 @@ export function buildChronicleScenePrompt(
 
   // Rendering directives first — these are the primary visual authority
   const styleSection = styleInfo?.artisticPromptFragment
-    ? `STYLE: ${styleInfo.artisticPromptFragment}`
+    ? `STYLE: ${styleInfo.artisticPromptFragment}${styleInfo.artistExemplar ? ` [Artist exemplar: ${styleInfo.artistExemplar}]` : ""}`
     : "";
 
   let colorPaletteSection = "";

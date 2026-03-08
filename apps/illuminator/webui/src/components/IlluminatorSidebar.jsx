@@ -19,6 +19,7 @@ const TABS = [
   { id: "activity", label: "Activity" },
   { id: "costs", label: "Costs" },
   { id: "storage", label: "Storage" },
+  { id: "testimage", label: "Test Image" },
   { id: "traits", label: "Traits" },
   { id: "historian", label: "Historian" },
   { id: "preprint", label: "Pre-Print" },

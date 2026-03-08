@@ -4,7 +4,16 @@ import { saveImage, generateImageId, extractImageDimensions } from "../../lib/db
 import { saveCostRecordWithDefaults } from "../../lib/db/costRepository";
 import { runTextCall } from "../../lib/llmTextCall";
 import { getCallConfig } from "./llmCallConfig";
-import { getModelNegativePrompt, resolveImageSize } from "../../lib/imageSettings";
+import {
+  getModelPromptSuffix,
+  resolveImageSize,
+  isFluxModel,
+  getFluxGeneration,
+  FLUX_1_IMAGE_PROMPT_TEMPLATE,
+  FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE,
+  FLUX_2_IMAGE_PROMPT_TEMPLATE,
+  FLUX_2_CHRONICLE_IMAGE_PROMPT_TEMPLATE,
+} from "../../lib/imageSettings";
 import type { TaskHandler } from "./taskTypes";
 import type { LLMClient } from "../../lib/llmClient";
 import type { ResolvedLLMCallConfig } from "../../lib/llmModelSettings";
@@ -37,10 +46,25 @@ async function formatImagePromptWithClaude(
   callConfig: ResolvedLLMCallConfig,
   isChronicleImage?: boolean
 ): Promise<ImagePromptFormatResult> {
-  const templateSource =
-    isChronicleImage && config.claudeChronicleImagePromptTemplate
-      ? config.claudeChronicleImagePromptTemplate
-      : config.claudeImagePromptTemplate;
+  // Select template: Flux generation-specific templates take priority,
+  // then chronicle-specific, then the user's configured entity template.
+  const imageModel = config.imageModel || "dall-e-3";
+  let templateSource: string | undefined;
+  const fluxGen = getFluxGeneration(imageModel);
+  if (fluxGen === "flux-2") {
+    templateSource = isChronicleImage
+      ? FLUX_2_CHRONICLE_IMAGE_PROMPT_TEMPLATE
+      : FLUX_2_IMAGE_PROMPT_TEMPLATE;
+  } else if (fluxGen === "flux-1") {
+    templateSource = isChronicleImage
+      ? FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE
+      : FLUX_1_IMAGE_PROMPT_TEMPLATE;
+  } else {
+    templateSource =
+      isChronicleImage && config.claudeChronicleImagePromptTemplate
+        ? config.claudeChronicleImagePromptTemplate
+        : config.claudeImagePromptTemplate;
+  }
 
   if (!config.useClaudeForImagePrompt || !templateSource) {
     return { prompt: originalPrompt };
@@ -51,7 +75,6 @@ async function formatImagePromptWithClaude(
     return { prompt: originalPrompt };
   }
 
-  const imageModel = config.imageModel || "dall-e-3";
   const globalRules = config.globalImageRules || "";
   const formattingPrompt = templateSource
     .replace(/\{\{modelName\}\}/g, imageModel)
@@ -108,26 +131,43 @@ export const imageTask = {
 
     // Store original prompt before any refinement
     const originalPrompt = task.prompt;
-    const isChronicleImage = task.imageType === "chronicle";
-    const formattingCallType = isChronicleImage
-      ? "image.chronicleFormatting"
-      : "image.promptFormatting";
-    const formattingConfig = getCallConfig(config, formattingCallType);
-    const formatResult = await formatImagePromptWithClaude(
-      originalPrompt,
-      config,
-      llmClient,
-      formattingConfig,
-      isChronicleImage
-    );
-    // Append per-model negative cues after Claude resynthesis
-    const modelNegative = getModelNegativePrompt(imageModel);
-    const finalPrompt = modelNegative
-      ? `${formatResult.prompt}\n\n${modelNegative}`
-      : formatResult.prompt;
+
+    let finalPrompt: string;
+    let formattingPrompt: string | undefined;
+    let formatCost: ImagePromptFormatResult["cost"] | undefined;
+
+    if (task.skipPromptFormatting) {
+      // Raw mode: send prompt directly to image API without Claude formatting
+      finalPrompt = originalPrompt;
+    } else {
+      const isChronicleImage = task.imageType === "chronicle";
+      const formattingCallType = isChronicleImage
+        ? "image.chronicleFormatting"
+        : "image.promptFormatting";
+      const formattingConfig = getCallConfig(config, formattingCallType);
+      const formatResult = await formatImagePromptWithClaude(
+        originalPrompt,
+        config,
+        llmClient,
+        formattingConfig,
+        isChronicleImage
+      );
+      formattingPrompt = formatResult.formattingPrompt;
+      formatCost = formatResult.cost;
+      // Append per-model positive cues after Claude resynthesis
+      const modelSuffix = getModelPromptSuffix(imageModel);
+      finalPrompt = modelSuffix
+        ? `${formatResult.prompt}\n\n${modelSuffix}`
+        : formatResult.prompt;
+    }
 
     // Save imagePrompt cost record if Claude was used
-    if (formatResult.cost) {
+    if (formatCost) {
+      const isChronicleImage = task.imageType === "chronicle";
+      const costCallType = isChronicleImage
+        ? "image.chronicleFormatting"
+        : "image.promptFormatting";
+      const costCallConfig = getCallConfig(config, costCallType);
       await saveCostRecordWithDefaults({
         projectId: task.projectId,
         simulationRunId: task.simulationRunId,
@@ -135,11 +175,11 @@ export const imageTask = {
         entityName: task.entityName,
         entityKind: task.entityKind,
         type: "imagePrompt",
-        model: formattingConfig.model,
-        estimatedCost: formatResult.cost.estimated,
-        actualCost: formatResult.cost.actual,
-        inputTokens: formatResult.cost.inputTokens,
-        outputTokens: formatResult.cost.outputTokens,
+        model: costCallConfig.model,
+        estimatedCost: formatCost.estimated,
+        actualCost: formatCost.actual,
+        inputTokens: formatCost.inputTokens,
+        outputTokens: formatCost.outputTokens,
       });
     }
 
@@ -177,7 +217,7 @@ export const imageTask = {
       entityKind: task.entityKind,
       entityCulture: task.entityCulture,
       originalPrompt,
-      formattingPrompt: formatResult.formattingPrompt,
+      formattingPrompt,
       finalPrompt,
       generatedAt,
       model: imageModel,

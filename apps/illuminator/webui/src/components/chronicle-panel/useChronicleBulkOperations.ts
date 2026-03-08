@@ -599,6 +599,7 @@ export function useChronicleBulkOperations({
           compositionPromptFragment: composition.promptFragment,
           colorPalettePromptFragment: palette?.promptFragment,
           artisticNegativePrompt: artistic.negativePrompt,
+          artistExemplar: artistic.artistExemplar,
         };
 
         // Annotate entity names in scene description across all entities
@@ -713,6 +714,7 @@ export function useChronicleBulkOperations({
         artisticPromptFragment: artistic.promptFragment,
         colorPalettePromptFragment: palette?.promptFragment,
         artisticNegativePrompt: artistic.negativePrompt,
+        artistExemplar: artistic.artistExemplar,
       };
 
       // Build cast

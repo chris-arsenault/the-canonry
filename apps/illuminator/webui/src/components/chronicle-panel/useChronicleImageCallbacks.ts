@@ -147,6 +147,7 @@ export function useChronicleImageCallbacks({
       artisticPromptFragment: resolved.artisticStyle?.promptFragment,
       colorPalettePromptFragment: resolved.colorPalette?.promptFragment,
       artisticNegativePrompt: resolved.artisticStyle?.negativePrompt,
+      artistExemplar: resolved.artisticStyle?.artistExemplar,
     };
     // Build cast from chronicle's declared cast (role assignments)
     const cast: CastMember[] = [];

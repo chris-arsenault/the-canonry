@@ -320,18 +320,19 @@ export default function StoragePanel({ projectId: _projectId }) {
     }
   }, [selectedIds, images]);
 
-  // Export prompt data for analysis
+  // Export prompt data for analysis (selected only, or all if none selected)
   const handleExportPrompts = useCallback(async () => {
     setExportingPrompts(true);
     try {
-      await downloadImagePromptExport();
+      const ids = selectedIds.size > 0 ? Array.from(selectedIds) : undefined;
+      await downloadImagePromptExport(ids);
     } catch (err) {
       console.error("Failed to export prompts:", err);
       alert("Failed to export prompt data");
     } finally {
       setExportingPrompts(false);
     }
-  }, []);
+  }, [selectedIds]);
 
   // Format date
   const formatDate = (timestamp) => {
@@ -366,9 +367,11 @@ export default function StoragePanel({ projectId: _projectId }) {
               onClick={() => void handleExportPrompts()}
               className="illuminator-button illuminator-button-secondary storage-panel-compact-btn"
               disabled={exportingPrompts || stats.totalCount === 0}
-              title="Export all image prompt data (original, refined, revised) as JSON for analysis"
+              title={selectedIds.size > 0
+                ? `Export prompt data for ${selectedIds.size} selected images`
+                : "Export all image prompt data (original, refined, revised) as JSON"}
             >
-              {exportingPrompts ? "Exporting..." : "Export Prompt Data"}
+              {exportingPrompts ? "Exporting..." : selectedIds.size > 0 ? `Export ${selectedIds.size} Prompts` : "Export Prompt Data"}
             </button>
             <button
               onClick={() => void loadData()}

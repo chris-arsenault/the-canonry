@@ -18,6 +18,7 @@ import FinalEditTab from "./FinalEditTab";
 import EntityCoveragePanel from "./EntityCoveragePanel";
 import HistorianConfigEditor from "./HistorianConfigEditor";
 import PrePrintPanel from "./PrePrintPanel";
+import TestImagePanel from "./TestImagePanel";
 import { isHistorianConfigured } from "../lib/historianTypes";
 import { useIlluminatorModals } from "../lib/db/modalStore";
 import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
@@ -313,6 +314,25 @@ function PreprintTab() {
   );
 }
 
+function TestImageTab(props) {
+  return (
+    <div className="illuminator-content">
+      <TestImagePanel
+        globalModel={props.config?.imageModel}
+        globalAspect={props.imageGenSettings?.imageSize}
+        styleLibrary={props.styleLibrary}
+        imageGenSettings={props.imageGenSettings}
+      />
+    </div>
+  );
+}
+
+TestImageTab.propTypes = {
+  config: PropTypes.object,
+  imageGenSettings: PropTypes.object,
+  styleLibrary: PropTypes.object,
+};
+
 EntitiesTab.propTypes = {
   revisionFlow: PropTypes.object,
   historianFlow: PropTypes.object,
@@ -426,6 +446,7 @@ const TAB_COMPONENTS = {
   configure: ConfigureTab,
   historian: HistorianTab,
   preprint: PreprintTab,
+  testimage: TestImageTab,
 };
 
 export default function IlluminatorTabContent({ activeTab, ...props }) {

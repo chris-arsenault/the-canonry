@@ -217,6 +217,8 @@ export interface EnrichmentTaskBase {
   imageSize?: string;
   /** Per-task image quality override (uses global config if not set) */
   imageQuality?: string;
+  /** If true, send the prompt directly to the image API without Claude formatting */
+  skipPromptFormatting?: boolean;
   // For entityChronicle tasks
   chronicleContext?: ChronicleGenerationContext;
   chronicleStep?: ChronicleStep;

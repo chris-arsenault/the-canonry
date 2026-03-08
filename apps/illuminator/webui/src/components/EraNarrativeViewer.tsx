@@ -939,6 +939,7 @@ export default function EraNarrativeViewer({
       artisticPromptFragment: resolvedStyle.artisticStyle?.promptFragment,
       colorPalettePromptFragment: resolvedStyle.colorPalette?.promptFragment,
       artisticNegativePrompt: resolvedStyle.artisticStyle?.negativePrompt,
+      artistExemplar: resolvedStyle.artisticStyle?.artistExemplar,
     };
 
     const prompt = buildChronicleScenePrompt(

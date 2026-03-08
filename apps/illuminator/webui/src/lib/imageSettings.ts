@@ -13,6 +13,7 @@ export const IMAGE_MODELS = [
   { value: "dall-e-2", label: "DALL-E 2 (cheaper)", provider: "openai" },
   // WaveSpeed
   { value: "wavespeed-ai/flux-1.1-pro-ultra", label: "Flux 1.1 Pro Ultra", provider: "wavespeed" },
+  { value: "wavespeed-ai/flux-1.1-pro-ultra-raw", label: "Flux 1.1 Pro Ultra (Raw)", provider: "wavespeed" },
   { value: "wavespeed-ai/flux-2-pro/text-to-image", label: "Flux 2 Pro", provider: "wavespeed" },
   { value: "wavespeed-ai/qwen-image-2.0-pro/text-to-image", label: "Qwen Image 2.0 Pro", provider: "wavespeed" },
   { value: "google/nano-banana-pro/text-to-image", label: "Nano Banana Pro", provider: "wavespeed" },
@@ -163,6 +164,132 @@ export function getSizeForAspect(model: string, aspect: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Per-model Claude synthesis templates (Flux-optimized prompting)
+// ---------------------------------------------------------------------------
+
+export function isFluxModel(model: string): boolean {
+  return model.includes("flux");
+}
+
+/** Distinguish Flux model generations — they need very different prompt formats. */
+export function getFluxGeneration(model: string): "flux-1" | "flux-2" | null {
+  if (!model.includes("flux")) return null;
+  if (model.includes("flux-2")) return "flux-2";
+  return "flux-1";
+}
+
+// ---------------------------------------------------------------------------
+// Flux 2 Pro — structured, precise, hex-heavy. This model parses technical
+// detail well and rewards specificity.
+// ---------------------------------------------------------------------------
+
+export const FLUX_2_IMAGE_PROMPT_TEMPLATE = `Rewrite the structured prompt below into a single image generation prompt optimized for Flux 2 Pro.
+
+Guidelines:
+
+1. Lead with the style and subject together from the very first words. The style sets the medium — "a hyperdetailed charcoal drawing of...", "a 4K National Geographic photograph of...", "a cel-shaded rendering of...". Flux weights the opening most heavily, so the medium must be established immediately.
+
+2. Attach hex codes inline with every colored object. Never group colors separately.
+
+3. Only visual and emotional content. Strip lore, backstory, names, world-building. If you can't paint it, cut it.
+
+4. Positive only. Flux renders anything mentioned, including negatives. Invert every constraint into a vivid positive counterpart. Never write "avoid", "no", "without", or "don't".
+
+5. Honor the input style — work within whatever medium is specified rather than substituting a different one.
+
+6. Weave bold, saturated color language throughout every sentence, not just at the end.
+
+7. Close with a camera setup appropriate for the scene and a short mood/atmosphere sentence.
+
+Write fluid prose — unified artistic direction, not a feature list.
+{{globalImageRules}}
+Original prompt:
+{{prompt}}`;
+
+export const FLUX_2_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `Rewrite the structured prompt below into a single image generation prompt optimized for Flux 2 Pro.
+
+Guidelines:
+
+1. Lead with the style and the scene's central action together from the very first words. The style sets the medium — establish it immediately. Flux weights the opening most heavily.
+
+2. Attach hex codes inline with every colored object.
+
+3. Only visual and emotional content. Strip lore, names, world-building context.
+
+4. Positive only — invert all negatives into vivid positive counterparts. Never write "avoid", "no", "without", or "don't".
+
+5. Honor the input style.
+
+6. Maintain species — characters must be described as their specified species with anatomical detail.
+
+7. Weave bold, saturated color language throughout.
+
+8. Close with a cinematographer's camera setup and a short atmosphere sentence.
+
+Write fluid prose — unified artistic direction, not a feature list.
+{{globalImageRules}}
+Original prompt:
+{{prompt}}`;
+
+// ---------------------------------------------------------------------------
+// Flux 1.1 Pro Ultra — natural prose. This model responds to prompts that
+// read like vivid scene descriptions, not technical specifications. Hex codes
+// and structured lists degrade output. Use evocative color names instead.
+// ---------------------------------------------------------------------------
+
+export const FLUX_1_IMAGE_PROMPT_TEMPLATE = `Synthesize the structured prompt below into an image generation prompt following this exact structure:
+
+Style → Subject → Action/Context → Technical details
+
+Output structure guidelines:
+
+1. STYLE FIRST. The very first words must establish the medium/style. "An oil painting of...", "A hyperdetailed charcoal drawing of...", "A watercolor rendering of...". This is the most important element — it must come before anything else.
+
+2. If the input contains an [Artist exemplar: ...] tag, include "in the style of [artist name]" prominently in your opening style phrase. This anchors the visual medium on the target model. Always include the artist name when provided.
+
+3. Then SUBJECT with its visually distinctive details — the things that make this character/scene unique and recognizable. Preserve any specific visual details from the input that distinguish this subject from a generic version.
+
+4. Then CONTEXT — setting, action, mood.
+
+5. Then TECHNICAL — lighting, camera, atmosphere as a closing detail.
+
+Additional rules:
+
+- Use rich color names, not hex codes. "Deep crimson", "molten gold", "bruised violet" — painter's language.
+- Only visual and emotional content. Strip lore, backstory, names, world-building.
+- Positive only. Never write "avoid", "no", "without", or "don't" — invert negatives into vivid positives.
+- Be as concise as possible while preserving every visually distinctive detail. Cut filler and repetition ruthlessly, but keep the details that make this subject unique.
+{{globalImageRules}}
+Original prompt:
+{{prompt}}`;
+
+export const FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `Synthesize the structured prompt below into an image generation prompt following this exact structure:
+
+Style → Scene/Action → Characters with distinctive details → Technical details
+
+Output structure guidelines:
+
+1. STYLE FIRST. The very first words must establish the medium/style. This is the most important element.
+
+2. If the input contains an [Artist exemplar: ...] tag, include "in the style of [artist name]" prominently in your opening style phrase. This anchors the visual medium on the target model. Always include the artist name when provided.
+
+3. Then the SCENE — what is happening, the central action or moment.
+
+4. Then CHARACTERS with their visually distinctive details. Maintain species — characters must be described as their specified species. Preserve specific visual details that make each character recognizable.
+
+5. Then TECHNICAL — lighting, camera, atmosphere as a closing detail.
+
+Additional rules:
+
+- Use rich color names, not hex codes. Painter's language.
+- Only visual and emotional content. Strip lore, names, world-building.
+- Positive only — invert negatives into vivid positives. Never write "avoid", "no", "without", or "don't".
+- Be as concise as possible while preserving every visually distinctive detail. Cut filler and repetition ruthlessly, but keep the details that make this scene unique.
+{{globalImageRules}}
+Original prompt:
+{{prompt}}`;
+
+// ---------------------------------------------------------------------------
 // Abstract aspect options (stored in settings, resolved at generation time)
 // ---------------------------------------------------------------------------
 
@@ -197,15 +324,13 @@ export function resolveImageSize(model: string, aspect: string): string {
 /** Models that use `aspect_ratio` (e.g. "16:9") instead of `size` (e.g. "1536*1024"). */
 const ASPECT_RATIO_MODELS = new Set([
   "wavespeed-ai/flux-1.1-pro-ultra",
+  "wavespeed-ai/flux-1.1-pro-ultra-raw",
 ]);
 
 function sizeToAspectRatio(size: string): string {
   const [w, h] = size.split("x").map(Number);
   if (!w || !h || w === h) return "1:1";
-  // Find GCD to simplify ratio
-  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-  const d = gcd(w, h);
-  return `${w / d}:${h / d}`;
+  return w > h ? "16:9" : "9:16";
 }
 
 /**
@@ -225,7 +350,24 @@ export function getModelSizeParams(model: string, size: string): Record<string, 
 
 const MODEL_EXTRA_PARAMS: Record<string, Record<string, unknown>> = {
   "wavespeed-ai/flux-1.1-pro-ultra": { raw: false },
+  "wavespeed-ai/flux-1.1-pro-ultra-raw": { raw: true },
 };
+
+// ---------------------------------------------------------------------------
+// Model alias resolution — virtual model IDs that map to a real API endpoint
+// ---------------------------------------------------------------------------
+
+const MODEL_API_ALIASES: Record<string, string> = {
+  "wavespeed-ai/flux-1.1-pro-ultra-raw": "wavespeed-ai/flux-1.1-pro-ultra",
+};
+
+/**
+ * Resolve a model ID to its actual API endpoint model ID.
+ * Most models map to themselves; virtual variants (e.g. raw mode) map to the real endpoint.
+ */
+export function resolveApiModel(model: string): string {
+  return MODEL_API_ALIASES[model] || model;
+}
 
 /**
  * Get extra request body parameters for a model (e.g. `raw: false` for Flux Ultra).
@@ -235,21 +377,17 @@ export function getModelExtraParams(model: string): Record<string, unknown> | un
 }
 
 // ---------------------------------------------------------------------------
-// Per-model negative prompt fragments (appended AFTER Claude resynthesis)
+// Per-model prompt suffix (appended AFTER Claude resynthesis)
 // ---------------------------------------------------------------------------
 
-const MODEL_NEGATIVE_PROMPTS: Record<string, string> = {
-  "wavespeed-ai/flux-1.1-pro-ultra":
-    "AVOID: desaturated colors, film grain haze, washed-out tones, muted palette, white film overlay",
-  "wavespeed-ai/flux-2-pro/text-to-image":
-    "AVOID: desaturated colors, film grain haze, washed-out tones, muted palette, white film overlay",
+const MODEL_PROMPT_SUFFIX: Record<string, string> = {
+  // Flux models: no suffix — the Flux-specific template handles vibrancy direction
 };
 
 /**
- * Get a model-specific negative prompt fragment that should be appended to
- * the final image prompt AFTER Claude resynthesis.  Returns undefined if
- * the model has no special negative cues.
+ * Get a model-specific prompt suffix appended AFTER Claude resynthesis.
+ * Returns undefined if the model has no special suffix.
  */
-export function getModelNegativePrompt(model: string): string | undefined {
-  return MODEL_NEGATIVE_PROMPTS[model];
+export function getModelPromptSuffix(model: string): string | undefined {
+  return MODEL_PROMPT_SUFFIX[model];
 }

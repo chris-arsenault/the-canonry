@@ -463,11 +463,14 @@ export function formatBytes(bytes: number): string {
 // ============================================================================
 
 /**
- * Export all image prompt data for analysis.
+ * Export image prompt data for analysis.
+ * If imageIds is provided, only exports those images; otherwise exports all.
  * Excludes image blobs to keep export size manageable.
  */
-export async function exportImagePrompts(): Promise<ImagePromptExport[]> {
-  const records = await db.images.toArray();
+export async function exportImagePrompts(imageIds?: string[]): Promise<ImagePromptExport[]> {
+  const records = imageIds
+    ? await db.images.where("imageId").anyOf(imageIds).toArray()
+    : await db.images.toArray();
 
   const exports: ImagePromptExport[] = records.map((record) => ({
     imageId: record.imageId,
@@ -493,9 +496,10 @@ export async function exportImagePrompts(): Promise<ImagePromptExport[]> {
 
 /**
  * Export image prompts and download as JSON file.
+ * If imageIds is provided, only exports those images; otherwise exports all.
  */
-export async function downloadImagePromptExport(): Promise<void> {
-  const exports = await exportImagePrompts();
+export async function downloadImagePromptExport(imageIds?: string[]): Promise<void> {
+  const exports = await exportImagePrompts(imageIds);
   const json = JSON.stringify(exports, null, 2);
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);

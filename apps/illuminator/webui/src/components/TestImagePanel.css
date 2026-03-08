@@ -1,0 +1,275 @@
+/* TestImagePanel — raw prompt image tester */
+
+.tip-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.tip-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tip-prompt-area {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text);
+}
+
+.tip-prompt-area:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.tip-settings-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tip-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 40px;
+}
+
+.tip-model-select {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text);
+  flex: 1;
+  max-width: 250px;
+}
+
+.tip-aspect-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.tip-aspect-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.tip-aspect-btn[data-selected="true"] {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.tip-generate-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tip-generate-btn {
+  padding: 6px 16px;
+  font-size: 13px;
+  border: none;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--bg);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.tip-generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tip-export-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.tip-export-btn:hover {
+  background: var(--bg-input);
+}
+
+.tip-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tip-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Prompt section toggles */
+
+.tip-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-input);
+}
+
+.tip-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tip-toggle input[type="checkbox"] {
+  margin: 0;
+}
+
+.tip-toggle input:disabled + span {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.tip-toggle-detail {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tip-culture-select {
+  font-size: 11px;
+  padding: 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-card);
+  color: var(--text);
+  max-width: 120px;
+}
+
+/* Results grid */
+
+.tip-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.tip-result-card {
+  display: flex;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-card);
+}
+
+.tip-result-card[data-status="error"] {
+  border-color: var(--error, #c0392b);
+}
+
+.tip-result-image {
+  width: 200px;
+  min-height: 120px;
+  border-radius: 3px;
+  background: var(--bg-input);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.tip-result-image img {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+.tip-result-image img:hover {
+  opacity: 0.9;
+}
+
+.tip-result-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tip-result-prompt {
+  font-size: 12px;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.tip-result-info {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tip-result-status {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.tip-result-error {
+  font-size: 11px;
+  color: var(--error, #c0392b);
+}
+
+.tip-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px;
+}
+
+.tip-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: tip-spin 0.8s linear infinite;
+}
+
+@keyframes tip-spin {
+  to { transform: rotate(360deg); }
+}
