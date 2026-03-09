@@ -70,6 +70,7 @@ interface ImagePromptParams extends EntityContextParams {
   styleSelection: StyleSelection;
   worldSchema: CanonrySchemaSlice | null;
   styleLibrary: StyleLibrary;
+  imageModel: string;
 }
 
 export interface UsePromptBuilderParams {
@@ -91,12 +92,20 @@ export interface UsePromptBuilderParams {
   eraTemporalInfoByKey: Map<string, EraTemporalEntry>;
 }
 
+export interface ResolvedImageStyleIds {
+  artisticStyleId?: string;
+  compositionStyleId?: string;
+  colorPaletteId?: string;
+}
+
 export interface UsePromptBuilderReturn {
   buildPrompt: (entity: PersistedEntity, type: "description" | "image") => string;
   getVisualConfig: (entity: PersistedEntity) => Record<string, unknown>;
   /** Resolve per-entity image size from the randomly-picked composition's aspect.
    *  Returns a WxH size string when the composition defines an aspect; undefined otherwise. */
   resolveImageSize: (entity: PersistedEntity) => string | undefined;
+  /** Resolve the style IDs that would be used for this entity's image generation. */
+  resolveImageStyleIds: (entity: PersistedEntity) => ResolvedImageStyleIds;
 }
 
 // --- Module-level helpers to reduce callback complexity ---
@@ -265,6 +274,7 @@ function buildEntityImagePrompt(entity: PersistedEntity, params: ImagePromptPara
     artisticPromptFragment: resolvedStyle.artisticStyle?.promptFragment,
     compositionPromptFragment: resolvedStyle.compositionStyle?.promptFragment,
     colorPalettePromptFragment: resolvedStyle.colorPalette?.promptFragment,
+    colorPaletteSwatchColors: resolvedStyle.colorPalette?.swatchColors,
     artisticNegativePrompt: resolvedStyle.artisticStyle?.negativePrompt,
     artistExemplar: resolvedStyle.artisticStyle?.artistExemplar,
     cultureKeywords: resolvedStyle.cultureKeywords,
@@ -275,7 +285,8 @@ function buildEntityImagePrompt(entity: PersistedEntity, params: ImagePromptPara
     cultureIdentities,
     worldContext,
     entityContext,
-    styleInfo
+    styleInfo,
+    params.imageModel
   );
 }
 
@@ -335,6 +346,7 @@ export function usePromptBuilder({
         worldSchema,
         styleLibrary,
         config,
+        imageModel,
       };
 
       if (type === "description") {
@@ -359,6 +371,7 @@ export function usePromptBuilder({
       styleLibrary,
       config,
       prominenceScale,
+      imageModel,
     ]
   );
 
@@ -378,5 +391,23 @@ export function usePromptBuilder({
     [styleSelection, worldSchema, styleLibrary, imageModel]
   );
 
-  return { buildPrompt, getVisualConfig, resolveImageSize };
+  const resolveImageStyleIds = useCallback(
+    (entity: PersistedEntity): ResolvedImageStyleIds => {
+      const resolved = resolveStyleSelection({
+        selection: styleSelection,
+        entityCultureId: entity.culture,
+        entityKind: entity.kind,
+        cultures: worldSchema?.cultures || [],
+        styleLibrary,
+      });
+      return {
+        artisticStyleId: resolved.artisticStyle?.id,
+        compositionStyleId: resolved.compositionStyle?.id,
+        colorPaletteId: resolved.colorPalette?.id,
+      };
+    },
+    [styleSelection, worldSchema, styleLibrary]
+  );
+
+  return { buildPrompt, getVisualConfig, resolveImageSize, resolveImageStyleIds };
 }

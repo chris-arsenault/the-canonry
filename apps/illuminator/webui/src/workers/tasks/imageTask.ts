@@ -355,6 +355,14 @@ export const imageTask = {
       chronicleId: task.chronicleId,
       imageRefId: task.imageRefId,
       sceneDescription: task.sceneDescription,
+      // Catalog metadata
+      artisticStyleId: task.artisticStyleId,
+      compositionStyleId: task.compositionStyleId,
+      colorPaletteId: task.colorPaletteId,
+      title: task.sceneDescription
+        ? task.sceneDescription.slice(0, 120)
+        : task.entityName || "Untitled",
+      tags: task.tags,
     });
 
     // Save cost record independently

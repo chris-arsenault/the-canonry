@@ -16,7 +16,7 @@ import {
   updateChronicleTertiaryCast,
 } from "../../lib/db/chronicleRepository";
 import { findEntityMentions } from "../../lib/wikiLinkService";
-import { clearChronicleImageRefs, clearChronicleSceneImages, clearChronicleCoverImage } from "../../lib/db/chronicleImageOps";
+import { clearChronicleImageRefs, clearChronicleSceneImages, clearChronicleCoverImage, clearCoverImageByComposition } from "../../lib/db/chronicleImageOps";
 import { assignImageStyles, type ImageRefRanking } from "../../lib/imageStyleAssignment";
 import { db } from "../../lib/db/illuminatorDb";
 import type { PersistedEntity } from "../../lib/db/illuminatorDb";
@@ -598,6 +598,7 @@ export function useChronicleBulkOperations({
           artisticPromptFragment: artistic.promptFragment,
           compositionPromptFragment: composition.promptFragment,
           colorPalettePromptFragment: palette?.promptFragment,
+          colorPaletteSwatchColors: palette?.swatchColors,
           artisticNegativePrompt: artistic.negativePrompt,
           artistExemplar: artistic.artistExemplar,
         };
@@ -620,6 +621,7 @@ export function useChronicleBulkOperations({
             cast: chronicleCast,
           },
           styleInfo,
+          imageModel,
         );
 
         // Use composition's default aspect to pick image size
@@ -638,7 +640,11 @@ export function useChronicleBulkOperations({
           chronicleId: c.chronicleId,
           imageRefId: ref.refId,
           sceneDescription: ref.sceneDescription,
-          imageType: "chronicle",
+          imageType: "scene",
+          artisticStyleId: ref.suggestedArtisticStyleId,
+          compositionStyleId: ref.suggestedCompositionStyleId,
+          colorPaletteId: ref.suggestedColorPaletteId,
+          tags: ref.visualTags,
           imageSize,
           imageQuality: chronicleImageQuality,
         });
@@ -713,6 +719,7 @@ export function useChronicleBulkOperations({
           "cinematic montage composition, overlapping character silhouettes and scene elements, layered movie-poster layout, multiple focal points at different scales, dramatic depth layering, figures and settings blending into each other, NO TEXT NO TITLES NO LETTERING",
         artisticPromptFragment: artistic.promptFragment,
         colorPalettePromptFragment: palette?.promptFragment,
+        colorPaletteSwatchColors: palette?.swatchColors,
         artisticNegativePrompt: artistic.negativePrompt,
         artistExemplar: artistic.artistExemplar,
       };
@@ -743,6 +750,7 @@ export function useChronicleBulkOperations({
           cast: chronicleCast,
         },
         styleInfo,
+        imageModel,
       );
 
       const aspect = composition?.defaultImageAspect || "landscape";
@@ -759,7 +767,11 @@ export function useChronicleBulkOperations({
         chronicleId: c.chronicleId,
         imageRefId: "__cover_image__",
         sceneDescription: record.coverImage.sceneDescription,
-        imageType: "chronicle",
+        imageType: "cover",
+        artisticStyleId: record.coverImage.suggestedArtisticStyleId,
+        compositionStyleId: record.coverImage.suggestedCompositionStyleId,
+        colorPaletteId: record.coverImage.suggestedColorPaletteId,
+        tags: record.coverImage.visualTags,
         imageSize,
         imageQuality: chronicleImageQuality,
       });
@@ -810,6 +822,32 @@ export function useChronicleBulkOperations({
     await refresh();
     setBulkClearSceneImageResult({ success: true, count: totalCleared });
     setTimeout(() => setBulkClearSceneImageResult(null), 4000);
+  }, [chronicleItems, refresh]);
+
+  // ── Bulk clear cover images by composition style ──
+
+  const [bulkClearByCompositionResult, setBulkClearByCompositionResult] = useState<OperationResult | null>(null);
+
+  const handleBulkClearByComposition = useCallback(async (compositionIds: string[]) => {
+    const idSet = new Set(compositionIds);
+    const eligible = chronicleItems.filter(
+      (c) => c.status === "complete" || c.status === "assembly_ready",
+    );
+    if (eligible.length === 0) {
+      setBulkClearByCompositionResult({ success: true, count: 0 });
+      setTimeout(() => setBulkClearByCompositionResult(null), 4000);
+      return;
+    }
+
+    let cleared = 0;
+    for (const c of eligible) {
+      const didClear = await clearCoverImageByComposition(c.chronicleId, idSet);
+      if (didClear) cleared++;
+    }
+    await refresh();
+    setBulkClearByCompositionResult({ success: true, count: cleared });
+    console.log(`[BulkClearByComposition] Cleared ${cleared} cover images matching compositions: ${compositionIds.join(", ")}`);
+    setTimeout(() => setBulkClearByCompositionResult(null), 4000);
   }, [chronicleItems, refresh]);
 
   // ── Bulk clear cover images ──
@@ -938,6 +976,10 @@ export function useChronicleBulkOperations({
     bulkClearSceneImageResult,
     setBulkClearSceneImageResult,
     handleBulkClearSceneImages,
+    // Bulk clear scene images by composition
+    bulkClearByCompositionResult,
+    setBulkClearByCompositionResult,
+    handleBulkClearByComposition,
     // Bulk clear cover images
     bulkClearCoverImageResult,
     setBulkClearCoverImageResult,

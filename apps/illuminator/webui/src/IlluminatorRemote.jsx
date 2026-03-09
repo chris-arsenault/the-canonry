@@ -131,6 +131,7 @@ function buildSharedProps({
   buildPrompt,
   getVisualConfig,
   resolveImageSize,
+  resolveImageStyleIds,
   chronicleRefreshTrigger,
   setChronicleRefreshTrigger,
   setup,
@@ -151,6 +152,7 @@ function buildSharedProps({
     buildPrompt,
     getVisualConfig,
     resolveImageSize,
+    resolveImageStyleIds,
     chronicleRefreshTrigger,
     setChronicleRefreshTrigger,
     ...setup,
@@ -238,7 +240,7 @@ export default function IlluminatorRemote({
     navEntities,
     setChronicleRefreshTrigger,
   });
-  const { buildPrompt, getVisualConfig, resolveImageSize } = usePromptBuilder({
+  const { buildPrompt, getVisualConfig, resolveImageSize, resolveImageStyleIds } = usePromptBuilder({
     entityGuidance: guidance.entityGuidance,
     cultureIdentities: guidance.cultureIdentities,
     worldContext,
@@ -331,6 +333,7 @@ export default function IlluminatorRemote({
     buildPrompt,
     getVisualConfig,
     resolveImageSize,
+    resolveImageStyleIds,
     chronicleRefreshTrigger,
     setChronicleRefreshTrigger,
     setup,

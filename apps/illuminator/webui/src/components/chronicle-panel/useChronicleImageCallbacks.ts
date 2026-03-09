@@ -31,6 +31,7 @@ interface UseChronicleImageCallbacksParams {
   worldContext: WorldContext;
   chronicleImageSize: string;
   chronicleImageQuality: string;
+  imageModel: string;
 }
 
 export function useChronicleImageCallbacks({
@@ -44,6 +45,7 @@ export function useChronicleImageCallbacks({
   worldContext,
   chronicleImageSize,
   chronicleImageQuality,
+  imageModel,
 }: UseChronicleImageCallbacksParams) {
   const handleGenerateImageRefs = useCallback(() => {
     if (!selectedItem || !generationContext) return;
@@ -146,6 +148,7 @@ export function useChronicleImageCallbacks({
         "cinematic montage composition, overlapping character silhouettes and scene elements, layered movie-poster layout, multiple focal points at different scales, dramatic depth layering, figures and settings blending into each other, NO TEXT NO TITLES NO LETTERING",
       artisticPromptFragment: resolved.artisticStyle?.promptFragment,
       colorPalettePromptFragment: resolved.colorPalette?.promptFragment,
+      colorPaletteSwatchColors: resolved.colorPalette?.swatchColors,
       artisticNegativePrompt: resolved.artisticStyle?.negativePrompt,
       artistExemplar: resolved.artisticStyle?.artistExemplar,
     };
@@ -177,6 +180,7 @@ export function useChronicleImageCallbacks({
         cast,
       },
       styleInfo,
+      imageModel,
     );
     onEnqueue([{
       entity: {
@@ -189,7 +193,11 @@ export function useChronicleImageCallbacks({
       chronicleId: selectedItem.chronicleId,
       imageRefId: "__cover_image__",
       sceneDescription: coverImage.sceneDescription,
-      imageType: "chronicle",
+      imageType: "cover",
+      artisticStyleId: coverImage.suggestedArtisticStyleId,
+      compositionStyleId: coverImage.suggestedCompositionStyleId,
+      colorPaletteId: coverImage.suggestedColorPaletteId,
+      tags: coverImage.visualTags,
       imageSize: chronicleImageSize,
       imageQuality: chronicleImageQuality,
     }]);
@@ -206,7 +214,7 @@ export function useChronicleImageCallbacks({
   ]);
 
   const handleGenerateChronicleImage = useCallback(
-    (ref: { refId: string; sceneDescription: string }, prompt: string, _styleInfo: Record<string, unknown>, imageSizeOverride?: string) => {
+    (ref: { refId: string; sceneDescription: string; suggestedArtisticStyleId?: string; suggestedCompositionStyleId?: string; suggestedColorPaletteId?: string; visualTags?: string[] }, prompt: string, _styleInfo: Record<string, unknown>, imageSizeOverride?: string) => {
       if (!selectedItem?.chronicleId) return;
       void updateChronicleImageRef(selectedItem.chronicleId, ref.refId, {
         status: "generating",
@@ -223,7 +231,11 @@ export function useChronicleImageCallbacks({
         chronicleId: selectedItem.chronicleId,
         imageRefId: ref.refId,
         sceneDescription: ref.sceneDescription,
-        imageType: "chronicle",
+        imageType: "scene",
+        artisticStyleId: ref.suggestedArtisticStyleId,
+        compositionStyleId: ref.suggestedCompositionStyleId,
+        colorPaletteId: ref.suggestedColorPaletteId,
+        tags: ref.visualTags,
         imageSize: imageSizeOverride || chronicleImageSize,
         imageQuality: chronicleImageQuality,
       }]);

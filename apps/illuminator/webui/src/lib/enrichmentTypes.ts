@@ -231,6 +231,12 @@ export interface EnrichmentTaskBase {
   imageRefId?: string;
   sceneDescription?: string;
   imageType?: "entity" | "scene" | "cover" | "chronicle" | "era_narrative" | "other";
+  // Catalog metadata — persisted to ImageMetadata at save time
+  artisticStyleId?: string;
+  compositionStyleId?: string;
+  colorPaletteId?: string;
+  /** Tags to copy to the image record (e.g. visualTags from chronicle refs) */
+  tags?: string[];
   /** Visual thesis per entity ID, for cover image scene generation */
   visualIdentities?: Record<string, string>;
   // For palette expansion tasks
