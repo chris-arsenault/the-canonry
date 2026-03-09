@@ -8,10 +8,19 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { analyzeCoverage, type CoverageReport as CoverageReportData } from "../../lib/catalogAnalysis";
 import { runDeterministicFill, type FillResult } from "../../lib/catalogDeterministicFill";
+import { runLlmFill, type LlmFillProgress, type LlmFillResult } from "../../lib/catalogLlmFill";
 import "./CoverageReport.css";
 
 interface CoverageReportProps {
   projectId: string;
+}
+
+function getApiKey(): string {
+  try {
+    return localStorage.getItem("illuminator:anthropicApiKey") || "";
+  } catch {
+    return "";
+  }
 }
 
 export default function CoverageReport({ projectId }: Readonly<CoverageReportProps>) {
@@ -19,6 +28,9 @@ export default function CoverageReport({ projectId }: Readonly<CoverageReportPro
   const [loading, setLoading] = useState(false);
   const [fillResult, setFillResult] = useState<FillResult | null>(null);
   const [filling, setFilling] = useState(false);
+  const [llmProgress, setLlmProgress] = useState<LlmFillProgress | null>(null);
+  const [llmResult, setLlmResult] = useState<LlmFillResult | null>(null);
+  const [llmFilling, setLlmFilling] = useState(false);
 
   const runScan = useCallback(async () => {
     setLoading(true);
@@ -41,11 +53,30 @@ export default function CoverageReport({ projectId }: Readonly<CoverageReportPro
     try {
       const result = await runDeterministicFill(projectId);
       setFillResult(result);
-      // Refresh report after fill
       const data = await analyzeCoverage(projectId);
       setReport(data);
     } finally {
       setFilling(false);
+    }
+  }, [projectId]);
+
+  const handleLlmFill = useCallback(async () => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      alert("Anthropic API key required. Set it in the Config tab.");
+      return;
+    }
+    setLlmFilling(true);
+    setLlmResult(null);
+    setLlmProgress(null);
+    try {
+      const result = await runLlmFill(projectId, apiKey, setLlmProgress);
+      setLlmResult(result);
+      const data = await analyzeCoverage(projectId);
+      setReport(data);
+    } finally {
+      setLlmFilling(false);
+      setLlmProgress(null);
     }
   }, [projectId]);
 
@@ -105,22 +136,38 @@ export default function CoverageReport({ projectId }: Readonly<CoverageReportPro
         <button
           className="cov-btn cov-btn-primary"
           onClick={handleDeterministicFill}
-          disabled={filling}
+          disabled={filling || llmFilling}
         >
           {filling ? "Filling..." : "Run Deterministic Fill"}
         </button>
         <button
+          className="cov-btn cov-btn-primary"
+          onClick={handleLlmFill}
+          disabled={llmFilling || filling}
+        >
+          {llmFilling ? "LLM Filling..." : "Run LLM Fill"}
+        </button>
+        <button
           className="cov-btn"
           onClick={runScan}
-          disabled={loading}
+          disabled={loading || filling || llmFilling}
         >
           {loading ? "Scanning..." : "Refresh Report"}
         </button>
       </div>
 
+      {llmProgress && (
+        <div className="cov-fill-result">
+          Batch {llmProgress.currentBatch}/{llmProgress.totalBatches}
+          {" — "}
+          {llmProgress.processed}/{llmProgress.total} images processed,
+          {" "}{llmProgress.updated} updated, {llmProgress.errors} errors
+        </div>
+      )}
+
       {fillResult && (
         <div className="cov-fill-result">
-          <strong>Fill complete:</strong>{" "}
+          <strong>Deterministic fill:</strong>{" "}
           {fillResult.updated} updated, {fillResult.skipped} unchanged, {fillResult.errors} errors
           {fillResult.details.length > 0 && fillResult.details.length <= 20 && (
             <details>
@@ -137,6 +184,30 @@ export default function CoverageReport({ projectId }: Readonly<CoverageReportPro
           {fillResult.details.length > 20 && (
             <span className="cov-fill-summary">
               {" "}({fillResult.details.length} images updated — see console for details)
+            </span>
+          )}
+        </div>
+      )}
+
+      {llmResult && (
+        <div className="cov-fill-result">
+          <strong>LLM fill:</strong>{" "}
+          {llmResult.updated} updated, {llmResult.skipped} unchanged, {llmResult.errors} errors
+          {llmResult.details.length > 0 && llmResult.details.length <= 20 && (
+            <details>
+              <summary>Details ({llmResult.details.length} images)</summary>
+              <ul className="cov-fill-details">
+                {llmResult.details.map((d) => (
+                  <li key={d.imageId}>
+                    <code>{d.imageId.slice(0, 20)}</code>: {d.fieldsSet.join(", ")}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          {llmResult.details.length > 20 && (
+            <span className="cov-fill-summary">
+              {" "}({llmResult.details.length} images updated — see console for details)
             </span>
           )}
         </div>

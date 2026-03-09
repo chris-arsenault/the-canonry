@@ -57,7 +57,10 @@ export type LLMCallType =
   | "historian.eraNarrative.edit" // Era narrative: copy-edit pass
   | "historian.eraNarrative.coverImageScene" // Era narrative: cover image scene description
   | "historian.eraNarrative.imageRefs" // Era narrative: image reference placement
-  | "historian.motifVariation"; // Motif phrase variation for annotation deduplication
+  | "historian.motifVariation" // Motif phrase variation for annotation deduplication
+
+  // Catalog
+  | "catalog.metadataFill"; // Generate title and tags from image prompt data
 
 export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   "description.narrative",
@@ -95,6 +98,7 @@ export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   "historian.eraNarrative.coverImageScene",
   "historian.eraNarrative.imageRefs",
   "historian.motifVariation",
+  "catalog.metadataFill",
 ];
 
 export type LLMCallCategory =
@@ -105,7 +109,8 @@ export type LLMCallCategory =
   | "palette"
   | "dynamics"
   | "revision"
-  | "historian";
+  | "historian"
+  | "catalog";
 
 export interface LLMCallDefaults {
   model: string;
@@ -216,7 +221,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     defaults: {
       model: "claude-haiku-4-5-20251001",
       thinkingBudget: 0,
-      maxTokens: 1024,
+      maxTokens: 2048,
     },
     recommendedModels: ["claude-haiku-4-5-20251001"],
   },
@@ -227,7 +232,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     defaults: {
       model: "claude-haiku-4-5-20251001",
       thinkingBudget: 0,
-      maxTokens: 1024,
+      maxTokens: 2048,
     },
     recommendedModels: ["claude-haiku-4-5-20251001"],
   },
@@ -577,6 +582,20 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     },
     recommendedModels: ["claude-opus-4-6", "claude-sonnet-4-6"],
   },
+  "catalog.metadataFill": {
+    label: "Metadata Fill",
+    description:
+      "Generate title and tags for images from their generation prompt data (batched)",
+    category: "catalog",
+    defaults: {
+      model: "claude-haiku-4-5-20251001",
+      thinkingBudget: 0,
+      maxTokens: 4096,
+      disableStreaming: true,
+      runInBrowser: true,
+    },
+    recommendedModels: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"],
+  },
 };
 
 export const CATEGORY_LABELS: Record<LLMCallCategory, string> = {
@@ -588,6 +607,7 @@ export const CATEGORY_LABELS: Record<LLMCallCategory, string> = {
   dynamics: "Dynamics Generation",
   revision: "Summary Revision",
   historian: "Historian",
+  catalog: "Catalog",
 };
 
 export const CATEGORY_DESCRIPTIONS: Record<LLMCallCategory, string> = {
@@ -600,6 +620,7 @@ export const CATEGORY_DESCRIPTIONS: Record<LLMCallCategory, string> = {
   revision: "Batch revision of entity summaries and descriptions using world dynamics",
   historian:
     "Scholarly annotations with personality — commentary, corrections, and tongue-in-cheek observations",
+  catalog: "Batch metadata generation for image catalog backfill",
 };
 
 // Group call types by category
@@ -639,5 +660,6 @@ export function getCallTypesByCategory(): Record<LLMCallCategory, LLMCallType[]>
       "historian.eraNarrative.imageRefs",
       "historian.motifVariation",
     ],
+    catalog: ["catalog.metadataFill"],
   };
 }
