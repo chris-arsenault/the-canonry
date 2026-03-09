@@ -19,6 +19,8 @@ import EntityCoveragePanel from "./EntityCoveragePanel";
 import HistorianConfigEditor from "./HistorianConfigEditor";
 import PrePrintPanel from "./PrePrintPanel";
 import TestImagePanel from "./TestImagePanel";
+import CurationTab from "./CurationTab";
+import CatalogTab from "./CatalogTab";
 import { isHistorianConfigured } from "../lib/historianTypes";
 import { useIlluminatorModals } from "../lib/db/modalStore";
 import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
@@ -434,6 +436,7 @@ HistorianTab.propTypes = {
 const TAB_COMPONENTS = {
   entities: EntitiesTab,
   chronicle: ChronicleTab,
+  curation: CurationTab,
   coverage: CoverageTab,
   finaledit: FinalEditTabWrapper,
   pages: PagesTab,
@@ -449,6 +452,7 @@ const TAB_COMPONENTS = {
   historian: HistorianTab,
   preprint: PreprintTab,
   testimage: TestImageTab,
+  catalog: CatalogTab,
 };
 
 export default function IlluminatorTabContent({ activeTab, ...props }) {

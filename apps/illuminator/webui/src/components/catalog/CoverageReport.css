@@ -1,0 +1,132 @@
+.cov-report {
+  max-width: 900px;
+}
+
+.cov-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cov-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.cov-total {
+  color: var(--text-secondary, #888);
+  font-size: 0.85rem;
+}
+
+.cov-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-bottom: 16px;
+}
+
+.cov-table th,
+.cov-table td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #333);
+}
+
+.cov-table th {
+  color: var(--text-secondary, #aaa);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cov-field-name {
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+.cov-num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cov-pct {
+  margin-left: 4px;
+  color: var(--text-secondary, #888);
+  font-size: 0.72rem;
+}
+
+.cov-missing {
+  color: var(--warning-color, #e0a040);
+}
+
+.cov-derivable {
+  color: var(--success-color, #60c060);
+}
+
+.cov-no-prompt {
+  color: var(--error-color, #e04040);
+}
+
+.cov-source {
+  color: var(--text-secondary, #888);
+  font-size: 0.75rem;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cov-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cov-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border-color, #444);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-primary, #e0e0e0);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.cov-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cov-btn-primary {
+  background: var(--accent-bg, #2a3a4a);
+  border-color: var(--accent-color, #5a8abf);
+}
+
+.cov-fill-result {
+  padding: 8px 12px;
+  background: var(--surface-bg, #1a1a2e);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.cov-fill-details {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 0.75rem;
+}
+
+.cov-fill-details code {
+  color: var(--text-secondary, #aaa);
+}
+
+.cov-fill-summary {
+  color: var(--text-secondary, #888);
+}
+
+.cat-loading {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary, #888);
+}

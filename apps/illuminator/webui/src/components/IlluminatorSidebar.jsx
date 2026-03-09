@@ -13,6 +13,7 @@ const TABS = [
   { id: "styles", label: "Styles" },
   { id: "entities", label: "Entities" },
   { id: "chronicle", label: "Chronicle" },
+  { id: "curation", label: "Curation" },
   { id: "coverage", label: "Coverage" },
   { id: "finaledit", label: "Final Edit" },
   { id: "pages", label: "Pages" },
@@ -23,6 +24,7 @@ const TABS = [
   { id: "traits", label: "Traits" },
   { id: "historian", label: "Historian" },
   { id: "preprint", label: "Pre-Print" },
+  { id: "catalog", label: "Catalog" },
 ];
 
 function NavButton({ tab, activeTab, setActiveTab, stats }) {
@@ -53,6 +55,8 @@ function ApiKeySection({
   setOpenaiApiKey,
   wavespeedApiKey,
   setWavespeedApiKey,
+  bflApiKey,
+  setBflApiKey,
   persistApiKeys,
   setPersistApiKeys,
 }) {
@@ -84,8 +88,17 @@ function ApiKeySection({
             placeholder="sk-..."
             className="illuminator-api-input"
           />
+          <div className="illuminator-api-dropdown-title">BFL API Key</div>
+          <p className="illuminator-api-dropdown-hint">Required for Flux image models (Black Forest Labs).</p>
+          <input
+            type="password"
+            value={bflApiKey}
+            onChange={(e) => setBflApiKey(e.target.value)}
+            placeholder="bfl-..."
+            className="illuminator-api-input"
+          />
           <div className="illuminator-api-dropdown-title">WaveSpeed API Key</div>
-          <p className="illuminator-api-dropdown-hint">Required for WaveSpeed image models.</p>
+          <p className="illuminator-api-dropdown-hint">Required for WaveSpeed image models (Qwen, Recraft, etc.).</p>
           <input
             type="password"
             value={wavespeedApiKey}
@@ -128,6 +141,8 @@ export default function IlluminatorSidebar({
   setOpenaiApiKey,
   wavespeedApiKey,
   setWavespeedApiKey,
+  bflApiKey,
+  setBflApiKey,
   persistApiKeys,
   setPersistApiKeys,
 }) {
@@ -167,6 +182,8 @@ export default function IlluminatorSidebar({
         setOpenaiApiKey={setOpenaiApiKey}
         wavespeedApiKey={wavespeedApiKey}
         setWavespeedApiKey={setWavespeedApiKey}
+        bflApiKey={bflApiKey}
+        setBflApiKey={setBflApiKey}
         persistApiKeys={persistApiKeys}
         setPersistApiKeys={setPersistApiKeys}
       />
@@ -191,6 +208,8 @@ ApiKeySection.propTypes = {
   setOpenaiApiKey: PropTypes.func.isRequired,
   wavespeedApiKey: PropTypes.string,
   setWavespeedApiKey: PropTypes.func.isRequired,
+  bflApiKey: PropTypes.string,
+  setBflApiKey: PropTypes.func.isRequired,
   persistApiKeys: PropTypes.bool,
   setPersistApiKeys: PropTypes.func.isRequired,
 };
@@ -210,6 +229,8 @@ IlluminatorSidebar.propTypes = {
   setOpenaiApiKey: PropTypes.func.isRequired,
   wavespeedApiKey: PropTypes.string,
   setWavespeedApiKey: PropTypes.func.isRequired,
+  bflApiKey: PropTypes.string,
+  setBflApiKey: PropTypes.func.isRequired,
   persistApiKeys: PropTypes.bool,
   setPersistApiKeys: PropTypes.func.isRequired,
 };
