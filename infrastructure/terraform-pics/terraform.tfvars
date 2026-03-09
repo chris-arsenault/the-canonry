@@ -1,0 +1,6 @@
+aws_region        = "us-east-1"
+prefix            = "pics-viewer"
+domain            = "pics.theiceremembers.com"
+parent_domain     = "theiceremembers.com"
+image_bucket_name = "pt-viewer-canonry-images-TO_BE_FILLED"
+image_prefix      = "canonry"

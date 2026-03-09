@@ -27,3 +27,9 @@ variable "image_prefix" {
   type        = string
   default     = ""
 }
+
+variable "additional_image_distribution_arns" {
+  description = "Additional CloudFront distribution ARNs allowed to read from the image bucket (e.g. pics gallery)"
+  type        = list(string)
+  default     = []
+}

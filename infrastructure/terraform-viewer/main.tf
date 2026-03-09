@@ -141,7 +141,10 @@ resource "aws_s3_bucket_policy" "image_assets" {
         ]
         Condition = {
           StringEquals = {
-            "AWS:SourceArn" = aws_cloudfront_distribution.static_site.arn
+            "AWS:SourceArn" = concat(
+              [aws_cloudfront_distribution.static_site.arn],
+              var.additional_image_distribution_arns
+            )
           }
         }
       }
