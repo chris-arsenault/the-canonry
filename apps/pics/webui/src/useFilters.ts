@@ -1,0 +1,102 @@
+/**
+ * useFilters — Client-side filter, sort, and search for catalog images.
+ */
+
+import { useState, useMemo, useCallback } from "react";
+import type { CatalogImage, FilterState, SortMode } from "./types";
+
+const INITIAL: FilterState = {
+  search: "",
+  imageType: null,
+  entityKind: null,
+  culture: null,
+  artisticStyle: null,
+  sort: "newest",
+};
+
+function matchesSearch(img: CatalogImage, query: string): boolean {
+  const q = query.toLowerCase();
+  return (
+    img.title.toLowerCase().includes(q) ||
+    (img.entityName?.toLowerCase().includes(q) ?? false) ||
+    img.tags.some((t) => t.toLowerCase().includes(q))
+  );
+}
+
+function sortImages(images: CatalogImage[], mode: SortMode): CatalogImage[] {
+  const sorted = [...images];
+  switch (mode) {
+    case "newest":
+      sorted.sort((a, b) => b.generatedAt - a.generatedAt);
+      break;
+    case "oldest":
+      sorted.sort((a, b) => a.generatedAt - b.generatedAt);
+      break;
+    case "title":
+      sorted.sort((a, b) => a.title.localeCompare(b.title));
+      break;
+  }
+  return sorted;
+}
+
+export function useFilters(images: CatalogImage[]) {
+  const [filters, setFilters] = useState<FilterState>(INITIAL);
+
+  const setSearch = useCallback((search: string) => {
+    setFilters((f) => ({ ...f, search }));
+  }, []);
+
+  const setSort = useCallback((sort: SortMode) => {
+    setFilters((f) => ({ ...f, sort }));
+  }, []);
+
+  const setFilter = useCallback(
+    (key: keyof Omit<FilterState, "search" | "sort">, value: string | null) => {
+      setFilters((f) => ({ ...f, [key]: value }));
+    },
+    [],
+  );
+
+  const clearFilters = useCallback(() => {
+    setFilters(INITIAL);
+  }, []);
+
+  const filtered = useMemo(() => {
+    let result = images;
+
+    if (filters.search) {
+      result = result.filter((img) => matchesSearch(img, filters.search));
+    }
+    if (filters.imageType) {
+      result = result.filter((img) => img.imageType === filters.imageType);
+    }
+    if (filters.entityKind) {
+      result = result.filter((img) => img.entityKind === filters.entityKind);
+    }
+    if (filters.culture) {
+      result = result.filter((img) => img.entityCulture === filters.culture);
+    }
+    if (filters.artisticStyle) {
+      result = result.filter((img) => img.artisticStyleId === filters.artisticStyle);
+    }
+
+    return sortImages(result, filters.sort);
+  }, [images, filters]);
+
+  const hasActiveFilters =
+    filters.search !== "" ||
+    filters.imageType !== null ||
+    filters.entityKind !== null ||
+    filters.culture !== null ||
+    filters.artisticStyle !== null;
+
+  return {
+    filters,
+    filtered,
+    hasActiveFilters,
+    setSearch,
+    setSort,
+    setFilter,
+    clearFilters,
+  };
+}

@@ -1,0 +1,82 @@
+.masonry {
+  column-count: 4;
+  column-gap: 8px;
+  padding: 8px;
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.masonry-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.masonry-ratio {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.masonry-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.3s ease;
+}
+
+.masonry-caption {
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.masonry-title {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.masonry-entity {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.masonry-sentinel {
+  height: 1px;
+  column-span: all;
+}
+
+/* Responsive columns */
+@media (max-width: 1400px) {
+  .masonry { column-count: 3; }
+}
+@media (max-width: 900px) {
+  .masonry { column-count: 2; }
+}
+@media (max-width: 500px) {
+  .masonry {
+    column-count: 2;
+    column-gap: 4px;
+    padding: 4px;
+  }
+  .masonry-item { margin-bottom: 4px; border-radius: 4px; }
+  .masonry-caption { padding: 4px 6px; }
+  .masonry-title { font-size: 0.65rem; }
+}
