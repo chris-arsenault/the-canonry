@@ -10,6 +10,7 @@
 
 import { useEffect, useRef } from "react";
 import type { QueueItem } from "../lib/enrichmentTypes";
+import { isChronicleImage } from "../lib/imageTypes";
 import { useChronicleStore } from "../lib/db/chronicleStore";
 import {
   updateChronicleCoverImageStatus,
@@ -139,7 +140,7 @@ function dispatchCompletedTask(
   updates: Promise<unknown>[],
   chronicleIds: Set<string>
 ): boolean {
-  if (task.type === "image" && task.imageType === "chronicle") {
+  if (task.type === "image" && isChronicleImage(task.imageType)) {
     processChronicleImageTask(task, updates, chronicleIds);
     return false;
   }
@@ -188,7 +189,7 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
         item.type === "entityChronicle" ||
         item.type === "historianPrep" ||
         (item.type === "image" &&
-          (item.imageType === "chronicle" || item.imageType === "era_narrative"))
+          (isChronicleImage(item.imageType) || item.imageType === "era_narrative"))
     );
 
     const completedTasks = chronicleTasks.filter(

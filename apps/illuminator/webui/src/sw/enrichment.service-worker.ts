@@ -22,6 +22,7 @@ import {
 } from "../workers/enrichmentCore";
 import type { LLMClient } from "../lib/llmClient";
 import type { ImageClientInterface } from "../workers/clients";
+import { isChronicleImage } from "../lib/imageTypes";
 import * as entityRepo from "../lib/db/entityRepository";
 
 declare const self: ServiceWorkerGlobalScope;
@@ -246,7 +247,7 @@ async function persistChronicleResult(
 }
 
 function shouldPersistImage(task: WorkerTask, result: EnrichmentResult): boolean {
-  return task.type === "image" && Boolean(result.imageId) && task.imageType !== "chronicle";
+  return task.type === "image" && Boolean(result.imageId) && !isChronicleImage(task.imageType);
 }
 
 async function dispatchPersist(task: WorkerTask, result: EnrichmentResult): Promise<void> {

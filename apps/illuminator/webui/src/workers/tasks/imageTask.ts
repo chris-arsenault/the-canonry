@@ -1,21 +1,29 @@
 import type { WorkerTask } from "../../lib/enrichmentTypes";
+import { isChronicleImage } from "../../lib/imageTypes";
 import { estimateImageCost, calculateActualImageCost } from "../../lib/costEstimation";
 import { saveImage, generateImageId, extractImageDimensions } from "../../lib/db/imageRepository";
 import { saveCostRecordWithDefaults } from "../../lib/db/costRepository";
 import { runTextCall } from "../../lib/llmTextCall";
+import { boostSaturation } from "../../lib/imagePostProcess";
 import { getCallConfig } from "./llmCallConfig";
 import {
   getModelPromptSuffix,
   resolveImageSize,
   getFluxGeneration,
+  getOpenAiModelFamily,
   FLUX_1_IMAGE_PROMPT_TEMPLATE,
   FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE,
   FLUX_2_SUBJECT_SYNTHESIS_TEMPLATE,
   FLUX_2_CHRONICLE_SUBJECT_SYNTHESIS_TEMPLATE,
+  GPT_IMAGE_PROMPT_TEMPLATE,
+  GPT_IMAGE_CHRONICLE_PROMPT_TEMPLATE,
+  DALLE3_IMAGE_PROMPT_TEMPLATE,
+  DALLE3_CHRONICLE_IMAGE_PROMPT_TEMPLATE,
   parsePromptSections,
   extractDeterministicFlux2Fields,
   extractSubjectText,
   mergeFlux2JsonPrompt,
+  buildPaletteContext,
 } from "../../lib/imageSettings";
 import type { TaskHandler } from "./taskTypes";
 import type { LLMClient } from "../../lib/llmClient";
@@ -49,13 +57,21 @@ async function formatImagePromptWithClaude(
   callConfig: ResolvedLLMCallConfig,
   isChronicleImage?: boolean
 ): Promise<ImagePromptFormatResult> {
-  // Select template: Flux 1 gets generation-specific templates,
-  // others use the user's configured template.
-  // Flux 2 is handled separately via formatFlux2Prompt — not this function.
+  // Select template by model family. Each model family has a specialized
+  // reformatter. Flux 2 is handled separately via formatFlux2Prompt.
   const imageModel = config.imageModel || "dall-e-3";
   let templateSource: string | undefined;
   const fluxGen = getFluxGeneration(imageModel);
-  if (fluxGen === "flux-1") {
+  const openAiFamily = getOpenAiModelFamily(imageModel);
+  if (openAiFamily === "gpt-image") {
+    templateSource = isChronicleImage
+      ? GPT_IMAGE_CHRONICLE_PROMPT_TEMPLATE
+      : GPT_IMAGE_PROMPT_TEMPLATE;
+  } else if (openAiFamily === "dall-e-3") {
+    templateSource = isChronicleImage
+      ? DALLE3_CHRONICLE_IMAGE_PROMPT_TEMPLATE
+      : DALLE3_IMAGE_PROMPT_TEMPLATE;
+  } else if (fluxGen === "flux-1") {
     templateSource = isChronicleImage
       ? FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE
       : FLUX_1_IMAGE_PROMPT_TEMPLATE;
@@ -130,34 +146,41 @@ async function formatFlux2Prompt(
   isChronicle: boolean
 ): Promise<ImagePromptFormatResult> {
   const sections = parsePromptSections(originalPrompt);
-  const deterministic = extractDeterministicFlux2Fields(sections, isChronicle);
+  const deterministic = extractDeterministicFlux2Fields(sections);
   const subjectText = extractSubjectText(sections, isChronicle);
 
   // If no subject text, wrap preamble/original in minimal JSON with deterministic fields
   if (!subjectText.trim()) {
     const fallback = sections["_preamble"] || originalPrompt;
-    const json = JSON.stringify({
+    const json = mergeFlux2JsonPrompt(deterministic, JSON.stringify({
       scene: fallback,
-      subjects: [{ description: fallback, position: "centered in frame" }],
-      ...Object.fromEntries(Object.entries(deterministic).filter(([, v]) => v)),
-    });
+      subjects: [{ type: "Subject", description: fallback, position: "centered in frame", color_match: "exact" }],
+    }));
     return { prompt: json };
   }
 
   // If Claude is disabled or not configured, use raw subject text in JSON structure
   if (!config.useClaudeForImagePrompt || !llmClient.isEnabled()) {
-    const json = JSON.stringify({
+    const json = mergeFlux2JsonPrompt(deterministic, JSON.stringify({
       scene: subjectText.substring(0, 300),
-      subjects: [{ description: subjectText, position: "centered in frame" }],
-      ...Object.fromEntries(Object.entries(deterministic).filter(([, v]) => v)),
-    });
+      subjects: [{ type: "Subject", description: subjectText, position: "centered in frame", color_match: "exact" }],
+    }));
     return { prompt: json };
   }
 
   const template = isChronicle
     ? FLUX_2_CHRONICLE_SUBJECT_SYNTHESIS_TEMPLATE
     : FLUX_2_SUBJECT_SYNTHESIS_TEMPLATE;
-  const formattingPrompt = template.replace(/\{\{subjectText\}\}/g, subjectText);
+
+  // Build palette context — primary (for subjects) and secondary (for atmosphere)
+  const paletteContext = buildPaletteContext(
+    deterministic.color_palette_hex,
+    deterministic.color_palette_text,
+  );
+
+  const formattingPrompt = template
+    .replace(/\{\{subjectText\}\}/g, subjectText)
+    .replace(/\{\{paletteContext\}\}/g, paletteContext);
 
   try {
     const formattingCall = await runTextCall({
@@ -189,11 +212,10 @@ async function formatFlux2Prompt(
   }
 
   // Fallback: deterministic fields + raw subject text
-  const json = JSON.stringify({
+  const json = mergeFlux2JsonPrompt(deterministic, JSON.stringify({
     scene: subjectText.substring(0, 300),
-    subjects: [{ description: subjectText, position: "centered in frame" }],
-    ...Object.fromEntries(Object.entries(deterministic).filter(([, v]) => v)),
-  });
+    subjects: [{ type: "Subject", description: subjectText, position: "centered in frame", color_match: "exact" }],
+  }));
   return { prompt: json, formattingPrompt };
 }
 
@@ -223,8 +245,8 @@ export const imageTask = {
       // Raw mode: send prompt directly to image API without Claude formatting
       finalPrompt = originalPrompt;
     } else {
-      const isChronicleImage = task.imageType === "chronicle";
-      const formattingCallType = isChronicleImage
+      const isChronicle = isChronicleImage(task.imageType);
+      const formattingCallType = isChronicle
         ? "image.chronicleFormatting"
         : "image.promptFormatting";
       const formattingConfig = getCallConfig(config, formattingCallType);
@@ -233,7 +255,7 @@ export const imageTask = {
       if (fluxGen === "flux-2") {
         // Flux 2: deterministic JSON fields + LLM-synthesized subjects/scene
         const formatResult = await formatFlux2Prompt(
-          originalPrompt, config, llmClient, formattingConfig, isChronicleImage
+          originalPrompt, config, llmClient, formattingConfig, isChronicle
         );
         formattingPrompt = formatResult.formattingPrompt;
         formatCost = formatResult.cost;
@@ -241,7 +263,7 @@ export const imageTask = {
       } else {
         // Flux 1 and other models: full Claude reformatting
         const formatResult = await formatImagePromptWithClaude(
-          originalPrompt, config, llmClient, formattingConfig, isChronicleImage
+          originalPrompt, config, llmClient, formattingConfig, isChronicle
         );
         formattingPrompt = formatResult.formattingPrompt;
         formatCost = formatResult.cost;
@@ -254,8 +276,8 @@ export const imageTask = {
 
     // Save imagePrompt cost record if Claude was used
     if (formatCost) {
-      const isChronicleImage = task.imageType === "chronicle";
-      const costCallType = isChronicleImage
+      const isChronicle2 = isChronicleImage(task.imageType);
+      const costCallType = isChronicle2
         ? "image.chronicleFormatting"
         : "image.promptFormatting";
       const costCallConfig = getCallConfig(config, costCallType);
@@ -293,15 +315,21 @@ export const imageTask = {
       return { success: false, error: "No image data returned from API" };
     }
 
+    // Boost saturation 3x for Flux 2 — compensates for washed-out API output
+    const fluxGenForPost = getFluxGeneration(imageModel);
+    const imageBlob = fluxGenForPost === "flux-2"
+      ? await boostSaturation(result.imageBlob, 3.0)
+      : result.imageBlob;
+
     const actualCost = calculateActualImageCost(imageModel, imageSize, imageQuality, result.usage);
     const generatedAt = Date.now();
     const imageId = generateImageId(task.entityId);
 
     // Extract image dimensions for aspect-aware display
-    const dimensions = await extractImageDimensions(result.imageBlob);
+    const dimensions = await extractImageDimensions(imageBlob);
 
     // Save directly to IndexedDB
-    await saveImage(imageId, result.imageBlob, {
+    await saveImage(imageId, imageBlob, {
       entityId: task.entityId,
       projectId: task.projectId,
       entityName: task.entityName,

@@ -7,6 +7,7 @@
 import type { HistorianNote } from "../historianTypes";
 import { isNoteActive, noteDisplay } from "../historianTypes";
 import { resolveAnchorPhrase } from "../fuzzyAnchor";
+import type { ImageType } from "../imageTypes";
 import type { ImageMetadataRecord } from "./prePrintStats";
 import type { ExportImageEntry } from "./prePrintTypes";
 
@@ -46,7 +47,7 @@ export function registerImage(
   map: Map<string, ExportImageEntry>,
   imageId: string,
   imageMap: Map<string, ImageMetadataRecord>,
-  type: "entity" | "chronicle" | "cover",
+  type: ImageType,
   entityId?: string,
   entityName?: string,
   chronicleId?: string

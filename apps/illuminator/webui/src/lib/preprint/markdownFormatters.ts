@@ -173,7 +173,7 @@ function insertPromptImageMarkers(
   let result = text;
   for (const { ref, insertAt } of insertions) {
     const imgId = ref.generatedImageId;
-    registerImage(referencedImages, imgId, imageMap, "chronicle", undefined, undefined, chronicleId);
+    registerImage(referencedImages, imgId, imageMap, "scene", undefined, undefined, chronicleId);
     const ext = getImageExt(imageMap.get(imgId));
     const caption = ref.caption || "";
     const marker = `\n\n<!-- IMAGE: images/${imgId}${ext} | size: ${ref.size} | float: ${ref.justification || "none"} | caption: "${caption}" -->\n\n`;
@@ -348,7 +348,7 @@ function insertNarrativeImageMarkers(
   let result = text;
   for (const { ref, insertAt } of insertions) {
     const imgId = resolveNarrativeImageId(ref);
-    registerImage(referencedImages, imgId, imageMap, "chronicle");
+    registerImage(referencedImages, imgId, imageMap, "scene");
     const ext = getImageExt(imageMap.get(imgId));
     const caption = ref.caption || "";
     const marker = `\n\n<!-- IMAGE: images/${imgId}${ext} | size: ${ref.size} | float: ${ref.justification || "none"} | caption: "${caption}" -->\n\n`;

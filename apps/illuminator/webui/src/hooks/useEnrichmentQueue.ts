@@ -27,6 +27,7 @@ import { createWorkerPool, resetWorkerPool, type WorkerHandle } from "../lib/wor
 import { getResolvedLLMCallSettings, type ResolvedLLMCallSettings } from "../lib/llmModelSettings";
 import type { LLMCallType } from "../lib/llmCallTypes";
 import type { EnrichmentType } from "../lib/enrichmentTypes";
+import { isChronicleImage } from "../lib/imageTypes";
 import { useThinkingStore } from "../lib/db/thinkingStore";
 import { executeBrowserTask } from "../lib/browserTaskExecutor";
 
@@ -197,7 +198,7 @@ function notifyEntityUpdate(
 ): void {
   if (!result.result) return;
   const queueItem = queue.find((item) => item.id === result.id);
-  if (queueItem?.imageType === "chronicle") return;
+  if (isChronicleImage(queueItem?.imageType)) return;
   const output = applyEnrichmentResult({}, result.type, result.result, queueItem?.entityLockedSummary);
   onEntityUpdate(result.entityId, output);
 }
@@ -371,8 +372,8 @@ export function useEnrichmentQueue(
             }));
             if (taskResult.result) {
               const queueItem = queueRef.current.find((item) => item.id === task.id);
-              const isChronicleImage = queueItem?.imageType === "chronicle";
-              if (!isChronicleImage) {
+              const isChronicle = isChronicleImage(queueItem?.imageType);
+              if (!isChronicle) {
                 const output = applyEnrichmentResult(
                   {},
                   task.type,

@@ -6,14 +6,15 @@
  */
 
 import { db } from "./illuminatorDb";
-import type {
-  ImageType,
-  ImageAspect,
-  ImageMetadata,
-  ImageRecord,
-  ImageListItem,
-  ImageSearchOptions,
-  ImagePromptExport,
+import {
+  isChronicleImage,
+  type ImageType,
+  type ImageAspect,
+  type ImageMetadata,
+  type ImageRecord,
+  type ImageListItem,
+  type ImageSearchOptions,
+  type ImagePromptExport,
 } from "../imageTypes";
 
 // Re-export all types so consumers can migrate imports to this module
@@ -427,7 +428,7 @@ export async function searchChronicleImages(filters: {
   }
 
   // Only include chronicle images
-  records = records.filter((r) => r.imageType === "chronicle");
+  records = records.filter((r) => isChronicleImage(r.imageType));
 
   // Sort by generatedAt descending
   records.sort((a, b) => (b.generatedAt || 0) - (a.generatedAt || 0));

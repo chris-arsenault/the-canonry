@@ -122,7 +122,7 @@ export interface ExportImageEntry {
   width?: number;
   height?: number;
   aspect?: ImageAspect;
-  imageType: ImageType | "cover";
+  imageType: ImageType;
   entityId?: string;
   entityName?: string;
   chronicleId?: string;

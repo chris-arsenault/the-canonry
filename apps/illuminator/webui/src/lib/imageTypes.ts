@@ -5,8 +5,13 @@
  * metadata, search options, and export structures.
  */
 
-/** Type of image: entity (default) or chronicle (scene/illustration) */
-export type ImageType = "entity" | "chronicle";
+/** Type of image. Legacy data may contain "chronicle" which is reclassified during backfill. */
+export type ImageType = "entity" | "scene" | "cover" | "other";
+
+/** Returns true for image types associated with chronicles (scene, cover, or legacy "chronicle"). */
+export function isChronicleImage(imageType: string | undefined): boolean {
+  return imageType === "scene" || imageType === "cover" || imageType === "chronicle";
+}
 
 /** Image aspect ratio classification */
 export type ImageAspect = "portrait" | "landscape" | "square";
@@ -43,7 +48,7 @@ export interface ImageMetadata {
   aspect?: ImageAspect;
 
   // Chronicle image fields (optional, present when imageType === 'chronicle')
-  /** Type of image: 'entity' (default) or 'chronicle' */
+  /** Type of image: entity, scene, cover, or other */
   imageType?: ImageType;
   /** For chronicle images: the chronicle this belongs to */
   chronicleId?: string;
@@ -51,6 +56,18 @@ export interface ImageMetadata {
   imageRefId?: string;
   /** For chronicle images: the scene description from the LLM */
   sceneDescription?: string;
+
+  // Catalog metadata (deterministic at generation time, backfilled for existing images)
+  /** Artistic style ID from StyleSelection at generation time */
+  artisticStyleId?: string;
+  /** Composition style ID from StyleSelection at generation time */
+  compositionStyleId?: string;
+  /** Color palette ID from StyleSelection at generation time */
+  colorPaletteId?: string;
+  /** Human-readable display title (deterministic) */
+  title?: string;
+  /** Descriptive tags (from visualTags on chronicle refs, or LLM-generated) */
+  tags?: string[];
 }
 
 export interface ImageRecord extends ImageMetadata {

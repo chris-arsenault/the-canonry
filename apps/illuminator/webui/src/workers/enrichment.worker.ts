@@ -32,6 +32,7 @@ import {
 } from "./enrichmentCore";
 import type { LLMClient } from "../lib/llmClient";
 import type { ImageClientInterface } from "./clients";
+import { isChronicleImage } from "../lib/imageTypes";
 import * as entityRepo from "../lib/db/entityRepository";
 
 // Worker context
@@ -95,7 +96,7 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
         result.summary,
         result.description
       );
-    } else if (task.type === "image" && result.imageId && task.imageType !== "chronicle") {
+    } else if (task.type === "image" && result.imageId && !isChronicleImage(task.imageType)) {
       await entityRepo.applyImageResult(task.entityId, {
         imageId: result.imageId,
         generatedAt: result.generatedAt,
