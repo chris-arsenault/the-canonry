@@ -13,6 +13,7 @@ import {
   syncProjectImagesToS3,
   getS3ImageUploadPlan,
   listS3Prefixes,
+  buildAndUploadCatalog,
 } from "../aws/awsS3";
 import type { S3Client } from "../aws/awsS3";
 import { exportIndexedDbToS3, importIndexedDbFromS3 } from "../aws/indexedDbSnapshot";
@@ -121,12 +122,23 @@ async function doSyncImages(
     await syncProjectImagesToS3({
       projectId, s3: s3Client, config,
       onProgress: ({ phase, processed, total, uploaded }: { phase: string; processed: number; total: number; uploaded: number }) => {
-        const label = phase === "upload" ? "Uploading" : "Scanning";
+        const labels: Record<string, string> = { upload: "Uploading", scan: "Scanning", variants: "Generating WebP" };
+        const label = labels[phase] || phase;
         setStatus({ state: "working", detail: `${label} images ${processed}/${total} (uploaded ${uploaded})...` });
         setSyncProgress({ phase, processed, total, uploaded });
       },
     });
-    setStatus({ state: "idle", detail: "Image sync complete." });
+
+    // Build and upload catalog.json
+    setStatus({ state: "working", detail: "Building catalog.json..." });
+    try {
+      const cdnBaseUrl = config?.cdnBaseUrl?.trim() || "";
+      const catalogResult = await buildAndUploadCatalog(s3Client, config, projectId, cdnBaseUrl);
+      setStatus({ state: "idle", detail: `Image sync complete. Catalog: ${catalogResult.entries} images.` });
+    } catch (catalogErr) {
+      console.error("Catalog upload failed:", catalogErr);
+      setStatus({ state: "idle", detail: "Image sync complete. Catalog upload failed — see console." });
+    }
   } catch (err) {
     console.error("Failed to sync images:", err);
     setStatus({ state: "error", detail: errorDetail(err, "Image sync failed.") });

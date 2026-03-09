@@ -12,6 +12,10 @@ const DEFAULT_RAW_PREFIX = "raw";
 const DEFAULT_WEBP_PREFIX = "webp";
 const DEFAULT_THUMB_PREFIX = "thumb";
 const MANIFEST_NAME = "image-manifest.json";
+const CATALOG_NAME = "catalog.json";
+const THUMB_MAX_WIDTH = 400;
+const WEBP_QUALITY = 0.85;
+const THUMB_QUALITY = 0.75;
 
 function normalizeImageSize(value) {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
@@ -465,13 +469,52 @@ export async function syncProjectImagesToS3({ projectId, s3, config, onProgress 
       })
     );
 
-    existing[image.imageId] = buildManifestEntry(
+    const manifestEntry = buildManifestEntry(
       image, projectId, rawKey, blob, normalizedSize, contentLength, updatedAt
     );
+
+    // Generate and upload WebP + thumbnail variants
+    try {
+      const { webpKey, thumbKey } = await uploadImageVariants(
+        s3, { bucket, basePrefix, projectId }, image.imageId, blob
+      );
+      manifestEntry.webpKey = webpKey;
+      manifestEntry.thumbKey = thumbKey;
+    } catch (variantErr) {
+      console.warn(`[awsS3] Variant upload failed for ${image.imageId}:`, variantErr);
+    }
+
+    existing[image.imageId] = manifestEntry;
 
     uploaded += 1;
     if (onProgress) {
       onProgress({ phase: "upload", processed, total, uploaded });
+    }
+  }
+
+  // Catch-up: generate variants for images already in manifest but missing webp/thumb
+  let variantsCatchup = 0;
+  for (const image of images) {
+    if (!image?.imageId) continue;
+    const entry = existing[image.imageId];
+    if (!entry || (entry.webpKey && entry.thumbKey)) continue;
+
+    if (onProgress) {
+      onProgress({ phase: "variants", processed: variantsCatchup, total: images.length, uploaded });
+    }
+
+    try {
+      const blob = await getImageBlob(image.imageId);
+      if (!blob) continue;
+
+      const { webpKey, thumbKey } = await uploadImageVariants(
+        s3, { bucket, basePrefix, projectId }, image.imageId, blob
+      );
+      entry.webpKey = webpKey;
+      entry.thumbKey = thumbKey;
+      variantsCatchup += 1;
+    } catch (variantErr) {
+      console.warn(`[awsS3] Variant catch-up failed for ${image.imageId}:`, variantErr);
     }
   }
 
@@ -480,7 +523,7 @@ export async function syncProjectImagesToS3({ projectId, s3, config, onProgress 
   manifest.count = Object.keys(existing).length;
   await saveImageManifest(s3, { bucket, basePrefix }, manifest);
 
-  return { total, uploaded, manifest };
+  return { total, uploaded, variantsCatchup, manifest };
 }
 
 export function buildStorageImageUrl(storage, variant, imageId) {
@@ -498,4 +541,157 @@ export function buildStorageImageUrl(storage, variant, imageId) {
   const filename = variant === "raw" ? imageId : `${imageId}.webp`;
   const path = toS3Key(basePrefix, prefix, projectId, filename);
   return `/${path}`;
+}
+
+// ─── Image Optimization ────────────────────────────────────────────────────
+
+/**
+ * Convert an image blob to WebP, optionally resizing to maxWidth.
+ * Uses an off-screen canvas in the browser.
+ */
+async function convertBlobToWebp(blob, maxWidth, quality) {
+  const bitmap = await createImageBitmap(blob);
+  let { width, height } = bitmap;
+
+  if (maxWidth && width > maxWidth) {
+    const ratio = maxWidth / width;
+    width = maxWidth;
+    height = Math.round(height * ratio);
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (webpBlob) => resolve(webpBlob),
+      "image/webp",
+      quality,
+    );
+  });
+}
+
+async function uploadVariant(s3, bucket, key, blob) {
+  const buffer = await blob.arrayBuffer();
+  const body = new Uint8Array(buffer);
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: "image/webp",
+      ContentLength: body.byteLength,
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+  );
+}
+
+/**
+ * Generate and upload WebP + thumbnail variants for an image.
+ * Returns { webpKey, thumbKey } on success.
+ */
+export async function uploadImageVariants(s3, { bucket, basePrefix, projectId }, imageId, rawBlob) {
+  const webpBlob = await convertBlobToWebp(rawBlob, null, WEBP_QUALITY);
+  const thumbBlob = await convertBlobToWebp(rawBlob, THUMB_MAX_WIDTH, THUMB_QUALITY);
+
+  const webpKey = toS3Key(basePrefix, DEFAULT_WEBP_PREFIX, projectId, `${imageId}.webp`);
+  const thumbKey = toS3Key(basePrefix, DEFAULT_THUMB_PREFIX, projectId, `${imageId}.webp`);
+
+  await uploadVariant(s3, bucket, webpKey, webpBlob);
+  await uploadVariant(s3, bucket, thumbKey, thumbBlob);
+
+  return { webpKey, thumbKey };
+}
+
+// ─── Catalog JSON ──────────────────────────────────────────────────────────
+
+/**
+ * Build catalog.json from IndexedDB image records and upload to S3.
+ */
+export async function buildAndUploadCatalog(s3, config, projectId, cdnBaseUrl) {
+  const bucket = config?.imageBucket?.trim();
+  if (!bucket) throw new Error("Missing image bucket for catalog upload");
+
+  const basePrefix = config?.imagePrefix?.trim() || "";
+  const images = await getImagesByProject(projectId);
+
+  const entries = [];
+  const facetSets = {
+    artisticStyles: new Set(),
+    compositionStyles: new Set(),
+    colorPalettes: new Set(),
+    entityKinds: new Set(),
+    cultures: new Set(),
+    models: new Set(),
+    imageTypes: new Set(),
+  };
+
+  for (const img of images) {
+    if (!img.imageId || !img.width || !img.height) continue;
+
+    const imageType = img.imageType || "other";
+    const entry = {
+      imageId: img.imageId,
+      title: img.title || img.entityName || "Untitled",
+      artisticStyleId: img.artisticStyleId || "unknown",
+      compositionStyleId: img.compositionStyleId || "unknown",
+      colorPaletteId: img.colorPaletteId || "unknown",
+      imageType,
+      tags: img.tags || [],
+      entityName: img.entityName || undefined,
+      entityKind: img.entityKind || undefined,
+      entityCulture: img.entityCulture || undefined,
+      model: img.model,
+      width: img.width,
+      height: img.height,
+      aspect: img.aspect || "square",
+      generatedAt: img.generatedAt,
+      thumbPath: toS3Key(basePrefix, DEFAULT_THUMB_PREFIX, projectId, `${img.imageId}.webp`),
+      fullPath: toS3Key(basePrefix, DEFAULT_WEBP_PREFIX, projectId, `${img.imageId}.webp`),
+    };
+    entries.push(entry);
+
+    if (entry.artisticStyleId !== "unknown") facetSets.artisticStyles.add(entry.artisticStyleId);
+    if (entry.compositionStyleId !== "unknown") facetSets.compositionStyles.add(entry.compositionStyleId);
+    if (entry.colorPaletteId !== "unknown") facetSets.colorPalettes.add(entry.colorPaletteId);
+    if (entry.entityKind) facetSets.entityKinds.add(entry.entityKind);
+    if (entry.entityCulture) facetSets.cultures.add(entry.entityCulture);
+    facetSets.models.add(entry.model);
+    facetSets.imageTypes.add(imageType);
+  }
+
+  entries.sort((a, b) => b.generatedAt - a.generatedAt);
+
+  const catalog = {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    baseUrl: cdnBaseUrl || "",
+    images: entries,
+    facets: {
+      artisticStyles: [...facetSets.artisticStyles].sort(),
+      compositionStyles: [...facetSets.compositionStyles].sort(),
+      colorPalettes: [...facetSets.colorPalettes].sort(),
+      entityKinds: [...facetSets.entityKinds].sort(),
+      cultures: [...facetSets.cultures].sort(),
+      models: [...facetSets.models].sort(),
+      imageTypes: [...facetSets.imageTypes].sort(),
+    },
+  };
+
+  const key = toS3Key(basePrefix, CATALOG_NAME);
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: JSON.stringify(catalog),
+      ContentType: "application/json",
+      CacheControl: "no-store, must-revalidate",
+    }),
+  );
+
+  return { entries: entries.length, key };
 }
