@@ -421,6 +421,11 @@ class IlluminatorDatabase extends Dexie {
       // New: per-page layout overrides for pre-print
       pageLayouts: "[simulationRunId+pageId], simulationRunId",
     });
+
+    // v11 — catalog metadata fields on images (artisticStyleId, compositionStyleId,
+    // colorPaletteId, title, tags). No index changes — these fields are used for
+    // client-side filtering in the catalog builder and curation UI, not Dexie queries.
+    this.version(11).stores({});
   }
 }
 
