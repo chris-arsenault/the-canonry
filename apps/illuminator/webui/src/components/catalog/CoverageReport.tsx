@@ -2,17 +2,27 @@
  * CoverageReport — Per-field completeness and derivability analysis.
  *
  * Shows a table of metadata fields with present/missing/derivable counts.
- * Provides buttons to run deterministic fill and LLM fill operations.
+ * Provides buttons to run deterministic fill, classify fill, and title fill.
+ * Vision mode checkbox enables image-based classification (slower, handles no-prompt images).
  */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
+import type { StyleLibrary } from "@canonry/world-schema";
 import { analyzeCoverage, type CoverageReport as CoverageReportData } from "../../lib/catalogAnalysis";
 import { runDeterministicFill, type FillResult } from "../../lib/catalogDeterministicFill";
-import { runLlmFill, type LlmFillProgress, type LlmFillResult } from "../../lib/catalogLlmFill";
+import {
+  runClassifyFill,
+  runTitleFill,
+  type LlmFillProgress,
+  type LlmFillResult,
+  type StyleIds,
+  type StyleNameMap,
+} from "../../lib/catalogLlmFill";
 import "./CoverageReport.css";
 
 interface CoverageReportProps {
   projectId: string;
+  styleLibrary?: StyleLibrary | null;
 }
 
 function getApiKey(): string {
@@ -23,7 +33,7 @@ function getApiKey(): string {
   }
 }
 
-export default function CoverageReport({ projectId }: Readonly<CoverageReportProps>) {
+export default function CoverageReport({ projectId, styleLibrary }: Readonly<CoverageReportProps>) {
   const [report, setReport] = useState<CoverageReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [fillResult, setFillResult] = useState<FillResult | null>(null);
@@ -31,6 +41,29 @@ export default function CoverageReport({ projectId }: Readonly<CoverageReportPro
   const [llmProgress, setLlmProgress] = useState<LlmFillProgress | null>(null);
   const [llmResult, setLlmResult] = useState<LlmFillResult | null>(null);
   const [llmFilling, setLlmFilling] = useState(false);
+  const [activeFill, setActiveFill] = useState<"classify" | "title" | null>(null);
+  const [lastFill, setLastFill] = useState<"classify" | "title" | null>(null);
+  const [useVision, setUseVision] = useState(false);
+
+  const styleIds: StyleIds | null = useMemo(() => {
+    if (!styleLibrary) return null;
+    return {
+      artisticStyleIds: styleLibrary.artisticStyles.map((s) => s.id),
+      compositionStyleIds: styleLibrary.compositionStyles.map((s) => s.id),
+      colorPaletteIds: styleLibrary.colorPalettes.map((s) => s.id),
+    };
+  }, [styleLibrary]);
+
+  const styleNames: StyleNameMap | null = useMemo(() => {
+    if (!styleLibrary) return null;
+    return {
+      artistic: new Map(styleLibrary.artisticStyles.map((s) => [s.id, s.name])),
+      composition: new Map(styleLibrary.compositionStyles.map((s) => [s.id, s.name])),
+      palette: new Map(styleLibrary.colorPalettes.map((s) => [s.id, s.name])),
+    };
+  }, [styleLibrary]);
+
+  const anyFilling = filling || llmFilling;
 
   const runScan = useCallback(async () => {
     setLoading(true);
@@ -60,25 +93,72 @@ export default function CoverageReport({ projectId }: Readonly<CoverageReportPro
     }
   }, [projectId]);
 
-  const handleLlmFill = useCallback(async () => {
+  const handleClassifyFill = useCallback(async () => {
     const apiKey = getApiKey();
     if (!apiKey) {
       alert("Anthropic API key required. Set it in the Config tab.");
       return;
     }
+    if (!styleIds) {
+      alert("Style library not loaded. Cannot classify images without valid style IDs.");
+      return;
+    }
     setLlmFilling(true);
+    setActiveFill("classify");
+    setLastFill("classify");
     setLlmResult(null);
     setLlmProgress(null);
     try {
-      const result = await runLlmFill(projectId, apiKey, setLlmProgress);
+      const result = await runClassifyFill({
+        projectId,
+        apiKey,
+        styleIds,
+        useVision,
+        onProgress: setLlmProgress,
+      });
       setLlmResult(result);
       const data = await analyzeCoverage(projectId);
       setReport(data);
     } finally {
       setLlmFilling(false);
       setLlmProgress(null);
+      setActiveFill(null);
     }
-  }, [projectId]);
+  }, [projectId, styleIds, useVision]);
+
+  const handleTitleFill = useCallback(async () => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      alert("Anthropic API key required. Set it in the Config tab.");
+      return;
+    }
+    if (!styleIds || !styleNames) {
+      alert("Style library not loaded. Cannot generate titles without style context.");
+      return;
+    }
+    setLlmFilling(true);
+    setActiveFill("title");
+    setLastFill("title");
+    setLlmResult(null);
+    setLlmProgress(null);
+    try {
+      const result = await runTitleFill({
+        projectId,
+        apiKey,
+        styleIds,
+        styleNames,
+        useVision,
+        onProgress: setLlmProgress,
+      });
+      setLlmResult(result);
+      const data = await analyzeCoverage(projectId);
+      setReport(data);
+    } finally {
+      setLlmFilling(false);
+      setLlmProgress(null);
+      setActiveFill(null);
+    }
+  }, [projectId, styleIds, styleNames, useVision]);
 
   if (loading && !report) {
     return <div className="cat-loading">Scanning images...</div>;
@@ -120,12 +200,12 @@ export default function CoverageReport({ projectId }: Readonly<CoverageReportPro
                   {f.present}
                   <span className="cov-pct" title={`${pct}% complete`}>{pct}%</span>
                 </td>
-                <td className="cov-num cov-missing">{f.missing || "—"}</td>
-                <td className="cov-num cov-derivable">{f.derivable || "—"}</td>
-                <td className="cov-source">{f.derivable > 0 ? f.derivableSource : "—"}</td>
-                <td className="cov-num">{f.remainingAfterFill || "—"}</td>
-                <td className="cov-num">{f.remainingWithPrompt || "—"}</td>
-                <td className="cov-num cov-no-prompt">{f.remainingNoPrompt || "—"}</td>
+                <td className="cov-num cov-missing">{f.missing || "\u2014"}</td>
+                <td className="cov-num cov-derivable">{f.derivable || "\u2014"}</td>
+                <td className="cov-source">{f.derivable > 0 ? f.derivableSource : "\u2014"}</td>
+                <td className="cov-num">{f.remainingAfterFill || "\u2014"}</td>
+                <td className="cov-num">{f.remainingWithPrompt || "\u2014"}</td>
+                <td className="cov-num cov-no-prompt">{f.remainingNoPrompt || "\u2014"}</td>
               </tr>
             );
           })}
@@ -136,30 +216,50 @@ export default function CoverageReport({ projectId }: Readonly<CoverageReportPro
         <button
           className="cov-btn cov-btn-primary"
           onClick={handleDeterministicFill}
-          disabled={filling || llmFilling}
+          disabled={anyFilling}
         >
-          {filling ? "Filling..." : "Run Deterministic Fill"}
+          {filling ? "Filling..." : "Deterministic Fill"}
         </button>
         <button
           className="cov-btn cov-btn-primary"
-          onClick={handleLlmFill}
-          disabled={llmFilling || filling}
+          onClick={handleClassifyFill}
+          disabled={anyFilling || !styleIds}
+          title={!styleIds ? "Style library not loaded" : useVision ? "Vision mode: sends images (batch 5)" : "Text mode: uses prompts (batch 20)"}
         >
-          {llmFilling ? "LLM Filling..." : "Run LLM Fill"}
+          {activeFill === "classify" ? "Classifying..." : "Classify Fill"}
         </button>
+        <button
+          className="cov-btn cov-btn-primary"
+          onClick={handleTitleFill}
+          disabled={anyFilling || !styleIds}
+          title={!styleIds ? "Style library not loaded" : useVision ? "Vision mode: sends images (batch 5)" : "Text mode: uses prompts (batch 30)"}
+        >
+          {activeFill === "title" ? "Titling..." : "Title Fill"}
+        </button>
+        <label className="cov-vision-toggle" title="Send actual images to the model for classification. Slower and more expensive, but handles images with no prompt data.">
+          <input
+            type="checkbox"
+            checked={useVision}
+            onChange={(e) => setUseVision(e.target.checked)}
+            disabled={llmFilling}
+          />
+          Vision mode
+        </label>
         <button
           className="cov-btn"
           onClick={runScan}
-          disabled={loading || filling || llmFilling}
+          disabled={loading || anyFilling}
         >
-          {loading ? "Scanning..." : "Refresh Report"}
+          {loading ? "Scanning..." : "Refresh"}
         </button>
       </div>
 
       {llmProgress && (
         <div className="cov-fill-result">
-          Batch {llmProgress.currentBatch}/{llmProgress.totalBatches}
-          {" — "}
+          {activeFill === "title" ? "Title" : "Classify"}{" "}
+          batch {llmProgress.currentBatch}/{llmProgress.totalBatches}
+          {useVision ? " (vision)" : ""}
+          {" \u2014 "}
           {llmProgress.processed}/{llmProgress.total} images processed,
           {" "}{llmProgress.updated} updated, {llmProgress.errors} errors
         </div>
@@ -191,7 +291,7 @@ export default function CoverageReport({ projectId }: Readonly<CoverageReportPro
 
       {llmResult && (
         <div className="cov-fill-result">
-          <strong>LLM fill:</strong>{" "}
+          <strong>{lastFill === "title" ? "Title" : "Classify"} fill:</strong>{" "}
           {llmResult.updated} updated, {llmResult.skipped} unchanged, {llmResult.errors} errors
           {llmResult.details.length > 0 && llmResult.details.length <= 20 && (
             <details>

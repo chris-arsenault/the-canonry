@@ -20,8 +20,10 @@ export interface ColorPalette {
   group: string;
   /** Prompt fragment for color direction (injected into image prompt) */
   promptFragment: string;
-  /** Representative hex colors for UI swatch display (3-5 colors) */
-  swatchColors: string[];
+  /** Representative hex colors: [primary[], secondary[]].
+   *  Primary = "dominated by" colors. Secondary = supporting/accent/shadow colors.
+   *  Ordered to match the narrative hierarchy in promptFragment. */
+  swatchColors: [string[], string[]];
 }
 
 export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
@@ -33,7 +35,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Crimson Dynasty',
     description: 'Deep ceremonial reds with dramatic contrast',
     group: 'hue',
-    swatchColors: ['#8B0000', '#722F37', '#2C2C2C', '#C5A03F', '#1A1A1A'],
+    swatchColors: [['#8B0000', '#722F37'], ['#2C2C2C', '#C5A03F', '#1A1A1A']],
     promptFragment:
       'COLOR PALETTE: dominated by deep crimsons and burgundy wine, ' +
       'grounded in charcoal black shadows, antique gold metallic accents sparingly placed, ' +
@@ -44,7 +46,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Amber Blaze',
     description: 'Pure warm oranges with cream and espresso',
     group: 'hue',
-    swatchColors: ['#FF8C00', '#FF6B00', '#FFF5E1', '#3C1A00', '#E8A84C'],
+    swatchColors: [['#FF8C00', '#FF6B00'], ['#FFF5E1', '#3C1A00', '#E8A84C']],
     promptFragment:
       'COLOR PALETTE: dominated by pure amber and tangerine orange, ' +
       'supported by warm cream and vanilla tones, espresso brown accents for depth, ' +
@@ -55,7 +57,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Gilded Sunlight',
     description: 'Radiant golds and yellows, bright and optimistic',
     group: 'hue',
-    swatchColors: ['#FFD700', '#F4C430', '#FFFFF0', '#F5E6C8', '#CD7F32'],
+    swatchColors: [['#FFD700', '#F4C430'], ['#FFFFF0', '#F5E6C8', '#CD7F32']],
     promptFragment:
       'COLOR PALETTE: dominated by radiant golden yellow and saffron, ' +
       'supported by ivory and champagne backgrounds, bronze metallic accents, ' +
@@ -66,7 +68,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Verdant Jungle',
     description: 'Saturated tropical greens with coral pop',
     group: 'hue',
-    swatchColors: ['#006B3C', '#50C878', '#98FF98', '#FF6F61', '#2E8B57'],
+    swatchColors: [['#006B3C', '#50C878'], ['#98FF98', '#FF6F61', '#2E8B57']],
     promptFragment:
       'COLOR PALETTE: dominated by saturated emerald and jungle green, ' +
       'supported by pale mint and seafoam, bright coral accents sparingly, ' +
@@ -77,7 +79,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Arctic Cyan',
     description: 'Cool teals and cyans with crystalline clarity',
     group: 'hue',
-    swatchColors: ['#00CED1', '#008B8B', '#F0FFFF', '#87CEEB', '#001F3F'],
+    swatchColors: [['#00CED1', '#008B8B'], ['#F0FFFF', '#87CEEB', '#001F3F']],
     promptFragment:
       'COLOR PALETTE: dominated by cyan and teal, turquoise highlights, ' +
       'supported by ice white and pale aqua, deep navy accents for contrast, ' +
@@ -88,7 +90,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Midnight Sapphire',
     description: 'Deep blues with silver accents',
     group: 'hue',
-    swatchColors: ['#082567', '#0F52BA', '#708090', '#C0C0C0', '#1B1B3A'],
+    swatchColors: [['#082567', '#0F52BA'], ['#708090', '#C0C0C0', '#1B1B3A']],
     promptFragment:
       'COLOR PALETTE: dominated by deep sapphire and navy blue, cobalt tones, ' +
       'supported by steel gray and slate, metallic silver accents, ' +
@@ -99,7 +101,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Electric Magenta',
     description: 'Bold magentas with electric teal contrast',
     group: 'hue',
-    swatchColors: ['#FF00FF', '#FF69B4', '#FFE4E1', '#008080', '#C71585'],
+    swatchColors: [['#FF00FF', '#FF69B4'], ['#FFE4E1', '#008080', '#C71585']],
     promptFragment:
       'COLOR PALETTE: dominated by bold magenta and fuchsia, hot pink highlights, ' +
       'supported by pale pink and blush white, electric teal accents for contrast, ' +
@@ -110,7 +112,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Borealis',
     description: 'Aurora lights glowing against dark polar sky',
     group: 'hue',
-    swatchColors: ['#00FF7F', '#00CED1', '#FF69B4', '#8A2BE2', '#0D0D2B'],
+    swatchColors: [['#00FF7F', '#00CED1', '#FF69B4'], ['#8A2BE2', '#0D0D2B']],
     promptFragment:
       'COLOR PALETTE: electric green and cyan aurora ribbons, pink and violet wisps, ' +
       'against deep indigo and black polar sky, star white points, ' +
@@ -125,7 +127,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Monochrome Noir',
     description: 'Pure grayscale with extreme contrast',
     group: 'special',
-    swatchColors: ['#1A1A1A', '#4A4A4A', '#808080', '#C0C0C0', '#F5F5F5'],
+    swatchColors: [['#1A1A1A', '#808080'], ['#4A4A4A', '#C0C0C0', '#F5F5F5']],
     promptFragment:
       'COLOR PALETTE: pure grayscale only, dominated by charcoal and medium grays, ' +
       'stark white highlights, jet black shadows, extreme value contrast, ' +
@@ -136,7 +138,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Volcanic Obsidian',
     description: 'Black dominant with rare molten glow',
     group: 'special',
-    swatchColors: ['#0A0A0A', '#1C1C1C', '#3D3D3D', '#FF4500', '#2C2C2C'],
+    swatchColors: [['#0A0A0A', '#1C1C1C'], ['#3D3D3D', '#FF4500', '#2C2C2C']],
     promptFragment:
       'COLOR PALETTE: dominated by obsidian black and volcanic dark tones, ' +
       'supported by ash gray and charcoal, rare molten orange-red glow accents only, ' +
@@ -147,7 +149,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Verdigris Patina',
     description: 'Aged copper greens with rust accents',
     group: 'special',
-    swatchColors: ['#4F9D8E', '#5F8A7E', '#8B6914', '#B87333', '#C25A2C'],
+    swatchColors: [['#4F9D8E', '#5F8A7E'], ['#8B6914', '#B87333', '#C25A2C']],
     promptFragment:
       'COLOR PALETTE: dominated by verdigris teal-green and patina oxidation, ' +
       'supported by weathered bronze and aged copper brown, rust orange accents sparingly, ' +
@@ -162,7 +164,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Natural Daylight',
     description: 'Full spectrum realism under bright daylight',
     group: 'natural',
-    swatchColors: ['#4A90D9', '#6ABF69', '#E8C84A', '#D95F4A', '#F5F0E6'],
+    swatchColors: [['#4A90D9', '#6ABF69', '#E8C84A', '#D95F4A'], ['#F5F0E6']],
     promptFragment:
       'COLOR PALETTE: full natural color spectrum, true-to-life colors as seen under bright daylight, ' +
       'balanced warm and cool tones, realistic saturation, ' +
@@ -173,7 +175,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Vivid Realism',
     description: 'Saturated but true-to-life, punchy real-world color',
     group: 'natural',
-    swatchColors: ['#1E90FF', '#32CD32', '#FFD700', '#FF4500', '#FFFFFF'],
+    swatchColors: [['#1E90FF', '#32CD32', '#FFD700', '#FF4500'], ['#FFFFFF']],
     promptFragment:
       'COLOR PALETTE: full natural color spectrum with heightened saturation, ' +
       'rich vivid colors as seen on a crisp clear day, punchy and eye-catching but still realistic, ' +
@@ -184,7 +186,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Comic Bold',
     description: 'Bright, bold, distinct colors with strong separation',
     group: 'natural',
-    swatchColors: ['#FF0000', '#0000FF', '#FFFF00', '#00CC00', '#FF6600'],
+    swatchColors: [['#FF0000', '#0000FF', '#FFFF00', '#00CC00'], ['#FF6600']],
     promptFragment:
       'COLOR PALETTE: bright bold distinct colors, strong color separation between elements, ' +
       'saturated primaries and secondaries, each object a clear distinct hue, ' +
@@ -200,7 +202,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Void & Iridescence',
     description: 'Deep starfield black with electric cobalt, metallic gold, and oil-slick iridescent shifting surfaces',
     group: 'metallic',
-    swatchColors: ['#0A0A1A', '#0044FF', '#FFD700', '#00CED1', '#8B00FF'],
+    swatchColors: [['#0A0A1A', '#0044FF'], ['#FFD700', '#00CED1', '#8B00FF']],
     promptFragment:
       'COLOR PALETTE: dominated by deep void black and starfield darkness, ' +
       'electric cobalt blue and ultramarine as primary luminous color, ' +
@@ -217,7 +219,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Blood & Ivory',
     description: 'Stark arterial red against bone white',
     group: 'contrast-pair',
-    swatchColors: ['#8B0000', '#CC0000', '#FFFFF0', '#F5F0DC', '#0A0A0A'],
+    swatchColors: [['#8B0000', '#CC0000'], ['#FFFFF0', '#F5F0DC', '#0A0A0A']],
     promptFragment:
       'COLOR PALETTE: high contrast, arterial red and blood crimson ' +
       'against bone ivory and aged parchment white, absolute black accents only, ' +
@@ -228,7 +230,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Ink & Gold',
     description: 'Jet black dominant with precious gold illumination',
     group: 'contrast-pair',
-    swatchColors: ['#0A0A0A', '#1A1A1A', '#FFD700', '#B8860B', '#2C2C2C'],
+    swatchColors: [['#0A0A0A', '#1A1A1A'], ['#FFD700', '#B8860B', '#2C2C2C']],
     promptFragment:
       'COLOR PALETTE: high contrast, dominated by deep ink black and jet darkness, ' +
       'metallic gold and burnished gilt as primary accent, minimal other colors, ' +
@@ -239,7 +241,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Jade & Obsidian',
     description: 'Precious jade green against volcanic black',
     group: 'contrast-pair',
-    swatchColors: ['#00A86B', '#ACE1AF', '#0A0A0A', '#1C1C1C', '#FFFFF0'],
+    swatchColors: [['#00A86B', '#ACE1AF'], ['#0A0A0A', '#1C1C1C', '#FFFFF0']],
     promptFragment:
       'COLOR PALETTE: high contrast, rich jade green and celadon ' +
       'against obsidian black and deep shadow, ivory white accents sparingly, ' +
@@ -250,7 +252,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Azure & Bone',
     description: 'Deep azure blue against stark ivory',
     group: 'contrast-pair',
-    swatchColors: ['#003DA5', '#0047AB', '#FFFFF0', '#F5F0DC', '#2C2C2C'],
+    swatchColors: [['#003DA5', '#0047AB'], ['#FFFFF0', '#F5F0DC', '#2C2C2C']],
     promptFragment:
       'COLOR PALETTE: high contrast, deep azure and ultramarine blue ' +
       'against bone white and ivory, charcoal black accents sparingly, ' +
@@ -261,7 +263,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Violet & Gold',
     description: 'Deep royal violet against burnished gold',
     group: 'contrast-pair',
-    swatchColors: ['#4B0082', '#6A0DAD', '#FFD700', '#B8860B', '#1A1A2E'],
+    swatchColors: [['#4B0082', '#6A0DAD'], ['#FFD700', '#B8860B', '#1A1A2E']],
     promptFragment:
       'COLOR PALETTE: high contrast, deep royal violet and purple ' +
       'against burnished gold and gilt, dark indigo shadows, ' +
@@ -276,7 +278,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Royal Amethyst',
     description: 'Deep violet and amethyst against smoky plum with silver accents',
     group: 'hue',
-    swatchColors: ['#6A0DAD', '#9B59B6', '#3C1053', '#C0C0C0', '#E8D5F5'],
+    swatchColors: [['#6A0DAD', '#9B59B6'], ['#3C1053', '#C0C0C0', '#E8D5F5']],
     promptFragment:
       'COLOR PALETTE: dominated by deep amethyst violet and purple, ' +
       'supported by smoky plum and dark grape, cool silver metallic accents, ' +
@@ -287,7 +289,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Desert Ochre',
     description: 'Warm ochre and sandstone against deep umber shadow',
     group: 'hue',
-    swatchColors: ['#CC7722', '#C2956B', '#8B5E3C', '#3D2B1F', '#E8D4B8'],
+    swatchColors: [['#CC7722', '#C2956B'], ['#8B5E3C', '#3D2B1F', '#E8D4B8']],
     promptFragment:
       'COLOR PALETTE: dominated by warm ochre and raw sienna, ' +
       'supported by sandstone tan and pale buff, deep umber and burnt umber shadows, ' +
@@ -302,7 +304,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Pale Bloom',
     description: 'Soft petal pinks, lavender, and cream — entirely high-value',
     group: 'mood',
-    swatchColors: ['#F4C2C2', '#E6E6FA', '#FFFDD0', '#B0E0E6', '#FADADD'],
+    swatchColors: [['#F4C2C2', '#E6E6FA'], ['#FFFDD0', '#B0E0E6', '#FADADD']],
     promptFragment:
       'COLOR PALETTE: dominated by soft petal pink and blush rose, ' +
       'supported by pale lavender and cream, powder blue accents sparingly, ' +
@@ -314,7 +316,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Golden Hour',
     description: 'Sunset amber-pink glow against deepening blue-violet',
     group: 'mood',
-    swatchColors: ['#FF7E47', '#FFB07C', '#FF6B8A', '#4A3F8A', '#2C1B4E'],
+    swatchColors: [['#FF7E47', '#FFB07C', '#FF6B8A'], ['#4A3F8A', '#2C1B4E']],
     promptFragment:
       'COLOR PALETTE: dominated by warm amber-orange and salmon-pink glow, ' +
       'supported by soft peach and rose, deepening blue-violet and indigo in shadows, ' +
@@ -326,7 +328,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Autumn Ember',
     description: 'Burnt sienna, wine burgundy, faded olive, and tarnished gold',
     group: 'mood',
-    swatchColors: ['#A0522D', '#722F37', '#6B7B3A', '#B8860B', '#3D2B1F'],
+    swatchColors: [['#A0522D', '#722F37'], ['#6B7B3A', '#B8860B', '#3D2B1F']],
     promptFragment:
       'COLOR PALETTE: dominated by burnt sienna and russet brown, ' +
       'supported by wine-dark burgundy and faded olive green, tarnished gold accents, ' +
@@ -338,7 +340,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Parchment & Sepia',
     description: 'Aged manuscript tones — walnut ink on foxed paper',
     group: 'mood',
-    swatchColors: ['#704214', '#8B7355', '#F5E6C8', '#D2B48C', '#3B2716'],
+    swatchColors: [['#704214', '#8B7355'], ['#F5E6C8', '#D2B48C', '#3B2716']],
     promptFragment:
       'COLOR PALETTE: dominated by sepia brown and walnut ink, ' +
       'supported by aged parchment cream and foxed paper tan, dark espresso accents, ' +
@@ -350,7 +352,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Ashen Fog',
     description: 'Cool blue-grays and muted lavender in a narrow value band',
     group: 'mood',
-    swatchColors: ['#778899', '#B0C4DE', '#C8C8D0', '#696980', '#A9A9C0'],
+    swatchColors: [['#778899', '#B0C4DE'], ['#C8C8D0', '#696980', '#A9A9C0']],
     promptFragment:
       'COLOR PALETTE: dominated by cool slate gray and blue-gray, ' +
       'supported by muted lavender-gray and silver, steel blue accents, ' +
@@ -366,7 +368,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Scarlet / Cobalt / Silver',
     description: 'Arterial red and deep cobalt clashing over polished silver',
     group: 'metallic-triplet',
-    swatchColors: ['#CC0000', '#0047AB', '#C0C0C0', '#E8E8E8', '#1A1A2E'],
+    swatchColors: [['#CC0000', '#0047AB'], ['#C0C0C0', '#E8E8E8', '#1A1A2E']],
     promptFragment:
       'COLOR PALETTE: bold arterial scarlet red and deep cobalt blue in equal clash, ' +
       'polished silver and chrome metallic surfaces binding them together, ' +
@@ -378,7 +380,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Emerald / Violet / Gold',
     description: 'Saturated emerald and deep violet over burnished gold',
     group: 'metallic-triplet',
-    swatchColors: ['#006B3C', '#6A0DAD', '#FFD700', '#B8860B', '#1A1A1A'],
+    swatchColors: [['#006B3C', '#6A0DAD'], ['#FFD700', '#B8860B', '#1A1A1A']],
     promptFragment:
       'COLOR PALETTE: saturated emerald green and deep violet-purple in rich contrast, ' +
       'burnished gold and gilt metallic surfaces as binding element, ' +
@@ -390,7 +392,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Crimson / Teal / Bronze',
     description: 'Deep crimson and teal clash over aged bronze',
     group: 'metallic-triplet',
-    swatchColors: ['#8B0000', '#008080', '#B87333', '#CD7F32', '#1C1C1C'],
+    swatchColors: [['#8B0000', '#008080'], ['#B87333', '#CD7F32', '#1C1C1C']],
     promptFragment:
       'COLOR PALETTE: deep crimson red and rich teal in warm-cool clash, ' +
       'aged bronze and patina copper metallic surfaces as binding element, ' +
@@ -402,7 +404,7 @@ export const DEFAULT_COLOR_PALETTES: ColorPalette[] = [
     name: 'Sapphire / Amber / Steel',
     description: 'Deep sapphire blue and warm amber over brushed steel',
     group: 'metallic-triplet',
-    swatchColors: ['#0F52BA', '#FFBF00', '#71797E', '#A8A9AD', '#1A1A2E'],
+    swatchColors: [['#0F52BA', '#FFBF00'], ['#71797E', '#A8A9AD', '#1A1A2E']],
     promptFragment:
       'COLOR PALETTE: deep sapphire blue and warm amber-gold in complementary contrast, ' +
       'brushed steel and gunmetal metallic surfaces as binding element, ' +

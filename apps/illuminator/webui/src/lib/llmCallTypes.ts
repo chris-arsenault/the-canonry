@@ -60,7 +60,8 @@ export type LLMCallType =
   | "historian.motifVariation" // Motif phrase variation for annotation deduplication
 
   // Catalog
-  | "catalog.metadataFill"; // Generate title and tags from image prompt data
+  | "catalog.metadataFill" // Classify styles and tags from image prompt data
+  | "catalog.titleFill"; // Generate evocative titles from image prompt + style context
 
 export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   "description.narrative",
@@ -99,6 +100,7 @@ export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   "historian.eraNarrative.imageRefs",
   "historian.motifVariation",
   "catalog.metadataFill",
+  "catalog.titleFill",
 ];
 
 export type LLMCallCategory =
@@ -583,9 +585,23 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     recommendedModels: ["claude-opus-4-6", "claude-sonnet-4-6"],
   },
   "catalog.metadataFill": {
-    label: "Metadata Fill",
+    label: "Classify Fill",
     description:
-      "Generate title and tags for images from their generation prompt data (batched)",
+      "Classify images into artistic styles, composition styles, color palettes, and tags (batched)",
+    category: "catalog",
+    defaults: {
+      model: "claude-haiku-4-5-20251001",
+      thinkingBudget: 0,
+      maxTokens: 4096,
+      disableStreaming: true,
+      runInBrowser: true,
+    },
+    recommendedModels: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"],
+  },
+  "catalog.titleFill": {
+    label: "Title Fill",
+    description:
+      "Generate evocative titles for images from their prompt and style context (batched)",
     category: "catalog",
     defaults: {
       model: "claude-haiku-4-5-20251001",
@@ -660,6 +676,6 @@ export function getCallTypesByCategory(): Record<LLMCallCategory, LLMCallType[]>
       "historian.eraNarrative.imageRefs",
       "historian.motifVariation",
     ],
-    catalog: ["catalog.metadataFill"],
+    catalog: ["catalog.metadataFill", "catalog.titleFill"],
   };
 }

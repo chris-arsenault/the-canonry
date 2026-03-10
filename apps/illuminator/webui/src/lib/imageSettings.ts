@@ -11,10 +11,13 @@ export const IMAGE_MODELS = [
   { value: "gpt-image-1", label: "GPT Image 1", provider: "openai" },
   { value: "dall-e-3", label: "DALL-E 3", provider: "openai" },
   { value: "dall-e-2", label: "DALL-E 2 (cheaper)", provider: "openai" },
+  // BFL (Black Forest Labs) — direct Flux API
+  { value: "flux-2-pro-preview", label: "Flux 2 Pro (Preview)", provider: "bfl" },
+  { value: "flux-2-pro", label: "Flux 2 Pro (Pinned)", provider: "bfl" },
+  { value: "flux-2-max", label: "Flux 2 Max", provider: "bfl" },
+  { value: "flux-pro-1.1-ultra", label: "Flux 1.1 Pro Ultra", provider: "bfl" },
+  { value: "flux-pro-1.1-ultra-raw", label: "Flux 1.1 Pro Ultra (Raw)", provider: "bfl" },
   // WaveSpeed
-  { value: "wavespeed-ai/flux-1.1-pro-ultra", label: "Flux 1.1 Pro Ultra", provider: "wavespeed" },
-  { value: "wavespeed-ai/flux-1.1-pro-ultra-raw", label: "Flux 1.1 Pro Ultra (Raw)", provider: "wavespeed" },
-  { value: "wavespeed-ai/flux-2-pro/text-to-image", label: "Flux 2 Pro", provider: "wavespeed" },
   { value: "wavespeed-ai/qwen-image-2.0-pro/text-to-image", label: "Qwen Image 2.0 Pro", provider: "wavespeed" },
   { value: "google/nano-banana-pro/text-to-image", label: "Nano Banana Pro", provider: "wavespeed" },
   { value: "bytedance/seedream-v4.5", label: "Seedream 4.5", provider: "wavespeed" },
@@ -25,8 +28,14 @@ export function isWaveSpeedModel(model: string): boolean {
   return IMAGE_MODELS.some((m) => m.value === model && m.provider === "wavespeed");
 }
 
-export function getProviderForModel(model: string): "openai" | "wavespeed" {
-  return isWaveSpeedModel(model) ? "wavespeed" : "openai";
+export function isBflModel(model: string): boolean {
+  return IMAGE_MODELS.some((m) => m.value === model && m.provider === "bfl");
+}
+
+export function getProviderForModel(model: string): "openai" | "wavespeed" | "bfl" {
+  if (isBflModel(model)) return "bfl";
+  if (isWaveSpeedModel(model)) return "wavespeed";
+  return "openai";
 }
 
 // Model-specific size options
@@ -55,7 +64,7 @@ export const IMAGE_SIZES_BY_MODEL: Record<string, Array<{ value: string; label: 
   ],
 };
 
-// WaveSpeed models share the same size options (unless overridden below)
+// WaveSpeed models use higher-res sizes
 const WAVESPEED_SIZES = [
   { value: "1024x1024", label: "1024x1024 (Square)" },
   { value: "1536x1024", label: "1536x1024 (Landscape)" },
@@ -65,6 +74,27 @@ for (const m of IMAGE_MODELS) {
   if (m.provider === "wavespeed") IMAGE_SIZES_BY_MODEL[m.value] = WAVESPEED_SIZES;
 }
 
+// BFL Flux 2: ~1MP sweet spot for best color fidelity and detail.
+// Higher resolutions degrade color saturation and prompt adherence.
+const BFL_FLUX2_SIZES = [
+  { value: "1024x1024", label: "1024x1024 (Square)" },
+  { value: "1152x864", label: "1152x864 (Landscape)" },
+  { value: "864x1152", label: "864x1152 (Portrait)" },
+];
+// BFL Flux 1.1 Ultra: aspect_ratio models. These don't accept width/height —
+// BFL chooses the resolution internally. Constraining to ~1MP-equivalent
+// aspect hints. The actual output resolution is BFL's decision.
+const BFL_FLUX1_SIZES = [
+  { value: "1024x1024", label: "1:1 (Square)" },
+  { value: "1152x864", label: "4:3 (Landscape)" },
+  { value: "864x1152", label: "3:4 (Portrait)" },
+];
+for (const m of IMAGE_MODELS) {
+  if (m.provider === "bfl") {
+    IMAGE_SIZES_BY_MODEL[m.value] = m.value.includes("flux-2") ? BFL_FLUX2_SIZES : BFL_FLUX1_SIZES;
+  }
+}
+
 // Recraft V4 Pro: width and height must be between 256 and 1536
 IMAGE_SIZES_BY_MODEL["recraft-ai/recraft-v4-pro/text-to-image"] = [
   { value: "1024x1024", label: "1024x1024 (Square)" },
@@ -72,30 +102,35 @@ IMAGE_SIZES_BY_MODEL["recraft-ai/recraft-v4-pro/text-to-image"] = [
   { value: "1024x1536", label: "1024x1536 (Portrait)" },
 ];
 
-// Model-specific quality options
+// Abstract quality levels — model-agnostic, resolved to model-specific values at request time.
+// Mapping: auto → gpt-image: auto, dall-e-3: standard
+//          high → gpt-image: high, dall-e-3: hd
+//          standard → gpt-image: medium, dall-e-3: standard
+//          low → gpt-image: low, dall-e-3: standard
+// BFL/WaveSpeed models ignore quality entirely.
 export const IMAGE_QUALITY_BY_MODEL: Record<string, Array<{ value: string; label: string }>> = {
   "gpt-image-1.5": [
     { value: "auto", label: "Auto" },
     { value: "high", label: "High" },
-    { value: "medium", label: "Medium" },
+    { value: "standard", label: "Standard" },
     { value: "low", label: "Low" },
   ],
   "gpt-image-1": [
     { value: "auto", label: "Auto" },
     { value: "high", label: "High" },
-    { value: "medium", label: "Medium" },
+    { value: "standard", label: "Standard" },
     { value: "low", label: "Low" },
   ],
   "dall-e-3": [
     { value: "standard", label: "Standard" },
-    { value: "hd", label: "HD" },
+    { value: "high", label: "HD" },
   ],
   "dall-e-2": [{ value: "standard", label: "Standard" }],
 };
 
-// WaveSpeed models have no quality parameter
+// WaveSpeed and BFL models have no quality parameter
 for (const m of IMAGE_MODELS) {
-  if (m.provider === "wavespeed") IMAGE_QUALITY_BY_MODEL[m.value] = [];
+  if (m.provider === "wavespeed" || m.provider === "bfl") IMAGE_QUALITY_BY_MODEL[m.value] = [];
 }
 
 /**
@@ -164,81 +199,247 @@ export function getSizeForAspect(model: string, aspect: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Per-model Claude synthesis templates (Flux-optimized prompting)
+// Per-model Claude synthesis templates
 // ---------------------------------------------------------------------------
 
 export function isFluxModel(model: string): boolean {
   return model.includes("flux");
 }
 
+export function isOpenAiModel(model: string): boolean {
+  return model.startsWith("gpt-image") || model.startsWith("dall-e");
+}
+
+export function getOpenAiModelFamily(model: string): "gpt-image" | "dall-e-3" | "dall-e-2" | null {
+  if (model.startsWith("gpt-image")) return "gpt-image";
+  if (model === "dall-e-3") return "dall-e-3";
+  if (model === "dall-e-2") return "dall-e-2";
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// GPT Image 1 / 1.5 — structured labeled segments. This model is natively
+// multimodal and handles long, constraint-heavy prompts well (32K char limit).
+// Hex codes are reliable for color. Artist exemplars work. Biased toward
+// realism — needs explicit style direction for fantasy/artistic content.
+// ---------------------------------------------------------------------------
+
+export const GPT_IMAGE_PROMPT_TEMPLATE = `Reformat the structured prompt below into an image generation prompt for GPT Image. Use labeled segments.
+
+Output format:
+STYLE: [one sentence]
+SUBJECT: [species, attire, action]
+MATERIALS: [surface properties for each material]
+SCENE: [setting]
+CAMERA: [lens, framing, lighting]
+PALETTE: [hex codes tied to objects]
+CONSTRAINTS: [species rules]
+
+How to think about STYLE:
+One sentence maximum. Name the medium and technique. NEVER include artist names — translate any [Artist exemplar: ...] tag into the visual technique it represents. Your detail budget belongs in SUBJECT and MATERIALS, not here.
+
+How to think about SUBJECT:
+Lead with species and attire, then action. The attire is the most important visual differentiator — without it, every character is a generic silhouette. Name what each garment and piece of equipment is MADE OF. The image model renders materials it can see described, and produces vague shapes for abstract adjectives. Every garment, armor piece, and held object needs its material specified.
+
+How to think about MATERIALS:
+This is the detail driver. For each material you mentioned in SUBJECT, describe three things: its surface texture, its wear or aging state, and how light behaves on it. The image model will only render fine detail that is explicitly described — unnamed surfaces become smooth and generic. Think like a props department: what would you tell a craftsperson to build this object? That level of physical specificity is what produces visible texture in the output.
+
+How to think about SCENE:
+One sentence. Where they are, physically and spatially. Concrete geography, not mood.
+
+How to think about CAMERA:
+Photography language forces the model to render detail. Specify a focal length, an aperture for depth of field, a framing distance, and a light direction. Closer framing means more pixel budget per detail. Specific light direction makes surface texture visible — without it, details hide in flat ambient light.
+
+How to think about PALETTE:
+Every hex code must be associated with a specific object. The image model handles color best when it knows which surface each color belongs to.
+
+Rules:
+- Strip all lore, backstory, character names, world-building. Only concrete visual information.
+- Positive descriptions only. Never "avoid", "no", "without."
+- NEVER use "8K", "ultra-detailed", "hyperdetailed", "masterpiece" — the model ignores these. Describe specific textures instead.
+- 200-300 words. Spend most of the budget on SUBJECT and MATERIALS.
+{{globalImageRules}}
+Original prompt:
+{{prompt}}`;
+
+export const GPT_IMAGE_CHRONICLE_PROMPT_TEMPLATE = `Reformat the chronicle scene prompt below into an image generation prompt for GPT Image. Use labeled segments.
+
+Output format:
+STYLE: [one sentence]
+SCENE: [what is happening, where]
+CHARACTERS: [each character: species, attire with materials, action]
+MATERIALS: [surface properties for key materials]
+CAMERA: [lens, framing, lighting]
+PALETTE: [hex codes tied to objects]
+CONSTRAINTS: [species rules]
+
+How to think about STYLE:
+One sentence. Medium and technique. NEVER artist names — translate any [Artist exemplar: ...] tag into the visual technique it represents. Detail budget belongs in CHARACTERS and MATERIALS.
+
+How to think about SCENE:
+The dramatic moment and setting. One sentence. Physical and spatial.
+
+How to think about CHARACTERS:
+Each character is a separate block. Lead with species, then attire described by its material composition. The image model produces generic silhouettes for abstract clothing descriptions and renders specific textures for named materials. Every garment and piece of equipment needs its material specified. Then the character's action. Do not interleave attributes between characters.
+
+How to think about MATERIALS:
+The detail driver. For each material you mentioned in CHARACTERS, describe: surface texture, wear or aging state, and how light behaves on it. The image model only renders fine detail that is explicitly described. Think like a props department — what would you tell a craftsperson to physically build each object? That specificity produces visible texture.
+
+How to think about CAMERA:
+Photography language forces detail rendering. Specify focal length, aperture, framing distance, and light direction. Closer framing = more detail per pixel. Specific light direction makes surface texture visible.
+
+How to think about PALETTE:
+Every hex code associated with a specific object. The model handles color best when it knows which surface owns each color.
+
+Rules:
+- Strip lore, names, backstory. Only concrete visual information.
+- Positive descriptions only.
+- NEVER "8K", "ultra-detailed", "hyperdetailed" — describe specific textures instead.
+- 200-300 words. Spend the budget on CHARACTERS and MATERIALS.
+{{globalImageRules}}
+Original prompt:
+{{prompt}}`;
+
+// ---------------------------------------------------------------------------
+// DALL-E 3 — short, front-loaded prompts. Only ~30-40 "graphical tokens"
+// are effective. Most important element FIRST. No artist names (OpenAI
+// policy). No negations. Vivid color names, not hex codes.
+// ---------------------------------------------------------------------------
+
+export const DALLE3_IMAGE_PROMPT_TEMPLATE = `Reformat the structured prompt below into a DALL-E 3 image generation prompt. DALL-E 3 only processes about 30-40 visual concepts effectively — every word must count.
+
+Structure: Most important visual element first → supporting details → technical.
+
+Rules for DALL-E 3 specifically:
+- NEVER include artist names or "in the style of" — this is forbidden by OpenAI policy. Describe the medium and technique instead: "oil painting with visible impasto brushstrokes" not "in the style of Sargent."
+- NEVER use negations: "no", "avoid", "without", "don't". Describe only what IS present.
+- Use vivid color names, not hex codes: "arterial crimson", "bone ivory", "molten gold." DALL-E 3 responds better to evocative color language.
+- Front-load: medium/style in the first 5 words, then subject with species and attire, then scene.
+- Keep total output under 120 words. Shorter prompts produce better results on this model.
+- Strip ALL lore, backstory, character names, world-building. Only concrete visual information.
+
+Output a single flowing paragraph — no labels, no bullet points, no structure markers.
+{{globalImageRules}}
+Original prompt:
+{{prompt}}`;
+
+export const DALLE3_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `Reformat the chronicle scene prompt below into a DALL-E 3 image generation prompt. DALL-E 3 only processes about 30-40 visual concepts effectively — every word must count.
+
+Structure: Medium/style first → the scene/action → characters with species and attire → color and atmosphere.
+
+Rules for DALL-E 3 specifically:
+- NEVER include artist names or "in the style of" — forbidden by OpenAI policy. Describe the technique instead.
+- NEVER use negations. Describe only what IS present.
+- Use vivid color names, not hex codes.
+- Each character is a self-contained phrase with species and attire. Do not interleave attributes.
+- Keep total output under 120 words.
+- Strip ALL lore, names, backstory. Only concrete visual information.
+
+Output a single flowing paragraph.
+{{globalImageRules}}
+Original prompt:
+{{prompt}}`;
+
 /** Distinguish Flux model generations — they need very different prompt formats. */
 export function getFluxGeneration(model: string): "flux-1" | "flux-2" | null {
   if (!model.includes("flux")) return null;
   if (model.includes("flux-2")) return "flux-2";
+  // BFL: "flux-pro-1.1-ultra"; WaveSpeed legacy: "flux-1.1-pro-ultra"
+  if (model.includes("flux-pro-1.1") || model.includes("flux-1.1")) return "flux-1";
   return "flux-1";
 }
 
 // ---------------------------------------------------------------------------
 // Flux 2 Pro — deterministic JSON with LLM-synthesized subject/scene fields.
-// Style, palette, composition, background are extracted deterministically.
-// Only subject descriptions, scene summary, lighting, and mood go to Claude.
+// Style and color_palette are extracted deterministically and merged after.
+// Claude synthesizes scene and subjects only.
 // ---------------------------------------------------------------------------
 
-export const FLUX_2_SUBJECT_SYNTHESIS_TEMPLATE = `Synthesize the visual description below into structured scene data for image generation.
+export const FLUX_2_SUBJECT_SYNTHESIS_TEMPLATE = `You are converting a visual description into a BFL Flux 2 JSON prompt. Your output IS the complete prompt — scene and subjects are all the model receives. Style, color, and medium must be embedded in your scene description.
 
-Output this exact JSON — no code fences, no markdown, no explanation:
+Output raw JSON, no fences, no explanation:
+{"scene":"...","subjects":[{"type":"...","description":"...","position":"...","color_match":"exact","detail_preservation":"high"}]}
 
-{
-  "scene": "One sentence: the central subject/action and the key visual moment.",
-  "subjects": [
-    { "description": "Self-contained visual description with distinctive details and colors", "position": "spatial placement in frame" }
-  ],
-  "lighting": "Light sources, direction, quality — derived from the scene",
-  "mood": "Emotional atmosphere in a few words"
-}
+How to think about the SCENE:
+The scene is ONE sentence that a cinematographer would use to frame the shot. It must contain: the rendering medium/technique, who is in the shot described by what they're wearing and what species they are, where they are, and how color punctuates the image. Use vivid color names ("bright crimson", "luminous gold") — never hex codes in the scene. The scene sets the artistic tone for the whole image.
 
-Rules:
-- Only visual and emotional content. Strip lore, names, backstory, world-building.
-- Positive only — never write "avoid", "no", "without", or "don't".
-- Maintain species exactly as specified — if the description says penguins, they must be penguins.
-- Each subject must be a self-contained visual block with all its distinctive details.
-- Use descriptive color language, not hex codes.
-- Output valid JSON only.
+How to think about SUBJECTS:
+Each subject is a camera direction for one element in the frame. Ask yourself: if I could only tell an artist 20 words about this subject, what are the 2-3 details that make it visually unique?
 
+For living beings, the most important visual signal is what they're WEARING — attire, armor, equipment. This must come first. A character without clothing is a generic silhouette. Start with "A [species] in [specific attire from the input]", then one distinctive visual detail, then their action. End with "strictly in color #HEX <name>".
+
+For non-living elements (magic effects, objects, environments), lead with the most distinctive visual quality — shape, texture, behavior.
+
+Subject types should be concrete: species + role for living beings, noun phrase for objects. Keep them short.
+
+How to think about COLOR:
+Each subject must get a different color from the palette so they're visually distinct from each other. Choose vivid, intense adjectives for the color tag — the image model desaturates, so you need to push brightness in language. Use PRIMARY COLORS for your focal subjects. Use SECONDARY COLORS for atmosphere or less important elements.
+
+How to think about BREVITY:
+Image models degrade with long prompts. Every word must earn its place. ~20 words per subject description before the color tag. Strip all lore, names, backstory, abstract concepts. Only concrete visual information survives the conversion to pixels.
+
+How to think about SPECIES RENDERING:
+Image models have a strong bias toward cute, cartoon proportions for animal characters — round bodies, oversized eyes, stubby limbs. You must counteract this with explicit adult anatomical descriptors. For penguins: "tall adult emperor penguin with narrow pointed beak, small dark eyes proportional to skull, lean upright posture, sleek plumage." For any animal species, describe adult body proportions explicitly — the model defaults to juvenile cartoon proportions if you do not. Include the species in the subject type field ("emperor penguin merchant", not "penguin merchant").
+
+How to think about WEAR AND WEATHERING:
+Nothing is clean or new. Every character is a war veteran in a harsh world. Add physical wear to each subject: scarred beaks, frost-cracked skin, soot-dusted plumage, matted feathers, chipped armor, mud-caked wraps. One or two concrete wear details per subject — not a list, just woven into the description naturally.
+
+2-3 subjects. Merge minor elements into the scene. Positive descriptions only — never "avoid", "no", "without".
+
+{{paletteContext}}
 Visual description:
 {{subjectText}}`;
 
-export const FLUX_2_CHRONICLE_SUBJECT_SYNTHESIS_TEMPLATE = `Synthesize the scene description below into structured scene data for image generation.
+export const FLUX_2_CHRONICLE_SUBJECT_SYNTHESIS_TEMPLATE = `You are converting a chronicle scene description into a BFL Flux 2 JSON prompt. Your output IS the complete prompt — scene and subjects are all the model receives. Style, color, and medium must be embedded in your scene description.
 
-Output this exact JSON — no code fences, no markdown, no explanation:
+Output raw JSON, no fences, no explanation:
+{"scene":"...","subjects":[{"type":"...","description":"...","position":"...","color_match":"exact","detail_preservation":"high"}]}
 
-{
-  "scene": "One sentence: the central action and key moment.",
-  "subjects": [
-    { "description": "Self-contained visual description of character including species, distinctive details, and what they are doing", "position": "spatial placement in frame" }
-  ],
-  "lighting": "Light sources, direction, quality — derived from the scene",
-  "mood": "Emotional atmosphere in a few words"
-}
+How to think about the SCENE:
+The scene is ONE sentence that a cinematographer would use to frame the shot. It must contain: the rendering medium/technique, who is in the shot described by what they're wearing and what species they are, where they are, and how color punctuates the image. Use vivid color names ("bright crimson", "luminous gold") — never hex codes in the scene. The scene sets the artistic tone for the whole image.
 
-Rules:
-- Only visual and emotional content. Strip lore, names, world-building.
-- Positive only — never write "avoid", "no", "without", or "don't".
-- Maintain species — characters must be described as their specified species.
-- Each subject must be a self-contained visual block. Do not interleave attributes between characters.
-- Use descriptive color language, not hex codes.
-- Output valid JSON only.
+How to think about SUBJECTS:
+Each subject is a camera direction for one element in the frame. Ask yourself: if I could only tell an artist 20 words about this subject, what are the 2-3 details that make it visually unique?
 
+For living beings, the most important visual signal is what they're WEARING — attire, armor, equipment. This must come first. A character without clothing is a generic silhouette. Start with "A [species] in [specific attire from the input]", then one distinctive visual detail, then their action. End with "strictly in color #HEX <name>".
+
+For non-living elements (magic effects, objects, environments), lead with the most distinctive visual quality — shape, texture, behavior.
+
+Subject types should be concrete: species + role for living beings, noun phrase for objects. Keep them short. Each subject describes only itself — do not interleave attributes between characters.
+
+How to think about COLOR:
+Each subject must get a different color from the palette so they're visually distinct from each other. Choose vivid, intense adjectives for the color tag — the image model desaturates, so you need to push brightness in language. Use PRIMARY COLORS for your focal subjects. Use SECONDARY COLORS for atmosphere or less important elements.
+
+How to think about BREVITY:
+Image models degrade with long prompts. Every word must earn its place. ~20 words per subject description before the color tag. Strip all lore, names, backstory, abstract concepts. Only concrete visual information survives the conversion to pixels.
+
+How to think about SPECIES RENDERING:
+Image models have a strong bias toward cute, cartoon proportions for animal characters — round bodies, oversized eyes, stubby limbs. You must counteract this with explicit adult anatomical descriptors. For penguins: "tall adult emperor penguin with narrow pointed beak, small dark eyes proportional to skull, lean upright posture, sleek plumage." For any animal species, describe adult body proportions explicitly — the model defaults to juvenile cartoon proportions if you do not. Include the species in the subject type field ("emperor penguin merchant", not "penguin merchant").
+
+How to think about WEAR AND WEATHERING:
+Nothing is clean or new. Every character is a war veteran in a harsh world. Add physical wear to each subject: scarred beaks, frost-cracked skin, soot-dusted plumage, matted feathers, chipped armor, mud-caked wraps. One or two concrete wear details per subject — not a list, just woven into the description naturally.
+
+2-3 subjects. Merge minor elements into the scene. Positive descriptions only — never "avoid", "no", "without".
+
+{{paletteContext}}
 Scene description:
 {{subjectText}}`;
 
 // ---------------------------------------------------------------------------
-// Flux 1.1 Pro Ultra — natural prose. This model responds to prompts that
-// read like vivid scene descriptions, not technical specifications. Hex codes
-// and structured lists degrade output. Use evocative color names instead.
+// Flux 1.1 Pro Ultra — active prompt template (WIP, to be tuned from hypotheses)
 // ---------------------------------------------------------------------------
 
-export const FLUX_1_IMAGE_PROMPT_TEMPLATE = `Synthesize the structured prompt below into an image generation prompt following this exact structure:
+// TODO: Replace with tuned template after hypothesis testing
+export const FLUX_1_IMAGE_PROMPT_TEMPLATE = `{{prompt}}`;
+export const FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `{{prompt}}`;
+
+// ---------------------------------------------------------------------------
+// Flux narrative templates (formerly the Flux 1 templates) — long-form prose
+// reformatter. Works well for Flux 2 with disable_pup. Produces prompts that
+// are too long and dense for Flux 1.1 Ultra.
+// ---------------------------------------------------------------------------
+
+export const FLUX_1_NARRATIVE_IMAGE_PROMPT_TEMPLATE = `Synthesize the structured prompt below into an image generation prompt following this exact structure:
 
 Style → Subject → Action/Context → Technical details
 
@@ -265,7 +466,7 @@ Additional rules:
 Original prompt:
 {{prompt}}`;
 
-export const FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `Synthesize the structured prompt below into an image generation prompt following this exact structure:
+export const FLUX_1_NARRATIVE_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `Synthesize the structured prompt below into an image generation prompt following this exact structure:
 
 Style → Scene/Action → Characters with distinctive details → Technical details
 
@@ -328,12 +529,14 @@ export function resolveImageSize(model: string, aspect: string): string {
 const ASPECT_RATIO_MODELS = new Set([
   "wavespeed-ai/flux-1.1-pro-ultra",
   "wavespeed-ai/flux-1.1-pro-ultra-raw",
+  "flux-pro-1.1-ultra",
+  "flux-pro-1.1-ultra-raw",
 ]);
 
 function sizeToAspectRatio(size: string): string {
   const [w, h] = size.split("x").map(Number);
   if (!w || !h || w === h) return "1:1";
-  return w > h ? "16:9" : "9:16";
+  return w > h ? "4:3" : "3:4";
 }
 
 /**
@@ -411,6 +614,7 @@ const PROMPT_SECTION_LABELS = [
   "COLOR PALETTE",
   "COMPOSITION",
   "RENDER",
+  "PALETTE HEX",
   "SETTING",
   "AVOID",
   "SIZE HINT",
@@ -466,31 +670,67 @@ function extractArtistExemplar(style: string): { cleaned: string; exemplar: stri
 }
 
 /**
+ * Build the palette context string for the Flux 2 reformatter template.
+ * Uses the primary/secondary structure from swatchColors: [primary[], secondary[]].
+ */
+export function buildPaletteContext(
+  hexColors: [string[], string[]],
+  paletteText: string,
+): string {
+  const lines: string[] = [];
+  const [primary, secondary] = hexColors;
+  if (primary.length) lines.push(`PRIMARY COLORS (use for subjects): ${JSON.stringify(primary)}`);
+  if (secondary.length) lines.push(`SECONDARY COLORS (atmosphere/shadows): ${JSON.stringify(secondary)}`);
+  if (paletteText) lines.push(`PALETTE DESCRIPTION: ${paletteText}`);
+  return lines.join("\n");
+}
+
+export interface DeterministicFlux2Fields {
+  style: string;
+  color_palette_text: string;
+  color_palette_hex: [string[], string[]];
+}
+
+/**
  * Extract deterministic JSON fields from parsed prompt sections.
  * These fields are mapped directly — no LLM involvement.
  */
 export function extractDeterministicFlux2Fields(
   sections: ParsedPromptSections,
-  isChronicle: boolean
-): Record<string, string> {
+): DeterministicFlux2Fields {
   const rawStyle = sections["STYLE"] || "";
   const { cleaned: styleBase, exemplar } = extractArtistExemplar(rawStyle);
   let style = exemplar ? `${styleBase}, in the style of ${exemplar}` : styleBase;
   if (sections["RENDER"]) style = `${style}. ${sections["RENDER"]}`;
 
   // Strip duplicate "COLOR PALETTE:" prefix that buildCompositePrompt may add
-  const palette = (sections["COLOR PALETTE"] || "").replace(/^COLOR PALETTE:\s*/i, "");
-  const composition = sections["COMPOSITION"] || "";
-  const background = isChronicle
-    ? sections["WORLD"] || ""
-    : sections["SETTING"] || "";
+  const color_palette_text = (sections["COLOR PALETTE"] || "").replace(/^COLOR PALETTE:\s*/i, "");
 
-  return { style, color_palette: palette, composition, background };
+  // Parse hex array from PALETTE HEX section — supports [primary[], secondary[]] or flat string[]
+  let color_palette_hex: [string[], string[]] = [[], []];
+  const hexRaw = sections["PALETTE HEX"] || "";
+  if (hexRaw) {
+    try {
+      const parsed = JSON.parse(hexRaw);
+      if (Array.isArray(parsed)) {
+        if (parsed.length === 2 && Array.isArray(parsed[0]) && Array.isArray(parsed[1])) {
+          // 2D: [primary[], secondary[]]
+          color_palette_hex = [parsed[0], parsed[1]];
+        } else if (parsed.every((c: unknown) => typeof c === "string")) {
+          // Legacy flat array — put all in primary
+          color_palette_hex = [parsed, []];
+        }
+      }
+    } catch { /* ignore parse failures */ }
+  }
+
+  return { style, color_palette_text, color_palette_hex };
 }
 
 /**
  * Extract the visual description text to send to Claude for subject/scene synthesis.
- * Includes only sections that need creative synthesis — not style/palette/composition.
+ * Includes visual description, style, setting, and composition — everything Claude
+ * needs to build a rich scene description and subject list.
  */
 export function extractSubjectText(
   sections: ParsedPromptSections,
@@ -502,6 +742,9 @@ export function extractSubjectText(
       sections["CAST"] ? `CAST: ${sections["CAST"]}` : "",
       sections["SPECIES REQUIREMENT"] ? `SPECIES: ${sections["SPECIES REQUIREMENT"]}` : "",
       sections["SIZE HINT"] ? `SIZE: ${sections["SIZE HINT"]}` : "",
+      sections["STYLE"] ? `STYLE: ${sections["STYLE"]}` : "",
+      sections["WORLD"] ? `WORLD: ${sections["WORLD"]}` : "",
+      sections["COMPOSITION"] ? `COMPOSITION: ${sections["COMPOSITION"]}` : "",
     ];
     const text = parts.filter(Boolean).join("\n");
     return text || sections["_preamble"] || "";
@@ -515,49 +758,162 @@ export function extractSubjectText(
     sections["VISUAL THESIS"],
     sections["SUPPORTING TRAITS"],
     sections["CULTURAL VISUAL IDENTITY"],
+    sections["STYLE"] ? `STYLE: ${sections["STYLE"]}` : "",
+    sections["SETTING"] ? `SETTING: ${sections["SETTING"]}` : "",
+    sections["COMPOSITION"] ? `COMPOSITION: ${sections["COMPOSITION"]}` : "",
   ];
   const text = parts.filter(Boolean).join("\n");
   return text || sections["_preamble"] || "";
 }
 
 /**
- * Merge deterministic fields with Claude-synthesized subject/scene data into a Flux 2 JSON prompt.
- * Strips code fences from Claude's output before parsing.
+ * Attempt to repair truncated JSON (e.g. from output token limit).
+ * Closes any unterminated strings, arrays, and objects.
+ * Returns null if the input doesn't look like JSON at all.
+ */
+function repairTruncatedJson(input: string): string | null {
+  if (!input.includes("{")) return null;
+
+  let result = input;
+  // If we're inside an unterminated string, close it
+  // Count unescaped quotes to determine if we're mid-string
+  let inString = false;
+  for (let i = 0; i < result.length; i++) {
+    if (result[i] === "\\" && inString) { i++; continue; }
+    if (result[i] === '"') inString = !inString;
+  }
+  if (inString) {
+    // Truncate at last complete-looking content, close the string
+    result += '"';
+  }
+
+  // Strip trailing comma
+  result = result.replace(/,\s*$/, "");
+
+  // Close open arrays and objects by counting brackets
+  let openBraces = 0;
+  let openBrackets = 0;
+  inString = false;
+  for (let i = 0; i < result.length; i++) {
+    if (result[i] === "\\" && inString) { i++; continue; }
+    if (result[i] === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (result[i] === "{") openBraces++;
+    else if (result[i] === "}") openBraces--;
+    else if (result[i] === "[") openBrackets++;
+    else if (result[i] === "]") openBrackets--;
+  }
+
+  // Strip any trailing partial key like `"mood` or `"mood":` before closing
+  result = result.replace(/,?\s*"[^"]*"?\s*:?\s*$/, "");
+
+  while (openBrackets > 0) { result += "]"; openBrackets--; }
+  while (openBraces > 0) { result += "}"; openBraces--; }
+
+  return result;
+}
+
+/** Hex color pattern — matches #RRGGBB (6 hex digits). */
+const HEX_COLOR_RE = /#[0-9A-Fa-f]{6}\b/;
+
+/**
+ * Ensure every subject has a direct hex color association.
+ * BFL docs: "Always associate hex codes with specific objects."
+ * If Claude omitted a hex tag, append one from the palette's primary colors
+ * (cycling through them). Secondary colors are used once primaries are exhausted.
+ */
+function injectMissingHexColors(
+  subjects: Array<Record<string, unknown>>,
+  hexColors: [string[], string[]],
+): void {
+  const allColors = [...hexColors[0], ...hexColors[1]];
+  if (allColors.length === 0) return;
+
+  let colorIndex = 0;
+  for (const subject of subjects) {
+    const desc = typeof subject.description === "string" ? subject.description : "";
+    if (!HEX_COLOR_RE.test(desc)) {
+      const hex = allColors[colorIndex % allColors.length];
+      subject.description = `${desc}, strictly in color ${hex}`.replace(/^, /, "");
+      colorIndex++;
+    }
+  }
+}
+
+/**
+ * Clean Claude's synthesized JSON output into a final Flux 2 prompt.
+ * Only scene + subjects pass through — any style/color_palette fields Claude
+ * emits are stripped. Style and color are expected to be embedded in the scene
+ * and subject descriptions.
+ *
+ * After merge, subjects missing a hex color tag get one injected from the
+ * palette's primary/secondary arrays to guarantee direct hex-object association.
  */
 export function mergeFlux2JsonPrompt(
-  deterministicFields: Record<string, string>,
+  deterministicFields: DeterministicFlux2Fields,
   claudeOutput: string
 ): string {
   let cleaned = claudeOutput.trim();
+  // Strip code fences (```json ... ``` or ``` ... ```)
   cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+  // Strip trailing commas before } or ] (common LLM JSON error)
+  cleaned = cleaned.replace(/,\s*([\]}])/g, "$1");
   cleaned = cleaned.trim();
+
+  // If cleaning left non-JSON prefix/suffix, extract the outermost { ... }
+  if (!cleaned.startsWith("{")) {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      cleaned = cleaned.substring(start, end + 1);
+    }
+  }
 
   let synthesized: Record<string, unknown>;
   try {
     synthesized = JSON.parse(cleaned);
   } catch {
-    // If Claude output isn't valid JSON, wrap it as a simple prompt
-    return JSON.stringify({
-      scene: cleaned,
-      subjects: [{ description: cleaned, position: "centered in frame" }],
-      ...Object.fromEntries(Object.entries(deterministicFields).filter(([, v]) => v)),
-    });
+    // Attempt truncation recovery: close unterminated strings/structures
+    const repaired = repairTruncatedJson(cleaned);
+    if (repaired) {
+      try {
+        synthesized = JSON.parse(repaired);
+        console.warn("[Flux2 merge] Recovered truncated JSON");
+      } catch (e2) {
+        console.warn("[Flux2 merge] JSON repair also failed:", (e2 as Error).message, "\nFirst 200 chars:", cleaned.substring(0, 200));
+        return JSON.stringify({
+          scene: cleaned.substring(0, 300),
+          subjects: [{ type: "Subject", description: cleaned.substring(0, 300), position: "centered in frame", color_match: "exact" }],
+        });
+      }
+    } else {
+      console.warn("[Flux2 merge] JSON parse failed, no recovery possible. First 200 chars:", cleaned.substring(0, 200));
+      return JSON.stringify({
+        scene: cleaned.substring(0, 300),
+        subjects: [{ type: "Subject", description: cleaned.substring(0, 300), position: "centered in frame", color_match: "exact" }],
+      });
+    }
   }
 
-  const merged: Record<string, unknown> = {
-    scene: synthesized.scene || "",
-    subjects: synthesized.subjects || [{ description: cleaned, position: "centered in frame" }],
-    style: deterministicFields.style,
-    color_palette: deterministicFields.color_palette,
-    lighting: synthesized.lighting || "",
-    mood: synthesized.mood || "",
-    composition: deterministicFields.composition,
-  };
-  if (deterministicFields.background) merged.background = deterministicFields.background;
+  // Only scene + subjects in the final prompt — style and color information
+  // is already baked into the scene description and subject color tags by the LLM.
+  // Adding separate style/color_palette fields dilutes the scene signal.
+  const subjects = (synthesized.subjects as Array<Record<string, unknown>>) || [
+    { type: "Subject", description: cleaned, position: "centered in frame", color_match: "exact" },
+  ];
 
-  // Drop empty string fields
-  for (const [k, v] of Object.entries(merged)) {
-    if (v === "") delete merged[k];
+  // Guarantee every subject has a direct hex-object color association.
+  // Claude's template instructs this but compliance is inconsistent.
+  injectMissingHexColors(subjects, deterministicFields.color_palette_hex);
+
+  const [primary, secondary] = deterministicFields.color_palette_hex;
+  const merged: Record<string, unknown> = {
+    mood: "grimdark Warhammer tone, war-torn world-weary veterans, dirt and ash on feathers, nothing is clean or new",
+    scene: synthesized.scene || "",
+    subjects,
+  };
+  if (primary.length || secondary.length) {
+    merged.color_palette = { primary, secondary };
   }
 
   return JSON.stringify(merged);

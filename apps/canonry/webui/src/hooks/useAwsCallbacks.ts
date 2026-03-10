@@ -116,32 +116,48 @@ async function doSyncImages(
     return;
   }
   const { config, setStatus, setSyncProgress } = useCanonryAwsStore.getState();
-  setStatus({ state: "working", detail: "Syncing images to S3..." });
+  setStatus({ state: "working", detail: "Scanning local images..." });
   setSyncProgress({ phase: "scan", processed: 0, total: 0, uploaded: 0 });
   try {
-    await syncProjectImagesToS3({
+    const result = await syncProjectImagesToS3({
       projectId, s3: s3Client, config,
       onProgress: ({ phase, processed, total, uploaded }: { phase: string; processed: number; total: number; uploaded: number }) => {
-        const labels: Record<string, string> = { upload: "Uploading", scan: "Scanning", variants: "Generating WebP" };
+        const labels: Record<string, string> = {
+          scan: "Checking",
+          upload: "Uploading",
+          variants: "Generating WebP variants",
+        };
         const label = labels[phase] || phase;
-        setStatus({ state: "working", detail: `${label} images ${processed}/${total} (uploaded ${uploaded})...` });
+        if (phase === "scan") {
+          setStatus({ state: "working", detail: `${label} ${processed}/${total}...` });
+        } else if (phase === "variants") {
+          setStatus({ state: "working", detail: `${label} ${processed}/${total}...` });
+        } else {
+          setStatus({ state: "working", detail: `${label} ${processed}/${total} (${uploaded} new)...` });
+        }
         setSyncProgress({ phase, processed, total, uploaded });
       },
     });
 
+    const syncSummary = `${result.uploaded} uploaded, ${result.total - result.uploaded} skipped` +
+      (result.variantsCatchup ? `, ${result.variantsCatchup} variants generated` : "");
+
     // Build and upload catalog.json
-    setStatus({ state: "working", detail: "Building catalog.json..." });
+    setStatus({ state: "working", detail: `Sync done (${syncSummary}). Building catalog.json...` });
     try {
       const cdnBaseUrl = config?.cdnBaseUrl?.trim() || "";
       const catalogResult = await buildAndUploadCatalog(s3Client, config, projectId, cdnBaseUrl);
-      setStatus({ state: "idle", detail: `Image sync complete. Catalog: ${catalogResult.entries} images.` });
+      setStatus({ state: "idle", detail: `Complete: ${syncSummary}. Catalog: ${catalogResult.entries} images → s3://${config?.imageBucket}/${catalogResult.key}` });
     } catch (catalogErr) {
       console.error("Catalog upload failed:", catalogErr);
-      setStatus({ state: "idle", detail: "Image sync complete. Catalog upload failed — see console." });
+      const detail = catalogErr instanceof Error ? catalogErr.message : String(catalogErr);
+      setStatus({ state: "error", detail: `Sync OK (${syncSummary}) but catalog upload FAILED: ${detail}` });
     }
   } catch (err) {
     console.error("Failed to sync images:", err);
     setStatus({ state: "error", detail: errorDetail(err, "Image sync failed.") });
+  } finally {
+    setSyncProgress({ phase: "idle", processed: 0, total: 0, uploaded: 0 });
   }
 }
 

@@ -46,6 +46,10 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
   const [editTitle, setEditTitle] = useState("");
   const [editTags, setEditTags] = useState("");
   const [editType, setEditType] = useState<string>("");
+  const [editArtistic, setEditArtistic] = useState<string>("");
+  const [editComposition, setEditComposition] = useState<string>("");
+  const [editPalette, setEditPalette] = useState<string>("");
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const thumbCache = useRef(new Map<string, string>());
 
   const loadPage = useCallback(async () => {
@@ -143,6 +147,9 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
     setEditTitle(img.title || "");
     setEditTags(img.tags?.join(", ") || "");
     setEditType(img.imageType || "other");
+    setEditArtistic(img.artisticStyleId || "");
+    setEditComposition(img.compositionStyleId || "");
+    setEditPalette(img.colorPaletteId || "");
   }, []);
 
   const saveEdit = useCallback(async () => {
@@ -151,17 +158,20 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
       title: editTitle.trim() || undefined,
       tags: editTags.split(",").map((t) => t.trim()).filter(Boolean),
       imageType: editType,
+      artisticStyleId: editArtistic || undefined,
+      compositionStyleId: editComposition || undefined,
+      colorPaletteId: editPalette || undefined,
     };
     await db.images.update(editingId, updates);
     setEditingId(null);
     loadPage();
-  }, [editingId, editTitle, editTags, editType, loadPage]);
+  }, [editingId, editTitle, editTags, editType, editArtistic, editComposition, editPalette, loadPage]);
 
   const cancelEdit = useCallback(() => {
     setEditingId(null);
   }, []);
 
-  const resolveStyleName = useCallback((field: "artisticStyles" | "compositionStyles", id?: string) => {
+  const resolveStyleName = useCallback((field: "artisticStyles" | "compositionStyles" | "colorPalettes", id?: string) => {
     if (!id || !styleLibrary) return id || "—";
     const styles = styleLibrary[field] as Array<{ id: string; name: string }> | undefined;
     const match = styles?.find((s) => s.id === id);
@@ -222,6 +232,7 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
             <th>Entity</th>
             <th>Artistic</th>
             <th>Composition</th>
+            <th>Palette</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -230,7 +241,12 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
             <tr key={img.imageId} className={editingId === img.imageId ? "cat-review-editing" : ""}>
               <td className="cat-review-thumb">
                 {img.thumbUrl ? (
-                  <img src={img.thumbUrl} alt="" />
+                  <img
+                    src={img.thumbUrl}
+                    alt=""
+                    onClick={() => setLightboxUrl(img.thumbUrl!)}
+                    className="cat-review-thumb-clickable"
+                  />
                 ) : (
                   <div className="cat-review-no-thumb" />
                 )}
@@ -265,8 +281,30 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
                     />
                   </td>
                   <td className="cat-review-entity">{img.entityName || "—"}</td>
-                  <td className="cat-review-style">{resolveStyleName("artisticStyles", img.artisticStyleId)}</td>
-                  <td className="cat-review-style">{resolveStyleName("compositionStyles", img.compositionStyleId)}</td>
+                  <td>
+                    <select className="cat-review-select" value={editArtistic} onChange={(e) => setEditArtistic(e.target.value)}>
+                      <option value="">—</option>
+                      {styleLibrary?.artisticStyles.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <select className="cat-review-select" value={editComposition} onChange={(e) => setEditComposition(e.target.value)}>
+                      <option value="">—</option>
+                      {styleLibrary?.compositionStyles.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <select className="cat-review-select" value={editPalette} onChange={(e) => setEditPalette(e.target.value)}>
+                      <option value="">—</option>
+                      {styleLibrary?.colorPalettes.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </td>
                   <td className="cat-review-actions">
                     <button className="cov-btn cov-btn-primary" onClick={saveEdit}>Save</button>
                     <button className="cov-btn" onClick={cancelEdit}>Cancel</button>
@@ -284,6 +322,7 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
                   <td className="cat-review-entity">{img.entityName || "—"}</td>
                   <td className="cat-review-style">{resolveStyleName("artisticStyles", img.artisticStyleId)}</td>
                   <td className="cat-review-style">{resolveStyleName("compositionStyles", img.compositionStyleId)}</td>
+                  <td className="cat-review-style">{resolveStyleName("colorPalettes", img.colorPaletteId)}</td>
                   <td className="cat-review-actions">
                     <button className="cov-btn" onClick={() => startEdit(img)}>Edit</button>
                   </td>
@@ -313,6 +352,12 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
           >
             Next
           </button>
+        </div>
+      )}
+
+      {lightboxUrl && (
+        <div className="cat-review-lightbox" onClick={() => setLightboxUrl(null)}>
+          <img src={lightboxUrl} alt="" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
     </div>

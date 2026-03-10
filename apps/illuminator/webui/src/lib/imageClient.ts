@@ -6,5 +6,6 @@
 
 export { ImageGenerationClient as ImageClient } from "./imageClient.browser";
 export { WaveSpeedImageClient } from "./imageClient.wavespeed";
+export { BflImageClient } from "./imageClient.bfl";
 export type { ImageConfig, ImageRequest, ImageResult } from "./imageClient.browser";
-export { isWaveSpeedModel } from "./imageSettings";
+export { isWaveSpeedModel, isBflModel } from "./imageSettings";

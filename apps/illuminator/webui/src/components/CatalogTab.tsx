@@ -48,7 +48,7 @@ export default function CatalogTab({ styleLibrary }: Readonly<CatalogTabProps>) 
         </div>
         <div className="cat-content">
           {view === "report" ? (
-            <CoverageReport projectId={projectId} />
+            <CoverageReport projectId={projectId} styleLibrary={styleLibrary} />
           ) : (
             <CatalogReview projectId={projectId} styleLibrary={styleLibrary} />
           )}

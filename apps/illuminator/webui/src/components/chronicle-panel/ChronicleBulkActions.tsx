@@ -70,6 +70,7 @@ export interface ChronicleBulkActionsProps {
   onBulkGenerateCoverImages: () => void;
   onBulkClearImageRefs: () => void;
   onBulkClearSceneImages: () => void;
+  onBulkClearByComposition: (compositionIds: string[]) => void;
   onBulkGenerateCoverScenes: () => void;
   onBulkClearCoverImages: () => void;
   onBulkTagCoverImages: () => void;
@@ -137,6 +138,7 @@ export function ChronicleBulkActions({
   onBulkGenerateCoverImages,
   onBulkClearImageRefs,
   onBulkClearSceneImages,
+  onBulkClearByComposition,
   onBulkGenerateCoverScenes,
   onBulkClearCoverImages,
   onBulkTagCoverImages,
@@ -295,6 +297,13 @@ export function ChronicleBulkActions({
               title="Clear generated cover images from all chronicles (keeps scene descriptions and style tags)"
             >
               Clear Images
+            </button>
+            <button
+              onClick={() => onBulkClearByComposition(["chronicle-symbolic", "chronicle-document", "chronicle-folk"])}
+              className="illuminator-button"
+              title="Clear cover images assigned chronicle-symbolic, chronicle-document, or chronicle-folk (were portrait, now landscape)"
+            >
+              Clear Portrait Comps
             </button>
           </div>
 

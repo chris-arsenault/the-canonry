@@ -248,7 +248,7 @@ export function ChroniclePanel({
   const img = useChronicleImageCallbacks({
     selectedItem, generationContext: gen.generationContext, fullEntityMapRef,
     onEnqueue, refreshChronicle, chronicleStyleSelection, styleLibrary,
-    worldContext, chronicleImageSize, chronicleImageQuality,
+    worldContext, chronicleImageSize, chronicleImageQuality, imageModel,
   });
 
   // Bulk operations
@@ -411,6 +411,7 @@ export function ChroniclePanel({
         onBulkGenerateSceneImages={bulk.handleBulkGenerateSceneImages}
         onBulkClearImageRefs={bulk.handleBulkClearImageRefs}
         onBulkClearSceneImages={bulk.handleBulkClearSceneImages}
+        onBulkClearByComposition={bulk.handleBulkClearByComposition}
         onBulkGenerateCoverScenes={bulk.handleBulkGenerateCoverScenes}
         onAssignCoverImageStyles={() => void bulk.handleAssignCoverImageStyles()}
         onBulkGenerateCoverImages={bulk.handleBulkGenerateCoverImages}
@@ -465,6 +466,7 @@ export function ChroniclePanel({
       {bulk.assignCoverImageStyleResult && <AssignCoverImageStyleToast result={bulk.assignCoverImageStyleResult} onDismiss={() => bulk.setAssignCoverImageStyleResult(null)} />}
       {bulk.bulkGenerateCoverImageResult && <BulkGenerateCoverImageToast result={bulk.bulkGenerateCoverImageResult} onDismiss={() => bulk.setBulkGenerateCoverImageResult(null)} />}
       {bulk.bulkClearCoverImageResult && <BulkClearCoverImageToast result={bulk.bulkClearCoverImageResult} onDismiss={() => bulk.setBulkClearCoverImageResult(null)} />}
+      {bulk.bulkClearByCompositionResult && <BulkClearCoverImageToast result={bulk.bulkClearByCompositionResult} onDismiss={() => bulk.setBulkClearByCompositionResult(null)} />}
       {bulk.resetBackportResult && <ResetBackportToast result={bulk.resetBackportResult} onDismiss={() => bulk.setResetBackportResult(null)} />}
       {bulk.reconcileBackportResult && <ReconcileBackportToast result={bulk.reconcileBackportResult} onDismiss={() => bulk.setReconcileBackportResult(null)} />}
 

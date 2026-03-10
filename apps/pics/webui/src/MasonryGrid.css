@@ -4,6 +4,10 @@
   padding: 8px;
 }
 
+.masonry--picking {
+  cursor: crosshair;
+}
+
 .masonry-item {
   break-inside: avoid;
   margin-bottom: 8px;
@@ -11,12 +15,36 @@
   overflow: hidden;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.03);
+  position: relative;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .masonry-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Compare picking: selected card gets azure border */
+.masonry-item--selected {
+  outline: 2px solid var(--azure);
+  outline-offset: -2px;
+}
+
+.masonry-check {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--azure);
+  color: #0a0a0f;
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
 }
 
 .masonry-ratio {
@@ -31,11 +59,24 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  opacity: 0;
   transition: opacity 0.3s ease;
+}
+
+.masonry-img-loaded {
+  opacity: 1;
 }
 
 .masonry-caption {
   padding: 6px 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.masonry-caption-text {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -44,7 +85,7 @@
 .masonry-title {
   font-size: 0.72rem;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.85);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -52,10 +93,43 @@
 
 .masonry-entity {
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(86, 180, 232, 0.45);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Share button */
+
+.masonry-share {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  opacity: 0;
+  margin-top: -1px;
+}
+
+.masonry-item:hover .masonry-share {
+  opacity: 1;
+}
+
+.masonry-share:hover {
+  background: var(--azure-dim);
+  color: var(--azure-text);
+}
+
+.masonry-share--copied {
+  opacity: 1;
+  color: rgba(130, 200, 160, 0.8);
 }
 
 .masonry-sentinel {
@@ -70,13 +144,22 @@
 @media (max-width: 900px) {
   .masonry { column-count: 2; }
 }
+@media (max-width: 640px) {
+  /* Bottom padding for the fixed filter bar */
+  .masonry {
+    padding-bottom: 52px;
+  }
+}
 @media (max-width: 500px) {
   .masonry {
     column-count: 2;
     column-gap: 4px;
     padding: 4px;
+    padding-bottom: 52px;
   }
   .masonry-item { margin-bottom: 4px; border-radius: 4px; }
   .masonry-caption { padding: 4px 6px; }
   .masonry-title { font-size: 0.65rem; }
+  /* Always show share on mobile (no hover) */
+  .masonry-share { opacity: 0.6; }
 }

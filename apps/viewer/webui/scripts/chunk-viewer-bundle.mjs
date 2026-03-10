@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile, access } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -68,45 +68,6 @@ function stripEnrichmentDebugData(entity) {
   // Nothing worth keeping - remove enrichment entirely
   const { enrichment: _, ...entityWithoutEnrichment } = entity;
   return entityWithoutEnrichment;
-}
-
-/**
- * Try to load image manifest and update imageData.results with optimized paths.
- * Returns the number of images updated.
- */
-async function applyImageOptimizations(coreBundle, outputDir) {
-  const manifestPath = join(outputDir, 'image-manifest.json');
-
-  try {
-    await access(manifestPath);
-  } catch {
-    // No manifest - images not optimized
-    return 0;
-  }
-
-  const manifestRaw = await readFile(manifestPath, 'utf8');
-  const manifest = JSON.parse(manifestRaw);
-
-  if (!coreBundle.imageData?.results || !Array.isArray(coreBundle.imageData.results)) {
-    return 0;
-  }
-
-  let updated = 0;
-  for (const image of coreBundle.imageData.results) {
-    if (!image.imageId) continue;
-
-    const optimized = manifest[image.imageId];
-    if (optimized) {
-      // Add optimized paths - keep localPath for backwards compat
-      image.thumbPath = optimized.thumb;
-      image.fullPath = optimized.full;
-      // Update localPath to point to full WebP (smaller than original PNG)
-      image.localPath = optimized.full;
-      updated++;
-    }
-  }
-
-  return updated;
 }
 
 /**
@@ -202,9 +163,6 @@ async function main() {
     }
   }
 
-  // Apply image optimizations if manifest exists
-  const imagesOptimized = await applyImageOptimizations(coreBundle, outputDir);
-
   // Generate core bundle with content hash in filename
   const coreJson = JSON.stringify(coreBundle);
   const coreHash = contentHash(coreJson);
@@ -244,10 +202,6 @@ async function main() {
       totalEvents: narrativeHistory.length,
       files: timelineFiles,
     },
-    images: imagesOptimized > 0 ? {
-      optimized: true,
-      count: imagesOptimized,
-    } : undefined,
   };
 
   await writeFile(join(outputDir, 'bundle.manifest.json'), JSON.stringify(manifest), 'utf8');
@@ -263,9 +217,6 @@ async function main() {
   console.log(`  - Enrichment debug data stripped (kept aliases only)`);
   console.log(`  - Chronicle generation metadata stripped`);
   console.log(`  - Image generation prompts stripped`);
-  if (imagesOptimized > 0) {
-    console.log(`  - Images optimized: ${imagesOptimized} (WebP with thumbnails)`);
-  }
 }
 
 main().catch((error) => {

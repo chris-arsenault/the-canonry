@@ -379,3 +379,40 @@
 @keyframes tip-spin {
   to { transform: rotate(360deg); }
 }
+
+/* Saturation slider on result cards */
+
+.tip-result-image-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tip-saturation-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 200px;
+}
+
+.tip-saturation-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.tip-saturation-slider {
+  flex: 1;
+  height: 4px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.tip-saturation-value {
+  font-size: 10px;
+  color: var(--text-muted);
+  min-width: 28px;
+  text-align: right;
+  flex-shrink: 0;
+}

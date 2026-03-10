@@ -18,12 +18,17 @@ locals {
     "thumb/*"
   ]
 
-  # Domains
-  all_domains = distinct([for d in var.domains : trimspace(d)])
-  primary_domain = local.all_domains[0]
+  # Domains — include pics parent domain for shared zone lookup
+  all_domains = distinct(concat(
+    [for d in var.domains : trimspace(d)],
+    var.pics_domain != "" ? [var.pics_parent_domain] : []
+  ))
+  primary_domain = [for d in var.domains : trimspace(d)][0]
+  # Viewer-only aliases (don't include pics parent domain)
+  viewer_domains = [for d in var.domains : trimspace(d)]
   all_domain_aliases = distinct(concat(
-    local.all_domains,
-    [for d in local.all_domains : "www.${d}"]
+    local.viewer_domains,
+    [for d in local.viewer_domains : "www.${d}"]
   ))
 
   # App build outputs and URL prefixes
@@ -33,6 +38,11 @@ locals {
       dist = "${path.module}/../../apps/viewer/webui/dist"
     }
   }
+
+  # Pics gallery (app shell only — images served from viewer CF)
+  pics_bucket_name  = "${var.pics_prefix}-static-${data.aws_caller_identity.current.account_id}"
+  pics_s3_origin_id = "S3-${local.pics_bucket_name}"
+  pics_dist_path    = "${path.module}/../../apps/pics/webui/dist"
 
 }
 
@@ -141,10 +151,7 @@ resource "aws_s3_bucket_policy" "image_assets" {
         ]
         Condition = {
           StringEquals = {
-            "AWS:SourceArn" = concat(
-              [aws_cloudfront_distribution.static_site.arn],
-              var.additional_image_distribution_arns
-            )
+            "AWS:SourceArn" = aws_cloudfront_distribution.static_site.arn
           }
         }
       }
@@ -416,9 +423,9 @@ resource "aws_cloudfront_distribution" "static_site" {
 # -----------------------------------------------------------------------------
 
 resource "aws_route53_record" "apex" {
-  for_each = data.aws_route53_zone.zones
-  zone_id  = each.value.zone_id
-  name     = each.key
+  for_each = toset(local.viewer_domains)
+  zone_id  = data.aws_route53_zone.zones[each.value].zone_id
+  name     = each.value
   type     = "A"
 
   alias {
@@ -429,9 +436,9 @@ resource "aws_route53_record" "apex" {
 }
 
 resource "aws_route53_record" "www" {
-  for_each = data.aws_route53_zone.zones
-  zone_id  = each.value.zone_id
-  name     = "www.${each.key}"
+  for_each = toset(local.viewer_domains)
+  zone_id  = data.aws_route53_zone.zones[each.value].zone_id
+  name     = "www.${each.value}"
   type     = "A"
 
   alias {

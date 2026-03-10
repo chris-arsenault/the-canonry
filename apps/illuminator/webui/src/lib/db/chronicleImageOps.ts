@@ -216,6 +216,27 @@ export async function clearChronicleSceneImages(chronicleId: string): Promise<nu
 }
 
 /**
+ * Clear the cover image if its composition matches any of the given style IDs.
+ * Returns true if an image was cleared.
+ */
+export async function clearCoverImageByComposition(
+  chronicleId: string,
+  compositionIds: Set<string>,
+): Promise<boolean> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record?.coverImage?.generatedImageId) return false;
+  if (!record.coverImage.suggestedCompositionStyleId) return false;
+  if (!compositionIds.has(record.coverImage.suggestedCompositionStyleId)) return false;
+
+  record.coverImage.generatedImageId = undefined;
+  record.coverImage.status = "pending";
+  record.coverImage.error = undefined;
+  record.updatedAt = Date.now();
+  await db.chronicles.put(record);
+  return true;
+}
+
+/**
  * Clear the generated image from a cover image (keeps scene description and tags).
  */
 export async function clearChronicleCoverImage(chronicleId: string): Promise<boolean> {

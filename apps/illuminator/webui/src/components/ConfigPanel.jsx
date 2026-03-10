@@ -40,11 +40,29 @@ const MODEL_INFO = {
     usages: "Rapid prototyping, placeholder images, bulk generation, texture exploration. Budget-conscious workflows.",
     drawbacks: "Noticeably lower quality than all other options. Poor anatomy, inconsistent style, limited prompt understanding. 1024px max.",
   },
-  "wavespeed-ai/flux-2-pro/text-to-image": {
-    cost: "~$0.03 per image",
-    strengths: "Studio-quality output without parameter tuning. Strong text rendering, excellent batch consistency, handles complex multi-subject prompts well. Zero cold starts, fast inference.",
-    usages: "Production pipelines, high-volume generation with brand rules, web and print content, scenes with multiple subjects, any workflow needing reliable repeatability.",
-    drawbacks: "Max 1536px resolution \u2014 lower ceiling than 4K-capable models. Less photorealistic than Seedream or Qwen for portrait work. Style leans toward digital illustration over photography.",
+  "flux-2-pro": {
+    cost: "~$0.05 per megapixel",
+    strengths: "Native JSON prompt support with hex color control. Studio-quality output, strong text rendering, excellent batch consistency. Handles complex multi-subject prompts. Direct BFL API \u2014 no intermediary.",
+    usages: "Production pipelines, high-volume generation with brand rules, structured scene composition via JSON prompts, any workflow needing style/palette/composition control.",
+    drawbacks: "Max 4MP resolution. Style leans toward digital illustration over photography.",
+  },
+  "flux-2-max": {
+    cost: "~$0.07 per megapixel",
+    strengths: "Highest quality Flux model. Native JSON prompts, hex color control, grounding search. Up to 4MP. Best style adherence and multi-subject composition in the Flux family.",
+    usages: "Hero images, high-fidelity character art, complex multi-subject scenes, work requiring maximum quality and style fidelity.",
+    drawbacks: "Most expensive Flux option. Slower generation than Pro.",
+  },
+  "flux-pro-1.1-ultra": {
+    cost: "$0.06 per image",
+    strengths: "Up to 4MP resolution. Prompt upsampling enriches short prompts. Natural language prose prompts. Raw mode for authentic, less-processed aesthetics.",
+    usages: "High-resolution output, photographic styles, natural-language workflows, scenes benefiting from prompt expansion.",
+    drawbacks: "No JSON prompt support. Aspect ratio only (no exact dimensions). Previous generation \u2014 less capable than Flux 2 for structured prompting.",
+  },
+  "flux-pro-1.1-ultra-raw": {
+    cost: "$0.06 per image",
+    strengths: "Same as Flux 1.1 Pro Ultra but with raw mode enabled for natural, authentic aesthetics with less post-processing.",
+    usages: "Photography-style output, natural textures, documentary aesthetic.",
+    drawbacks: "Same limitations as Ultra. Raw mode reduces vibrancy.",
   },
   "wavespeed-ai/qwen-image-2.0-pro/text-to-image": {
     cost: "~$0.07 per image",
@@ -189,6 +207,13 @@ export default function ConfigPanel({ config, onConfigChange }) {
           >
             <optgroup label="OpenAI">
               {IMAGE_MODELS.filter(m => m.provider === "openai").map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Flux (BFL)">
+              {IMAGE_MODELS.filter(m => m.provider === "bfl").map((model) => (
                 <option key={model.value} value={model.value}>
                   {model.label}
                 </option>

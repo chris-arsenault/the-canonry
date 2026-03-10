@@ -7,8 +7,7 @@
     "dev": "vite --port 5008",
     "clean": "rm -rf dist",
     "build": "npm run clean && vite build",
-    "postbuild": "npm run optimize-images && npm run chunk-bundle && npm run precompute-pages",
-    "optimize-images": "node ./scripts/optimize-images.mjs --input dist/bundles/default/images --output dist/bundles/default/images --bundle-dir dist/bundles/default --delete-originals",
+    "postbuild": "npm run chunk-bundle && npm run precompute-pages",
     "chunk-bundle": "node ./scripts/chunk-viewer-bundle.mjs --input dist/bundles/default/bundle.json --output dist/bundles/default",
     "precompute-pages": "tsx ./scripts/precompute-page-index.mts",
     "preview": "vite preview",
@@ -30,7 +29,6 @@
   "devDependencies": {
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
-    "@aws-sdk/client-s3": "^3.760.0",
     "@vitest/coverage-v8": "^4.0.13",
     "@vitejs/plugin-react": "^5.1.1",
     "jsdom": "^26.1.0",

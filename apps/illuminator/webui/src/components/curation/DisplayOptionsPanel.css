@@ -1,0 +1,84 @@
+/* DisplayOptionsPanel — compact radio-group display options */
+
+.dop-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dop-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-accent, #c9a55a);
+  margin-bottom: 2px;
+}
+
+.dop-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dop-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 13px;
+  color: var(--color-text-primary, #e0e0e0);
+  cursor: pointer;
+}
+
+.dop-radio-label input[type="radio"] {
+  accent-color: var(--color-accent, #c9a55a);
+  margin: 0;
+}
+
+.dop-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 13px;
+  color: var(--color-text-primary, #e0e0e0);
+  cursor: pointer;
+}
+
+.dop-checkbox-label input[type="checkbox"] {
+  accent-color: var(--color-accent, #c9a55a);
+  margin: 0;
+}
+
+.dop-clear-button {
+  font-size: 11px;
+  color: var(--color-text-muted, #888);
+  background: none;
+  border: 1px dashed var(--color-border, #333);
+  border-radius: 3px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dop-clear-button:hover {
+  border-color: var(--color-accent, #c9a55a);
+  color: var(--color-accent, #c9a55a);
+}
+
+.dop-page-name {
+  font-size: 11px;
+  color: var(--color-text-muted, #888);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
+.dop-no-selection {
+  color: var(--color-text-muted, #888);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 0;
+}

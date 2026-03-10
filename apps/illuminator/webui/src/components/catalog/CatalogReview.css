@@ -68,6 +68,15 @@
   border-radius: 3px;
 }
 
+.cat-review-thumb-clickable {
+  cursor: pointer;
+}
+
+.cat-review-thumb-clickable:hover {
+  outline: 2px solid var(--accent-color, #5a8abf);
+  outline-offset: 1px;
+}
+
 .cat-review-no-thumb {
   width: 36px;
   height: 36px;
@@ -128,4 +137,23 @@
 .cat-review-bottom-pager {
   justify-content: center;
   margin-top: 12px;
+}
+
+.cat-review-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.cat-review-lightbox img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  cursor: default;
+  border-radius: 4px;
 }

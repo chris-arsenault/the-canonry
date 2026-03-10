@@ -235,7 +235,7 @@ export const EVENT_COMPOSITIONS: CompositionStyle[] = [
     description: 'Abstract mood-driven composition for dreamlike or poetic chronicles',
     promptFragment: 'abstract painterly composition, symbolic elements, fluid forms, dreamlike perspective, mood over narrative, ethereal atmosphere, NO TEXT NO TITLES NO LETTERING',
     targetCategory: 'event',
-    defaultImageAspect: 'portrait',
+    defaultImageAspect: 'landscape',
   },
   {
     id: 'chronicle-document',
@@ -243,7 +243,7 @@ export const EVENT_COMPOSITIONS: CompositionStyle[] = [
     description: 'Physical document artifact for broadsheets, letters, notices, and reports',
     promptFragment: 'aged document artifact, parchment or paper with visible text blocks, wax seals or stamps, creased folds, ink blots, physical object photography, NO TEXT NO TITLES NO LETTERING',
     targetCategory: 'event',
-    defaultImageAspect: 'portrait',
+    defaultImageAspect: 'landscape',
   },
   {
     id: 'chronicle-tableau',
@@ -259,7 +259,7 @@ export const EVENT_COMPOSITIONS: CompositionStyle[] = [
     description: 'Folk-art illustration for fables, folk songs, and nursery rhymes',
     promptFragment: 'folk-art illustration, iconic figures, decorative borders, flat perspective with rich pattern detail, woodcut or linocut aesthetic, NO TEXT NO TITLES NO LETTERING',
     targetCategory: 'event',
-    defaultImageAspect: 'portrait',
+    defaultImageAspect: 'landscape',
   },
   {
     id: 'chronicle-vignette',

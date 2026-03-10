@@ -10,6 +10,8 @@ export interface UseApiKeysReturn {
   setOpenaiApiKey: Dispatch<SetStateAction<string>>;
   wavespeedApiKey: string;
   setWavespeedApiKey: Dispatch<SetStateAction<string>>;
+  bflApiKey: string;
+  setBflApiKey: Dispatch<SetStateAction<string>>;
   showApiKeyInput: boolean;
   setShowApiKeyInput: Dispatch<SetStateAction<boolean>>;
   hasAnthropicKey: boolean;
@@ -48,6 +50,9 @@ export default function useApiKeys(): UseApiKeysReturn {
   const [wavespeedApiKey, setWavespeedApiKey] = useState<string>(() =>
     readPersistedApiKey("illuminator:wavespeedApiKey")
   );
+  const [bflApiKey, setBflApiKey] = useState<string>(() =>
+    readPersistedApiKey("illuminator:bflApiKey")
+  );
   const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
 
   // Persist API keys when enabled
@@ -58,15 +63,17 @@ export default function useApiKeys(): UseApiKeysReturn {
         localStorage.setItem("illuminator:anthropicApiKey", anthropicApiKey);
         localStorage.setItem("illuminator:openaiApiKey", openaiApiKey);
         localStorage.setItem("illuminator:wavespeedApiKey", wavespeedApiKey);
+        localStorage.setItem("illuminator:bflApiKey", bflApiKey);
       } else {
         localStorage.removeItem("illuminator:anthropicApiKey");
         localStorage.removeItem("illuminator:openaiApiKey");
         localStorage.removeItem("illuminator:wavespeedApiKey");
+        localStorage.removeItem("illuminator:bflApiKey");
       }
     } catch {
       /* ignored */
     }
-  }, [persistApiKeys, anthropicApiKey, openaiApiKey, wavespeedApiKey]);
+  }, [persistApiKeys, anthropicApiKey, openaiApiKey, wavespeedApiKey, bflApiKey]);
 
   const hasAnthropicKey: boolean = anthropicApiKey.length > 0;
   const hasRequiredKeys: boolean = hasAnthropicKey;
@@ -80,6 +87,8 @@ export default function useApiKeys(): UseApiKeysReturn {
     setOpenaiApiKey,
     wavespeedApiKey,
     setWavespeedApiKey,
+    bflApiKey,
+    setBflApiKey,
     showApiKeyInput,
     setShowApiKeyInput,
     hasAnthropicKey,

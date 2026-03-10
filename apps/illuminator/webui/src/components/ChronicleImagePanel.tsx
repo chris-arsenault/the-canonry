@@ -191,6 +191,7 @@ export default function ChronicleImagePanel({
       artisticPromptFragment: (resolved.artisticStyle as { promptFragment?: string } | null)?.promptFragment,
       compositionPromptFragment: (resolved.compositionStyle as { promptFragment?: string } | null)?.promptFragment,
       colorPalettePromptFragment: (resolved.colorPalette as { promptFragment?: string } | null)?.promptFragment,
+      colorPaletteSwatchColors: (resolved.colorPalette as { swatchColors?: [string[], string[]] } | null)?.swatchColors,
       artisticNegativePrompt: (resolved.artisticStyle as { negativePrompt?: string } | null)?.negativePrompt,
       artistExemplar: (resolved.artisticStyle as { artistExemplar?: string } | null)?.artistExemplar,
     };
@@ -222,7 +223,8 @@ export default function ChronicleImagePanel({
             : undefined,
           cast: chronicleCast,
         },
-        styleInfo
+        styleInfo,
+        imageModel
       );
 
       onGenerateImage(ref, prompt, styleInfo);
@@ -250,6 +252,7 @@ export default function ChronicleImagePanel({
         artisticPromptFragment: artistic?.promptFragment,
         compositionPromptFragment: composition?.promptFragment,
         colorPalettePromptFragment: palette?.promptFragment,
+        colorPaletteSwatchColors: palette?.swatchColors,
         artisticNegativePrompt: artistic?.negativePrompt,
         artistExemplar: artistic?.artistExemplar,
       };
@@ -273,7 +276,8 @@ export default function ChronicleImagePanel({
             : undefined,
           cast: chronicleCast,
         },
-        styleInfo
+        styleInfo,
+        imageModel
       );
 
       const aspect = composition?.defaultImageAspect || "landscape";

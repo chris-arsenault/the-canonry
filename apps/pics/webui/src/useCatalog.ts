@@ -1,19 +1,36 @@
 /**
- * useCatalog — Loads catalog.json from CDN on mount.
+ * useCatalog — Loads image catalog with inline-first strategy.
  *
- * The catalog URL is derived from the page origin (same CDN) unless
- * overridden via VITE_CATALOG_URL env variable.
+ * 1. Reads inline catalog from <script id="initial-catalog"> (injected at deploy time)
+ *    — provides first 50 images + all facets with zero network latency.
+ * 2. Background-fetches the full catalog.json from CDN.
+ * 3. When full catalog arrives, replaces the inline subset seamlessly.
+ *
+ * In dev mode (no inline data), falls back to fetch-only with no loading spinner.
  */
 
 import { useState, useEffect } from "react";
 import type { ImageCatalog } from "./types";
 
 const CATALOG_URL =
-  import.meta.env.VITE_CATALOG_URL || "/canonry/catalog.json";
+  import.meta.env.VITE_CATALOG_URL || "/catalog.json";
+
+/** Parse the inline catalog script tag (runs once at module load). */
+function readInlineCatalog(): ImageCatalog | null {
+  try {
+    const el = document.getElementById("initial-catalog");
+    if (!el?.textContent) return null;
+    return JSON.parse(el.textContent) as ImageCatalog;
+  } catch {
+    return null;
+  }
+}
+
+const INLINE_CATALOG = readInlineCatalog();
 
 export function useCatalog() {
-  const [catalog, setCatalog] = useState<ImageCatalog | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [catalog, setCatalog] = useState<ImageCatalog | null>(INLINE_CATALOG);
+  const [loading, setLoading] = useState(!INLINE_CATALOG);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,7 +46,8 @@ export function useCatalog() {
           setError(null);
         }
       } catch (e) {
-        if (!cancelled) {
+        // Only surface the error if we have no inline data to fall back on
+        if (!cancelled && !INLINE_CATALOG) {
           setError(e instanceof Error ? e.message : "Failed to load catalog");
         }
       } finally {

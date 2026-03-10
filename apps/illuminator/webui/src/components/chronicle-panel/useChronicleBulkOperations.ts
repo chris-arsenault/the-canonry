@@ -657,17 +657,24 @@ export function useChronicleBulkOperations({
       return;
     }
 
+    // Cap to avoid runaway API spend
+    const BATCH_CAP = 10;
+    const batch = items.slice(0, BATCH_CAP);
+    if (items.length > BATCH_CAP) {
+      console.log(`[BulkGenerateSceneImages] Capped to ${BATCH_CAP} of ${items.length} eligible`);
+    }
+
     // Enqueue one at a time with a 10s delay to avoid OpenAI rate limits
     const DELAY_MS = 10_000;
     let enqueued = 0;
-    for (const item of items) {
+    for (const item of batch) {
       if (enqueued > 0) {
         await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
       }
       onEnqueue([item]);
       enqueued++;
       setBulkGenerateSceneResult({ success: true, count: enqueued });
-      console.log(`[BulkGenerateSceneImages] Enqueued ${enqueued}/${items.length}`);
+      console.log(`[BulkGenerateSceneImages] Enqueued ${enqueued}/${batch.length}`);
     }
 
     setTimeout(() => setBulkGenerateSceneResult(null), 4000);
@@ -783,17 +790,24 @@ export function useChronicleBulkOperations({
       return;
     }
 
+    // Cap to avoid runaway API spend
+    const BATCH_CAP = 10;
+    const batch = items.slice(0, BATCH_CAP);
+    if (items.length > BATCH_CAP) {
+      console.log(`[BulkGenerateCoverImages] Capped to ${BATCH_CAP} of ${items.length} eligible`);
+    }
+
     // Enqueue one at a time with a 10s delay to avoid rate limits
     const DELAY_MS = 10_000;
     let enqueued = 0;
-    for (const item of items) {
+    for (const item of batch) {
       if (enqueued > 0) {
         await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
       }
       onEnqueue([item]);
       enqueued++;
       setBulkGenerateCoverImageResult({ success: true, count: enqueued });
-      console.log(`[BulkGenerateCoverImages] Enqueued ${enqueued}/${items.length}`);
+      console.log(`[BulkGenerateCoverImages] Enqueued ${enqueued}/${batch.length}`);
     }
 
     setTimeout(() => setBulkGenerateCoverImageResult(null), 4000);

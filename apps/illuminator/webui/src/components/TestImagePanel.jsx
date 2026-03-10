@@ -18,6 +18,7 @@ import { loadImage, getImageBlob } from "../lib/db/imageRepository";
 import { IMAGE_MODELS, IMAGE_ASPECTS } from "../lib/imageSettings";
 import { useEntityNavList } from "../lib/db/entitySelectors";
 import { useEntityStore } from "../lib/db/entityStore";
+import { boostSaturation } from "../lib/imagePostProcess";
 import ImageModal from "./ImageModal";
 import "./TestImagePanel.css";
 
@@ -333,6 +334,90 @@ EntitySearchDropdown.propTypes = {
   onSelect: PropTypes.func.isRequired,
   selectedEntity: PropTypes.object,
   onClear: PropTypes.func.isRequired,
+};
+
+/**
+ * Image display with a saturation boost slider.
+ * Fetches the original blob, runs boostSaturation in real-time, displays result.
+ */
+function ResultImageWithSaturation({ imageId, url, alt, onClickImage }) {
+  const [saturation, setSaturation] = useState(1.0);
+  const [adjustedUrl, setAdjustedUrl] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const originalBlobRef = useRef(null);
+  const debounceRef = useRef(null);
+  const adjustedUrlRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (adjustedUrlRef.current) URL.revokeObjectURL(adjustedUrlRef.current);
+    };
+  }, []);
+
+  const handleSaturationChange = useCallback((e) => {
+    const factor = parseFloat(e.target.value);
+    setSaturation(factor);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (factor === 1.0) {
+      if (adjustedUrlRef.current) URL.revokeObjectURL(adjustedUrlRef.current);
+      adjustedUrlRef.current = null;
+      setAdjustedUrl(null);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      setProcessing(true);
+      try {
+        if (!originalBlobRef.current) {
+          originalBlobRef.current = await getImageBlob(imageId);
+        }
+        if (!originalBlobRef.current) return;
+
+        const boosted = await boostSaturation(originalBlobRef.current, factor);
+        const newUrl = URL.createObjectURL(boosted);
+        if (adjustedUrlRef.current) URL.revokeObjectURL(adjustedUrlRef.current);
+        adjustedUrlRef.current = newUrl;
+        setAdjustedUrl(newUrl);
+      } finally {
+        setProcessing(false);
+      }
+    }, 150);
+  }, [imageId]);
+
+  const displayUrl = adjustedUrl || url;
+
+  return (
+    <div className="tip-result-image-col">
+      <div className="tip-result-image">
+        <img src={displayUrl} alt={alt} onClick={onClickImage} />
+      </div>
+      <div className="tip-saturation-row">
+        <span className="tip-saturation-label">Sat</span>
+        <input
+          type="range"
+          min="0"
+          max="3"
+          step="0.1"
+          value={saturation}
+          onChange={handleSaturationChange}
+          className="tip-saturation-slider"
+        />
+        <span className="tip-saturation-value">
+          {saturation.toFixed(1)}{processing ? " ..." : ""}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+ResultImageWithSaturation.propTypes = {
+  imageId: PropTypes.string.isRequired,
+  url: PropTypes.string.isRequired,
+  alt: PropTypes.string,
+  onClickImage: PropTypes.func.isRequired,
 };
 
 export default function TestImagePanel({
@@ -757,21 +842,24 @@ export default function TestImagePanel({
         )}
         {results.map((r) => (
           <div key={r.entityId} className="tip-result-card" data-status={r.status}>
-            <div className="tip-result-image">
-              {r.status === "complete" && r.url ? (
-                <img
-                  src={r.url}
-                  alt={r.basePrompt || r.prompt}
-                  onClick={() =>
-                    setImageModal({ open: true, imageId: r.imageId, title: r.basePrompt || r.prompt })
-                  }
-                />
-              ) : r.status === "error" ? (
-                <span className="tip-result-error">Failed</span>
-              ) : (
-                <span className="tip-spinner" />
-              )}
-            </div>
+            {r.status === "complete" && r.url ? (
+              <ResultImageWithSaturation
+                imageId={r.imageId}
+                url={r.url}
+                alt={r.basePrompt || r.prompt}
+                onClickImage={() =>
+                  setImageModal({ open: true, imageId: r.imageId, title: r.basePrompt || r.prompt })
+                }
+              />
+            ) : (
+              <div className="tip-result-image">
+                {r.status === "error" ? (
+                  <span className="tip-result-error">Failed</span>
+                ) : (
+                  <span className="tip-spinner" />
+                )}
+              </div>
+            )}
             <div className="tip-result-meta">
               <div className="tip-result-prompt">{r.basePrompt || r.prompt}</div>
               <div className="tip-result-info">

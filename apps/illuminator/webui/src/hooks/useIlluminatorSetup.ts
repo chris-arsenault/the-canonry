@@ -52,6 +52,7 @@ interface ApiKeys {
   anthropicApiKey: string;
   openaiApiKey: string;
   wavespeedApiKey: string;
+  bflApiKey: string;
 }
 
 interface IlluminatorConfig {
@@ -205,6 +206,7 @@ function buildWorkerConfig(apiKeys: ApiKeys, config: IlluminatorConfig, imageGen
     anthropicApiKey: apiKeys.anthropicApiKey,
     openaiApiKey: apiKeys.openaiApiKey,
     wavespeedApiKey: apiKeys.wavespeedApiKey,
+    bflApiKey: apiKeys.bflApiKey,
     imageModel: config.imageModel,
     imageSize: imageGenSettings.imageSize,
     imageQuality: imageGenSettings.imageQuality,
@@ -322,12 +324,12 @@ export function useIlluminatorSetup({
   }, [queue, stats]);
   useChronicleQueueWatcher(queue);
   useEffect(() => {
-    if (apiKeys.anthropicApiKey || apiKeys.openaiApiKey || apiKeys.wavespeedApiKey)
+    if (apiKeys.anthropicApiKey || apiKeys.openaiApiKey || apiKeys.wavespeedApiKey || apiKeys.bflApiKey)
       initializeWorker(buildWorkerConfig(apiKeys, config, imageGenSettings));
     // Use specific config fields rather than the whole object to prevent
     // spurious re-init from the external config sync round-trip (which
     // creates a new object reference with identical values).
-  }, [apiKeys.anthropicApiKey, apiKeys.openaiApiKey, apiKeys.wavespeedApiKey, config.imageModel, config.useClaudeForImagePrompt, config.claudeImagePromptTemplate, config.claudeChronicleImagePromptTemplate, config.globalImageRules, config.numWorkers, imageGenSettings.imageSize, imageGenSettings.imageQuality, initializeWorker]);
+  }, [apiKeys.anthropicApiKey, apiKeys.openaiApiKey, apiKeys.wavespeedApiKey, apiKeys.bflApiKey, config.imageModel, config.useClaudeForImagePrompt, config.claudeImagePromptTemplate, config.claudeChronicleImagePromptTemplate, config.globalImageRules, config.numWorkers, imageGenSettings.imageSize, imageGenSettings.imageQuality, initializeWorker]);
 
   // Config store sync
   useEffect(() => {

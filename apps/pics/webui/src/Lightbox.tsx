@@ -1,11 +1,8 @@
 /**
  * Lightbox — Full-screen image viewer with keyboard/swipe navigation.
  *
- * Features:
- * - Arrow key / swipe navigation
- * - Pinch-to-zoom on touch devices
- * - Escape to close
- * - Image metadata overlay
+ * Loads one image: the full-size WebP. No thumbnail placeholder,
+ * no eager preloading. Adjacent images preload only after current loads.
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -20,6 +17,10 @@ interface LightboxProps {
   onNavigate: (index: number) => void;
 }
 
+function resolveUrl(baseUrl: string, path: string): string {
+  return baseUrl ? `${baseUrl}/${path}` : `/${path}`;
+}
+
 export default function Lightbox({
   images,
   currentIndex,
@@ -29,13 +30,37 @@ export default function Lightbox({
 }: Readonly<LightboxProps>) {
   const [showInfo, setShowInfo] = useState(false);
   const [scale, setScale] = useState(1);
+  const [loaded, setLoaded] = useState(false);
+  const [shareToast, setShareToast] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number; dist?: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const img = images[currentIndex];
   if (!img) return null;
 
-  const fullUrl = baseUrl ? `${baseUrl}/${img.fullPath}` : `/${img.fullPath}`;
+  const fullUrl = resolveUrl(baseUrl, img.fullPath);
+
+  // Reset loaded state when navigating
+  useEffect(() => {
+    setLoaded(false);
+  }, [currentIndex]);
+
+  // Preload adjacent images after current loads (link prefetch, no JS Image objects)
+  useEffect(() => {
+    if (!loaded) return;
+    const links: HTMLLinkElement[] = [];
+    for (const offset of [1, -1]) {
+      const adj = images[currentIndex + offset];
+      if (!adj) continue;
+      const link = document.createElement("link");
+      link.rel = "prefetch";
+      link.as = "image";
+      link.href = resolveUrl(baseUrl, adj.fullPath);
+      document.head.appendChild(link);
+      links.push(link);
+    }
+    return () => links.forEach((l) => l.remove());
+  }, [loaded, currentIndex, images, baseUrl]);
 
   const goNext = useCallback(() => {
     if (currentIndex < images.length - 1) {
@@ -50,6 +75,21 @@ export default function Lightbox({
       setScale(1);
     }
   }, [currentIndex, onNavigate]);
+
+  const handleShare = useCallback(async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: img.title, url });
+      } catch {
+        // User cancelled share — ignore
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2000);
+    }
+  }, [img.title]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -90,7 +130,6 @@ export default function Lightbox({
     (e: React.TouchEvent) => {
       if (!touchStartRef.current) return;
       if (touchStartRef.current.dist !== undefined) {
-        // Pinch ended
         touchStartRef.current = null;
         return;
       }
@@ -133,6 +172,13 @@ export default function Lightbox({
           {currentIndex + 1} / {images.length}
         </span>
         <div className="lb-actions">
+          <button className="lb-btn" onClick={handleShare} title="Share link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+          </button>
           <button className="lb-btn" onClick={() => setShowInfo((s) => !s)} title="Toggle info (i)">
             i
           </button>
@@ -141,6 +187,8 @@ export default function Lightbox({
           </button>
         </div>
       </div>
+
+      {shareToast && <div className="lb-toast">Link copied</div>}
 
       <button
         className="lb-nav lb-nav-prev"
@@ -155,9 +203,10 @@ export default function Lightbox({
         <img
           src={fullUrl}
           alt={img.title}
-          className="lb-image"
+          className={`lb-image ${loaded ? "lb-image-loaded" : ""}`}
           style={{ transform: `scale(${scale})` }}
           draggable={false}
+          onLoad={() => setLoaded(true)}
         />
       </div>
 

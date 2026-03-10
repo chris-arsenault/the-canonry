@@ -11,6 +11,9 @@ const INITIAL: FilterState = {
   entityKind: null,
   culture: null,
   artisticStyle: null,
+  compositionStyle: null,
+  colorPalette: null,
+  model: null,
   sort: "newest",
 };
 
@@ -79,6 +82,15 @@ export function useFilters(images: CatalogImage[]) {
     if (filters.artisticStyle) {
       result = result.filter((img) => img.artisticStyleId === filters.artisticStyle);
     }
+    if (filters.compositionStyle) {
+      result = result.filter((img) => img.compositionStyleId === filters.compositionStyle);
+    }
+    if (filters.colorPalette) {
+      result = result.filter((img) => img.colorPaletteId === filters.colorPalette);
+    }
+    if (filters.model) {
+      result = result.filter((img) => img.model === filters.model);
+    }
 
     return sortImages(result, filters.sort);
   }, [images, filters]);
@@ -88,7 +100,10 @@ export function useFilters(images: CatalogImage[]) {
     filters.imageType !== null ||
     filters.entityKind !== null ||
     filters.culture !== null ||
-    filters.artisticStyle !== null;
+    filters.artisticStyle !== null ||
+    filters.compositionStyle !== null ||
+    filters.colorPalette !== null ||
+    filters.model !== null;
 
   return {
     filters,

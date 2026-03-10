@@ -115,6 +115,11 @@ function CollapsibleSection({
       {!collapsed && <div className="isd-section-content">{children}</div>}
     </div>;
 }
+/** Flatten [primary[], secondary[]] swatch arrays to a single list for display. */
+function flattenSwatchColors(sc: [string[], string[]]): string[] {
+  return [...sc[0], ...sc[1]];
+}
+
 function SwatchStrip({
   colors
 }: Readonly<{
@@ -396,7 +401,7 @@ export default function ImageSettingsDrawer({
                     colorPaletteId: palette.id
                   })} title={palette.description} className="isd-palette-btn" data-selected={isSelected}>
                             {palette.swatchColors && palette.swatchColors.length > 0 && <div className="isd-palette-swatch-row">
-                                <SwatchStrip colors={palette.swatchColors} />
+                                <SwatchStrip colors={flattenSwatchColors(palette.swatchColors)} />
                               </div>}
                             <div className="isd-palette-name">{palette.name}</div>
                           </button>;
@@ -419,6 +424,11 @@ export default function ImageSettingsDrawer({
                   >
                     <optgroup label="OpenAI">
                       {IMAGE_MODELS.filter(m => m.provider === "openai").map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Flux (BFL)">
+                      {IMAGE_MODELS.filter(m => m.provider === "bfl").map(m => (
                         <option key={m.value} value={m.value}>{m.label}</option>
                       ))}
                     </optgroup>
@@ -510,7 +520,7 @@ export function ImageSettingsSummary({
       <span className="isd-summary-value">
         {artistic} &middot; {composition} &middot; {palette}
       </span>
-      {swatchColors && swatchColors.length > 0 && <SwatchStrip colors={swatchColors} />}
+      {swatchColors && swatchColors.length > 0 && <SwatchStrip colors={flattenSwatchColors(swatchColors)} />}
       <button onClick={onOpenSettings} className="isd-summary-settings-btn">
         Settings
       </button>
@@ -545,7 +555,7 @@ export function ImageSettingsTrigger({
         <span className="isd-trigger-title">Image Settings</span>
       </div>
       <div className="isd-trigger-detail">
-        {swatchColors && settings.colorPaletteId !== RANDOM_ID && settings.colorPaletteId !== NONE_ID ? <SwatchStrip colors={swatchColors.slice(0, 3)} /> : null}
+        {swatchColors && settings.colorPaletteId !== RANDOM_ID && settings.colorPaletteId !== NONE_ID ? <SwatchStrip colors={flattenSwatchColors(swatchColors).slice(0, 3)} /> : null}
         <span className="isd-trigger-text">
           {artistic} &middot; {palette}
         </span>

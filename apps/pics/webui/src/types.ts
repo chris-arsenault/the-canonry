@@ -23,19 +23,28 @@ export interface CatalogImage {
   fullPath: string;
 }
 
+export interface FacetEntry {
+  id: string;
+  name: string;
+  group?: string;
+}
+
+/** Facets can be either {id,name} pairs (v2) or plain strings (v1) */
+export type FacetList = FacetEntry[] | string[];
+
 export interface ImageCatalog {
-  version: 1;
+  version: 1 | 2;
   generatedAt: string;
   baseUrl: string;
   images: CatalogImage[];
   facets: {
-    artisticStyles: string[];
-    compositionStyles: string[];
-    colorPalettes: string[];
-    entityKinds: string[];
-    cultures: string[];
-    models: string[];
-    imageTypes: string[];
+    artisticStyles: FacetList;
+    compositionStyles: FacetList;
+    colorPalettes: FacetList;
+    entityKinds: FacetList;
+    cultures: FacetList;
+    models: FacetList;
+    imageTypes: FacetList;
   };
 }
 
@@ -47,5 +56,17 @@ export interface FilterState {
   entityKind: string | null;
   culture: string | null;
   artisticStyle: string | null;
+  compositionStyle: string | null;
+  colorPalette: string | null;
+  model: string | null;
   sort: SortMode;
+}
+
+/** Normalize a facet list to {id,name} pairs regardless of catalog version */
+export function normalizeFacets(facets: FacetList): FacetEntry[] {
+  if (facets.length === 0) return [];
+  if (typeof facets[0] === "string") {
+    return (facets as string[]).map((id) => ({ id, name: id }));
+  }
+  return facets as FacetEntry[];
 }

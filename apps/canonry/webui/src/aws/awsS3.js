@@ -7,6 +7,11 @@ import {
 import { fromCognitoIdentityPool } from "@aws-sdk/credential-provider-cognito-identity";
 import { getImageBlob, getImagesByProject } from "../lib/imageExportHelpers";
 import { openIlluminatorDb } from "@the-canonry/world-store";
+import {
+  DEFAULT_ARTISTIC_STYLES,
+  DEFAULT_COMPOSITION_STYLES,
+  DEFAULT_COLOR_PALETTES,
+} from "@canonry/world-schema";
 
 const DEFAULT_RAW_PREFIX = "raw";
 const DEFAULT_WEBP_PREFIX = "webp";
@@ -493,14 +498,16 @@ export async function syncProjectImagesToS3({ projectId, s3, config, onProgress 
   }
 
   // Catch-up: generate variants for images already in manifest but missing webp/thumb
-  let variantsCatchup = 0;
-  for (const image of images) {
-    if (!image?.imageId) continue;
-    const entry = existing[image.imageId];
-    if (!entry || (entry.webpKey && entry.thumbKey)) continue;
+  const variantsTodo = images.filter(img => {
+    if (!img?.imageId) return false;
+    const entry = existing[img.imageId];
+    return entry && (!entry.webpKey || !entry.thumbKey);
+  });
 
+  let variantsCatchup = 0;
+  for (const image of variantsTodo) {
     if (onProgress) {
-      onProgress({ phase: "variants", processed: variantsCatchup, total: images.length, uploaded });
+      onProgress({ phase: "variants", processed: variantsCatchup, total: variantsTodo.length, uploaded });
     }
 
     try {
@@ -510,6 +517,7 @@ export async function syncProjectImagesToS3({ projectId, s3, config, onProgress 
       const { webpKey, thumbKey } = await uploadImageVariants(
         s3, { bucket, basePrefix, projectId }, image.imageId, blob
       );
+      const entry = existing[image.imageId];
       entry.webpKey = webpKey;
       entry.thumbKey = thumbKey;
       variantsCatchup += 1;
@@ -666,19 +674,96 @@ export async function buildAndUploadCatalog(s3, config, projectId, cdnBaseUrl) {
 
   entries.sort((a, b) => b.generatedAt - a.generatedAt);
 
+  // Build id→name and id→group maps from style definitions
+  const styleName = Object.fromEntries(DEFAULT_ARTISTIC_STYLES.map((s) => [s.id, s.name]));
+  const styleGroup = Object.fromEntries(DEFAULT_ARTISTIC_STYLES.map((s) => [s.id, s.category]));
+  const compName = Object.fromEntries(DEFAULT_COMPOSITION_STYLES.map((s) => [s.id, s.name]));
+  const compGroup = Object.fromEntries(
+    DEFAULT_COMPOSITION_STYLES.map((s) => [s.id, s.targetCategory || "general"]),
+  );
+  const paletteName = Object.fromEntries(DEFAULT_COLOR_PALETTES.map((s) => [s.id, s.name]));
+  const paletteGroup = Object.fromEntries(DEFAULT_COLOR_PALETTES.map((s) => [s.id, s.group]));
+
+  // Sort by group order, then by name within group
+  const toGroupedFacet = (ids, nameMap, groupMap, groupOrder) => {
+    const items = [...ids].map((id) => ({
+      id,
+      name: nameMap[id] || id,
+      group: groupMap[id] || "other",
+    }));
+    items.sort((a, b) => {
+      const ga = groupOrder.indexOf(a.group);
+      const gb = groupOrder.indexOf(b.group);
+      const oa = ga >= 0 ? ga : groupOrder.length;
+      const ob = gb >= 0 ? gb : groupOrder.length;
+      if (oa !== ob) return oa - ob;
+      return a.name.localeCompare(b.name);
+    });
+    return items;
+  };
+
+  // Simple title-case for IDs without a lookup (entity kinds, cultures, models, image types)
+  const titleCase = (s) => s.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const selfName = (ids) => [...ids].sort().map((id) => ({ id, name: titleCase(id) }));
+
+  const ARTISTIC_GROUP_ORDER = [
+    "painting",
+    "ink-print",
+    "digital",
+    "camera",
+    "experimental",
+    "document",
+  ];
+  const COMP_GROUP_ORDER = [
+    "character",
+    "pair",
+    "pose",
+    "collective",
+    "place",
+    "landscape",
+    "object",
+    "concept",
+    "event",
+    "general",
+  ];
+  const PALETTE_GROUP_ORDER = [
+    "hue",
+    "special",
+    "natural",
+    "mood",
+    "metallic",
+    "contrast-pair",
+    "metallic-triplet",
+  ];
+
   const catalog = {
-    version: 1,
+    version: 2,
     generatedAt: new Date().toISOString(),
     baseUrl: cdnBaseUrl || "",
     images: entries,
     facets: {
-      artisticStyles: [...facetSets.artisticStyles].sort(),
-      compositionStyles: [...facetSets.compositionStyles].sort(),
-      colorPalettes: [...facetSets.colorPalettes].sort(),
-      entityKinds: [...facetSets.entityKinds].sort(),
-      cultures: [...facetSets.cultures].sort(),
-      models: [...facetSets.models].sort(),
-      imageTypes: [...facetSets.imageTypes].sort(),
+      artisticStyles: toGroupedFacet(
+        facetSets.artisticStyles,
+        styleName,
+        styleGroup,
+        ARTISTIC_GROUP_ORDER,
+      ),
+      compositionStyles: toGroupedFacet(
+        facetSets.compositionStyles,
+        compName,
+        compGroup,
+        COMP_GROUP_ORDER,
+      ),
+      colorPalettes: toGroupedFacet(
+        facetSets.colorPalettes,
+        paletteName,
+        paletteGroup,
+        PALETTE_GROUP_ORDER,
+      ),
+      entityKinds: selfName(facetSets.entityKinds),
+      cultures: selfName(facetSets.cultures),
+      models: selfName(facetSets.models),
+      imageTypes: selfName(facetSets.imageTypes),
     },
   };
 

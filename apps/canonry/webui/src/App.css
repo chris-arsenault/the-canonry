@@ -47,6 +47,14 @@
   overflow: hidden;
 }
 
+.canonry-remote-pane-hidden {
+  display: none;
+}
+
+.canonry-remote-pane-visible {
+  display: block;
+}
+
 .canonry-footer {
   display: flex;
   justify-content: center;
