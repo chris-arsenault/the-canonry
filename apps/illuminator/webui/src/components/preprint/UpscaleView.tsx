@@ -24,6 +24,9 @@ import {
   getBestSourceBlob,
   saveUpscaleBlob,
   saveTestUpscaleBlob,
+  getUpscaleBlobsForImage,
+  promoteTestBlob,
+  getTestBlobsForImage,
 } from "../../lib/db/upscaleRepository";
 import { extractImageDimensions } from "../../lib/db/imageRepository";
 import { db } from "../../lib/db/illuminatorDb";
@@ -86,6 +89,13 @@ export default function UpscaleView({ images, projectId: _projectId }: Readonly<
   const [processedCount, setProcessedCount] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
 
+  // Preview state
+  const [previewImageId, setPreviewImageId] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTiers, setPreviewTiers] = useState<Array<{ label: string; width: number; height: number; blobId?: string; isOriginal?: boolean }>>([]);
+  const [selectedTier, setSelectedTier] = useState<number>(0);
+  const [testBlobs, setTestBlobs] = useState<Array<{ testId: string; width: number; height: number; model: string; factor: number; creativity: number }>>([]);
+
   // ---------- Selection helpers ----------
 
   const handleSelectAll = useCallback(() => {
@@ -123,6 +133,93 @@ export default function UpscaleView({ images, projectId: _projectId }: Readonly<
           : 0.08;
     return (selectedIds.size * perImage).toFixed(2);
   }, [selectedIds.size, model, factor]);
+
+  // ---------- Preview handlers ----------
+
+  const handlePreview = useCallback(async (imageId: string) => {
+    setPreviewImageId(imageId);
+    setSelectedTier(0);
+
+    // Load available upscale tiers
+    const tiers = await getUpscaleBlobsForImage(imageId);
+    const img = images.find(im => im.imageId === imageId);
+
+    const tierList: Array<{ label: string; width: number; height: number; blobId?: string; isOriginal?: boolean }> = [];
+
+    // Add upscale tiers (largest first — already sorted by getUpscaleBlobsForImage)
+    for (const tier of tiers) {
+      tierList.push({
+        label: `${tier.width}\u00d7${tier.height} (${tier.factor}x ${tier.model}, creativity ${tier.creativity.toFixed(2)})`,
+        width: tier.width,
+        height: tier.height,
+        blobId: tier.blobId,
+      });
+    }
+
+    // Add original as last tier
+    tierList.push({
+      label: `${img?.width || 0}\u00d7${img?.height || 0} (original)`,
+      width: img?.width || 0,
+      height: img?.height || 0,
+      isOriginal: true,
+    });
+
+    setPreviewTiers(tierList);
+
+    // Load test blobs for this image
+    const tests = await getTestBlobsForImage(imageId);
+    setTestBlobs(tests.map(t => ({
+      testId: t.testId,
+      width: t.width,
+      height: t.height,
+      model: t.model,
+      factor: t.factor,
+      creativity: t.creativity,
+    })));
+
+    // Show the best available (first tier = largest upscale, or original)
+    if (tiers.length > 0) {
+      const url = URL.createObjectURL(tiers[0].blob);
+      setPreviewUrl(url);
+    } else {
+      // Fall back to original
+      const record = await db.imageBlobs.get(imageId);
+      if (record?.blob) {
+        setPreviewUrl(URL.createObjectURL(record.blob));
+      }
+    }
+  }, [images]);
+
+  const handleTierChange = useCallback(async (tierIndex: number) => {
+    setSelectedTier(tierIndex);
+    const tier = previewTiers[tierIndex];
+    if (!tier) return;
+
+    // Clean up previous URL
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+
+    if (tier.isOriginal) {
+      const record = await db.imageBlobs.get(previewImageId!);
+      if (record?.blob) setPreviewUrl(URL.createObjectURL(record.blob));
+    } else if (tier.blobId) {
+      const record = await db.upscaleBlobs.get(tier.blobId);
+      if (record?.blob) setPreviewUrl(URL.createObjectURL(record.blob));
+    }
+  }, [previewTiers, previewImageId, previewUrl]);
+
+  const handlePromoteTest = useCallback(async (testId: string) => {
+    await promoteTestBlob(testId);
+    // Refresh preview if viewing same image
+    if (previewImageId) handlePreview(previewImageId);
+  }, [previewImageId, handlePreview]);
+
+  const handleClosePreview = useCallback(() => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewImageId(null);
+    setPreviewUrl(null);
+    setPreviewTiers([]);
+    setTestBlobs([]);
+  }, [previewUrl]);
 
   // ---------- Upscale handler ----------
 
@@ -360,6 +457,13 @@ export default function UpscaleView({ images, projectId: _projectId }: Readonly<
                 </span>
               )}
             </div>
+            <button
+              className="uv-card-preview"
+              onClick={(e) => { e.stopPropagation(); handlePreview(img.imageId); }}
+              title="Preview"
+            >
+              &#8853;
+            </button>
             <input
               type="checkbox"
               className="uv-card-check"
@@ -370,6 +474,51 @@ export default function UpscaleView({ images, projectId: _projectId }: Readonly<
           </div>
         ))}
       </div>
+
+      {/* Preview panel */}
+      {previewImageId && (
+        <div className="uv-preview-panel">
+          <div className="uv-preview-header">
+            <span className="uv-preview-title">
+              {images.find(im => im.imageId === previewImageId)?.entityName || previewImageId.slice(0, 12)}
+            </span>
+            {previewTiers.length > 1 && (
+              <select
+                value={selectedTier}
+                onChange={(e) => handleTierChange(Number(e.target.value))}
+                className="uv-select"
+              >
+                {previewTiers.map((tier, i) => (
+                  <option key={tier.blobId || "original"} value={i}>{tier.label}</option>
+                ))}
+              </select>
+            )}
+            <button onClick={handleClosePreview} className="uv-btn uv-btn-sm">&times;</button>
+          </div>
+          <div className="uv-preview-image">
+            {previewUrl && <img src={previewUrl} alt="Preview" className="uv-preview-img" />}
+          </div>
+          {testBlobs.length > 0 && (
+            <div className="uv-test-strip">
+              <span className="uv-test-label">Test results:</span>
+              {testBlobs.map(t => (
+                <div key={t.testId} className="uv-test-item">
+                  <span className="uv-test-info">
+                    {t.width}&times;{t.height} {t.model} {t.factor}x c={t.creativity.toFixed(2)}
+                  </span>
+                  <button
+                    onClick={() => handlePromoteTest(t.testId)}
+                    className="uv-btn uv-btn-sm"
+                    title="Promote to HQ"
+                  >
+                    Promote
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
