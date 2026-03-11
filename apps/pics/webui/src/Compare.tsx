@@ -26,13 +26,13 @@ export default function Compare({ images, baseUrl, onClose }: Readonly<ComparePr
         {images.map((img) => (
           <div key={img.imageId} className="cmp-panel">
             <img
-              src={resolveUrl(img.fullPath)}
+              src={resolveUrl(img.hqPath ?? img.fullPath)}
               alt={img.title}
               className="cmp-image"
             />
             <div className="cmp-caption">
               <div className="cmp-title">{img.title}</div>
-              {img.entityName && <div className="cmp-entity">{img.entityName}</div>}
+              {img.imageType === "entity" && <div className="cmp-entity">{img.entityName}</div>}
               <div className="cmp-meta">
                 {img.width}&times;{img.height} &middot; {img.model}
               </div>
