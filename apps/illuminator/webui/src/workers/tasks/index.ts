@@ -18,6 +18,8 @@ import { motifVariationTask } from "./motifVariationTask";
 import { factCoverageTask } from "./factCoverageTask";
 import { toneRankingTask } from "./toneRankingTask";
 import { bulkToneRankingTask } from "./bulkToneRankingTask";
+import { entityTagImageStylesTask } from "./entityTagImageStylesTask";
+import { upscaleTask } from "./upscaleTask";
 
 export const TASK_HANDLERS = {
   description: descriptionTask,
@@ -37,6 +39,8 @@ export const TASK_HANDLERS = {
   factCoverage: factCoverageTask,
   toneRanking: toneRankingTask,
   bulkToneRanking: bulkToneRankingTask,
+  entityTagImageStyles: entityTagImageStylesTask,
+  upscale: upscaleTask,
 } satisfies TaskHandlerMap;
 
 export async function executeTask<TType extends WorkerTask["type"]>(
@@ -80,4 +84,6 @@ export {
   factCoverageTask,
   toneRankingTask,
   bulkToneRankingTask,
+  entityTagImageStylesTask,
+  upscaleTask,
 };

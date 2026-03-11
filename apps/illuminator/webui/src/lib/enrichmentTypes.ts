@@ -31,7 +31,9 @@ export type EnrichmentType =
   | "motifVariation"
   | "factCoverage"
   | "toneRanking"
-  | "bulkToneRanking";
+  | "bulkToneRanking"
+  | "entityTagImageStyles"
+  | "upscale";
 
 /**
  * Which image to display at a chronicle backref anchor in an entity description.
@@ -197,6 +199,19 @@ export interface EntityEnrichment {
   reinforcedFacts?: string[];
   /** Slug aliases from entity renames — old entity IDs that should still resolve in deep links */
   slugAliases?: string[];
+  /** Style assignment for image generation — LLM-ranked + deterministic distribution */
+  imageStyle?: {
+    rankedArtisticStyleIds: string[];
+    rankedCompositionStyleIds: string[];
+    rankedColorPaletteIds: string[];
+    visualTags: string[];
+    suggestedArtisticStyleId: string;
+    suggestedCompositionStyleId: string;
+    suggestedColorPaletteId: string;
+    secondaryArtisticStyleId?: string;
+    secondaryCompositionStyleId?: string;
+    secondaryColorPaletteId?: string;
+  };
 }
 
 /**
@@ -334,11 +349,27 @@ export type ChronicleStep =
  * Worker task - what we send to the worker (single task)
  * Includes metadata needed for worker to persist directly to IndexedDB
  */
-export type WorkerTask = EnrichmentTaskPayload & {
-  projectId: string;
-  /** Snapshot of resolved LLM call settings at execution time */
-  llmCallSettings?: ResolvedLLMCallSettings;
-};
+export type WorkerTask =
+  | (EnrichmentTaskPayload & {
+      projectId: string;
+      /** Snapshot of resolved LLM call settings at execution time */
+      llmCallSettings?: ResolvedLLMCallSettings;
+    })
+  | {
+      type: "upscale";
+      imageId: string;
+      upscaleModel: "clarity" | "creative" | "topaz";
+      factor: 2 | 4;
+      creativity: number;
+      resemblance: number;
+      prompt: string;
+      negativePrompt: string;
+      testMode: boolean;
+      entityId: string;
+      entityName: string;
+      entityKind: string;
+      projectId: string;
+    };
 
 /**
  * Worker result - what the worker returns
