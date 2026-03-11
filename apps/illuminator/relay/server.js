@@ -10,6 +10,7 @@
 
 import http from "node:http";
 import { handler } from "./handler.js";
+import { handler as falHandler } from "./falHandler.js";
 
 const PORT = parseInt(process.env.BFL_RELAY_PORT || "3100", 10);
 const isDebug = (process.env.BFL_RELAY_LOG || "info").toLowerCase() === "debug";
@@ -41,7 +42,8 @@ const server = http.createServer(async (req, res) => {
   if (isDebug) console.log(`[BFL Relay] ${req.method} ${req.url}`);
 
   try {
-    const result = await handler(event);
+    const dispatch = url.pathname.startsWith("/fal/") ? falHandler : handler;
+    const result = await dispatch(event);
     if (isDebug) console.log(`[BFL Relay]   → ${result.statusCode}`);
     res.writeHead(result.statusCode, result.headers);
     res.end(result.isBase64Encoded ? Buffer.from(result.body, "base64") : result.body);
