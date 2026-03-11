@@ -1,19 +1,19 @@
 /** Catalog types — mirrors catalogBuilder output */
 
-export type ImageAspect = "portrait" | "landscape" | "square";
-export type ImageType = "entity" | "scene" | "cover" | "other";
+/** Intentional optionality — field may be absent by design. See ADR-045. */
+type Optional<T> = T | undefined;
 
-export interface CatalogImage {
+export type ImageAspect = "portrait" | "landscape" | "square";
+
+/* ── CatalogImage — discriminated union on imageType ────────────────── */
+
+interface CatalogImageBase {
   imageId: string;
   title: string;
   artisticStyleId: string;
   compositionStyleId: string;
   colorPaletteId: string;
-  imageType: ImageType;
   tags: string[];
-  entityName?: string;
-  entityKind?: string;
-  entityCulture?: string;
   model: string;
   width: number;
   height: number;
@@ -21,12 +21,37 @@ export interface CatalogImage {
   generatedAt: number;
   thumbPath: string;
   fullPath: string;
+  /** High-quality upscaled version (optional, largest upscale tier) */
+  hqPath?: string;
 }
+
+/** Entity image — always has entityName, entityKind, entityCulture */
+export interface EntityImage extends CatalogImageBase {
+  imageType: "entity";
+  entityName: string;
+  entityKind: string;
+  entityCulture: string;
+}
+
+/** Non-entity image — scene, cover, or other */
+export interface NonEntityImage extends CatalogImageBase {
+  imageType: "scene" | "cover" | "other";
+}
+
+export type CatalogImage = EntityImage | NonEntityImage;
+
+/** Type guard for entity images */
+export function isEntityImage(img: CatalogImage): img is EntityImage {
+  return img.imageType === "entity";
+}
+
+/* ── Facets ──────────────────────────────────────────────────────────── */
 
 export interface FacetEntry {
   id: string;
   name: string;
-  group?: string;
+  /** Some facet categories (styles, palettes) are grouped; others are flat */
+  group: Optional<string>;
 }
 
 /** Facets can be either {id,name} pairs (v2) or plain strings (v1) */

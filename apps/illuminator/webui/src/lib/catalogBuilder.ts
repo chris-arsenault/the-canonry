@@ -29,6 +29,8 @@ export interface ImageCatalogEntry {
   generatedAt: number;
   thumbPath: string;
   fullPath: string;
+  /** High-quality upscaled version path (only present for upscaled images) */
+  hqPath?: string;
 }
 
 export interface ImageCatalog {
@@ -110,6 +112,9 @@ export async function buildCatalog(
       generatedAt: img.generatedAt,
       thumbPath: buildImagePath(imagePrefix, "thumb", projectId, img.imageId),
       fullPath: buildImagePath(imagePrefix, "webp", projectId, img.imageId),
+      hqPath: img.hqWidth
+        ? [imagePrefix, "hq", projectId, `${img.imageId}.png`].filter(Boolean).join("/")
+        : undefined,
     };
     entries.push(entry);
 
