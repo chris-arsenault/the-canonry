@@ -16,7 +16,7 @@ import type {
 } from "@canonry/world-schema";
 import type { EntityEnrichment } from "../enrichmentTypes";
 import type { ChronicleRecord } from "../chronicleTypes";
-import type { ImageRecord, ImageType, ImageAspect, ImageBlobRecord } from "../imageTypes";
+import type { ImageRecord, ImageType, ImageAspect, ImageBlobRecord, UpscaleBlobRecord, UpscaleTestBlobRecord } from "../imageTypes";
 import type { CostRecord, CostType, CostRecordInput, CostSummary } from "../costTypes";
 import type { TraitPalette, UsedTraitRecord, PaletteItem, TraitGuidance } from "../traitTypes";
 import type { HistorianRun } from "../historianTypes";
@@ -105,6 +105,8 @@ export type {
   ImageType,
   ImageAspect,
   ImageBlobRecord,
+  UpscaleBlobRecord,
+  UpscaleTestBlobRecord,
   CostRecord,
   CostType,
   CostRecordInput,
@@ -143,6 +145,8 @@ class IlluminatorDatabase extends Dexie {
   chronicles!: Table<ChronicleRecord, string>;
   images!: Table<ImageRecord, string>;
   imageBlobs!: Table<ImageBlobRecord, string>;
+  upscaleBlobs!: Table<UpscaleBlobRecord, string>;
+  upscaleTestBlobs!: Table<UpscaleTestBlobRecord, string>;
   costs!: Table<CostRecord, string>;
   traitPalettes!: Table<TraitPalette, string>;
   usedTraits!: Table<UsedTraitRecord, string>;
@@ -426,6 +430,37 @@ class IlluminatorDatabase extends Dexie {
     // colorPaletteId, title, tags). No index changes — these fields are used for
     // client-side filtering in the catalog builder and curation UI, not Dexie queries.
     this.version(11).stores({});
+
+    // v12 — upscale blob tables for print-quality image upscaling
+    this.version(12).stores({
+      // All existing tables (redeclare unchanged)
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
+      chronicles: "chronicleId, simulationRunId, projectId",
+      images:
+        "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
+      costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
+      traitPalettes: "id, projectId, entityKind",
+      usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
+      historianRuns: "runId, projectId, status, createdAt",
+      summaryRevisionRuns: "runId, projectId, status, createdAt",
+      dynamicsRuns: "runId, projectId, status, createdAt",
+      staticPages: "pageId, projectId, slug, status, updatedAt",
+      styleLibrary: "id",
+      imageBlobs: "imageId",
+      contentTrees: "[projectId+simulationRunId]",
+      relationships: "[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind",
+      simulationSlots: "[projectId+slotIndex], projectId, slotIndex, simulationRunId",
+      worldSchemas: "projectId",
+      coordinateStates: "simulationRunId",
+      eraNarratives: "narrativeId, projectId, simulationRunId, eraId, status, createdAt",
+      runIndexes: "simulationRunId",
+      pageLayouts: "[simulationRunId+pageId], simulationRunId",
+
+      // New: upscale blob tables
+      upscaleBlobs: "blobId, imageId",
+      upscaleTestBlobs: "testId, sourceImageId",
+    });
   }
 }
 

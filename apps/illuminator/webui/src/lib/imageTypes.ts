@@ -70,6 +70,14 @@ export interface ImageMetadata {
   llmTitle?: boolean;
   /** Descriptive tags (from visualTags on chronicle refs, or LLM-generated) */
   tags?: string[];
+
+  // Upscale metadata (set when production upscale is stored)
+  /** Width of highest-resolution upscale available */
+  hqWidth?: number;
+  /** Height of highest-resolution upscale available */
+  hqHeight?: number;
+  /** Timestamp of most recent upscale */
+  hqUpscaledAt?: number;
 }
 
 export interface ImageRecord extends ImageMetadata {
@@ -84,6 +92,49 @@ export interface ImageRecord extends ImageMetadata {
 export interface ImageBlobRecord {
   imageId: string;
   blob: Blob;
+}
+
+/** Upscaled image blob — keyed by "{imageId}:{width}x{height}" to allow multiple tiers */
+export interface UpscaleBlobRecord {
+  /** Compound key: "{imageId}:{width}x{height}" */
+  blobId: string;
+  /** FK to images table */
+  imageId: string;
+  blob: Blob;
+  width: number;
+  height: number;
+  /** fal.ai upscale model used */
+  model: "clarity" | "creative" | "topaz";
+  /** Scale factor applied in this pass */
+  factor: 2 | 4;
+  creativity: number;
+  resemblance: number;
+  /** Guidance prompt sent to the upscaler */
+  prompt: string;
+  negativePrompt: string;
+  /** Resolution of the source image for this pass */
+  sourceWidth: number;
+  sourceHeight: number;
+  upscaledAt: number;
+}
+
+/** Test upscale blob — disconnected from primary image store */
+export interface UpscaleTestBlobRecord {
+  testId: string;
+  /** Which image was upscaled (for display, not a DB link) */
+  sourceImageId: string;
+  blob: Blob;
+  width: number;
+  height: number;
+  model: "clarity" | "creative" | "topaz";
+  factor: 2 | 4;
+  creativity: number;
+  resemblance: number;
+  prompt: string;
+  negativePrompt: string;
+  sourceWidth: number;
+  sourceHeight: number;
+  createdAt: number;
 }
 
 /**
