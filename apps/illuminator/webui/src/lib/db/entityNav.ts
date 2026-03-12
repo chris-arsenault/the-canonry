@@ -88,6 +88,10 @@ export interface EntityNavItem {
   hasHistorianEdition: boolean; // descriptionHistory contains a 'historian-edition' source entry
   historianEditionCount: number; // count of historian-edition entries in descriptionHistory
   descriptionWordCount: number; // word count of current description for token estimation
+  hasImageStyle: boolean; // !!entity.enrichment?.imageStyle?.suggestedArtisticStyleId
+  suggestedArtisticStyleId?: string;
+  suggestedCompositionStyleId?: string;
+  suggestedColorPaletteId?: string;
 }
 
 export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
@@ -123,5 +127,9 @@ export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
       (h: { source?: string }) => h.source === "historian-edition"
     ).length,
     descriptionWordCount: entity.description ? entity.description.split(/\s+/).length : 0,
+    hasImageStyle: !!entity.enrichment?.imageStyle?.suggestedArtisticStyleId,
+    suggestedArtisticStyleId: entity.enrichment?.imageStyle?.suggestedArtisticStyleId,
+    suggestedCompositionStyleId: entity.enrichment?.imageStyle?.suggestedCompositionStyleId,
+    suggestedColorPaletteId: entity.enrichment?.imageStyle?.suggestedColorPaletteId,
   };
 }

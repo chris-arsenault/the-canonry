@@ -73,7 +73,8 @@ export default function BulkEraNarrativeModal({
   eraTemporalInfo,
   projectId,
   simulationRunId,
-  styleLibrary
+  styleLibrary,
+  renderMode
 }) {
   const progress = useBulkEraNarrativeStore(s => s.progress);
   const prepareBulk = useBulkEraNarrativeStore(s => s.prepareBulk);
@@ -181,7 +182,7 @@ export default function BulkEraNarrativeModal({
   else if (progressStatus === "cancelled") progressFillModifier = "benm-progress-fill-cancelled";
   else progressFillModifier = "benm-progress-fill-complete";
   const progressFillClass = `benm-progress-fill ${progressFillModifier}`;
-  return <BulkOperationShell pillId={PILL_ID} title="Bulk Era Narrative" tabId="chronicle" progress={progress} onConfirm={handleConfirm} onCancel={handleCancel} onClose={handleClose} confirmLabel={`Run All (${progress?.totalEras ?? 0} eras)`} statusText={statusText} pillStatusText={pillStatusText} confirmWidth="540px" processWidth="560px">
+  return <BulkOperationShell pillId={PILL_ID} title="Bulk Era Narrative" tabId="bulkactions" progress={progress} onConfirm={handleConfirm} onCancel={handleCancel} onClose={handleClose} confirmLabel={`Run All (${progress?.totalEras ?? 0} eras)`} statusText={statusText} pillStatusText={pillStatusText} confirmWidth="540px" processWidth="560px" renderMode={renderMode}>
       {/* ---- Confirmation screen ---- */}
       {isConfirming && <>
           {/* Era list with per-era tone */}

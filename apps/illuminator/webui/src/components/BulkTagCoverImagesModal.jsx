@@ -32,7 +32,7 @@ function getPillText(progress) {
   return progress.status;
 }
 
-export default function BulkTagCoverImagesModal({ progress, onConfirm, onCancel, onClose }) {
+export default function BulkTagCoverImagesModal({ progress, onConfirm, onCancel, onClose, renderMode }) {
   const isConfirming = progress?.status === "confirming";
   const isTerminal =
     progress?.status === "complete" ||
@@ -50,6 +50,7 @@ export default function BulkTagCoverImagesModal({ progress, onConfirm, onCancel,
       confirmLabel={`Tag ${progress?.totalBatches || 0} batches (~${progress?.totalScenes || 0} cover scenes)`}
       statusText={progress ? getStatusText(progress) : ""}
       pillStatusText={progress ? getPillText(progress) : ""}
+      renderMode={renderMode}
     >
       {/* Confirmation screen */}
       {isConfirming && (

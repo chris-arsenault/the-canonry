@@ -53,6 +53,7 @@
 
 .canonry-remote-pane-visible {
   display: block;
+  height: 100%;
 }
 
 .canonry-footer {

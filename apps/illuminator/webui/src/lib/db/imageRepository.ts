@@ -182,6 +182,21 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 // ============================================================================
+// Entity Image Queries
+// ============================================================================
+
+/**
+ * Get all images for a given entity (metadata only, no blobs), newest first.
+ */
+export async function getImagesForEntity(
+  entityId: string
+): Promise<Array<Omit<ImageRecord, "blob">>> {
+  const records = await db.images.where("entityId").equals(entityId).toArray();
+  return records
+    .sort((a, b) => (b.generatedAt || 0) - (a.generatedAt || 0));
+}
+
+// ============================================================================
 // Load / Browse (used by UI components that previously used Canonry imageStore)
 // ============================================================================
 
@@ -269,6 +284,7 @@ export async function getAllImages(): Promise<
     generatedAt: record.generatedAt,
     model: record.model,
     revisedPrompt: record.revisedPrompt,
+    requestedSize: record.requestedSize,
     estimatedCost: record.estimatedCost,
     actualCost: record.actualCost,
     inputTokens: record.inputTokens,
@@ -280,6 +296,15 @@ export async function getAllImages(): Promise<
     chronicleId: record.chronicleId,
     imageRefId: record.imageRefId,
     sceneDescription: record.sceneDescription,
+    artisticStyleId: record.artisticStyleId,
+    compositionStyleId: record.compositionStyleId,
+    colorPaletteId: record.colorPaletteId,
+    title: record.title,
+    llmTitle: record.llmTitle,
+    tags: record.tags,
+    hqWidth: record.hqWidth,
+    hqHeight: record.hqHeight,
+    hqUpscaledAt: record.hqUpscaledAt,
     mimeType: record.mimeType,
     size: typeof record.size === "number" && Number.isFinite(record.size) ? record.size : 0,
     savedAt: record.savedAt,

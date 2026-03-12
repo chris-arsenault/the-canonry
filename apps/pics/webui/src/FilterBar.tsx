@@ -5,7 +5,7 @@
  * Mobile: floating pill toggle, drawer flies out above it, 3 rows, 2x icons.
  */
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { FilterState, SortMode, ImageCatalog, FacetList, FacetEntry } from "./types";
 import { normalizeFacets } from "./types";
 import "./FilterBar.css";
@@ -21,6 +21,8 @@ interface FilterBarProps {
   onClear: () => void;
   hasActiveFilters: boolean;
 }
+
+type FilterKey = keyof Omit<FilterState, "search" | "sort">;
 
 /* ── SVG Icons ─────────────────────────────────────────────────────────── */
 
@@ -57,6 +59,16 @@ function IconFilter() {
 function IconSort() {
   return <svg {...ip}><path d="M3 6h7M3 12h5M3 18h3" /><path d="M16 4v16M12 8l4-4 4 4M12 16l4 4 4-4" /></svg>;
 }
+
+/* ── Hoisted icon elements (avoids re-creating JSX on each render) ────── */
+
+const ICON_BRUSH = <IconBrush />;
+const ICON_FRAME = <IconFrame />;
+const ICON_PALETTE = <IconPalette />;
+const ICON_IMAGE = <IconImage />;
+const ICON_PERSON = <IconPerson />;
+const ICON_GLOBE = <IconGlobe />;
+const ICON_CPU = <IconCpu />;
 
 /* ── Group label formatting ────────────────────────────────────────────── */
 
@@ -120,16 +132,13 @@ function findGroupForValue(groups: { key: string; items: FacetEntry[] }[], value
 }
 
 function FilterPopover({
-  facets,
-  value,
-  onSelect,
-  onClose,
-}: {
+  facets, value, onSelect, onClose,
+}: Readonly<{
   facets: FacetEntry[];
   value: string | null;
   onSelect: (v: string | null) => void;
   onClose: () => void;
-}) {
+}>) {
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, onClose);
 
@@ -141,38 +150,28 @@ function FilterPopover({
 
   const activeGroup = groups.find((g) => g.key === activeTab);
 
-  function handleClick(id: string) {
+  const handleClick = useCallback((id: string) => {
     onSelect(id === value ? null : id);
     onClose();
-  }
+  }, [value, onSelect, onClose]);
+
+  const handleClear = useCallback(() => { onSelect(null); onClose(); }, [onSelect, onClose]);
 
   return (
     <div className={`fp ${hasGroups ? "fp--tabbed" : ""}`} ref={ref}>
-      {value && (
-        <button className="fp-clear" onClick={() => { onSelect(null); onClose(); }}>
-          Clear
-        </button>
-      )}
+      {value && <button className="fp-clear" onClick={handleClear}>Clear</button>}
       {hasGroups ? (
         <>
           <div className="fp-tabs">
             {groups.map((g) => (
-              <button
-                key={g.key}
-                className={`fp-tab ${g.key === activeTab ? "fp-tab--active" : ""}`}
-                onClick={() => setActiveTab(g.key)}
-              >
+              <button key={g.key} className={`fp-tab ${g.key === activeTab ? "fp-tab--active" : ""}`} onClick={() => setActiveTab(g.key)}>
                 {g.label}
               </button>
             ))}
           </div>
           <div className="fp-grid">
             {activeGroup?.items.map((f) => (
-              <button
-                key={f.id}
-                className={`fp-item ${f.id === value ? "fp-item--active" : ""}`}
-                onClick={() => handleClick(f.id)}
-              >
+              <button key={f.id} className={`fp-item ${f.id === value ? "fp-item--active" : ""}`} onClick={() => handleClick(f.id)}>
                 {f.name}
               </button>
             ))}
@@ -181,11 +180,7 @@ function FilterPopover({
       ) : (
         <div className="fp-list">
           {facets.map((f) => (
-            <button
-              key={f.id}
-              className={`fp-item ${f.id === value ? "fp-item--active" : ""}`}
-              onClick={() => handleClick(f.id)}
-            >
+            <button key={f.id} className={`fp-item ${f.id === value ? "fp-item--active" : ""}`} onClick={() => handleClick(f.id)}>
               {f.name}
             </button>
           ))}
@@ -204,16 +199,13 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
 ];
 
 function SortTrigger({
-  value,
-  onChange,
-  openId,
-  onToggle,
-}: {
+  value, onChange, openId, onToggle,
+}: Readonly<{
   value: SortMode;
   onChange: (s: SortMode) => void;
   openId: string | null;
   onToggle: (id: string | null) => void;
-}) {
+}>) {
   const ref = useRef<HTMLDivElement>(null);
   const isOpen = openId === "_sort";
   const label = SORT_OPTIONS.find((o) => o.value === value)?.label || "Sort";
@@ -221,11 +213,15 @@ function SortTrigger({
   const handleClose = useCallback(() => onToggle(null), [onToggle]);
   useClickOutside(ref, isOpen ? handleClose : () => {});
 
+  const handleToggle = useCallback(() => { onToggle(isOpen ? null : "_sort"); }, [isOpen, onToggle]);
+
+  const handleSelect = useCallback((s: SortMode) => { onChange(s); onToggle(null); }, [onChange, onToggle]);
+
   return (
     <div className="ft-wrap" ref={ref}>
       <button
         className={`ft-btn ft-btn--tool ${isOpen ? "ft-btn--open" : ""}`}
-        onClick={() => onToggle(isOpen ? null : "_sort")}
+        onClick={handleToggle}
         title={`Sort: ${label}`}
         aria-label="Sort"
       >
@@ -236,11 +232,7 @@ function SortTrigger({
         <div className="fp">
           <div className="fp-list">
             {SORT_OPTIONS.map((o) => (
-              <button
-                key={o.value}
-                className={`fp-item ${o.value === value ? "fp-item--active" : ""}`}
-                onClick={() => { onChange(o.value); onToggle(null); }}
-              >
+              <button key={o.value} className={`fp-item ${o.value === value ? "fp-item--active" : ""}`} onClick={() => handleSelect(o.value)}>
                 {o.label}
               </button>
             ))}
@@ -254,37 +246,34 @@ function SortTrigger({
 /* ── Filter Trigger Button ─────────────────────────────────────────────── */
 
 function FilterTrigger({
-  icon,
-  label,
-  value,
-  facets: rawFacets,
-  tier,
-  filterKey,
-  onFilter,
-  openId,
-  onToggle,
-}: {
+  icon, label, value, facets: rawFacets, tier, filterKey, onFilter, openId, onToggle,
+}: Readonly<{
   icon: React.ReactNode;
   label: string;
   value: string | null;
   facets: FacetList;
   tier: "primary" | "secondary";
-  filterKey: keyof Omit<FilterState, "search" | "sort">;
-  onFilter: (key: keyof Omit<FilterState, "search" | "sort">, value: string | null) => void;
+  filterKey: FilterKey;
+  onFilter: (key: FilterKey, value: string | null) => void;
   openId: string | null;
   onToggle: (id: string | null) => void;
-}) {
+}>) {
   const facets = normalizeFacets(rawFacets);
-  if (facets.length === 0) return null;
 
   const isOpen = openId === filterKey;
   const selectedName = value ? facets.find((f) => f.id === value)?.name : null;
+
+  const handleToggle = useCallback(() => { onToggle(isOpen ? null : filterKey); }, [isOpen, filterKey, onToggle]);
+  const handleSelect = useCallback((v: string | null) => { onFilter(filterKey, v); }, [filterKey, onFilter]);
+  const handleClose = useCallback(() => { onToggle(null); }, [onToggle]);
+
+  if (facets.length === 0) return null;
 
   return (
     <div className="ft-wrap">
       <button
         className={`ft-btn ft-btn--${tier} ${value ? "ft-btn--active" : ""} ${isOpen ? "ft-btn--open" : ""}`}
-        onClick={() => onToggle(isOpen ? null : filterKey)}
+        onClick={handleToggle}
         title={selectedName ? `${label}: ${selectedName}` : label}
         aria-label={label}
       >
@@ -292,45 +281,108 @@ function FilterTrigger({
         <span className="ft-label">{label}</span>
         {selectedName && <span className="ft-selected">{selectedName}</span>}
       </button>
-      {isOpen && (
-        <FilterPopover
-          facets={facets}
-          value={value}
-          onSelect={(v) => onFilter(filterKey, v)}
-          onClose={() => onToggle(null)}
-        />
-      )}
+      {isOpen && <FilterPopover facets={facets} value={value} onSelect={handleSelect} onClose={handleClose} />}
     </div>
+  );
+}
+
+/* ── Drawer Content ────────────────────────────────────────────────────── */
+
+interface SearchHandlers {
+  open: boolean;
+  onToggle: () => void;
+  onBlur: () => void;
+  onChange: (q: string) => void;
+}
+
+interface DrawerProps {
+  filters: FilterState;
+  catalog: ImageCatalog;
+  openFilter: string | null;
+  search: SearchHandlers;
+  searchRef: React.RefObject<HTMLInputElement | null>;
+  countText: string;
+  hasActiveFilters: boolean;
+  onToggle: (id: string | null) => void;
+  onSort: (s: SortMode) => void;
+  onFilter: (key: FilterKey, value: string | null) => void;
+  onClear: () => void;
+}
+
+function DrawerContent({
+  filters, catalog, openFilter, search, searchRef, countText,
+  hasActiveFilters, onToggle, onSort, onFilter, onClear,
+}: Readonly<DrawerProps>) {
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => { search.onChange(e.target.value); }, [search]);
+
+  return (
+    <>
+      <div className="fb-row fb-row--tools">
+        <div className="fb-search-area">
+          <button
+            className={`ft-btn ft-btn--tool ${search.open || filters.search ? "ft-btn--active" : ""}`}
+            onClick={search.onToggle} title="Search" aria-label="Search"
+          >
+            <IconSearch />
+          </button>
+          {search.open && (
+            <input ref={searchRef} className="fb-search" type="search" placeholder="Search..."
+              value={filters.search} onChange={handleSearchChange} onBlur={search.onBlur} />
+          )}
+        </div>
+        <SortTrigger value={filters.sort} onChange={onSort} openId={openFilter} onToggle={onToggle} />
+        <span className="fb-count">{countText}</span>
+        {hasActiveFilters && (
+          <button className="fb-clear" onClick={onClear} title="Clear all filters">&times;</button>
+        )}
+      </div>
+
+      <div className="fb-row fb-row--primary">
+        <FilterTrigger icon={ICON_BRUSH} label="Style" value={filters.artisticStyle}
+          facets={catalog.facets.artisticStyles} tier="primary" filterKey="artisticStyle"
+          onFilter={onFilter} openId={openFilter} onToggle={onToggle} />
+        <FilterTrigger icon={ICON_FRAME} label="Comp" value={filters.compositionStyle}
+          facets={catalog.facets.compositionStyles} tier="primary" filterKey="compositionStyle"
+          onFilter={onFilter} openId={openFilter} onToggle={onToggle} />
+        <FilterTrigger icon={ICON_PALETTE} label="Palette" value={filters.colorPalette}
+          facets={catalog.facets.colorPalettes} tier="primary" filterKey="colorPalette"
+          onFilter={onFilter} openId={openFilter} onToggle={onToggle} />
+      </div>
+
+      <div className="fb-row fb-row--secondary">
+        <FilterTrigger icon={ICON_IMAGE} label="Type" value={filters.imageType}
+          facets={catalog.facets.imageTypes} tier="secondary" filterKey="imageType"
+          onFilter={onFilter} openId={openFilter} onToggle={onToggle} />
+        <FilterTrigger icon={ICON_PERSON} label="Kind" value={filters.entityKind}
+          facets={catalog.facets.entityKinds} tier="secondary" filterKey="entityKind"
+          onFilter={onFilter} openId={openFilter} onToggle={onToggle} />
+        <FilterTrigger icon={ICON_GLOBE} label="Culture" value={filters.culture}
+          facets={catalog.facets.cultures} tier="secondary" filterKey="culture"
+          onFilter={onFilter} openId={openFilter} onToggle={onToggle} />
+        <FilterTrigger icon={ICON_CPU} label="Model" value={filters.model}
+          facets={catalog.facets.models} tier="secondary" filterKey="model"
+          onFilter={onFilter} openId={openFilter} onToggle={onToggle} />
+      </div>
+    </>
   );
 }
 
 /* ── Main FilterBar ────────────────────────────────────────────────────── */
 
 export default function FilterBar({
-  filters,
-  catalog,
-  resultCount,
-  totalCount,
-  onSearch,
-  onSort,
-  onFilter,
-  onClear,
-  hasActiveFilters,
+  filters, catalog, resultCount, totalCount,
+  onSearch, onSort, onFilter, onClear, hasActiveFilters,
 }: Readonly<FilterBarProps>) {
   const [openFilter, setOpenFilter] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(filters.search !== "");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const handleToggle = useCallback((id: string | null) => {
-    setOpenFilter(id);
-  }, []);
+  const handleToggle = useCallback((id: string | null) => { setOpenFilter(id); }, []);
 
   const handleSearchToggle = useCallback(() => {
     setSearchOpen((v) => {
-      if (!v) {
-        setTimeout(() => searchRef.current?.focus(), 0);
-      }
+      if (!v) setTimeout(() => searchRef.current?.focus(), 0);
       return !v;
     });
   }, []);
@@ -339,8 +391,14 @@ export default function FilterBar({
     if (!filters.search) setSearchOpen(false);
   }, [filters.search]);
 
-  const countText =
-    resultCount === totalCount ? `${totalCount}` : `${resultCount} / ${totalCount}`;
+  const handleDrawerToggle = useCallback(() => { setDrawerOpen((v) => !v); }, []);
+
+  const countText = resultCount === totalCount ? `${totalCount}` : `${resultCount} / ${totalCount}`;
+
+  const searchState: SearchHandlers = useMemo(() => ({
+    open: searchOpen,
+    onToggle: handleSearchToggle, onBlur: handleSearchBlur, onChange: onSearch,
+  }), [searchOpen, handleSearchToggle, handleSearchBlur, onSearch]);
 
   const activeCount = [
     filters.artisticStyle, filters.compositionStyle, filters.colorPalette,
@@ -349,105 +407,15 @@ export default function FilterBar({
 
   return (
     <div className={`fb ${drawerOpen ? "fb--open" : ""}`}>
-      {/* Drawer content — opens above the pill on mobile */}
       <div className="fb-drawer">
-        {/* Row 1: Search + Sort + Count + Clear */}
-        <div className="fb-row fb-row--tools">
-          <div className="fb-search-area">
-            <button
-              className={`ft-btn ft-btn--tool ${searchOpen || filters.search ? "ft-btn--active" : ""}`}
-              onClick={handleSearchToggle}
-              title="Search"
-              aria-label="Search"
-            >
-              <IconSearch />
-            </button>
-            {searchOpen && (
-              <input
-                ref={searchRef}
-                className="fb-search"
-                type="search"
-                placeholder="Search..."
-                value={filters.search}
-                onChange={(e) => onSearch(e.target.value)}
-                onBlur={handleSearchBlur}
-              />
-            )}
-          </div>
-
-          <SortTrigger
-            value={filters.sort}
-            onChange={onSort}
-            openId={openFilter}
-            onToggle={handleToggle}
-          />
-
-          <span className="fb-count">{countText}</span>
-
-          {hasActiveFilters && (
-            <button className="fb-clear" onClick={onClear} title="Clear all filters">
-              &times;
-            </button>
-          )}
-        </div>
-
-        {/* Row 2: Primary filters (artistic) */}
-        <div className="fb-row fb-row--primary">
-          <FilterTrigger
-            icon={<IconBrush />} label="Style"
-            value={filters.artisticStyle} facets={catalog.facets.artisticStyles}
-            tier="primary" filterKey="artisticStyle"
-            onFilter={onFilter} openId={openFilter} onToggle={handleToggle}
-          />
-          <FilterTrigger
-            icon={<IconFrame />} label="Comp"
-            value={filters.compositionStyle} facets={catalog.facets.compositionStyles}
-            tier="primary" filterKey="compositionStyle"
-            onFilter={onFilter} openId={openFilter} onToggle={handleToggle}
-          />
-          <FilterTrigger
-            icon={<IconPalette />} label="Palette"
-            value={filters.colorPalette} facets={catalog.facets.colorPalettes}
-            tier="primary" filterKey="colorPalette"
-            onFilter={onFilter} openId={openFilter} onToggle={handleToggle}
-          />
-        </div>
-
-        {/* Row 3: Secondary filters (lore) */}
-        <div className="fb-row fb-row--secondary">
-          <FilterTrigger
-            icon={<IconImage />} label="Type"
-            value={filters.imageType} facets={catalog.facets.imageTypes}
-            tier="secondary" filterKey="imageType"
-            onFilter={onFilter} openId={openFilter} onToggle={handleToggle}
-          />
-          <FilterTrigger
-            icon={<IconPerson />} label="Kind"
-            value={filters.entityKind} facets={catalog.facets.entityKinds}
-            tier="secondary" filterKey="entityKind"
-            onFilter={onFilter} openId={openFilter} onToggle={handleToggle}
-          />
-          <FilterTrigger
-            icon={<IconGlobe />} label="Culture"
-            value={filters.culture} facets={catalog.facets.cultures}
-            tier="secondary" filterKey="culture"
-            onFilter={onFilter} openId={openFilter} onToggle={handleToggle}
-          />
-          <FilterTrigger
-            icon={<IconCpu />} label="Model"
-            value={filters.model} facets={catalog.facets.models}
-            tier="secondary" filterKey="model"
-            onFilter={onFilter} openId={openFilter} onToggle={handleToggle}
-          />
-        </div>
+        <DrawerContent
+          filters={filters} catalog={catalog} openFilter={openFilter}
+          search={searchState} searchRef={searchRef} countText={countText}
+          hasActiveFilters={hasActiveFilters} onToggle={handleToggle}
+          onSort={onSort} onFilter={onFilter} onClear={onClear}
+        />
       </div>
-
-      {/* Mobile pill handle — always visible on mobile, below the drawer */}
-      <button
-        className="fb-handle"
-        onClick={() => setDrawerOpen((v) => !v)}
-        aria-label="Toggle filters"
-      >
+      <button className="fb-handle" onClick={handleDrawerToggle} aria-label="Toggle filters">
         <IconFilter />
         <span className="fb-handle-label">Filters</span>
         {activeCount > 0 && <span className="fb-handle-badge">{activeCount}</span>}

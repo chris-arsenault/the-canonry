@@ -14,6 +14,7 @@ import {
   getS3ImageUploadPlan,
   listS3Prefixes,
   buildAndUploadCatalog,
+  reconcileManifestFromS3,
 } from "../aws/awsS3";
 import type { S3Client } from "../aws/awsS3";
 import { exportIndexedDbToS3, importIndexedDbFromS3 } from "../aws/indexedDbSnapshot";
@@ -147,7 +148,8 @@ async function doSyncImages(
     try {
       const cdnBaseUrl = config?.cdnBaseUrl?.trim() || "";
       const catalogResult = await buildAndUploadCatalog(s3Client, config, projectId, cdnBaseUrl);
-      setStatus({ state: "idle", detail: `Complete: ${syncSummary}. Catalog: ${catalogResult.entries} images → s3://${config?.imageBucket}/${catalogResult.key}` });
+      const repairNote = catalogResult.dimensionsRepaired ? ` (${catalogResult.dimensionsRepaired} dimensions repaired)` : "";
+      setStatus({ state: "idle", detail: `Complete: ${syncSummary}. Catalog: ${catalogResult.entries} images${repairNote} → s3://${config?.imageBucket}/${catalogResult.key}` });
     } catch (catalogErr) {
       console.error("Catalog upload failed:", catalogErr);
       const detail = catalogErr instanceof Error ? catalogErr.message : String(catalogErr);
@@ -273,6 +275,43 @@ async function doPreviewUploads(
   }
 }
 
+async function doReconcileManifest(
+  s3Client: S3Client | null,
+  projectRef: RefObject<Record<string, unknown> | null>,
+): Promise<void> {
+  const projectId = getProjectId(projectRef);
+  if (!projectId) return;
+  if (!s3Client) {
+    alert("Missing S3 client. Check Cognito configuration and login.");
+    return;
+  }
+  const { config, setStatus, setSyncProgress } = useCanonryAwsStore.getState();
+  setStatus({ state: "working", detail: "Reconciling manifest from S3 listing..." });
+  setSyncProgress({ phase: "scan", processed: 0, total: 0, uploaded: 0 });
+  try {
+    const result = await reconcileManifestFromS3({
+      projectId, s3: s3Client, config,
+      onProgress: ({ detail }: { detail: string }) => {
+        setStatus({ state: "working", detail });
+      },
+    });
+    const parts = [
+      `S3: ${result.raw} raw, ${result.webp} webp, ${result.thumb} thumb`,
+      `${result.added} entries added, ${result.updated} updated`,
+    ];
+    if (result.webpLinked || result.thumbLinked) {
+      parts.push(`variants linked: ${result.webpLinked} webp, ${result.thumbLinked} thumb`);
+    }
+    parts.push(`manifest: ${result.manifestTotal} total`);
+    setStatus({ state: "idle", detail: `Reconciled. ${parts.join(". ")}.` });
+  } catch (err) {
+    console.error("Manifest reconciliation failed:", err);
+    setStatus({ state: "error", detail: errorDetail(err, "Manifest reconciliation failed.") });
+  } finally {
+    setSyncProgress({ phase: "idle", processed: 0, total: 0, uploaded: 0 });
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -299,6 +338,7 @@ export function useAwsCallbacks({ currentProjectRef }: UseAwsCallbacksParams) {
   const handleImportSnapshot = useCallback(() => doImportSnapshot(s3Client), [s3Client]);
   const handlePullImages = useCallback(() => doPullImages(s3Client, currentProjectRef), [s3Client, currentProjectRef]);
   const handleAwsPreviewUploads = useCallback(() => doPreviewUploads(s3Client, currentProjectRef), [s3Client, currentProjectRef]);
+  const handleReconcileManifest = useCallback(() => doReconcileManifest(s3Client, currentProjectRef), [s3Client, currentProjectRef]);
 
   return {
     s3Client,
@@ -311,5 +351,6 @@ export function useAwsCallbacks({ currentProjectRef }: UseAwsCallbacksParams) {
     handleImportSnapshot,
     handlePullImages,
     handleAwsPreviewUploads,
+    handleReconcileManifest,
   };
 }

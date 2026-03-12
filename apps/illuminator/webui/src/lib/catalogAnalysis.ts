@@ -222,6 +222,16 @@ export async function analyzeCoverage(projectId: string): Promise<CoverageReport
     ),
   );
 
+  // llmTitle — boolean flag, set by LLM title fill
+  fields.push(
+    analyzeField(
+      "llmTitle",
+      (img) => img.llmTitle ? true : undefined,
+      () => false,
+      "",
+    ),
+  );
+
   return {
     totalImages: allImages.length,
     fields,

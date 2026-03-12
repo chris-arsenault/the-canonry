@@ -243,6 +243,31 @@ export function AssignCoverImageStyleToast({ result, onDismiss }: Readonly<Assig
 }
 
 // ---------------------------------------------------------------------------
+// AssignSecondaryStyleToast
+// ---------------------------------------------------------------------------
+
+interface AssignSecondaryStyleToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function AssignSecondaryStyleToast({ result, onDismiss }: Readonly<AssignSecondaryStyleToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    const plural = result.count !== 1 ? "s" : "";
+    message = `Assigned secondary styles to ${result.count} image${plural}`;
+  } else {
+    message = "No images with primary assignments + ranked styles to assign secondaries";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // BulkGenerateSceneToast
 // ---------------------------------------------------------------------------
 

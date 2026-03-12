@@ -19,6 +19,9 @@ import {
   GPT_IMAGE_CHRONICLE_PROMPT_TEMPLATE,
   DALLE3_IMAGE_PROMPT_TEMPLATE,
   DALLE3_CHRONICLE_IMAGE_PROMPT_TEMPLATE,
+  WAVESPEED_IMAGE_PROMPT_TEMPLATE,
+  WAVESPEED_CHRONICLE_IMAGE_PROMPT_TEMPLATE,
+  isWaveSpeedModel,
   parsePromptSections,
   extractDeterministicFlux2Fields,
   extractSubjectText,
@@ -75,6 +78,10 @@ async function formatImagePromptWithClaude(
     templateSource = isChronicleImage
       ? FLUX_1_CHRONICLE_IMAGE_PROMPT_TEMPLATE
       : FLUX_1_IMAGE_PROMPT_TEMPLATE;
+  } else if (isWaveSpeedModel(imageModel)) {
+    templateSource = isChronicleImage
+      ? WAVESPEED_CHRONICLE_IMAGE_PROMPT_TEMPLATE
+      : WAVESPEED_IMAGE_PROMPT_TEMPLATE;
   } else {
     templateSource =
       isChronicleImage && config.claudeChronicleImagePromptTemplate

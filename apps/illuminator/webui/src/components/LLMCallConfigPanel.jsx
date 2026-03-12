@@ -359,6 +359,8 @@ export default function LLMCallConfigPanel() {
     "dynamics",
     "revision",
     "historian",
+    "entity",
+    "catalog",
   ];
 
   return (

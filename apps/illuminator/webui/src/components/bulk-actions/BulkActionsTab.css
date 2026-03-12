@@ -1,0 +1,185 @@
+/* BulkActionsTab — pipeline-oriented operations workspace */
+
+.bat-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+  gap: 10px;
+  max-width: 960px;
+}
+
+/* ─── Phase dividers ─────────────────────────────────────────── */
+
+.bat-phase {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.bat-phase::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+/* ─── Pipeline card ──────────────────────────────────────────── */
+
+.bat-pipeline {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.bat-pipeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bat-pipeline-header:not(.bat-pipeline-collapsed) {
+  margin-bottom: 10px;
+}
+
+.bat-pipeline-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-primary);
+  margin: 0;
+}
+
+.bat-pipeline-arrow {
+  display: inline-block;
+  font-size: 10px;
+  transition: transform 0.15s ease;
+  color: var(--text-muted);
+}
+
+.bat-pipeline-arrow-open {
+  transform: rotate(90deg);
+}
+
+.bat-pipeline-stats {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ─── Pipeline steps ─────────────────────────────────────────── */
+
+.bat-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.bat-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ─── Pipeline options (checkboxes, toggles) ─────────────────── */
+
+.bat-pipeline-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.bat-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* ─── Danger zone (destructive actions) ──────────────────────── */
+
+.bat-danger-zone {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.bat-danger-link {
+  background: none;
+  border: none;
+  color: var(--danger, #ef4444);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+
+.bat-danger-link:hover:not(:disabled) {
+  background: rgb(239 68 68 / 12%);
+}
+
+.bat-danger-link:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bat-danger-sep {
+  color: var(--border-color);
+  font-size: 11px;
+  user-select: none;
+}
+
+/* ─── Status messages ────────────────────────────────────────── */
+
+.bat-status {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bat-status-ok {
+  color: var(--accent-secondary, #22c55e);
+}
+
+/* ─── Inline modals area ─────────────────────────────────────── */
+
+.bat-operations {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bat-operations:empty {
+  display: none;
+}

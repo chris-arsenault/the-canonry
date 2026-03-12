@@ -17,7 +17,8 @@ export default function BulkBackportModal({
   progress,
   onConfirm,
   onCancel,
-  onClose
+  onClose,
+  renderMode
 }) {
   const chronicles = progress?.chronicles;
   const realTotal = useMemo(() => chronicles ? chronicles.reduce((sum, c) => sum + c.totalEntities, 0) : 0, [chronicles]);
@@ -37,7 +38,7 @@ export default function BulkBackportModal({
 
   // Pill status text when minimized
   const pillStatusText = progress?.status === "running" ? `${progress.processedEntities}/${progress.totalEntities}` : progress?.status;
-  return <BulkOperationShell pillId={PILL_ID} title="Bulk Backport" tabId="chronicle" progress={progress} onConfirm={onConfirm} onCancel={onCancel} onClose={onClose} confirmLabel={`Start Backport (${progress?.totalEntities ?? 0} entities)`} statusText={statusText} pillStatusText={pillStatusText} confirmWidth="540px" processWidth="480px">
+  return <BulkOperationShell pillId={PILL_ID} title="Bulk Backport" tabId="bulkactions" progress={progress} onConfirm={onConfirm} onCancel={onCancel} onClose={onClose} confirmLabel={`Start Backport (${progress?.totalEntities ?? 0} entities)`} statusText={statusText} pillStatusText={pillStatusText} confirmWidth="540px" processWidth="480px" renderMode={renderMode}>
       {/* ---- Confirmation screen ---- */}
       {isConfirming && progress.entitySummary && <div className="bbm-entity-section">
           <div className="bbm-entity-header">

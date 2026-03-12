@@ -141,6 +141,120 @@
   color: var(--text-secondary, #888);
 }
 
+/* ── Single title preview ──────────────────────────────────────────── */
+
+.cov-title-preview {
+  margin-top: 8px;
+}
+
+.cov-title-value {
+  color: var(--accent-color, #5a8abf);
+  font-weight: 500;
+}
+
+.cov-title-entity {
+  color: var(--text-secondary, #888);
+  font-size: 0.78rem;
+}
+
+.cov-title-id {
+  margin-left: 8px;
+  color: var(--text-secondary, #666);
+  font-size: 0.72rem;
+}
+
+.cov-title-list {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  font-size: 0.8rem;
+  list-style: none;
+}
+
+.cov-title-list li {
+  padding: 2px 0;
+}
+
+/* ── Similarity report ────────────────────────────────────────────── */
+
+.cov-sim-report {
+  margin-top: 8px;
+}
+
+.cov-sim-meta {
+  color: var(--text-secondary, #888);
+  font-size: 0.78rem;
+}
+
+.cov-sim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  margin-top: 8px;
+}
+
+.cov-sim-table th,
+.cov-sim-table td {
+  padding: 3px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #333);
+}
+
+.cov-sim-table th {
+  color: var(--text-secondary, #aaa);
+  font-weight: 500;
+}
+
+.cov-sim-score {
+  width: 50px;
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  color: var(--warning-color, #e0a040);
+}
+
+.cov-sim-title {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cov-sim-header {
+  margin-bottom: 6px;
+}
+
+.cov-sim-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cov-sim-threshold-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #aaa);
+}
+
+.cov-sim-threshold-select {
+  padding: 2px 4px;
+  border: 1px solid var(--border-color, #444);
+  border-radius: 3px;
+  background: var(--surface-bg, #1a1a2e);
+  color: var(--text-primary, #e0e0e0);
+  font-size: 0.78rem;
+}
+
+.cov-sim-threshold-count {
+  color: var(--warning-color, #e0a040);
+  font-variant-numeric: tabular-nums;
+}
+
+.cov-sim-above {
+  background: rgba(224, 160, 64, 0.08);
+}
+
 .cat-loading {
   padding: 20px;
   text-align: center;

@@ -21,8 +21,8 @@ interface CatalogImageBase {
   generatedAt: number;
   thumbPath: string;
   fullPath: string;
-  /** High-quality upscaled version (optional, largest upscale tier) */
-  hqPath?: string;
+  /** High-quality upscaled version — not all images have an upscaled variant */
+  hqPath: Optional<string>;
 }
 
 /** Entity image — always has entityName, entityKind, entityCulture */
@@ -94,4 +94,15 @@ export function normalizeFacets(facets: FacetList): FacetEntry[] {
     return (facets as string[]).map((id) => ({ id, name: id }));
   }
   return facets as FacetEntry[];
+}
+
+/** Build a flat id→name lookup from all catalog facets */
+export function buildFacetNames(catalog: ImageCatalog): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const list of Object.values(catalog.facets)) {
+    for (const entry of normalizeFacets(list)) {
+      map.set(entry.id, entry.name);
+    }
+  }
+  return map;
 }

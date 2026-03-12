@@ -12,23 +12,16 @@ import { searchChronicleImages, loadImage } from "../../lib/db/imageRepository";
 import { updateChronicleImageRef, updateChronicleCoverImageStatus } from "../../lib/db/chronicleImageOps";
 import type { ChronicleRecord, EntityImageRef, PromptRequestRef } from "../../lib/chronicleTypes";
 import ImageModal from "../ImageModal";
+import StylePills from "./StylePills";
+import type { StyleNameMaps } from "./StylePills";
+import ThumbnailStrip from "./ThumbnailStrip";
+import type { ThumbUrl } from "./ThumbnailStrip";
 import "./CurationImageSheet.css";
-
-interface StyleNameMaps {
-  artistic: Map<string, string>;
-  composition: Map<string, string>;
-  palette: Map<string, string>;
-}
 
 interface CurationImageSheetProps {
   chronicleId: string;
   projectId: string;
   styleNames: StyleNameMaps;
-}
-
-interface ThumbUrl {
-  imageId: string;
-  url: string;
 }
 
 export default function CurationImageSheet({
@@ -288,62 +281,6 @@ export default function CurationImageSheet({
           onClose={() => setModalImage(null)}
         />
       )}
-    </div>
-  );
-}
-
-function StylePills({ artisticId, compositionId, paletteId, styleNames }: Readonly<{
-  artisticId?: string;
-  compositionId?: string;
-  paletteId?: string;
-  styleNames: StyleNameMaps;
-}>) {
-  const artistic = artisticId ? styleNames.artistic.get(artisticId) : undefined;
-  const composition = compositionId ? styleNames.composition.get(compositionId) : undefined;
-  const palette = paletteId ? styleNames.palette.get(paletteId) : undefined;
-
-  if (!artistic && !composition && !palette) return null;
-
-  return (
-    <div className="cis-style-pills">
-      {artistic && <span className="cis-pill cis-pill-artistic" title="Artistic style">{artistic}</span>}
-      {composition && <span className="cis-pill cis-pill-composition" title="Composition">{composition}</span>}
-      {palette && <span className="cis-pill cis-pill-palette" title="Color palette">{palette}</span>}
-    </div>
-  );
-}
-
-function ThumbnailStrip({ thumbs, selectedImageId, onSelect, onViewFull }: Readonly<{
-  thumbs: ThumbUrl[];
-  selectedImageId?: string;
-  onSelect: (imageId: string) => void;
-  onViewFull: (info: { imageId: string; title: string }) => void;
-}>) {
-  if (thumbs.length === 0) return null;
-  const isActive = (id: string) => id === selectedImageId;
-  return (
-    <div className="cis-thumb-strip">
-      {thumbs.map((thumb) => (
-        <div key={thumb.imageId} className="cis-thumb-slot">
-          <img
-            className={`cis-thumb${isActive(thumb.imageId) ? " cis-thumb-selected" : ""}`}
-            src={thumb.url}
-            alt=""
-            onClick={() => onViewFull({ imageId: thumb.imageId, title: "Image" })}
-            title="View full size"
-          />
-          {isActive(thumb.imageId) ? (
-            <span className="cis-use-button-active">Active</span>
-          ) : (
-            <button
-              className="cis-use-button"
-              onClick={() => onSelect(thumb.imageId)}
-            >
-              Use
-            </button>
-          )}
-        </div>
-      ))}
     </div>
   );
 }

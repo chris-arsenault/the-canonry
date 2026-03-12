@@ -196,8 +196,6 @@ export interface ChroniclePanelProps {
   entityGuidance: Record<string, { proseHint?: string; [key: string]: unknown }>;
   cultureIdentities: CultureIdentities;
   onBackportLore: ((chronicleId: string) => void) | undefined;
-  onStartBulkBackport: () => void;
-  isBulkBackportActive: boolean;
   refreshTrigger: number;
   imageModel: string;
   onOpenImageSettings: () => void;
@@ -206,7 +204,6 @@ export interface ChroniclePanelProps {
   historianConfigured: boolean;
   historianConfig: HistorianConfig;
   onUpdateHistorianNote: (noteId: string) => void;
-  onRefreshEraSummaries: (() => Promise<number>) | undefined;
   onNavigateToTab: (tab: string) => void;
 }
 

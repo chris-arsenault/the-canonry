@@ -59,6 +59,9 @@ export type LLMCallType =
   | "historian.eraNarrative.imageRefs" // Era narrative: image reference placement
   | "historian.motifVariation" // Motif phrase variation for annotation deduplication
 
+  // Entity Image Styles
+  | "entity.batchTagImageStyles" // Batch tag entities with artistic/composition/palette rankings
+
   // Catalog
   | "catalog.metadataFill" // Classify styles and tags from image prompt data
   | "catalog.titleFill"; // Generate evocative titles from image prompt + style context
@@ -99,6 +102,7 @@ export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   "historian.eraNarrative.coverImageScene",
   "historian.eraNarrative.imageRefs",
   "historian.motifVariation",
+  "entity.batchTagImageStyles",
   "catalog.metadataFill",
   "catalog.titleFill",
 ];
@@ -112,6 +116,7 @@ export type LLMCallCategory =
   | "dynamics"
   | "revision"
   | "historian"
+  | "entity"
   | "catalog";
 
 export interface LLMCallDefaults {
@@ -584,6 +589,18 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     },
     recommendedModels: ["claude-opus-4-6", "claude-sonnet-4-6"],
   },
+  "entity.batchTagImageStyles": {
+    label: "Batch Tag Entity Image Styles",
+    description:
+      "Assigns artistic style, composition, and color palette rankings to entity images in one call",
+    category: "entity",
+    defaults: {
+      model: "claude-sonnet-4-6",
+      thinkingBudget: 10000,
+      maxTokens: 16384,
+    },
+    recommendedModels: ["claude-sonnet-4-6"],
+  },
   "catalog.metadataFill": {
     label: "Classify Fill",
     description:
@@ -604,13 +621,13 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       "Generate evocative titles for images from their prompt and style context (batched)",
     category: "catalog",
     defaults: {
-      model: "claude-haiku-4-5-20251001",
-      thinkingBudget: 0,
+      model: "claude-opus-4-6",
+      thinkingBudget: 4096,
       maxTokens: 4096,
       disableStreaming: true,
       runInBrowser: true,
     },
-    recommendedModels: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"],
+    recommendedModels: ["claude-opus-4-6", "claude-sonnet-4-6"],
   },
 };
 
@@ -623,6 +640,7 @@ export const CATEGORY_LABELS: Record<LLMCallCategory, string> = {
   dynamics: "Dynamics Generation",
   revision: "Summary Revision",
   historian: "Historian",
+  entity: "Entity Images",
   catalog: "Catalog",
 };
 
@@ -636,6 +654,7 @@ export const CATEGORY_DESCRIPTIONS: Record<LLMCallCategory, string> = {
   revision: "Batch revision of entity summaries and descriptions using world dynamics",
   historian:
     "Scholarly annotations with personality — commentary, corrections, and tongue-in-cheek observations",
+  entity: "Batch style assignment for entity image generation",
   catalog: "Batch metadata generation for image catalog backfill",
 };
 
@@ -676,6 +695,7 @@ export function getCallTypesByCategory(): Record<LLMCallCategory, LLMCallType[]>
       "historian.eraNarrative.imageRefs",
       "historian.motifVariation",
     ],
+    entity: ["entity.batchTagImageStyles"],
     catalog: ["catalog.metadataFill", "catalog.titleFill"],
   };
 }

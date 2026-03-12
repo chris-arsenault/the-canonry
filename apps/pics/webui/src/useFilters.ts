@@ -4,6 +4,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import type { CatalogImage, FilterState, SortMode } from "./types";
+import { isEntityImage } from "./types";
 
 const INITIAL: FilterState = {
   search: "",
@@ -21,7 +22,7 @@ function matchesSearch(img: CatalogImage, query: string): boolean {
   const q = query.toLowerCase();
   return (
     img.title.toLowerCase().includes(q) ||
-    (img.entityName?.toLowerCase().includes(q) ?? false) ||
+    (isEntityImage(img) && img.entityName.toLowerCase().includes(q)) ||
     img.tags.some((t) => t.toLowerCase().includes(q))
   );
 }
@@ -74,10 +75,12 @@ export function useFilters(images: CatalogImage[]) {
       result = result.filter((img) => img.imageType === filters.imageType);
     }
     if (filters.entityKind) {
-      result = result.filter((img) => img.entityKind === filters.entityKind);
+      const kind = filters.entityKind;
+      result = result.filter((img) => isEntityImage(img) && img.entityKind === kind);
     }
     if (filters.culture) {
-      result = result.filter((img) => img.entityCulture === filters.culture);
+      const culture = filters.culture;
+      result = result.filter((img) => isEntityImage(img) && img.entityCulture === culture);
     }
     if (filters.artisticStyle) {
       result = result.filter((img) => img.artisticStyleId === filters.artisticStyle);

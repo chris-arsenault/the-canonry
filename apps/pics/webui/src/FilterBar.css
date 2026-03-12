@@ -110,6 +110,12 @@
   color: rgba(255, 120, 120, 0.8);
 }
 
+/* ── Secondary row ────────────────────────────────────────────────────── */
+
+.fb-row--secondary {
+  opacity: 0.85;
+}
+
 /* ── Desktop separators (via pseudo-elements) ─────────────────────────── */
 
 .fb-row--primary::after {

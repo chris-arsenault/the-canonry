@@ -1,0 +1,30 @@
+/* StylePills — colored style assignment badges */
+
+.cis-style-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cis-pill {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cis-pill-artistic {
+  background: rgba(168, 130, 255, 0.15);
+  color: #a882ff;
+}
+
+.cis-pill-composition {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+}
+
+.cis-pill-palette {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}

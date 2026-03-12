@@ -1,3 +1,52 @@
+/* Nav groups */
+.isb-group {
+  margin-bottom: 2px;
+}
+
+.isb-group-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  text-align: left;
+}
+
+.isb-group-header:hover {
+  color: var(--text-secondary);
+}
+
+.isb-group-active {
+  color: var(--accent-primary);
+}
+
+.isb-group-arrow {
+  display: inline-block;
+  font-size: 10px;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.isb-group-arrow-open {
+  transform: rotate(90deg);
+}
+
+.isb-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-left: 6px;
+}
+
+/* Badges */
 .isb-badge {
   margin-left: auto;
   color: white;
@@ -15,10 +64,12 @@
 }
 
 .isb-spacer {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .isb-image-settings {
+  flex-shrink: 0;
   padding: 0 8px;
   margin-bottom: 4px;
 }

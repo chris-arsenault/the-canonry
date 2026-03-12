@@ -1,0 +1,65 @@
+/* EntityImageSheet — scrollable entity image cards with style pills + thumbnail strips */
+
+.eis-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+}
+
+.eis-card {
+  border: 1px solid var(--color-border, #333);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eis-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eis-primary-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.eis-primary-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 3px;
+  border: 1px dashed var(--color-border, #333);
+  flex-shrink: 0;
+}
+
+.eis-entity-info {
+  min-width: 0;
+}
+
+.eis-entity-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary, #e0e0e0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eis-entity-subtype {
+  font-size: 11px;
+  color: var(--color-text-muted, #888);
+}
+
+.eis-empty {
+  color: var(--color-text-muted, #888);
+  font-size: 13px;
+  text-align: center;
+  padding: 32px 0;
+}

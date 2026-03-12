@@ -425,6 +425,39 @@ export async function applyEntityChronicleResult(
 }
 
 // ---------------------------------------------------------------------------
+// Image style assignment
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply image style assignment result (LLM-ranked + deterministic) to an entity.
+ */
+export async function applyImageStyleResult(
+  entityId: string,
+  imageStyle: EntityEnrichment["imageStyle"]
+): Promise<void> {
+  await db.transaction("rw", db.entities, async () => {
+    const entity = await db.entities.get(entityId);
+    if (!entity) return;
+    await db.entities.update(entityId, {
+      enrichment: { ...entity.enrichment, imageStyle },
+    });
+  });
+}
+
+/**
+ * Clear an entity's active image (enrichment.image) without deleting the image blob.
+ */
+export async function clearEntityImage(entityId: string): Promise<void> {
+  await db.transaction("rw", db.entities, async () => {
+    const entity = await db.entities.get(entityId);
+    if (!entity) return;
+    const enrichment = { ...entity.enrichment };
+    delete enrichment.image;
+    await db.entities.update(entityId, { enrichment });
+  });
+}
+
+// ---------------------------------------------------------------------------
 // User actions
 // ---------------------------------------------------------------------------
 

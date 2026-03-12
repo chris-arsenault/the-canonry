@@ -13,6 +13,7 @@ interface LightboxProps {
   images: CatalogImage[];
   currentIndex: number;
   baseUrl: string;
+  facetNames: Map<string, string>;
   onClose: () => void;
   onNavigate: (index: number) => void;
 }
@@ -144,11 +145,22 @@ function useLightboxImage(images: readonly CatalogImage[], currentIndex: number,
 
 /* ── Info panel ───────────────────────────────────────────────────────── */
 
-function LightboxInfo({ img }: Readonly<{ img: CatalogImage }>) {
+function LightboxInfo({ img, facetNames }: Readonly<{ img: CatalogImage; facetNames: Map<string, string> }>) {
+  const styleName = facetNames.get(img.artisticStyleId) ?? img.artisticStyleId;
+  const compName = facetNames.get(img.compositionStyleId) ?? img.compositionStyleId;
+  const paletteName = facetNames.get(img.colorPaletteId) ?? img.colorPaletteId;
+
   return (
     <div className="lb-info">
       <h3 className="lb-info-title">{img.title}</h3>
       {img.imageType === "entity" && <div className="lb-info-entity">{img.entityName}</div>}
+
+      <div className="lb-info-pills">
+        <span className="lb-pill lb-pill--style">{styleName}</span>
+        <span className="lb-pill lb-pill--comp">{compName}</span>
+        <span className="lb-pill lb-pill--palette">{paletteName}</span>
+      </div>
+
       <div className="lb-info-meta">
         <span>{img.imageType}</span>
         <span>{img.width}&times;{img.height}</span>
@@ -166,7 +178,7 @@ function LightboxInfo({ img }: Readonly<{ img: CatalogImage }>) {
 /* ── Lightbox component ───────────────────────────────────────────────── */
 
 export default function Lightbox({
-  images, currentIndex, baseUrl, onClose, onNavigate,
+  images, currentIndex, baseUrl, facetNames, onClose, onNavigate,
 }: Readonly<LightboxProps>) {
   const { img, fullUrl, loaded, handleLoad } = useLightboxImage(images, currentIndex, baseUrl);
   const { showInfo, scale, setScale, shareToast, goNext, goPrev, handleShare, toggleInfo } =
@@ -232,7 +244,7 @@ export default function Lightbox({
         &rsaquo;
       </button>
 
-      {showInfo && <LightboxInfo img={img} />}
+      {showInfo && <LightboxInfo img={img} facetNames={facetNames} />}
     </div>
   );
 }

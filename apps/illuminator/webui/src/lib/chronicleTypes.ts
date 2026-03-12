@@ -647,6 +647,10 @@ export interface PromptRequestRef extends BaseChronicleImageRef {
   rankedCompositionStyleIds?: string[];
   /** Ranked color palette IDs (top 5, best first) */
   rankedColorPaletteIds?: string[];
+  /** Secondary style assignments (pair-novelty optimized, from remaining ranked options) */
+  secondaryArtisticStyleId?: string;
+  secondaryCompositionStyleId?: string;
+  secondaryColorPaletteId?: string;
 }
 
 /** Union type for all chronicle image references */
@@ -727,6 +731,10 @@ export interface ChronicleCoverImage {
   rankedArtisticStyleIds?: string[];
   rankedCompositionStyleIds?: string[];
   rankedColorPaletteIds?: string[];
+  /** Secondary style assignments (pair-novelty optimized, from remaining ranked options) */
+  secondaryArtisticStyleId?: string;
+  secondaryCompositionStyleId?: string;
+  secondaryColorPaletteId?: string;
 }
 
 // =============================================================================

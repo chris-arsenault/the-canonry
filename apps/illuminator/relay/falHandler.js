@@ -41,7 +41,7 @@ function logDebug(...args) {
 const CORS_HEADERS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, PUT, OPTIONS",
-  "access-control-allow-headers": "content-type, accept",
+  "access-control-allow-headers": "content-type, accept, x-fal-key",
   "access-control-max-age": "86400",
 };
 
@@ -49,6 +49,7 @@ const CORS_HEADERS = {
 const ALLOWED_IMAGE_HOSTS = [
   ".fal.run",
   ".fal.ai",
+  ".fal.media",
   "fal.media",
   ".amazonaws.com",
 ];
@@ -129,13 +130,13 @@ export async function handler(event) {
     };
   }
 
-  const FAL_KEY = process.env.FAL_KEY;
+  const FAL_KEY = headers["x-fal-key"] || process.env.FAL_KEY;
   if (!FAL_KEY) {
-    logInfo("[FAL] FAL_KEY not configured");
+    logInfo("[FAL] FAL_KEY not configured (no x-fal-key header and no env var)");
     return {
       statusCode: 500,
       headers: { ...CORS_HEADERS, "content-type": "application/json" },
-      body: JSON.stringify({ error: "FAL_KEY not configured" }),
+      body: JSON.stringify({ error: "FAL_KEY not configured — set it in the sidebar or as FAL_KEY env var" }),
     };
   }
 
@@ -287,7 +288,7 @@ export async function handler(event) {
   if (method === "POST") {
     logInfo(`[FAL] Task submitted (${upstream.status})`);
     logInfo(`[FAL]   url: ${targetUrl}`);
-    logInfo(`[FAL]   body: ${body}`);
+    logInfo(`[FAL]   body: ${body ? `${body.length} bytes` : "(empty)"}`);
     logInfo(`[FAL]   response: ${responseBody}`);
   } else {
     logDebug(`[FAL] ${method} ← ${upstream.status} (${responseBody.length} bytes)`);

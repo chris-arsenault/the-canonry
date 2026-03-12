@@ -389,6 +389,7 @@ export default function App() {
           onPreviewUploads={() => void awsCallbacks.handleAwsPreviewUploads()}
           onPullImages={() => void awsCallbacks.handlePullImages()}
           onSyncImages={() => void awsCallbacks.handleAwsSyncImages()}
+          onReconcileManifest={() => void awsCallbacks.handleReconcileManifest()}
           onExportSnapshot={() => void awsCallbacks.handleExportSnapshot()}
           onImportSnapshot={() => void awsCallbacks.handleImportSnapshot()}
         />

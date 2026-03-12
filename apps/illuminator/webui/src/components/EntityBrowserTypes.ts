@@ -53,10 +53,6 @@ export interface EntityBrowserProps {
   imageGenSettings: ImageGenSettings;
   onStartRevision?: () => void;
   isRevising?: boolean;
-  onBulkHistorianReview?: (ids: string[]) => void;
-  onBulkHistorianEdition?: (ids: string[], reEdit?: boolean) => void;
-  onBulkHistorianClear?: (ids: string[]) => void;
-  isBulkHistorianActive?: boolean;
   onNavigateToTab?: (tab: string) => void;
 }
 

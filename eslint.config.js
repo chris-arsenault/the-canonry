@@ -208,7 +208,7 @@ export default tseslint.config(
         controlComponents: ["NumberInput", "LocalTextArea", "TagSelector", "ReferenceDropdown", "ChipSelect", "LevelSelector", "MultiSelectPills", "EnableToggle"],
         depth: 3,
       }],
-      "react/react-in-jsx-scope": "warn",
+      "react/react-in-jsx-scope": "off",
       "react/prop-types": "warn",
       "react/no-unescaped-entities": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
@@ -271,6 +271,15 @@ export default tseslint.config(
     },
     rules: {
       "local/no-cross-app-alias": "warn",
+    },
+  },
+
+  // Pics app: standalone gallery with its own UX patterns, not shared-components consumer
+  {
+    files: ["apps/pics/**/*.{ts,tsx}"],
+    rules: {
+      "local/no-raw-error-div": "off",
+      "local/no-inline-keyboard-nav": "off",
     },
   },
 

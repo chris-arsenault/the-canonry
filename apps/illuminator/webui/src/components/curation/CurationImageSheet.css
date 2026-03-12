@@ -84,85 +84,6 @@
 .cis-scene-status-generating { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
 .cis-scene-status-failed { background: rgba(248, 113, 113, 0.15); color: #f87171; }
 
-/* --- Thumbnail strip --- */
-.cis-thumb-strip {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border, #333) transparent;
-  padding: 4px 0;
-}
-
-.cis-thumb {
-  width: 128px;
-  height: 128px;
-  object-fit: cover;
-  border-radius: 3px;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: border-color 0.15s;
-  flex-shrink: 0;
-}
-
-.cis-thumb:hover {
-  border-color: var(--color-accent, #c9a55a);
-}
-
-.cis-thumb-selected {
-  border-color: var(--color-accent, #c9a55a);
-  box-shadow: 0 0 0 1px var(--color-accent, #c9a55a);
-}
-
-/* Wrapper for thumb + use button */
-.cis-thumb-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.cis-use-button {
-  font-size: 10px;
-  padding: 1px 8px;
-  border: 1px solid var(--color-border, #333);
-  border-radius: 3px;
-  background: transparent;
-  color: var(--color-text-muted, #888);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.cis-use-button:hover {
-  border-color: var(--color-accent, #c9a55a);
-  color: var(--color-accent, #c9a55a);
-}
-
-.cis-use-button-active {
-  font-size: 10px;
-  padding: 1px 8px;
-  border: 1px solid var(--color-accent, #c9a55a);
-  border-radius: 3px;
-  background: var(--color-accent, #c9a55a);
-  color: var(--color-bg-primary, #1a1a1a);
-  cursor: default;
-  font-weight: 500;
-}
-
-.cis-thumb-placeholder {
-  width: 128px;
-  height: 128px;
-  border-radius: 3px;
-  border: 1px dashed var(--color-border, #333);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: var(--color-text-muted, #888);
-  flex-shrink: 0;
-}
-
 /* --- Inline controls --- */
 .cis-inline-controls {
   display: flex;
@@ -178,36 +99,6 @@
   border-radius: 3px;
   background: var(--color-bg-primary, #1a1a1a);
   color: var(--color-text-primary, #e0e0e0);
-}
-
-/* --- Style pills --- */
-.cis-style-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.cis-pill {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.cis-pill-artistic {
-  background: rgba(168, 130, 255, 0.15);
-  color: #a882ff;
-}
-
-.cis-pill-composition {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-}
-
-.cis-pill-palette {
-  background: rgba(52, 211, 153, 0.15);
-  color: #34d399;
 }
 
 /* --- Entity refs --- */

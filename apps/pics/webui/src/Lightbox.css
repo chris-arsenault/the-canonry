@@ -147,6 +147,36 @@
   margin-bottom: 8px;
 }
 
+.lb-info-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.lb-pill {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.lb-pill--style {
+  background: rgba(180, 130, 80, 0.2);
+  color: rgba(220, 180, 120, 0.9);
+}
+
+.lb-pill--comp {
+  background: rgba(86, 180, 232, 0.15);
+  color: rgba(130, 200, 240, 0.9);
+}
+
+.lb-pill--palette {
+  background: rgba(160, 100, 200, 0.18);
+  color: rgba(200, 160, 240, 0.9);
+}
+
 .lb-info-meta {
   display: flex;
   gap: 12px;

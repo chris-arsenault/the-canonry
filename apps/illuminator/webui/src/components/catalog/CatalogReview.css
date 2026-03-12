@@ -157,3 +157,36 @@
   cursor: default;
   border-radius: 4px;
 }
+
+/* ── Title action indicators ───────────────────────────────────────── */
+
+.cat-review-llm-badge {
+  margin-left: 4px;
+  color: var(--accent-color, #5a8abf);
+  font-size: 0.68rem;
+  opacity: 0.6;
+}
+
+.cat-review-titling {
+  color: var(--text-secondary, #888);
+  font-style: italic;
+}
+
+.cat-review-new-title {
+  color: var(--accent-color, #5a8abf);
+  font-weight: 500;
+}
+
+.cat-review-title-flash {
+  animation: cat-title-flash 3s ease-out;
+}
+
+@keyframes cat-title-flash {
+  0% { background: rgba(90, 138, 191, 0.25); }
+  100% { background: transparent; }
+}
+
+.cat-review-clear-btn {
+  color: var(--text-secondary, #888);
+  font-size: 0.68rem;
+}

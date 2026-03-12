@@ -45,7 +45,7 @@ function getPillText(progress) {
   return "";
 }
 
-export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCancel, onClose }) {
+export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCancel, onClose, renderMode }) {
   const isClear = progress?.operation === "clear";
   const title = isClear ? "Clear Annotations" : "Run Annotations";
   const isConfirming = progress?.status === "confirming";
@@ -63,7 +63,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
     <BulkOperationShell
       pillId="bulk-chronicle-annotation"
       title={title}
-      tabId="chronicle"
+      tabId="bulkactions"
       progress={progress}
       onConfirm={onConfirm}
       onCancel={onCancel}
@@ -71,6 +71,7 @@ export default function BulkChronicleAnnotationModal({ progress, onConfirm, onCa
       confirmLabel={confirmLabel}
       statusText={progress ? getStatusText(progress) : ""}
       pillStatusText={progress ? getPillText(progress) : ""}
+      renderMode={renderMode}
     >
       {/* Confirmation screen */}
       {isConfirming && (

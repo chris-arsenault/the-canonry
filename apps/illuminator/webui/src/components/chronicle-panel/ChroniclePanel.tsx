@@ -22,53 +22,17 @@ import { deriveStatus } from "../../hooks/useChronicleGeneration";
 import { useChronicleStore } from "../../lib/db/chronicleStore";
 import { useChronicleNavItems, useSelectedChronicle } from "../../lib/db/chronicleSelectors";
 import { useChronicleActions } from "../../hooks/useChronicleActions";
-import {
-  getChroniclesForSimulation,
-  updateChronicleHistorianPrep,
-} from "../../lib/db/chronicleRepository";
-import { downloadBulkToneReviewExport, downloadBulkAnnotationReviewExport } from "../../lib/chronicleExport";
-import { useFactCoverage } from "../../hooks/useFactCoverage";
-import BulkFactCoverageModal from "../BulkFactCoverageModal";
-import { useToneRanking } from "../../hooks/useToneRanking";
-import { useBulkChronicleAnnotationStore } from "../../lib/db/bulkChronicleAnnotationStore";
-import { useInterleavedAnnotationStore } from "../../lib/db/interleavedAnnotationStore";
-import { useEntityStore } from "../../lib/db/entityStore";
-import { annotateEntityNames } from "../../lib/annotateEntityNames";
 import { getEraNarrativesForSimulation } from "../../lib/db/eraNarrativeRepository";
 import { useIlluminatorModals } from "../../lib/db/modalStore";
 import { buildEraNarrativeNavItem } from "../../lib/db/eraNarrativeNav";
 import ChronologyModal from "../ChronologyModal";
 import EraNarrativeModal from "../EraNarrativeModal";
-import BulkEraNarrativeModal from "../BulkEraNarrativeModal";
-import { useBulkEraNarrativeStore } from "../../lib/db/bulkEraNarrativeStore";
-import { useBulkTagImageRefsStore } from "../../lib/db/bulkTagImageRefsStore";
-import { useBulkTagCoverImagesStore } from "../../lib/db/bulkTagCoverImagesStore";
-import BulkTagImageRefsModal from "../BulkTagImageRefsModal";
-import BulkTagCoverImagesModal from "../BulkTagCoverImagesModal";
 
 import { ChronicleFilterBar } from "./ChronicleFilterBar";
 import { ChronicleNavList } from "./ChronicleNavList";
 import { ChronicleDetailPanel } from "./ChronicleDetailPanel";
-import { ChronicleBulkActions } from "./ChronicleBulkActions";
-import { RestartModal, ResetBackportModal } from "./ChroniclePanelModals";
-import {
-  EraSummaryRefreshToast,
-  TemporalCheckToast,
-  BulkSummaryToast,
-  BulkImageRefToast,
-  BulkClearImageRefToast,
-  AssignImageStyleToast,
-  BulkGenerateSceneToast,
-  BulkClearSceneImageToast,
-  BulkGenerateCoverSceneToast,
-  AssignCoverImageStyleToast,
-  BulkGenerateCoverImageToast,
-  BulkClearCoverImageToast,
-  ResetBackportToast,
-  ReconcileBackportToast,
-} from "./ChroniclePanelToasts";
+import { RestartModal } from "./ChroniclePanelModals";
 import { useChronicleImageCallbacks } from "./useChronicleImageCallbacks";
-import { useChronicleBulkOperations } from "./useChronicleBulkOperations";
 import { useChronicleNavigation } from "./useChronicleNavigation";
 import { useChronicleGenerationCallbacks } from "./useChronicleGenerationCallbacks";
 import type { ChroniclePanelProps } from "./chroniclePanelTypes";
@@ -85,8 +49,6 @@ export function ChroniclePanel({
   entityGuidance,
   cultureIdentities,
   onBackportLore,
-  onStartBulkBackport,
-  isBulkBackportActive,
   refreshTrigger,
   imageModel,
   onOpenImageSettings,
@@ -95,7 +57,6 @@ export function ChroniclePanel({
   historianConfigured,
   historianConfig,
   onUpdateHistorianNote,
-  onRefreshEraSummaries,
   onNavigateToTab,
 }: Readonly<ChroniclePanelProps>) {
   const navEntities = useEntityNavList();
@@ -104,47 +65,13 @@ export function ChroniclePanel({
   const fullEntityMapRef = useRef<Map<string, PersistedEntity>>(new Map());
   const relationships = useRelationships();
   const narrativeEvents = useNarrativeEvents();
-  const [showBulkActions, setShowBulkActions] = useState(false);
   const [showChronologyModal, setShowChronologyModal] = useState(false);
-  const [showBulkEraNarrative, setShowBulkEraNarrative] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [wizardSeed, setWizardSeed] = useState<Record<string, unknown> | null>(null);
-  const [skipCompletedPrep, setSkipCompletedPrep] = useState(true);
   const [nameBank, setNameBank] = useState<Record<string, string[]>>({});
 
   const eraNarrativeModal = useIlluminatorModals((s) => s.eraNarrativeModal);
-  const bulkEraNarrativeProgress = useBulkEraNarrativeStore((s) => s.progress);
   const [eraNarrativeNavItems, setEraNarrativeNavItems] = useState<Array<Record<string, unknown>>>([]);
-
-  // Fact coverage
-  const { progress: factCoverageProgress, isActive: isFactCoverageActive, prepareFactCoverage, confirmFactCoverage, cancelFactCoverage, closeFactCoverage } = useFactCoverage();
-
-  // Tone ranking
-  const { progress: toneRankingProgress, isActive: isToneRankingActive, prepareToneRanking, prepareAssignment } = useToneRanking();
-
-  // Bulk annotations
-  const bulkAnnotationProgress = useBulkChronicleAnnotationStore((s) => s.progress);
-  const prepareBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.prepareAnnotation);
-  const isBulkAnnotationActive = bulkAnnotationProgress.status === "running" || bulkAnnotationProgress.status === "confirming";
-  const prepareInterleaved = useInterleavedAnnotationStore((s) => s.prepareInterleaved);
-  const interleavedProgress = useInterleavedAnnotationStore((s) => s.progress);
-  const isInterleavedActive = interleavedProgress.status === "running" || interleavedProgress.status === "confirming";
-  const entityNavItems = useEntityStore((s) => s.navItems);
-
-  // Bulk tag image refs (sequential)
-  const bulkTagProgress = useBulkTagImageRefsStore((s) => s.progress);
-  const prepareBulkTag = useBulkTagImageRefsStore((s) => s.prepareTag);
-  const confirmBulkTag = useBulkTagImageRefsStore((s) => s.confirmTag);
-  const cancelBulkTag = useBulkTagImageRefsStore((s) => s.cancelTag);
-  const closeBulkTag = useBulkTagImageRefsStore((s) => s.closeTag);
-  const isBulkTagActive = bulkTagProgress.status === "running" || bulkTagProgress.status === "confirming";
-
-  // Bulk tag cover images (sequential)
-  const bulkTagCoverProgress = useBulkTagCoverImagesStore((s) => s.progress);
-  const prepareBulkTagCover = useBulkTagCoverImagesStore((s) => s.prepareTag);
-  const confirmBulkTagCover = useBulkTagCoverImagesStore((s) => s.confirmTag);
-  const cancelBulkTagCover = useBulkTagCoverImagesStore((s) => s.cancelTag);
-  const closeBulkTagCover = useBulkTagCoverImagesStore((s) => s.closeTag);
 
   // Image settings derived from global
   const chronicleImageSize = imageGenSettings.imageSize;
@@ -251,14 +178,6 @@ export function ChroniclePanel({
     worldContext, chronicleImageSize, chronicleImageQuality, imageModel,
   });
 
-  // Bulk operations
-  const bulk = useChronicleBulkOperations({
-    simulationRunId, chronicleItems, onEnqueue, refresh,
-    historianConfigured, historianConfig, skipCompletedPrep,
-    fullEntityMapRef, styleLibrary, worldContext,
-    imageModel, chronicleImageQuality: imageGenSettings.imageQuality,
-  });
-
   // Era narratives
   const refreshEraNarratives = useCallback(() => {
     if (!simulationRunId) return;
@@ -311,24 +230,6 @@ export function ChroniclePanel({
     return byStatus;
   }, [chronicleItems]);
 
-  // Amend briefs handler
-  const handleAmendBriefs = useCallback(() => {
-    void (async () => {
-      if (!simulationRunId || entityNavItems.size === 0) return;
-      const chronicles = await getChroniclesForSimulation(simulationRunId);
-      let amended = 0;
-      for (const record of chronicles) {
-        if (!record.historianPrep) continue;
-        const annotated = annotateEntityNames(record.historianPrep, entityNavItems);
-        if (annotated !== record.historianPrep) {
-          await updateChronicleHistorianPrep(record.chronicleId, annotated);
-          amended++;
-        }
-      }
-      console.log(`[Amend Briefs] Annotated ${amended}/${chronicles.filter((c: Record<string, unknown>) => c.historianPrep).length} briefs`);
-    })();
-  }, [simulationRunId, entityNavItems]);
-
   // Build review panel props — merge in data props that buildReviewPanelProps
   // leaves as placeholders (styleSelection, imageGenSettings, entities, etc.)
   const rawReviewPanelProps = gen.buildReviewPanelProps(selectedItem, img, isGenerating, nav, historianConfigured, isHistorianActive, onHistorianReview, onBackportLore, onUpdateHistorianNote, onOpenImageSettings, imageModel, onNavigateToTab);
@@ -370,55 +271,6 @@ export function ChroniclePanel({
 
       <ChronicleFilterBar {...nav.filterBarProps} />
 
-      <ChronicleBulkActions
-        showBulkActions={showBulkActions}
-        onToggleBulkActions={() => setShowBulkActions(!showBulkActions)}
-        onBulkTemporalCheck={bulk.handleBulkTemporalCheck}
-        onBulkDetectTertiary={() => void bulk.handleBulkDetectTertiary()}
-        tertiaryDetectRunning={bulk.tertiaryDetectResult?.running ?? false}
-        onRefreshEraSummaries={onRefreshEraSummaries}
-        onEraSummaryRefreshResult={bulk.setEraSummaryRefreshResult}
-        onBulkSummary={bulk.handleBulkSummary}
-        onPrepareFactCoverage={() => prepareFactCoverage(chronicleItems)}
-        isFactCoverageActive={isFactCoverageActive}
-        onPrepareToneRanking={() => prepareToneRanking(chronicleItems)}
-        isToneRankingActive={isToneRankingActive}
-        toneRankingProgress={toneRankingProgress}
-        onPrepareAssignment={() => void prepareAssignment()}
-        onDownloadToneReview={() => void downloadBulkToneReviewExport(simulationRunId)}
-        onStartBulkBackport={onStartBulkBackport}
-        isBulkBackportActive={isBulkBackportActive}
-        onReconcileBackports={() => void bulk.handleReconcileBackports()}
-        onOpenResetBackportModal={bulk.handleOpenResetBackportModal}
-        historianConfigured={historianConfigured}
-        skipCompletedPrep={skipCompletedPrep}
-        onSetSkipCompletedPrep={setSkipCompletedPrep}
-        onOpenChronologyModal={() => setShowChronologyModal(true)}
-        onBulkHistorianPrep={bulk.handleBulkHistorianPrep}
-        onOpenEraNarrativeModal={() => useIlluminatorModals.getState().openEraNarrative()}
-        onOpenBulkEraNarrativeModal={() => setShowBulkEraNarrative(true)}
-        bulkEraNarrativeRunning={bulkEraNarrativeProgress.status === "running"}
-        onPrepareBulkAnnotation={(op) => prepareBulkAnnotation(op, chronicleItems)}
-        isBulkAnnotationActive={isBulkAnnotationActive}
-        bulkAnnotationProgress={bulkAnnotationProgress}
-        onPrepareInterleaved={() => prepareInterleaved(chronicleItems, entityNavItems)}
-        isInterleavedActive={isInterleavedActive}
-        onDownloadAnnotationReview={() => void downloadBulkAnnotationReviewExport(simulationRunId)}
-        onAmendBriefs={handleAmendBriefs}
-        onBulkRegenerateImageRefs={bulk.handleBulkRegenerateImageRefs}
-        onBulkTagImageRefs={() => styleLibrary && prepareBulkTag(chronicleItems, styleLibrary, simulationRunId, projectId)}
-        onAssignImageStyles={bulk.handleAssignImageStyles}
-        onBulkGenerateSceneImages={bulk.handleBulkGenerateSceneImages}
-        onBulkClearImageRefs={bulk.handleBulkClearImageRefs}
-        onBulkClearSceneImages={bulk.handleBulkClearSceneImages}
-        onBulkClearByComposition={bulk.handleBulkClearByComposition}
-        onBulkGenerateCoverScenes={bulk.handleBulkGenerateCoverScenes}
-        onAssignCoverImageStyles={() => void bulk.handleAssignCoverImageStyles()}
-        onBulkGenerateCoverImages={bulk.handleBulkGenerateCoverImages}
-        onBulkClearCoverImages={bulk.handleBulkClearCoverImages}
-        onBulkTagCoverImages={() => styleLibrary && prepareBulkTagCover(chronicleItems, styleLibrary, simulationRunId, projectId)}
-      />
-
       <div className="chron-main">
         <ChronicleNavList
           filteredItems={nav.filteredItems}
@@ -451,31 +303,8 @@ export function ChroniclePanel({
 
       {/* Modals */}
       {gen.showRestartModal && <RestartModal onConfirm={() => void gen.handleRestartConfirm()} onCancel={gen.handleRestartCancel} />}
-      {bulk.showResetBackportModal && <ResetBackportModal onConfirm={() => void bulk.handleResetBackportConfirm()} onCancel={bulk.handleResetBackportCancel} />}
-
-      {/* Toasts */}
-      {bulk.eraSummaryRefreshResult && <EraSummaryRefreshToast result={bulk.eraSummaryRefreshResult} onDismiss={() => bulk.setEraSummaryRefreshResult(null)} />}
-      {bulk.temporalCheckResult && <TemporalCheckToast result={bulk.temporalCheckResult} onDismiss={() => bulk.setTemporalCheckResult(null)} />}
-      {bulk.bulkSummaryResult && <BulkSummaryToast result={bulk.bulkSummaryResult} onDismiss={() => bulk.setBulkSummaryResult(null)} />}
-      {bulk.bulkImageRefResult && <BulkImageRefToast result={bulk.bulkImageRefResult} onDismiss={() => bulk.setBulkImageRefResult(null)} />}
-      {bulk.bulkClearImageRefResult && <BulkClearImageRefToast result={bulk.bulkClearImageRefResult} onDismiss={() => bulk.setBulkClearImageRefResult(null)} />}
-      {bulk.assignImageStyleResult && <AssignImageStyleToast result={bulk.assignImageStyleResult} onDismiss={() => bulk.setAssignImageStyleResult(null)} />}
-      {bulk.bulkGenerateSceneResult && <BulkGenerateSceneToast result={bulk.bulkGenerateSceneResult} onDismiss={() => bulk.setBulkGenerateSceneResult(null)} />}
-      {bulk.bulkClearSceneImageResult && <BulkClearSceneImageToast result={bulk.bulkClearSceneImageResult} onDismiss={() => bulk.setBulkClearSceneImageResult(null)} />}
-      {bulk.bulkGenerateCoverSceneResult && <BulkGenerateCoverSceneToast result={bulk.bulkGenerateCoverSceneResult} onDismiss={() => bulk.setBulkGenerateCoverSceneResult(null)} />}
-      {bulk.assignCoverImageStyleResult && <AssignCoverImageStyleToast result={bulk.assignCoverImageStyleResult} onDismiss={() => bulk.setAssignCoverImageStyleResult(null)} />}
-      {bulk.bulkGenerateCoverImageResult && <BulkGenerateCoverImageToast result={bulk.bulkGenerateCoverImageResult} onDismiss={() => bulk.setBulkGenerateCoverImageResult(null)} />}
-      {bulk.bulkClearCoverImageResult && <BulkClearCoverImageToast result={bulk.bulkClearCoverImageResult} onDismiss={() => bulk.setBulkClearCoverImageResult(null)} />}
-      {bulk.bulkClearByCompositionResult && <BulkClearCoverImageToast result={bulk.bulkClearByCompositionResult} onDismiss={() => bulk.setBulkClearByCompositionResult(null)} />}
-      {bulk.resetBackportResult && <ResetBackportToast result={bulk.resetBackportResult} onDismiss={() => bulk.setResetBackportResult(null)} />}
-      {bulk.reconcileBackportResult && <ReconcileBackportToast result={bulk.reconcileBackportResult} onDismiss={() => bulk.setReconcileBackportResult(null)} />}
-
-      <BulkTagImageRefsModal progress={bulkTagProgress} onConfirm={confirmBulkTag} onCancel={cancelBulkTag} onClose={closeBulkTag} />
-      <BulkTagCoverImagesModal progress={bulkTagCoverProgress} onConfirm={confirmBulkTagCover} onCancel={cancelBulkTagCover} onClose={closeBulkTagCover} />
-      <BulkFactCoverageModal progress={factCoverageProgress} onConfirm={confirmFactCoverage} onCancel={cancelFactCoverage} onClose={closeFactCoverage} />
       <ChronologyModal isOpen={showChronologyModal} onClose={() => setShowChronologyModal(false)} chronicleItems={chronicleItems} wizardEras={nav.wizardEras} wizardEvents={nav.wizardEvents} projectId={projectId} simulationRunId={simulationRunId} historianConfig={historianConfig} onEnqueue={onEnqueue} onApplied={() => { void useChronicleStore.getState().refreshAll(); setShowChronologyModal(false); }} />
       <EraNarrativeModal isOpen={eraNarrativeModal !== null} resumeNarrativeId={eraNarrativeModal?.narrativeId} onClose={() => { useIlluminatorModals.getState().closeEraNarrative(); refreshEraNarratives(); }} chronicleItems={chronicleItems} wizardEras={nav.wizardEras} projectId={projectId} simulationRunId={simulationRunId} historianConfig={historianConfig} onEnqueue={onEnqueue} styleLibrary={styleLibrary} />
-      <BulkEraNarrativeModal isOpen={showBulkEraNarrative || bulkEraNarrativeProgress.status === "running"} onClose={() => { setShowBulkEraNarrative(false); refreshEraNarratives(); }} chronicleItems={chronicleItems} wizardEras={nav.wizardEras} eraTemporalInfo={nav.wizardEras} projectId={projectId} simulationRunId={simulationRunId} styleLibrary={styleLibrary} />
       <ChronicleWizard isOpen={showWizard} onClose={() => { setShowWizard(false); setWizardSeed(null); }} onGenerate={(cfg: Record<string, unknown>) => void gen.handleWizardGenerate(cfg)} narrativeStyles={styleLibrary?.narrativeStyles || []} entities={nav.wizardEntities} relationships={nav.wizardRelationships} events={nav.wizardEvents} entityKinds={worldData?.schema?.entityKinds || []} eras={nav.wizardEras} initialSeed={wizardSeed} simulationRunId={simulationRunId} />
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

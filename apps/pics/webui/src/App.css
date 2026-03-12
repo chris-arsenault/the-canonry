@@ -1,5 +1,6 @@
 .app {
   min-height: 100vh;
+  padding-bottom: 36px;
 }
 
 .app-header {
@@ -108,7 +109,56 @@
   background: var(--azure-dim);
 }
 
+/* ── Footer ──────────────────────────────────────────────────────────── */
+
+.app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  background: rgba(10, 10, 15, 0.92);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(86, 180, 232, 0.08);
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.app-footer img {
+  vertical-align: middle;
+}
+
+.app-footer-sep {
+  color: rgba(255, 255, 255, 0.15);
+}
+
+.app-footer-link {
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s;
+  padding: 0;
+  text-decoration: none;
+}
+
+.app-footer-link:hover {
+  color: var(--azure-text);
+}
+
 @media (max-width: 640px) {
+  .app {
+    padding-bottom: 0;
+  }
+
   .app-header {
     flex-direction: column;
     gap: 8px;
@@ -117,5 +167,9 @@
 
   .app-title {
     font-size: 1.2rem;
+  }
+
+  .app-footer {
+    display: none;
   }
 }

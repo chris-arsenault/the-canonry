@@ -68,6 +68,8 @@ interface ImageCandidate {
   compositionStyleId: string;
   colorPaletteId: string;
   imageType: string;
+  /** Current title — populated for retitle operations. */
+  currentTitle?: string;
 }
 
 /** What a fill operation needs to produce per batch. */
@@ -80,7 +82,7 @@ interface FillSpec {
   visionSystemPrompt: string;
   buildTextEntry: (img: ImageCandidate, index: number) => string;
   buildVisionLabel: (img: ImageCandidate, index: number) => string;
-  batchInstruction: string;
+  batchInstruction: string | ((batchIndex: number) => string);
   parseEntry: (entry: Record<string, unknown>, img: ImageCandidate) => Record<string, unknown> | null;
 }
 
@@ -207,6 +209,9 @@ async function runBatchFill(
     try {
       let responseText: string;
       let activeBatch = batch;
+      const instruction = typeof spec.batchInstruction === "function"
+        ? spec.batchInstruction(batchIdx)
+        : spec.batchInstruction;
 
       if (useVision) {
         // Build vision content blocks
@@ -231,14 +236,14 @@ async function runBatchFill(
           continue;
         }
 
-        contentBlocks.push({ type: "text", text: spec.batchInstruction });
+        contentBlocks.push({ type: "text", text: instruction });
         responseText = await callVisionApi(apiKey, spec.visionSystemPrompt, contentBlocks);
         activeBatch = loaded;
         result.skipped += batch.length - loaded.length;
       } else {
         // Build text prompt
         const entries = batch.map((img, i) => spec.buildTextEntry(img, i));
-        const prompt = `${spec.batchInstruction}\n\n${entries.join("\n\n")}`;
+        const prompt = `${instruction}\n\n${entries.join("\n\n")}`;
 
         const llmClient = new LLMClient({ enabled: true, apiKey, model: "claude-haiku-4-5-20251001" });
         const callConfig = getCallConfig(spec.callType);
@@ -416,61 +421,83 @@ export async function runClassifyFill(options: FillOptions): Promise<LlmFillResu
 // Title Fill — evocative titles informed by style context
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function titleSpec(styleNames: StyleNameMap): FillSpec {
-  const sharedRules = `Rules for titles:
-- 3-8 words, evocative, not a sentence fragment.
-- The title should feel appropriate to the artistic medium. A watercolor portrait title feels different from a cinematic action shot title.
-- For entity images: reference the subject naturally. "Kael at the Frozen Gate" not "Portrait of Kael".
-- For scene images: capture the moment or mood. "The Council Convenes" not "A group of people sitting around a table discussing".
-- For cover images: convey the era or narrative scope. "Age of Shattered Alliances" not "Cover image for chronicle".
-- NEVER truncate a description as a title. Titles are crafted, not clipped.
+const sharedTitleRules = `You are a gallery curator writing placards. Each title is 1-6 words. Single-word titles are rare and earn their brevity.
+
+Your process:
+1. Read the subject, style, and narrative context.
+2. Identify what makes THIS image distinct from every other image in the collection.
+3. Title that distinction. The viewer's eyes handle the visual; the title handles what the image means.
+
+The artistic medium shapes the title's register and rhythm — a woodblock print title has different cadence than a baroque oil. Match the register to the image, not to a single gallery voice.
+
+When an entity has a name, some titles in the batch should use it. The name becomes part of a larger phrase, not a label.
+
+Scene titles name the turning point. Cover titles name the arc's defining tension.
+
+Each title in this batch must use a different syntactic structure and different vocabulary from every other title in this batch. Vary sentence pattern, word count, register, and rhetorical strategy across the set. Titles can be fragments, questions, imperatives, compound nouns, complete sentences, or any other syntactic shape — use the full range. A batch of titles should read like the work of several different curators.
 
 Respond with valid JSON only. No markdown, no explanation.`;
 
-  function resolveStyleContext(img: ImageCandidate): string {
-    const parts: string[] = [];
-    if (img.artisticStyleId) {
-      const name = styleNames.artistic.get(img.artisticStyleId) || img.artisticStyleId;
-      parts.push(`artistic style: ${name}`);
-    }
-    if (img.compositionStyleId) {
-      const name = styleNames.composition.get(img.compositionStyleId) || img.compositionStyleId;
-      parts.push(`composition: ${name}`);
-    }
-    if (img.colorPaletteId) {
-      const name = styleNames.palette.get(img.colorPaletteId) || img.colorPaletteId;
-      parts.push(`palette: ${name}`);
-    }
-    if (img.entityName) parts.push(`entity: ${img.entityName}`);
-    if (img.imageType) parts.push(`type: ${img.imageType}`);
-    return parts.join(", ");
+function resolveStyleContext(img: ImageCandidate, styleNames: StyleNameMap): string {
+  const parts: string[] = [];
+  if (img.artisticStyleId) {
+    const name = styleNames.artistic.get(img.artisticStyleId) || img.artisticStyleId;
+    parts.push(`artistic style: ${name}`);
   }
+  if (img.compositionStyleId) {
+    const name = styleNames.composition.get(img.compositionStyleId) || img.compositionStyleId;
+    parts.push(`composition: ${name}`);
+  }
+  if (img.colorPaletteId) {
+    const name = styleNames.palette.get(img.colorPaletteId) || img.colorPaletteId;
+    parts.push(`palette: ${name}`);
+  }
+  if (img.entityName) parts.push(`entity: ${img.entityName}`);
+  if (img.imageType) parts.push(`type: ${img.imageType}`);
+  return parts.join(", ");
+}
 
+function titleSpec(styleNames: StyleNameMap): FillSpec {
   return {
     name: "title",
     callType: "catalog.titleFill",
-    textBatchSize: 30,
+    textBatchSize: 50,
     visionBatchSize: 5,
 
-    textSystemPrompt: `You are a title writer for a fantasy world image catalog. Write evocative, concise titles for each image. You are given the image's generation prompt and its style/composition context.
+    textSystemPrompt: `You title artwork for a fantasy world gallery. You are given each image's generation prompt and style context. Use them to understand the narrative stakes, then title the subtext — what the image means, not what it shows.
 
-${sharedRules}`,
+${sharedTitleRules}`,
 
-    visionSystemPrompt: `You are a title writer for a fantasy world image catalog. Look at each image and write an evocative, concise title. You are given the image's style/composition context.
+    visionSystemPrompt: `You title artwork for a fantasy world gallery. Look at each image and its style context. Title the subtext — what the image means, not what it shows.
 
-${sharedRules}`,
+${sharedTitleRules}`,
 
     buildTextEntry: (img, i) => {
-      const context = resolveStyleContext(img);
+      const context = resolveStyleContext(img, styleNames);
       return `[${i}] id="${img.imageId}"\n${context}\nprompt: ${img.prompt.slice(0, 400)}`;
     },
 
     buildVisionLabel: (img, i) => {
-      const context = resolveStyleContext(img);
+      const context = resolveStyleContext(img, styleNames);
       return `[${i}] id="${img.imageId}"\n${context}`;
     },
 
-    batchInstruction: `Write a title for each image. Return a JSON array where each element has "id" (string) and "title" (string).`,
+    batchInstruction: (batchIndex: number) => {
+      // Rotate thematic lenses across batches to shift the model's conceptual neighborhood
+      // and reduce formulaic repetition within and across batches.
+      const lenses = [
+        "Lean into irony, contradiction, or unexpected juxtaposition.",
+        "Lean into stillness, absence, or what's been left behind.",
+        "Lean into motion, transformation, or the moment just before change.",
+        "Lean into names, places, or fragments of speech that carry narrative charge.",
+        "Lean into texture, material, or the physical world — how things feel, not how they look.",
+        "Lean into questions, ambiguity, or double meanings.",
+        "Lean into the mythic register — titles that sound like they belong in oral tradition.",
+        "Lean into brevity and punch — two or three words that land hard.",
+      ];
+      const lens = lenses[batchIndex % lenses.length];
+      return `Title each image. ${lens} Return a JSON array where each element has "id" (string) and "title" (string).`;
+    },
 
     parseEntry: (entry) => {
       if (typeof entry.title === "string" && entry.title.trim().length > 0) {
@@ -479,6 +506,45 @@ ${sharedRules}`,
       return null;
     },
   };
+}
+
+/** Run title fill for a sample of images in a single batch. Returns the new titles. */
+export async function runSampleTitles(
+  imageIds: string[],
+  apiKey: string,
+  styleNames: StyleNameMap,
+): Promise<{ imageId: string; title: string }[]> {
+  const candidates: ImageCandidate[] = [];
+  for (const imageId of imageIds) {
+    const rec = await db.images.get(imageId) as unknown as Record<string, unknown> | undefined;
+    if (!rec) continue;
+    const prompt = (rec.finalPrompt as string) || (rec.originalPrompt as string) || "";
+    if (!prompt) continue;
+    candidates.push({
+      imageId,
+      prompt,
+      entityName: (rec.entityName as string) || "",
+      artisticStyleId: (rec.artisticStyleId as string) || "",
+      compositionStyleId: (rec.compositionStyleId as string) || "",
+      colorPaletteId: (rec.colorPaletteId as string) || "",
+      imageType: (rec.imageType as string) || "",
+    });
+  }
+  if (candidates.length === 0) return [];
+
+  const spec = titleSpec(styleNames);
+  const result = await runBatchFill(candidates, apiKey, false, spec);
+  if (result.updated === 0) return [];
+
+  // Read back the titles
+  const titles: { imageId: string; title: string }[] = [];
+  for (const c of candidates) {
+    const updated = await db.images.get(c.imageId) as unknown as Record<string, unknown> | undefined;
+    if (updated?.llmTitle && updated?.title) {
+      titles.push({ imageId: c.imageId, title: updated.title as string });
+    }
+  }
+  return titles;
 }
 
 export async function runTitleFill(options: TitleFillOptions): Promise<LlmFillResult> {
@@ -490,13 +556,15 @@ export async function runTitleFill(options: TitleFillOptions): Promise<LlmFillRe
   for (const img of allImages) {
     const rec = img as unknown as Record<string, unknown>;
     const prompt = (rec.finalPrompt as string) || (rec.originalPrompt as string) || "";
-    if (!useVision && !prompt) continue;
 
     // Candidate if llmTitle is not true (never had an LLM-generated title)
     if (rec.llmTitle) continue;
 
-    // Skip images without style context — title quality depends on it
-    if (!rec.artisticStyleId || !rec.compositionStyleId) continue;
+    // Text mode requires prompt and style context; vision mode can work without
+    if (!useVision) {
+      if (!prompt) continue;
+      if (!rec.artisticStyleId || !rec.compositionStyleId) continue;
+    }
 
     candidates.push({
       imageId: rec.imageId as string,
@@ -514,4 +582,98 @@ export async function runTitleFill(options: TitleFillOptions): Promise<LlmFillRe
   }
 
   return runBatchFill(candidates, apiKey, useVision, titleSpec(styleNames), onProgress);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Retitle — replace existing titles with something structurally different
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function retitleSpec(styleNames: StyleNameMap, corpus: string[]): FillSpec {
+  const corpusBlock = corpus.length > 0
+    ? `\nTITLES ALREADY IN THE COLLECTION (do not echo their patterns, sentence shapes, or vocabulary):\n${corpus.map((t) => `- ${t}`).join("\n")}\n`
+    : "";
+
+  const systemPrompt = `You are retitling artwork in a fantasy world gallery. Each image already has a title that was too similar to another title in the collection. Your job is to replace it with something in a completely different register, cadence, and syntactic shape.
+
+${sharedTitleRules}${corpusBlock}`;
+
+  return {
+    name: "retitle",
+    callType: "catalog.titleFill",
+    textBatchSize: 50,
+    visionBatchSize: 5,
+
+    textSystemPrompt: systemPrompt,
+    visionSystemPrompt: systemPrompt,
+
+    buildTextEntry: (img, i) => {
+      const context = resolveStyleContext(img, styleNames);
+      const current = img.currentTitle ? `\ncurrent title (REPLACE — use different tone, structure, and vocabulary): "${img.currentTitle}"` : "";
+      return `[${i}] id="${img.imageId}"\n${context}${current}\nprompt: ${img.prompt.slice(0, 400)}`;
+    },
+
+    buildVisionLabel: (img, i) => {
+      const context = resolveStyleContext(img, styleNames);
+      const current = img.currentTitle ? `\ncurrent title (REPLACE): "${img.currentTitle}"` : "";
+      return `[${i}] id="${img.imageId}"\n${context}${current}`;
+    },
+
+    batchInstruction: (batchIndex: number) => {
+      const lenses = [
+        "Lean into irony, contradiction, or unexpected juxtaposition.",
+        "Lean into stillness, absence, or what's been left behind.",
+        "Lean into motion, transformation, or the moment just before change.",
+        "Lean into names, places, or fragments of speech that carry narrative charge.",
+        "Lean into texture, material, or the physical world — how things feel, not how they look.",
+        "Lean into questions, ambiguity, or double meanings.",
+        "Lean into the mythic register — titles that sound like they belong in oral tradition.",
+        "Lean into brevity and punch — two or three words that land hard.",
+      ];
+      const lens = lenses[batchIndex % lenses.length];
+      return `Retitle each image. Each new title must differ from its current title in tone, cadence, and word choice. ${lens} Return a JSON array where each element has "id" (string) and "title" (string).`;
+    },
+
+    parseEntry: (entry) => {
+      if (typeof entry.title === "string" && entry.title.trim().length > 0) {
+        return { title: entry.title.trim(), llmTitle: true };
+      }
+      return null;
+    },
+  };
+}
+
+export interface RetitleOptions {
+  /** Image IDs to retitle. */
+  imageIds: string[];
+  apiKey: string;
+  styleNames: StyleNameMap;
+  /** Corpus of existing titles to avoid echoing. */
+  corpus: string[];
+  onProgress?: (progress: LlmFillProgress) => void;
+}
+
+export async function runRetitle(options: RetitleOptions): Promise<LlmFillResult> {
+  const { imageIds, apiKey, styleNames, corpus, onProgress } = options;
+
+  const candidates: ImageCandidate[] = [];
+  for (const imageId of imageIds) {
+    const rec = await db.images.get(imageId) as unknown as Record<string, unknown> | undefined;
+    if (!rec) continue;
+    candidates.push({
+      imageId,
+      prompt: (rec.finalPrompt as string) || (rec.originalPrompt as string) || "",
+      entityName: (rec.entityName as string) || "",
+      artisticStyleId: (rec.artisticStyleId as string) || "",
+      compositionStyleId: (rec.compositionStyleId as string) || "",
+      colorPaletteId: (rec.colorPaletteId as string) || "",
+      imageType: (rec.imageType as string) || "",
+      currentTitle: (rec.title as string) || "",
+    });
+  }
+
+  if (candidates.length === 0) {
+    return { updated: 0, skipped: 0, errors: 0, details: [] };
+  }
+
+  return runBatchFill(candidates, apiKey, false, retitleSpec(styleNames, corpus), onProgress);
 }

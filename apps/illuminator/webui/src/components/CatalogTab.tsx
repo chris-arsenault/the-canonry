@@ -37,13 +37,13 @@ export default function CatalogTab({ styleLibrary }: Readonly<CatalogTabProps>) 
             className={`cat-tab-btn ${view === "report" ? "active" : ""}`}
             onClick={() => setView("report")}
           >
-            Coverage Report
+            Coverage &amp; Fill
           </button>
           <button
             className={`cat-tab-btn ${view === "review" ? "active" : ""}`}
             onClick={() => setView("review")}
           >
-            Review &amp; Edit
+            Review &amp; Manual Edit
           </button>
         </div>
         <div className="cat-content">

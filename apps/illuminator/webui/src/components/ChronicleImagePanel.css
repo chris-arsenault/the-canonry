@@ -316,6 +316,12 @@
   outline: 1px solid rgba(251, 191, 36, 0.4);
 }
 
+.cip-ranked-secondary {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  outline: 1px dashed rgba(139, 92, 246, 0.4);
+}
+
 .cip-tooltip-trigger {
   cursor: help;
 }

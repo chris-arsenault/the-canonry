@@ -4,23 +4,14 @@ import DynamicsGenerationModal from "./DynamicsGenerationModal";
 import RevisionFilterModal from "./RevisionFilterModal";
 import SummaryRevisionModal from "./SummaryRevisionModal";
 import BackportConfigModal from "./BackportConfigModal";
-import BulkBackportModal from "./BulkBackportModal";
-import BulkHistorianModal from "./BulkHistorianModal";
 import HistorianReviewModal from "./HistorianReviewModal";
 import EntityRenameModal from "./EntityRenameModal";
 import CreateEntityModal from "./CreateEntityModal";
-import BulkToneRankingModal from "./BulkToneRankingModal";
-import ToneAssignmentPreviewModal from "./ToneAssignmentPreviewModal";
-import BulkChronicleAnnotationModal from "./BulkChronicleAnnotationModal";
-import InterleavedAnnotationModal from "./InterleavedAnnotationModal";
 import { ThinkingViewer } from "./ThinkingViewer";
 import { FloatingPills } from "./FloatingPills";
 import { useIlluminatorModals } from "../lib/db/modalStore";
 import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
 import { useEraTemporalInfo } from "../lib/db/indexSelectors";
-import { useToneRankingStore } from "../lib/db/toneRankingStore";
-import { useBulkChronicleAnnotationStore } from "../lib/db/bulkChronicleAnnotationStore";
-import { useInterleavedAnnotationStore } from "../lib/db/interleavedAnnotationStore";
 import React from "react";
 
 function ImageSettingsSection({
@@ -94,14 +85,6 @@ function BackportSection({ backportFlow, revisionFlow }) {
         onMarkNotNeeded={backportFlow.handleMarkEntityNotNeeded}
         onCancel={() => backportFlow.setBackportConfig(null)}
       />
-      {backportFlow.showBulkBackportModal && (
-        <BulkBackportModal
-          progress={backportFlow.bulkBackportProgress}
-          onConfirm={backportFlow.handleConfirmBulkBackport}
-          onCancel={backportFlow.handleCancelBulkBackport}
-          onClose={backportFlow.handleCloseBulkBackport}
-        />
-      )}
       <SummaryRevisionModal
         run={backportFlow.backportRun}
         isActive={backportFlow.isBackportActive}
@@ -118,16 +101,6 @@ function BackportSection({ backportFlow, revisionFlow }) {
 function HistorianSection({ historianFlow, revisionFlow }) {
   return (
     <>
-      {historianFlow.showBulkHistorianModal && (
-        <BulkHistorianModal
-          progress={historianFlow.bulkHistorianProgress}
-          onConfirm={historianFlow.handleConfirmBulkHistorian}
-          onCancel={historianFlow.handleCancelBulkHistorian}
-          onClose={historianFlow.handleCloseBulkHistorian}
-          onChangeTone={historianFlow.setBulkHistorianTone}
-          editionMaxTokens={historianFlow.editionMaxTokens}
-        />
-      )}
       <SummaryRevisionModal
         run={historianFlow.historianEditionRun}
         isActive={historianFlow.isHistorianEditionActive}
@@ -188,50 +161,6 @@ function EntityModals({ worldSchema, handleRenameApplied, handleCreateEntity, ha
   );
 }
 
-function ToneAndAnnotationModals() {
-  const toneRankingProgress = useToneRankingStore((s) => s.progress);
-  const confirmToneRanking = useToneRankingStore((s) => s.confirmToneRanking);
-  const cancelToneRanking = useToneRankingStore((s) => s.cancelToneRanking);
-  const closeToneRanking = useToneRankingStore((s) => s.closeToneRanking);
-  const toneAssignmentPreview = useToneRankingStore((s) => s.assignmentPreview);
-  const applyToneAssignment = useToneRankingStore((s) => s.applyAssignment);
-  const closeToneAssignment = useToneRankingStore((s) => s.closeAssignment);
-  const bulkAnnotationProgress = useBulkChronicleAnnotationStore((s) => s.progress);
-  const confirmBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.confirmAnnotation);
-  const cancelBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.cancelAnnotation);
-  const closeBulkAnnotation = useBulkChronicleAnnotationStore((s) => s.closeAnnotation);
-  const interleavedProgress = useInterleavedAnnotationStore((s) => s.progress);
-  const confirmInterleaved = useInterleavedAnnotationStore((s) => s.confirmInterleaved);
-  const cancelInterleaved = useInterleavedAnnotationStore((s) => s.cancelInterleaved);
-  const closeInterleaved = useInterleavedAnnotationStore((s) => s.closeInterleaved);
-  return (
-    <>
-      <BulkToneRankingModal
-        progress={toneRankingProgress}
-        onConfirm={confirmToneRanking}
-        onCancel={cancelToneRanking}
-        onClose={closeToneRanking}
-      />
-      <ToneAssignmentPreviewModal
-        preview={toneAssignmentPreview}
-        onApply={applyToneAssignment}
-        onClose={closeToneAssignment}
-      />
-      <BulkChronicleAnnotationModal
-        progress={bulkAnnotationProgress}
-        onConfirm={confirmBulkAnnotation}
-        onCancel={cancelBulkAnnotation}
-        onClose={closeBulkAnnotation}
-      />
-      <InterleavedAnnotationModal
-        progress={interleavedProgress}
-        onConfirm={confirmInterleaved}
-        onCancel={cancelInterleaved}
-        onClose={closeInterleaved}
-      />
-    </>
-  );
-}
 
 /**
  * Orchestrator component for all Illuminator modal dialogs.
@@ -266,7 +195,6 @@ export default function IlluminatorModals({
         handleCreateEntity={props.handleCreateEntity}
         handleEditEntity={props.handleEditEntity}
       />
-      <ToneAndAnnotationModals />
       <ThinkingViewer />
       <FloatingPills onNavigate={props.setActiveTab} />
     </>

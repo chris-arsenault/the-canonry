@@ -26,14 +26,14 @@ interface MasonryGridProps {
 const BATCH_SIZE = 40;
 const EAGER_COUNT = 8;
 
-function ShareButton({ imageId }: { imageId: string }) {
+function ShareButton({ imageId }: Readonly<{ imageId: string }>) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       const url = `${window.location.origin}${window.location.pathname}#img-${imageId}`;
-      navigator.clipboard.writeText(url).then(() => {
+      void navigator.clipboard.writeText(url).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       });
@@ -65,17 +65,18 @@ function GridImage({
   img,
   index,
   resolveUrl,
-}: {
+}: Readonly<{
   img: CatalogImage;
   index: number;
   resolveUrl: (path: string) => string;
-}) {
+}>) {
   const [loaded, setLoaded] = useState(false);
   const isEager = index < EAGER_COUNT;
 
   return (
     <div
       className="masonry-ratio"
+      // eslint-disable-next-line local/no-inline-styles -- per-image aspect ratio requires runtime value
       style={{ aspectRatio: `${img.width} / ${img.height}` }}
     >
       <img
@@ -100,15 +101,16 @@ export default function MasonryGrid({
   compareSelected,
   onImageClick,
 }: Readonly<MasonryGridProps>) {
-  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const prevImagesRef = useRef(images);
+
+  // Reset visible count when images array identity changes (filter/sort)
+  // Using ref comparison during render (React-approved getDerivedStateFromProps pattern)
+  // eslint-disable-next-line react-hooks/refs -- intentional ref read during render to detect prop changes without an effect
+  if (prevImagesRef.current !== images) { prevImagesRef.current = images; setVisibleCount(BATCH_SIZE); }
 
   const selectedIds = new Set(compareSelected.map((img) => img.imageId));
-
-  // Reset visible count when images change (filter/sort)
-  useEffect(() => {
-    setVisibleCount(BATCH_SIZE);
-  }, [images]);
 
   // Infinite scroll via IntersectionObserver
   useEffect(() => {
@@ -146,7 +148,10 @@ export default function MasonryGrid({
           <div
             key={img.imageId}
             className={`masonry-item ${isSelected ? "masonry-item--selected" : ""}`}
+            role="button"
+            tabIndex={0}
             onClick={() => onImageClick(idx)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onImageClick(idx); } }}
           >
             <GridImage img={img} index={idx} resolveUrl={resolveUrl} />
             {comparePicking && isSelected && (
@@ -155,7 +160,7 @@ export default function MasonryGrid({
             <div className="masonry-caption">
               <div className="masonry-caption-text">
                 <span className="masonry-title">{img.title}</span>
-                {img.entityName && (
+                {img.imageType === "entity" && (
                   <span className="masonry-entity">{img.entityName}</span>
                 )}
               </div>

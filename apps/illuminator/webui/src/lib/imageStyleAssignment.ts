@@ -222,6 +222,138 @@ function enforceForbiddenCombinations(
 // Public API
 // ============================================================================
 
+// ============================================================================
+// Secondary assignment — pair-novelty greedy with shuffled iteration
+// ============================================================================
+
+export interface SecondaryAssignmentEntry {
+  chronicleId: string;
+  refId: string;
+  secondaryArtisticStyleId: string;
+  secondaryCompositionStyleId: string;
+  secondaryColorPaletteId: string;
+}
+
+export interface SecondaryAssignmentResult {
+  entries: SecondaryAssignmentEntry[];
+  novelPairs: number;
+  totalPairs: number;
+}
+
+/**
+ * Assign secondary styles by picking from remaining ranked options (excluding
+ * primary) and maximizing pairwise novelty across the corpus.
+ *
+ * Scoring: for a candidate combo (a, c, p), count how many of the 3 pairs
+ * (a|c, a|p, c|p) have NOT been used yet. Higher = better. Ties broken randomly.
+ *
+ * The used-pairs set is seeded from all primary assignments, then updated as
+ * each secondary is assigned.
+ */
+export function assignSecondaryStyles(
+  rankings: ImageRefRanking[],
+  primaryAssignments: Array<{
+    chronicleId: string;
+    refId: string;
+    artisticStyleId: string;
+    compositionStyleId: string;
+    colorPaletteId: string;
+  }>,
+): SecondaryAssignmentResult {
+  if (rankings.length === 0) {
+    return { entries: [], novelPairs: 0, totalPairs: 0 };
+  }
+
+  // Build primary assignment lookup
+  const primaryMap = new Map<string, typeof primaryAssignments[0]>();
+  for (const p of primaryAssignments) {
+    primaryMap.set(`${p.chronicleId}:${p.refId}`, p);
+  }
+
+  // Seed used-pairs set from primary assignments
+  const usedPairs = new Set<string>();
+  for (const p of primaryAssignments) {
+    usedPairs.add(`a:${p.artisticStyleId}|c:${p.compositionStyleId}`);
+    usedPairs.add(`a:${p.artisticStyleId}|p:${p.colorPaletteId}`);
+    usedPairs.add(`c:${p.compositionStyleId}|p:${p.colorPaletteId}`);
+  }
+
+  // Shuffle iteration order to avoid systematic bias
+  const indices = rankings.map((_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  const entries: SecondaryAssignmentEntry[] = new Array(rankings.length);
+  let novelPairs = 0;
+  let totalPairs = 0;
+
+  for (const idx of indices) {
+    const ranking = rankings[idx];
+    const key = `${ranking.chronicleId}:${ranking.refId}`;
+    const primary = primaryMap.get(key);
+    if (!primary) continue;
+
+    // Candidate pools: ranked options excluding primary
+    const artCandidates = ranking.rankedArtisticStyleIds.filter(
+      (id) => id !== primary.artisticStyleId,
+    );
+    const compCandidates = ranking.rankedCompositionStyleIds.filter(
+      (id) => id !== primary.compositionStyleId,
+    );
+    const palCandidates = ranking.rankedColorPaletteIds.filter(
+      (id) => id !== primary.colorPaletteId,
+    );
+
+    // Fallback: if filtering removed everything, use the full list
+    const arts = artCandidates.length > 0 ? artCandidates : ranking.rankedArtisticStyleIds;
+    const comps = compCandidates.length > 0 ? compCandidates : ranking.rankedCompositionStyleIds;
+    const pals = palCandidates.length > 0 ? palCandidates : ranking.rankedColorPaletteIds;
+
+    // Enumerate all combos, score by novel pair count
+    let bestCombo = { a: arts[0], c: comps[0], p: pals[0] };
+    let bestScore = -1;
+
+    for (const a of arts) {
+      for (const c of comps) {
+        for (const p of pals) {
+          let score = 0;
+          if (!usedPairs.has(`a:${a}|c:${c}`)) score++;
+          if (!usedPairs.has(`a:${a}|p:${p}`)) score++;
+          if (!usedPairs.has(`c:${c}|p:${p}`)) score++;
+          // Tie-break: add small random jitter
+          if (score > bestScore || (score === bestScore && Math.random() > 0.5)) {
+            bestScore = score;
+            bestCombo = { a, c, p };
+          }
+        }
+      }
+    }
+
+    // Record and update used pairs
+    usedPairs.add(`a:${bestCombo.a}|c:${bestCombo.c}`);
+    usedPairs.add(`a:${bestCombo.a}|p:${bestCombo.p}`);
+    usedPairs.add(`c:${bestCombo.c}|p:${bestCombo.p}`);
+    novelPairs += bestScore;
+    totalPairs += 3;
+
+    entries[idx] = {
+      chronicleId: ranking.chronicleId,
+      refId: ranking.refId,
+      secondaryArtisticStyleId: bestCombo.a,
+      secondaryCompositionStyleId: bestCombo.c,
+      secondaryColorPaletteId: bestCombo.p,
+    };
+  }
+
+  return { entries: entries.filter(Boolean), novelPairs, totalPairs };
+}
+
+// ============================================================================
+// Primary assignment — diversity-targeting ranked distribution balancer
+// ============================================================================
+
 export function assignImageStyles(
   rankings: ImageRefRanking[],
   styleLibrary?: StyleLibrary | null,

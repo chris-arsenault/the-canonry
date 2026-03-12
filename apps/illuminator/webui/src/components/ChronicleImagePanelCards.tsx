@@ -435,12 +435,14 @@ function RankedStyleRow({
   label,
   rankedIds,
   assignedId,
+  secondaryId,
   nameMap,
 }: Readonly<{
   symbol: string;
   label: string;
   rankedIds?: string[];
   assignedId?: string;
+  secondaryId?: string;
   nameMap?: Map<string, string>;
 }>) {
   if (!rankedIds?.length) return null;
@@ -450,11 +452,14 @@ function RankedStyleRow({
       {rankedIds.map((id, i) => {
         const name = nameMap?.get(id) || id;
         const isAssigned = id === assignedId;
+        const isSecondary = id === secondaryId && secondaryId !== assignedId;
+        const cls = `cip-ranked-pick${isAssigned ? " cip-ranked-assigned" : ""}${isSecondary ? " cip-ranked-secondary" : ""}`;
+        const suffix = isAssigned ? " (primary)" : isSecondary ? " (secondary)" : "";
         return (
           <span
             key={id}
-            className={`cip-ranked-pick${isAssigned ? " cip-ranked-assigned" : ""}`}
-            title={`${label} #${i + 1}: ${name}${isAssigned ? " (assigned)" : ""}`}
+            className={cls}
+            title={`${label} #${i + 1}: ${name}${suffix}`}
           >
             {name}
           </span>
@@ -586,6 +591,7 @@ export function PromptRequestCard({
               label="Style"
               rankedIds={imageRef.rankedArtisticStyleIds}
               assignedId={imageRef.suggestedArtisticStyleId}
+              secondaryId={imageRef.secondaryArtisticStyleId}
               nameMap={artisticStyleNames}
             />
             <RankedStyleRow
@@ -593,6 +599,7 @@ export function PromptRequestCard({
               label="Composition"
               rankedIds={imageRef.rankedCompositionStyleIds}
               assignedId={imageRef.suggestedCompositionStyleId}
+              secondaryId={imageRef.secondaryCompositionStyleId}
               nameMap={compositionStyleNames}
             />
             <RankedStyleRow
@@ -600,6 +607,7 @@ export function PromptRequestCard({
               label="Palette"
               rankedIds={imageRef.rankedColorPaletteIds}
               assignedId={imageRef.suggestedColorPaletteId}
+              secondaryId={imageRef.secondaryColorPaletteId}
               nameMap={colorPaletteNames}
             />
           </div>

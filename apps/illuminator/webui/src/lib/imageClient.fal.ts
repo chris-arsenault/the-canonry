@@ -16,6 +16,7 @@ export interface UpscaleRequest {
   resemblance: number;
   prompt: string;
   negativePrompt: string;
+  falApiKey?: string; // client-provided key (falls back to server env var)
 }
 
 export interface UpscaleResult {
@@ -147,9 +148,12 @@ export async function upscaleImage(
       bodyBytes: rawBody.length,
     });
 
+    const falKey = req.falApiKey || "";
+    const authHeaders = (): Record<string, string> => falKey ? { "x-fal-key": falKey } : {};
+
     const submitResponse = await fetch(`${RELAY_BASE}/queue/${modelId}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: rawBody,
       signal: abortSignal,
     });
@@ -183,8 +187,9 @@ export async function upscaleImage(
       if (abortSignal?.aborted) {
         // Best-effort cancel via PUT
         try {
-          await fetch(`${RELAY_BASE}/status/${modelId}/${requestId}`, {
+          await fetch(`${RELAY_BASE}/cancel/${modelId}/${requestId}`, {
             method: "PUT",
+            headers: authHeaders(),
           });
         } catch {
           /* ignore cancel failures */
@@ -194,7 +199,7 @@ export async function upscaleImage(
 
       const pollResponse = await fetch(
         `${RELAY_BASE}/status/${modelId}/${requestId}`,
-        { signal: abortSignal },
+        { headers: authHeaders(), signal: abortSignal },
       );
 
       if (!pollResponse.ok) {
@@ -220,7 +225,7 @@ export async function upscaleImage(
 
     const resultResponse = await fetch(
       `${RELAY_BASE}/result/${modelId}/${requestId}`,
-      { signal: abortSignal },
+      { headers: authHeaders(), signal: abortSignal },
     );
 
     if (!resultResponse.ok) {
@@ -241,7 +246,7 @@ export async function upscaleImage(
 
     // Step 4: Fetch image through relay (avoids CORS)
     const imageProxyUrl = `${RELAY_BASE}/image?url=${encodeURIComponent(imageUrl)}`;
-    const imageResponse = await fetch(imageProxyUrl, { signal: abortSignal });
+    const imageResponse = await fetch(imageProxyUrl, { headers: authHeaders(), signal: abortSignal });
 
     if (!imageResponse.ok) {
       throw new Error(`Failed to fetch fal output image: ${imageResponse.status}`);

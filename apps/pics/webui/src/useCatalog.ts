@@ -55,7 +55,7 @@ export function useCatalog() {
       }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };

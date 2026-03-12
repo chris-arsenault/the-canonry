@@ -12,6 +12,8 @@ export interface UseApiKeysReturn {
   setWavespeedApiKey: Dispatch<SetStateAction<string>>;
   bflApiKey: string;
   setBflApiKey: Dispatch<SetStateAction<string>>;
+  falApiKey: string;
+  setFalApiKey: Dispatch<SetStateAction<string>>;
   showApiKeyInput: boolean;
   setShowApiKeyInput: Dispatch<SetStateAction<boolean>>;
   hasAnthropicKey: boolean;
@@ -53,6 +55,9 @@ export default function useApiKeys(): UseApiKeysReturn {
   const [bflApiKey, setBflApiKey] = useState<string>(() =>
     readPersistedApiKey("illuminator:bflApiKey")
   );
+  const [falApiKey, setFalApiKey] = useState<string>(() =>
+    readPersistedApiKey("illuminator:falApiKey")
+  );
   const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
 
   // Persist API keys when enabled
@@ -64,16 +69,18 @@ export default function useApiKeys(): UseApiKeysReturn {
         localStorage.setItem("illuminator:openaiApiKey", openaiApiKey);
         localStorage.setItem("illuminator:wavespeedApiKey", wavespeedApiKey);
         localStorage.setItem("illuminator:bflApiKey", bflApiKey);
+        localStorage.setItem("illuminator:falApiKey", falApiKey);
       } else {
         localStorage.removeItem("illuminator:anthropicApiKey");
         localStorage.removeItem("illuminator:openaiApiKey");
         localStorage.removeItem("illuminator:wavespeedApiKey");
         localStorage.removeItem("illuminator:bflApiKey");
+        localStorage.removeItem("illuminator:falApiKey");
       }
     } catch {
       /* ignored */
     }
-  }, [persistApiKeys, anthropicApiKey, openaiApiKey, wavespeedApiKey, bflApiKey]);
+  }, [persistApiKeys, anthropicApiKey, openaiApiKey, wavespeedApiKey, bflApiKey, falApiKey]);
 
   const hasAnthropicKey: boolean = anthropicApiKey.length > 0;
   const hasRequiredKeys: boolean = hasAnthropicKey;
@@ -89,6 +96,8 @@ export default function useApiKeys(): UseApiKeysReturn {
     setWavespeedApiKey,
     bflApiKey,
     setBflApiKey,
+    falApiKey,
+    setFalApiKey,
     showApiKeyInput,
     setShowApiKeyInput,
     hasAnthropicKey,

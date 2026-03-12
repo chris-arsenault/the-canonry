@@ -64,7 +64,7 @@ export const IMAGE_SIZES_BY_MODEL: Record<string, Array<{ value: string; label: 
   ],
 };
 
-// WaveSpeed models use higher-res sizes
+// WaveSpeed fallback sizes (used by models without a per-model override)
 const WAVESPEED_SIZES = [
   { value: "1024x1024", label: "1024x1024 (Square)" },
   { value: "1536x1024", label: "1536x1024 (Landscape)" },
@@ -100,6 +100,47 @@ IMAGE_SIZES_BY_MODEL["recraft-ai/recraft-v4-pro/text-to-image"] = [
   { value: "1024x1024", label: "1024x1024 (Square)" },
   { value: "1536x1024", label: "1536x1024 (Landscape)" },
   { value: "1024x1536", label: "1024x1536 (Portrait)" },
+];
+
+// Nano Banana Pro: uses resolution tier + aspect_ratio instead of pixel dimensions.
+// 2K is consensus best (same price as 1K, 4x pixels, minimal speed penalty).
+// Values encode "resolution:aspect_ratio", decoded in getModelSizeParams.
+IMAGE_SIZES_BY_MODEL["google/nano-banana-pro/text-to-image"] = [
+  { value: "2k:1:1", label: "2K Square (2048x2048)" },
+  { value: "2k:4:3", label: "2K Landscape 4:3 (2048x1536)" },
+  { value: "2k:3:4", label: "2K Portrait 3:4 (1536x2048)" },
+  { value: "2k:16:9", label: "2K Wide 16:9 (2048x1152)" },
+  { value: "2k:9:16", label: "2K Tall 9:16 (1152x2048)" },
+  { value: "2k:3:2", label: "2K Landscape 3:2 (2048x1365)" },
+  { value: "2k:2:3", label: "2K Portrait 2:3 (1365x2048)" },
+  { value: "1k:1:1", label: "1K Square (1024x1024)" },
+  { value: "1k:4:3", label: "1K Landscape 4:3 (1024x768)" },
+  { value: "1k:3:4", label: "1K Portrait 3:4 (768x1024)" },
+];
+
+// Qwen Image 2.0 Pro: trained at ~1.5-1.76MP. Official training resolutions from
+// Qwen team (github.com/QwenLM/Qwen-Image/issues/7). Square aspect ratios have
+// documented quality issues — prefer non-square ratios.
+IMAGE_SIZES_BY_MODEL["wavespeed-ai/qwen-image-2.0-pro/text-to-image"] = [
+  { value: "1328x1328", label: "1328x1328 (Square, trained)" },
+  { value: "1472x1104", label: "1472x1104 (4:3, trained)" },
+  { value: "1104x1472", label: "1104x1472 (3:4, trained)" },
+  { value: "1584x1056", label: "1584x1056 (3:2, trained)" },
+  { value: "1056x1584", label: "1056x1584 (2:3, trained)" },
+  { value: "1664x928", label: "1664x928 (16:9, trained)" },
+  { value: "928x1664", label: "928x1664 (9:16, trained)" },
+];
+
+// Seedream 4.5: WaveSpeed minimum 3,686,400 pixels. Default 2048x2048.
+// Fine-tuned at 1024-4096 range. Recommended ratios from WaveSpeed docs.
+IMAGE_SIZES_BY_MODEL["bytedance/seedream-v4.5"] = [
+  { value: "2048x2048", label: "2048x2048 (Square, default)" },
+  { value: "2688x2016", label: "2688x2016 (Landscape 4:3)" },
+  { value: "2016x2688", label: "2016x2688 (Portrait 3:4)" },
+  { value: "2688x1792", label: "2688x1792 (Landscape 3:2)" },
+  { value: "1792x2688", label: "1792x2688 (Portrait 2:3)" },
+  { value: "2560x1440", label: "2560x1440 (Landscape 16:9)" },
+  { value: "1440x2560", label: "1440x2560 (Portrait 9:16)" },
 ];
 
 // Abstract quality levels — model-agnostic, resolved to model-specific values at request time.
@@ -253,6 +294,15 @@ Photography language forces the model to render detail. Specify a focal length, 
 How to think about PALETTE:
 Every hex code must be associated with a specific object. The image model handles color best when it knows which surface each color belongs to.
 
+How to think about SPECIES RENDERING:
+Image models have a strong bias toward cute, cartoon proportions for animal characters — round bodies, oversized eyes, stubby limbs. You must counteract this with explicit adult anatomical descriptors. For penguins: "tall adult emperor penguin with narrow pointed beak, small dark eyes proportional to skull, lean upright posture, sleek plumage." For any animal species, describe adult body proportions explicitly — the model defaults to juvenile cartoon proportions if you do not.
+
+How to think about WEAR AND WEATHERING:
+Nothing is clean or new. Every character is a war veteran in a harsh world. Add physical wear to each subject: scarred beaks, frost-cracked skin, soot-dusted plumage, matted feathers, chipped armor, mud-caked wraps. One or two concrete wear details per subject — not a list, just woven into the description naturally.
+
+How to think about TONE:
+This is a grimdark world — war-torn, world-weary veterans, dirt and ash everywhere, nothing pristine. The overall atmosphere should evoke a Warhammer-like grimness. Convey this through material choices, lighting, and environmental grit — not through explicit mood words.
+
 Rules:
 - Strip all lore, backstory, character names, world-building. Only concrete visual information.
 - Positive descriptions only. Never "avoid", "no", "without."
@@ -291,6 +341,15 @@ Photography language forces detail rendering. Specify focal length, aperture, fr
 How to think about PALETTE:
 Every hex code associated with a specific object. The model handles color best when it knows which surface owns each color.
 
+How to think about SPECIES RENDERING:
+Image models have a strong bias toward cute, cartoon proportions for animal characters — round bodies, oversized eyes, stubby limbs. You must counteract this with explicit adult anatomical descriptors. For penguins: "tall adult emperor penguin with narrow pointed beak, small dark eyes proportional to skull, lean upright posture, sleek plumage." For any animal species, describe adult body proportions explicitly — the model defaults to juvenile cartoon proportions if you do not.
+
+How to think about WEAR AND WEATHERING:
+Nothing is clean or new. Every character is a war veteran in a harsh world. Add physical wear to each character: scarred beaks, frost-cracked skin, soot-dusted plumage, matted feathers, chipped armor, mud-caked wraps. One or two concrete wear details per character — not a list, just woven into the description naturally.
+
+How to think about TONE:
+This is a grimdark world — war-torn, world-weary veterans, dirt and ash everywhere, nothing pristine. The overall atmosphere should evoke a Warhammer-like grimness. Convey this through material choices, lighting, and environmental grit — not through explicit mood words.
+
 Rules:
 - Strip lore, names, backstory. Only concrete visual information.
 - Positive descriptions only.
@@ -317,6 +376,9 @@ Rules for DALL-E 3 specifically:
 - Front-load: medium/style in the first 5 words, then subject with species and attire, then scene.
 - Keep total output under 120 words. Shorter prompts produce better results on this model.
 - Strip ALL lore, backstory, character names, world-building. Only concrete visual information.
+- SPECIES: Animal characters must use adult anatomical proportions — lean, tall, narrow features. For penguins: "tall adult emperor penguin with narrow pointed beak, small dark eyes, lean upright posture." The model defaults to cute cartoon proportions if you do not specify.
+- WEAR: Nothing is clean or new. Every character shows physical wear — scarred, frost-cracked, soot-dusted, mud-caked. Weave one or two wear details into the description.
+- TONE: Grimdark world — war-torn veterans, ash and dirt, Warhammer-like grimness conveyed through materials and environment.
 
 Output a single flowing paragraph — no labels, no bullet points, no structure markers.
 {{globalImageRules}}
@@ -334,6 +396,9 @@ Rules for DALL-E 3 specifically:
 - Each character is a self-contained phrase with species and attire. Do not interleave attributes.
 - Keep total output under 120 words.
 - Strip ALL lore, names, backstory. Only concrete visual information.
+- SPECIES: Animal characters must use adult anatomical proportions — lean, tall, narrow features. For penguins: "tall adult emperor penguin with narrow pointed beak, small dark eyes, lean upright posture." The model defaults to cute cartoon proportions if you do not specify.
+- WEAR: Nothing is clean or new. Every character shows physical wear — scarred, frost-cracked, soot-dusted, mud-caked. Weave one or two wear details into the description.
+- TONE: Grimdark world — war-torn veterans, ash and dirt, Warhammer-like grimness conveyed through materials and environment.
 
 Output a single flowing paragraph.
 {{globalImageRules}}
@@ -462,6 +527,9 @@ Additional rules:
 - Use rich color names, not hex codes. "Deep crimson", "molten gold", "bruised violet" — painter's language.
 - Only visual and emotional content. Strip lore, backstory, names, world-building.
 - Positive only. Never write "avoid", "no", "without", or "don't" — invert negatives into vivid positives.
+- SPECIES: Animal characters must use adult anatomical proportions — lean, tall, narrow features. For penguins: "tall adult emperor penguin with narrow pointed beak, small dark eyes, lean upright posture, sleek plumage." The model defaults to cute cartoon proportions without explicit descriptors.
+- WEAR: Nothing is clean or new. Every character is a war veteran — scarred, frost-cracked, soot-dusted, mud-caked. Weave wear details into the description naturally.
+- TONE: Grimdark world — war-torn world-weary veterans, dirt and ash on feathers, Warhammer-like grimness. Convey through material choices and environmental grit.
 {{globalImageRules}}
 Original prompt:
 {{prompt}}`;
@@ -489,6 +557,72 @@ Additional rules:
 - Use rich color names, not hex codes. Painter's language.
 - Only visual and emotional content. Strip lore, names, world-building.
 - Positive only — invert negatives into vivid positives. Never write "avoid", "no", "without", or "don't".
+- SPECIES: Animal characters must use adult anatomical proportions — lean, tall, narrow features. For penguins: "tall adult emperor penguin with narrow pointed beak, small dark eyes, lean upright posture, sleek plumage." The model defaults to cute cartoon proportions without explicit descriptors.
+- WEAR: Nothing is clean or new. Every character is a war veteran — scarred, frost-cracked, soot-dusted, mud-caked. Weave wear details into the description naturally.
+- TONE: Grimdark world — war-torn world-weary veterans, dirt and ash on feathers, Warhammer-like grimness. Convey through material choices and environmental grit.
+{{globalImageRules}}
+Original prompt:
+{{prompt}}`;
+
+// ---------------------------------------------------------------------------
+// WaveSpeed model templates (Qwen, Seedream, Recraft, Nano Banana)
+// ---------------------------------------------------------------------------
+// These models accept free-form text prompts similar to Flux 1 narrative.
+
+export const WAVESPEED_IMAGE_PROMPT_TEMPLATE = `Synthesize the structured prompt below into an image generation prompt for {{modelName}}.
+
+Output structure: Style → Subject → Action/Context → Technical details
+
+Deduplicate the input — cut repetition ruthlessly but preserve all distinct visual details. Every word must contribute unique visual information.
+
+1. STYLE FIRST. Open with the medium/artistic style.
+
+2. If the input contains an [Artist exemplar: ...] tag, include "in the style of [artist name]" in your opening phrase.
+
+3. Then SUBJECT — species, attire described by material composition, distinctive visual details. Lead with what they're wearing; a character without clothing is a generic silhouette. Name what each garment and piece of equipment is MADE OF.
+
+4. Then CONTEXT — setting, action, mood.
+
+5. Then TECHNICAL — lighting, camera, atmosphere.
+
+Rules:
+- Use rich color names, not hex codes. "Deep crimson", "molten gold", "bruised violet."
+- Only visual and emotional content. Strip lore, backstory, names, world-building.
+- Positive only. Never write "avoid", "no", "without", or "don't" — invert negatives into vivid positives.
+- SPECIES: Animal characters must use adult anatomical proportions — lean, tall, narrow features. For penguins: "tall adult emperor penguin with narrow pointed beak, small dark eyes, lean upright posture, sleek plumage." The model defaults to cute cartoon proportions without explicit descriptors.
+- WEAR: Nothing is clean or new. Every character is a war veteran — scarred, frost-cracked, soot-dusted, mud-caked. Weave wear details into the description naturally.
+- TONE: Grimdark world — war-torn world-weary veterans, dirt and ash on feathers, Warhammer-like grimness. Convey through material choices and environmental grit.
+
+Output 150-300 words of unified artistic direction — not sections or bullet lists.
+{{globalImageRules}}
+Original prompt:
+{{prompt}}`;
+
+export const WAVESPEED_CHRONICLE_IMAGE_PROMPT_TEMPLATE = `Synthesize the chronicle scene prompt below into an image generation prompt for {{modelName}}.
+
+Output structure: Style → Scene/Action → Characters → Technical details
+
+Deduplicate the input — cut repetition ruthlessly but preserve all distinct visual details. Every word must contribute unique visual information.
+
+1. STYLE FIRST. Open with the medium/artistic style.
+
+2. If the input contains an [Artist exemplar: ...] tag, include "in the style of [artist name]" in your opening phrase.
+
+3. Then the SCENE — what is happening, the central action or moment.
+
+4. Then CHARACTERS — each character is a self-contained block: species, attire described by material composition, distinctive visual details. Do not interleave attributes between characters.
+
+5. Then TECHNICAL — lighting, camera, atmosphere.
+
+Rules:
+- Use rich color names, not hex codes. Painter's language.
+- Only visual and emotional content. Strip lore, names, world-building.
+- Positive only — invert negatives into vivid positives. Never write "avoid", "no", "without", or "don't".
+- SPECIES: Animal characters must use adult anatomical proportions — lean, tall, narrow features. For penguins: "tall adult emperor penguin with narrow pointed beak, small dark eyes, lean upright posture, sleek plumage." The model defaults to cute cartoon proportions without explicit descriptors.
+- WEAR: Nothing is clean or new. Every character is a war veteran — scarred, frost-cracked, soot-dusted, mud-caked. Weave wear details into the description naturally.
+- TONE: Grimdark world — war-torn world-weary veterans, dirt and ash on feathers, Warhammer-like grimness. Convey through material choices and environmental grit.
+
+Output 150-250 words of unified artistic direction — not sections or bullet lists.
 {{globalImageRules}}
 Original prompt:
 {{prompt}}`;
@@ -539,11 +673,27 @@ function sizeToAspectRatio(size: string): string {
   return w > h ? "4:3" : "3:4";
 }
 
+/** Models that use `resolution` + `aspect_ratio` (e.g. Nano Banana Pro). */
+const RESOLUTION_TIER_MODELS = new Set([
+  "google/nano-banana-pro/text-to-image",
+]);
+
 /**
  * Convert a WxH size string to the model's expected size parameter(s).
  * Most models use `{ size: "W*H" }`. Some use `{ aspect_ratio: "W:H" }`.
+ * Nano Banana uses `{ resolution: "2k", aspect_ratio: "4:3" }`.
  */
 export function getModelSizeParams(model: string, size: string): Record<string, string> {
+  if (RESOLUTION_TIER_MODELS.has(model)) {
+    // Format: "2k:4:3" -> { resolution: "2k", aspect_ratio: "4:3" }
+    const colonIdx = size.indexOf(":");
+    if (colonIdx > 0) {
+      const resolution = size.slice(0, colonIdx);
+      const aspect_ratio = size.slice(colonIdx + 1);
+      return { resolution, aspect_ratio };
+    }
+    return { resolution: "2k", aspect_ratio: "1:1" };
+  }
   if (ASPECT_RATIO_MODELS.has(model)) {
     return { aspect_ratio: sizeToAspectRatio(size) };
   }

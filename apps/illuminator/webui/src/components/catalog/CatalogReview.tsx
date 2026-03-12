@@ -23,6 +23,7 @@ interface ReviewImage {
   entityKind?: string;
   imageType?: string;
   title?: string;
+  llmTitle?: boolean;
   tags?: string[];
   artisticStyleId?: string;
   compositionStyleId?: string;
@@ -31,7 +32,7 @@ interface ReviewImage {
   thumbUrl?: string;
 }
 
-type FilterMode = "all" | "missing-title" | "missing-tags" | "missing-style" | "missing-any";
+type FilterMode = "all" | "has-llm-title" | "missing-title" | "missing-tags" | "missing-style" | "missing-any";
 
 const PAGE_SIZE = 50;
 const IMAGE_TYPES: ImageType[] = ["entity", "scene", "cover", "other"];
@@ -65,6 +66,8 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
         allImages = allImages.filter((img) => {
           const rec = img as unknown as Record<string, unknown>;
           switch (filter) {
+            case "has-llm-title":
+              return Boolean(rec.llmTitle);
             case "missing-title":
               return !rec.title;
             case "missing-tags":
@@ -118,6 +121,7 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
           entityKind: rec.entityKind as string | undefined,
           imageType: rec.imageType as string | undefined,
           title: rec.title as string | undefined,
+          llmTitle: rec.llmTitle as boolean | undefined,
           tags: rec.tags as string[] | undefined,
           artisticStyleId: rec.artisticStyleId as string | undefined,
           compositionStyleId: rec.compositionStyleId as string | undefined,
@@ -189,6 +193,7 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
           onChange={(e) => setFilter(e.target.value as FilterMode)}
         >
           <option value="all">All images</option>
+          <option value="has-llm-title">Has LLM title</option>
           <option value="missing-title">Missing title</option>
           <option value="missing-tags">Missing tags</option>
           <option value="missing-style">Missing style IDs</option>
@@ -314,6 +319,7 @@ export default function CatalogReview({ projectId, styleLibrary }: Readonly<Cata
                 <>
                   <td className={!img.title ? "cat-review-missing" : ""}>
                     {img.title || "—"}
+                    {img.llmTitle && <span className="cat-review-llm-badge" title="LLM-generated title">✦</span>}
                   </td>
                   <td>{img.imageType || "—"}</td>
                   <td className={!img.tags?.length ? "cat-review-missing" : ""}>

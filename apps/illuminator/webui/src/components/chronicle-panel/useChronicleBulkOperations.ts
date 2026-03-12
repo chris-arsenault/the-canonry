@@ -17,7 +17,7 @@ import {
 } from "../../lib/db/chronicleRepository";
 import { findEntityMentions } from "../../lib/wikiLinkService";
 import { clearChronicleImageRefs, clearChronicleSceneImages, clearChronicleCoverImage, clearCoverImageByComposition } from "../../lib/db/chronicleImageOps";
-import { assignImageStyles, type ImageRefRanking } from "../../lib/imageStyleAssignment";
+import { assignImageStyles, assignSecondaryStyles, type ImageRefRanking } from "../../lib/imageStyleAssignment";
 import { db } from "../../lib/db/illuminatorDb";
 import type { PersistedEntity } from "../../lib/db/illuminatorDb";
 import type { StyleLibrary } from "@canonry/world-schema";
@@ -542,6 +542,124 @@ export function useChronicleBulkOperations({
     setTimeout(() => setAssignCoverImageStyleResult(null), 4000);
   }, [chronicleItems, refresh, styleLibrary]);
 
+  // ── Assign secondary styles (pair-novelty greedy) ──
+
+  const [assignSecondaryStyleResult, setAssignSecondaryStyleResult] = useState<OperationResult | null>(null);
+
+  const handleAssignSecondaryStyles = useCallback(async () => {
+    // Collect rankings + primary assignments for scene image refs
+    const eligible = chronicleItems.filter(
+      (c) =>
+        (c.imageRefTotalCount ?? 0) > 0 &&
+        (c.status === "complete" || c.status === "assembly_ready"),
+    );
+
+    const rankings: ImageRefRanking[] = [];
+    const primaryAssignments: Array<{
+      chronicleId: string;
+      refId: string;
+      artisticStyleId: string;
+      compositionStyleId: string;
+      colorPaletteId: string;
+    }> = [];
+
+    for (const c of eligible) {
+      const record = await getChronicle(c.chronicleId);
+      if (!record?.imageRefs?.refs) continue;
+      for (const ref of record.imageRefs.refs) {
+        if (ref.type !== "prompt_request") continue;
+        if (!ref.suggestedArtisticStyleId || !ref.suggestedCompositionStyleId || !ref.suggestedColorPaletteId) continue;
+        if (!ref.rankedArtisticStyleIds?.length || !ref.rankedCompositionStyleIds?.length || !ref.rankedColorPaletteIds?.length) continue;
+        rankings.push({
+          chronicleId: c.chronicleId,
+          refId: ref.refId,
+          rankedArtisticStyleIds: ref.rankedArtisticStyleIds,
+          rankedCompositionStyleIds: ref.rankedCompositionStyleIds,
+          rankedColorPaletteIds: ref.rankedColorPaletteIds,
+        });
+        primaryAssignments.push({
+          chronicleId: c.chronicleId,
+          refId: ref.refId,
+          artisticStyleId: ref.suggestedArtisticStyleId,
+          compositionStyleId: ref.suggestedCompositionStyleId,
+          colorPaletteId: ref.suggestedColorPaletteId,
+        });
+      }
+    }
+
+    // Also collect cover image rankings + primaries
+    for (const c of eligible) {
+      const record = await getChronicle(c.chronicleId);
+      if (!record?.coverImage) continue;
+      const ci = record.coverImage;
+      if (!ci.suggestedArtisticStyleId || !ci.suggestedColorPaletteId) continue;
+      if (!ci.rankedArtisticStyleIds?.length || !ci.rankedColorPaletteIds?.length) continue;
+      const coverConfig = getCoverImageConfig(c.narrativeStyleId || "epic-drama");
+      rankings.push({
+        chronicleId: c.chronicleId,
+        refId: c.chronicleId,
+        rankedArtisticStyleIds: ci.rankedArtisticStyleIds,
+        rankedCompositionStyleIds: [coverConfig.compositionStyleId],
+        rankedColorPaletteIds: ci.rankedColorPaletteIds,
+      });
+      primaryAssignments.push({
+        chronicleId: c.chronicleId,
+        refId: c.chronicleId,
+        artisticStyleId: ci.suggestedArtisticStyleId,
+        compositionStyleId: ci.suggestedCompositionStyleId || coverConfig.compositionStyleId,
+        colorPaletteId: ci.suggestedColorPaletteId,
+      });
+    }
+
+    if (rankings.length === 0) {
+      setAssignSecondaryStyleResult({ success: true, count: 0 });
+      setTimeout(() => setAssignSecondaryStyleResult(null), 4000);
+      return;
+    }
+
+    const result = assignSecondaryStyles(rankings, primaryAssignments);
+
+    // Write secondary assignments back to DB
+    const byChronicle = new Map<string, typeof result.entries>();
+    for (const entry of result.entries) {
+      const list = byChronicle.get(entry.chronicleId) || [];
+      list.push(entry);
+      byChronicle.set(entry.chronicleId, list);
+    }
+
+    for (const [chronicleId, entries] of byChronicle) {
+      const record = await getChronicle(chronicleId);
+      if (!record) continue;
+      for (const entry of entries) {
+        // Cover image entry uses chronicleId as refId
+        if (entry.refId === chronicleId && record.coverImage) {
+          record.coverImage.secondaryArtisticStyleId = entry.secondaryArtisticStyleId;
+          record.coverImage.secondaryCompositionStyleId = entry.secondaryCompositionStyleId;
+          record.coverImage.secondaryColorPaletteId = entry.secondaryColorPaletteId;
+        } else if (record.imageRefs?.refs) {
+          const ref = record.imageRefs.refs.find((r) => r.refId === entry.refId);
+          if (ref && ref.type === "prompt_request") {
+            ref.secondaryArtisticStyleId = entry.secondaryArtisticStyleId;
+            ref.secondaryCompositionStyleId = entry.secondaryCompositionStyleId;
+            ref.secondaryColorPaletteId = entry.secondaryColorPaletteId;
+          }
+        }
+      }
+      record.updatedAt = Date.now();
+      await db.chronicles.put(record);
+    }
+
+    await refresh();
+
+    setAssignSecondaryStyleResult({ success: true, count: result.entries.length });
+    console.log(`[AssignSecondaryStyles] Assigned ${result.entries.length} secondary combos, ${result.novelPairs}/${result.totalPairs} novel pairs`);
+    setTimeout(() => setAssignSecondaryStyleResult(null), 4000);
+  }, [chronicleItems, refresh]);
+
+  // ── Use secondary styles toggle ──
+
+  const [useSecondaryStyles, setUseSecondaryStyles] = useState(false);
+
   // ── Bulk generate scene images ──
 
   const [bulkGenerateSceneResult, setBulkGenerateSceneResult] = useState<OperationResult | null>(null);
@@ -585,12 +703,18 @@ export function useChronicleBulkOperations({
         if (ref.type !== "prompt_request") continue;
         // Skip refs that already have a generated image
         if (ref.generatedImageId) continue;
-        // Require all three style assignments
-        if (!ref.suggestedArtisticStyleId || !ref.suggestedCompositionStyleId || !ref.suggestedColorPaletteId) continue;
 
-        const artistic = artisticMap.get(ref.suggestedArtisticStyleId);
-        const composition = compositionMap.get(ref.suggestedCompositionStyleId);
-        const palette = paletteMap.get(ref.suggestedColorPaletteId);
+        // Pick style IDs based on secondary toggle
+        const artStyleId = useSecondaryStyles ? ref.secondaryArtisticStyleId : ref.suggestedArtisticStyleId;
+        const compStyleId = useSecondaryStyles ? ref.secondaryCompositionStyleId : ref.suggestedCompositionStyleId;
+        const palStyleId = useSecondaryStyles ? ref.secondaryColorPaletteId : ref.suggestedColorPaletteId;
+
+        // Require all three style assignments
+        if (!artStyleId || !compStyleId || !palStyleId) continue;
+
+        const artistic = artisticMap.get(artStyleId);
+        const composition = compositionMap.get(compStyleId);
+        const palette = paletteMap.get(palStyleId);
 
         if (!artistic || !composition) continue;
 
@@ -641,9 +765,9 @@ export function useChronicleBulkOperations({
           imageRefId: ref.refId,
           sceneDescription: ref.sceneDescription,
           imageType: "scene",
-          artisticStyleId: ref.suggestedArtisticStyleId,
-          compositionStyleId: ref.suggestedCompositionStyleId,
-          colorPaletteId: ref.suggestedColorPaletteId,
+          artisticStyleId: artStyleId,
+          compositionStyleId: compStyleId,
+          colorPaletteId: palStyleId,
           tags: ref.visualTags,
           imageSize,
           imageQuality: chronicleImageQuality,
@@ -657,28 +781,21 @@ export function useChronicleBulkOperations({
       return;
     }
 
-    // Cap to avoid runaway API spend
-    const BATCH_CAP = 10;
-    const batch = items.slice(0, BATCH_CAP);
-    if (items.length > BATCH_CAP) {
-      console.log(`[BulkGenerateSceneImages] Capped to ${BATCH_CAP} of ${items.length} eligible`);
-    }
-
     // Enqueue one at a time with a 10s delay to avoid OpenAI rate limits
     const DELAY_MS = 10_000;
     let enqueued = 0;
-    for (const item of batch) {
+    for (const item of items) {
       if (enqueued > 0) {
         await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
       }
       onEnqueue([item]);
       enqueued++;
       setBulkGenerateSceneResult({ success: true, count: enqueued });
-      console.log(`[BulkGenerateSceneImages] Enqueued ${enqueued}/${batch.length}`);
+      console.log(`[BulkGenerateSceneImages] Enqueued ${enqueued}/${items.length}`);
     }
 
     setTimeout(() => setBulkGenerateSceneResult(null), 4000);
-  }, [chronicleItems, onEnqueue, styleLibrary, worldContext, imageModel, chronicleImageQuality, fullEntityMapRef]);
+  }, [chronicleItems, onEnqueue, styleLibrary, worldContext, imageModel, chronicleImageQuality, fullEntityMapRef, useSecondaryStyles]);
 
   // ── Bulk generate cover images ──
 
@@ -707,17 +824,28 @@ export function useChronicleBulkOperations({
       if (!record?.coverImage?.sceneDescription) continue;
       // Skip cover images that already have a generated image
       if (record.coverImage.generatedImageId) continue;
-      // Require assigned artistic style and palette
-      if (!record.coverImage.suggestedArtisticStyleId) continue;
+      // Pick style IDs based on secondary toggle
+      const artStyleId = useSecondaryStyles
+        ? record.coverImage.secondaryArtisticStyleId
+        : record.coverImage.suggestedArtisticStyleId;
+      const palStyleId = useSecondaryStyles
+        ? record.coverImage.secondaryColorPaletteId
+        : record.coverImage.suggestedColorPaletteId;
 
-      const artistic = artisticMap.get(record.coverImage.suggestedArtisticStyleId);
+      // Require assigned artistic style
+      if (!artStyleId) continue;
+
+      const artistic = artisticMap.get(artStyleId);
       if (!artistic) continue;
 
-      // Composition from narrative style config
+      // Composition from narrative style config (or secondary override)
       const coverConfig = getCoverImageConfig(c.narrativeStyleId || "epic-drama");
-      const composition = compositionMap.get(coverConfig.compositionStyleId);
-      const palette = record.coverImage.suggestedColorPaletteId
-        ? paletteMap.get(record.coverImage.suggestedColorPaletteId)
+      const compStyleId = useSecondaryStyles
+        ? (record.coverImage.secondaryCompositionStyleId || coverConfig.compositionStyleId)
+        : coverConfig.compositionStyleId;
+      const composition = compositionMap.get(compStyleId);
+      const palette = palStyleId
+        ? paletteMap.get(palStyleId)
         : undefined;
 
       const styleInfo = {
@@ -775,9 +903,9 @@ export function useChronicleBulkOperations({
         imageRefId: "__cover_image__",
         sceneDescription: record.coverImage.sceneDescription,
         imageType: "cover",
-        artisticStyleId: record.coverImage.suggestedArtisticStyleId,
-        compositionStyleId: record.coverImage.suggestedCompositionStyleId,
-        colorPaletteId: record.coverImage.suggestedColorPaletteId,
+        artisticStyleId: artStyleId,
+        compositionStyleId: compStyleId,
+        colorPaletteId: palStyleId,
         tags: record.coverImage.visualTags,
         imageSize,
         imageQuality: chronicleImageQuality,
@@ -790,28 +918,21 @@ export function useChronicleBulkOperations({
       return;
     }
 
-    // Cap to avoid runaway API spend
-    const BATCH_CAP = 10;
-    const batch = items.slice(0, BATCH_CAP);
-    if (items.length > BATCH_CAP) {
-      console.log(`[BulkGenerateCoverImages] Capped to ${BATCH_CAP} of ${items.length} eligible`);
-    }
-
     // Enqueue one at a time with a 10s delay to avoid rate limits
     const DELAY_MS = 10_000;
     let enqueued = 0;
-    for (const item of batch) {
+    for (const item of items) {
       if (enqueued > 0) {
         await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
       }
       onEnqueue([item]);
       enqueued++;
       setBulkGenerateCoverImageResult({ success: true, count: enqueued });
-      console.log(`[BulkGenerateCoverImages] Enqueued ${enqueued}/${batch.length}`);
+      console.log(`[BulkGenerateCoverImages] Enqueued ${enqueued}/${items.length}`);
     }
 
     setTimeout(() => setBulkGenerateCoverImageResult(null), 4000);
-  }, [chronicleItems, onEnqueue, styleLibrary, worldContext, imageModel, chronicleImageQuality, fullEntityMapRef]);
+  }, [chronicleItems, onEnqueue, styleLibrary, worldContext, imageModel, chronicleImageQuality, fullEntityMapRef, useSecondaryStyles]);
 
   // ── Bulk clear scene images ──
 
@@ -978,6 +1099,13 @@ export function useChronicleBulkOperations({
     assignCoverImageStyleResult,
     setAssignCoverImageStyleResult,
     handleAssignCoverImageStyles,
+    // Assign secondary styles
+    assignSecondaryStyleResult,
+    setAssignSecondaryStyleResult,
+    handleAssignSecondaryStyles,
+    // Use secondary styles toggle
+    useSecondaryStyles,
+    setUseSecondaryStyles,
     // Bulk generate scene images
     bulkGenerateSceneResult,
     setBulkGenerateSceneResult,

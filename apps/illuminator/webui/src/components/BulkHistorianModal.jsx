@@ -41,14 +41,15 @@ export default function BulkHistorianModal({
   onCancel,
   onClose,
   onChangeTone,
-  editionMaxTokens
+  editionMaxTokens,
+  renderMode
 }) {
   const isConfirming = progress?.status === "confirming";
   const isTerminal = progress?.status === "complete" || progress?.status === "cancelled" || progress?.status === "failed";
   const isReview = progress?.operation === "review";
   const isClear = progress?.operation === "clear";
   const title = progress ? getTitle(progress) : "";
-  return <BulkOperationShell pillId="bulk-historian" title={title} progress={progress} onConfirm={onConfirm} onCancel={onCancel} onClose={onClose} confirmLabel={progress ? getConfirmLabel(progress) : ""} statusText={progress ? getStatusText(progress) : ""} pillStatusText={progress ? getPillText(progress) : ""}>
+  return <BulkOperationShell pillId="bulk-historian" title={title} progress={progress} onConfirm={onConfirm} onCancel={onCancel} onClose={onClose} confirmLabel={progress ? getConfirmLabel(progress) : ""} statusText={progress ? getStatusText(progress) : ""} pillStatusText={progress ? getPillText(progress) : ""} renderMode={renderMode}>
       {/* ---- Confirmation screen ---- */}
       {isConfirming && <>
           {/* Tone section (not for clear) */}
