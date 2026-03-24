@@ -37,7 +37,7 @@ export function ChronicleImage({
   );
 
   return (
-    <figure className={imageClassName}>
+    <figure className={imageClassName} data-ref-id={image.refId} data-image-id={image.imageId}>
       <ImageDisplay
         imageId={image.imageId}
         alt={image.caption || "Chronicle illustration"}

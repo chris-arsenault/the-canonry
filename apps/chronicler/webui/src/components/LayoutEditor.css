@@ -65,21 +65,26 @@
   color: var(--color-accent);
 }
 
-/* Highlight selected elements in the chronicle */
-.layout-editing img,
-.layout-editing figure,
-.layout-editing .margin-callout,
-.layout-editing .flow-callout,
-.layout-editing .sidenote-callout {
+/* Highlight selectable elements when editing layout */
+.layout-editing figure[data-ref-id],
+.layout-editing figure[data-image-id],
+.layout-editing [data-note-id],
+.layout-editing .wp-section > h2,
+.layout-editing .wp-section > .section-heading {
   cursor: pointer;
   transition: outline 0.15s;
 }
 
-.layout-editing img:hover,
-.layout-editing figure:hover,
-.layout-editing .margin-callout:hover,
-.layout-editing .flow-callout:hover,
-.layout-editing .sidenote-callout:hover {
+.layout-editing figure[data-ref-id]:hover,
+.layout-editing figure[data-image-id]:hover,
+.layout-editing [data-note-id]:hover,
+.layout-editing .wp-section > h2:hover,
+.layout-editing .wp-section > .section-heading:hover {
   outline: 2px dashed var(--color-accent);
   outline-offset: 4px;
+}
+
+/* Prevent image lightbox clicks while editing layout */
+.layout-editing .image-display-btn {
+  pointer-events: none;
 }

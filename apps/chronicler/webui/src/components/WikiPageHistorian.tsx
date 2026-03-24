@@ -38,6 +38,7 @@ export function HistorianCallout({
     return (
       <aside
         className="margin-callout"
+        data-note-id={note.noteId}
         style={{ "--note-color": color } as React.CSSProperties}
       >
         <div className="margin-callout-label">
@@ -51,7 +52,7 @@ export function HistorianCallout({
 
   // Flow mode: floated right callout
   return (
-    <aside className="flow-callout" style={{ "--note-color": color } as React.CSSProperties}>
+    <aside className="flow-callout" data-note-id={note.noteId} style={{ "--note-color": color } as React.CSSProperties}>
       <div className="note-type-label">
         {indexLabel && <span className="note-index-label">{indexLabel}</span>}
         {icon} {label}

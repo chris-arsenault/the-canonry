@@ -1,9 +1,9 @@
 /**
  * LayoutEditor — Visual overlay for per-element layout adjustments.
  *
- * When active, images and annotations in the rendered chronicle become
+ * When active, images, annotations, and section headings become
  * clickable. Selecting one shows a floating control panel to adjust
- * size, justification, and margins. Changes save as elementOverrides
+ * size, justification, margins, etc. Changes save as elementOverrides
  * on the PageLayoutOverride record.
  */
 
@@ -12,11 +12,8 @@ import type { ElementOverride } from "../types/world.ts";
 import "./LayoutEditor.css";
 
 interface LayoutEditorProps {
-  /** Container element wrapping the rendered chronicle content */
   containerRef: React.RefObject<HTMLDivElement | null>;
-  /** Current element overrides */
   elementOverrides: ElementOverride[];
-  /** Save updated overrides */
   onSave: (overrides: ElementOverride[]) => void;
 }
 
@@ -42,10 +39,13 @@ const NOTE_DISPLAY_OPTIONS: { value: string; label: string }[] = [
   { value: "disabled", label: "Hidden" },
 ];
 
+type ElementKind = "image" | "note" | "section";
+
 interface SelectedElement {
   elementId: string;
-  kind: "image" | "note";
+  kind: ElementKind;
   rect: DOMRect;
+  label: string;
 }
 
 export default function LayoutEditor({
@@ -56,12 +56,11 @@ export default function LayoutEditor({
   const [selected, setSelected] = useState<SelectedElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Find override for selected element
   const currentOverride = selected
     ? elementOverrides.find((o) => o.elementId === selected.elementId)
     : undefined;
 
-  // Click handler — detect clicks on images and annotations
+  // Click handler — detect clicks on images, annotations, and section headings
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -69,44 +68,54 @@ export default function LayoutEditor({
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
-      // Check for image (inside .chronicle-image figure or direct img)
-      const figure = target.closest("figure.chronicle-image, figure.cover-image") as HTMLElement | null;
-      const img = target.closest("img") as HTMLElement | null;
-      if (figure || img) {
+      // Don't intercept clicks on the panel itself
+      if (panelRef.current?.contains(target)) return;
+
+      // Image: figure[data-ref-id] or figure[data-image-id]
+      const figure = target.closest("figure[data-ref-id], figure[data-image-id]") as HTMLElement | null;
+      if (figure) {
         e.preventDefault();
         e.stopPropagation();
-        const el = figure || img!;
-        const refId = el.getAttribute("data-ref-id") || el.getAttribute("data-image-id") || "";
-        if (refId) {
-          setSelected({ elementId: refId, kind: "image", rect: el.getBoundingClientRect() });
+        const id = figure.getAttribute("data-ref-id") || figure.getAttribute("data-image-id") || "";
+        if (id) {
+          setSelected({ elementId: id, kind: "image", rect: figure.getBoundingClientRect(), label: "Image" });
           return;
         }
       }
 
-      // Check for historian note
-      const note = target.closest("[data-sidenote-callout-idx], .historian-note, .flow-callout, .margin-callout") as HTMLElement | null;
+      // Annotation: aside[data-note-id]
+      const note = target.closest("[data-note-id]") as HTMLElement | null;
       if (note) {
         e.preventDefault();
         e.stopPropagation();
-        const noteId = note.getAttribute("data-note-id") ||
-          note.closest("[data-note-id]")?.getAttribute("data-note-id") || "";
+        const noteId = note.getAttribute("data-note-id") || "";
         if (noteId) {
-          setSelected({ elementId: noteId, kind: "note", rect: note.getBoundingClientRect() });
+          setSelected({ elementId: noteId, kind: "note", rect: note.getBoundingClientRect(), label: "Annotation" });
+          return;
+        }
+      }
+
+      // Section heading: h2 inside .wp-section
+      const heading = target.closest(".wp-section > h2, .wp-section > .section-heading") as HTMLElement | null;
+      if (heading) {
+        e.preventDefault();
+        e.stopPropagation();
+        const section = heading.closest(".wp-section") as HTMLElement | null;
+        const sectionId = section?.id || heading.textContent || "";
+        if (sectionId) {
+          setSelected({ elementId: sectionId, kind: "section", rect: heading.getBoundingClientRect(), label: heading.textContent || "Section" });
           return;
         }
       }
 
       // Click elsewhere → deselect
-      if (panelRef.current && !panelRef.current.contains(target)) {
-        setSelected(null);
-      }
+      setSelected(null);
     };
 
     container.addEventListener("click", handleClick, true);
     return () => container.removeEventListener("click", handleClick, true);
   }, [containerRef]);
 
-  // Update a field on the current override
   const updateField = useCallback(<K extends keyof ElementOverride>(
     field: K,
     value: ElementOverride[K] | undefined
@@ -121,7 +130,6 @@ export default function LayoutEditor({
       ? elementOverrides.map((o) => o.elementId === selected.elementId ? updated : o)
       : [...elementOverrides, updated];
 
-    // Remove entries with no meaningful overrides
     const clean = next.filter((o) => {
       const { elementId: _id, ...rest } = o;
       return Object.values(rest).some((v) => v !== undefined);
@@ -132,55 +140,32 @@ export default function LayoutEditor({
 
   if (!selected) return null;
 
-  const panelStyle: React.CSSProperties = {
-    position: "fixed",
-    top: Math.min(selected.rect.top, window.innerHeight - 200),
-    left: Math.min(selected.rect.right + 12, window.innerWidth - 220),
-    zIndex: 1000,
-  };
+  // Position panel to the right of the element, clamped to viewport
+  const panelTop = Math.max(8, Math.min(selected.rect.top, window.innerHeight - 260));
+  const panelLeft = Math.min(selected.rect.right + 12, window.innerWidth - 220);
 
   return (
-    <div ref={panelRef} className="le-panel" style={panelStyle}>
-      <div className="le-title">
-        {selected.kind === "image" ? "Image" : "Annotation"}
-      </div>
+    <div ref={panelRef} className="le-panel" style={{ position: "fixed", top: panelTop, left: panelLeft, zIndex: 1000 }}>
+      <div className="le-title">{selected.label}</div>
 
       {selected.kind === "image" && (
         <>
-          <OverrideSelect
-            label="Size"
-            value={currentOverride?.size || ""}
-            options={SIZE_OPTIONS}
-            onChange={(v) => updateField("size", v as ElementOverride["size"])}
-          />
-          <OverrideSelect
-            label="Justify"
-            value={currentOverride?.justification || ""}
-            options={JUSTIFY_OPTIONS}
-            onChange={(v) => updateField("justification", v as ElementOverride["justification"])}
-          />
+          <OverrideSelect label="Size" value={currentOverride?.size || ""} options={SIZE_OPTIONS}
+            onChange={(v) => updateField("size", v as ElementOverride["size"])} />
+          <OverrideSelect label="Justify" value={currentOverride?.justification || ""} options={JUSTIFY_OPTIONS}
+            onChange={(v) => updateField("justification", v as ElementOverride["justification"])} />
         </>
       )}
 
       {selected.kind === "note" && (
-        <OverrideSelect
-          label="Display"
-          value={currentOverride?.display || ""}
-          options={NOTE_DISPLAY_OPTIONS}
-          onChange={(v) => updateField("display", v as ElementOverride["display"])}
-        />
+        <OverrideSelect label="Display" value={currentOverride?.display || ""} options={NOTE_DISPLAY_OPTIONS}
+          onChange={(v) => updateField("display", v as ElementOverride["display"])} />
       )}
 
-      <OverrideNumber
-        label="Margin top"
-        value={currentOverride?.marginTop}
-        onChange={(v) => updateField("marginTop", v)}
-      />
-      <OverrideNumber
-        label="Margin bottom"
-        value={currentOverride?.marginBottom}
-        onChange={(v) => updateField("marginBottom", v)}
-      />
+      <OverrideNumber label="Margin top" value={currentOverride?.marginTop}
+        onChange={(v) => updateField("marginTop", v)} />
+      <OverrideNumber label="Margin bottom" value={currentOverride?.marginBottom}
+        onChange={(v) => updateField("marginBottom", v)} />
 
       <button className="le-close" onClick={() => setSelected(null)}>Done</button>
     </div>
@@ -188,9 +173,7 @@ export default function LayoutEditor({
 }
 
 function OverrideSelect({ label, value, options, onChange }: Readonly<{
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
+  label: string; value: string; options: { value: string; label: string }[];
   onChange: (value: string) => void;
 }>) {
   return (
@@ -204,23 +187,14 @@ function OverrideSelect({ label, value, options, onChange }: Readonly<{
 }
 
 function OverrideNumber({ label, value, onChange }: Readonly<{
-  label: string;
-  value: number | undefined;
+  label: string; value: number | undefined;
   onChange: (value: number | undefined) => void;
 }>) {
   return (
     <div className="le-field">
       <label className="le-label">{label}</label>
-      <input
-        className="le-input"
-        type="number"
-        value={value ?? ""}
-        placeholder="0"
-        onChange={(e) => {
-          const v = e.target.value ? parseInt(e.target.value, 10) : undefined;
-          onChange(v);
-        }}
-      />
+      <input className="le-input" type="number" value={value ?? ""} placeholder="0"
+        onChange={(e) => onChange(e.target.value ? parseInt(e.target.value, 10) : undefined)} />
     </div>
   );
 }
