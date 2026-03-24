@@ -221,18 +221,6 @@ function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEnti
     return null;
   }, [currentPage, isChronicleIndex, isPagesIndex, isPageCategory, pageCategoryNamespace]);
 
-  useEffect(() => {
-    document.title = pageTitle ? `${pageTitle} | The Ice Remembers` : "The Ice Remembers";
-  }, [pageTitle]);
-
-  if (isChronicleIndex) {
-    return <ChronicleIndex chronicles={chroniclePages} eraNarrativePages={eraNarrativePages}
-      filter={buildChronicleFilter(currentPageId)} onNavigate={onNavigate} />;
-  }
-  if (isPagesIndex) return <PagesIndex pages={staticPagesAsWikiPages} onNavigate={onNavigate} />;
-  if (isPageCategory && pageCategoryNamespace) {
-    return <PageCategoryIndex namespace={pageCategoryNamespace} pages={staticPagesAsWikiPages} onNavigate={onNavigate} />;
-  }
   const simulationRunId = (
     worldData as { metadata?: { simulationRunId?: string } }
   ).metadata?.simulationRunId;
@@ -248,9 +236,21 @@ function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEnti
       updatedAt: Date.now(),
     };
     void putPageLayout(record);
-    // Update local state immediately
     pageLayouts.set(pageId, record);
   }, [simulationRunId, pageLayouts]);
+
+  useEffect(() => {
+    document.title = pageTitle ? `${pageTitle} | The Ice Remembers` : "The Ice Remembers";
+  }, [pageTitle]);
+
+  if (isChronicleIndex) {
+    return <ChronicleIndex chronicles={chroniclePages} eraNarrativePages={eraNarrativePages}
+      filter={buildChronicleFilter(currentPageId)} onNavigate={onNavigate} />;
+  }
+  if (isPagesIndex) return <PagesIndex pages={staticPagesAsWikiPages} onNavigate={onNavigate} />;
+  if (isPageCategory && pageCategoryNamespace) {
+    return <PageCategoryIndex namespace={pageCategoryNamespace} pages={staticPagesAsWikiPages} onNavigate={onNavigate} />;
+  }
 
   if (currentPage) {
     return <WikiPageView page={currentPage} pages={indexAsPages} entityIndex={entityIndex}
