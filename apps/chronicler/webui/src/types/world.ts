@@ -405,7 +405,17 @@ export interface PageLayoutOverride {
   dropcap: Optional<"on" | "off">;
   textAlign: Optional<TextAlign>;
   customClass: Optional<string>;
+  elementOverrides: Optional<ElementOverride[]>;
   updatedAt: number;
+}
+
+export interface ElementOverride {
+  elementId: string;
+  size: Optional<"small" | "medium" | "large" | "full-width">;
+  justification: Optional<"left" | "right" | "center">;
+  marginTop: Optional<number>;
+  marginBottom: Optional<number>;
+  display: Optional<"full" | "popout" | "disabled">;
 }
 
 export type {

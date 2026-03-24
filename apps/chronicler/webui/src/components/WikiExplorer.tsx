@@ -13,6 +13,8 @@ import type { SerializedPageIndex, LoreData, WorldState, PageLayoutOverride } fr
 import type { ChronicleRecord } from "../lib/chronicleStorage.ts";
 import type { StaticPage } from "../lib/staticPageStorage.ts";
 import type { EraNarrativeViewRecord } from "../lib/eraNarrativeStorage.ts";
+import { putPageLayout } from "../lib/pageLayoutStorage.ts";
+import type { ElementOverride } from "../types/world.ts";
 import { useBreakpoint } from "../hooks/useBreakpoint.ts";
 import { useWikiExplorerData } from "../hooks/useWikiExplorerData.ts";
 import { useViewerPreferences, type ViewerPreferences } from "../hooks/useViewerPreferences.ts";
@@ -231,13 +233,33 @@ function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEnti
   if (isPageCategory && pageCategoryNamespace) {
     return <PageCategoryIndex namespace={pageCategoryNamespace} pages={staticPagesAsWikiPages} onNavigate={onNavigate} />;
   }
+  const simulationRunId = (
+    worldData as { metadata?: { simulationRunId?: string } }
+  ).metadata?.simulationRunId;
+
+  const handleSaveElementOverrides = useCallback((pageId: string, overrides: ElementOverride[]) => {
+    if (!simulationRunId) return;
+    const existing = pageLayouts.get(pageId);
+    const record = {
+      ...(existing ?? { pageId, simulationRunId }),
+      pageId,
+      simulationRunId,
+      elementOverrides: overrides,
+      updatedAt: Date.now(),
+    };
+    void putPageLayout(record);
+    // Update local state immediately
+    pageLayouts.set(pageId, record);
+  }, [simulationRunId, pageLayouts]);
+
   if (currentPage) {
     return <WikiPageView page={currentPage} pages={indexAsPages} entityIndex={entityIndex}
       disambiguation={currentDisambiguation} onNavigate={onNavigate}
       onNavigateToEntity={onNavigateToEntity} prominenceScale={prominenceScale} breakpoint={breakpoint}
       layoutOverride={mergeViewerPrefs(pageLayouts.get(currentPage.id), viewerPrefs)}
       onRefreshChronicle={currentPage.type === "chronicle" ? handleRefreshChronicle : undefined}
-      finalizedHtml={finalizedPages.get(currentPage.id)?.htmlContent} />;
+      finalizedHtml={finalizedPages.get(currentPage.id)?.htmlContent}
+      onSaveElementOverrides={simulationRunId ? handleSaveElementOverrides : undefined} />;
   }
   return <HomePage worldData={worldData} pages={indexAsPages} chronicles={chroniclePages}
     staticPages={staticPagesAsWikiPages} categories={pageIndex.categories}

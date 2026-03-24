@@ -807,6 +807,12 @@
   color: var(--color-accent);
 }
 
+.seed-button-active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(196, 154, 92, 0.15);
+}
+
 /* ===================
    Entity Preview Card (hover)
    =================== */

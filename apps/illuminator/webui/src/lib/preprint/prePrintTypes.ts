@@ -257,5 +257,21 @@ export interface PageLayoutOverride {
   textAlign?: TextAlign;
   customClass?: string;
 
+  /** Per-element layout overrides (image position, size, annotation display) */
+  elementOverrides?: ElementOverride[];
+
   updatedAt: number;
+}
+
+/**
+ * Per-element layout override — adjustments for a specific image or annotation.
+ * Keyed by refId (image ref) or noteId (historian note).
+ */
+export interface ElementOverride {
+  elementId: string;
+  size?: "small" | "medium" | "large" | "full-width";
+  justification?: "left" | "right" | "center";
+  marginTop?: number;
+  marginBottom?: number;
+  display?: "full" | "popout" | "disabled";
 }

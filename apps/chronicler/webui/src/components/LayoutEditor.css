@@ -1,0 +1,85 @@
+/* LayoutEditor — floating control panel for element overrides */
+
+.le-panel {
+  background: var(--color-bg-secondary, #1e1e1e);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  box-shadow: var(--shadow-lg);
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-family-ui);
+}
+
+.le-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-accent);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.le-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.le-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.le-select,
+.le-input {
+  font-size: 12px;
+  padding: 3px 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  width: 100%;
+}
+
+.le-input {
+  width: 80px;
+}
+
+.le-close {
+  font-size: 11px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  margin-top: var(--spacing-xs);
+}
+
+.le-close:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Highlight selected elements in the chronicle */
+.layout-editing img,
+.layout-editing figure,
+.layout-editing .margin-callout,
+.layout-editing .flow-callout,
+.layout-editing .sidenote-callout {
+  cursor: pointer;
+  transition: outline 0.15s;
+}
+
+.layout-editing img:hover,
+.layout-editing figure:hover,
+.layout-editing .margin-callout:hover,
+.layout-editing .flow-callout:hover,
+.layout-editing .sidenote-callout:hover {
+  outline: 2px dashed var(--color-accent);
+  outline-offset: 4px;
+}

@@ -9,8 +9,31 @@
 
 import React, { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import type { Optional } from "@the-canonry/shared-components";
-import type { WikiSection, WikiSectionImage, WikiHistorianNote, PageLayoutOverride } from "../types/world.ts";
+import type { WikiSection, WikiSectionImage, WikiHistorianNote, PageLayoutOverride, ElementOverride } from "../types/world.ts";
 import { analyzeLayout, isFloatImage } from "./WikiPageLayout.ts";
+
+/** Apply element overrides to an image, returning a modified copy */
+function applyImageOverride(image: WikiSectionImage, overrides?: ElementOverride[]): WikiSectionImage {
+  if (!overrides) return image;
+  const override = overrides.find((o) => o.elementId === image.refId || o.elementId === image.imageId);
+  if (!override) return image;
+  return {
+    ...image,
+    size: override.size || image.size,
+    justification: override.justification || image.justification,
+  };
+}
+
+/** Compute inline margin styles from an element override */
+function overrideMarginStyle(elementId: string, overrides?: ElementOverride[]): React.CSSProperties | undefined {
+  if (!overrides) return undefined;
+  const override = overrides.find((o) => o.elementId === elementId);
+  if (!override) return undefined;
+  const style: React.CSSProperties = {};
+  if (override.marginTop != null) style.marginTop = override.marginTop;
+  if (override.marginBottom != null) style.marginBottom = override.marginBottom;
+  return Object.keys(style).length > 0 ? style : undefined;
+}
 import { ChronicleImage } from "./WikiPageImages.tsx";
 import { MarkdownSection } from "./WikiPageMarkdown.tsx";
 import { HistorianCallout, HistorianFootnoteTooltip } from "./WikiPageHistorian.tsx";
@@ -571,6 +594,7 @@ export function SectionWithImages({
   }
 
   // ── Flow mode: fragment-based rendering with interleaved images + callouts ──
+  const elOverrides = layoutOverride?.elementOverrides;
   const fragments = buildFlowFragments(content, images, resolvedEntries, effectiveFullNoteInserts);
   const firstTextIndex = fragments.findIndex((f) => f.type === "text");
 
@@ -578,18 +602,25 @@ export function SectionWithImages({
     <div className="section-with-images" ref={sectionRef} data-note-position={annotationPosition || undefined} {...footnoteEvents}>
       {fragments.map((fragment, i) => {
         if (fragment.type === "image") {
-          return isFloatImage(fragment.image.size) ? (
-            <ChronicleImage key={`img-${fragment.image.refId}-${i}`} image={fragment.image} onOpen={onImageOpen} layoutMode="flow" />
+          const img = applyImageOverride(fragment.image, elOverrides);
+          const marginStyle = overrideMarginStyle(img.refId || img.imageId, elOverrides);
+          return isFloatImage(img.size) ? (
+            <div key={`img-${img.refId}-${i}`} style={marginStyle}>
+              <ChronicleImage image={img} onOpen={onImageOpen} layoutMode="flow" />
+            </div>
           ) : (
-            <React.Fragment key={`img-${fragment.image.refId}-${i}`}>
+            <React.Fragment key={`img-${img.refId}-${i}`}>
               <div className="clearfix" />
-              <ChronicleImage image={fragment.image} onOpen={onImageOpen} layoutMode="flow" />
+              <div style={marginStyle}>
+                <ChronicleImage image={img} onOpen={onImageOpen} layoutMode="flow" />
+              </div>
             </React.Fragment>
           );
         }
         if (fragment.type === "callout") {
+          const marginStyle = overrideMarginStyle(fragment.note.noteId, elOverrides);
           return (
-            <div key={`fc-${fragment.note.noteId}`} className="inline-anchor-callout">
+            <div key={`fc-${fragment.note.noteId}`} className="inline-anchor-callout" style={marginStyle}>
               <HistorianCallout note={fragment.note} noteIndex={fragment.idx} layoutMode="flow" />
             </div>
           );
