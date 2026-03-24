@@ -8,12 +8,11 @@
  * - Backlinks section
  */
 
-import React, { useMemo, useState, useCallback, useRef } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import type { Optional } from "@the-canonry/shared-components";
 import type {
   WikiPage,
   WikiSectionImage,
-  ElementOverride,
   HardState,
   DisambiguationEntry,
   ImageAspect,
@@ -40,7 +39,6 @@ import {
   type SectionCallbacks,
 } from "./WikiPageParts.tsx";
 import { resolveGlobalFootnotes } from "../lib/historianAnnotations.ts";
-import LayoutEditor from "./LayoutEditor.tsx";
 import { useWikiPageData } from "../hooks/useWikiPageData.ts";
 import EntityTimeline from "./EntityTimeline.tsx";
 import ProminenceTimeline from "./ProminenceTimeline.tsx";
@@ -66,17 +64,13 @@ interface WikiPageViewProps {
   breakpoint: Optional<"mobile" | "tablet" | "desktop">;
   layoutOverride: Optional<PageLayoutOverride>;
   onRefreshChronicle: Optional<(chronicleId: string) => Promise<void>>;
-  /** Pre-edited HTML from the finalize editor — when present, renders directly instead of the build pipeline output */
-  finalizedHtml: Optional<string>;
-  /** Save per-element layout overrides */
-  onSaveElementOverrides: Optional<(pageId: string, overrides: ElementOverride[]) => void>;
 }
 
 // eslint-disable-next-line max-lines-per-function, complexity -- page-level orchestrator combining infobox, sections, timeline, backlinks, modals, and hover preview; the branching comes from conditional rendering of 10+ independent UI blocks based on page type
 export default function WikiPageView({
   page, pages, entityIndex, disambiguation,
   onNavigate, onNavigateToEntity, prominenceScale,
-  breakpoint = "desktop", layoutOverride, onRefreshChronicle, finalizedHtml, onSaveElementOverrides,
+  breakpoint = "desktop", layoutOverride, onRefreshChronicle,
 }: Readonly<WikiPageViewProps>) {
   const isMobile = breakpoint === "mobile";
   const showInfoboxInline = isMobile || breakpoint === "tablet";
@@ -93,8 +87,6 @@ export default function WikiPageView({
     url: string; title: string; summary: Optional<string>;
   } | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(false);
-  const [editingLayout, setEditingLayout] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
 
   const data = useWikiPageData({ page, pages, entityIndex });
   const {
@@ -145,10 +137,6 @@ export default function WikiPageView({
     try { await onRefreshChronicle(page.id); }
     finally { setIsRefreshingChronicle(false); }
   }, [onRefreshChronicle, isRefreshingChronicle, page.id]);
-  const toggleLayoutEditor = useCallback(() => setEditingLayout((e) => !e), []);
-  const handleSaveElementOverrides = useCallback((overrides: ElementOverride[]) => {
-    if (onSaveElementOverrides) onSaveElementOverrides(page.id, overrides);
-  }, [onSaveElementOverrides, page.id]);
   const toggleTimeline = useCallback(() => setTimelineOpen((o) => !o), []);
 
   const sectionLinkData: WikiLinkData = useMemo(
@@ -218,14 +206,9 @@ export default function WikiPageView({
             {isRefreshingChronicle ? "Refreshing..." : "Refresh"}
           </button>
         )}
-        {isChronicle && onSaveElementOverrides && (
-          <button className={`seed-button${editingLayout ? " seed-button-active" : ""}`} onClick={toggleLayoutEditor}>
-            {editingLayout ? "Done Editing" : "Edit Layout"}
-          </button>
-        )}
       </div>
 
-      <div ref={contentRef} className={`${showInfoboxInline ? "wp-content-column" : "wp-content"}${editingLayout ? " layout-editing" : ""}`}>
+      <div className={showInfoboxInline ? "wp-content-column" : "wp-content"}>
         <WikiPageInfobox page={page} variant={showInfoboxInline ? "inline" : "float"} isMobile={isMobile}
           imageId={infoboxImageId} effectiveAspect={effectiveAspect}
           onImageClick={handleInfoboxClick}
@@ -233,32 +216,25 @@ export default function WikiPageView({
 
         <div className="wp-main">
           {isEntityPage && page.content.sections.length > 2 && <TableOfContents sections={page.content.sections} />}
-          {finalizedHtml ? (
-            <div className="chronicle-body finalized-content"
-              data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
-              dangerouslySetInnerHTML={{ __html: finalizedHtml }}
-            />
-          ) : (
-            <div
-              className={[(isLongFormProse || layoutOverride?.dropcap) ? "chronicle-body" : "", layoutOverride?.customClass || ""].filter(Boolean).join(" ") || undefined}
-              data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
-              data-content-width={layoutOverride?.contentWidth}
-              data-text-align={layoutOverride?.textAlign}
-              {...dropcapProps}
-            >
-              {page.content.sections.map((section, sectionIndex) => (
-                <SectionBlock key={section.id} section={section} sectionIndex={sectionIndex}
-                  isLongFormProse={isLongFormProse}
-                  sourceChronicleLinks={sourceChronicleLinks} chronicleLinks={chronicleLinks}
-                  linkData={sectionLinkData} callbacks={sectionCallbacks}
-                  historianNotes={page.content.historianNotes}
-                  narrativeStyleId={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
-                  layoutOverride={layoutOverride}
-                  preResolvedNotes={globalResolvedNotes[sectionIndex]}
-                  globalOrderedNotes={globalOrderedNotes} />
-              ))}
-            </div>
-          )}
+          <div
+            className={[(isLongFormProse || layoutOverride?.dropcap) ? "chronicle-body" : "", layoutOverride?.customClass || ""].filter(Boolean).join(" ") || undefined}
+            data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
+            data-content-width={layoutOverride?.contentWidth}
+            data-text-align={layoutOverride?.textAlign}
+            {...dropcapProps}
+          >
+            {page.content.sections.map((section, sectionIndex) => (
+              <SectionBlock key={section.id} section={section} sectionIndex={sectionIndex}
+                isLongFormProse={isLongFormProse}
+                sourceChronicleLinks={sourceChronicleLinks} chronicleLinks={chronicleLinks}
+                linkData={sectionLinkData} callbacks={sectionCallbacks}
+                historianNotes={page.content.historianNotes}
+                narrativeStyleId={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
+                layoutOverride={layoutOverride}
+                preResolvedNotes={globalResolvedNotes[sectionIndex]}
+                globalOrderedNotes={globalOrderedNotes} />
+            ))}
+          </div>
 
           {!hasRelationshipsSection && sourceChronicleLinks.length > 0 && (
             <ChronicleGallery title="Source Chronicles" links={sourceChronicleLinks} onNavigate={onNavigate} />
@@ -311,13 +287,6 @@ export default function WikiPageView({
       {hoveredBacklink && hoveredEntity && (
         <EntityPreviewCard entity={hoveredEntity} summary={hoveredSummary}
           position={hoveredBacklink.position} imageId={hoveredImageId} prominenceScale={prominenceScale} />
-      )}
-      {editingLayout && onSaveElementOverrides && (
-        <LayoutEditor
-          containerRef={contentRef}
-          elementOverrides={layoutOverride?.elementOverrides || []}
-          onSave={handleSaveElementOverrides}
-        />
       )}
     </div>
   );

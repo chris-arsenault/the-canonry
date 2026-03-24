@@ -1,8 +1,8 @@
-# The Canonry Desktop — C# WPF Rewrite Design
+# The Canonry Desktop — C# Avalonia Rewrite Design
 
 **Date:** 2026-03-11
 **Status:** Approved
-**Target:** .NET 9, WPF, SQLite + EF Core
+**Target:** .NET 10 (LTS), Avalonia 11, SQLite + EF Core
 **Approach:** New repository, preserving existing TypeScript repo for reference and for Pics/Viewer web apps
 
 ## Motivation
@@ -19,7 +19,7 @@ These problems are manageable up to ~100k LOC. Beyond that, when an LLM (or deve
 
 C# solves this at the language level: nullable reference types, nominal typing, sealed hierarchies, exhaustive pattern matching, and compiler errors for misspelled properties.
 
-## Decision: C# + WPF over Rust + Tauri
+## Decision: C# + Avalonia over Rust + Tauri
 
 **Why not Rust + Tauri:**
 
@@ -27,9 +27,9 @@ C# solves this at the language level: nullable reference types, nominal typing, 
 2. Tauri keeps a web UI layer, meaning TypeScript remains for rendering. This reintroduces type synchronization at the Rust/JS IPC boundary — the same category of problem we're trying to escape.
 3. LLM generation quality for C#/.NET is higher than for Rust — deeper training data, fewer ownership/lifetime errors.
 
-**Why WPF over Avalonia:**
+**Why Avalonia over WPF:**
 
-Cross-platform is not a concern. The authoring tools are personal-use desktop software. WPF is the most mature, most battle-tested desktop framework in .NET, with the deepest training data for LLM generation.
+WPF requires Windows — it cannot build or run on WSL or Linux. Since development happens on WSL, Avalonia 11 is the correct choice: it provides a nearly identical XAML/MVVM programming model (`.axaml` files, compiled bindings, FluentTheme) while being fully cross-platform. The API surface is close enough to WPF that LLM training data transfers well.
 
 **Why desktop over web:**
 
@@ -37,7 +37,7 @@ Cross-platform is not a concern. The authoring tools are personal-use desktop so
 - **No CORS** — direct HTTP to all external APIs, no relay server needed
 - **No IndexedDB** — SQLite on disk with EF Core migrations
 - **No Web Worker message passing** — `Task.Run` with typed parameters
-- **No SPA state management** — WPF data binding with MVVM
+- **No SPA state management** — Avalonia data binding with MVVM
 - **Native interaction model** — toolbars, menus, context menus, keyboard shortcuts, dockable panes
 
 ## What Stays TypeScript
@@ -100,7 +100,7 @@ TheCanonry/
 │   │   │
 │   │   └── TheCanonry.AwsSync/          # S3 sync for publishing
 │   │
-│   └── TheCanonry.Desktop/             # WPF application
+│   └── TheCanonry.Desktop/             # Avalonia application
 │       ├── Shell/                       # ShellWindow, navigation, DI composition root
 │       ├── Illuminator/                 # Illuminator views & ViewModels
 │       │   ├── Enrichment/              # Enrichment dashboard, job monitoring
@@ -660,16 +660,16 @@ public class DescriptionPromptBuilder
 
 Embedded resources are compiled into the assembly — no file path issues, no missing templates at runtime. Prompt versioning tracks with code versioning via git.
 
-## WPF Shell — Native Desktop Interaction Model
+## Avalonia Shell — Native Desktop Interaction Model
 
 ### Design Principle
 
-The interaction model is **native desktop from day one**, not web-style tabs retrofitted into a window. The application uses the full WPF interaction vocabulary:
+The interaction model is **native desktop from day one**, not web-style tabs retrofitted into a window. The application uses the full Avalonia interaction vocabulary:
 
 - **Menu bar** with hierarchical drill-down menus (File, Edit, View, Simulation, Enrichment, Tools, Window, Help)
 - **Toolbars** per-context, dockable, customizable
 - **Context menus** on all interactive elements — right-click an entity to enrich, view in archivist, open chronicle, etc.
-- **Keyboard shortcuts** via `RoutedCommand` — defined once, bound to menu items, toolbar buttons, context menus, and key gestures simultaneously
+- **Keyboard shortcuts** via `ICommand` bindings with `KeyGesture` — defined once, bound to menu items, toolbar buttons, context menus, and key gestures simultaneously
 - **StatusBar** with live enrichment queue status, cost tracking, simulation progress
 - **Dockable/resizable panes** via `GridSplitter` — sidebar, main content, detail panel, output log
 - **Pop-out windows** — any panel detaches to its own OS-level window with full menu and toolbar
@@ -704,28 +704,28 @@ Any functional area — Illuminator Catalog, Chronicle Editor, Archivist Graph, 
 
 ### Command System
 
+Commands use the MVVM `ICommand` pattern with `RelayCommand` / `AsyncRelayCommand`. Key gestures are bound in AXAML via `KeyBinding`:
+
 ```csharp
-public static class CanonryCommands
-{
-    // Simulation
-    public static RoutedUICommand RunSimulation { get; } = new("Run Simulation", "RunSimulation", typeof(CanonryCommands), new InputGestureCollection { new KeyGesture(Key.F5) });
-    public static RoutedUICommand StopSimulation { get; } = new("Stop", "StopSimulation", typeof(CanonryCommands), new InputGestureCollection { new KeyGesture(Key.F5, ModifierKeys.Shift) });
-
-    // Enrichment
-    public static RoutedUICommand EnrichEntity { get; } = new("Enrich", "EnrichEntity", typeof(CanonryCommands));
-    public static RoutedUICommand EnrichBulk { get; } = new("Enrich Selected", "EnrichBulk", typeof(CanonryCommands));
-
-    // Navigation
-    public static RoutedUICommand OpenInNewWindow { get; } = new("Open in New Window", "OpenInNewWindow", typeof(CanonryCommands));
-    public static RoutedUICommand ViewInArchivist { get; } = new("View in Archivist", "ViewInArchivist", typeof(CanonryCommands));
-}
+// In ShellViewModel
+public ICommand RunSimulationCommand { get; }
+public ICommand StopSimulationCommand { get; }
+public ICommand EnrichEntityCommand { get; }
+public ICommand EnrichBulkCommand { get; }
+public ICommand OpenInNewWindowCommand { get; }
 ```
 
-A single command is surfaced in the menu bar, the toolbar, the context menu, and via keyboard shortcut — all bound to the same handler. This is how WPF is designed to work.
+```xml
+<!-- In ShellWindow.axaml -->
+<MenuItem Header="_Run" Command="{Binding RunSimulationCommand}" InputGesture="F5" />
+<MenuItem Header="_Stop" Command="{Binding StopSimulationCommand}" InputGesture="Shift+F5" />
+```
+
+A single command is surfaced in the menu bar, the toolbar, the context menu, and via keyboard shortcut — all bound to the same ViewModel command. This is how Avalonia MVVM is designed to work.
 
 ### MVVM Pattern
 
-ViewModels expose observable properties. WPF data binding propagates state changes to the UI automatically.
+ViewModels expose observable properties. Avalonia data binding propagates state changes to the UI automatically.
 
 ```csharp
 public class EnrichmentDashboardViewModel : ViewModelBase
@@ -743,16 +743,16 @@ No Zustand. No React re-render cycles. No stale closures. State changes flow thr
 
 Visualizations from the TypeScript app are reimplemented using .NET equivalents:
 
-| Current (TS/Web) | C#/WPF Equivalent | Notes |
+| Current (TS/Web) | C#/Avalonia Equivalent | Notes |
 |---|---|---|
-| Three.js / react-force-graph-3d | HelixToolkit.Wpf + custom force simulation | HelixToolkit provides 3D rendering but not force-directed layout. Force simulation must be implemented separately (port D3-force algorithm or use a graph layout library). This is the most technically challenging visualization to reimplement. |
-| D3 / @visx charts | LiveCharts2 or ScottPlot | Good ecosystem match — heatmaps, hierarchies, axes, tooltips all available |
-| Cytoscape.js | MSAGL for layout + WPF canvas for rendering | MSAGL computes static layouts, not interactive exploration. Interactive panning/zooming/selection is custom WPF work on top. |
-| Canvas 2D drawing | SkiaSharp or WPF `DrawingVisual` | Direct equivalent, SkiaSharp is well-suited |
-| SVG inline | WPF `Path` / `Geometry` (XAML vector graphics) | Native WPF, straightforward |
-| react-markdown | Markdig + custom WPF renderer, or AvalonEdit | Markdig is the standard .NET markdown parser |
+| Three.js / react-force-graph-3d | SkiaSharp 3D or Avalonia custom rendering + force simulation | Force simulation must be implemented separately (port D3-force algorithm). This is the most technically challenging visualization to reimplement. |
+| D3 / @visx charts | LiveCharts2 or ScottPlot | Good ecosystem match — heatmaps, hierarchies, axes, tooltips all available. Both support Avalonia. |
+| Cytoscape.js | MSAGL for layout + Avalonia canvas for rendering | MSAGL computes static layouts, not interactive exploration. Interactive panning/zooming/selection is custom Avalonia work on top. |
+| Canvas 2D drawing | SkiaSharp (via Avalonia.Skia) | Direct equivalent, SkiaSharp is Avalonia's default rendering backend |
+| SVG inline | Avalonia `Path` / `Geometry` (AXAML vector graphics) | Native Avalonia, straightforward |
+| react-markdown | Markdig + custom Avalonia renderer, or AvaloniaEdit | Markdig is the standard .NET markdown parser |
 
-These are not 1:1 ports. Each visualization is reimplemented to take advantage of native rendering capabilities. The **Archivist's interactive 3D force-directed graph** is the highest-risk visualization — it requires combining a 3D rendering library with a custom force simulation loop and interactive controls (click to select, drag to reposition, hover to inspect). This should be one of the later migration items, after the core workflow tools are functional.
+These are not 1:1 ports. Each visualization is reimplemented to take advantage of native rendering capabilities. The **Archivist's interactive 3D force-directed graph** is the highest-risk visualization — it requires combining SkiaSharp rendering with a custom force simulation loop and interactive controls (click to select, drag to reposition, hover to inspect). This should be one of the later migration items, after the core workflow tools are functional.
 
 ## What Disappears
 
@@ -762,7 +762,7 @@ These are not 1:1 ports. Each visualization is reimplemented to take advantage o
 | Web Worker message serialization | Eliminated — Task.Run with typed parameters |
 | IndexedDB schema migrations (manual JS) | Replaced — EF Core typed migrations |
 | Zustand stores (20+) | Replaced — MVVM observable properties |
-| Module Federation / micro-frontend wiring | Eliminated — single WPF application |
+| Module Federation / micro-frontend wiring | Eliminated — single Avalonia application |
 | Blob URL management | Eliminated — file paths on disk |
 | SPA routing / navigation state | Eliminated — native window/pane management |
 | postMessage / onmessage event wiring | Eliminated — direct method calls, events |
@@ -788,14 +788,14 @@ This is a **new repo rewrite**, not an in-place migration.
 
 ## Estimated Scale After Rewrite
 
-Rough estimates. Note: WPF XAML can be more verbose than JSX for equivalent UI, and C# class definitions with explicit properties are longer than TS interfaces. However, entire categories of code disappear (CORS relay, worker message passing, IndexedDB boilerplate, SPA state management, Module Federation, Zustand stores, 58 repository files).
+Rough estimates. Note: Avalonia AXAML can be more verbose than JSX for equivalent UI, and C# class definitions with explicit properties are longer than TS interfaces. However, entire categories of code disappear (CORS relay, worker message passing, IndexedDB boilerplate, SPA state management, Module Federation, Zustand stores, 58 repository files).
 
 | Layer | TS Lines | Estimated C# Lines | Notes |
 |---|---|---|---|
 | Core engine + schema | ~80k | ~50-60k | Logic ports directly, no browser boilerplate |
 | Illuminator domain logic | ~50k (logic portion) | ~35-45k | Workers → Task.Run eliminates serialization code |
 | Infrastructure (persistence, API clients) | ~30k (DB repos, clients) | ~15-20k | EF Core replaces 58 manual IndexedDB repo files |
-| Desktop UI (XAML + ViewModels) | ~90k (React + CSS) | ~70-90k | XAML is verbose; offset by eliminating CSS files and SPA concerns |
+| Desktop UI (AXAML + ViewModels) | ~90k (React + CSS) | ~70-90k | AXAML is verbose; offset by eliminating CSS files and SPA concerns |
 | **Total C# code** | | **~170-215k** |
 
-The uncertainty in the UI layer is highest — XAML verbosity vs eliminated SPA complexity roughly offset each other, but exact ratios depend on how much WPF resource dictionary / template / style code is needed.
+The uncertainty in the UI layer is highest — AXAML verbosity vs eliminated SPA complexity roughly offset each other, but exact ratios depend on how much Avalonia resource dictionary / template / style code is needed.

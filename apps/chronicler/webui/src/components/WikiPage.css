@@ -807,12 +807,6 @@
   color: var(--color-accent);
 }
 
-.seed-button-active {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: rgba(196, 154, 92, 0.15);
-}
-
 /* ===================
    Entity Preview Card (hover)
    =================== */
@@ -1087,17 +1081,6 @@
   width: calc(100% + 260px);
   margin-left: -130px;
   margin-right: -130px;
-}
-
-/* Positioned margin columns: items absolutely placed at their anchor's Y offset */
-.margin-positioned {
-  position: relative;
-}
-
-.margin-positioned-item {
-  position: absolute;
-  top: var(--margin-item-top, 0);
-  width: 100%;
 }
 
 .margin-left,

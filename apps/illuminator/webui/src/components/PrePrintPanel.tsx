@@ -25,9 +25,7 @@ import ExportView from "./preprint/ExportView";
 import UpscaleView from "./preprint/UpscaleView";
 import "./PrePrintPanel.css";
 
-const FinalizeView = React.lazy(() => import("./preprint/FinalizeView"));
-
-type SubTab = "stats" | "tree" | "export" | "upscale" | "finalize";
+type SubTab = "stats" | "tree" | "export" | "upscale";
 
 function collectChronicleImageIds(
   chronicles: ChronicleRecord[],
@@ -155,21 +153,6 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
     return allImages.filter((img) => referencedIds.has(img.imageId));
   }, [allImages, navEntities, chronicles, eraNarratives]);
 
-  // Entity image map for the finalize editor (entityId → imageId)
-  const entityImageMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const entity of fullEntities) {
-      const imageId = entity.enrichment?.image?.imageId;
-      if (imageId) map.set(entity.id, imageId);
-    }
-    return map;
-  }, [fullEntities]);
-
-  const completedChronicles = useMemo(
-    () => chronicles.filter((c) => c.status === "complete" && c.acceptedAt),
-    [chronicles]
-  );
-
   if (loading) {
     return (
       <div className="ppp-empty-state">
@@ -189,7 +172,6 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
   const subTabs: { id: SubTab; label: string }[] = [
     { id: "stats", label: "Stats" },
     { id: "tree", label: "Content Tree" },
-    { id: "finalize", label: "Finalize" },
     { id: "export", label: "Export" },
     { id: "upscale", label: "Upscale" },
   ];
@@ -244,16 +226,6 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
             projectId={projectId}
             simulationRunId={simulationRunId}
           />
-        )}
-
-        {activeSubTab === "finalize" && (
-          <React.Suspense fallback={<div className="ppp-empty-state">Loading editor...</div>}>
-            <FinalizeView
-              chronicles={completedChronicles}
-              simulationRunId={simulationRunId}
-              entities={fullEntities}
-            />
-          </React.Suspense>
         )}
 
         {activeSubTab === "upscale" && (
