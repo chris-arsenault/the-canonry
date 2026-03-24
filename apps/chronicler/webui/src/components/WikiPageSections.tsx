@@ -265,6 +265,10 @@ interface SectionWithImagesProps extends SectionContentProps {
   historianNotes: Optional<WikiHistorianNote[]>;
   narrativeStyleId: Optional<string>;
   layoutOverride: Optional<PageLayoutOverride>;
+  /** Pre-resolved footnotes for this section with global indices (from resolveGlobalFootnotes) */
+  preResolvedNotes: Optional<ResolvedFootnote[]>;
+  /** Global ordered notes across all sections (for tooltip lookup by global index) */
+  globalOrderedNotes: Optional<WikiHistorianNote[]>;
 }
 
 // eslint-disable-next-line max-lines-per-function, complexity -- section layout component managing footnote injection, hover tooltips, sidenote positioning, and three distinct rendering modes (centered/margin/flow); each mode renders different DOM structures requiring distinct conditional rendering paths
@@ -281,6 +285,8 @@ export function SectionWithImages({
   isFirstChronicleSection,
   narrativeStyleId,
   layoutOverride,
+  preResolvedNotes,
+  globalOrderedNotes,
 }: Readonly<SectionWithImagesProps>) {
   const images = layoutOverride?.imageLayout === "hidden" ? [] : section.images || [];
   const content = section.content;
@@ -291,25 +297,52 @@ export function SectionWithImages({
     const raw = historianNotes || [];
     if (!annotationDisplay) return raw;
     if (annotationDisplay === "disabled") return [];
-    // Remap all notes to the override display mode
     return raw.map((n) => ({
       ...n,
       display: annotationDisplay,
     }));
   }, [historianNotes, annotationDisplay]);
 
-  // Inject footnote markers into content for ALL notes (unified numbering)
-  const { content: annotatedContent, orderedNotes, resolvedEntries } = useMemo(
-    () => injectFootnotes(content, allNotes),
-    [content, allNotes],
-  );
+  // Use pre-resolved global data if available, otherwise fall back to per-section resolution
+  const { content: annotatedContent, orderedNotes, resolvedEntries } = useMemo(() => {
+    if (preResolvedNotes && globalOrderedNotes) {
+      // Inject superscripts using pre-resolved global indices
+      let result = content;
+      for (let i = preResolvedNotes.length - 1; i >= 0; i--) {
+        const entry = preResolvedNotes[i];
+        // Skip notes that were filtered out by annotation display override
+        if (annotationDisplay === "disabled") continue;
+        const insertAt = entry.index + entry.phraseLen;
+        const color = HISTORIAN_NOTE_COLORS[entry.note.type] || "#8b7355";
+        const sup = `<sup class="historian-fn" data-note-idx="${entry.globalIdx}" style="color:${color};cursor:pointer;font-weight:700;font-size:12px;margin-left:2px">${entry.globalIdx + 1}</sup>`;
+        result = result.slice(0, insertAt) + sup + result.slice(insertAt);
+      }
+      // Apply display override to the pre-resolved notes for this section
+      const sectionNotes = annotationDisplay
+        ? preResolvedNotes.map((e) => ({ ...e, note: { ...e.note, display: annotationDisplay } }))
+        : preResolvedNotes;
+      return {
+        content: result,
+        orderedNotes: globalOrderedNotes,
+        resolvedEntries: sectionNotes,
+      };
+    }
+    return injectFootnotes(content, allNotes);
+  }, [content, allNotes, preResolvedNotes, globalOrderedNotes, annotationDisplay]);
 
   // Full-display notes with their indices in the unified ordering
   const fullNoteInserts = useMemo(() => {
+    if (preResolvedNotes && globalOrderedNotes) {
+      // Use pre-resolved entries for this section with global indices
+      const displayMode = annotationDisplay;
+      return preResolvedNotes
+        .map((e) => ({ note: displayMode ? { ...e.note, display: displayMode } : e.note, idx: e.globalIdx }))
+        .filter(({ note }) => note.display === "full");
+    }
     return orderedNotes
       .map((note, idx) => ({ note, idx }))
       .filter(({ note }) => note.display === "full");
-  }, [orderedNotes]);
+  }, [orderedNotes, preResolvedNotes, globalOrderedNotes, annotationDisplay]);
 
   // Determine layout mode: override wins, then heuristic
   const layoutMode = useMemo(
@@ -373,8 +406,21 @@ export function SectionWithImages({
   const effectiveFullNoteInserts = useFootnoteMode ? [] : fullNoteInserts;
   const hasInserts = images.length > 0 || effectiveFullNoteInserts.length > 0;
 
+  // In footnote mode, show only this section's notes (with global numbering)
+  const sectionFootnoteNotes = useMemo(() => {
+    if (!useFootnoteMode) return [];
+    if (preResolvedNotes) {
+      return preResolvedNotes.map((e) => ({
+        ...e.note,
+        ...(annotationDisplay ? { display: annotationDisplay } : {}),
+        _globalIdx: e.globalIdx,
+      }));
+    }
+    return orderedNotes;
+  }, [useFootnoteMode, preResolvedNotes, orderedNotes, annotationDisplay]);
+
   const footnoteList =
-    useFootnoteMode && orderedNotes.length > 0 ? <FootnoteList orderedNotes={orderedNotes} /> : null;
+    useFootnoteMode && sectionFootnoteNotes.length > 0 ? <FootnoteList orderedNotes={sectionFootnoteNotes} /> : null;
 
   const tooltipElement = hoveredNote ? (
     <HistorianFootnoteTooltip

@@ -210,6 +210,8 @@ interface SectionBlockProps {
   historianNotes: Optional<WikiHistorianNote[]>;
   narrativeStyleId: Optional<string>;
   layoutOverride: Optional<PageLayoutOverride>;
+  preResolvedNotes: Optional<import("../lib/historianAnnotations.ts").ResolvedFootnote[]>;
+  globalOrderedNotes: Optional<WikiHistorianNote[]>;
 }
 
 export function SectionBlock({
@@ -217,6 +219,7 @@ export function SectionBlock({
   sourceChronicleLinks, chronicleLinks,
   linkData, callbacks,
   historianNotes, narrativeStyleId, layoutOverride,
+  preResolvedNotes, globalOrderedNotes,
 }: Readonly<SectionBlockProps>) {
   const hideHeading = isLongFormProse && (section.heading === "Chronicle" || section.heading === "Narrative");
 
@@ -248,6 +251,8 @@ export function SectionBlock({
           isFirstChronicleSection={isLongFormProse && sectionIndex === 0}
           narrativeStyleId={narrativeStyleId}
           layoutOverride={layoutOverride}
+          preResolvedNotes={preResolvedNotes}
+          globalOrderedNotes={globalOrderedNotes}
         />
       </div>
     </React.Fragment>

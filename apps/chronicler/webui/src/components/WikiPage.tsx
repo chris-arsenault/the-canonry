@@ -38,6 +38,7 @@ import {
   type WikiLinkData,
   type SectionCallbacks,
 } from "./WikiPageParts.tsx";
+import { resolveGlobalFootnotes } from "../lib/historianAnnotations.ts";
 import { useWikiPageData } from "../hooks/useWikiPageData.ts";
 import EntityTimeline from "./EntityTimeline.tsx";
 import ProminenceTimeline from "./ProminenceTimeline.tsx";
@@ -163,6 +164,12 @@ export default function WikiPageView({
     return {};
   }, [layoutOverride?.dropcap, isLongFormProse, page.content.sections]);
 
+  // Compute globally consistent footnote numbering across all sections
+  const { perSection: globalResolvedNotes, globalOrderedNotes } = useMemo(
+    () => resolveGlobalFootnotes(page.content.sections, page.content.historianNotes || []),
+    [page.content.sections, page.content.historianNotes],
+  );
+
   const hasRelationshipsSection = page.content.sections.some((s) => s.heading === "Relationships");
 
   return (
@@ -223,7 +230,9 @@ export default function WikiPageView({
                 linkData={sectionLinkData} callbacks={sectionCallbacks}
                 historianNotes={page.content.historianNotes}
                 narrativeStyleId={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
-                layoutOverride={layoutOverride} />
+                layoutOverride={layoutOverride}
+                preResolvedNotes={globalResolvedNotes[sectionIndex]}
+                globalOrderedNotes={globalOrderedNotes} />
             ))}
           </div>
 
