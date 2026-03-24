@@ -1,8 +1,8 @@
 /**
  * FinalizeEditor — TipTap WYSIWYG editor for finalized chronicle pages.
  *
- * Loads content from either an existing finalized page or fresh render
- * from the source chronicle. Auto-saves to the finalizedPages table.
+ * Uses the shared chronicle-renderer pipeline to produce the initial content,
+ * then serializes to HTML via renderToHtml. Auto-saves edits to finalizedPages.
  */
 
 import React, { useEffect, useCallback, useRef, useState } from "react";
@@ -10,25 +10,26 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
-import TextStyle from "@tiptap/extension-text-style";
+import { TextStyle } from "@tiptap/extension-text-style";
+import { buildChronicleRender, type EntityImageSource } from "@the-canonry/chronicle-renderer";
 import {
   getFinalizedPage,
   putFinalizedPage,
 } from "../../lib/db/finalizedPageRepository";
+import { renderToHtml } from "../../lib/preprint/renderToHtml";
 import type { ChronicleRecord } from "../../lib/chronicleTypes";
-import { renderChronicleToHtml } from "../../lib/preprint/chronicleToHtml";
 import "./FinalizeEditor.css";
 
 interface FinalizeEditorProps {
   chronicle: ChronicleRecord;
   simulationRunId: string;
-  entityImageMap: Map<string, string>;
+  entities: EntityImageSource[];
 }
 
 export default function FinalizeEditor({
   chronicle,
   simulationRunId,
-  entityImageMap,
+  entities,
 }: Readonly<FinalizeEditorProps>) {
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [initialized, setInitialized] = useState(false);
@@ -60,21 +61,33 @@ export default function FinalizeEditor({
     },
   });
 
-  // Load initial content
+  /** Render chronicle through the shared pipeline → HTML */
+  const renderFresh = useCallback(async (): Promise<string> => {
+    const content = chronicle.finalContent || chronicle.assembledContent || "";
+    const render = buildChronicleRender({
+      content,
+      imageRefs: chronicle.imageRefs as { refs: import("@the-canonry/chronicle-renderer").ChronicleImageRef[] } | null,
+      entities,
+      historianNotes: chronicle.historianNotes,
+      coverImageId: chronicle.coverImage?.status === "complete" ? chronicle.coverImage?.generatedImageId : null,
+    });
+    return renderToHtml(render);
+  }, [chronicle, entities]);
+
+  // Load content: existing finalized page, or fresh render
   useEffect(() => {
     if (!editor) return;
     let cancelled = false;
 
     async function load() {
-      // Check for existing finalized page first
       const existing = await getFinalizedPage(simulationRunId, chronicle.chronicleId);
       if (cancelled) return;
 
       if (existing) {
         editor!.commands.setContent(existing.htmlContent);
       } else {
-        // Fresh render from source chronicle
-        const html = renderChronicleToHtml(chronicle, entityImageMap);
+        const html = await renderFresh();
+        if (cancelled) return;
         editor!.commands.setContent(html);
       }
       setInitialized(true);
@@ -84,7 +97,7 @@ export default function FinalizeEditor({
     setInitialized(false);
     void load();
     return () => { cancelled = true; };
-  }, [editor, chronicle.chronicleId, simulationRunId, entityImageMap, chronicle]);
+  }, [editor, chronicle.chronicleId, simulationRunId, renderFresh]);
 
   // Auto-save debounced
   const save = useCallback(async () => {
@@ -99,7 +112,6 @@ export default function FinalizeEditor({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-    // Only update status if we're still on the same chronicle
     if (chronicleIdRef.current === chronicle.chronicleId) {
       setSaveStatus("saved");
     }
@@ -114,13 +126,13 @@ export default function FinalizeEditor({
     };
   }, [saveStatus, save]);
 
-  // Reset to fresh render from source chronicle
-  const handleReset = useCallback(() => {
+  // Reset: re-render from source chronicle through the shared pipeline
+  const handleReset = useCallback(async () => {
     if (!editor) return;
-    const html = renderChronicleToHtml(chronicle, entityImageMap);
+    const html = await renderFresh();
     editor.commands.setContent(html);
     setSaveStatus("unsaved");
-  }, [editor, chronicle, entityImageMap]);
+  }, [editor, renderFresh]);
 
   if (!editor) return null;
 
@@ -190,7 +202,7 @@ export default function FinalizeEditor({
 
         <div className="finalize-toolbar-spacer" />
 
-        <button className="finalize-reset-btn" onClick={handleReset} title="Reset to generated content (discards all edits)">
+        <button className="finalize-reset-btn" onClick={() => void handleReset()} title="Re-render from source chronicle (discards all edits)">
           Reset
         </button>
 

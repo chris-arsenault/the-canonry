@@ -1,9 +1,10 @@
 /**
- * Finalized Page Storage - Read-only access to finalized pages in the illuminator DB.
+ * Finalized Page Storage - Read/write access to finalized pages in the illuminator DB.
  *
  * Finalized pages are WYSIWYG-edited HTML stored as separate entities.
- * When present, the chronicler renders the finalized HTML directly
- * instead of running the normal build pipeline.
+ * The chronicler captures its rendered DOM output here; the illuminator's
+ * finalize editor loads and edits it. When present, the chronicler renders
+ * the finalized HTML directly instead of running the normal build pipeline.
  */
 
 import { openIlluminatorDb } from "@the-canonry/world-store";
@@ -18,6 +19,29 @@ export interface FinalizedPageRecord {
   htmlContent: string;
   createdAt: number;
   updatedAt: number;
+}
+
+/**
+ * Save a finalized page (captured from the chronicler's rendered DOM).
+ */
+export async function putFinalizedPage(record: FinalizedPageRecord): Promise<void> {
+  try {
+    const db = await openIlluminatorDb();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(FINALIZED_PAGES_STORE, "readwrite");
+        const store = tx.objectStore(FINALIZED_PAGES_STORE);
+        const request = store.put(record);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error ?? new Error("Failed to save finalized page"));
+      });
+    } finally {
+      db.close();
+    }
+  } catch (err) {
+    console.error("[finalizedPageStorage] Failed to save finalized page:", err);
+    throw err;
+  }
 }
 
 /**

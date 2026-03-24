@@ -23,8 +23,9 @@ import StatsView from "./preprint/StatsView";
 import ContentTreeView from "./preprint/ContentTreeView";
 import ExportView from "./preprint/ExportView";
 import UpscaleView from "./preprint/UpscaleView";
-import FinalizeView from "./preprint/FinalizeView";
 import "./PrePrintPanel.css";
+
+const FinalizeView = React.lazy(() => import("./preprint/FinalizeView"));
 
 type SubTab = "stats" | "tree" | "export" | "upscale" | "finalize";
 
@@ -154,6 +155,21 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
     return allImages.filter((img) => referencedIds.has(img.imageId));
   }, [allImages, navEntities, chronicles, eraNarratives]);
 
+  // Entity image map for the finalize editor (entityId → imageId)
+  const entityImageMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entity of fullEntities) {
+      const imageId = entity.enrichment?.image?.imageId;
+      if (imageId) map.set(entity.id, imageId);
+    }
+    return map;
+  }, [fullEntities]);
+
+  const completedChronicles = useMemo(
+    () => chronicles.filter((c) => c.status === "complete" && c.acceptedAt),
+    [chronicles]
+  );
+
   if (loading) {
     return (
       <div className="ppp-empty-state">
@@ -169,21 +185,6 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
       </div>
     );
   }
-
-  // Entity image map for the finalize editor (entityId → imageId)
-  const entityImageMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const entity of fullEntities) {
-      const imageId = entity.enrichment?.image?.imageId;
-      if (imageId) map.set(entity.id, imageId);
-    }
-    return map;
-  }, [fullEntities]);
-
-  const completedChronicles = useMemo(
-    () => chronicles.filter((c) => c.status === "complete" && c.acceptedAt),
-    [chronicles]
-  );
 
   const subTabs: { id: SubTab; label: string }[] = [
     { id: "stats", label: "Stats" },
@@ -246,11 +247,13 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
         )}
 
         {activeSubTab === "finalize" && (
-          <FinalizeView
-            chronicles={completedChronicles}
-            simulationRunId={simulationRunId}
-            entityImageMap={entityImageMap}
-          />
+          <React.Suspense fallback={<div className="ppp-empty-state">Loading editor...</div>}>
+            <FinalizeView
+              chronicles={completedChronicles}
+              simulationRunId={simulationRunId}
+              entities={fullEntities}
+            />
+          </React.Suspense>
         )}
 
         {activeSubTab === "upscale" && (

@@ -230,6 +230,9 @@ importers:
       '@canonry/world-schema':
         specifier: workspace:*
         version: link:../../../packages/world-schema
+      '@the-canonry/chronicle-renderer':
+        specifier: workspace:*
+        version: link:../../../packages/chronicle-renderer
       '@the-canonry/image-store':
         specifier: workspace:*
         version: link:../../../packages/image-store
@@ -468,6 +471,9 @@ importers:
       '@canonry/world-schema':
         specifier: workspace:*
         version: link:../../../packages/world-schema
+      '@the-canonry/chronicle-renderer':
+        specifier: workspace:*
+        version: link:../../../packages/chronicle-renderer
       '@the-canonry/image-store':
         specifier: workspace:*
         version: link:../../../packages/image-store
@@ -802,6 +808,8 @@ importers:
       vitest:
         specifier: ^4.0.13
         version: 4.0.18(@types/node@24.10.13)(@vitest/ui@4.0.18)(jsdom@26.1.0)(tsx@4.21.0)(yaml@2.8.2)
+
+  packages/chronicle-renderer: {}
 
   packages/image-store:
     dependencies:

@@ -1,24 +1,26 @@
 /**
  * FinalizeView — Chronicle selector + WYSIWYG editor for finalized pages.
  *
+ * Uses the shared chronicle-renderer pipeline for initial content.
  * Shown as a sub-tab in PrePrintPanel.
  */
 
 import React, { useState, useMemo } from "react";
 import type { ChronicleRecord } from "../../lib/chronicleTypes";
+import type { PersistedEntity } from "../../lib/db/illuminatorDb";
 import FinalizeEditor from "./FinalizeEditor";
 import "./FinalizeView.css";
 
 interface FinalizeViewProps {
   chronicles: ChronicleRecord[];
   simulationRunId: string;
-  entityImageMap: Map<string, string>;
+  entities: PersistedEntity[];
 }
 
 export default function FinalizeView({
   chronicles,
   simulationRunId,
-  entityImageMap,
+  entities,
 }: Readonly<FinalizeViewProps>) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -56,7 +58,7 @@ export default function FinalizeView({
             key={selected.chronicleId}
             chronicle={selected}
             simulationRunId={simulationRunId}
-            entityImageMap={entityImageMap}
+            entities={entities}
           />
         ) : (
           <div className="fv-empty">Select a chronicle to finalize</div>
