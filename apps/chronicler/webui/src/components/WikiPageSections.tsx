@@ -7,7 +7,7 @@
  * - 'centered': Text centered, no floats. For verse/poetry without images.
  */
 
-import React, { useMemo, useState, useLayoutEffect, useRef, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import type { Optional } from "@the-canonry/shared-components";
 import type { WikiSection, WikiSectionImage, WikiHistorianNote, PageLayoutOverride } from "../types/world.ts";
 import { analyzeLayout, isFloatImage } from "./WikiPageLayout.ts";
@@ -242,6 +242,83 @@ function MarginColumn({ items, prefix, onImageOpen }: Readonly<{
 }
 
 // ============================================================================
+// Positioned margin column — items placed at their anchor's Y coordinate
+// ============================================================================
+
+function PositionedMarginColumn({ items, prefix, onImageOpen, resolvedPositions, content, containerHeight }: Readonly<{
+  items: MarginItem[];
+  prefix: string;
+  onImageOpen: Optional<(imageUrl: string, image: WikiSectionImage) => void>;
+  resolvedPositions: Map<number, number>;
+  content: string;
+  containerHeight: number;
+}>) {
+  const contentLen = content.length || 1;
+  const columnRef = useRef<HTMLDivElement>(null);
+  const [tops, setTops] = useState<number[]>([]);
+
+  // Compute ideal anchor positions for each item
+  const idealTops = useMemo(() => {
+    return items.map((item) => {
+      if (item.kind === "callout") {
+        return resolvedPositions.get(item.noteIndex) ?? 0;
+      }
+      const charPos = resolveImagePosition(item.image, content);
+      return containerHeight > 0 ? (charPos / contentLen) * containerHeight : 0;
+    });
+  }, [items, resolvedPositions, content, contentLen, containerHeight]);
+
+  const resolveOverlaps = useCallback(() => {
+    const col = columnRef.current;
+    if (!col || items.length === 0) { setTops([]); return; }
+
+    const children = col.querySelectorAll<HTMLElement>(".margin-positioned-item");
+    const GAP = 8;
+    const resolved: number[] = [];
+    let lastBottom = -Infinity;
+
+    for (let i = 0; i < items.length; i++) {
+      let top = idealTops[i] ?? 0;
+      if (top < lastBottom + GAP) top = lastBottom + GAP;
+      resolved.push(top);
+      const height = children[i]?.offsetHeight ?? 80;
+      lastBottom = top + height;
+    }
+
+    setTops(resolved);
+  }, [idealTops, items.length]);
+
+  // Resolve on initial layout
+  useLayoutEffect(() => { resolveOverlaps(); }, [resolveOverlaps]);
+
+  // Re-resolve after images load — use ResizeObserver on the column to catch any height changes
+  useEffect(() => {
+    const col = columnRef.current;
+    if (!col) return;
+    const observer = new ResizeObserver(() => resolveOverlaps());
+    // Observe each positioned item so we catch image loads changing their height
+    col.querySelectorAll<HTMLElement>(".margin-positioned-item").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [resolveOverlaps, items]);
+
+  return (
+    <div ref={columnRef}>
+      {items.map((item, i) => (
+        <div key={item.kind === "image" ? `${prefix}-img-${item.image.refId}-${i}` : `${prefix}-fn-${item.note.noteId}`}
+          className="margin-positioned-item"
+          style={{ "--margin-item-top": `${tops[i] ?? idealTops[i] ?? 0}px` } as React.CSSProperties}>
+          {item.kind === "image" ? (
+            <ChronicleImage image={item.image} onOpen={onImageOpen} layoutMode="margin" />
+          ) : (
+            <HistorianCallout note={item.note} noteIndex={item.noteIndex} layoutMode="margin" />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================================
 // Shared props type for section content rendering
 // ============================================================================
 
@@ -356,6 +433,7 @@ export function SectionWithImages({
   const annotationPosition = layoutOverride?.annotationPosition;
   const useFootnoteMode = annotationPosition === "footnote";
 
+
   // Hover state for footnote tooltips (all notes, not just popout)
   const [hoveredNote, setHoveredNote] = React.useState<{
     note: WikiHistorianNote;
@@ -388,23 +466,31 @@ export function SectionWithImages({
     }
   }, []);
 
-  // ── Sidenote positioning engine ──
+  // ── Sidenote/margin positioning engine ──
   const sectionRef = useRef<HTMLDivElement>(null);
   const [resolvedPositions, setResolvedPositions] = useState<Map<number, number>>(new Map());
+  const [containerHeight, setContainerHeight] = useState(0);
 
   useLayoutEffect(() => {
     const container = sectionRef.current;
-    if (!container || fullNoteInserts.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- useLayoutEffect intentionally clears positions synchronously before paint when no inserts exist
+    if (!container) {
       setResolvedPositions(new Map());
+      setContainerHeight(0);
       return;
     }
-    setResolvedPositions(computeSidenotePositions(container, fullNoteInserts));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- useLayoutEffect intentionally measures DOM synchronously before paint
+    setContainerHeight(container.offsetHeight);
+    if (fullNoteInserts.length > 0) {
+      setResolvedPositions(computeSidenotePositions(container, fullNoteInserts));
+    } else {
+      setResolvedPositions(new Map());
+    }
   }, [annotatedContent, fullNoteInserts]);
 
   // In footnote mode, full notes don't need inline/sidenote rendering — they collect at bottom
   const effectiveFullNoteInserts = useFootnoteMode ? [] : fullNoteInserts;
   const hasInserts = images.length > 0 || effectiveFullNoteInserts.length > 0;
+
 
   // In footnote mode, show only this section's notes (with global numbering)
   const sectionFootnoteNotes = useMemo(() => {
@@ -453,13 +539,15 @@ export function SectionWithImages({
     );
   }
 
-  // ── Margin mode: 3-column grid with images/callouts in side margins ──
+  // ── Margin mode: 3-column grid with images/callouts in side margins,
+  //    positioned to align with their anchors in the center column ──
   if (layoutMode === "margin") {
     const { leftItems, rightItems } = distributeToMarginColumns(images, effectiveFullNoteInserts);
     return (
-      <div className="margin-layout" data-note-position={annotationPosition || undefined} {...footnoteEvents}>
-        <div className="margin-left">
-          <MarginColumn items={leftItems} prefix="ml" onImageOpen={onImageOpen} />
+      <div className="margin-layout" ref={sectionRef} data-note-position={annotationPosition || undefined} {...footnoteEvents}>
+        <div className="margin-left margin-positioned">
+          <PositionedMarginColumn items={leftItems} prefix="ml" onImageOpen={onImageOpen}
+            resolvedPositions={resolvedPositions} content={content} containerHeight={containerHeight} />
         </div>
         <div className="margin-center">
           <MarkdownSection content={annotatedContent} {...contentProps} isFirstFragment={isFirstChronicleSection} />
@@ -472,8 +560,9 @@ export function SectionWithImages({
             </div>
           )}
         </div>
-        <div className="margin-right">
-          <MarginColumn items={rightItems} prefix="mr" onImageOpen={onImageOpen} />
+        <div className="margin-right margin-positioned">
+          <PositionedMarginColumn items={rightItems} prefix="mr" onImageOpen={onImageOpen}
+            resolvedPositions={resolvedPositions} content={content} containerHeight={containerHeight} />
         </div>
         {footnoteList}
         {tooltipElement}

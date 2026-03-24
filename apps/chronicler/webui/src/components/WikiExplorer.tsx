@@ -187,7 +187,7 @@ function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEnti
 }>) {
   const { getPage, pageIndex, entityIndex, indexAsPages, chroniclePages,
     eraNarrativePages, staticPagesAsWikiPages, eraNarrativeByEraId, prominenceScale,
-    handleRefreshChronicle, pageLayouts } = data;
+    handleRefreshChronicle, pageLayouts, finalizedPages } = data;
 
   const isChronicleIndex = currentPageId?.startsWith("chronicles") === true;
   const isPagesIndex = currentPageId === "pages";
@@ -236,7 +236,8 @@ function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEnti
       disambiguation={currentDisambiguation} onNavigate={onNavigate}
       onNavigateToEntity={onNavigateToEntity} prominenceScale={prominenceScale} breakpoint={breakpoint}
       layoutOverride={mergeViewerPrefs(pageLayouts.get(currentPage.id), viewerPrefs)}
-      onRefreshChronicle={currentPage.type === "chronicle" ? handleRefreshChronicle : undefined} />;
+      onRefreshChronicle={currentPage.type === "chronicle" ? handleRefreshChronicle : undefined}
+      finalizedHtml={finalizedPages.get(currentPage.id)?.htmlContent} />;
   }
   return <HomePage worldData={worldData} pages={indexAsPages} chronicles={chroniclePages}
     staticPages={staticPagesAsWikiPages} categories={pageIndex.categories}

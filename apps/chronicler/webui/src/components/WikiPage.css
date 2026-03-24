@@ -1083,6 +1083,17 @@
   margin-right: -130px;
 }
 
+/* Positioned margin columns: items absolutely placed at their anchor's Y offset */
+.margin-positioned {
+  position: relative;
+}
+
+.margin-positioned-item {
+  position: absolute;
+  top: var(--margin-item-top, 0);
+  width: 100%;
+}
+
 .margin-left,
 .margin-right {
   display: flex;

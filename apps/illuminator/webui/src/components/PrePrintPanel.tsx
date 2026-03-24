@@ -23,9 +23,10 @@ import StatsView from "./preprint/StatsView";
 import ContentTreeView from "./preprint/ContentTreeView";
 import ExportView from "./preprint/ExportView";
 import UpscaleView from "./preprint/UpscaleView";
+import FinalizeView from "./preprint/FinalizeView";
 import "./PrePrintPanel.css";
 
-type SubTab = "stats" | "tree" | "export" | "upscale";
+type SubTab = "stats" | "tree" | "export" | "upscale" | "finalize";
 
 function collectChronicleImageIds(
   chronicles: ChronicleRecord[],
@@ -169,9 +170,25 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
     );
   }
 
+  // Entity image map for the finalize editor (entityId → imageId)
+  const entityImageMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entity of fullEntities) {
+      const imageId = entity.enrichment?.image?.imageId;
+      if (imageId) map.set(entity.id, imageId);
+    }
+    return map;
+  }, [fullEntities]);
+
+  const completedChronicles = useMemo(
+    () => chronicles.filter((c) => c.status === "complete" && c.acceptedAt),
+    [chronicles]
+  );
+
   const subTabs: { id: SubTab; label: string }[] = [
     { id: "stats", label: "Stats" },
     { id: "tree", label: "Content Tree" },
+    { id: "finalize", label: "Finalize" },
     { id: "export", label: "Export" },
     { id: "upscale", label: "Upscale" },
   ];
@@ -225,6 +242,14 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
             treeState={treeState}
             projectId={projectId}
             simulationRunId={simulationRunId}
+          />
+        )}
+
+        {activeSubTab === "finalize" && (
+          <FinalizeView
+            chronicles={completedChronicles}
+            simulationRunId={simulationRunId}
+            entityImageMap={entityImageMap}
           />
         )}
 

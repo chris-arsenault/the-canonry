@@ -96,6 +96,28 @@ export interface StyleLibraryRecord {
 }
 
 // ---------------------------------------------------------------------------
+// Types — finalized pages (v13)
+// ---------------------------------------------------------------------------
+
+/**
+ * A finalized page: manually edited HTML produced by the WYSIWYG editor.
+ * Completely separate from the source chronicle — original content is never modified.
+ */
+export interface FinalizedPageRecord {
+  /** Page ID (typically the chronicleId of the source chronicle) */
+  pageId: string;
+  simulationRunId: string;
+  /** Chronicle ID this was derived from (for provenance) */
+  sourceChronicleId: string;
+  /** Display title */
+  title: string;
+  /** The edited HTML content */
+  htmlContent: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ---------------------------------------------------------------------------
 // Re-exports for repository consumers
 // ---------------------------------------------------------------------------
 
@@ -125,6 +147,7 @@ export type {
   StyleLibraryRecord,
   ContentTreeState,
   PageLayoutOverride,
+  FinalizedPageRecord,
   PersistedRelationship,
   SimulationSlotRecord,
   WorldSchemaRecord,
@@ -159,6 +182,7 @@ class IlluminatorDatabase extends Dexie {
   eraNarratives!: Table<EraNarrativeRecord, string>;
   runIndexes!: Table<RunIndexRecord, string>;
   pageLayouts!: Table<PageLayoutOverride, [string, string]>;
+  finalizedPages!: Table<FinalizedPageRecord, [string, string]>;
 
   constructor() {
     super("illuminator");
@@ -460,6 +484,38 @@ class IlluminatorDatabase extends Dexie {
       // New: upscale blob tables
       upscaleBlobs: "blobId, imageId",
       upscaleTestBlobs: "testId, sourceImageId",
+    });
+
+    // v13 — finalized pages (WYSIWYG-edited HTML, separate from source chronicles)
+    this.version(13).stores({
+      // All existing tables (redeclare unchanged)
+      entities: "id, simulationRunId, kind, [simulationRunId+kind]",
+      narrativeEvents: "id, simulationRunId",
+      chronicles: "chronicleId, simulationRunId, projectId",
+      images:
+        "imageId, projectId, entityId, chronicleId, entityKind, entityCulture, model, imageType, generatedAt",
+      costs: "id, projectId, simulationRunId, entityId, chronicleId, type, model, timestamp",
+      traitPalettes: "id, projectId, entityKind",
+      usedTraits: "id, projectId, simulationRunId, entityKind, entityId",
+      historianRuns: "runId, projectId, status, createdAt",
+      summaryRevisionRuns: "runId, projectId, status, createdAt",
+      dynamicsRuns: "runId, projectId, status, createdAt",
+      staticPages: "pageId, projectId, slug, status, updatedAt",
+      styleLibrary: "id",
+      imageBlobs: "imageId",
+      contentTrees: "[projectId+simulationRunId]",
+      relationships: "[simulationRunId+src+dst+kind], simulationRunId, src, dst, kind",
+      simulationSlots: "[projectId+slotIndex], projectId, slotIndex, simulationRunId",
+      worldSchemas: "projectId",
+      coordinateStates: "simulationRunId",
+      eraNarratives: "narrativeId, projectId, simulationRunId, eraId, status, createdAt",
+      runIndexes: "simulationRunId",
+      pageLayouts: "[simulationRunId+pageId], simulationRunId",
+      upscaleBlobs: "blobId, imageId",
+      upscaleTestBlobs: "testId, sourceImageId",
+
+      // New: finalized pages
+      finalizedPages: "[simulationRunId+pageId], simulationRunId",
     });
   }
 }

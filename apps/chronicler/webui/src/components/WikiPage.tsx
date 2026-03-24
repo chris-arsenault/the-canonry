@@ -64,13 +64,15 @@ interface WikiPageViewProps {
   breakpoint: Optional<"mobile" | "tablet" | "desktop">;
   layoutOverride: Optional<PageLayoutOverride>;
   onRefreshChronicle: Optional<(chronicleId: string) => Promise<void>>;
+  /** Pre-edited HTML from the finalize editor — when present, renders directly instead of the build pipeline output */
+  finalizedHtml: Optional<string>;
 }
 
 // eslint-disable-next-line max-lines-per-function, complexity -- page-level orchestrator combining infobox, sections, timeline, backlinks, modals, and hover preview; the branching comes from conditional rendering of 10+ independent UI blocks based on page type
 export default function WikiPageView({
   page, pages, entityIndex, disambiguation,
   onNavigate, onNavigateToEntity, prominenceScale,
-  breakpoint = "desktop", layoutOverride, onRefreshChronicle,
+  breakpoint = "desktop", layoutOverride, onRefreshChronicle, finalizedHtml,
 }: Readonly<WikiPageViewProps>) {
   const isMobile = breakpoint === "mobile";
   const showInfoboxInline = isMobile || breakpoint === "tablet";
@@ -216,25 +218,32 @@ export default function WikiPageView({
 
         <div className="wp-main">
           {isEntityPage && page.content.sections.length > 2 && <TableOfContents sections={page.content.sections} />}
-          <div
-            className={[(isLongFormProse || layoutOverride?.dropcap) ? "chronicle-body" : "", layoutOverride?.customClass || ""].filter(Boolean).join(" ") || undefined}
-            data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
-            data-content-width={layoutOverride?.contentWidth}
-            data-text-align={layoutOverride?.textAlign}
-            {...dropcapProps}
-          >
-            {page.content.sections.map((section, sectionIndex) => (
-              <SectionBlock key={section.id} section={section} sectionIndex={sectionIndex}
-                isLongFormProse={isLongFormProse}
-                sourceChronicleLinks={sourceChronicleLinks} chronicleLinks={chronicleLinks}
-                linkData={sectionLinkData} callbacks={sectionCallbacks}
-                historianNotes={page.content.historianNotes}
-                narrativeStyleId={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
-                layoutOverride={layoutOverride}
-                preResolvedNotes={globalResolvedNotes[sectionIndex]}
-                globalOrderedNotes={globalOrderedNotes} />
-            ))}
-          </div>
+          {finalizedHtml ? (
+            <div className="chronicle-body finalized-content"
+              data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
+              dangerouslySetInnerHTML={{ __html: finalizedHtml }}
+            />
+          ) : (
+            <div
+              className={[(isLongFormProse || layoutOverride?.dropcap) ? "chronicle-body" : "", layoutOverride?.customClass || ""].filter(Boolean).join(" ") || undefined}
+              data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
+              data-content-width={layoutOverride?.contentWidth}
+              data-text-align={layoutOverride?.textAlign}
+              {...dropcapProps}
+            >
+              {page.content.sections.map((section, sectionIndex) => (
+                <SectionBlock key={section.id} section={section} sectionIndex={sectionIndex}
+                  isLongFormProse={isLongFormProse}
+                  sourceChronicleLinks={sourceChronicleLinks} chronicleLinks={chronicleLinks}
+                  linkData={sectionLinkData} callbacks={sectionCallbacks}
+                  historianNotes={page.content.historianNotes}
+                  narrativeStyleId={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
+                  layoutOverride={layoutOverride}
+                  preResolvedNotes={globalResolvedNotes[sectionIndex]}
+                  globalOrderedNotes={globalOrderedNotes} />
+              ))}
+            </div>
+          )}
 
           {!hasRelationshipsSection && sourceChronicleLinks.length > 0 && (
             <ChronicleGallery title="Source Chronicles" links={sourceChronicleLinks} onNavigate={onNavigate} />
