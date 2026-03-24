@@ -75,6 +75,7 @@ export interface EntityNavItem {
   // These drive badge rendering and status determination in the list view.
   hasDescription: boolean; // !!(entity.summary && entity.description)
   hasVisualThesis: boolean; // !!entity.enrichment?.text?.visualThesis
+  visualThesis?: string; // entity.enrichment?.text?.visualThesis — one-sentence visual signal
   imageId?: string; // entity.enrichment?.image?.imageId — presence = has image
   descriptionCost?: number; // entity.enrichment?.text?.actualCost — for cost display
   imageCost?: number; // entity.enrichment?.image?.actualCost
@@ -109,6 +110,7 @@ export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
     eraId: entity.eraId,
     hasDescription: !!(entity.summary && entity.description),
     hasVisualThesis: !!entity.enrichment?.text?.visualThesis,
+    visualThesis: entity.enrichment?.text?.visualThesis,
     imageId: entity.enrichment?.image?.imageId,
     descriptionCost: entity.enrichment?.text?.actualCost,
     imageCost: entity.enrichment?.image?.actualCost,

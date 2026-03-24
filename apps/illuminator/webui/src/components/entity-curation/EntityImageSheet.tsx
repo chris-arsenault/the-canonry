@@ -111,6 +111,9 @@ function EntityImageCard({ entity, styleNames, onViewFull }: Readonly<{
           {entity.curationComplete ? "✓" : "○"}
         </button>
       </div>
+      {entity.visualThesis && (
+        <div className="eis-visual-thesis">{entity.visualThesis}</div>
+      )}
       <StylePills
         artisticId={entity.suggestedArtisticStyleId}
         compositionId={entity.suggestedCompositionStyleId}
