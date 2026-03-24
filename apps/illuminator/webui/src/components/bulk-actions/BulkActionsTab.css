@@ -183,3 +183,35 @@
 .bat-operations:empty {
   display: none;
 }
+
+/* Normalize results */
+.bat-normalize-results {
+  padding: 8px 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bat-normalize-row {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.bat-normalize-title {
+  color: var(--text-primary);
+  font-weight: 500;
+  flex-shrink: 0;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bat-normalize-summary {
+  color: var(--text-muted);
+}

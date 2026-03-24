@@ -13,11 +13,27 @@
  * 6. Whitespace: consistent blank lines around headings/HRs, no trailing spaces
  */
 
+/** Summary of changes made by the normalizer */
+export interface NormalizeReport {
+  titlesStripped: number;
+  boldPromoted: string[];
+  headingsFlattened: number;
+  hrsNormalized: number;
+  hrsRemoved: number;
+  emphasisFixed: number;
+  whitespaceFixed: boolean;
+}
+
+export function emptyReport(): NormalizeReport {
+  return { titlesStripped: 0, boldPromoted: [], headingsFlattened: 0, hrsNormalized: 0, hrsRemoved: 0, emphasisFixed: 0, whitespaceFixed: false };
+}
+
 /**
  * Normalize chronicle markdown to canonical structure.
- * Returns the normalized content, or the original if no changes were needed.
+ * Returns the normalized content and a report of what changed.
  */
-export function normalizeChronicleMarkdown(content: string): string {
+export function normalizeChronicleMarkdown(content: string): { content: string; report: NormalizeReport } {
+  const report = emptyReport();
   let lines = content.split("\n");
 
   // Phase 1: Strip the preamble (cast table + title) — find where prose starts
@@ -27,50 +43,81 @@ export function normalizeChronicleMarkdown(content: string): string {
   const preamble = lines.slice(0, proseStart);
   let prose = lines.slice(proseStart);
 
-  // Phase 2: Strip duplicate # title (first # heading in prose is redundant with frontmatter)
+  // Phase 2: Strip duplicate # title
+  const beforeTitles = prose.length;
   prose = stripDuplicateTitle(prose);
+  report.titlesStripped = beforeTitles - prose.length;
 
   // Phase 3: Promote ### to ##
   prose = prose.map((line) => {
-    if (line.startsWith("### ")) return "## " + line.slice(4);
+    if (line.startsWith("### ")) {
+      report.headingsFlattened++;
+      return "## " + line.slice(4);
+    }
     return line;
   });
 
-  // Phase 4: Promote bold-as-heading (standalone **TEXT** lines)
-  prose = promoteBoldHeadings(prose);
+  // Phase 4: Promote bold-as-heading
+  prose = promoteBoldHeadings(prose, report);
 
   // Phase 5: Normalize HR variants to ---
   prose = prose.map((line) => {
     const trimmed = line.trim();
-    if (/^(\*\s*\*\s*\*|\*{3,}|_{3,}|-\s*-\s*-)$/.test(trimmed)) return "---";
+    if (/^(\*\s*\*\s*\*|\*{3,}|_{3,}|-\s*-\s*-)$/.test(trimmed)) {
+      if (trimmed !== "---") report.hrsNormalized++;
+      return "---";
+    }
     return line;
   });
 
   // Phase 6: Remove redundant HRs before ## headings
+  const beforeHRs = prose.filter((l) => l.trim() === "---").length;
   prose = removeRedundantHRs(prose);
+  report.hrsRemoved = beforeHRs - prose.filter((l) => l.trim() === "---").length;
 
-  // Phase 7: Normalize emphasis — _text_ → *text*, __text__ → **text**
-  prose = prose.map(normalizeEmphasis);
+  // Phase 7: Normalize emphasis
+  prose = prose.map((line) => {
+    const fixed = normalizeEmphasis(line);
+    if (fixed !== line) report.emphasisFixed++;
+    return fixed;
+  });
 
   // Phase 8: Whitespace normalization
+  const beforeWS = prose.join("\n");
   prose = normalizeWhitespace(prose);
+  if (prose.join("\n") !== beforeWS) report.whitespaceFixed = true;
 
   // Reassemble
   const result = [...preamble, ...prose].join("\n");
-
-  // Trim trailing whitespace per line and trailing newlines
-  return result
+  const normalized = result
     .split("\n")
     .map((line) => line.trimEnd())
     .join("\n")
     .trimEnd() + "\n";
+
+  return { content: normalized, report };
 }
 
 /**
  * Check if normalization would change the content.
  */
 export function wouldNormalize(content: string): boolean {
-  return normalizeChronicleMarkdown(content) !== content;
+  const original = content;
+  const { content: normalized } = normalizeChronicleMarkdown(content);
+  return normalized !== original;
+}
+
+/** Summarize a report as a short string */
+export function summarizeReport(report: NormalizeReport): string {
+  const parts: string[] = [];
+  if (report.boldPromoted.length > 0) parts.push(`${report.boldPromoted.length} bold→heading`);
+  if (report.headingsFlattened > 0) parts.push(`${report.headingsFlattened} ###→##`);
+  if (report.titlesStripped > 0) parts.push(`titles stripped`);
+  if (report.hrsRemoved > 0) parts.push(`${report.hrsRemoved} HR removed`);
+  if (report.hrsNormalized > 0) parts.push(`${report.hrsNormalized} HR normalized`);
+  if (report.emphasisFixed > 0) parts.push(`${report.emphasisFixed} emphasis`);
+  if (report.whitespaceFixed) parts.push("whitespace");
+  return parts.length > 0 ? parts.join(", ") : "no changes";
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -126,22 +173,19 @@ function stripDuplicateTitle(lines: string[]): string[] {
 }
 
 /** Promote standalone **BOLD TEXT** lines to ## headings */
-function promoteBoldHeadings(lines: string[]): string[] {
+function promoteBoldHeadings(lines: string[], report?: NormalizeReport): string[] {
   return lines.map((line, i) => {
     const trimmed = line.trim();
-    // Must be ONLY bold text on the line (no other content)
     const match = trimmed.match(/^\*\*([^*]+)\*\*$/);
     if (!match) return line;
 
-    // Check context: should be preceded by a blank line or --- (section break context)
     const prevLine = i > 0 ? lines[i - 1].trim() : "";
     if (prevLine !== "" && prevLine !== "---") return line;
 
-    // Don't promote if it looks like an inline label followed by content on next line
-    // (e.g., **Collector's Note:** followed by text)
     const text = match[1];
     if (text.endsWith(":")) return line;
 
+    if (report) report.boldPromoted.push(text);
     return "## " + text;
   });
 }

@@ -72,7 +72,7 @@ import {
 } from "../chronicle-panel/ChroniclePanelToasts";
 import { ResetBackportModal } from "../chronicle-panel/ChroniclePanelModals";
 
-import { normalizeChronicleMarkdown, wouldNormalize } from "../../lib/preprint/markdownNormalizer";
+import { normalizeChronicleMarkdown, wouldNormalize, summarizeReport, type NormalizeReport } from "../../lib/preprint/markdownNormalizer";
 import { applyNormalization } from "../../lib/db/chronicleLifecycleOps";
 import "./BulkActionsTab.css";
 
@@ -148,14 +148,14 @@ export default function BulkActionsTab({
 
   // ─── Normalize state ──────────────────────────────────────────────
   const [normalizeRunning, setNormalizeRunning] = useState(false);
-  const [normalizeResult, setNormalizeResult] = useState<{ total: number; changed: number } | null>(null);
+  const [normalizeResults, setNormalizeResults] = useState<Array<{ title: string; summary: string }>>([]);
   const [normalizeStories, setNormalizeStories] = useState(true);
   const [normalizeDocs, setNormalizeDocs] = useState(true);
 
   const handleNormalize = useCallback(async () => {
     if (!simulationRunId || normalizeRunning) return;
     setNormalizeRunning(true);
-    setNormalizeResult(null);
+    setNormalizeResults([]);
     try {
       const allChronicles = await getChroniclesForSimulation(simulationRunId);
       const completed = allChronicles.filter((c) => c.status === "complete" && c.acceptedAt);
@@ -164,19 +164,26 @@ export default function BulkActionsTab({
         if (c.format === "document" && !normalizeDocs) return false;
         return true;
       });
-      let changed = 0;
+      const results: Array<{ title: string; summary: string }> = [];
       for (const chronicle of selected) {
         const content = chronicle.finalContent || chronicle.assembledContent || "";
-        if (!content.trim() || !wouldNormalize(content)) continue;
-        const normalized = normalizeChronicleMarkdown(content);
+        if (!content.trim()) continue;
+        const { content: normalized, report } = normalizeChronicleMarkdown(content);
+        if (normalized === content) continue;
         try {
           const didChange = await applyNormalization(chronicle.chronicleId, normalized);
-          if (didChange) changed++;
+          if (didChange) {
+            results.push({ title: chronicle.title, summary: summarizeReport(report) });
+          }
         } catch (err) {
           console.error(`[Normalize] Failed on ${chronicle.chronicleId}:`, err);
+          results.push({ title: chronicle.title, summary: "ERROR" });
         }
       }
-      setNormalizeResult({ total: selected.length, changed });
+      if (results.length === 0) {
+        results.push({ title: "", summary: "All chronicles already normalized" });
+      }
+      setNormalizeResults(results);
       refresh();
     } finally {
       setNormalizeRunning(false);
@@ -422,12 +429,23 @@ export default function BulkActionsTab({
           <button onClick={() => void handleNormalize()} disabled={normalizeRunning} className="illuminator-btn" title="Promote bold-as-heading, flatten ### to ##, strip duplicate titles, normalize HRs and emphasis">
             {normalizeRunning ? "Normalizing..." : "Normalize"}
           </button>
-          {normalizeResult && (
-            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-              {normalizeResult.changed}/{normalizeResult.total} changed
-            </span>
-          )}
         </div>}
+        {!collapsed.has("normalize") && normalizeResults.length > 0 && (
+          <div className="bat-normalize-results">
+            {normalizeResults.map((r, i) => (
+              <div key={i} className="bat-normalize-row">
+                {r.title ? (
+                  <>
+                    <span className="bat-normalize-title">{r.title}</span>
+                    <span className="bat-normalize-summary">{r.summary}</span>
+                  </>
+                ) : (
+                  <span className="bat-normalize-summary">{r.summary}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="bat-pipeline">
