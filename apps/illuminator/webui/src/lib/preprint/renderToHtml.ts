@@ -82,12 +82,15 @@ interface Insertion {
 }
 
 function buildImageHtml(img: WikiSectionImage, url: string): string {
-  const sizeClass = `image-${img.size || "medium"}`;
-  const justifyClass = img.justification ? `image-${img.justification}` : "";
+  const alt = img.caption || "Chronicle illustration";
+  const size = img.size || "medium";
+  const justify = img.justification || "left";
+  const cssClass = `chronicle-img image-${size} image-${size}-${justify}`;
+  const html = `<img src="${esc(url)}" alt="${esc(alt)}" class="${cssClass}" data-image-id="${esc(img.imageId)}" data-ref-id="${esc(img.refId)}" />`;
   const caption = img.caption
-    ? `<figcaption>${inlineMarkdown(img.caption)}</figcaption>`
+    ? `<p><em>${inlineMarkdown(img.caption)}</em></p>`
     : "";
-  return `<figure class="chronicle-figure ${sizeClass} ${justifyClass}" data-image-id="${esc(img.imageId)}"><img src="${esc(url)}" alt="${esc(img.caption || "")}" />${caption}</figure>`;
+  return html + caption;
 }
 
 function buildNoteHtml(note: HistorianNoteResolved, index: number): string {
@@ -176,7 +179,7 @@ export async function renderToHtml(render: ChronicleRenderOutput): Promise<strin
   if (render.coverImageId) {
     const coverUrl = imageUrls.get(render.coverImageId);
     if (coverUrl) {
-      htmlParts.push(`<figure class="cover-image" data-image-id="${esc(render.coverImageId)}"><img src="${esc(coverUrl)}" alt="Cover" /></figure>`);
+      htmlParts.push(`<img class="cover-image" src="${esc(coverUrl)}" alt="Cover" data-image-id="${esc(render.coverImageId)}" />`);
     }
   }
 

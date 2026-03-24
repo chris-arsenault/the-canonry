@@ -84,10 +84,14 @@
 .finalize-save-saving { color: var(--color-accent); }
 .finalize-save-unsaved { color: var(--color-text-muted); }
 
-/* Editor content area */
-.finalize-editor-content {
+/* TipTap outer wrapper — needs to scroll */
+.finalize-editor .tiptap-wrapper {
   flex: 1;
   overflow-y: auto;
+}
+
+/* Editor content area (contenteditable) */
+.finalize-editor-content {
   padding: 24px 32px;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 16px;
@@ -96,6 +100,7 @@
   max-width: 740px;
   margin: 0 auto;
   outline: none;
+  min-height: 100%;
 }
 
 .finalize-editor-content h2 {
@@ -134,22 +139,52 @@
   margin: 2em 0;
 }
 
-/* Images in editor */
-.finalize-editor-content figure.chronicle-image {
+/* Images in editor — sized and floated to match chronicler layout */
+.finalize-editor-content img {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 0.5em 0;
+}
+
+.finalize-editor-content img.image-small {
+  width: 200px;
+}
+
+.finalize-editor-content img.image-medium {
+  width: 300px;
+}
+
+.finalize-editor-content img.image-large {
+  width: 380px;
+}
+
+.finalize-editor-content img.image-full-width {
+  width: 100%;
   margin: 1.5em 0;
 }
 
-.finalize-editor-content figure.chronicle-image img {
-  max-width: 100%;
-  border-radius: 4px;
+/* Float images left/right for text wrapping */
+.finalize-editor-content img.image-small-left,
+.finalize-editor-content img.image-medium-left,
+.finalize-editor-content img.image-large-left {
+  float: left;
+  margin: 0.5em 16px 0.5em 0;
 }
 
-.finalize-editor-content figcaption {
-  font-size: 13px;
-  font-style: italic;
-  color: var(--color-text-muted);
-  text-align: center;
-  margin-top: 4px;
+.finalize-editor-content img.image-small-right,
+.finalize-editor-content img.image-medium-right,
+.finalize-editor-content img.image-large-right {
+  float: right;
+  margin: 0.5em 0 0.5em 16px;
+}
+
+/* Cover image */
+.finalize-editor-content img.cover-image {
+  width: 100%;
+  max-height: 50vh;
+  object-fit: cover;
+  border-radius: 6px;
+  margin: 0 0 2em;
 }
 
 /* Historian notes in editor */
@@ -172,16 +207,4 @@
   display: block;
   margin-bottom: 4px;
   color: var(--color-accent);
-}
-
-/* Cover image */
-.finalize-editor-content figure.cover-image {
-  margin: 0 0 2em;
-}
-
-.finalize-editor-content figure.cover-image img {
-  width: 100%;
-  max-height: 50vh;
-  object-fit: cover;
-  border-radius: 6px;
 }

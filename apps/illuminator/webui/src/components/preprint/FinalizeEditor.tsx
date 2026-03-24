@@ -8,9 +8,9 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
+import { ChronicleImage, HistorianNote, NoteLabel } from "./tiptapExtensions";
 import { buildChronicleRender, type EntityImageSource } from "@the-canonry/chronicle-renderer";
 import {
   getFinalizedPage,
@@ -41,14 +41,15 @@ export default function FinalizeEditor({
       StarterKit.configure({
         heading: { levels: [2, 3, 4] },
       }),
-      Image.configure({
-        HTMLAttributes: { class: "chronicle-image" },
+      ChronicleImage.configure({
         allowBase64: false,
       }),
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
       TextStyle,
+      HistorianNote,
+      NoteLabel,
     ],
     content: "<p>Loading...</p>",
     editorProps: {
@@ -211,7 +212,9 @@ export default function FinalizeEditor({
         </span>
       </div>
 
-      <EditorContent editor={editor} />
+      <div className="tiptap-wrapper">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }
