@@ -72,6 +72,8 @@ import {
 } from "../chronicle-panel/ChroniclePanelToasts";
 import { ResetBackportModal } from "../chronicle-panel/ChroniclePanelModals";
 
+import { normalizeChronicleMarkdown, wouldNormalize } from "../../lib/preprint/markdownNormalizer";
+import { applyNormalization } from "../../lib/db/chronicleLifecycleOps";
 import "./BulkActionsTab.css";
 
 interface Props {
@@ -104,7 +106,7 @@ export default function BulkActionsTab({
 
   // ─── Pipeline collapse state ──────────────────────────────────────
   const COLLAPSE_KEY = "illuminator:bat:collapsed";
-  const ALL_PIPELINES = ["validation", "backport", "scene", "cover", "entityimg", "chrhistorian", "tone", "entityhist"];
+  const ALL_PIPELINES = ["normalize", "validation", "backport", "scene", "cover", "entityimg", "chrhistorian", "tone", "entityhist"];
   const [collapsed, setCollapsed] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(COLLAPSE_KEY);
@@ -143,6 +145,43 @@ export default function BulkActionsTab({
 
   const [skipCompletedPrep, setSkipCompletedPrep] = useState(true);
   const historianConfigured = isHistorianConfigured(historianConfig);
+
+  // ─── Normalize state ──────────────────────────────────────────────
+  const [normalizeRunning, setNormalizeRunning] = useState(false);
+  const [normalizeResult, setNormalizeResult] = useState<{ total: number; changed: number } | null>(null);
+  const [normalizeStories, setNormalizeStories] = useState(true);
+  const [normalizeDocs, setNormalizeDocs] = useState(true);
+
+  const handleNormalize = useCallback(async () => {
+    if (!simulationRunId || normalizeRunning) return;
+    setNormalizeRunning(true);
+    setNormalizeResult(null);
+    try {
+      const allChronicles = await getChroniclesForSimulation(simulationRunId);
+      const completed = allChronicles.filter((c) => c.status === "complete" && c.acceptedAt);
+      const selected = completed.filter((c) => {
+        if (c.format === "story" && !normalizeStories) return false;
+        if (c.format === "document" && !normalizeDocs) return false;
+        return true;
+      });
+      let changed = 0;
+      for (const chronicle of selected) {
+        const content = chronicle.finalContent || chronicle.assembledContent || "";
+        if (!content.trim() || !wouldNormalize(content)) continue;
+        const normalized = normalizeChronicleMarkdown(content);
+        try {
+          const didChange = await applyNormalization(chronicle.chronicleId, normalized);
+          if (didChange) changed++;
+        } catch (err) {
+          console.error(`[Normalize] Failed on ${chronicle.chronicleId}:`, err);
+        }
+      }
+      setNormalizeResult({ total: selected.length, changed });
+      refresh();
+    } finally {
+      setNormalizeRunning(false);
+    }
+  }, [simulationRunId, normalizeRunning, normalizeStories, normalizeDocs, refresh]);
 
   // ─── Chronicle bulk operations ───────────────────────────────────
   const bulk = useChronicleBulkOperations({
@@ -368,6 +407,28 @@ export default function BulkActionsTab({
 
       {/* ═══ CONTENT ═══ */}
       <div className="bat-phase">Content</div>
+
+      <section className="bat-pipeline">
+        <div className={`bat-pipeline-header${collapsed.has("normalize") ? " bat-pipeline-collapsed" : ""}`} onClick={() => toggle("normalize")}>
+          <h3 className="bat-pipeline-title"><span className={`bat-pipeline-arrow${collapsed.has("normalize") ? "" : " bat-pipeline-arrow-open"}`}>&#9656;</span>Normalize Markdown</h3>
+        </div>
+        {!collapsed.has("normalize") && <div className="bat-steps">
+          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+            <input type="checkbox" checked={normalizeStories} onChange={(e) => setNormalizeStories(e.target.checked)} /> Stories
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+            <input type="checkbox" checked={normalizeDocs} onChange={(e) => setNormalizeDocs(e.target.checked)} /> Documents
+          </label>
+          <button onClick={() => void handleNormalize()} disabled={normalizeRunning} className="illuminator-btn" title="Promote bold-as-heading, flatten ### to ##, strip duplicate titles, normalize HRs and emphasis">
+            {normalizeRunning ? "Normalizing..." : "Normalize"}
+          </button>
+          {normalizeResult && (
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              {normalizeResult.changed}/{normalizeResult.total} changed
+            </span>
+          )}
+        </div>}
+      </section>
 
       <section className="bat-pipeline">
         <div className={`bat-pipeline-header${collapsed.has("validation") ? " bat-pipeline-collapsed" : ""}`} onClick={() => toggle("validation")}>

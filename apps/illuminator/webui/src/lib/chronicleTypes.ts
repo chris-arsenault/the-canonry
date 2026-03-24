@@ -1119,7 +1119,7 @@ export interface ChronicleRecord {
 /**
  * Which pipeline step produced this version.
  */
-export type VersionStep = "generate" | "regenerate" | "creative" | "combine" | "copy_edit";
+export type VersionStep = "generate" | "regenerate" | "creative" | "combine" | "copy_edit" | "normalize";
 
 /**
  * Stored snapshot of a chronicle generation version.

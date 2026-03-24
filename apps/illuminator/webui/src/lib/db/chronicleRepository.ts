@@ -50,6 +50,7 @@ export {
 export {
   acceptChronicle,
   unpublishChronicle,
+  applyNormalization,
   updateChronicleActiveVersion,
   deleteChronicleVersion,
   updateChronicleEntityBackportStatus,

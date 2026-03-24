@@ -7,6 +7,7 @@
 import { db } from "./illuminatorDb";
 import type {
   ChronicleRecord,
+  ChronicleGenerationVersion,
   EntityUsageStats,
   NarrativeStyleUsageStats,
   EntityBackportEntry,
@@ -14,6 +15,7 @@ import type {
 import type { HistorianTone } from "../historianTypes";
 import {
   ensureChronicleVersions,
+  createUniqueVersionId,
   getLatestVersion,
   restoreRecordFromVersion,
   cascadeVersionIdRefs,
@@ -85,6 +87,49 @@ export async function updateChronicleActiveVersion(
   record.updatedAt = Date.now();
 
   await db.chronicles.put(record);
+}
+
+/**
+ * Apply markdown normalization to a chronicle, creating a new version.
+ * Works on accepted (complete) chronicles — updates finalContent in place
+ * and adds the normalized content as a new version with step="normalize".
+ * Returns true if the content was changed, false if already normalized.
+ */
+export async function applyNormalization(
+  chronicleId: string,
+  normalizedContent: string
+): Promise<boolean> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  const currentContent = record.finalContent || record.assembledContent || "";
+  if (normalizedContent === currentContent) return false;
+
+  ensureChronicleVersions(record);
+  const generatedAt = Date.now();
+  const existingIds = new Set((record.generationHistory || []).map((v) => v.versionId));
+  const versionId = createUniqueVersionId(existingIds, generatedAt);
+
+  const nextVersion: ChronicleGenerationVersion = {
+    versionId,
+    generatedAt,
+    content: normalizedContent,
+    wordCount: normalizedContent.split(/\s+/).filter(Boolean).length,
+    model: "deterministic",
+    sampling: record.generationSampling,
+    systemPrompt: "markdown-normalizer",
+    userPrompt: "structural normalization pass",
+    step: "normalize",
+  };
+
+  record.generationHistory = [...(record.generationHistory || []), nextVersion];
+  record.activeVersionId = versionId;
+  record.assembledContent = normalizedContent;
+  if (record.finalContent) record.finalContent = normalizedContent;
+  record.updatedAt = generatedAt;
+
+  await db.chronicles.put(record);
+  return true;
 }
 
 /**
