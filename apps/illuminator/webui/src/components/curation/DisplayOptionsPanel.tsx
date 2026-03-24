@@ -55,6 +55,12 @@ const TEXT_ALIGN = [
   { value: "justify", label: "Justify" },
 ];
 
+const DROPCAP = [
+  { value: "", label: "Auto" },
+  { value: "on", label: "On" },
+  { value: "off", label: "Off" },
+] as const;
+
 interface DisplayOptionsPanelProps {
   chronicleId: string | null;
   chronicleName: string;
@@ -140,14 +146,8 @@ export default function DisplayOptionsPanel({
       <RadioGroup label="Width" field="contentWidth" options={CONTENT_WIDTH} value={String(fields.contentWidth || "")} onChange={handleChange} />
       <RadioGroup label="Align" field="textAlign" options={TEXT_ALIGN} value={String(fields.textAlign || "")} onChange={handleChange} />
 
-      <label className="dop-checkbox-label">
-        <input
-          type="checkbox"
-          checked={!!fields.dropcap}
-          onChange={(e) => handleChange("dropcap", e.target.checked)}
-        />
-        Drop cap
-      </label>
+      <RadioGroup label="Drop Cap" field="dropcap" options={DROPCAP}
+        value={String(fields.dropcap || "")} onChange={handleChange} />
 
       <button className="dop-clear-button" onClick={handleClear}>
         Clear all overrides

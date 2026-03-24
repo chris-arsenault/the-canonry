@@ -20,6 +20,12 @@
   overflow: hidden;
 }
 
+@media (width <= 640px) {
+  .page-frame {
+    display: none;
+  }
+}
+
 .corner-base {
   position: absolute;
   width: 140px;

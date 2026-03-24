@@ -9,12 +9,13 @@
 
 import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback } from "react";
 import type { Optional } from "@the-canonry/shared-components";
-import type { SerializedPageIndex, LoreData, WorldState } from "../types/world.ts";
+import type { SerializedPageIndex, LoreData, WorldState, PageLayoutOverride } from "../types/world.ts";
 import type { ChronicleRecord } from "../lib/chronicleStorage.ts";
 import type { StaticPage } from "../lib/staticPageStorage.ts";
 import type { EraNarrativeViewRecord } from "../lib/eraNarrativeStorage.ts";
 import { useBreakpoint } from "../hooks/useBreakpoint.ts";
 import { useWikiExplorerData } from "../hooks/useWikiExplorerData.ts";
+import { useViewerPreferences, type ViewerPreferences } from "../hooks/useViewerPreferences.ts";
 import WikiNav from "./WikiNav.tsx";
 import ChronicleIndex from "./ChronicleIndex.tsx";
 import WikiPageView from "./WikiPage.tsx";
@@ -47,6 +48,32 @@ function buildChronicleFilter(currentPageId: string | null) {
     return { kind: "era" as const, eraId: suffix };
   }
   return { kind: "all" as const };
+}
+
+/** Merge viewer preferences on top of per-page layout override.
+ *  Viewer "default" = no override → fall through to page-level value. */
+function mergeViewerPrefs(
+  pageLayout: PageLayoutOverride | undefined,
+  viewerPrefs: ViewerPreferences,
+): PageLayoutOverride | undefined {
+  const hasViewerOverride =
+    viewerPrefs.annotationDisplay !== "default" ||
+    viewerPrefs.annotationPosition !== "default" ||
+    viewerPrefs.imageLayout !== "default";
+  if (!hasViewerOverride) return pageLayout;
+
+  const base: PageLayoutOverride = pageLayout ?? {
+    pageId: "", simulationRunId: "", updatedAt: 0,
+  };
+  return {
+    ...base,
+    annotationDisplay: viewerPrefs.annotationDisplay !== "default"
+      ? viewerPrefs.annotationDisplay : base.annotationDisplay,
+    annotationPosition: viewerPrefs.annotationPosition !== "default"
+      ? viewerPrefs.annotationPosition : base.annotationPosition,
+    imageLayout: viewerPrefs.imageLayout !== "default"
+      ? viewerPrefs.imageLayout : base.imageLayout,
+  };
 }
 
 function DataErrorScreen({ error }: Readonly<{ error: { message: string; details: string } }>) {
@@ -149,16 +176,18 @@ function useHashNavigation(
 }
 
 // eslint-disable-next-line complexity -- content router dispatching to 5 page types (chronicle index, pages index, category, entity page, home) based on URL path classification
-function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEntity, worldData, breakpoint }: Readonly<{
+function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEntity, worldData, breakpoint, viewerPrefs }: Readonly<{
   currentPageId: string | null;
   data: ReturnType<typeof useWikiExplorerData>;
   onNavigate: (id: string) => void;
   onNavigateToEntity: (id: string) => void;
   worldData: WorldState;
   breakpoint: "mobile" | "tablet" | "desktop";
+  viewerPrefs: ViewerPreferences;
 }>) {
   const { getPage, pageIndex, entityIndex, indexAsPages, chroniclePages,
-    eraNarrativePages, staticPagesAsWikiPages, eraNarrativeByEraId, prominenceScale } = data;
+    eraNarrativePages, staticPagesAsWikiPages, eraNarrativeByEraId, prominenceScale,
+    handleRefreshChronicle, pageLayouts } = data;
 
   const isChronicleIndex = currentPageId?.startsWith("chronicles") === true;
   const isPagesIndex = currentPageId === "pages";
@@ -205,7 +234,9 @@ function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEnti
   if (currentPage) {
     return <WikiPageView page={currentPage} pages={indexAsPages} entityIndex={entityIndex}
       disambiguation={currentDisambiguation} onNavigate={onNavigate}
-      onNavigateToEntity={onNavigateToEntity} prominenceScale={prominenceScale} breakpoint={breakpoint} />;
+      onNavigateToEntity={onNavigateToEntity} prominenceScale={prominenceScale} breakpoint={breakpoint}
+      layoutOverride={mergeViewerPrefs(pageLayouts.get(currentPage.id), viewerPrefs)}
+      onRefreshChronicle={currentPage.type === "chronicle" ? handleRefreshChronicle : undefined} />;
   }
   return <HomePage worldData={worldData} pages={indexAsPages} chronicles={chroniclePages}
     staticPages={staticPagesAsWikiPages} categories={pageIndex.categories}
@@ -250,6 +281,7 @@ export default function WikiExplorer({
   const handleRefresh = useCallback(() => void refreshIndex(), [refreshIndex]);
   const openSidebar = useCallback(() => setIsSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);
+  const { prefs: viewerPrefs, update: updateViewerPrefs } = useViewerPreferences();
 
   if (dataError) return <DataErrorScreen error={dataError} />;
 
@@ -265,6 +297,7 @@ export default function WikiExplorer({
           onSearchQueryChange={setSearchQuery} onNavigate={handleNavigate}
           onGoHome={handleGoHome} onRefreshIndex={handleRefresh}
           isRefreshing={data.isRefreshing} isDrawer={isMobile} onCloseDrawer={closeSidebar}
+          viewerPrefs={viewerPrefs} onViewerPrefsUpdate={updateViewerPrefs}
         />
       </WikiExplorerSidebar>
       <div className="we-main">
@@ -273,7 +306,7 @@ export default function WikiExplorer({
         <div className={isMobile ? "we-content-mobile" : "we-content"}>
           <WikiExplorerContent currentPageId={currentPageId} data={data}
             onNavigate={handleNavigate} onNavigateToEntity={handleNavigateToEntity}
-            worldData={worldData} breakpoint={breakpoint} />
+            worldData={worldData} breakpoint={breakpoint} viewerPrefs={viewerPrefs} />
         </div>
       </div>
     </div>

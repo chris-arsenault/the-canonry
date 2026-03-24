@@ -92,6 +92,7 @@ export interface EntityNavItem {
   suggestedArtisticStyleId?: string;
   suggestedCompositionStyleId?: string;
   suggestedColorPaletteId?: string;
+  curationComplete: boolean;
 }
 
 export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
@@ -131,5 +132,6 @@ export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
     suggestedArtisticStyleId: entity.enrichment?.imageStyle?.suggestedArtisticStyleId,
     suggestedCompositionStyleId: entity.enrichment?.imageStyle?.suggestedCompositionStyleId,
     suggestedColorPaletteId: entity.enrichment?.imageStyle?.suggestedColorPaletteId,
+    curationComplete: !!entity.enrichment?.curationComplete,
   };
 }

@@ -82,3 +82,10 @@
   background: var(--accent-primary-bg, rgba(59, 130, 246, 0.1));
   color: var(--accent-primary, #3b82f6);
 }
+
+.ecn-complete-count {
+  font-size: 10px;
+  color: var(--color-success, #34d399);
+  margin-left: auto;
+  flex-shrink: 0;
+}

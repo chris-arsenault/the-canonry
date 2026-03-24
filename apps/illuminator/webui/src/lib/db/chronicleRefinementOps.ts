@@ -579,3 +579,23 @@ export async function updateChronicleCombineInstructions(
 
   await db.chronicles.put(record);
 }
+
+// ============================================================================
+// Curation complete
+// ============================================================================
+
+/**
+ * Toggle curation-complete flag on a chronicle.
+ */
+export async function toggleChronicleCurationComplete(
+  chronicleId: string,
+  complete: boolean
+): Promise<void> {
+  const record = await db.chronicles.get(chronicleId);
+  if (!record) throw new Error(`Chronicle ${chronicleId} not found`);
+
+  record.curationComplete = complete;
+  record.updatedAt = Date.now();
+
+  await db.chronicles.put(record);
+}

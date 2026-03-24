@@ -71,6 +71,16 @@
   background-color: var(--color-accent, #c9a55a);
 }
 
+.cnav-complete-icon {
+  font-size: 10px;
+  color: var(--color-success, #34d399);
+  flex-shrink: 0;
+}
+
+.cnav-item-active .cnav-complete-icon {
+  color: var(--color-bg-primary, #1a1a1a);
+}
+
 .cnav-format-icon {
   font-size: 11px;
   opacity: 0.6;

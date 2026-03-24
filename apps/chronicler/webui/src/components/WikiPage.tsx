@@ -62,13 +62,14 @@ interface WikiPageViewProps {
   prominenceScale: ProminenceScale;
   breakpoint: Optional<"mobile" | "tablet" | "desktop">;
   layoutOverride: Optional<PageLayoutOverride>;
+  onRefreshChronicle: Optional<(chronicleId: string) => Promise<void>>;
 }
 
 // eslint-disable-next-line max-lines-per-function, complexity -- page-level orchestrator combining infobox, sections, timeline, backlinks, modals, and hover preview; the branching comes from conditional rendering of 10+ independent UI blocks based on page type
 export default function WikiPageView({
   page, pages, entityIndex, disambiguation,
   onNavigate, onNavigateToEntity, prominenceScale,
-  breakpoint = "desktop", layoutOverride,
+  breakpoint = "desktop", layoutOverride, onRefreshChronicle,
 }: Readonly<WikiPageViewProps>) {
   const isMobile = breakpoint === "mobile";
   const showInfoboxInline = isMobile || breakpoint === "tablet";
@@ -128,6 +129,13 @@ export default function WikiPageView({
   }, [onNavigate]);
   const toggleSeedModal = useCallback(() => setShowSeedModal(true), []);
   const closeSeedModal = useCallback(() => setShowSeedModal(false), []);
+  const [isRefreshingChronicle, setIsRefreshingChronicle] = useState(false);
+  const handleRefreshChronicle = useCallback(async () => {
+    if (!onRefreshChronicle || isRefreshingChronicle) return;
+    setIsRefreshingChronicle(true);
+    try { await onRefreshChronicle(page.id); }
+    finally { setIsRefreshingChronicle(false); }
+  }, [onRefreshChronicle, isRefreshingChronicle, page.id]);
   const toggleTimeline = useCallback(() => setTimelineOpen((o) => !o), []);
 
   const sectionLinkData: WikiLinkData = useMemo(
@@ -146,8 +154,8 @@ export default function WikiPageView({
   );
 
   const dropcapProps = useMemo(() => {
-    if (layoutOverride?.dropcap === false) return {};
-    if (layoutOverride?.dropcap === true) return { "data-dropcap": "" };
+    if (layoutOverride?.dropcap === "off") return {};
+    if (layoutOverride?.dropcap === "on") return { "data-dropcap": "" };
     if (isLongFormProse && page.content.sections[0]?.content) {
       const stripped = page.content.sections[0].content.replace(/^[\s*_#>]+/, "");
       if (/^[a-zA-Z]/.test(stripped) && !/^[IVXLCDM]+\.\s/.test(stripped)) return { "data-dropcap": "" };
@@ -186,6 +194,11 @@ export default function WikiPageView({
         {!isChronicle && seedData && (
           <button className="seed-button" onClick={toggleSeedModal}>View Generation Context</button>
         )}
+        {isChronicle && onRefreshChronicle && (
+          <button className="seed-button" onClick={handleRefreshChronicle} disabled={isRefreshingChronicle}>
+            {isRefreshingChronicle ? "Refreshing..." : "Refresh"}
+          </button>
+        )}
       </div>
 
       <div className={showInfoboxInline ? "wp-content-column" : "wp-content"}>
@@ -195,9 +208,9 @@ export default function WikiPageView({
           onNavigateToEntity={onNavigateToEntity} />
 
         <div className="wp-main">
-          {page.content.sections.length > 2 && <TableOfContents sections={page.content.sections} />}
+          {isEntityPage && page.content.sections.length > 2 && <TableOfContents sections={page.content.sections} />}
           <div
-            className={[isLongFormProse ? "chronicle-body" : "", layoutOverride?.customClass || ""].filter(Boolean).join(" ") || undefined}
+            className={[(isLongFormProse || layoutOverride?.dropcap) ? "chronicle-body" : "", layoutOverride?.customClass || ""].filter(Boolean).join(" ") || undefined}
             data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
             data-content-width={layoutOverride?.contentWidth}
             data-text-align={layoutOverride?.textAlign}

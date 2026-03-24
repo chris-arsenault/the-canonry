@@ -44,6 +44,7 @@ export {
   updateChronicleTemporalContext,
   refreshEraSummariesInChronicles,
   updateChronicleCombineInstructions,
+  toggleChronicleCurationComplete,
 } from "./chronicleRefinementOps";
 
 export {

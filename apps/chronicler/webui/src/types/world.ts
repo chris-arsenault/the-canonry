@@ -402,7 +402,7 @@ export interface PageLayoutOverride {
   annotationPosition: Optional<AnnotationPosition>;
   imageLayout: Optional<ImageLayout>;
   contentWidth: Optional<ContentWidth>;
-  dropcap: Optional<boolean>;
+  dropcap: Optional<"on" | "off">;
   textAlign: Optional<TextAlign>;
   customClass: Optional<string>;
   updatedAt: number;

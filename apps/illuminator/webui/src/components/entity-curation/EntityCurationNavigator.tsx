@@ -14,12 +14,14 @@ interface KindGroup {
   cultures: CultureGroup[];
   totalCount: number;
   imageCount: number;
+  completeCount: number;
 }
 
 interface CultureGroup {
   culture: string;
   items: EntityNavItem[];
   imageCount: number;
+  completeCount: number;
 }
 
 interface Props {
@@ -56,6 +58,7 @@ export default function EntityCurationNavigator({
             culture,
             items: items.sort((a, b) => a.name.localeCompare(b.name)),
             imageCount: items.filter((e) => e.imageId).length,
+            completeCount: items.filter((e) => e.curationComplete).length,
           }))
           .sort((a, b) => a.culture.localeCompare(b.culture));
         return {
@@ -63,6 +66,7 @@ export default function EntityCurationNavigator({
           cultures,
           totalCount: cultures.reduce((sum, c) => sum + c.items.length, 0),
           imageCount: cultures.reduce((sum, c) => sum + c.imageCount, 0),
+          completeCount: cultures.reduce((sum, c) => sum + c.completeCount, 0),
         };
       })
       .sort((a, b) => a.kind.localeCompare(b.kind));
@@ -78,6 +82,7 @@ export default function EntityCurationNavigator({
   };
 
   const totalImages = entityNavItems.filter((e) => e.imageId).length;
+  const totalComplete = entityNavItems.filter((e) => e.curationComplete).length;
 
   return (
     <div className="ecn-navigator">
@@ -86,6 +91,9 @@ export default function EntityCurationNavigator({
         onClick={() => onSelect(null, null)}
       >
         All ({totalImages}/{entityNavItems.length})
+        {totalComplete > 0 && (
+          <span className="ecn-complete-count" title={`${totalComplete} curated`}> ✓{totalComplete}</span>
+        )}
       </button>
       {kindGroups.map((group) => (
         <div key={group.kind} className="ecn-kind-group">
@@ -106,6 +114,9 @@ export default function EntityCurationNavigator({
               {expandedKinds.has(group.kind) ? "▾" : "▸"}
             </span>
             {group.kind} ({group.imageCount}/{group.totalCount})
+            {group.completeCount > 0 && (
+              <span className="ecn-complete-count" title={`${group.completeCount} curated`}> ✓{group.completeCount}</span>
+            )}
           </button>
           {expandedKinds.has(group.kind) &&
             group.cultures.map((culture) => (
@@ -115,6 +126,9 @@ export default function EntityCurationNavigator({
                 onClick={() => onSelect(group.kind, culture.culture)}
               >
                 {culture.culture} ({culture.imageCount}/{culture.items.length})
+                {culture.completeCount > 0 && (
+                  <span className="ecn-complete-count" title={`${culture.completeCount} curated`}> ✓{culture.completeCount}</span>
+                )}
               </button>
             ))}
         </div>

@@ -52,8 +52,11 @@ export function ChronicleImage({
 }
 
 /**
- * CoverHeroImage - Full-width hero banner for chronicle cover images
- * Displays with a fade-to-background gradient overlay and title
+ * CoverHeroImage - Gradient-reveal hero for chronicle cover images.
+ *
+ * Shows the image at natural width up to a max-height cap.
+ * Title overlays the bottom with a gradient fade (pointer-events: none
+ * so clicks pass through to the image for lightbox opening).
  */
 export function CoverHeroImage({
   imageId,

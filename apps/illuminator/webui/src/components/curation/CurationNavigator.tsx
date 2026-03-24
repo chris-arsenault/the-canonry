@@ -122,6 +122,9 @@ export default function CurationNavigator({
                 role="option"
                 aria-selected={selectedChronicleId === item.chronicleId}
               >
+                {item.curationComplete && (
+                  <span className="cnav-complete-icon" title="Curation complete">✓</span>
+                )}
                 <span className="cnav-format-icon">{FORMAT_ICONS[item.format || ""] || ""}</span>
                 <span className="cnav-item-name" title={item.name}>
                   {item.name}

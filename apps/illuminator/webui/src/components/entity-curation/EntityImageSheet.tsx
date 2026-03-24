@@ -1,21 +1,20 @@
 /**
  * EntityImageSheet — Scrollable entity image cards with style pills and thumbnail strips.
  *
- * Mirrors the chronicle CurationImageSheet pattern: each entity gets a card showing
- * its current primary image, assigned style pills, and a horizontal thumbnail strip
- * of all generated image versions.
+ * Each entity card lazily loads its primary image via useLazyImageUrl (IntersectionObserver).
+ * Thumbnail strips load image blobs on demand — this component only fetches lightweight
+ * metadata (imageIds) from getImagesForEntity, never blobs.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import type { EntityNavItem } from "../../lib/db/entityNav";
-import { getImagesForEntity, loadImage } from "../../lib/db/imageRepository";
-import { applyImageResult } from "../../lib/db/entityRepository";
+import { getImagesForEntity } from "../../lib/db/imageRepository";
+import { applyImageResult, toggleEntityCurationComplete } from "../../lib/db/entityRepository";
 import { useEntityStore } from "../../lib/db/entityStore";
 import { useLazyImageUrl } from "../ChronicleImagePanelCards";
 import StylePills from "../curation/StylePills";
 import type { StyleNameMaps } from "../curation/StylePills";
 import ThumbnailStrip from "../curation/ThumbnailStrip";
-import type { ThumbUrl } from "../curation/ThumbnailStrip";
 import ImageModal from "../ImageModal";
 import "./EntityImageSheet.css";
 
@@ -60,23 +59,16 @@ function EntityImageCard({ entity, styleNames, onViewFull }: Readonly<{
 }>) {
   const { containerRef, url: primaryUrl } = useLazyImageUrl(entity.imageId);
   const refreshEntities = useEntityStore((s) => s.refreshEntities);
-  const [thumbs, setThumbs] = useState<ThumbUrl[]>([]);
 
-  // Load all generated images for this entity
+  // Load image IDs only (metadata, no blobs) — ThumbnailStrip handles blob loading
+  const [thumbImageIds, setThumbImageIds] = useState<string[]>([]);
+
   useEffect(() => {
     let cancelled = false;
     getImagesForEntity(entity.id).then((images) => {
-      if (cancelled) return;
-      const promises = images.map((img) =>
-        loadImage(img.imageId).then((loaded) =>
-          loaded ? { imageId: loaded.imageId, url: loaded.url } : null
-        )
-      );
-      Promise.all(promises).then((results) => {
-        if (!cancelled) {
-          setThumbs(results.filter((r): r is ThumbUrl => r !== null));
-        }
-      });
+      if (!cancelled) {
+        setThumbImageIds(images.map((img) => img.imageId));
+      }
     });
     return () => { cancelled = true; };
   }, [entity.id, entity.imageId]);
@@ -89,8 +81,13 @@ function EntityImageCard({ entity, styleNames, onViewFull }: Readonly<{
     [entity.id, refreshEntities]
   );
 
+  const handleToggleComplete = useCallback(async () => {
+    await toggleEntityCurationComplete(entity.id, !entity.curationComplete);
+    await refreshEntities([entity.id]);
+  }, [entity.id, entity.curationComplete, refreshEntities]);
+
   return (
-    <div ref={containerRef} className="eis-card">
+    <div ref={containerRef} className={`eis-card${entity.curationComplete ? " eis-card-complete" : ""}`}>
       <div className="eis-card-header">
         {primaryUrl ? (
           <img
@@ -106,6 +103,13 @@ function EntityImageCard({ entity, styleNames, onViewFull }: Readonly<{
           <div className="eis-entity-name">{entity.name}</div>
           <div className="eis-entity-subtype">{entity.subtype}</div>
         </div>
+        <button
+          className={`eis-complete-toggle${entity.curationComplete ? " eis-complete-toggle-active" : ""}`}
+          onClick={handleToggleComplete}
+          title={entity.curationComplete ? "Mark as incomplete" : "Mark curation as complete"}
+        >
+          {entity.curationComplete ? "✓" : "○"}
+        </button>
       </div>
       <StylePills
         artisticId={entity.suggestedArtisticStyleId}
@@ -114,7 +118,7 @@ function EntityImageCard({ entity, styleNames, onViewFull }: Readonly<{
         styleNames={styleNames}
       />
       <ThumbnailStrip
-        thumbs={thumbs}
+        imageIds={thumbImageIds}
         selectedImageId={entity.imageId}
         onSelect={handleSelectImage}
         onViewFull={onViewFull}

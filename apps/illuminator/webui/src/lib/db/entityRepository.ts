@@ -409,6 +409,22 @@ export async function applyImageResult(
 }
 
 /**
+ * Toggle curation-complete flag on an entity.
+ */
+export async function toggleEntityCurationComplete(
+  entityId: string,
+  complete: boolean
+): Promise<void> {
+  await db.transaction("rw", db.entities, async () => {
+    const entity = await db.entities.get(entityId);
+    if (!entity) return;
+    await db.entities.update(entityId, {
+      enrichment: { ...entity.enrichment, curationComplete: complete || undefined },
+    });
+  });
+}
+
+/**
  * Apply an entity chronicle enrichment result from the worker.
  */
 export async function applyEntityChronicleResult(

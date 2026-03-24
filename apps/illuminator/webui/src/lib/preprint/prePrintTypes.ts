@@ -253,7 +253,7 @@ export interface PageLayoutOverride {
   annotationPosition?: AnnotationPosition;
   imageLayout?: ImageLayout;
   contentWidth?: ContentWidth;
-  dropcap?: boolean;
+  dropcap?: "on" | "off";
   textAlign?: TextAlign;
   customClass?: string;
 

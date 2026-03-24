@@ -10,7 +10,9 @@ import React, { useCallback, useMemo } from "react";
 import type { Optional } from "@the-canonry/shared-components";
 import { useExpandSet } from "@the-canonry/shared-components";
 import type { WikiPage, WikiCategory } from "../types/world.ts";
+import type { ViewerPreferences } from "../hooks/useViewerPreferences.ts";
 import WikiSearch from "./WikiSearch.tsx";
+import ViewerSettingsFlyout from "./ViewerSettingsFlyout.tsx";
 
 interface WikiNavProps {
   categories: WikiCategory[];
@@ -26,6 +28,8 @@ interface WikiNavProps {
   isRefreshing: Optional<boolean>;
   isDrawer: Optional<boolean>;
   onCloseDrawer: Optional<() => void>;
+  viewerPrefs: Optional<ViewerPreferences>;
+  onViewerPrefsUpdate: Optional<<K extends keyof ViewerPreferences>(field: K, value: ViewerPreferences[K]) => void>;
 }
 
 interface EraGroup {
@@ -251,6 +255,7 @@ export default function WikiNav({
   categories, pages, chronicles, staticPages, currentPageId,
   searchQuery, onSearchQueryChange, onNavigate, onGoHome,
   onRefreshIndex, isRefreshing, isDrawer, onCloseDrawer,
+  viewerPrefs, onViewerPrefsUpdate,
 }: Readonly<WikiNavProps>) {
   const { expanded: expandedSections, toggle: toggleSection } = useExpandSet();
   const { expanded: expandedEras, toggle: toggleEra } = useExpandSet();
@@ -313,6 +318,9 @@ export default function WikiNav({
         <div className="bottom-links">
           <button className={currentPageId === null ? "nav-item-active" : "bottom-link"} onClick={onGoHome}>Home</button>
           <button className="bottom-link" onClick={handleRandomPage}>Random</button>
+          {viewerPrefs && onViewerPrefsUpdate && (
+            <ViewerSettingsFlyout prefs={viewerPrefs} onUpdate={onViewerPrefsUpdate} />
+          )}
         </div>
       </div>
     </div>

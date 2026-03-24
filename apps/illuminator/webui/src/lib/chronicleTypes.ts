@@ -1107,6 +1107,9 @@ export interface ChronicleRecord {
   totalInputTokens: number;
   totalOutputTokens: number;
 
+  /** User-set flag: curation of this chronicle's images is complete */
+  curationComplete?: boolean;
+
   // Metadata
   model: string;
   createdAt: number;

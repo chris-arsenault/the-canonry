@@ -53,6 +53,7 @@ export interface ChronicleNavItem {
   toneRanking?: [string, string, string];
   assignedTone?: string;
   eraNarrativeWeight?: "structural" | "contextual" | "flavor";
+  curationComplete: boolean;
 }
 
 export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
@@ -123,5 +124,6 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
     toneRanking: record.toneRanking?.ranking,
     assignedTone: record.assignedTone,
     eraNarrativeWeight: record.narrativeStyle?.eraNarrativeWeight,
+    curationComplete: !!record.curationComplete,
   };
 }

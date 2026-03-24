@@ -2,20 +2,21 @@
  * CurationImageSheet — Image contact sheet for chronicle curation.
  *
  * Shows cover image, scene images with inline thumbnail strips, entity refs.
- * Thumbnail strips show all generated versions for each image slot,
- * loaded via searchChronicleImages + loadImage.
+ * Thumbnail strips lazily load image blobs on demand — this component only
+ * fetches lightweight metadata (imageIds grouped by refId), never blobs.
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useChronicleStore } from "../../lib/db/chronicleStore";
-import { searchChronicleImages, loadImage } from "../../lib/db/imageRepository";
+import { searchChronicleImages } from "../../lib/db/imageRepository";
 import { updateChronicleImageRef, updateChronicleCoverImageStatus } from "../../lib/db/chronicleImageOps";
+import { toggleChronicleCurationComplete } from "../../lib/db/chronicleRefinementOps";
 import type { ChronicleRecord, EntityImageRef, PromptRequestRef } from "../../lib/chronicleTypes";
+import { useLazyImageUrl } from "../ChronicleImagePanelCards";
 import ImageModal from "../ImageModal";
 import StylePills from "./StylePills";
 import type { StyleNameMaps } from "./StylePills";
 import ThumbnailStrip from "./ThumbnailStrip";
-import type { ThumbUrl } from "./ThumbnailStrip";
 import "./CurationImageSheet.css";
 
 interface CurationImageSheetProps {
@@ -41,11 +42,8 @@ export default function CurationImageSheet({
   // Image modal state
   const [modalImage, setModalImage] = useState<{ imageId: string; title: string } | null>(null);
 
-  // Thumbnail URLs keyed by imageRefId → array of thumb urls
-  const [thumbsByRef, setThumbsByRef] = useState<Map<string, ThumbUrl[]>>(new Map());
-
-  // Cover image URL
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  // Image IDs keyed by imageRefId → array of imageIds (metadata only, no blobs)
+  const [imageIdsByRef, setImageIdsByRef] = useState<Map<string, string[]>>(new Map());
 
   // Separate entity refs and prompt requests
   const { entityRefs, promptRequests } = useMemo(() => {
@@ -56,20 +54,7 @@ export default function CurationImageSheet({
     };
   }, [chronicle]);
 
-  // Load cover image
-  useEffect(() => {
-    if (!chronicle?.coverImage?.generatedImageId) {
-      setCoverUrl(null);
-      return;
-    }
-    let cancelled = false;
-    loadImage(chronicle.coverImage.generatedImageId!).then((result) => {
-      if (!cancelled && result) setCoverUrl(result.url);
-    });
-    return () => { cancelled = true; };
-  }, [chronicle?.coverImage?.generatedImageId]);
-
-  // Load thumbnails for all scene images belonging to this chronicle
+  // Load image metadata (IDs only) for all scene images belonging to this chronicle
   useEffect(() => {
     if (!projectId || !chronicleId) return;
     let cancelled = false;
@@ -77,34 +62,15 @@ export default function CurationImageSheet({
     searchChronicleImages({ projectId, chronicleId, limit: 200 }).then((result) => {
       if (cancelled) return;
 
-      // Group images by imageRefId
-      const imagesByRef = new Map<string, Array<{ imageId: string }>>();
+      // Group image IDs by imageRefId — no blob loading needed
+      const byRef = new Map<string, string[]>();
       for (const img of result.items) {
         const refId = img.imageRefId || "__cover_image__";
-        if (!imagesByRef.has(refId)) imagesByRef.set(refId, []);
-        imagesByRef.get(refId)!.push(img);
+        if (!byRef.has(refId)) byRef.set(refId, []);
+        byRef.get(refId)!.push(img.imageId);
       }
 
-      // Load object URLs for each image
-      const byRef = new Map<string, ThumbUrl[]>();
-      const loadPromises: Promise<void>[] = [];
-      for (const [refId, images] of imagesByRef) {
-        const thumbs: ThumbUrl[] = [];
-        byRef.set(refId, thumbs);
-        for (const img of images) {
-          loadPromises.push(
-            loadImage(img.imageId).then((loaded) => {
-              if (loaded && !cancelled) {
-                thumbs.push({ imageId: loaded.imageId, url: loaded.url });
-              }
-            })
-          );
-        }
-      }
-
-      Promise.all(loadPromises).then(() => {
-        if (!cancelled) setThumbsByRef(new Map(byRef));
-      });
+      setImageIdsByRef(byRef);
     });
 
     return () => { cancelled = true; };
@@ -153,6 +119,12 @@ export default function CurationImageSheet({
     [chronicleId, refreshChronicle]
   );
 
+  // Handle curation complete toggle
+  const handleToggleComplete = useCallback(async () => {
+    await toggleChronicleCurationComplete(chronicleId, !chronicle?.curationComplete);
+    await refreshChronicle(chronicleId);
+  }, [chronicleId, chronicle?.curationComplete, refreshChronicle]);
+
   if (!chronicle) {
     return <div className="cis-loading">Loading chronicle...</div>;
   }
@@ -163,45 +135,26 @@ export default function CurationImageSheet({
 
   return (
     <div className="cis-sheet">
-      <div className="cis-chronicle-title">{chronicle.title || "Untitled Chronicle"}</div>
+      <div className="cis-chronicle-header">
+        <div className="cis-chronicle-title">{chronicle.title || "Untitled Chronicle"}</div>
+        <button
+          className={`cis-complete-toggle${chronicle.curationComplete ? " cis-complete-toggle-active" : ""}`}
+          onClick={handleToggleComplete}
+          title={chronicle.curationComplete ? "Mark as incomplete" : "Mark curation as complete"}
+        >
+          {chronicle.curationComplete ? "✓ Complete" : "Mark Complete"}
+        </button>
+      </div>
 
       {/* Cover Image */}
       {chronicle.coverImage && (
-        <div>
-          <div className="cis-section-label">Cover Image</div>
-          <div className="cis-cover-row">
-            {coverUrl ? (
-              <img
-                className="cis-cover-thumb"
-                src={coverUrl}
-                alt="Cover"
-                onClick={() => setModalImage({
-                  imageId: chronicle.coverImage!.generatedImageId!,
-                  title: "Cover Image",
-                })}
-              />
-            ) : (
-              <div className="cis-thumb-placeholder">No image</div>
-            )}
-            <div>
-              <div className="cis-cover-status">
-                Status: {chronicle.coverImage.status}
-              </div>
-              <StylePills
-                artisticId={chronicle.coverImage.suggestedArtisticStyleId}
-                compositionId={chronicle.coverImage.suggestedCompositionStyleId}
-                paletteId={chronicle.coverImage.suggestedColorPaletteId}
-                styleNames={styleNames}
-              />
-            </div>
-          </div>
-          <ThumbnailStrip
-            thumbs={thumbsByRef.get("__cover_image__") || []}
-            selectedImageId={chronicle.coverImage.generatedImageId}
-            onSelect={(imgId) => handleSelectImage("__cover_image__", imgId)}
-            onViewFull={setModalImage}
-          />
-        </div>
+        <CoverImageSection
+          chronicle={chronicle}
+          imageIds={imageIdsByRef.get("__cover_image__") || []}
+          styleNames={styleNames}
+          onSelectImage={(imgId) => handleSelectImage("__cover_image__", imgId)}
+          onViewFull={setModalImage}
+        />
       )}
 
       {/* Scene Images */}
@@ -227,7 +180,7 @@ export default function CurationImageSheet({
                 styleNames={styleNames}
               />
               <ThumbnailStrip
-                thumbs={thumbsByRef.get(ref.refId) || []}
+                imageIds={imageIdsByRef.get(ref.refId) || []}
                 selectedImageId={ref.generatedImageId}
                 onSelect={(imgId) => handleSelectImage(ref.refId, imgId)}
                 onViewFull={setModalImage}
@@ -281,6 +234,62 @@ export default function CurationImageSheet({
           onClose={() => setModalImage(null)}
         />
       )}
+    </div>
+  );
+}
+
+/** Cover image section — lazily loads the single cover image blob. */
+function CoverImageSection({
+  chronicle,
+  imageIds,
+  styleNames,
+  onSelectImage,
+  onViewFull,
+}: Readonly<{
+  chronicle: ChronicleRecord;
+  imageIds: string[];
+  styleNames: StyleNameMaps;
+  onSelectImage: (imageId: string) => void;
+  onViewFull: (info: { imageId: string; title: string }) => void;
+}>) {
+  const coverImageId = chronicle.coverImage?.generatedImageId ?? null;
+  const { containerRef, url: coverUrl } = useLazyImageUrl(coverImageId);
+
+  return (
+    <div ref={containerRef}>
+      <div className="cis-section-label">Cover Image</div>
+      <div className="cis-cover-row">
+        {coverUrl ? (
+          <img
+            className="cis-cover-thumb"
+            src={coverUrl}
+            alt="Cover"
+            onClick={() => onViewFull({
+              imageId: chronicle.coverImage!.generatedImageId!,
+              title: "Cover Image",
+            })}
+          />
+        ) : (
+          <div className="cis-thumb-placeholder">No image</div>
+        )}
+        <div>
+          <div className="cis-cover-status">
+            Status: {chronicle.coverImage!.status}
+          </div>
+          <StylePills
+            artisticId={chronicle.coverImage!.suggestedArtisticStyleId}
+            compositionId={chronicle.coverImage!.suggestedCompositionStyleId}
+            paletteId={chronicle.coverImage!.suggestedColorPaletteId}
+            styleNames={styleNames}
+          />
+        </div>
+      </div>
+      <ThumbnailStrip
+        imageIds={imageIds}
+        selectedImageId={chronicle.coverImage!.generatedImageId}
+        onSelect={onSelectImage}
+        onViewFull={onViewFull}
+      />
     </div>
   );
 }

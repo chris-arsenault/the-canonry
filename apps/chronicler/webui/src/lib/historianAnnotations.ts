@@ -38,15 +38,26 @@ function buildFootnoteSup(noteIdx: number, noteType: string): string {
   return `<sup class="historian-fn" data-note-idx="${noteIdx}" style="color:${color};cursor:pointer;font-weight:700;font-size:12px;margin-left:2px">${noteIdx + 1}</sup>`;
 }
 
+export interface ResolvedFootnote {
+  note: WikiHistorianNote;
+  /** Character index of the anchor in the source content */
+  index: number;
+  /** Length of the matched anchor phrase */
+  phraseLen: number;
+  /** Global footnote number (0-based) */
+  globalIdx: number;
+}
+
 /**
  * Inject footnote-style superscript markers into markdown content for all notes.
- * Returns the modified content and the ordered list of matched notes (for tooltip lookup).
+ * Returns the modified content, the ordered list of matched notes (for tooltip lookup),
+ * and the resolved entries with positions (for flow-mode fragment injection).
  */
 export function injectFootnotes(
   content: string,
   notes: WikiHistorianNote[],
-): { content: string; orderedNotes: WikiHistorianNote[] } {
-  if (!notes || notes.length === 0) return { content, orderedNotes: [] };
+): { content: string; orderedNotes: WikiHistorianNote[]; resolvedEntries: ResolvedFootnote[] } {
+  if (!notes || notes.length === 0) return { content, orderedNotes: [], resolvedEntries: [] };
 
   const resolved: Array<{ note: WikiHistorianNote; index: number; phraseLen: number }> = [];
   for (const note of notes) {
@@ -58,6 +69,10 @@ export function injectFootnotes(
   resolved.sort((a, b) => a.index - b.index);
 
   const orderedNotes = resolved.map((r) => r.note);
+  const resolvedEntries: ResolvedFootnote[] = resolved.map((r, i) => ({
+    ...r,
+    globalIdx: i,
+  }));
 
   let result = content;
   for (let i = resolved.length - 1; i >= 0; i--) {
@@ -67,43 +82,6 @@ export function injectFootnotes(
     result = result.slice(0, insertAt) + sup + result.slice(insertAt);
   }
 
-  return { content: result, orderedNotes };
+  return { content: result, orderedNotes, resolvedEntries };
 }
 
-/**
- * Inject footnote superscripts into a text slice using global indices from orderedNotes.
- */
-export function injectFootnotesWithGlobalIndex(
-  slice: string,
-  allNotes: WikiHistorianNote[],
-  orderedNotes: WikiHistorianNote[],
-): string {
-  if (!allNotes || allNotes.length === 0) return slice;
-
-  const resolved: Array<{
-    note: WikiHistorianNote;
-    index: number;
-    phraseLen: number;
-    globalIdx: number;
-  }> = [];
-  for (const note of allNotes) {
-    const match = resolveAnchorPhrase(note.anchorPhrase, slice);
-    if (match) {
-      const globalIdx = orderedNotes.indexOf(note);
-      if (globalIdx >= 0) {
-        resolved.push({ note, index: match.index, phraseLen: match.phrase.length, globalIdx });
-      }
-    }
-  }
-  resolved.sort((a, b) => a.index - b.index);
-
-  let result = slice;
-  for (let i = resolved.length - 1; i >= 0; i--) {
-    const { index, phraseLen, globalIdx, note } = resolved[i];
-    const insertAt = index + phraseLen;
-    const sup = buildFootnoteSup(globalIdx, note.type);
-    result = result.slice(0, insertAt) + sup + result.slice(insertAt);
-  }
-
-  return result;
-}

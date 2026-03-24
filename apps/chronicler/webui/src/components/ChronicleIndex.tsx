@@ -208,13 +208,16 @@ export default function ChronicleIndex({
   const filtered = useMemo(() => filterChroniclesWithFilter(chronicles, filter), [chronicles, filter]);
   const sorted = useMemo(() => [...filtered].sort((a, b) => compareChroniclesBySortMode(a, b, sortMode)), [filtered, sortMode]);
 
+  // Only show era narratives when no format filter is applied — they are not stories or documents
+  const showEraNarratives = filter.kind === "all" || (filter.kind === "era" && !filter.format);
   const eraNarrativeByEraName = useMemo(() => {
+    if (!showEraNarratives) return new Map<string, WikiPage>();
     const map = new Map<string, WikiPage>();
     for (const page of eraNarrativePages) {
       if (page.eraNarrative) map.set(page.title, page);
     }
     return map;
-  }, [eraNarrativePages]);
+  }, [eraNarrativePages, showEraNarratives]);
 
   const groupedByEra = useMemo(() => buildSortedEraGroups(sorted, sortMode), [sorted, sortMode]);
 

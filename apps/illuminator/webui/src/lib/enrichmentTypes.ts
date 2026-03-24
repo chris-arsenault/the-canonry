@@ -212,6 +212,8 @@ export interface EntityEnrichment {
     secondaryCompositionStyleId?: string;
     secondaryColorPaletteId?: string;
   };
+  /** User-set flag: curation of this entity's images is complete */
+  curationComplete?: boolean;
 }
 
 /**
