@@ -9,9 +9,10 @@ import React, { useMemo, useCallback } from "react";
 import MDEditor from "@uiw/react-md-editor";
 import type { Optional } from "@the-canonry/shared-components";
 import { applyWikiLinks } from "../lib/wikiBuilder.ts";
+import { useRoutingMode, linkPrefix as getLinkPrefix } from "../hooks/useRoutingMode.ts";
 
-/** Encode a page ID for use in hash URLs, encoding each path segment. */
-function encodePageIdForHash(pageId: string): string {
+/** Encode a page ID for use in URLs, encoding each path segment. */
+function encodePageIdForUrl(pageId: string): string {
   return pageId
     .split("/")
     .map((segment) => encodeURIComponent(segment))
@@ -27,6 +28,7 @@ function convertWikiLinks(
   linkableNames: Array<{ name: string; id: string }>,
   entityNameMap: Map<string, string>,
   aliasMap: Map<string, string>,
+  prefix: string,
 ): string {
   // First apply wiki links to detect entity names
   const linkedContent = applyWikiLinks(content, linkableNames);
@@ -47,7 +49,7 @@ function convertWikiLinks(
     }
 
     if (pageId) {
-      return `[${displayName}](#/page/${encodePageIdForHash(pageId)})`;
+      return `[${displayName}](${prefix}${encodePageIdForUrl(pageId)})`;
     }
     return match;
   });
@@ -78,9 +80,12 @@ export function MarkdownSection({
   onHoverLeave,
   isFirstFragment,
 }: Readonly<MarkdownSectionProps>) {
+  const routingMode = useRoutingMode();
+  const prefix = getLinkPrefix(routingMode);
+
   const processedContent = useMemo(
-    () => convertWikiLinks(content, linkableNames, entityNameMap, aliasMap),
-    [content, entityNameMap, aliasMap, linkableNames],
+    () => convertWikiLinks(content, linkableNames, entityNameMap, aliasMap, prefix),
+    [content, entityNameMap, aliasMap, linkableNames, prefix],
   );
 
   // Handle clicks on page links within the markdown
@@ -89,14 +94,14 @@ export function MarkdownSection({
       const target = e.target as HTMLElement;
       if (target.tagName === "A") {
         const href = target.getAttribute("href");
-        if (href?.startsWith("#/page/")) {
+        if (href?.startsWith(prefix)) {
           e.preventDefault();
-          const pageId = decodeURIComponent(href.slice(7));
+          const pageId = decodeURIComponent(href.slice(prefix.length));
           onNavigate(pageId);
         }
       }
     },
-    [onNavigate],
+    [onNavigate, prefix],
   );
 
   const handleMouseOver = useCallback(
@@ -105,13 +110,13 @@ export function MarkdownSection({
       const target = e.target as HTMLElement;
       if (target.tagName === "A") {
         const href = target.getAttribute("href");
-        if (href?.startsWith("#/page/")) {
-          const pageId = decodeURIComponent(href.slice(7));
+        if (href?.startsWith(prefix)) {
+          const pageId = decodeURIComponent(href.slice(prefix.length));
           onHoverEnter(pageId, e);
         }
       }
     },
-    [onHoverEnter],
+    [onHoverEnter, prefix],
   );
 
   const handleMouseOut = useCallback(
@@ -120,12 +125,12 @@ export function MarkdownSection({
       const target = e.target as HTMLElement;
       if (target.tagName === "A") {
         const href = target.getAttribute("href");
-        if (href?.startsWith("#/page/")) {
+        if (href?.startsWith(prefix)) {
           onHoverLeave();
         }
       }
     },
-    [onHoverLeave],
+    [onHoverLeave, prefix],
   );
 
   const handleKeyDown = useCallback(

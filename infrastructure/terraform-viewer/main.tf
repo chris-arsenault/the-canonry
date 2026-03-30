@@ -323,48 +323,140 @@ resource "aws_s3_bucket_policy" "static_site" {
 # CloudFront Distribution
 # -----------------------------------------------------------------------------
 
-resource "aws_cloudfront_distribution" "static_site" {
-  enabled             = true
-  is_ipv6_enabled     = true
-  comment             = "${var.prefix} distribution for ${local.primary_domain}"
-  default_root_object = "index.html"
-  price_class         = "PriceClass_100"
-  aliases             = local.all_domain_aliases
+locals {
+  viewer_og_origin_id = "Lambda-${var.prefix}-og"
+  viewer_og_domain    = replace(replace(aws_lambda_function_url.viewer_og.function_url, "https://", ""), "/", "")
+}
 
+resource "aws_cloudfront_distribution" "static_site" {
+  enabled         = true
+  is_ipv6_enabled = true
+  comment         = "${var.prefix} distribution for ${local.primary_domain}"
+  price_class     = "PriceClass_100"
+  aliases         = local.all_domain_aliases
+
+  # Origin 1: S3 for static assets (JS, CSS, images, bundles)
   origin {
     domain_name              = aws_s3_bucket.static_site.bucket_regional_domain_name
     origin_id                = local.s3_origin_id
     origin_access_control_id = aws_cloudfront_origin_access_control.static_site.id
   }
 
+  # Origin 2: S3 for image assets (raw, webp, thumb)
   origin {
     domain_name              = aws_s3_bucket.image_assets.bucket_regional_domain_name
     origin_id                = local.image_origin_id
     origin_access_control_id = aws_cloudfront_origin_access_control.static_site.id
   }
 
-  # Default behavior - serves viewer shell from root
-  # min_ttl forces CloudFront to cache at the edge until deploy invalidation,
-  # while the Cache-Control header (max-age=120 for HTML) controls browser caching.
-  default_cache_behavior {
+  # Origin 3: Lambda for HTML (dynamic OG tags)
+  origin {
+    domain_name = local.viewer_og_domain
+    origin_id   = local.viewer_og_origin_id
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  # Ordered behaviors: specific paths → S3, catch-all → Lambda
+
+  # /assets/* → S3 (hashed Vite output, immutable)
+  ordered_cache_behavior {
+    path_pattern     = "/assets/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = local.s3_origin_id
 
     forwarded_values {
       query_string = false
-      cookies {
-        forward = "none"
-      }
+      cookies { forward = "none" }
     }
 
     viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 31536000  # CloudFront caches until invalidation
+    min_ttl                = 31536000
     default_ttl            = 31536000
     max_ttl                = 31536000
     compress               = true
   }
 
+  # /bundles/* → S3 (viewer bundle data)
+  ordered_cache_behavior {
+    path_pattern     = "/bundles/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 120
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  # Static files by extension → S3
+  ordered_cache_behavior {
+    path_pattern     = "*.svg"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "*.png"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "*.ico"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  # Image asset paths → S3 image bucket
   dynamic "ordered_cache_behavior" {
     for_each = local.image_path_patterns
     content {
@@ -375,9 +467,7 @@ resource "aws_cloudfront_distribution" "static_site" {
 
       forwarded_values {
         query_string = false
-        cookies {
-          forward = "none"
-        }
+        cookies { forward = "none" }
       }
 
       viewer_protocol_policy = "redirect-to-https"
@@ -388,20 +478,26 @@ resource "aws_cloudfront_distribution" "static_site" {
     }
   }
 
-  # Custom error responses for SPA routing
-  custom_error_response {
-    error_code            = 403
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 10
+  # Default behavior → Lambda (HTML with dynamic OG tags)
+  # Lambda sets Cache-Control: s-maxage for CF caching, max-age=0 for browsers
+  default_cache_behavior {
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.viewer_og_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
+    compress               = true
   }
 
-  custom_error_response {
-    error_code            = 404
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 10
-  }
+  # No custom_error_response — Lambda handles all paths including 404s
 
   restrictions {
     geo_restriction {

@@ -164,37 +164,147 @@ resource "terraform_data" "pics_deployment_marker" {
 # CloudFront Distribution for Pics
 # -----------------------------------------------------------------------------
 
-resource "aws_cloudfront_distribution" "pics" {
-  enabled             = true
-  is_ipv6_enabled     = true
-  comment             = "${var.pics_prefix} distribution for ${var.pics_domain}"
-  default_root_object = "index.html"
-  price_class         = "PriceClass_100"
-  aliases             = [var.pics_domain]
+locals {
+  pics_og_origin_id = "Lambda-${var.pics_prefix}-og"
+  pics_og_domain    = replace(replace(aws_lambda_function_url.pics_og.function_url, "https://", ""), "/", "")
+}
 
+resource "aws_cloudfront_distribution" "pics" {
+  enabled         = true
+  is_ipv6_enabled = true
+  comment         = "${var.pics_prefix} distribution for ${var.pics_domain}"
+  price_class     = "PriceClass_100"
+  aliases         = [var.pics_domain]
+
+  # Origin 1: S3 for static assets (JS, CSS, catalog, images)
   origin {
     domain_name              = aws_s3_bucket.pics_static.bucket_regional_domain_name
     origin_id                = local.pics_s3_origin_id
     origin_access_control_id = aws_cloudfront_origin_access_control.static_site.id
   }
 
-  # Default behavior - serves pics app from static bucket
-  default_cache_behavior {
+  # Origin 2: Lambda for HTML (dynamic OG tags)
+  origin {
+    domain_name = local.pics_og_domain
+    origin_id   = local.pics_og_origin_id
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  # Ordered behaviors: specific paths → S3, catch-all → Lambda
+
+  # /assets/* → S3 (hashed Vite output, immutable)
+  ordered_cache_behavior {
+    path_pattern     = "/assets/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = local.pics_s3_origin_id
 
     forwarded_values {
       query_string = false
-      cookies {
-        forward = "none"
-      }
+      cookies { forward = "none" }
     }
 
     viewer_protocol_policy = "redirect-to-https"
     min_ttl                = 31536000
     default_ttl            = 31536000
     max_ttl                = 31536000
+    compress               = true
+  }
+
+  # catalog.json → S3 (short cache, discovery file)
+  ordered_cache_behavior {
+    path_pattern     = "/catalog.json"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.pics_s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 120
+    max_ttl                = 300
+    compress               = true
+  }
+
+  # Static files by extension → S3
+  ordered_cache_behavior {
+    path_pattern     = "*.svg"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.pics_s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "*.png"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.pics_s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "*.ico"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.pics_s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+  }
+
+  # Default behavior → Lambda (HTML with dynamic OG tags)
+  default_cache_behavior {
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.pics_og_origin_id
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
     compress               = true
   }
 

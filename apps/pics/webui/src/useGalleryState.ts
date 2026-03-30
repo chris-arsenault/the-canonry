@@ -12,12 +12,20 @@ import type { CatalogImage } from "./types";
 
 export type ViewMode = "grid" | "lightbox" | "compare" | "slideshow";
 
-function getHashImageId(): string | null {
-  const hash = window.location.hash;
-  return hash.startsWith("#img-") ? hash.slice(5) : null;
+function getPathImageId(): string | null {
+  const match = window.location.pathname.match(/^\/img\/(.+)$/);
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
-/** Deep link: open lightbox from hash on catalog load. */
+/** Redirect legacy hash deep links to path-based URLs. */
+function redirectLegacyHash(): void {
+  const hash = window.location.hash;
+  if (hash.startsWith("#img-")) {
+    window.history.replaceState(null, "", `/img/${hash.slice(5)}`);
+  }
+}
+
+/** Deep link: open lightbox from path on catalog load. */
 function useDeepLinkEffect(
   allImages: readonly CatalogImage[],
   filtered: readonly CatalogImage[],
@@ -29,11 +37,12 @@ function useDeepLinkEffect(
 
   useEffect(() => {
     if (processedRef.current) return;
-    const hashId = getHashImageId();
-    if (!hashId || allImages.length === 0) return;
-    if (!allImages.some((img) => img.imageId === hashId)) return;
+    redirectLegacyHash();
+    const pathId = getPathImageId();
+    if (!pathId || allImages.length === 0) return;
+    if (!allImages.some((img) => img.imageId === pathId)) return;
     processedRef.current = true;
-    const index = filtered.findIndex((img) => img.imageId === hashId);
+    const index = filtered.findIndex((img) => img.imageId === pathId);
     if (index >= 0) {
       deepLinkedRef.current = true;
       setLightboxIndex(index);
@@ -42,7 +51,7 @@ function useDeepLinkEffect(
   }, [allImages, filtered, deepLinkedRef, setLightboxIndex, setViewMode]);
 }
 
-/** Back/forward button: sync lightbox state with hash. */
+/** Back/forward button: sync lightbox state with path. */
 function usePopStateEffect(
   filteredRef: React.RefObject<CatalogImage[]>,
   deepLinkedRef: React.RefObject<boolean>,
@@ -51,12 +60,12 @@ function usePopStateEffect(
 ) {
   useEffect(() => {
     function onPopState() {
-      const hashId = getHashImageId();
-      if (!hashId) {
+      const pathId = getPathImageId();
+      if (!pathId) {
         setViewMode("grid");
         deepLinkedRef.current = false;
       } else {
-        const idx = filteredRef.current.findIndex((img) => img.imageId === hashId);
+        const idx = filteredRef.current.findIndex((img) => img.imageId === pathId);
         if (idx >= 0) { setLightboxIndex(idx); setViewMode("lightbox"); }
       }
     }
@@ -117,7 +126,7 @@ export function useGalleryState() {
     setLightboxIndex(index);
     setViewMode("lightbox");
     deepLinkedRef.current = false;
-    window.history.pushState(null, "", `#img-${img.imageId}`);
+    window.history.pushState(null, "", `/img/${img.imageId}`);
   }, [filtered]);
 
   const handleImageClick = useCallback((index: number) => {
@@ -128,13 +137,13 @@ export function useGalleryState() {
   const handleNavigate = useCallback((index: number) => {
     setLightboxIndex(index);
     const img = filtered[index];
-    if (img) window.history.replaceState(null, "", `#img-${img.imageId}`);
+    if (img) window.history.replaceState(null, "", `/img/${img.imageId}`);
   }, [filtered]);
 
   const handleCloseLightbox = useCallback(() => {
     setViewMode("grid");
     if (deepLinkedRef.current) {
-      window.history.replaceState(null, "", window.location.pathname);
+      window.history.replaceState(null, "", "/");
     } else {
       window.history.back();
     }

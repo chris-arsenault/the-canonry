@@ -3,7 +3,7 @@
  *
  * Mobile-first image gallery with masonry grid, lightbox, compare, and slideshow.
  * Reads catalog.json from the CDN and does all filtering/sorting client-side.
- * Supports deep links: #img-{imageId} opens lightbox directly, #about opens about page.
+ * Supports deep links: /img/{imageId} opens lightbox directly, /about opens about page.
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -85,17 +85,24 @@ function Overlays({ viewMode, filtered, lightboxIndex, compareSelection, baseUrl
 }
 
 export default function App() {
-  const [showAbout, setShowAbout] = useState(window.location.hash === "#about");
+  const [showAbout, setShowAbout] = useState(() => {
+    // Redirect legacy hash
+    if (window.location.hash === "#about") {
+      window.history.replaceState(null, "", "/about");
+      return true;
+    }
+    return window.location.pathname === "/about";
+  });
   const g = useGalleryState();
 
   useEffect(() => {
-    function onHashChange() { setShowAbout(window.location.hash === "#about"); }
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
+    function onPopState() { setShowAbout(window.location.pathname === "/about"); }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   const handleOpenAbout = useCallback(() => {
-    window.history.pushState(null, "", "#about");
+    window.history.pushState(null, "", "/about");
     setShowAbout(true);
   }, []);
 

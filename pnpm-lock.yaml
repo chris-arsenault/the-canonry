@@ -785,8 +785,6 @@ importers:
         specifier: ^4.0.13
         version: 4.0.18(@types/node@24.10.13)(@vitest/ui@4.0.18)(jsdom@26.1.0)(tsx@4.21.0)(yaml@2.8.2)
 
-  packages/chronicle-renderer: {}
-
   packages/image-store:
     dependencies:
       react:

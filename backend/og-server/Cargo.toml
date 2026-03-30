@@ -1,0 +1,19 @@
+[package]
+name = "og-server"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "og-server"
+path = "src/main.rs"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+lambda_http = { workspace = true }
+axum = { workspace = true }
+aws-config = { workspace = true }
+aws-sdk-s3 = { workspace = true }

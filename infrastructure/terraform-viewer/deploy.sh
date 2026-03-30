@@ -103,7 +103,38 @@ else
   echo "    No existing state — skipping catalog injection (first deployment)."
 fi
 
+# Build OG Lambda (Rust)
+echo ""
+echo "==> Building OG Lambda"
+cd "$REPO_ROOT/backend"
+cargo lambda build --release -p og-server
+echo "    Built: target/lambda/og-server/bootstrap"
+
+# Extract OG metadata for pics (after catalog injection so catalog.json is present)
+echo ""
+echo "==> Extracting OG metadata for pics"
+PICS_CATALOG="$REPO_ROOT/apps/pics/webui/dist/catalog.json"
+if [ -f "$PICS_CATALOG" ]; then
+  node "$REPO_ROOT/apps/pics/scripts/extract-og-metadata.mjs" \
+    "$PICS_CATALOG" \
+    "$REPO_ROOT/apps/pics/webui/dist/og-metadata.json"
+else
+  echo "    No catalog.json in pics dist — skipping OG extraction."
+fi
+
+# Re-extract viewer OG metadata with catalog for image dimensions
+# (postbuild ran extract-og without catalog; now we have it from S3)
+echo ""
+echo "==> Re-extracting viewer OG metadata (with image dimensions from catalog)"
+if [ -f "$PICS_CATALOG" ]; then
+  cd "$REPO_ROOT/apps/viewer/webui"
+  CATALOG_PATH="$PICS_CATALOG" npx tsx ./scripts/extract-og-metadata.mts
+else
+  echo "    No catalog — viewer OG images will lack dimensions."
+fi
+
 # Deploy everything
+cd "$SCRIPT_DIR"
 terraform apply
 
 echo ""

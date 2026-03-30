@@ -32,7 +32,7 @@ function ShareButton({ imageId }: Readonly<{ imageId: string }>) {
   const handleShare = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      const url = `${window.location.origin}${window.location.pathname}#img-${imageId}`;
+      const url = `${window.location.origin}/img/${imageId}`;
       void navigator.clipboard.writeText(url).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);

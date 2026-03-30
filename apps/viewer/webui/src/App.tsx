@@ -1,11 +1,24 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import ChroniclerRemote from "../../../chronicler/webui/src/ChroniclerRemote.tsx";
 import parchmentTileUrl from "../../../chronicler/webui/src/assets/textures/parchment-tile.jpg";
 import HeaderSearch from "./HeaderSearch";
 import StatusScreen from "./StatusScreen";
 import useBundleLoader from "./useBundleLoader";
 
+/** Redirect legacy hash URLs (#/page/...) to path-based URLs (/page/...). */
+function useLegacyHashRedirect() {
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith("#/page/")) {
+      window.history.replaceState(null, "", `/page/${hash.slice(7)}`);
+    } else if (hash === "#/" || hash === "#") {
+      window.history.replaceState(null, "", "/");
+    }
+  }, []);
+}
+
 export default function App() {
+  useLegacyHashRedirect();
   const {
     bundle,
     status,
@@ -39,7 +52,7 @@ export default function App() {
         <button
           type="button"
           className="brand"
-          onClick={() => { setChroniclerRequestedPage("home"); window.location.hash = "#/"; }}
+          onClick={() => { setChroniclerRequestedPage("home"); window.history.pushState(null, "", "/"); }}
         >
           <span className="brand-icon" aria-hidden="true">
             &#x2756;
@@ -68,6 +81,7 @@ export default function App() {
             preloadedEraNarratives={preloadedEraNarratives}
             prebakedParchmentUrl={parchmentTileUrl}
             precomputedPageIndex={bundle.precomputedPageIndex}
+            routingMode="path"
           />
         </div>
       </main>
