@@ -1,0 +1,73 @@
+/* ViewerSettingsFlyout — popover for viewer display preferences */
+
+.vsf-button {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: var(--spacing-sm);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.vsf-active {
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+
+/* Fixed positioning escapes sidebar overflow:hidden */
+.vsf-panel {
+  position: fixed;
+  background: var(--color-bg-secondary, #1e1e1e);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-modal, 100);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Each preference: label on left, icon buttons on right */
+.vsf-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.vsf-row-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  width: 52px;
+  flex-shrink: 0;
+}
+
+.vsf-icons {
+  display: flex;
+  gap: 2px;
+}
+
+.vsf-icon {
+  width: 28px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.vsf-icon:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+.vsf-icon-active {
+  border-color: var(--color-accent);
+  background: rgba(196, 154, 92, 0.15);
+  color: var(--color-accent);
+}

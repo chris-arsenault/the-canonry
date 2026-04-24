@@ -12,8 +12,136 @@ import LLMCallConfigPanel from "./LLMCallConfigPanel";
 import { LocalTextArea } from "@the-canonry/shared-components";
 import { IMAGE_MODELS } from "../lib/imageSettings";
 import "./ConfigPanel.css";
-import React from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
+
+const MODEL_INFO = {
+  "gpt-image-1.5": {
+    cost: "~$0.02\u2013$0.19 per image (token-based, varies by quality)",
+    strengths: "Latest OpenAI model. Excellent text rendering in images, strong prompt adherence, fast generation. Best at combining text and visuals in a single image.",
+    usages: "Marketing materials with text overlays, diagrams, infographics, UI mockups, any image that needs readable embedded text.",
+    drawbacks: "Token-based pricing can be unpredictable for complex prompts. Tends toward a polished, commercial aesthetic that can feel generic for artistic work.",
+  },
+  "gpt-image-1": {
+    cost: "~$0.02\u2013$0.17 per image (token-based, varies by quality)",
+    strengths: "Strong photorealism, accurate text rendering, good prompt following. First OpenAI model with native transparency support.",
+    usages: "Photorealistic scenes, product shots, portraits, images with text. Good all-rounder for most use cases.",
+    drawbacks: "Slower than 1.5 for similar quality. Can over-smooth textures. Artistic styles sometimes feel derivative rather than distinctive.",
+  },
+  "dall-e-3": {
+    cost: "$0.04\u2013$0.12 per image (fixed, by size and quality)",
+    strengths: "Predictable fixed pricing. Reliable composition and scene understanding. Automatically rewrites prompts for better results (revised_prompt). Well-tested and stable.",
+    usages: "Concept art, illustrations, scene compositions, character portraits. Good default choice when cost predictability matters.",
+    drawbacks: "Cannot render legible text in images. Lower detail ceiling than GPT Image models. 1024\u20131792px max. Prompt rewriting can sometimes diverge from intent.",
+  },
+  "dall-e-2": {
+    cost: "$0.016\u2013$0.02 per image (cheapest option)",
+    strengths: "Very cheap. Fast generation. Good for quick iteration and bulk generation where quality is secondary.",
+    usages: "Rapid prototyping, placeholder images, bulk generation, texture exploration. Budget-conscious workflows.",
+    drawbacks: "Noticeably lower quality than all other options. Poor anatomy, inconsistent style, limited prompt understanding. 1024px max.",
+  },
+  "flux-2-pro": {
+    cost: "~$0.05 per megapixel",
+    strengths: "Native JSON prompt support with hex color control. Studio-quality output, strong text rendering, excellent batch consistency. Handles complex multi-subject prompts. Direct BFL API \u2014 no intermediary.",
+    usages: "Production pipelines, high-volume generation with brand rules, structured scene composition via JSON prompts, any workflow needing style/palette/composition control.",
+    drawbacks: "Max 4MP resolution. Style leans toward digital illustration over photography.",
+  },
+  "flux-2-max": {
+    cost: "~$0.07 per megapixel",
+    strengths: "Highest quality Flux model. Native JSON prompts, hex color control, grounding search. Up to 4MP. Best style adherence and multi-subject composition in the Flux family.",
+    usages: "Hero images, high-fidelity character art, complex multi-subject scenes, work requiring maximum quality and style fidelity.",
+    drawbacks: "Most expensive Flux option. Slower generation than Pro.",
+  },
+  "flux-pro-1.1-ultra": {
+    cost: "$0.06 per image",
+    strengths: "Up to 4MP resolution. Prompt upsampling enriches short prompts. Natural language prose prompts. Raw mode for authentic, less-processed aesthetics.",
+    usages: "High-resolution output, photographic styles, natural-language workflows, scenes benefiting from prompt expansion.",
+    drawbacks: "No JSON prompt support. Aspect ratio only (no exact dimensions). Previous generation \u2014 less capable than Flux 2 for structured prompting.",
+  },
+  "flux-pro-1.1-ultra-raw": {
+    cost: "$0.06 per image",
+    strengths: "Same as Flux 1.1 Pro Ultra but with raw mode enabled for natural, authentic aesthetics with less post-processing.",
+    usages: "Photography-style output, natural textures, documentary aesthetic.",
+    drawbacks: "Same limitations as Ultra. Raw mode reduces vibrancy.",
+  },
+  "wavespeed-ai/qwen-image-2.0-pro/text-to-image": {
+    cost: "~$0.07 per image",
+    strengths: "Excellent prompt adherence for complex, multi-element requests. Enhanced detail rendering \u2014 textures, skin tones, fabric. Built-in prompt enhancer. Strong with intricate character art and photorealistic portraits.",
+    usages: "Detailed character portraits, fashion/beauty visualization, high-end branded content, any scene with many specific visual requirements.",
+    drawbacks: "Higher cost than most WaveSpeed models. Async API adds latency (poll-based). Max 2048px resolution. Style can lean heavily photorealistic \u2014 less suited to stylized or abstract work.",
+  },
+  "google/nano-banana-pro/text-to-image": {
+    cost: "~$0.14 per image (1\u20132K), ~$0.24 per image (4K)",
+    strengths: "Multilingual text rendering with auto-translation. Consistent character and style across multiple generations. Camera-style controls for photographic results. Up to 4K resolution.",
+    usages: "Multilingual content, character consistency across a series, high-res print work, scenes needing photographic lighting control.",
+    drawbacks: "Most expensive option in the lineup. Async API latency. Originally optimized for mobile \u2014 some desktop compositions feel constrained.",
+  },
+  "bytedance/seedream-v5.0-lite": {
+    cost: "~$0.035 per image",
+    strengths: "Strong photorealism with camera and lighting references. Excellent text/typography rendering for posters and brand visuals. Supports up to 4K. Fast for its quality level.",
+    usages: "Social media content, marketing campaigns, e-commerce product visuals, poster/brand design, photography-style rendering.",
+    drawbacks: "\"Lite\" variant trades some detail for speed vs full Seedream. Async API latency. Can over-saturate colors in stylized prompts.",
+  },
+  "alibaba/wan-2.6/text-to-image": {
+    cost: "~$0.03 per image",
+    strengths: "Very affordable. Strong visual consistency. Good prompt adherence. Part of a multi-modal suite (also does video) so style transfers well if using WAN for both.",
+    usages: "Bulk image generation, consistent style across large sets, budget-friendly production work, concept exploration.",
+    drawbacks: "768\u20131440px resolution range is lower than competitors. Less detail in complex scenes. Fewer artistic style controls than specialized models.",
+  },
+  "kwaivgi/kling-image-o3/text-to-image": {
+    cost: "~$0.028 per image (1\u20132K), ~$0.056 per image (4K)",
+    strengths: "Strong detail and composition at high resolution. Natural lighting. Good value at 1\u20132K resolution. Up to 4K output. Built-in prompt enhancer.",
+    usages: "Landscape and environment art, architectural visualization, scenes needing natural lighting, high-res output at moderate cost.",
+    drawbacks: "Less tested for character/portrait work than Qwen or Seedream. Async API latency. Style range narrower than multi-purpose models.",
+  },
+};
+
+function ModelGuide() {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="cfgp-model-guide">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="cfgp-model-guide-toggle"
+      >
+        <span className="cfgp-model-guide-chevron" data-expanded={String(expanded)}>&#9654;</span>
+        Model comparison guide
+      </button>
+      {expanded && (
+        <div className="cfgp-model-guide-content">
+          {IMAGE_MODELS.map((model) => {
+            const info = MODEL_INFO[model.value];
+            if (!info) return null;
+            return (
+              <div key={model.value} className="cfgp-model-entry">
+                <div className="cfgp-model-entry-header">
+                  <span className="cfgp-model-entry-name">{model.label}</span>
+                  <span className="cfgp-model-entry-provider">{model.provider}</span>
+                </div>
+                <div className="cfgp-model-entry-cost">{info.cost}</div>
+                <div className="cfgp-model-entry-rows">
+                  <div className="cfgp-model-row">
+                    <span className="cfgp-model-row-label">Strengths</span>
+                    <span className="cfgp-model-row-text">{info.strengths}</span>
+                  </div>
+                  <div className="cfgp-model-row">
+                    <span className="cfgp-model-row-label">Best for</span>
+                    <span className="cfgp-model-row-text">{info.usages}</span>
+                  </div>
+                  <div className="cfgp-model-row">
+                    <span className="cfgp-model-row-label">Drawbacks</span>
+                    <span className="cfgp-model-row-text">{info.drawbacks}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const DEFAULT_IMAGE_PROMPT_TEMPLATE = `Transform the structured prompt below into a single, coherent image prompt for {{modelName}}. Do NOT simply reformat—actively synthesize and reshape:
 
@@ -71,19 +199,37 @@ export default function ConfigPanel({ config, onConfigChange }) {
         </div>
 
         <div className="illuminator-form-group">
-          <label htmlFor="model-openai" className="illuminator-label">Model (OpenAI)</label>
-          <select id="model-openai"
+          <label htmlFor="model-image" className="illuminator-label">Image Model</label>
+          <select id="model-image"
             value={config.imageModel}
             onChange={(e) => handleModelChange(e.target.value)}
             className="illuminator-select"
           >
-            {IMAGE_MODELS.map((model) => (
-              <option key={model.value} value={model.value}>
-                {model.label}
-              </option>
-            ))}
+            <optgroup label="OpenAI">
+              {IMAGE_MODELS.filter(m => m.provider === "openai").map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Flux (BFL)">
+              {IMAGE_MODELS.filter(m => m.provider === "bfl").map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="WaveSpeed">
+              {IMAGE_MODELS.filter(m => m.provider === "wavespeed").map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </div>
+
+        <ModelGuide />
 
         <p className="ilu-hint-sm cfgp-hint">
           Size and quality settings are in the Image Settings panel (sidebar).

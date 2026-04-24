@@ -11,6 +11,7 @@
     "./TagSelector": "./src/TagSelector.tsx"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "@the-canonry/image-store": "workspace:*"
   }
 }

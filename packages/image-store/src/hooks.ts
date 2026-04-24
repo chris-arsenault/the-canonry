@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useImageStore } from './store';
-import type { ImageEntryMetadata, ImageSize } from './types';
+import type { ImageEntryMetadata, ImageSize, AlternateGroup } from './types';
 
 export interface UseImageUrlResult {
   url: string | null;
@@ -158,4 +158,42 @@ export function useImageMetadata(
   }, [idsKey, loadMetadata, initialized]);
 
   return metadata;
+}
+
+export interface UseImageAlternatesResult {
+  group: AlternateGroup | null;
+  hasAlternates: boolean;
+  count: number;
+}
+
+/**
+ * Load alternate versions of an image (other generations at the same logical slot).
+ * Returns { group, hasAlternates, count }.
+ */
+export function useImageAlternates(
+  imageId: string | null | undefined,
+): UseImageAlternatesResult {
+  const [group, setGroup] = useState<AlternateGroup | null>(null);
+  const loadAlternates = useImageStore((s) => s.loadAlternates);
+  const initialized = useImageStore((s) => s.initialized);
+
+  useEffect(() => {
+    if (!imageId || !initialized) {
+      setGroup(null);
+      return;
+    }
+
+    let cancelled = false;
+    void loadAlternates(imageId).then((result) => {
+      if (!cancelled) setGroup(result);
+    });
+
+    return () => { cancelled = true; };
+  }, [imageId, loadAlternates, initialized]);
+
+  return {
+    group,
+    hasAlternates: group != null && group.versions.length > 1,
+    count: group?.versions.length ?? 0,
+  };
 }

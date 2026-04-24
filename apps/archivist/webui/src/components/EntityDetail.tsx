@@ -16,8 +16,7 @@ import {
   getRelationships,
   getTagsArray,
 } from "../utils/dataTransform.ts";
-import { useImageUrl } from "@the-canonry/image-store";
-import { useExpandSet } from "@the-canonry/shared-components";
+import { useExpandSet, ImageDisplay } from "@the-canonry/shared-components";
 import LoreSection from "./LoreSection.tsx";
 import RelationshipStoryModal from "./RelationshipStoryModal.tsx";
 import ChainLinkSection from "./ChainLinkSection.tsx";
@@ -191,7 +190,7 @@ export default function EntityDetail({ entityId, worldData, loreData, onRelatedC
 
   const selection = entityId ? parseSelectionId(entityId) : null;
   const entityForImage = selection?.type === "entity" ? getEntityById(worldData, selection.id) : null;
-  const { url: imageUrl } = useImageUrl(entityForImage?.enrichment?.image?.imageId);
+  const entityImageId = entityForImage?.enrichment?.image?.imageId;
   const onShowLore = useCallback((lore: RelationshipBackstoryLore) => setSelectedRelationshipLore(lore), []);
   const resolveLore = useCallback((src: string, dst: string, kind: string) => findRelationshipLore(loreData, src, dst, kind), [loreData]);
   const resolveEntity = useCallback((id: string) => getEntityById(worldData, id), [worldData]);
@@ -232,7 +231,7 @@ export default function EntityDetail({ entityId, worldData, loreData, onRelatedC
           {entityCulture && <span className="entity-badge entity-badge-culture ed-culture-badge" style={{ '--ed-culture-color': entityCulture.color } as React.CSSProperties}>{entityCulture.name}</span>}
         </div>
       </div>
-      {imageUrl && <div className="mb-6"><div className="entity-image-container"><img src={imageUrl} alt={entity.name} className="entity-image" loading="lazy" /></div></div>}
+      <ImageDisplay imageId={entityImageId} alt={entity.name} className="entity-image" containerClassName="entity-image-container" lazyLoad enableVersionCycling />
       {descriptionLore ? <LoreSection lore={descriptionLore} /> : (
         <div className="detail-card">
           <div className="section-header">Summary<button onClick={() => { window.dispatchEvent(new CustomEvent("canonry:navigate", { detail: { tab: "chronicler", pageId: entity.id } })); }} className="chronicler-link" title="View full article in Chronicler">(view in chronicler)</button></div>

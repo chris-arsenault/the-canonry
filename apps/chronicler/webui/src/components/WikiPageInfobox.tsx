@@ -8,19 +8,18 @@
 
 import React, { useCallback } from "react";
 import type { Optional } from "@the-canonry/shared-components";
+import { ImageDisplay } from "@the-canonry/shared-components";
 import type { WikiPage } from "../types/world.ts";
 import type { ImageAspect } from "../types/world.ts";
 import { getInfoboxImageClass } from "./WikiPageLayout.ts";
 import { FrostEdge } from "./Ornaments.tsx";
-import styles from "./WikiPage.module.css";
 
 interface WikiPageInfoboxProps {
   page: WikiPage;
   variant: "inline" | "float";
   isMobile: boolean;
-  imageUrl: Optional<string>;
+  imageId: Optional<string>;
   effectiveAspect: Optional<ImageAspect>;
-  onImageLoad: (e: React.SyntheticEvent<HTMLImageElement>) => void;
   onImageClick: () => Promise<void>;
   onNavigateToEntity: (entityId: string) => void;
 }
@@ -29,48 +28,35 @@ export function WikiPageInfobox({
   page,
   variant,
   isMobile,
-  imageUrl,
+  imageId,
   effectiveAspect,
-  onImageLoad,
   onImageClick,
   onNavigateToEntity,
 }: Readonly<WikiPageInfoboxProps>) {
   const infobox = page.content.infobox;
 
-  const handleImageKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") void onImageClick();
-  }, [onImageClick]);
-
-  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    (e.target as HTMLImageElement).style.display = "none";
-  }, []);
+  const handleClick = useCallback(
+    () => { void onImageClick(); },
+    [onImageClick],
+  );
 
   if (!infobox) return null;
 
-  const containerClass = variant === "inline" ? styles.infoboxInline : styles.infobox;
+  const containerClass = variant === "inline" ? "infobox-inline" : "infobox";
 
   return (
     <div className={containerClass}>
-      <FrostEdge className={styles.frostEdge} />
-      <div className={styles.infoboxHeader}>{page.title}</div>
-      {imageUrl && (
-        <button
-          type="button"
-          className={styles.infoboxImageBtn}
-          onClick={() => void onImageClick()}
-          tabIndex={0}
-          onKeyDown={handleImageKeyDown}
-        >
-          <img
-            src={imageUrl}
-            alt={page.title}
-            className={getInfoboxImageClass(effectiveAspect, isMobile)}
-            onLoad={onImageLoad}
-            onError={handleImageError}
-          />
-        </button>
-      )}
-      <div className={styles.infoboxBody}>
+      <FrostEdge className="frost-edge" />
+      <div className="infobox-header">{page.title}</div>
+      <ImageDisplay
+        imageId={imageId}
+        alt={page.title}
+        className={getInfoboxImageClass(effectiveAspect, isMobile)}
+        containerClassName="infobox-image-btn"
+        onClick={() => handleClick()}
+        enableVersionCycling
+      />
+      <div className="infobox-body">
         {infobox.fields.map((field, i) => (
           <InfoboxField
             key={i}
@@ -102,12 +88,12 @@ function InfoboxField({ label, value, linkedEntity, onNavigateToEntity }: Readon
   }, [linkedEntity, onNavigateToEntity]);
 
   return (
-    <div className={styles.infoboxRow}>
-      <div className={styles.infoboxLabel}>{label}</div>
-      <div className={styles.infoboxValue}>
+    <div className="infobox-row">
+      <div className="infobox-label">{label}</div>
+      <div className="infobox-value">
         {linkedEntity ? (
           <span
-            className={styles.entityLink}
+            className="entity-link"
             onClick={handleClick}
             role="button"
             tabIndex={0}

@@ -10,9 +10,8 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import { useEntityNavList } from "../lib/db/entitySelectors";
 import { useEntityStore } from "../lib/db/entityStore";
 import { useProminenceScale } from "../lib/db/indexSelectors";
-import { useEntityCrud, reloadEntities } from "../hooks/useEntityCrud";
+import { useEntityCrud } from "../hooks/useEntityCrud";
 import { useHistorianActions } from "../hooks/useHistorianActions";
-import { convertLongEditionsToLegacy } from "../lib/db/entityRepository";
 import { useIlluminatorModals } from "../lib/db/modalStore";
 
 import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
@@ -69,53 +68,10 @@ function prominenceAtLeast(
 }
 
 interface BulkCounts {
-  annotationEligible: number;
-  copyEditEligible: number;
-  reEditionEligible: number;
-  legacyConvertEligible: number;
   annotated: number;
   missingDesc: number;
   missingImg: number;
   dependentDesc: number;
-}
-
-function countHistorianEligibility(items: EntityNavItem[]): Pick<BulkCounts, "annotationEligible" | "copyEditEligible" | "reEditionEligible" | "legacyConvertEligible" | "annotated"> {
-  let annotationEligible = 0;
-  let copyEditEligible = 0;
-  let reEditionEligible = 0;
-  let legacyConvertEligible = 0;
-  let annotated = 0;
-  for (const nav of items) {
-    if (nav.hasDescription && !nav.hasHistorianNotes) annotationEligible++;
-    if (nav.hasDescription && !nav.hasHistorianEdition) copyEditEligible++;
-    if (nav.hasDescription && nav.hasHistorianEdition) reEditionEligible++;
-    if (nav.hasHistorianEdition) legacyConvertEligible++;
-    if (nav.hasHistorianNotes) annotated++;
-  }
-  return { annotationEligible, copyEditEligible, reEditionEligible, legacyConvertEligible, annotated };
-}
-
-function countEnrichmentGaps(
-  items: EntityNavItem[],
-  getStatus: (nav: EntityNavItem, type: string) => EnrichmentStatus,
-  minProminenceForImage: string,
-  requireDescription: boolean,
-  prominenceScale: ProminenceScale
-): Pick<BulkCounts, "missingDesc" | "missingImg" | "dependentDesc"> {
-  let missingDesc = 0;
-  let missingImg = 0;
-  let dependentDesc = 0;
-  for (const nav of items) {
-    if (getStatus(nav, "description") === "missing") missingDesc++;
-    const isImageEligible = prominenceAtLeast(nav.prominence, minProminenceForImage, prominenceScale);
-    if (isImageEligible && getStatus(nav, "image") === "missing") {
-      missingImg++;
-      if (requireDescription && !nav.hasDescription && getStatus(nav, "description") === "missing") {
-        dependentDesc++;
-      }
-    }
-  }
-  return { missingDesc, missingImg, dependentDesc };
 }
 
 function computeBulkCounts(
@@ -125,10 +81,22 @@ function computeBulkCounts(
   requireDescription: boolean,
   prominenceScale: ProminenceScale
 ): BulkCounts {
-  return {
-    ...countHistorianEligibility(items),
-    ...countEnrichmentGaps(items, getStatus, minProminenceForImage, requireDescription, prominenceScale),
-  };
+  let annotated = 0;
+  let missingDesc = 0;
+  let missingImg = 0;
+  let dependentDesc = 0;
+  for (const nav of items) {
+    if (nav.hasHistorianNotes) annotated++;
+    if (getStatus(nav, "description") === "missing") missingDesc++;
+    const isImageEligible = prominenceAtLeast(nav.prominence, minProminenceForImage, prominenceScale);
+    if (isImageEligible && getStatus(nav, "image") === "missing") {
+      missingImg++;
+      if (requireDescription && !nav.hasDescription && getStatus(nav, "description") === "missing") {
+        dependentDesc++;
+      }
+    }
+  }
+  return { annotated, missingDesc, missingImg, dependentDesc };
 }
 
 export default function EntityBrowser({
@@ -136,14 +104,12 @@ export default function EntityBrowser({
   onConfigChange,
   buildPrompt,
   getVisualConfig,
+  resolveImageSize,
+  resolveImageStyleIds,
   styleLibrary,
   imageGenSettings,
   onStartRevision,
   isRevising,
-  onBulkHistorianReview,
-  onBulkHistorianEdition,
-  onBulkHistorianClear,
-  isBulkHistorianActive,
   onNavigateToTab,
 }: Readonly<EntityBrowserProps>) {
   const navEntities = useEntityNavList();
@@ -226,6 +192,8 @@ export default function EntityBrowser({
     getStatus,
     buildPrompt,
     getVisualConfig,
+    resolveImageSize,
+    resolveImageStyleIds,
     config,
     imageGenSettings,
     prominenceScale
@@ -443,11 +411,6 @@ export default function EntityBrowser({
           onStartRevision={onStartRevision}
           isRevising={isRevising}
           historianConfigured={historianConfigured}
-          onBulkHistorianReview={onBulkHistorianReview}
-          onBulkHistorianEdition={onBulkHistorianEdition}
-          onBulkHistorianClear={onBulkHistorianClear}
-          isBulkHistorianActive={isBulkHistorianActive}
-          filteredNavItems={filteredNavItems}
           onNavigateToTab={onNavigateToTab}
           onShowMotifWeaver={() => setShowMotifWeaver(true)}
         />
@@ -644,10 +607,6 @@ interface QuickActionsProps {
     missingDesc: number;
     missingImg: number;
     dependentDesc: number;
-    annotationEligible: number;
-    copyEditEligible: number;
-    reEditionEligible: number;
-    legacyConvertEligible: number;
     annotated: number;
   };
   onQueueAllDescriptions: () => Promise<void>;
@@ -655,11 +614,6 @@ interface QuickActionsProps {
   onStartRevision?: () => void;
   isRevising?: boolean;
   historianConfigured: boolean;
-  onBulkHistorianReview?: (ids: string[]) => void;
-  onBulkHistorianEdition?: (ids: string[], reEdit?: boolean) => void;
-  onBulkHistorianClear?: (ids: string[]) => void;
-  isBulkHistorianActive?: boolean;
-  filteredNavItems: EntityNavItem[];
   onNavigateToTab?: (tab: string) => void;
   onShowMotifWeaver: () => void;
 }
@@ -671,46 +625,9 @@ function EntityBrowserQuickActions({
   onStartRevision,
   isRevising,
   historianConfigured,
-  onBulkHistorianReview,
-  onBulkHistorianEdition,
-  onBulkHistorianClear,
-  isBulkHistorianActive,
-  filteredNavItems,
   onNavigateToTab,
   onShowMotifWeaver,
 }: Readonly<QuickActionsProps>) {
-  const handleAnnotateAll = useCallback(() => {
-    if (!onBulkHistorianReview) return;
-    const ids = filteredNavItems.filter((n) => n.hasDescription && !n.hasHistorianNotes).map((n) => n.id);
-    onBulkHistorianReview(ids);
-  }, [onBulkHistorianReview, filteredNavItems]);
-
-  const handleCopyEditAll = useCallback(() => {
-    if (!onBulkHistorianEdition) return;
-    const ids = filteredNavItems.filter((n) => n.hasDescription && !n.hasHistorianEdition).map((n) => n.id);
-    onBulkHistorianEdition(ids);
-  }, [onBulkHistorianEdition, filteredNavItems]);
-
-  const handleReEditAll = useCallback(() => {
-    if (!onBulkHistorianEdition) return;
-    const ids = filteredNavItems.filter((n) => n.hasDescription && n.hasHistorianEdition).map((n) => n.id);
-    onBulkHistorianEdition(ids, true);
-  }, [onBulkHistorianEdition, filteredNavItems]);
-
-  const handleConvertToLegacy = useCallback(() => {
-    void (async () => {
-      const ids = filteredNavItems.filter((n) => n.hasHistorianEdition).map((n) => n.id);
-      const count = await convertLongEditionsToLegacy(ids);
-      if (count > 0) await reloadEntities(ids);
-    })();
-  }, [filteredNavItems]);
-
-  const handleClearAllNotes = useCallback(() => {
-    if (!onBulkHistorianClear) return;
-    const ids = filteredNavItems.filter((n) => n.hasHistorianNotes).map((n) => n.id);
-    onBulkHistorianClear(ids);
-  }, [onBulkHistorianClear, filteredNavItems]);
-
   const handleFindReplace = useCallback(() => {
     if (onNavigateToTab) onNavigateToTab("finaledit");
   }, [onNavigateToTab]);
@@ -742,57 +659,9 @@ function EntityBrowserQuickActions({
           {isRevising ? "Revising..." : "Revise Summaries"}
         </button>
       )}
-      {historianConfigured && onBulkHistorianReview && (
-        <button
-          onClick={handleAnnotateAll}
-          disabled={isBulkHistorianActive || bulkCounts.annotationEligible === 0}
-          className="illuminator-button illuminator-button-secondary"
-        >
-          {isBulkHistorianActive ? "Running..." : `Annotate All (${bulkCounts.annotationEligible})`}
-        </button>
-      )}
-      {historianConfigured && onBulkHistorianEdition && (
-        <button
-          onClick={handleCopyEditAll}
-          disabled={isBulkHistorianActive || bulkCounts.copyEditEligible === 0}
-          className="illuminator-button illuminator-button-secondary"
-        >
-          {isBulkHistorianActive ? "Running..." : `Copy Edit All (${bulkCounts.copyEditEligible})`}
-        </button>
-      )}
-      {historianConfigured && onBulkHistorianEdition && bulkCounts.reEditionEligible > 0 && (
-        <button
-          onClick={handleReEditAll}
-          disabled={isBulkHistorianActive}
-          className="illuminator-button illuminator-button-secondary"
-        >
-          {isBulkHistorianActive ? "Running..." : `Re-Edit All (${bulkCounts.reEditionEligible})`}
-        </button>
-      )}
-      {historianConfigured && bulkCounts.legacyConvertEligible > 0 && (
-        <button
-          onClick={handleConvertToLegacy}
-          disabled={isBulkHistorianActive}
-          className="illuminator-button illuminator-button-secondary"
-          title="Relabel all historian-edition entries as legacy copy edits"
-        >
-          Convert to Legacy ({bulkCounts.legacyConvertEligible})
-        </button>
-      )}
-      {historianConfigured && bulkCounts.annotated > 0 && onBulkHistorianClear && (
-        <button
-          onClick={handleClearAllNotes}
-          disabled={isBulkHistorianActive}
-          className="illuminator-button illuminator-button-secondary"
-          title="Remove all annotations from filtered entities"
-        >
-          Clear All Notes ({bulkCounts.annotated})
-        </button>
-      )}
       {historianConfigured && bulkCounts.annotated > 0 && onNavigateToTab && (
         <button
           onClick={handleFindReplace}
-          disabled={isBulkHistorianActive}
           className="illuminator-button illuminator-button-secondary"
           title="Find and replace across corpus (Final Edit tab)"
         >
@@ -802,7 +671,6 @@ function EntityBrowserQuickActions({
       {historianConfigured && (
         <button
           onClick={onShowMotifWeaver}
-          disabled={isBulkHistorianActive}
           className="illuminator-button illuminator-button-secondary"
           title="Weave a thematic phrase into descriptions where the concept exists but the phrase was stripped"
         >

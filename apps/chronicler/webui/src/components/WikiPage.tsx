@@ -24,7 +24,7 @@ import {
 } from "@the-canonry/narrative-store";
 import { SeedModal } from "@the-canonry/shared-components";
 import type { ProminenceScale } from "@canonry/world-schema";
-import { classifyAspect } from "./WikiPageLayout.ts";
+
 import { CoverHeroImage, ChronicleGallery } from "./WikiPageImages.tsx";
 import { WikiPageInfobox } from "./WikiPageInfobox.tsx";
 import { EntityPreviewCard } from "./WikiPagePreview.tsx";
@@ -38,12 +38,12 @@ import {
   type WikiLinkData,
   type SectionCallbacks,
 } from "./WikiPageParts.tsx";
+import { resolveGlobalFootnotes } from "../lib/historianAnnotations.ts";
 import { useWikiPageData } from "../hooks/useWikiPageData.ts";
 import EntityTimeline from "./EntityTimeline.tsx";
 import ProminenceTimeline from "./ProminenceTimeline.tsx";
 import ImageLightbox from "./ImageLightbox.tsx";
 import { SectionDivider, FrostEdge } from "./Ornaments.tsx";
-import styles from "./WikiPage.module.css";
 
 function breadcrumbTypeLabel(page: WikiPage, namespace: string | null): string {
   if (page.type === "static") return namespace || "Pages";
@@ -63,13 +63,14 @@ interface WikiPageViewProps {
   prominenceScale: ProminenceScale;
   breakpoint: Optional<"mobile" | "tablet" | "desktop">;
   layoutOverride: Optional<PageLayoutOverride>;
+  onRefreshChronicle: Optional<(chronicleId: string) => Promise<void>>;
 }
 
 // eslint-disable-next-line max-lines-per-function, complexity -- page-level orchestrator combining infobox, sections, timeline, backlinks, modals, and hover preview; the branching comes from conditional rendering of 10+ independent UI blocks based on page type
 export default function WikiPageView({
   page, pages, entityIndex, disambiguation,
   onNavigate, onNavigateToEntity, prominenceScale,
-  breakpoint = "desktop", layoutOverride,
+  breakpoint = "desktop", layoutOverride, onRefreshChronicle,
 }: Readonly<WikiPageViewProps>) {
   const isMobile = breakpoint === "mobile";
   const showInfoboxInline = isMobile || breakpoint === "tablet";
@@ -92,24 +93,12 @@ export default function WikiPageView({
     entityNameMap, aliasMap, linkableNames, seedData,
     chronicleLinks, sourceChronicleLinks, backlinks, staticTitle,
     hoveredBacklink, handleEntityHoverEnter, handleEntityHoverLeave,
-    hoveredEntity, hoveredSummary, hoveredImageUrl,
-    infoboxImageUrl, infoboxImageAspect,
+    hoveredEntity, hoveredSummary, hoveredImageId,
+    infoboxImageId, infoboxImageAspect,
     handleInlineImageOpen, handleInfoboxImageClick,
   } = data;
 
-  const [aspectState, setAspectState] = useState<{ pageId: string; aspect: Optional<ImageAspect> }>({ pageId: page.id });
-  const detectedAspect = aspectState.pageId === page.id ? aspectState.aspect : undefined;
-  const effectiveAspect = infoboxImageAspect || detectedAspect;
-
-  const handleInfoboxImageLoad = useCallback(
-    (e: React.SyntheticEvent<HTMLImageElement>) => {
-      if (!infoboxImageAspect) {
-        const img = e.currentTarget;
-        setAspectState({ pageId: page.id, aspect: classifyAspect(img.naturalWidth, img.naturalHeight) });
-      }
-    },
-    [infoboxImageAspect, page.id],
-  );
+  const effectiveAspect = infoboxImageAspect;
 
   const handleEntityClick = useCallback(
     (entityId: string) => { handleEntityHoverLeave(); onNavigateToEntity(entityId); },
@@ -141,6 +130,13 @@ export default function WikiPageView({
   }, [onNavigate]);
   const toggleSeedModal = useCallback(() => setShowSeedModal(true), []);
   const closeSeedModal = useCallback(() => setShowSeedModal(false), []);
+  const [isRefreshingChronicle, setIsRefreshingChronicle] = useState(false);
+  const handleRefreshChronicle = useCallback(async () => {
+    if (!onRefreshChronicle || isRefreshingChronicle) return;
+    setIsRefreshingChronicle(true);
+    try { await onRefreshChronicle(page.id); }
+    finally { setIsRefreshingChronicle(false); }
+  }, [onRefreshChronicle, isRefreshingChronicle, page.id]);
   const toggleTimeline = useCallback(() => setTimelineOpen((o) => !o), []);
 
   const sectionLinkData: WikiLinkData = useMemo(
@@ -159,8 +155,8 @@ export default function WikiPageView({
   );
 
   const dropcapProps = useMemo(() => {
-    if (layoutOverride?.dropcap === false) return {};
-    if (layoutOverride?.dropcap === true) return { "data-dropcap": "" };
+    if (layoutOverride?.dropcap === "off") return {};
+    if (layoutOverride?.dropcap === "on") return { "data-dropcap": "" };
     if (isLongFormProse && page.content.sections[0]?.content) {
       const stripped = page.content.sections[0].content.replace(/^[\s*_#>]+/, "");
       if (/^[a-zA-Z]/.test(stripped) && !/^[IVXLCDM]+\.\s/.test(stripped)) return { "data-dropcap": "" };
@@ -168,49 +164,60 @@ export default function WikiPageView({
     return {};
   }, [layoutOverride?.dropcap, isLongFormProse, page.content.sections]);
 
+  // Compute globally consistent footnote numbering across all sections
+  const { perSection: globalResolvedNotes, globalOrderedNotes } = useMemo(
+    () => resolveGlobalFootnotes(page.content.sections, page.content.historianNotes || []),
+    [page.content.sections, page.content.historianNotes],
+  );
+
   const hasRelationshipsSection = page.content.sections.some((s) => s.heading === "Relationships");
 
   return (
-    <div className={styles.container}>
-      <div className={styles.breadcrumbs}>
-        <span className={styles.breadcrumbLink} onClick={handleGoHome} role="button" tabIndex={0} onKeyDown={handleHomeKeyDown}>Home</span>
+    <div className="wp-container">
+      <div className="breadcrumbs">
+        <span className="breadcrumb-link" onClick={handleGoHome} role="button" tabIndex={0} onKeyDown={handleHomeKeyDown}>Home</span>
         {" / "}<span>{breadcrumbTypeLabel(page, staticTitle.namespace)}</span>
-        {" / "}<span className={styles.breadcrumbCurrent}>{page.type === "static" ? staticTitle.baseName : page.title}</span>
+        {" / "}<span className="breadcrumb-current">{page.type === "static" ? staticTitle.baseName : page.title}</span>
       </div>
 
       {isLongFormProse && page.content.coverImageId && (
         <CoverHeroImage imageId={page.content.coverImageId} title={page.title} onOpen={handleCoverOpen} />
       )}
 
-      <div className={styles.header}>
-        {isLongFormProse && !page.content.coverImageId && <h1 className={styles.chronicleTitle}>{page.title}</h1>}
+      <div className="wp-header">
+        {isLongFormProse && !page.content.coverImageId && <h1 className="chronicle-title">{page.title}</h1>}
         {isEraNarrative && page.eraNarrative && (
-          <div className={styles.eraNarrativeSubtitle}>Era Narrative (synthetic) · {page.eraNarrative.tone}</div>
+          <div className="era-narrative-subtitle">Era Narrative (synthetic) · {page.eraNarrative.tone}</div>
         )}
         {!isLongFormProse && (
-          <h1 className={styles.title}>{page.type === "static" ? staticTitle.displayTitle : page.title}</h1>
+          <h1 className="wp-title">{page.type === "static" ? staticTitle.displayTitle : page.title}</h1>
         )}
         {disambiguation && disambiguation.length > 0 && (
           <DisambiguationNotice page={page} entityIndex={entityIndex} disambiguation={disambiguation} onNavigate={onNavigate} />
         )}
         {!isLongFormProse && page.type !== "static" && page.content.summary && (
-          <div className={styles.summary}>{page.content.summary}</div>
+          <div className="wp-summary">{page.content.summary}</div>
         )}
         {!isChronicle && seedData && (
-          <button className={styles.seedButton} onClick={toggleSeedModal}>View Generation Context</button>
+          <button className="seed-button" onClick={toggleSeedModal}>View Generation Context</button>
+        )}
+        {isChronicle && onRefreshChronicle && (
+          <button className="seed-button" onClick={handleRefreshChronicle} disabled={isRefreshingChronicle}>
+            {isRefreshingChronicle ? "Refreshing..." : "Refresh"}
+          </button>
         )}
       </div>
 
-      <div className={showInfoboxInline ? styles.contentColumn : styles.content}>
+      <div className={showInfoboxInline ? "wp-content-column" : "wp-content"}>
         <WikiPageInfobox page={page} variant={showInfoboxInline ? "inline" : "float"} isMobile={isMobile}
-          imageUrl={infoboxImageUrl} effectiveAspect={effectiveAspect}
-          onImageLoad={handleInfoboxImageLoad} onImageClick={handleInfoboxClick}
+          imageId={infoboxImageId} effectiveAspect={effectiveAspect}
+          onImageClick={handleInfoboxClick}
           onNavigateToEntity={onNavigateToEntity} />
 
-        <div className={styles.main}>
-          {page.content.sections.length > 2 && <TableOfContents sections={page.content.sections} />}
+        <div className="wp-main">
+          {isEntityPage && page.content.sections.length > 2 && <TableOfContents sections={page.content.sections} />}
           <div
-            className={[isLongFormProse ? styles.chronicleBody : "", layoutOverride?.customClass || ""].filter(Boolean).join(" ") || undefined}
+            className={[(isLongFormProse || layoutOverride?.dropcap) ? "chronicle-body" : "", layoutOverride?.customClass || ""].filter(Boolean).join(" ") || undefined}
             data-style={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
             data-content-width={layoutOverride?.contentWidth}
             data-text-align={layoutOverride?.textAlign}
@@ -223,7 +230,9 @@ export default function WikiPageView({
                 linkData={sectionLinkData} callbacks={sectionCallbacks}
                 historianNotes={page.content.historianNotes}
                 narrativeStyleId={isChronicle ? page.chronicle?.narrativeStyleId : undefined}
-                layoutOverride={layoutOverride} />
+                layoutOverride={layoutOverride}
+                preResolvedNotes={globalResolvedNotes[sectionIndex]}
+                globalOrderedNotes={globalOrderedNotes} />
             ))}
           </div>
 
@@ -235,12 +244,12 @@ export default function WikiPageView({
           )}
 
           {isEntityPage && (
-            <div id="timeline" className={styles.section}>
-              <button className={styles.sectionHeadingToggle} onClick={toggleTimeline}>
-                <span className={timelineOpen ? styles.expandArrowOpen : styles.expandArrow}>&#x25B6;</span>
-                <h2 className={styles.sectionHeading}>Timeline</h2>
+            <div id="timeline" className="wp-section">
+              <button className="section-heading-toggle" onClick={toggleTimeline}>
+                <span className={timelineOpen ? "expand-arrow-open" : "expand-arrow"}>&#x25B6;</span>
+                <h2 className="section-heading">Timeline</h2>
               </button>
-              <SectionDivider className={styles.sectionDividerSvg} />
+              <SectionDivider className="section-divider-svg" />
               {timelineOpen && (
                 <>
                   <ProminenceTimeline events={narrativeEvents} entityId={page.id} prominenceScale={prominenceScale} />
@@ -255,17 +264,17 @@ export default function WikiPageView({
           <UnmatchedHistorianNotes page={page} />
 
           {backlinks.length > 0 && (
-            <div className={styles.backlinks}>
-              <FrostEdge className={styles.frostEdgeDivider} />
-              <div className={styles.backlinksTitle}>What links here ({backlinks.length})</div>
+            <div className="backlinks">
+              <FrostEdge className="frost-edge-divider" />
+              <div className="backlinks-title">What links here ({backlinks.length})</div>
               {backlinks.slice(0, 20).map((link) => <BacklinkButton key={link.id} link={link} onNavigate={onNavigate} />)}
-              {backlinks.length > 20 && <div className={styles.moreText}>...and {backlinks.length - 20} more</div>}
+              {backlinks.length > 20 && <div className="more-text">...and {backlinks.length - 20} more</div>}
             </div>
           )}
 
           {page.categories.length > 0 && (
-            <div className={styles.categories}>
-              <div className={styles.categoriesLabel}>Categories:</div>
+            <div className="categories">
+              <div className="categories-label">Categories:</div>
               {page.categories.map((catId) => <CategoryButton key={catId} catId={catId} onNavigate={onNavigate} />)}
             </div>
           )}
@@ -277,7 +286,7 @@ export default function WikiPageView({
         title={activeImage?.title || ""} summary={activeImage?.summary} onClose={closeImageModal} />
       {hoveredBacklink && hoveredEntity && (
         <EntityPreviewCard entity={hoveredEntity} summary={hoveredSummary}
-          position={hoveredBacklink.position} imageUrl={hoveredImageUrl} prominenceScale={prominenceScale} />
+          position={hoveredBacklink.position} imageId={hoveredImageId} prominenceScale={prominenceScale} />
       )}
     </div>
   );

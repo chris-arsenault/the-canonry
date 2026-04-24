@@ -6,14 +6,15 @@
  */
 
 import { db } from "./illuminatorDb";
-import type {
-  ImageType,
-  ImageAspect,
-  ImageMetadata,
-  ImageRecord,
-  ImageListItem,
-  ImageSearchOptions,
-  ImagePromptExport,
+import {
+  isChronicleImage,
+  type ImageType,
+  type ImageAspect,
+  type ImageMetadata,
+  type ImageRecord,
+  type ImageListItem,
+  type ImageSearchOptions,
+  type ImagePromptExport,
 } from "../imageTypes";
 
 // Re-export all types so consumers can migrate imports to this module
@@ -181,6 +182,21 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 // ============================================================================
+// Entity Image Queries
+// ============================================================================
+
+/**
+ * Get all images for a given entity (metadata only, no blobs), newest first.
+ */
+export async function getImagesForEntity(
+  entityId: string
+): Promise<Array<Omit<ImageRecord, "blob">>> {
+  const records = await db.images.where("entityId").equals(entityId).toArray();
+  return records
+    .sort((a, b) => (b.generatedAt || 0) - (a.generatedAt || 0));
+}
+
+// ============================================================================
 // Load / Browse (used by UI components that previously used Canonry imageStore)
 // ============================================================================
 
@@ -268,6 +284,7 @@ export async function getAllImages(): Promise<
     generatedAt: record.generatedAt,
     model: record.model,
     revisedPrompt: record.revisedPrompt,
+    requestedSize: record.requestedSize,
     estimatedCost: record.estimatedCost,
     actualCost: record.actualCost,
     inputTokens: record.inputTokens,
@@ -279,6 +296,15 @@ export async function getAllImages(): Promise<
     chronicleId: record.chronicleId,
     imageRefId: record.imageRefId,
     sceneDescription: record.sceneDescription,
+    artisticStyleId: record.artisticStyleId,
+    compositionStyleId: record.compositionStyleId,
+    colorPaletteId: record.colorPaletteId,
+    title: record.title,
+    llmTitle: record.llmTitle,
+    tags: record.tags,
+    hqWidth: record.hqWidth,
+    hqHeight: record.hqHeight,
+    hqUpscaledAt: record.hqUpscaledAt,
     mimeType: record.mimeType,
     size: typeof record.size === "number" && Number.isFinite(record.size) ? record.size : 0,
     savedAt: record.savedAt,
@@ -427,7 +453,7 @@ export async function searchChronicleImages(filters: {
   }
 
   // Only include chronicle images
-  records = records.filter((r) => r.imageType === "chronicle");
+  records = records.filter((r) => isChronicleImage(r.imageType));
 
   // Sort by generatedAt descending
   records.sort((a, b) => (b.generatedAt || 0) - (a.generatedAt || 0));
@@ -463,11 +489,14 @@ export function formatBytes(bytes: number): string {
 // ============================================================================
 
 /**
- * Export all image prompt data for analysis.
+ * Export image prompt data for analysis.
+ * If imageIds is provided, only exports those images; otherwise exports all.
  * Excludes image blobs to keep export size manageable.
  */
-export async function exportImagePrompts(): Promise<ImagePromptExport[]> {
-  const records = await db.images.toArray();
+export async function exportImagePrompts(imageIds?: string[]): Promise<ImagePromptExport[]> {
+  const records = imageIds
+    ? await db.images.where("imageId").anyOf(imageIds).toArray()
+    : await db.images.toArray();
 
   const exports: ImagePromptExport[] = records.map((record) => ({
     imageId: record.imageId,
@@ -493,9 +522,10 @@ export async function exportImagePrompts(): Promise<ImagePromptExport[]> {
 
 /**
  * Export image prompts and download as JSON file.
+ * If imageIds is provided, only exports those images; otherwise exports all.
  */
-export async function downloadImagePromptExport(): Promise<void> {
-  const exports = await exportImagePrompts();
+export async function downloadImagePromptExport(imageIds?: string[]): Promise<void> {
+  const exports = await exportImagePrompts(imageIds);
   const json = JSON.stringify(exports, null, 2);
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);

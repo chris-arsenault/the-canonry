@@ -160,7 +160,7 @@ async function processBundleImages(
   awsConfig: Record<string, unknown>,
   s3Client: unknown,
   setExportBundleStatus: Dispatch<SetStateAction<ExportBundleStatus>>,
-): Promise<{ imageData: unknown; images: unknown; imageFiles: Array<{ path: string; blob: Blob }> }> {
+): Promise<{ imageData: unknown; images: unknown; imageFiles: Array<{ path: string; blob: Blob }>; imageAlternates: unknown }> {
   const useS3Images = Boolean(awsConfig?.useS3Images && awsConfig?.imageBucket);
   await maybeSyncS3Images(useS3Images, s3Client, projectId, awsConfig, setExportBundleStatus);
   return buildBundleImageAssets({
@@ -210,6 +210,7 @@ function assembleBundlePayload(
   eraNarratives: unknown[],
   imageData: unknown,
   images: unknown,
+  imageAlternates: unknown,
   projectId: string,
   projectName: string | undefined,
   simRunId: string | undefined,
@@ -217,21 +218,19 @@ function assembleBundlePayload(
   const exportTitle = (slot.title as string) || (slotIndex === 0 ? "Scratch" : `Slot ${slotIndex}`);
   const exportedAt = new Date().toISOString();
   const safeBase = buildExportBase(exportTitle, `slot-${slotIndex}`);
-  return {
-    bundle: {
-      format: "canonry-viewer-bundle", version: 1,
-      metadata: {
-        title: exportTitle, exportedAt, projectId,
-        projectName: projectName || null,
-        simulationRunId: simRunId || null,
-      },
-      projectId,
-      slot: { index: slotIndex, title: exportTitle, createdAt: slot.createdAt || null, savedAt: slot.savedAt || null },
-      worldData: exportWorldData, loreData, staticPages, chronicles, eraNarratives, imageData, images,
+  const bundle: Record<string, unknown> = {
+    format: "canonry-viewer-bundle", version: 1,
+    metadata: {
+      title: exportTitle, exportedAt, projectId,
+      projectName: projectName || null,
+      simulationRunId: simRunId || null,
     },
-    safeBase,
-    exportedAt,
+    projectId,
+    slot: { index: slotIndex, title: exportTitle, createdAt: slot.createdAt || null, savedAt: slot.savedAt || null },
+    worldData: exportWorldData, loreData, staticPages, chronicles, eraNarratives, imageData, images,
   };
+  if (imageAlternates) bundle.imageAlternates = imageAlternates;
+  return { bundle, safeBase, exportedAt };
 }
 
 // ---------------------------------------------------------------------------
@@ -361,7 +360,7 @@ export function useExportCallbacks(params: UseExportCallbacksParams) {
 
       try {
         const gathered = await gatherBundleExportData(projectId, worldData, shouldCancel);
-        const { imageData, images, imageFiles } = await processBundleImages(
+        const { imageData, images, imageFiles, imageAlternates } = await processBundleImages(
           projectId, gathered, shouldCancel, awsConfig, s3Client, setExportBundleStatus,
         );
 
@@ -371,7 +370,7 @@ export function useExportCallbacks(params: UseExportCallbacksParams) {
         const { bundle, safeBase, exportedAt } = assembleBundlePayload(
           slot, slotIndex, gathered.exportWorldData, gathered.loreData,
           gathered.staticPages, gathered.chronicles, gathered.eraNarratives,
-          imageData, images, projectId, projectName, gathered.simRunId,
+          imageData, images, imageAlternates, projectId, projectName, gathered.simRunId,
         );
         const bundleJson = JSON.stringify(bundle, null, 2);
         throwIfExportCanceled(shouldCancel);

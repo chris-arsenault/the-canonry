@@ -20,11 +20,6 @@ export default defineConfig({
       shared: sharedDeps("zustand", "@the-canonry/image-store", "@the-canonry/narrative-store", "@the-canonry/world-store"),
     }) as PluginOption,
   ],
-  css: {
-    modules: {
-      localsConvention: "camelCaseOnly",
-    },
-  },
   // Base path - use /chronicler/ in dev (via proxy) and production
   base: "/chronicler/",
   build: {

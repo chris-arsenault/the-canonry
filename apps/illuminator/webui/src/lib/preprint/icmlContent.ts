@@ -50,8 +50,8 @@ import {
 // Types
 // =============================================================================
 
-/** Image source classification for export: entity, chronicle, or cover */
-export type ImageSourceType = ImageType | "cover";
+/** Image source classification for export */
+export type ImageSourceType = ImageType;
 
 /** Callback for registering images encountered during content conversion */
 export type ImageRegisterFn = (
@@ -148,7 +148,7 @@ function buildPromptInsertions(
   return promptRefs
     .map((ref) => {
       const imgId = typeof ref.generatedImageId === 'string' ? ref.generatedImageId : "";
-      registerFn(imgId, "chronicle");
+      registerFn(imgId, "scene");
       const ext = getImageExt(imageMap.get(imgId));
       const caption = ref.caption || "";
       const marker = `\n\n<!-- IMAGE: images/${imgId}${ext} | size: ${ref.size} | float: ${ref.justification || "none"} | caption: "${caption}" -->\n\n`;
@@ -189,7 +189,7 @@ function buildChronicleRefInsertions(
   return chronicleRefs
     .map((ref) => {
       const imgId = typeof ref.imageId === 'string' ? ref.imageId : "";
-      registerFn(imgId, "chronicle");
+      registerFn(imgId, "scene");
       const ext = getImageExt(imageMap.get(imgId));
       const caption = ref.caption || "";
       const marker = `\n\n<!-- IMAGE: images/${imgId}${ext} | size: ${ref.size} | float: ${ref.justification || "none"} | caption: "${caption}" -->\n\n`;

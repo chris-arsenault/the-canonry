@@ -4,7 +4,6 @@
 
 import React, { useMemo } from "react";
 import type { WikiPage } from "../types/world.ts";
-import styles from "./WikiExplorer.module.css";
 
 export function PagesIndex({ pages, onNavigate }: Readonly<{
   pages: WikiPage[]; onNavigate: (pageId: string) => void;
@@ -25,27 +24,27 @@ export function PagesIndex({ pages, onNavigate }: Readonly<{
   }, [pages]);
 
   return (
-    <div className={styles.pagesIndexContainer}>
-      <h1 className={styles.pagesIndexTitle}>Pages</h1>
-      <p className={styles.pagesIndexDescription}>
+    <div className="pages-index-container">
+      <h1 className="pages-index-title">Pages</h1>
+      <p className="pages-index-description">
         User-authored pages providing additional world context, cultural overviews, and lore articles.
       </p>
       {pages.length === 0 ? (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyStateIcon}>📝</div>
-          <div className={styles.emptyStateTitle}>No pages yet</div>
-          <div className={styles.emptyStateDescription}>Create and publish pages in Illuminator to see them here.</div>
+        <div className="we-empty-state">
+          <div className="we-empty-state-icon">📝</div>
+          <div className="we-empty-state-title">No pages yet</div>
+          <div className="we-empty-state-description">Create and publish pages in Illuminator to see them here.</div>
         </div>
       ) : (
-        <div className={styles.pageList}>
+        <div className="page-list">
           {pagesByNamespace.map(([namespace, pagesInNs]) => (
-            <div key={namespace} className={styles.namespaceGroup}>
-              <h2 className={styles.namespaceTitle}>{namespace}</h2>
-              <div className={styles.pageList}>
+            <div key={namespace} className="namespace-group">
+              <h2 className="namespace-title">{namespace}</h2>
+              <div className="page-list">
                 {pagesInNs.map((page) => (
-                  <button key={page.id} onClick={() => onNavigate(page.id)} className={styles.pageItem}>
+                  <button key={page.id} onClick={() => onNavigate(page.id)} className="page-item">
                     {page.title}
-                    {page.content.summary && <div className={styles.pageItemSummary}>{page.content.summary}</div>}
+                    {page.content.summary && <div className="page-item-summary">{page.content.summary}</div>}
                   </button>
                 ))}
               </div>
@@ -69,22 +68,22 @@ export function PageCategoryIndex({ namespace, pages, onNavigate }: Readonly<{
   }, [pages, namespace]);
 
   return (
-    <div className={styles.pagesIndexContainer}>
-      <h1 className={styles.pagesIndexTitle}>{namespace} Pages</h1>
-      <p className={styles.pagesIndexDescription}>
+    <div className="pages-index-container">
+      <h1 className="pages-index-title">{namespace} Pages</h1>
+      <p className="pages-index-description">
         {namespace === "General" ? "Pages without a namespace prefix." : `Pages in the ${namespace} namespace.`}
       </p>
       {filteredPages.length === 0 ? (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyStateIcon}>📝</div>
-          <div className={styles.emptyStateTitle}>No pages in this category</div>
+        <div className="we-empty-state">
+          <div className="we-empty-state-icon">📝</div>
+          <div className="we-empty-state-title">No pages in this category</div>
         </div>
       ) : (
-        <div className={styles.pageList}>
+        <div className="page-list">
           {filteredPages.map((page) => (
-            <button key={page.id} onClick={() => onNavigate(page.id)} className={styles.pageItem}>
+            <button key={page.id} onClick={() => onNavigate(page.id)} className="page-item">
               {page.title}
-              {page.content.summary && <div className={styles.pageItemSummary}>{page.content.summary}</div>}
+              {page.content.summary && <div className="page-item-summary">{page.content.summary}</div>}
             </button>
           ))}
         </div>

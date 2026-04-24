@@ -31,7 +31,9 @@ export type EnrichmentType =
   | "motifVariation"
   | "factCoverage"
   | "toneRanking"
-  | "bulkToneRanking";
+  | "bulkToneRanking"
+  | "entityTagImageStyles"
+  | "upscale";
 
 /**
  * Which image to display at a chronicle backref anchor in an entity description.
@@ -197,6 +199,21 @@ export interface EntityEnrichment {
   reinforcedFacts?: string[];
   /** Slug aliases from entity renames — old entity IDs that should still resolve in deep links */
   slugAliases?: string[];
+  /** Style assignment for image generation — LLM-ranked + deterministic distribution */
+  imageStyle?: {
+    rankedArtisticStyleIds: string[];
+    rankedCompositionStyleIds: string[];
+    rankedColorPaletteIds: string[];
+    visualTags: string[];
+    suggestedArtisticStyleId: string;
+    suggestedCompositionStyleId: string;
+    suggestedColorPaletteId: string;
+    secondaryArtisticStyleId?: string;
+    secondaryCompositionStyleId?: string;
+    secondaryColorPaletteId?: string;
+  };
+  /** User-set flag: curation of this entity's images is complete */
+  curationComplete?: boolean;
 }
 
 /**
@@ -217,6 +234,8 @@ export interface EnrichmentTaskBase {
   imageSize?: string;
   /** Per-task image quality override (uses global config if not set) */
   imageQuality?: string;
+  /** If true, send the prompt directly to the image API without Claude formatting */
+  skipPromptFormatting?: boolean;
   // For entityChronicle tasks
   chronicleContext?: ChronicleGenerationContext;
   chronicleStep?: ChronicleStep;
@@ -228,7 +247,13 @@ export interface EnrichmentTaskBase {
   // For chronicle image tasks
   imageRefId?: string;
   sceneDescription?: string;
-  imageType?: "entity" | "chronicle" | "era_narrative";
+  imageType?: "entity" | "scene" | "cover" | "chronicle" | "era_narrative" | "other";
+  // Catalog metadata — persisted to ImageMetadata at save time
+  artisticStyleId?: string;
+  compositionStyleId?: string;
+  colorPaletteId?: string;
+  /** Tags to copy to the image record (e.g. visualTags from chronicle refs) */
+  tags?: string[];
   /** Visual thesis per entity ID, for cover image scene generation */
   visualIdentities?: Record<string, string>;
   // For palette expansion tasks
@@ -318,17 +343,35 @@ export type ChronicleStep =
   | "image_refs"
   | "cover_image_scene" // Generate cover image scene description
   | "cover_image" // Generate cover image from scene description
-  | "regenerate_scene_description"; // Regenerate a single image ref's scene description
+  | "regenerate_scene_description" // Regenerate a single image ref's scene description
+  | "regenerate_image_refs" // Regenerate all image refs: convert entity_refs, fix stale anchors
+  | "tag_image_refs"; // Tag image refs with visual tags and suggest styles/compositions
 
 /**
  * Worker task - what we send to the worker (single task)
  * Includes metadata needed for worker to persist directly to IndexedDB
  */
-export type WorkerTask = EnrichmentTaskPayload & {
-  projectId: string;
-  /** Snapshot of resolved LLM call settings at execution time */
-  llmCallSettings?: ResolvedLLMCallSettings;
-};
+export type WorkerTask =
+  | (EnrichmentTaskPayload & {
+      projectId: string;
+      /** Snapshot of resolved LLM call settings at execution time */
+      llmCallSettings?: ResolvedLLMCallSettings;
+    })
+  | {
+      type: "upscale";
+      imageId: string;
+      upscaleModel: "clarity" | "creative" | "topaz";
+      factor: 2 | 4;
+      creativity: number;
+      resemblance: number;
+      prompt: string;
+      negativePrompt: string;
+      testMode: boolean;
+      entityId: string;
+      entityName: string;
+      entityKind: string;
+      projectId: string;
+    };
 
 /**
  * Worker result - what the worker returns

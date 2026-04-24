@@ -1,4 +1,4 @@
-import type { ImageBackend, ImageEntryMetadata, ImageSize } from '../types';
+import type { ImageBackend, ImageEntryMetadata, ImageSize, AlternateGroup } from '../types';
 
 /**
  * Shape of image data from a viewer bundle (wire format from JSON).
@@ -27,6 +27,12 @@ export interface BundleImageData {
  */
 export type LegacyImageMap = Record<string, string>;
 
+/**
+ * Alternate image versions embedded in the bundle (S3 mode only).
+ * Keyed by the active/referenced imageId.
+ */
+export type BundleAlternatesData = Record<string, AlternateGroup>;
+
 function bundleResultToMetadata(img: BundleImageResult): ImageEntryMetadata {
   return {
     imageId: img.imageId,
@@ -49,20 +55,25 @@ function bundleResultToMetadata(img: BundleImageResult): ImageEntryMetadata {
 export class CDNBackend implements ImageBackend {
   private urlMap = new Map<string, { thumb: string; full: string }>();
   private metadataMap = new Map<string, ImageEntryMetadata>();
+  private alternatesMap = new Map<string, AlternateGroup>();
   private bundleImageData: BundleImageData | null;
   private legacyImages: LegacyImageMap | null;
+  private bundleAlternates: BundleAlternatesData | null;
 
   constructor(
     bundleImageData: BundleImageData | null,
     legacyImages?: LegacyImageMap | null,
+    bundleAlternates?: BundleAlternatesData | null,
   ) {
     this.bundleImageData = bundleImageData;
     this.legacyImages = legacyImages ?? null;
+    this.bundleAlternates = bundleAlternates ?? null;
   }
 
   initialize(): Promise<void> {
     this.loadLegacyImages();
     this.loadBundleImages();
+    this.loadAlternates();
     return Promise.resolve();
   }
 
@@ -88,6 +99,15 @@ export class CDNBackend implements ImageBackend {
       this.urlMap.set(img.imageId, { thumb, full });
     }
     this.metadataMap.set(img.imageId, bundleResultToMetadata(img));
+  }
+
+  private loadAlternates(): void {
+    if (!this.bundleAlternates) return;
+    for (const [activeId, group] of Object.entries(this.bundleAlternates)) {
+      if (group.versions.length > 1) {
+        this.alternatesMap.set(activeId, group);
+      }
+    }
   }
 
   getImageUrl(imageId: string, size: ImageSize = 'thumb'): Promise<string | null> {
@@ -116,8 +136,13 @@ export class CDNBackend implements ImageBackend {
     return Promise.resolve(result);
   }
 
+  getAlternates(imageId: string): Promise<AlternateGroup | null> {
+    return Promise.resolve(this.alternatesMap.get(imageId) ?? null);
+  }
+
   cleanup(): void {
     this.urlMap.clear();
     this.metadataMap.clear();
+    this.alternatesMap.clear();
   }
 }

@@ -13,7 +13,7 @@ import type {
   CompositionStyle,
   NarrativeStyle,
 } from "@canonry/world-schema";
-import { loadStyleLibrary, saveStyleLibrary, resetStyleLibrary } from "../lib/db/styleRepository";
+import { loadStyleLibrary, saveStyleLibrary, resetStyleLibrary as resetStyleLibraryDb } from "../lib/db/styleRepository";
 
 export interface UseStyleLibraryReturn {
   /** Current style library */
@@ -25,7 +25,7 @@ export interface UseStyleLibraryReturn {
   /** Save the entire library */
   save: (library: StyleLibrary) => Promise<void>;
   /** Reset to defaults (deletes custom library) */
-  reset: () => Promise<void>;
+  resetStyleLibrary: () => Promise<void>;
   /** Add a new artistic style */
   addArtisticStyle: (style: ArtisticStyle) => Promise<void>;
   /** Update an artistic style */
@@ -80,8 +80,8 @@ export function useStyleLibrary(): UseStyleLibraryReturn {
   }, []);
 
   // Reset to defaults
-  const reset = useCallback(async () => {
-    await resetStyleLibrary();
+  const resetStyleLibrary = useCallback(async () => {
+    await resetStyleLibraryDb();
     setStyleLibrary(createDefaultStyleLibrary());
     setIsCustom(false);
   }, []);
@@ -205,7 +205,7 @@ export function useStyleLibrary(): UseStyleLibraryReturn {
     loading,
     isCustom,
     save,
-    reset,
+    resetStyleLibrary,
     addArtisticStyle,
     updateArtisticStyle,
     deleteArtisticStyle,

@@ -19,10 +19,9 @@ import {
   HISTORIAN_NOTE_ICONS,
   HISTORIAN_NOTE_LABELS,
   injectFootnotes,
-  injectFootnotesWithGlobalIndex,
+  type ResolvedFootnote,
 } from "../lib/historianAnnotations.ts";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor.ts";
-import styles from "./WikiPage.module.css";
 
 // ============================================================================
 // SectionWithImages helpers
@@ -34,7 +33,8 @@ type MarginItem =
 
 type FlowFragment =
   | { type: "text"; content: string }
-  | { type: "image"; image: WikiSectionImage };
+  | { type: "image"; image: WikiSectionImage }
+  | { type: "callout"; note: WikiHistorianNote; idx: number };
 
 /** Measure DOM sidenote positions and resolve overlapping callouts. */
 function computeSidenotePositions(
@@ -103,30 +103,80 @@ function resolveImagePosition(img: WikiSectionImage, content: string): number {
   return content.length;
 }
 
-/** Build interleaved text/image fragments for flow layout. */
+/**
+ * Inject pre-resolved footnote superscripts into a text slice.
+ * Uses positions already computed against the full section content —
+ * never re-resolves anchors, so numbering stays globally consistent.
+ */
+function injectPreResolvedFootnotes(
+  slice: string,
+  sliceStart: number,
+  resolvedEntries: ResolvedFootnote[],
+): string {
+  // Find entries whose anchor falls within this slice's range in the full content
+  const sliceEnd = sliceStart + slice.length;
+  const hits = resolvedEntries.filter(
+    (e) => e.index >= sliceStart && e.index + e.phraseLen <= sliceEnd
+  );
+  if (hits.length === 0) return slice;
+
+  let result = slice;
+  // Insert back-to-front to preserve positions
+  for (let i = hits.length - 1; i >= 0; i--) {
+    const entry = hits[i];
+    const localInsert = (entry.index - sliceStart) + entry.phraseLen;
+    const color = HISTORIAN_NOTE_COLORS[entry.note.type] || "#8b7355";
+    const sup = `<sup class="historian-fn" data-note-idx="${entry.globalIdx}" style="color:${color};cursor:pointer;font-weight:700;font-size:12px;margin-left:2px">${entry.globalIdx + 1}</sup>`;
+    result = result.slice(0, localInsert) + sup + result.slice(localInsert);
+  }
+  return result;
+}
+
+/** A positioned insert: image or callout, to be interleaved with text. */
+type FlowInsert =
+  | { kind: "image"; image: WikiSectionImage; position: number; anchorLen: number }
+  | { kind: "callout"; note: WikiHistorianNote; idx: number; position: number; anchorLen: number };
+
+/** Build interleaved text/image/callout fragments for flow layout. */
 function buildFlowFragments(
   content: string,
   images: WikiSectionImage[],
-  allNotes: WikiHistorianNote[],
-  orderedNotes: WikiHistorianNote[],
+  resolvedEntries: ResolvedFootnote[],
+  fullNoteInserts: Array<{ note: WikiHistorianNote; idx: number }>,
 ): FlowFragment[] {
-  const insertItems = images
-    .map((image) => ({ image, position: resolveImagePosition(image, content) }))
-    .sort((a, b) => a.position - b.position);
+  // Merge images and callouts into a single sorted insert list
+  const inserts: FlowInsert[] = [];
+  for (const image of images) {
+    const pos = resolveImagePosition(image, content);
+    inserts.push({ kind: "image", image, position: pos, anchorLen: image.anchorText?.length || 0 });
+  }
+  for (const { note, idx } of fullNoteInserts) {
+    // Use the pre-resolved position from resolvedEntries
+    const entry = resolvedEntries.find((e) => e.globalIdx === idx);
+    if (entry) {
+      inserts.push({ kind: "callout", note, idx, position: entry.index, anchorLen: entry.phraseLen });
+    }
+  }
+  inserts.sort((a, b) => a.position - b.position);
+
   const fragments: FlowFragment[] = [];
   let lastIndex = 0;
-  for (const item of insertItems) {
-    const anchorEnd = item.position + (item.image.anchorText?.length || 0);
+  for (const item of inserts) {
+    const anchorEnd = item.position + item.anchorLen;
     const paragraphEnd = content.indexOf("\n\n", anchorEnd);
     const insertPoint = paragraphEnd >= 0 ? paragraphEnd : content.length;
     if (insertPoint > lastIndex) {
-      fragments.push({ type: "text", content: injectFootnotesWithGlobalIndex(content.slice(lastIndex, insertPoint), allNotes, orderedNotes) });
+      fragments.push({ type: "text", content: injectPreResolvedFootnotes(content.slice(lastIndex, insertPoint), lastIndex, resolvedEntries) });
     }
-    fragments.push({ type: "image", image: item.image });
+    if (item.kind === "image") {
+      fragments.push({ type: "image", image: item.image });
+    } else {
+      fragments.push({ type: "callout", note: item.note, idx: item.idx });
+    }
     lastIndex = paragraphEnd >= 0 ? paragraphEnd + 2 : insertPoint;
   }
   if (lastIndex < content.length) {
-    fragments.push({ type: "text", content: injectFootnotesWithGlobalIndex(content.slice(lastIndex), allNotes, orderedNotes) });
+    fragments.push({ type: "text", content: injectPreResolvedFootnotes(content.slice(lastIndex), lastIndex, resolvedEntries) });
   }
   return fragments;
 }
@@ -137,7 +187,7 @@ function buildFlowFragments(
 
 function FootnoteList({ orderedNotes }: Readonly<{ orderedNotes: WikiHistorianNote[] }>) {
   return (
-    <ol className={styles.footnoteList}>
+    <ol className="footnote-list">
       {orderedNotes.map((note) => {
         const color = HISTORIAN_NOTE_COLORS[note.type] || HISTORIAN_NOTE_COLORS.commentary;
         const icon = HISTORIAN_NOTE_ICONS[note.type] || "\u2726";
@@ -145,13 +195,13 @@ function FootnoteList({ orderedNotes }: Readonly<{ orderedNotes: WikiHistorianNo
         return (
           <li
             key={note.noteId}
-            className={styles.footnoteItem}
+            className="footnote-item"
             style={{ "--note-color": color } as React.CSSProperties}
           >
-            <span className={styles.footnoteLabel}>
+            <span className="footnote-label">
               {icon} {label}
             </span>
-            <span className={styles.footnoteText}>{note.text}</span>
+            <span className="footnote-text">{note.text}</span>
           </li>
         );
       })}
@@ -215,6 +265,10 @@ interface SectionWithImagesProps extends SectionContentProps {
   historianNotes: Optional<WikiHistorianNote[]>;
   narrativeStyleId: Optional<string>;
   layoutOverride: Optional<PageLayoutOverride>;
+  /** Pre-resolved footnotes for this section with global indices (from resolveGlobalFootnotes) */
+  preResolvedNotes: Optional<ResolvedFootnote[]>;
+  /** Global ordered notes across all sections (for tooltip lookup by global index) */
+  globalOrderedNotes: Optional<WikiHistorianNote[]>;
 }
 
 // eslint-disable-next-line max-lines-per-function, complexity -- section layout component managing footnote injection, hover tooltips, sidenote positioning, and three distinct rendering modes (centered/margin/flow); each mode renders different DOM structures requiring distinct conditional rendering paths
@@ -231,6 +285,8 @@ export function SectionWithImages({
   isFirstChronicleSection,
   narrativeStyleId,
   layoutOverride,
+  preResolvedNotes,
+  globalOrderedNotes,
 }: Readonly<SectionWithImagesProps>) {
   const images = layoutOverride?.imageLayout === "hidden" ? [] : section.images || [];
   const content = section.content;
@@ -241,25 +297,52 @@ export function SectionWithImages({
     const raw = historianNotes || [];
     if (!annotationDisplay) return raw;
     if (annotationDisplay === "disabled") return [];
-    // Remap all notes to the override display mode
     return raw.map((n) => ({
       ...n,
       display: annotationDisplay,
     }));
   }, [historianNotes, annotationDisplay]);
 
-  // Inject footnote markers into content for ALL notes (unified numbering)
-  const { content: annotatedContent, orderedNotes } = useMemo(
-    () => injectFootnotes(content, allNotes),
-    [content, allNotes],
-  );
+  // Use pre-resolved global data if available, otherwise fall back to per-section resolution
+  const { content: annotatedContent, orderedNotes, resolvedEntries } = useMemo(() => {
+    if (preResolvedNotes && globalOrderedNotes) {
+      // Inject superscripts using pre-resolved global indices
+      let result = content;
+      for (let i = preResolvedNotes.length - 1; i >= 0; i--) {
+        const entry = preResolvedNotes[i];
+        // Skip notes that were filtered out by annotation display override
+        if (annotationDisplay === "disabled") continue;
+        const insertAt = entry.index + entry.phraseLen;
+        const color = HISTORIAN_NOTE_COLORS[entry.note.type] || "#8b7355";
+        const sup = `<sup class="historian-fn" data-note-idx="${entry.globalIdx}" style="color:${color};cursor:pointer;font-weight:700;font-size:12px;margin-left:2px">${entry.globalIdx + 1}</sup>`;
+        result = result.slice(0, insertAt) + sup + result.slice(insertAt);
+      }
+      // Apply display override to the pre-resolved notes for this section
+      const sectionNotes = annotationDisplay
+        ? preResolvedNotes.map((e) => ({ ...e, note: { ...e.note, display: annotationDisplay } }))
+        : preResolvedNotes;
+      return {
+        content: result,
+        orderedNotes: globalOrderedNotes,
+        resolvedEntries: sectionNotes,
+      };
+    }
+    return injectFootnotes(content, allNotes);
+  }, [content, allNotes, preResolvedNotes, globalOrderedNotes, annotationDisplay]);
 
   // Full-display notes with their indices in the unified ordering
   const fullNoteInserts = useMemo(() => {
+    if (preResolvedNotes && globalOrderedNotes) {
+      // Use pre-resolved entries for this section with global indices
+      const displayMode = annotationDisplay;
+      return preResolvedNotes
+        .map((e) => ({ note: displayMode ? { ...e.note, display: displayMode } : e.note, idx: e.globalIdx }))
+        .filter(({ note }) => note.display === "full");
+    }
     return orderedNotes
       .map((note, idx) => ({ note, idx }))
       .filter(({ note }) => note.display === "full");
-  }, [orderedNotes]);
+  }, [orderedNotes, preResolvedNotes, globalOrderedNotes, annotationDisplay]);
 
   // Determine layout mode: override wins, then heuristic
   const layoutMode = useMemo(
@@ -269,8 +352,9 @@ export function SectionWithImages({
     [layoutOverride?.layoutMode, section, fullNoteInserts.length, narrativeStyleId],
   );
 
-  // Footnote collection mode: collect all notes as a numbered list at section bottom
-  const useFootnoteMode = layoutOverride?.annotationPosition === "footnote";
+  // Annotation position: "sidenote" forces margin, "inline" forces at-anchor, "footnote" collects at bottom
+  const annotationPosition = layoutOverride?.annotationPosition;
+  const useFootnoteMode = annotationPosition === "footnote";
 
   // Hover state for footnote tooltips (all notes, not just popout)
   const [hoveredNote, setHoveredNote] = React.useState<{
@@ -322,8 +406,21 @@ export function SectionWithImages({
   const effectiveFullNoteInserts = useFootnoteMode ? [] : fullNoteInserts;
   const hasInserts = images.length > 0 || effectiveFullNoteInserts.length > 0;
 
+  // In footnote mode, show only this section's notes (with global numbering)
+  const sectionFootnoteNotes = useMemo(() => {
+    if (!useFootnoteMode) return [];
+    if (preResolvedNotes) {
+      return preResolvedNotes.map((e) => ({
+        ...e.note,
+        ...(annotationDisplay ? { display: annotationDisplay } : {}),
+        _globalIdx: e.globalIdx,
+      }));
+    }
+    return orderedNotes;
+  }, [useFootnoteMode, preResolvedNotes, orderedNotes, annotationDisplay]);
+
   const footnoteList =
-    useFootnoteMode && orderedNotes.length > 0 ? <FootnoteList orderedNotes={orderedNotes} /> : null;
+    useFootnoteMode && sectionFootnoteNotes.length > 0 ? <FootnoteList orderedNotes={sectionFootnoteNotes} /> : null;
 
   const tooltipElement = hoveredNote ? (
     <HistorianFootnoteTooltip
@@ -346,7 +443,7 @@ export function SectionWithImages({
   };
 
   if (!hasInserts) {
-    const wrapperClass = layoutMode === "centered" ? styles.centeredLayout : undefined;
+    const wrapperClass = layoutMode === "centered" ? "centered-layout" : undefined;
     return (
       <div className={wrapperClass} {...footnoteEvents}>
         <MarkdownSection content={annotatedContent} {...contentProps} isFirstFragment={isFirstChronicleSection} />
@@ -360,14 +457,22 @@ export function SectionWithImages({
   if (layoutMode === "margin") {
     const { leftItems, rightItems } = distributeToMarginColumns(images, effectiveFullNoteInserts);
     return (
-      <div className={styles.marginLayout} {...footnoteEvents}>
-        <div className={styles.marginLeft}>
+      <div className="margin-layout" data-note-position={annotationPosition || undefined} {...footnoteEvents}>
+        <div className="margin-left">
           <MarginColumn items={leftItems} prefix="ml" onImageOpen={onImageOpen} />
         </div>
-        <div className={styles.marginCenter}>
+        <div className="margin-center">
           <MarkdownSection content={annotatedContent} {...contentProps} isFirstFragment={isFirstChronicleSection} />
+          {/* Narrow-screen fallback: callouts inline below text when margins collapse */}
+          {effectiveFullNoteInserts.length > 0 && (
+            <div className="margin-callout-fallback">
+              {effectiveFullNoteInserts.map(({ note, idx }) => (
+                <HistorianCallout key={`mf-${note.noteId}`} note={note} noteIndex={idx} layoutMode="flow" />
+              ))}
+            </div>
+          )}
         </div>
-        <div className={styles.marginRight}>
+        <div className="margin-right">
           <MarginColumn items={rightItems} prefix="mr" onImageOpen={onImageOpen} />
         </div>
         {footnoteList}
@@ -376,29 +481,28 @@ export function SectionWithImages({
     );
   }
 
-  // ── Flow mode: fragment-based rendering with interleaved images ──
-  const fragments = buildFlowFragments(content, images, allNotes, orderedNotes);
-  const firstTextIndex = fragments.findIndex((f) => f.type !== "image");
+  // ── Flow mode: fragment-based rendering with interleaved images + callouts ──
+  const fragments = buildFlowFragments(content, images, resolvedEntries, effectiveFullNoteInserts);
+  const firstTextIndex = fragments.findIndex((f) => f.type === "text");
 
   return (
-    <div className={styles.sectionWithImages} ref={sectionRef} {...footnoteEvents}>
-      {/* Inline fallback callouts: floated right, before text so float wraps (narrow viewports only) */}
-      {effectiveFullNoteInserts.length > 0 && (
-        <div className={styles.inlineCallouts}>
-          {effectiveFullNoteInserts.map(({ note, idx }) => (
-            <HistorianCallout key={`il-${note.noteId}`} note={note} noteIndex={idx} layoutMode="flow" />
-          ))}
-        </div>
-      )}
+    <div className="section-with-images" ref={sectionRef} data-note-position={annotationPosition || undefined} {...footnoteEvents}>
       {fragments.map((fragment, i) => {
         if (fragment.type === "image") {
           return isFloatImage(fragment.image.size) ? (
             <ChronicleImage key={`img-${fragment.image.refId}-${i}`} image={fragment.image} onOpen={onImageOpen} layoutMode="flow" />
           ) : (
             <React.Fragment key={`img-${fragment.image.refId}-${i}`}>
-              <div className={styles.clearfix} />
+              <div className="clearfix" />
               <ChronicleImage image={fragment.image} onOpen={onImageOpen} layoutMode="flow" />
             </React.Fragment>
+          );
+        }
+        if (fragment.type === "callout") {
+          return (
+            <div key={`fc-${fragment.note.noteId}`} className="inline-anchor-callout">
+              <HistorianCallout note={fragment.note} noteIndex={fragment.idx} layoutMode="flow" />
+            </div>
           );
         }
         const isFirst = isFirstChronicleSection && i === firstTextIndex;
@@ -406,15 +510,15 @@ export function SectionWithImages({
           <MarkdownSection key={`text-${i}`} content={fragment.content} {...contentProps} isFirstFragment={isFirst} />
         );
       })}
-      <div className={styles.clearfix} />
+      <div className="clearfix" />
       {/* Sidenote column: absolutely positioned callouts in right margin (wide viewports) */}
       {effectiveFullNoteInserts.length > 0 && (
-        <div className={styles.sidenoteColumn}>
+        <div className="sidenote-column">
           {effectiveFullNoteInserts.map(({ note, idx }) => (
             <div
               key={`sn-${note.noteId}`}
               data-sidenote-callout-idx={idx}
-              className={styles.sidenoteCallout}
+              className="sidenote-callout"
               style={{ "--sidenote-top": `${resolvedPositions.get(idx) ?? 0}px` } as React.CSSProperties}
             >
               <HistorianCallout note={note} noteIndex={idx} layoutMode="margin" />

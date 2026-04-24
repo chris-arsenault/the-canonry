@@ -34,6 +34,7 @@ export interface ChronicleNavItem {
   historianNoteCount: number;
   lens?: { entityName: string };
   imageRefCompleteCount: number;
+  imageRefTotalCount: number;
   failureStep?: string;
   createdAt: number;
   updatedAt: number;
@@ -52,6 +53,7 @@ export interface ChronicleNavItem {
   toneRanking?: [string, string, string];
   assignedTone?: string;
   eraNarrativeWeight?: "structural" | "contextual" | "flavor";
+  curationComplete: boolean;
 }
 
 export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
@@ -101,6 +103,7 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
         (r: { type: string; status?: string }) =>
           r.type === "prompt_request" && r.status === "complete"
       ).length || 0,
+    imageRefTotalCount: record.imageRefs?.refs?.length || 0,
     failureStep: record.failureStep,
     createdAt: record.createdAt || 0,
     updatedAt: record.updatedAt || 0,
@@ -121,5 +124,6 @@ export function buildNavItem(record: ChronicleRecord): ChronicleNavItem {
     toneRanking: record.toneRanking?.ranking,
     assignedTone: record.assignedTone,
     eraNarrativeWeight: record.narrativeStyle?.eraNarrativeWeight,
+    curationComplete: !!record.curationComplete,
   };
 }

@@ -33,6 +33,7 @@ import type {
   WizardEvent,
 } from "./chroniclePanelTypes";
 import type { StyleLibrary } from "@canonry/world-schema";
+import type { PersistedEntity } from "../../lib/db/illuminatorDb";
 
 interface Params {
   selectedItem: SelectedChronicleItem | undefined;
@@ -70,7 +71,7 @@ interface Params {
     wizardEras: WizardEra[];
     wizardEvents: WizardEvent[];
   };
-  fullEntityMapRef: React.RefObject<Map<string, Record<string, unknown>>>;
+  fullEntityMapRef: React.RefObject<Map<string, PersistedEntity>>;
 }
 
 export function useChronicleGenerationCallbacks(params: Params) {
@@ -275,7 +276,7 @@ export function useChronicleGenerationCallbacks(params: Params) {
     const selectedEventIdSet = new Set(selectedItem.selectedEventIds || []);
     const selectedEvents = nav.wizardEvents.filter((event) => selectedEventIdSet.has(event.id));
     const entrypointEntity = selectedItem.entrypointId ? fullEntityMapRef.current.get(selectedItem.entrypointId) : undefined;
-    const entryPoint = entrypointEntity ? { createdAt: (entrypointEntity.createdAt as number) ?? 0 } : undefined;
+    const entryPoint = entrypointEntity ? { createdAt: entrypointEntity.createdAt ?? 0 } : undefined;
     let nextContext = availableEras.length > 0 ? computeTemporalContext(selectedEvents, availableEras, entryPoint) : selectedItem.temporalContext;
     if (!nextContext) {
       nextContext = { focalEra, allEras: availableEras, chronicleTickRange: [0, 0] as [number, number], temporalScope: "moment", isMultiEra: false, touchedEraIds: [], temporalDescription: buildTemporalDescription(focalEra, [0, 0], "moment", false, 1) };
@@ -404,11 +405,12 @@ export function useChronicleGenerationCallbacks(params: Params) {
       onGenerateImageRefs: imgCallbacks.handleGenerateImageRefs as () => void,
       onGenerateCoverImageScene: imgCallbacks.handleGenerateCoverImageScene as () => void,
       onGenerateCoverImage: imgCallbacks.handleGenerateCoverImage as () => void,
-      styleSelection: {} as StyleSelection, // filled by parent
-      imageSize: "",
-      imageQuality: "",
+      onResetCoverImage: imgCallbacks.handleResetCoverImage as () => void,
+      styleSelection: {} as StyleSelection, // overridden by ChroniclePanel
+      imageSize: "",                        // overridden by ChroniclePanel
+      imageQuality: "",                     // overridden by ChroniclePanel
       imageModel: imgModel,
-      imageGenSettings: {} as Record<string, unknown>,
+      imageGenSettings: {} as Record<string, unknown>, // overridden by ChroniclePanel
       onOpenImageSettings: onOpenImgSettings,
       onRegenerateWithSampling: handleRegenerateWithSampling,
       onRegenerateFull: () => void handleRegenerateFull(),
@@ -439,17 +441,17 @@ export function useChronicleGenerationCallbacks(params: Params) {
       onDetectTone: item.summary ? () => handleDetectTone(item.chronicleId, item.name) : undefined,
       isHistorianActive: isHistActive,
       onUpdateHistorianNote: onUpdateHistNote,
-      onGeneratePrep: undefined, // Will be built in parent
+      onGeneratePrep: undefined,                     // built in parent
       isGenerating,
-      refinements: null, // Built in parent
-      simulationRunId: "",
-      worldSchema: { entityKinds: [], cultures: [] },
-      entities: [],
-      styleLibrary: null,
-      cultures: undefined,
+      refinements: null,                              // built in parent
+      simulationRunId: "",                            // overridden by ChroniclePanel
+      worldSchema: { entityKinds: [], cultures: [] }, // overridden by ChroniclePanel
+      entities: [],                                   // overridden by ChroniclePanel
+      styleLibrary: null,                             // overridden by ChroniclePanel
+      cultures: undefined,                            // overridden by ChroniclePanel
       entityGuidance: {},
-      cultureIdentities: {},
-      worldContext: {} as WorldContext,
+      cultureIdentities: {},                          // overridden by ChroniclePanel
+      worldContext: {} as WorldContext,                // overridden by ChroniclePanel
       eras: navState.wizardEras,
       events: navState.wizardEvents,
       onNavigateToTab: onNavToTab,

@@ -16,6 +16,8 @@ export type ResolvedLLMCallSettings = Record<LLMCallType, ResolvedLLMCallConfig>
 export interface WorkerConfig {
   anthropicApiKey: string;
   openaiApiKey: string;
+  wavespeedApiKey: string;
+  bflApiKey: string;
   imageModel: string;
   imageSize: string;
   imageQuality: string;

@@ -11,14 +11,14 @@ export interface ImageConfig {
   enabled: boolean;
   apiKey?: string;
   model?: string;
-  size?: "1024x1024" | "1792x1024" | "1024x1792";
-  quality?: "standard" | "hd";
+  size?: string;
+  quality?: string;
 }
 
 export interface ImageRequest {
   prompt: string;
-  size?: "1024x1024" | "1792x1024" | "1024x1792";
-  quality?: "standard" | "hd";
+  size?: string;
+  quality?: string;
 }
 
 export interface ImageResult {
@@ -60,11 +60,25 @@ function resolveSize(
 function resolveQuality(
   requestQuality: ImageRequest["quality"],
   configQuality: ImageConfig["quality"],
-  isGptImage: boolean,
+  model: string,
 ): string | undefined {
   const qualityParam = requestQuality || configQuality;
-  if (qualityParam && qualityParam !== "auto") return qualityParam;
-  if (isGptImage && qualityParam === "auto") return "auto";
+  if (!qualityParam) return undefined;
+  // Import would create circular dep — inline the resolution
+  // Abstract quality: "auto" | "high" | "standard" | "low"
+  // GPT Image: auto/high/medium/low
+  if (model.startsWith("gpt-image")) {
+    if (qualityParam === "standard") return "medium";
+    return qualityParam;
+  }
+  // DALL-E 3: standard/hd
+  if (model === "dall-e-3") {
+    if (qualityParam === "high") return "hd";
+    if (qualityParam === "low" || qualityParam === "medium" || qualityParam === "auto") return "standard";
+    return qualityParam; // already "standard" or "hd"
+  }
+  // DALL-E 2: standard only
+  if (model === "dall-e-2") return "standard";
   return undefined;
 }
 
@@ -118,7 +132,7 @@ export class ImageGenerationClient {
     const size = resolveSize(request.size, this.config.size, isGptImage);
     if (size) body.size = size;
 
-    const quality = resolveQuality(request.quality, this.config.quality, isGptImage);
+    const quality = resolveQuality(request.quality, this.config.quality, model);
     if (quality) body.quality = quality;
 
     if (!isGptImage) body.response_format = "b64_json";

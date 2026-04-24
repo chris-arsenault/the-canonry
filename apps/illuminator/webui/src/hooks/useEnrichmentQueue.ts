@@ -27,6 +27,7 @@ import { createWorkerPool, resetWorkerPool, type WorkerHandle } from "../lib/wor
 import { getResolvedLLMCallSettings, type ResolvedLLMCallSettings } from "../lib/llmModelSettings";
 import type { LLMCallType } from "../lib/llmCallTypes";
 import type { EnrichmentType } from "../lib/enrichmentTypes";
+import { isChronicleImage } from "../lib/imageTypes";
 import { useThinkingStore } from "../lib/db/thinkingStore";
 import { executeBrowserTask } from "../lib/browserTaskExecutor";
 
@@ -106,7 +107,7 @@ export interface UseEnrichmentQueueReturn {
 // Cost weights for workload estimation
 const TEXT_TASK_WEIGHT = 1;
 const IMAGE_TASK_WEIGHT = 10;
-const MAX_AUTO_RECONNECT_ATTEMPTS = 1;
+const MAX_AUTO_RECONNECT_ATTEMPTS = 2;
 
 interface WorkerState {
   worker: WorkerHandle;
@@ -197,11 +198,15 @@ function notifyEntityUpdate(
 ): void {
   if (!result.result) return;
   const queueItem = queue.find((item) => item.id === result.id);
-  if (queueItem?.imageType === "chronicle") return;
+  if (isChronicleImage(queueItem?.imageType)) return;
   const output = applyEnrichmentResult({}, result.type, result.result, queueItem?.entityLockedSummary);
   onEntityUpdate(result.entityId, output);
 }
 
+/**
+ * Returns true if the error is transient and the task will be retried
+ * (i.e. the caller should NOT mark the task as "error").
+ */
 function maybeAutoReconnect(
   message: { taskId: string; error?: string },
   workerState: { isReady: boolean } | undefined,
@@ -211,10 +216,10 @@ function maybeAutoReconnect(
   reconnectInProgressRef: React.RefObject<boolean>,
   resetWorkerPool: () => void,
   initializeRef: React.RefObject<((config: unknown) => void) | null>
-): void {
-  if (!message.error?.includes("Worker not initialized")) return;
+): boolean {
+  if (!message.error?.includes("Worker not initialized")) return false;
   const attempts = attemptsMap.get(message.taskId) || 0;
-  if (attempts >= MAX_AUTO_RECONNECT_ATTEMPTS) return;
+  if (attempts >= MAX_AUTO_RECONNECT_ATTEMPTS) return false;
   attemptsMap.set(message.taskId, attempts + 1);
   pendingRetries.add(message.taskId);
   if (workerState) workerState.isReady = false;
@@ -223,6 +228,7 @@ function maybeAutoReconnect(
     resetWorkerPool();
     initializeRef.current?.(config);
   }
+  return true;
 }
 
 export function useEnrichmentQueue(
@@ -366,8 +372,8 @@ export function useEnrichmentQueue(
             }));
             if (taskResult.result) {
               const queueItem = queueRef.current.find((item) => item.id === task.id);
-              const isChronicleImage = queueItem?.imageType === "chronicle";
-              if (!isChronicleImage) {
+              const isChronicle = isChronicleImage(queueItem?.imageType);
+              if (!isChronicle) {
                 const output = applyEnrichmentResult(
                   {},
                   task.type,
@@ -476,20 +482,28 @@ export function useEnrichmentQueue(
           // Clean up task-worker mapping
           taskWorkerMapRef.current.delete(message.taskId);
 
-          setQueue(patchQueueItem(message.taskId, {
-            status: "error" as const,
-            completedAt: Date.now(),
-            error: message.error,
-            debug: message.debug,
-          }));
-
-          useThinkingStore.getState().finishTask(message.taskId);
-
-          maybeAutoReconnect(
+          // Check if auto-reconnect will retry this task — if so, keep it
+          // as "queued" instead of marking "error" so the watcher doesn't
+          // write a spurious "failed" status to the chronicle image ref.
+          const willRetry = maybeAutoReconnect(
             message, workerState,
             autoReconnectAttemptsRef.current, pendingAutoRetryRef.current,
             configRef.current, reconnectInProgressRef, resetWorkerPool, initializeRef
           );
+
+          if (willRetry) {
+            setQueue(patchQueueItem(message.taskId, {
+              status: "queued" as const,
+            }));
+          } else {
+            setQueue(patchQueueItem(message.taskId, {
+              status: "error" as const,
+              completedAt: Date.now(),
+              error: message.error,
+              debug: message.debug,
+            }));
+            useThinkingStore.getState().finishTask(message.taskId);
+          }
 
           // Process next task for this worker
           setTimeout(() => processNextForWorker(workerId), 0);
@@ -516,10 +530,9 @@ export function useEnrichmentQueue(
   useEffect(() => {
     return () => {
       for (const workerState of workersRef.current) {
-        if (workerState.worker.type === "dedicated") {
-          workerState.worker.terminate();
-        }
+        workerState.worker.terminate();
       }
+      resetWorkerPool();
       workersRef.current = [];
     };
   }, []);
@@ -527,12 +540,14 @@ export function useEnrichmentQueue(
   // Initialize workers (SharedWorker with fallback to dedicated Worker)
   const initialize = useCallback(
     (config: WorkerConfig) => {
-      // Terminate existing workers
+      // Terminate all existing workers and reset the global pool so fresh
+      // handles are created.  Reusing stale ServiceWorker/SharedWorker
+      // handles after a config change (e.g. model switch) can leave
+      // workers in a state where new tasks never start processing.
       for (const workerState of workersRef.current) {
-        if (workerState.worker.type === "dedicated") {
-          workerState.worker.terminate();
-        }
+        workerState.worker.terminate();
       }
+      resetWorkerPool();
       workersRef.current = [];
       taskWorkerMapRef.current.clear();
 
@@ -730,13 +745,29 @@ export function useEnrichmentQueue(
     if (pendingAutoRetryRef.current.size > 0) {
       const taskIds = Array.from(pendingAutoRetryRef.current);
       pendingAutoRetryRef.current.clear();
+
+      // Assign pending retry tasks to workers and kick off processing.
+      // These tasks are already "queued" in the queue state, but have no
+      // worker assignment — retry() won't work because it expects "error" status.
+      const currentQueue = queueRef.current;
+      const assignedWorkers = new Set<number>();
       for (const taskId of taskIds) {
-        retry(taskId);
+        const item = currentQueue.find((i) => i.id === taskId && i.status === "queued");
+        if (!item) continue;
+        const worker = findLeastBusyWorker(workersRef.current, currentQueue);
+        if (worker) {
+          taskWorkerMapRef.current.set(taskId, worker.workerId);
+          worker.pendingTaskIds.add(taskId);
+          assignedWorkers.add(worker.workerId);
+        }
+      }
+      for (const workerId of assignedWorkers) {
+        setTimeout(() => processNextForWorker(workerId), 0);
       }
     }
 
     reconnectInProgressRef.current = false;
-  }, [isWorkerReady, retry]);
+  }, [isWorkerReady, processNextForWorker]);
 
   // Clear completed items
   const clearCompleted = useCallback(() => {

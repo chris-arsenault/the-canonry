@@ -15,6 +15,7 @@ import {
   buildImagePromptFromGuidance,
   getVisualConfigFromGuidance,
 } from "../lib/promptBuilders";
+import { getSizeForAspect } from "../lib/imageSettings";
 import type {
   EntityGuidance,
   CultureIdentities,
@@ -28,18 +29,13 @@ import type {
   CanonrySchemaSlice,
   StyleLibrary,
   WorldRelationship,
+  StyleSelection,
 } from "@canonry/world-schema";
 import type { PersistedEntity } from "../lib/db/illuminatorDb";
 import type { EntityNavItem } from "../lib/db/entityNav";
 import type { EraTemporalEntry } from "../lib/db/indexTypes";
 
 // --- Types ---
-
-interface StyleSelection {
-  artisticStyleId: string;
-  compositionStyleId: string;
-  colorPaletteId: string;
-}
 
 interface EraInfo {
   name: string;
@@ -74,6 +70,7 @@ interface ImagePromptParams extends EntityContextParams {
   styleSelection: StyleSelection;
   worldSchema: CanonrySchemaSlice | null;
   styleLibrary: StyleLibrary;
+  imageModel: string;
 }
 
 export interface UsePromptBuilderParams {
@@ -90,13 +87,25 @@ export interface UsePromptBuilderParams {
   config: PromptBuilderConfig;
   prominenceScale: ProminenceScale;
   styleLibrary: StyleLibrary;
+  imageModel: string;
   eraTemporalInfo: EraTemporalEntry[];
   eraTemporalInfoByKey: Map<string, EraTemporalEntry>;
+}
+
+export interface ResolvedImageStyleIds {
+  artisticStyleId?: string;
+  compositionStyleId?: string;
+  colorPaletteId?: string;
 }
 
 export interface UsePromptBuilderReturn {
   buildPrompt: (entity: PersistedEntity, type: "description" | "image") => string;
   getVisualConfig: (entity: PersistedEntity) => Record<string, unknown>;
+  /** Resolve per-entity image size from the randomly-picked composition's aspect.
+   *  Returns a WxH size string when the composition defines an aspect; undefined otherwise. */
+  resolveImageSize: (entity: PersistedEntity) => string | undefined;
+  /** Resolve the style IDs that would be used for this entity's image generation. */
+  resolveImageStyleIds: (entity: PersistedEntity) => ResolvedImageStyleIds;
 }
 
 // --- Module-level helpers to reduce callback complexity ---
@@ -265,6 +274,9 @@ function buildEntityImagePrompt(entity: PersistedEntity, params: ImagePromptPara
     artisticPromptFragment: resolvedStyle.artisticStyle?.promptFragment,
     compositionPromptFragment: resolvedStyle.compositionStyle?.promptFragment,
     colorPalettePromptFragment: resolvedStyle.colorPalette?.promptFragment,
+    colorPaletteSwatchColors: resolvedStyle.colorPalette?.swatchColors,
+    artisticNegativePrompt: resolvedStyle.artisticStyle?.negativePrompt,
+    artistExemplar: resolvedStyle.artisticStyle?.artistExemplar,
     cultureKeywords: resolvedStyle.cultureKeywords,
   };
 
@@ -273,7 +285,8 @@ function buildEntityImagePrompt(entity: PersistedEntity, params: ImagePromptPara
     cultureIdentities,
     worldContext,
     entityContext,
-    styleInfo
+    styleInfo,
+    params.imageModel
   );
 }
 
@@ -293,6 +306,7 @@ export function usePromptBuilder({
   config,
   prominenceScale,
   styleLibrary,
+  imageModel,
   eraTemporalInfo,
   eraTemporalInfoByKey,
 }: UsePromptBuilderParams): UsePromptBuilderReturn {
@@ -332,6 +346,7 @@ export function usePromptBuilder({
         worldSchema,
         styleLibrary,
         config,
+        imageModel,
       };
 
       if (type === "description") {
@@ -356,8 +371,43 @@ export function usePromptBuilder({
       styleLibrary,
       config,
       prominenceScale,
+      imageModel,
     ]
   );
 
-  return { buildPrompt, getVisualConfig };
+  const resolveImageSize = useCallback(
+    (entity: PersistedEntity): string | undefined => {
+      const resolved = resolveStyleSelection({
+        selection: styleSelection,
+        entityCultureId: entity.culture,
+        entityKind: entity.kind,
+        cultures: worldSchema?.cultures || [],
+        styleLibrary,
+      });
+      const aspect = resolved.compositionStyle?.defaultImageAspect;
+      if (!aspect) return undefined;
+      return getSizeForAspect(imageModel, aspect);
+    },
+    [styleSelection, worldSchema, styleLibrary, imageModel]
+  );
+
+  const resolveImageStyleIds = useCallback(
+    (entity: PersistedEntity): ResolvedImageStyleIds => {
+      const resolved = resolveStyleSelection({
+        selection: styleSelection,
+        entityCultureId: entity.culture,
+        entityKind: entity.kind,
+        cultures: worldSchema?.cultures || [],
+        styleLibrary,
+      });
+      return {
+        artisticStyleId: resolved.artisticStyle?.id,
+        compositionStyleId: resolved.compositionStyle?.id,
+        colorPaletteId: resolved.colorPalette?.id,
+      };
+    },
+    [styleSelection, worldSchema, styleLibrary]
+  );
+
+  return { buildPrompt, getVisualConfig, resolveImageSize, resolveImageStyleIds };
 }

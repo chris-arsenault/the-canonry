@@ -68,6 +68,7 @@ export interface ReviewPanelProps {
   onGenerateImageRefs: () => void;
   onGenerateCoverImageScene: () => void;
   onGenerateCoverImage: () => void;
+  onResetCoverImage: () => void;
   styleSelection: StyleSelection;
   imageSize: string;
   imageQuality: string;
@@ -117,6 +118,8 @@ export interface ReviewPanelProps {
   eras: WizardEra[];
   events: WizardEvent[];
   onNavigateToTab: (tab: string) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
 // ---------------------------------------------------------------------------

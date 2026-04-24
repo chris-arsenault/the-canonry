@@ -15,58 +15,25 @@ import ReferenceTab from "./ReferenceTab";
 import ContentTab from "./ContentTab";
 import HistorianTab from "./HistorianTab";
 import EnrichmentTab from "./EnrichmentTab";
-import { findEntityMentions } from "../../lib/wikiLinkService";
-import { useChronicleStore } from "../../lib/db/chronicleStore";
-import { getEntitiesForRun, createEntity } from "../../lib/db/entityRepository";
+import { createEntity } from "../../lib/db/entityRepository";
 import CreateEntityModal from "../CreateEntityModal";
-import type { ChronicleRecord, ChronicleGenerationVersion } from "../../lib/chronicleTypes";
+import TitleAcceptModal from "./TitleAcceptModal";
+import { useVersionState, buildFormatTargetIndicator } from "./useVersionState";
+import { useTabs } from "./useTabs";
+import { useTertiaryCast } from "./useTertiaryCast";
+import type { ChronicleRecord } from "../../lib/chronicleTypes";
 import type { PersistedEntity } from "../../lib/db/illuminatorDb";
 import type { PersistedNarrativeEvent } from "../../lib/db/illuminatorDb";
 import type { ImageGenSettings } from "../../hooks/useImageGenSettings";
-import type { WorldEntity } from "@canonry/world-schema";
+import type { WorldEntity, StyleLibrary, StyleSelection } from "@canonry/world-schema";
+import type { WorldContext, CultureIdentities } from "../../lib/promptBuilders";
+import type { Culture } from "../chronicle-panel/chroniclePanelTypes";
+import type { EntityNavItem } from "../../lib/db/entityNav";
 import "./ChronicleWorkspace.css";
 
 // ---------------------------------------------------------------------------
-// Shared type definitions
+// Local type definitions (workspace-specific)
 // ---------------------------------------------------------------------------
-
-interface StyleSelection {
-  artisticStyleId?: string;
-  compositionStyleId?: string;
-  colorPaletteId?: string;
-}
-
-interface StyleLibrary {
-  narrativeStyles?: Array<{ id: string; name: string }>;
-  artisticStyles?: Array<{ id: string; name: string; promptFragment?: string }>;
-  compositionStyles?: Array<{
-    id: string;
-    name: string;
-    promptFragment?: string;
-    suitableForKinds?: string[];
-  }>;
-  colorPalettes?: Array<{ id: string; name: string; promptFragment?: string }>;
-}
-
-interface CultureIdentities {
-  visual?: Record<string, Record<string, string>>;
-  descriptive?: Record<string, Record<string, string>>;
-  visualKeysByKind?: Record<string, string[]>;
-  descriptiveKeysByKind?: Record<string, string[]>;
-}
-
-interface WorldContext {
-  name?: string;
-  description?: string;
-  toneFragments?: { core: string };
-  speciesConstraint?: string;
-}
-
-interface Culture {
-  id: string;
-  name: string;
-  styleKeywords?: string[];
-}
 
 interface WorldSchema {
   entityKinds: Array<{ id: string; name: string }>;
@@ -96,16 +63,28 @@ interface Era {
 // Prop group interfaces (for max-jsx-props compliance)
 // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// Version type
-// ---------------------------------------------------------------------------
+export interface ImageConfig {
+  styleLibrary?: StyleLibrary;
+  styleSelection?: StyleSelection;
+  cultures?: Culture[];
+  cultureIdentities?: CultureIdentities;
+  worldContext?: WorldContext;
+  imageSize?: string;
+  imageQuality?: string;
+  imageModel?: string;
+  imageGenSettings?: ImageGenSettings;
+  onOpenImageSettings?: () => void;
+}
 
-interface ResolvedVersion {
-  id: string;
-  content: string;
-  wordCount: number;
-  shortLabel: string;
-  label: string;
+export interface ImageRefCallbacks {
+  onGenerateChronicleImage?: (refId: string) => void;
+  onResetChronicleImage?: (refId: string) => void;
+  onRegenerateDescription?: (refId: string) => void;
+  onUpdateChronicleAnchorText?: (refId: string, text: string) => void;
+  onUpdateChronicleImageSize?: (refId: string, size: string) => void;
+  onUpdateChronicleImageJustification?: (refId: string, justification: string) => void;
+  onSelectExistingImage?: (refId: string) => void;
+  onSelectExistingCoverImage?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -145,6 +124,7 @@ interface ChronicleWorkspaceProps {
   // Cover image
   onGenerateCoverImageScene?: () => void;
   onGenerateCoverImage?: () => void;
+  onResetCoverImage?: () => void;
   styleSelection?: StyleSelection;
   imageSize?: string;
   imageQuality?: string;
@@ -193,7 +173,12 @@ interface ChronicleWorkspaceProps {
   worldContext?: WorldContext;
   eras?: Era[];
   events?: PersistedNarrativeEvent[];
+  fullEntityNavMap?: Map<string, EntityNavItem>;
   onNavigateToTab?: (tab: string) => void;
+
+  // Tab state (lifted to survive unmount/remount cycles)
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -202,474 +187,6 @@ interface ChronicleWorkspaceProps {
 
 const wordCount = (content?: string): number =>
   content?.split(/\s+/).filter(Boolean).length || 0;
-
-function buildStepLabel(step?: string): string | null {
-  if (!step) return null;
-  const labels: Record<string, string> = {
-    generate: "initial",
-    regenerate: "regenerate",
-    creative: "creative",
-    combine: "combine",
-    copy_edit: "copy-edit",
-  };
-  return labels[step] || step;
-}
-
-function deduplicateVersions(history: ChronicleGenerationVersion[]): ResolvedVersion[] {
-  const sorted = [...history].sort((a, b) => a.generatedAt - b.generatedAt);
-  const seen = new Set<string>();
-  const unique: ChronicleGenerationVersion[] = [];
-  for (const version of sorted) {
-    if (seen.has(version.versionId)) continue;
-    seen.add(version.versionId);
-    unique.push(version);
-  }
-  return unique.map((version, index) => {
-    const samplingLabel = version.sampling ?? "unspecified";
-    const step = buildStepLabel(version.step);
-    const stepDisplay = step || `sampling ${samplingLabel}`;
-    return {
-      id: version.versionId,
-      content: version.content,
-      wordCount: version.wordCount,
-      shortLabel: `V${index + 1}`,
-      label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 ${stepDisplay}`,
-    };
-  });
-}
-
-function buildFormatTargetIndicator(
-  targetVersionId: string | undefined,
-  activeVersionId: string | undefined,
-  versionLabelMap: Map<string, string>
-): string | null {
-  if (!targetVersionId) return null;
-  const targetLabel = versionLabelMap.get(targetVersionId) || "Unknown";
-  const activeLabel = versionLabelMap.get(activeVersionId || "") || "Unknown";
-  if (targetVersionId === activeVersionId) return null;
-  return `Targets ${targetLabel} \u2022 Active ${activeLabel}`;
-}
-
-// ---------------------------------------------------------------------------
-// TitleAcceptModal — extracted for complexity reduction
-// ---------------------------------------------------------------------------
-
-interface TitleAcceptModalProps {
-  item: ChronicleRecord;
-  onAcceptTitle: (title: string) => void;
-  onRejectTitle: () => void;
-}
-
-function TitleAcceptModal({
-  item,
-  onAcceptTitle,
-  onRejectTitle,
-}: Readonly<TitleAcceptModalProps>) {
-  const [customTitle, setCustomTitle] = useState("");
-  const hasPending = !!item.pendingTitle;
-  const [prevPendingTitle, setPrevPendingTitle] = useState(item.pendingTitle);
-
-  if (item.pendingTitle !== prevPendingTitle) {
-    setPrevPendingTitle(item.pendingTitle);
-    setCustomTitle("");
-  }
-
-  const handleOverlayClick = useCallback(() => {
-    if (hasPending) onRejectTitle();
-  }, [hasPending, onRejectTitle]);
-
-  const handleOverlayKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        (e.currentTarget as HTMLElement).click();
-      }
-    },
-    []
-  );
-
-  const handleDialogClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-  }, []);
-
-  const handleDialogKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        (e.currentTarget as HTMLElement).click();
-      }
-    },
-    []
-  );
-
-  const handleCustomTitleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => setCustomTitle(e.target.value),
-    []
-  );
-
-  const handleCustomTitleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        const trimmed = e.currentTarget.value.trim();
-        if (trimmed) onAcceptTitle(trimmed);
-      }
-    },
-    [onAcceptTitle]
-  );
-
-  const handleUseCustomTitle = useCallback(() => {
-    const trimmed = customTitle.trim();
-    if (trimmed) onAcceptTitle(trimmed);
-  }, [customTitle, onAcceptTitle]);
-
-  const handleAcceptPrimary = useCallback(() => {
-    if (item.pendingTitle) onAcceptTitle(item.pendingTitle);
-  }, [item.pendingTitle, onAcceptTitle]);
-
-  if (!hasPending) {
-    return (
-      <div
-        className="cw-title-overlay"
-        role="button"
-        tabIndex={0}
-        onKeyDown={handleOverlayKeyDown}
-      >
-        <div
-          className="cw-title-dialog"
-          onClick={handleDialogClick}
-          role="button"
-          tabIndex={0}
-          onKeyDown={handleDialogKeyDown}
-        >
-          <h3 className="cw-title-heading">Generating Title...</h3>
-          <div className="cw-generating-current">
-            <div className="cw-generating-current-label">Current</div>
-            <div className="cw-generating-current-value">{item.title}</div>
-          </div>
-          <div className="cw-generating-spinner-row">
-            <span className="cw-spinner" />
-            Generating title candidates...
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const filteredCandidates = item.pendingTitleCandidates?.filter(
-    (c) => c !== item.pendingTitle
-  );
-
-  return (
-    <div
-      className="cw-title-overlay"
-      onClick={handleOverlayClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={handleOverlayKeyDown}
-    >
-      <div
-        className="cw-title-dialog"
-        onClick={handleDialogClick}
-        role="button"
-        tabIndex={0}
-        onKeyDown={handleDialogKeyDown}
-      >
-        <h3 className="cw-title-heading">Choose Title</h3>
-        {item.pendingTitleFragments && item.pendingTitleFragments.length > 0 && (
-          <div className="cw-fragments-box">
-            <div className="cw-fragments-label">Extracted Fragments</div>
-            <div className="cw-fragments-list">
-              {item.pendingTitleFragments.map((f, i) => (
-                <span key={i}>
-                  {f}
-                  {i < (item.pendingTitleFragments?.length ?? 0) - 1 ? (
-                    <span className="cw-fragment-separator">&middot;</span>
-                  ) : (
-                    ""
-                  )}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="cw-candidates-list">
-          <button onClick={handleAcceptPrimary} className="cw-candidate-primary">
-            <span className="cw-candidate-primary-icon">&#x2726;</span>
-            {item.pendingTitle}
-          </button>
-          {filteredCandidates?.map((candidate, i) => (
-            <button
-              key={i}
-              onClick={() => onAcceptTitle(candidate)}
-              className="cw-candidate-alt"
-            >
-              <span className="cw-candidate-alt-icon">&#x25C7;</span>
-              {candidate}
-            </button>
-          ))}
-        </div>
-        <div className="cw-custom-title-section">
-          <div className="cw-custom-title-label">Custom title</div>
-          <div className="cw-custom-title-row">
-            <input
-              className="illuminator-input cw-custom-title-input"
-              value={customTitle}
-              onChange={handleCustomTitleChange}
-              placeholder="Enter a custom title..."
-              onKeyDown={handleCustomTitleKeyDown}
-            />
-            <button
-              onClick={handleUseCustomTitle}
-              disabled={!customTitle.trim()}
-              className={`cw-custom-title-use-btn ${customTitle.trim() ? "cw-custom-title-use-btn-active" : "cw-custom-title-use-btn-disabled"}`}
-            >
-              Use
-            </button>
-          </div>
-        </div>
-        <div className="cw-title-footer">
-          <button onClick={onRejectTitle} className="cw-keep-current-btn">
-            Keep Current
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Tab + version hooks (extracted to reduce main component complexity)
-// ---------------------------------------------------------------------------
-
-interface TabDefinition {
-  id: string;
-  label: string;
-  indicator?: string;
-  align?: string;
-}
-
-function useTabs(isComplete: boolean, versionCount: number, chronicleId: string) {
-  const [activeTab, setActiveTab] = useState(isComplete ? "historian" : "pipeline");
-  const [prevTabKey, setPrevTabKey] = useState(`${chronicleId}|${isComplete}`);
-
-  const currentKey = `${chronicleId}|${isComplete}`;
-  if (currentKey !== prevTabKey) {
-    setPrevTabKey(currentKey);
-    setActiveTab(isComplete ? "historian" : "pipeline");
-  }
-
-  const tabs: TabDefinition[] = useMemo(() => {
-    if (isComplete) {
-      return [
-        { id: "historian", label: "Historian" },
-        { id: "enrichment", label: "Enrichment" },
-        { id: "images", label: "Images" },
-        { id: "reference", label: "Reference" },
-        { id: "content", label: "Content", align: "right" },
-      ];
-    }
-    return [
-      { id: "pipeline", label: "Pipeline" },
-      {
-        id: "versions",
-        label: "Versions",
-        indicator: versionCount > 1 ? `(${versionCount})` : undefined,
-      },
-      { id: "images", label: "Images" },
-      { id: "reference", label: "Reference" },
-      { id: "content", label: "Content", align: "right" },
-    ];
-  }, [isComplete, versionCount]);
-
-  // Keep active tab valid if tab list changes
-  const validTab = tabs.find((t) => t.id === activeTab) ? activeTab : tabs[0].id;
-  if (validTab !== activeTab) setActiveTab(validTab);
-
-  return { tabs, activeTab, setActiveTab };
-}
-
-function useVersionState(
-  generationHistory: ChronicleGenerationVersion[] | undefined,
-  recordActiveVersionId: string | undefined,
-  chronicleId: string
-) {
-  const versions = useMemo(
-    () => deduplicateVersions(generationHistory || []),
-    [generationHistory]
-  );
-
-  const activeVersionId = recordActiveVersionId || versions[versions.length - 1]?.id;
-
-  const [selectedVersionId, setSelectedVersionId] = useState(activeVersionId);
-  const [compareToVersionId, setCompareToVersionId] = useState("");
-  const [prevVersionKey, setPrevVersionKey] = useState(`${activeVersionId}|${chronicleId}`);
-
-  // Reset selections during render when active version or chronicle changes
-  const versionKey = `${activeVersionId}|${chronicleId}`;
-  if (versionKey !== prevVersionKey) {
-    setPrevVersionKey(versionKey);
-    setSelectedVersionId(activeVersionId);
-    setCompareToVersionId("");
-  }
-
-  // Keep selections valid during render when version list changes
-  if (versions.length > 0) {
-    const hasSelected = versions.some((v) => v.id === selectedVersionId);
-    if (!hasSelected) {
-      const hasActive = versions.some((v) => v.id === activeVersionId);
-      const next = hasActive ? activeVersionId : versions[versions.length - 1].id;
-      setSelectedVersionId(next);
-      if (compareToVersionId && compareToVersionId === next) setCompareToVersionId("");
-    } else if (compareToVersionId) {
-      const hasCompare = versions.some((v) => v.id === compareToVersionId);
-      if (!hasCompare || compareToVersionId === selectedVersionId) setCompareToVersionId("");
-    }
-  }
-
-  const selectedVersion = useMemo(
-    () => versions.find((v) => v.id === selectedVersionId) || versions[versions.length - 1],
-    [versions, selectedVersionId]
-  );
-
-  const compareToVersion = useMemo(
-    () => (compareToVersionId ? versions.find((v) => v.id === compareToVersionId) : undefined),
-    [versions, compareToVersionId]
-  );
-
-  const versionLabelMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const v of versions) map.set(v.id, v.shortLabel);
-    return map;
-  }, [versions]);
-
-  const versionContentMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const v of versions) map.set(v.id, v.content);
-    return map;
-  }, [versions]);
-
-  return {
-    versions,
-    activeVersionId,
-    selectedVersionId,
-    setSelectedVersionId,
-    compareToVersionId,
-    setCompareToVersionId,
-    selectedVersion,
-    compareToVersion,
-    versionLabelMap,
-    versionContentMap,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Tertiary cast helpers
-// ---------------------------------------------------------------------------
-
-function buildWikiEntities(entities: Array<Record<string, unknown>>): Array<{ id: string; name: string }> {
-  const wikiEntities: Array<{ id: string; name: string }> = [];
-  for (const entity of entities) {
-    if (entity.kind === "era") continue;
-    wikiEntities.push({ id: entity.id as string, name: entity.name as string });
-    const aliases = (entity.enrichment as Record<string, unknown>)?.text as Record<string, unknown> | undefined;
-    const aliasList = aliases?.aliases;
-    if (!Array.isArray(aliasList)) continue;
-    for (const alias of aliasList) {
-      if (typeof alias === "string" && alias.length >= 3) {
-        wikiEntities.push({ id: entity.id as string, name: alias });
-      }
-    }
-  }
-  return wikiEntities;
-}
-
-function deduplicateMentions(
-  mentions: Array<{ entityId: string; start: number; end: number }>,
-  declaredIds: Set<string>,
-  entityMap: Map<string, Record<string, unknown>>,
-  content: string,
-  prevDecisions: Map<string, boolean>
-) {
-  const seen = new Set<string>();
-  const entries: Array<{
-    entityId: string; name: string; kind: string;
-    matchedAs: string; matchStart: number; matchEnd: number; accepted: boolean;
-  }> = [];
-  for (const m of mentions) {
-    if (declaredIds.has(m.entityId) || seen.has(m.entityId)) continue;
-    seen.add(m.entityId);
-    const entity = entityMap.get(m.entityId);
-    if (!entity) continue;
-    entries.push({
-      entityId: entity.id as string,
-      name: entity.name as string,
-      kind: entity.kind as string,
-      matchedAs: content.slice(m.start, m.end),
-      matchStart: m.start,
-      matchEnd: m.end,
-      accepted: prevDecisions.get(entity.id as string) ?? true,
-    });
-  }
-  return entries;
-}
-
-// ---------------------------------------------------------------------------
-// Tertiary cast hook (extracted to reduce main component complexity)
-// ---------------------------------------------------------------------------
-
-function useTertiaryCast(
-  item: ChronicleRecord,
-  simulationRunId: string | undefined,
-  isComplete: boolean,
-  selectedVersion: ResolvedVersion | undefined
-) {
-  const detectTertiaryCast = useCallback(async () => {
-    if (!simulationRunId) return;
-    const content = isComplete
-      ? item.finalContent
-      : selectedVersion?.content || item.assembledContent;
-    if (!content) return;
-
-    const freshEntities = await getEntitiesForRun(simulationRunId);
-    const freshEntityMap = new Map(freshEntities.map((e) => [e.id, e]));
-
-    const wikiEntities = buildWikiEntities(freshEntities);
-
-    const mentions = findEntityMentions(content, wikiEntities);
-    const declaredIds = new Set(item.selectedEntityIds || []);
-    const prevDecisions = new Map(
-      (item.tertiaryCast || []).map((e) => [e.entityId, e.accepted])
-    );
-
-    const entries = deduplicateMentions(mentions, declaredIds, freshEntityMap, content, prevDecisions);
-
-    const { updateChronicleTertiaryCast } = await import("../../lib/db/chronicleRepository");
-    await updateChronicleTertiaryCast(item.chronicleId, entries);
-    await useChronicleStore.getState().refreshChronicle(item.chronicleId);
-  }, [
-    simulationRunId,
-    isComplete,
-    item.finalContent,
-    item.assembledContent,
-    item.selectedEntityIds,
-    item.chronicleId,
-    item.tertiaryCast,
-    selectedVersion,
-  ]);
-
-  const toggleTertiaryCast = useCallback(
-    async (entityId: string) => {
-      const current = item.tertiaryCast || [];
-      const updated = current.map((e) =>
-        e.entityId === entityId ? { ...e, accepted: !e.accepted } : e
-      );
-      const { updateChronicleTertiaryCast } = await import("../../lib/db/chronicleRepository");
-      await updateChronicleTertiaryCast(item.chronicleId, updated);
-      await useChronicleStore.getState().refreshChronicle(item.chronicleId);
-    },
-    [item.chronicleId, item.tertiaryCast]
-  );
-
-  return { detectTertiaryCast, toggleTertiaryCast };
-}
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -704,6 +221,7 @@ export default function ChronicleWorkspace({
   onUnpublish,
   onGenerateCoverImageScene,
   onGenerateCoverImage,
+  onResetCoverImage,
   styleSelection,
   imageSize,
   imageQuality,
@@ -734,7 +252,10 @@ export default function ChronicleWorkspace({
   worldContext,
   eras,
   events,
+  fullEntityNavMap,
   onNavigateToTab,
+  activeTab,
+  setActiveTab,
 }: Readonly<ChronicleWorkspaceProps>) {
   const isComplete = item.status === "complete";
 
@@ -744,19 +265,25 @@ export default function ChronicleWorkspace({
     return new Map(entities.map((e) => [e.id, e]));
   }, [entities]);
 
+  // Image config + ref callbacks (prop containers for ImagesTab)
+  const imageConfig: ImageConfig = useMemo(() => ({
+    styleLibrary, styleSelection, cultures, cultureIdentities, worldContext,
+    imageSize, imageQuality, imageModel, imageGenSettings, onOpenImageSettings,
+  }), [styleLibrary, styleSelection, cultures, cultureIdentities, worldContext,
+    imageSize, imageQuality, imageModel, imageGenSettings, onOpenImageSettings]);
+
+  const imageRefCallbacks: ImageRefCallbacks = useMemo(() => ({
+    onGenerateChronicleImage, onResetChronicleImage, onRegenerateDescription,
+    onUpdateChronicleAnchorText, onUpdateChronicleImageSize, onUpdateChronicleImageJustification,
+    onSelectExistingImage, onSelectExistingCoverImage,
+  }), [onGenerateChronicleImage, onResetChronicleImage, onRegenerateDescription,
+    onUpdateChronicleAnchorText, onUpdateChronicleImageSize, onUpdateChronicleImageJustification,
+    onSelectExistingImage, onSelectExistingCoverImage]);
+
   // Version state
-  const {
-    versions,
-    activeVersionId,
-    selectedVersionId,
-    setSelectedVersionId,
-    compareToVersionId,
-    setCompareToVersionId,
-    selectedVersion,
-    compareToVersion,
-    versionLabelMap,
-    versionContentMap,
-  } = useVersionState(item.generationHistory, item.activeVersionId, item.chronicleId);
+  const versionState = useVersionState(
+    item.generationHistory, item.activeVersionId, item.chronicleId, onDeleteVersion
+  );
 
   // Derived refinement flags
   const compareRunning = refinements?.compare?.running || false;
@@ -768,16 +295,16 @@ export default function ChronicleWorkspace({
   // Indicators
   const summaryIndicator = buildFormatTargetIndicator(
     item.summaryTargetVersionId,
-    activeVersionId,
-    versionLabelMap
+    versionState.activeVersionId,
+    versionState.versionLabelMap
   );
   const imageRefsIndicator = buildFormatTargetIndicator(
     item.imageRefsTargetVersionId,
-    activeVersionId,
-    versionLabelMap
+    versionState.activeVersionId,
+    versionState.versionLabelMap
   );
   const imageRefsTargetContent =
-    versionContentMap.get(item.imageRefsTargetVersionId || activeVersionId || "") ||
+    versionState.versionContentMap.get(item.imageRefsTargetVersionId || versionState.activeVersionId || "") ||
     item.assembledContent;
 
   // Tertiary cast
@@ -785,7 +312,7 @@ export default function ChronicleWorkspace({
     item,
     simulationRunId,
     isComplete,
-    selectedVersion
+    versionState.selectedVersion
   );
 
   // Seed data
@@ -886,63 +413,30 @@ export default function ChronicleWorkspace({
   const handleCloseQuickCheck = useCallback(() => setShowQuickCheckModal(false), []);
 
   // Tab state
-  const { tabs, activeTab, setActiveTab } = useTabs(
+  const { tabs } = useTabs(
     isComplete,
-    versions.length,
-    item.chronicleId
+    versionState.versions.length,
+    activeTab,
+    setActiveTab,
   );
 
   // Current word count for header
   const currentWordCount = isComplete
     ? wordCount(item.finalContent)
-    : (selectedVersion?.wordCount ?? wordCount(item.assembledContent));
+    : (versionState.selectedVersion?.wordCount ?? wordCount(item.assembledContent));
 
   // Chronicle text for image refs
   const chronicleText = isComplete
     ? item.finalContent || imageRefsTargetContent || item.assembledContent
     : imageRefsTargetContent || item.assembledContent;
 
-  // Version selection handlers
+  // Version selection handler (clears compare if selecting the compared version)
   const handleSelectVersion = useCallback(
     (id: string) => {
-      setSelectedVersionId(id);
-      if (id === compareToVersionId) setCompareToVersionId("");
+      versionState.setSelectedVersionId(id);
+      if (id === versionState.compareToVersionId) versionState.setCompareToVersionId("");
     },
-    [compareToVersionId, setSelectedVersionId, setCompareToVersionId]
-  );
-
-  const handleDeleteVersion = useCallback(
-    (versionId: string) => {
-      if (!versionId || versions.length === 0) return;
-
-      const index = versions.findIndex((v) => v.id === versionId);
-      let nextSelected = selectedVersionId;
-      if (index !== -1) {
-        nextSelected = versions[index + 1]?.id || versions[index - 1]?.id || selectedVersionId;
-      }
-      if (nextSelected === versionId) {
-        const hasActive = versions.some((v) => v.id === activeVersionId);
-        nextSelected = hasActive ? activeVersionId : versions[versions.length - 1].id;
-      }
-
-      if (nextSelected && nextSelected !== selectedVersionId) {
-        setSelectedVersionId(nextSelected);
-      }
-      if (compareToVersionId === versionId || compareToVersionId === nextSelected) {
-        setCompareToVersionId("");
-      }
-
-      onDeleteVersion?.(versionId);
-    },
-    [
-      versions,
-      selectedVersionId,
-      activeVersionId,
-      compareToVersionId,
-      onDeleteVersion,
-      setSelectedVersionId,
-      setCompareToVersionId,
-    ]
+    [versionState]
   );
 
   // Find/replace nav handler
@@ -980,42 +474,19 @@ export default function ChronicleWorkspace({
             onGenerateCoverImageScene={onGenerateCoverImageScene}
             onGenerateCoverImage={onGenerateCoverImage}
             onImageClick={handleImageClick}
-            onRegenerateWithSampling={onRegenerateWithSampling}
-            entityMap={entityMap}
-            styleLibrary={styleLibrary}
-            styleSelection={styleSelection}
-            cultures={cultures}
-            cultureIdentities={cultureIdentities}
-            worldContext={worldContext}
             summaryIndicator={summaryIndicator}
             imageRefsIndicator={imageRefsIndicator}
-            imageRefsTargetContent={imageRefsTargetContent}
-            imageSize={imageSize}
-            imageQuality={imageQuality}
-            imageModel={imageModel}
-            imageGenSettings={imageGenSettings}
-            onOpenImageSettings={onOpenImageSettings}
-            onGenerateChronicleImage={onGenerateChronicleImage}
-            onResetChronicleImage={onResetChronicleImage}
-            onRegenerateDescription={onRegenerateDescription}
-            onUpdateChronicleAnchorText={onUpdateChronicleAnchorText}
-            onUpdateChronicleImageSize={onUpdateChronicleImageSize}
-            onUpdateChronicleImageJustification={onUpdateChronicleImageJustification}
           />
         )}
 
         {activeTab === "versions" && (
           <VersionsTab
             item={item}
-            versions={versions}
-            selectedVersionId={selectedVersionId}
-            compareToVersionId={compareToVersionId}
-            activeVersionId={activeVersionId}
+            versionState={versionState}
             isGenerating={isGenerating}
             onSelectVersion={handleSelectVersion}
-            onSelectCompareVersion={setCompareToVersionId}
+            onSelectCompareVersion={versionState.setCompareToVersionId}
             onSetActiveVersion={isComplete ? undefined : onUpdateChronicleActiveVersion}
-            onDeleteVersion={isComplete ? undefined : handleDeleteVersion}
             onCompareVersions={onCompareVersions}
             onCombineVersions={onCombineVersions}
             onRegenerateFull={onRegenerateFull}
@@ -1034,31 +505,16 @@ export default function ChronicleWorkspace({
             item={item}
             isGenerating={isGenerating}
             entityMap={entityMap}
+            versionState={versionState}
+            imageConfig={imageConfig}
+            imageRefCallbacks={imageRefCallbacks}
             onGenerateCoverImageScene={onGenerateCoverImageScene}
             onGenerateCoverImage={onGenerateCoverImage}
+            onResetCoverImage={onResetCoverImage}
             onImageClick={handleImageClick}
-            onGenerateChronicleImage={onGenerateChronicleImage}
-            onResetChronicleImage={onResetChronicleImage}
-            onRegenerateDescription={onRegenerateDescription}
-            onUpdateChronicleAnchorText={onUpdateChronicleAnchorText}
-            onUpdateChronicleImageSize={onUpdateChronicleImageSize}
-            onUpdateChronicleImageJustification={onUpdateChronicleImageJustification}
-            styleLibrary={styleLibrary}
-            styleSelection={styleSelection}
-            cultures={cultures}
-            cultureIdentities={cultureIdentities}
-            worldContext={worldContext}
-            imageSize={imageSize}
-            imageQuality={imageQuality}
-            imageModel={imageModel}
-            imageGenSettings={imageGenSettings}
-            onOpenImageSettings={onOpenImageSettings}
             chronicleText={chronicleText}
-            versions={versions}
-            activeVersionId={activeVersionId}
             onApplyImageRefSelections={onApplyImageRefSelections}
-            onSelectExistingImage={onSelectExistingImage}
-            onSelectExistingCoverImage={onSelectExistingCoverImage}
+            fullEntityNavMap={fullEntityNavMap}
           />
         )}
 
@@ -1080,16 +536,10 @@ export default function ChronicleWorkspace({
           <ContentTab
             item={item}
             isComplete={isComplete}
-            versions={versions}
-            selectedVersion={selectedVersion}
-            compareToVersion={compareToVersion}
-            selectedVersionId={selectedVersionId}
-            compareToVersionId={compareToVersionId}
-            activeVersionId={activeVersionId}
+            versionState={versionState}
             onSelectVersion={handleSelectVersion}
-            onSelectCompareVersion={setCompareToVersionId}
+            onSelectCompareVersion={versionState.setCompareToVersionId}
             onSetActiveVersion={isComplete ? undefined : onUpdateChronicleActiveVersion}
-            onDeleteVersion={isComplete ? undefined : handleDeleteVersion}
             isGenerating={isGenerating}
             onQuickCheck={onQuickCheck}
             quickCheckRunning={quickCheckRunning}
@@ -1121,6 +571,7 @@ export default function ChronicleWorkspace({
             refinements={refinements}
             onGenerateTitle={handleGenerateTitleWithModal}
             onGenerateSummary={onGenerateSummary}
+            onGenerateImageRefs={onGenerateImageRefs}
           />
         )}
       </div>

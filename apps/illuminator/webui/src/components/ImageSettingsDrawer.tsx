@@ -8,40 +8,15 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { getSizeOptions, getQualityOptions } from "../lib/imageSettings";
+import { IMAGE_ASPECTS, getQualityOptions, IMAGE_MODELS } from "../lib/imageSettings";
 import { DEFAULT_RANDOM_EXCLUSIONS, filterStylesForComposition, filterCompositionsForStyle } from "@canonry/world-schema";
+import type { StyleLibrary } from "@canonry/world-schema";
 import type { ImageGenSettings } from "../hooks/useImageGenSettings";
+import type { Culture } from "./chronicle-panel/chroniclePanelTypes";
 import "./ImageSettingsDrawer.css";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
-interface StyleLibrary {
-  artisticStyles: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    promptFragment?: string;
-    category?: string;
-  }>;
-  compositionStyles: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    promptFragment?: string;
-    targetCategory?: string;
-  }>;
-  colorPalettes: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    promptFragment?: string;
-    swatchColors?: string[];
-  }>;
-}
-interface Culture {
-  id: string;
-  name: string;
-}
 interface ImageSettingsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -50,6 +25,7 @@ interface ImageSettingsDrawerProps {
   styleLibrary: StyleLibrary | null;
   cultures?: Culture[];
   imageModel: string;
+  onImageModelChange: (model: string) => void;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────
@@ -77,22 +53,17 @@ const ARTISTIC_CATEGORY_LABELS: Record<string, string> = {
   document: "Document"
 };
 const ARTISTIC_CATEGORY_ORDER = ["painting", "ink-print", "digital", "camera", "experimental", "document"];
-const PALETTE_GROUPS: Array<{
-  label: string;
-  ids: string[];
-}> = [{
-  label: "Hues",
-  ids: ["crimson-dynasty", "amber-blaze", "gilded-sunlight", "verdant-jungle", "arctic-cyan", "midnight-sapphire", "electric-magenta", "borealis"]
-}, {
-  label: "Special",
-  ids: ["monochrome-noir", "volcanic-obsidian", "verdigris-patina"]
-}, {
-  label: "Natural",
-  ids: ["natural-daylight", "vivid-realism", "comic-bold"]
-}, {
-  label: "Contrast Pairs",
-  ids: ["blood-ivory", "ink-gold", "jade-obsidian", "azure-bone"]
-}];
+/** Display order and labels for palette groups (derived from ColorPalette.group field) */
+const PALETTE_GROUP_ORDER = ["hue", "special", "natural", "mood", "metallic", "contrast-pair", "metallic-triplet"];
+const PALETTE_GROUP_LABELS: Record<string, string> = {
+  "hue": "Hues",
+  "special": "Special",
+  "natural": "Natural",
+  "mood": "Mood & Atmosphere",
+  "metallic": "Metallic / Void",
+  "contrast-pair": "Contrast Pairs",
+  "metallic-triplet": "Metallic Triplets",
+};
 
 // ─── Sub-components ──────────────────────────────────────────────────────
 
@@ -144,6 +115,11 @@ function CollapsibleSection({
       {!collapsed && <div className="isd-section-content">{children}</div>}
     </div>;
 }
+/** Flatten [primary[], secondary[]] swatch arrays to a single list for display. */
+function flattenSwatchColors(sc: [string[], string[]]): string[] {
+  return [...sc[0], ...sc[1]];
+}
+
 function SwatchStrip({
   colors
 }: Readonly<{
@@ -165,7 +141,8 @@ export default function ImageSettingsDrawer({
   onSettingsChange: externalOnChange,
   styleLibrary,
   cultures,
-  imageModel
+  imageModel,
+  onImageModelChange
 }: ImageSettingsDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -290,18 +267,25 @@ export default function ImageSettingsDrawer({
     return styleLibrary?.colorPalettes.find(s => s.id === settings.colorPaletteId)?.name || settings.colorPaletteId;
   }, [settings.colorPaletteId, styleLibrary]);
 
-  // Group palettes by pre-defined groups
+  // Group palettes by their group field
   const palettesByGroup = useMemo(() => {
     if (!styleLibrary) return [];
-    const paletteMap = new Map(styleLibrary.colorPalettes.map(p => [p.id, p]));
-    return PALETTE_GROUPS.map(group => ({
-      label: group.label,
-      palettes: group.ids.map(id => paletteMap.get(id)).filter(Boolean)
+    const grouped = new Map<string, typeof styleLibrary.colorPalettes>();
+    for (const p of styleLibrary.colorPalettes) {
+      const g = (p as { group?: string }).group || "other";
+      const list = grouped.get(g) || [];
+      list.push(p);
+      grouped.set(g, list);
+    }
+    // Order by defined order, then any unknown groups at the end
+    const orderedKeys = [...PALETTE_GROUP_ORDER.filter(k => grouped.has(k)), ...[...grouped.keys()].filter(k => !PALETTE_GROUP_ORDER.includes(k))];
+    return orderedKeys.map(key => ({
+      label: PALETTE_GROUP_LABELS[key] || key,
+      palettes: grouped.get(key) || [],
     })).filter(g => g.palettes.length > 0);
   }, [styleLibrary]);
 
-  // Size/quality options for current model
-  const sizeOptions = useMemo(() => getSizeOptions(imageModel), [imageModel]);
+  // Quality options for current model
   const qualityOptions = useMemo(() => getQualityOptions(imageModel), [imageModel]);
 
   // Is the current selection a special value?
@@ -417,7 +401,7 @@ export default function ImageSettingsDrawer({
                     colorPaletteId: palette.id
                   })} title={palette.description} className="isd-palette-btn" data-selected={isSelected}>
                             {palette.swatchColors && palette.swatchColors.length > 0 && <div className="isd-palette-swatch-row">
-                                <SwatchStrip colors={palette.swatchColors} />
+                                <SwatchStrip colors={flattenSwatchColors(palette.swatchColors)} />
                               </div>}
                             <div className="isd-palette-name">{palette.name}</div>
                           </button>;
@@ -430,11 +414,37 @@ export default function ImageSettingsDrawer({
 
               {/* ─── Output Settings ─── */}
               <CollapsibleSection title="Output" sectionKey="output" collapsed={collapsedSet.has("output")} onToggle={toggleSection}>
-                {/* Size - segmented buttons */}
+                {/* Model selector */}
                 <div className="isd-output-group">
-                  <div className="isd-output-label">Size</div>
+                  <div className="isd-output-label">Model</div>
+                  <select
+                    value={imageModel}
+                    onChange={e => onImageModelChange(e.target.value)}
+                    className="illuminator-select isd-culture-select"
+                  >
+                    <optgroup label="OpenAI">
+                      {IMAGE_MODELS.filter(m => m.provider === "openai").map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Flux (BFL)">
+                      {IMAGE_MODELS.filter(m => m.provider === "bfl").map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="WaveSpeed">
+                      {IMAGE_MODELS.filter(m => m.provider === "wavespeed").map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                  </select>
+                </div>
+
+                {/* Aspect - segmented buttons */}
+                <div className="isd-output-group">
+                  <div className="isd-output-label">Aspect</div>
                   <div className="isd-output-btns">
-                    {sizeOptions.map(opt => {
+                    {IMAGE_ASPECTS.map(opt => {
                   const isSelected = settings.imageSize === opt.value;
                   return <button key={opt.value} onClick={() => onSettingsChange({
                     imageSize: opt.value
@@ -445,8 +455,8 @@ export default function ImageSettingsDrawer({
                   </div>
                 </div>
 
-                {/* Quality - segmented buttons */}
-                <div className="isd-output-group">
+                {/* Quality - segmented buttons (hidden for models without quality params) */}
+                {qualityOptions.length > 0 && <div className="isd-output-group">
                   <div className="isd-output-label">Quality</div>
                   <div className="isd-output-btns">
                     {qualityOptions.map(opt => {
@@ -458,7 +468,7 @@ export default function ImageSettingsDrawer({
                         </button>;
                 })}
                   </div>
-                </div>
+                </div>}
 
                 {/* Culture dropdown */}
                 {cultures && cultures.length > 0 && <div>
@@ -510,7 +520,7 @@ export function ImageSettingsSummary({
       <span className="isd-summary-value">
         {artistic} &middot; {composition} &middot; {palette}
       </span>
-      {swatchColors && swatchColors.length > 0 && <SwatchStrip colors={swatchColors} />}
+      {swatchColors && swatchColors.length > 0 && <SwatchStrip colors={flattenSwatchColors(swatchColors)} />}
       <button onClick={onOpenSettings} className="isd-summary-settings-btn">
         Settings
       </button>
@@ -545,7 +555,7 @@ export function ImageSettingsTrigger({
         <span className="isd-trigger-title">Image Settings</span>
       </div>
       <div className="isd-trigger-detail">
-        {swatchColors && settings.colorPaletteId !== RANDOM_ID && settings.colorPaletteId !== NONE_ID ? <SwatchStrip colors={swatchColors.slice(0, 3)} /> : null}
+        {swatchColors && settings.colorPaletteId !== RANDOM_ID && settings.colorPaletteId !== NONE_ID ? <SwatchStrip colors={flattenSwatchColors(swatchColors).slice(0, 3)} /> : null}
         <span className="isd-trigger-text">
           {artistic} &middot; {palette}
         </span>

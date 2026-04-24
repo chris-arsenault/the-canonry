@@ -1,8 +1,9 @@
 /**
  * ChronicleImagePanel sub-components
  *
- * EntityImageRefCard, PromptRequestCard, AnchorTextEditor, AnchorContextTooltip
- * extracted from ChronicleImagePanel to reduce file size and complexity.
+ * Card components, anchor editors, and thumbnail helpers used by
+ * ChronicleImagePanel. Shared types and constants live in
+ * ChronicleImagePanelTypes.ts.
  */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
@@ -427,11 +428,53 @@ export function EntityImageRefCard({
   );
 }
 
+// ─── RankedStyleRow ───────────────────────────────────────────────────────
+
+function RankedStyleRow({
+  symbol,
+  label,
+  rankedIds,
+  assignedId,
+  secondaryId,
+  nameMap,
+}: Readonly<{
+  symbol: string;
+  label: string;
+  rankedIds?: string[];
+  assignedId?: string;
+  secondaryId?: string;
+  nameMap?: Map<string, string>;
+}>) {
+  if (!rankedIds?.length) return null;
+  return (
+    <div className="cip-ranked-row">
+      <span className="cip-ranked-label" title={label}>{symbol}</span>
+      {rankedIds.map((id, i) => {
+        const name = nameMap?.get(id) || id;
+        const isAssigned = id === assignedId;
+        const isSecondary = id === secondaryId && secondaryId !== assignedId;
+        const cls = `cip-ranked-pick${isAssigned ? " cip-ranked-assigned" : ""}${isSecondary ? " cip-ranked-secondary" : ""}`;
+        const suffix = isAssigned ? " (primary)" : isSecondary ? " (secondary)" : "";
+        return (
+          <span
+            key={id}
+            className={cls}
+            title={`${label} #${i + 1}: ${name}${suffix}`}
+          >
+            {name}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── PromptRequestCard ─────────────────────────────────────────────────────
 
 export function PromptRequestCard({
   imageRef,
   onGenerate,
+  onGenerateWithDefaults,
   onReset,
   onRegenerateDescription,
   onSelectExisting,
@@ -442,9 +485,13 @@ export function PromptRequestCard({
   chronicleText,
   isGenerating,
   entities,
+  artisticStyleNames,
+  compositionStyleNames,
+  colorPaletteNames,
 }: Readonly<{
   imageRef: PromptRequestRef;
   onGenerate?: () => void;
+  onGenerateWithDefaults?: () => void;
   onReset?: () => void;
   onRegenerateDescription?: () => void;
   onSelectExisting?: () => void;
@@ -455,12 +502,15 @@ export function PromptRequestCard({
   chronicleText?: string;
   isGenerating?: boolean;
   entities?: Map<string, EntityContext>;
+  artisticStyleNames?: Map<string, string>;
+  compositionStyleNames?: Map<string, string>;
+  colorPaletteNames?: Map<string, string>;
 }>) {
   const { containerRef, url, loading, isVisible } = useLazyImageUrl(imageRef.generatedImageId);
   const statusColor = STATUS_COLORS[imageRef.status] || STATUS_COLORS.pending;
   const canGenerate = imageRef.status === "pending" && !isGenerating;
   const canRegenerate = imageRef.status === "complete" && !isGenerating;
-  const canReset = imageRef.status === "failed" && !isGenerating;
+  const canReset = (imageRef.status === "failed" || imageRef.status === "generating") && !isGenerating;
   const anchorMissing = Boolean(
     chronicleText && imageRef.anchorText && !resolveAnchorPhrase(imageRef.anchorText, chronicleText)
   );
@@ -527,14 +577,69 @@ export function PromptRequestCard({
             ))}
           </div>
         )}
+        {imageRef.visualTags && imageRef.visualTags.length > 0 && (
+          <div className="cip-visual-tags">
+            {imageRef.visualTags.map((tag) => (
+              <span key={tag} className="cip-visual-tag">{tag}</span>
+            ))}
+          </div>
+        )}
+        {(imageRef.rankedArtisticStyleIds?.length || imageRef.rankedCompositionStyleIds?.length || imageRef.rankedColorPaletteIds?.length) ? (
+          <div className="cip-style-rankings">
+            <RankedStyleRow
+              symbol="✦"
+              label="Style"
+              rankedIds={imageRef.rankedArtisticStyleIds}
+              assignedId={imageRef.suggestedArtisticStyleId}
+              secondaryId={imageRef.secondaryArtisticStyleId}
+              nameMap={artisticStyleNames}
+            />
+            <RankedStyleRow
+              symbol="◈"
+              label="Composition"
+              rankedIds={imageRef.rankedCompositionStyleIds}
+              assignedId={imageRef.suggestedCompositionStyleId}
+              secondaryId={imageRef.secondaryCompositionStyleId}
+              nameMap={compositionStyleNames}
+            />
+            <RankedStyleRow
+              symbol="◉"
+              label="Palette"
+              rankedIds={imageRef.rankedColorPaletteIds}
+              assignedId={imageRef.suggestedColorPaletteId}
+              secondaryId={imageRef.secondaryColorPaletteId}
+              nameMap={colorPaletteNames}
+            />
+          </div>
+        ) : (imageRef.suggestedArtisticStyleId || imageRef.suggestedCompositionStyleId || imageRef.suggestedColorPaletteId) ? (
+          <div className="cip-suggested-styles">
+            {imageRef.suggestedArtisticStyleId && (
+              <span className="cip-suggested-style" title={`Style: ${imageRef.suggestedArtisticStyleId}`}>
+                ✦ {artisticStyleNames?.get(imageRef.suggestedArtisticStyleId) || imageRef.suggestedArtisticStyleId}
+              </span>
+            )}
+            {imageRef.suggestedCompositionStyleId && (
+              <span className="cip-suggested-style" title={`Composition: ${imageRef.suggestedCompositionStyleId}`}>
+                ◈ {compositionStyleNames?.get(imageRef.suggestedCompositionStyleId) || imageRef.suggestedCompositionStyleId}
+              </span>
+            )}
+            {imageRef.suggestedColorPaletteId && (
+              <span className="cip-suggested-style" title={`Palette: ${imageRef.suggestedColorPaletteId}`}>
+                ◉ {colorPaletteNames?.get(imageRef.suggestedColorPaletteId) || imageRef.suggestedColorPaletteId}
+              </span>
+            )}
+          </div>
+        ) : null}
         {imageRef.caption && <div className="cip-caption">Caption: {imageRef.caption}</div>}
         {imageRef.error && <ErrorMessage message={imageRef.error} className="cip-error-message" />}
         <PromptRequestActions
           canGenerate={canGenerate}
           canRegenerate={canRegenerate}
           canReset={canReset}
+          isStuckGenerating={imageRef.status === "generating" && !isGenerating}
           isGenerating={isGenerating}
           onGenerate={onGenerate}
+          onGenerateWithDefaults={onGenerateWithDefaults}
           onReset={onReset}
           onSelectExisting={onSelectExisting}
         />
@@ -549,16 +654,20 @@ function PromptRequestActions({
   canGenerate,
   canRegenerate,
   canReset,
+  isStuckGenerating,
   isGenerating,
   onGenerate,
+  onGenerateWithDefaults,
   onReset,
   onSelectExisting,
 }: Readonly<{
   canGenerate: boolean;
   canRegenerate: boolean;
   canReset: boolean;
+  isStuckGenerating: boolean;
   isGenerating?: boolean;
   onGenerate?: () => void;
+  onGenerateWithDefaults?: () => void;
   onReset?: () => void;
   onSelectExisting?: () => void;
 }>) {
@@ -568,15 +677,21 @@ function PromptRequestActions({
         {canGenerate && onGenerate && (
           <button onClick={onGenerate} className="cip-generate-btn">Generate Image</button>
         )}
+        {canGenerate && onGenerateWithDefaults && (
+          <button onClick={onGenerateWithDefaults} className="cip-generate-btn" title="Generate using assigned styles and composition default aspect ratio">Generate (Defaults)</button>
+        )}
         {canRegenerate && onGenerate && (
           <button onClick={onGenerate} className="cip-generate-btn">Regenerate Image</button>
+        )}
+        {canRegenerate && onGenerateWithDefaults && (
+          <button onClick={onGenerateWithDefaults} className="cip-generate-btn" title="Regenerate using assigned styles and composition default aspect ratio">Regenerate (Defaults)</button>
         )}
         {onSelectExisting && !isGenerating && (
           <button onClick={onSelectExisting} className="cip-secondary-btn">Select Existing</button>
         )}
       </div>
       {canReset && onReset && (
-        <button onClick={onReset} className="cip-reset-btn">Reset</button>
+        <button onClick={onReset} className="cip-reset-btn">{isStuckGenerating ? "Cancel" : "Reset"}</button>
       )}
     </>
   );

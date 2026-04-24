@@ -1,0 +1,588 @@
+/* ── Filter Bar Container ──────────────────────────────────────────────── */
+
+.fb {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(
+    180deg,
+    rgba(12, 18, 28, 0.97) 0%,
+    rgba(10, 14, 22, 0.95) 100%
+  );
+  backdrop-filter: blur(12px);
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(86, 180, 232, 0.12);
+  box-shadow: 0 1px 8px rgba(86, 180, 232, 0.06);
+}
+
+/* ── Mobile handle — hidden on desktop ────────────────────────────────── */
+
+.fb-handle {
+  display: none;
+}
+
+/* ── Drawer — always visible on desktop ───────────────────────────────── */
+
+.fb-drawer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── Rows — transparent on desktop, stacked on mobile ─────────────────── */
+
+.fb-row {
+  display: contents;
+}
+
+/* ── Search area ──────────────────────────────────────────────────────── */
+
+.fb-search-area {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fb-search {
+  width: 140px;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8e6e0;
+  font-size: 0.75rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, width 0.2s;
+}
+
+.fb-search:focus {
+  border-color: var(--azure-border);
+  width: 180px;
+}
+
+.fb-search::placeholder {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* ── Sort label (inside custom trigger) ───────────────────────────────── */
+
+.ft-sort-label {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Count ────────────────────────────────────────────────────────────── */
+
+.fb-count {
+  font-size: 0.68rem;
+  color: var(--azure);
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Clear all ────────────────────────────────────────────────────────── */
+
+.fb-clear {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  line-height: 1;
+  margin-left: 2px;
+}
+
+.fb-clear:hover {
+  background: rgba(255, 80, 80, 0.08);
+  border-color: rgba(255, 80, 80, 0.25);
+  color: rgba(255, 120, 120, 0.8);
+}
+
+/* ── Secondary row ────────────────────────────────────────────────────── */
+
+.fb-row--secondary {
+  opacity: 0.85;
+}
+
+/* ── Desktop separators (via pseudo-elements) ─────────────────────────── */
+
+.fb-row--primary::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: rgba(86, 180, 232, 0.15);
+  vertical-align: middle;
+  margin: 0 2px;
+}
+
+.fb-row--tools::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  vertical-align: middle;
+  margin: 0 2px;
+}
+
+/* ── Filter Trigger ───────────────────────────────────────────────────── */
+
+.ft-wrap {
+  position: relative;
+}
+
+.ft-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid rgba(86, 180, 232, 0.08);
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.68rem;
+  transition: all 0.15s;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.ft-btn:hover {
+  border-color: rgba(86, 180, 232, 0.25);
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(86, 180, 232, 0.04);
+}
+
+.ft-btn--open {
+  border-color: var(--azure-border);
+  color: var(--azure-text);
+  background: var(--azure-dim);
+}
+
+/* Tool buttons (search, sort) */
+.ft-btn--tool {
+  padding: 5px;
+}
+
+.ft-btn--tool.ft-btn--active {
+  color: var(--azure-text);
+  border-color: var(--azure-border);
+}
+
+/* Label hidden on desktop, visible on mobile */
+.ft-label {
+  display: none;
+}
+
+/* Primary tier (artistic) — azure accents */
+.ft-btn--primary:hover {
+  border-color: rgba(86, 180, 232, 0.3);
+  color: rgba(86, 180, 232, 0.8);
+}
+
+.ft-btn--primary.ft-btn--active {
+  border-color: var(--azure-border);
+  color: var(--azure-text);
+  background: var(--azure-dim);
+}
+
+/* Secondary tier (lore) — subtler azure */
+.ft-btn--secondary {
+  opacity: 0.7;
+}
+
+.ft-btn--secondary:hover {
+  opacity: 1;
+}
+
+.ft-btn--secondary.ft-btn--active {
+  opacity: 1;
+  border-color: rgba(86, 180, 232, 0.25);
+  color: var(--azure-text);
+  background: var(--azure-dim);
+}
+
+/* Selected value label */
+.ft-selected {
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--azure-bright);
+}
+
+/* ── Popover base ─────────────────────────────────────────────────────── */
+
+.fp {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 160px;
+  max-width: 220px;
+  max-height: 300px;
+  background: #151520;
+  border: 1px solid rgba(86, 180, 232, 0.15);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 1px rgba(86, 180, 232, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tabbed variant is wider */
+.fp--tabbed {
+  min-width: 280px;
+  max-width: 360px;
+}
+
+.fp-clear {
+  padding: 5px 10px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.68rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.fp-clear:hover {
+  color: rgba(255, 120, 120, 0.8);
+}
+
+/* ── Tabs (category selector) ─────────────────────────────────────────── */
+
+.fp-tabs {
+  display: flex;
+  gap: 1px;
+  padding: 4px 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.fp-tab {
+  padding: 4px 7px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.62rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.fp-tab:hover {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.fp-tab--active {
+  color: var(--azure-bright);
+  border-bottom-color: var(--azure);
+}
+
+/* ── Item grid (for tabbed popover) ───────────────────────────────────── */
+
+.fp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ── Flat list (for ungrouped popover) ────────────────────────────────── */
+
+.fp-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 0;
+}
+
+/* ── Items (shared) ───────────────────────────────────────────────────── */
+
+.fp-item {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.72rem;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.fp-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f0eee8;
+}
+
+.fp-item--active {
+  color: var(--azure-bright);
+  background: var(--azure-glow);
+}
+
+.fp-item--active:hover {
+  background: rgba(86, 180, 232, 0.2);
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────── */
+
+.fp-list::-webkit-scrollbar,
+.fp-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.fp-list::-webkit-scrollbar-track,
+.fp-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fp-list::-webkit-scrollbar-thumb,
+.fp-grid::-webkit-scrollbar-thumb {
+  background: rgba(86, 180, 232, 0.15);
+  border-radius: 2px;
+}
+
+.fp-list::-webkit-scrollbar-thumb:hover,
+.fp-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(86, 180, 232, 0.3);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Mobile: floating pill + flyout drawer above
+   ════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+  /* Container: floating, centered, 20px from bottom */
+  .fb {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    border: none;
+    background: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    pointer-events: none; /* pass-through — children get their own */
+  }
+
+  /* ── Floating pill handle ── */
+
+  .fb-handle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: 1px solid rgba(86, 180, 232, 0.25);
+    border-radius: 24px;
+    background: rgba(10, 14, 22, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.5),
+      0 0 8px rgba(86, 180, 232, 0.1);
+    color: var(--azure-text);
+    font-family: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    pointer-events: auto;
+    order: 2; /* pill is below drawer in DOM, but visually at bottom via column layout */
+  }
+
+  .fb-handle svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .fb-handle-label {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.75rem;
+  }
+
+  .fb-handle-badge {
+    background: var(--azure);
+    color: #0a0e16;
+    font-size: 0.6rem;
+    font-weight: 600;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .fb-handle-count {
+    color: var(--azure);
+    opacity: 0.45;
+    font-size: 0.65rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Drawer: opens above the pill ── */
+
+  .fb-drawer {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    width: calc(100vw - 24px);
+    max-width: 400px;
+    background: rgba(10, 14, 22, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(86, 180, 232, 0.15);
+    border-radius: 14px;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.6),
+      0 0 8px rgba(86, 180, 232, 0.08);
+    pointer-events: auto;
+    order: 1; /* drawer above pill */
+  }
+
+  .fb--open .fb-drawer {
+    display: flex;
+  }
+
+  /* ── Rows ── */
+
+  .fb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .fb-row--primary::after,
+  .fb-row--tools::after {
+    display: none;
+  }
+
+  /* ── 2x icons ── */
+
+  .ft-btn {
+    padding: 8px 10px;
+    gap: 6px;
+    font-size: 0.78rem;
+    border-radius: 6px;
+  }
+
+  .ft-btn svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ft-btn--tool {
+    padding: 8px;
+  }
+
+  .ft-label {
+    display: inline;
+    font-size: 0.72rem;
+  }
+
+  .ft-sort-label {
+    font-size: 0.72rem;
+  }
+
+  .ft-selected {
+    display: none;
+  }
+
+  /* ── Search + sort scale ── */
+
+  .fb-search {
+    flex: 1;
+    width: auto;
+    font-size: 0.82rem;
+    padding: 7px 10px;
+  }
+
+  .fb-search:focus {
+    width: auto;
+  }
+
+  .fb-count {
+    display: none;
+  }
+
+  .fb-clear {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+    margin-left: auto;
+  }
+
+  /* ── Popovers: open above the drawer ── */
+
+  .fp {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: auto;
+    max-width: none;
+    max-height: 40vh;
+    border-radius: 12px;
+  }
+
+  /*
+   * Bottom positioning: the drawer's bottom edge varies, so we
+   * anchor popovers to a fixed distance from the viewport bottom.
+   * Drawer (~140px) + pill (~44px) + gap + 20px offset ≈ 220px.
+   */
+  .fp {
+    bottom: 230px;
+  }
+
+  .fp--tabbed {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .fp-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fp-item {
+    padding: 8px 10px;
+    font-size: 0.82rem;
+  }
+
+  .fp-tab {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+}

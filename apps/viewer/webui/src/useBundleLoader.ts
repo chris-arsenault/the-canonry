@@ -120,7 +120,7 @@ function useBundlePreloads(bundle: ViewerBundle | null) {
 
   useEffect(() => {
     if (!bundle) return;
-    const backend = new CDNBackend(bundle.imageData, bundle.images);
+    const backend = new CDNBackend(bundle.imageData, bundle.images, bundle.imageAlternates ?? null);
     void useImageStore.getState().configure(backend);
     return () => useImageStore.getState().cleanup();
   }, [bundle]);

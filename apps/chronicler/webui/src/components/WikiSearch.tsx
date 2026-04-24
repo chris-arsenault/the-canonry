@@ -9,7 +9,6 @@ import Fuse from "fuse.js";
 import { useKeyboardNavigation } from "@the-canonry/shared-components";
 import type { Optional } from "@the-canonry/shared-components";
 import type { WikiPage } from "../types/world.ts";
-import styles from "./WikiSearch.module.css";
 
 interface WikiSearchProps {
   pages: WikiPage[];
@@ -38,21 +37,21 @@ function SearchResultsDropdown({
   onHover: (index: number) => void;
 }>) {
   return (
-    <div className={expandDirection === "up" ? styles.dropdownUp : styles.dropdown}>
+    <div className={expandDirection === "up" ? "dropdown-up" : "dropdown"}>
       {results.length > 0 ? (
         results.map((result, index) => (
           <button
             key={result.item.id}
-            className={index === selectedIndex ? styles.resultSelected : styles.result}
+            className={index === selectedIndex ? "result-selected" : "result"}
             onClick={() => onSelect(result.item.id)}
             onMouseEnter={() => onHover(index)}
           >
             {result.item.title}
-            <span className={styles.resultType}>{result.item.type}</span>
+            <span className="result-type">{result.item.type}</span>
           </button>
         ))
       ) : (
-        <div className={styles.noResults}>No results found</div>
+        <div className="no-results">No results found</div>
       )}
     </div>
   );
@@ -124,11 +123,11 @@ export default function WikiSearch({
   const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => { if (isOpen) handleKeyDown(e); }, [isOpen, handleKeyDown]);
 
   return (
-    <div ref={containerRef} className={styles.container}>
+    <div ref={containerRef} className="ws-container">
       <input
         type="text" placeholder="Search..." value={query}
         onChange={handleInputChange} onFocus={handleInputFocus} onKeyDown={handleInputKeyDown}
-        className={styles.input}
+        className="input"
       />
       {isOpen && query.length >= 2 && (
         <SearchResultsDropdown

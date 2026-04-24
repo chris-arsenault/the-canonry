@@ -32,7 +32,7 @@ function getStatusColor(status) {
 export default function BulkOperationShell({
   pillId,
   title,
-  tabId = "chronicle",
+  tabId = "bulkactions",
   progress,
   onConfirm,
   onCancel,
@@ -42,6 +42,7 @@ export default function BulkOperationShell({
   pillStatusText,
   confirmWidth = "540px",
   processWidth = "480px",
+  renderMode = "modal",
   children
 }) {
   const isMinimized = useFloatingPillStore(s => s.isMinimized(pillId));
@@ -75,8 +76,7 @@ export default function BulkOperationShell({
       tabId
     });
   };
-  return <div className="bulk-overlay">
-      <div className="bulk-dialog" style={{
+  const dialog = <div className={renderMode === "inline" ? "bulk-inline-panel" : "bulk-dialog"} style={{
       "--bulk-dialog-width": isConfirming ? confirmWidth : processWidth
     }}>
         {/* Header */}
@@ -84,7 +84,7 @@ export default function BulkOperationShell({
           <div className="bulk-header-row">
             <h2 className="bulk-title">{title}</h2>
             <div className="bulk-header-actions">
-              {!isConfirming && <button onClick={handleMinimize} className="illuminator-button bulk-minimize-btn" title="Minimize to pill">
+              {renderMode === "modal" && !isConfirming && <button onClick={handleMinimize} className="illuminator-button bulk-minimize-btn" title="Minimize to pill">
                   ―
                 </button>}
               <span className={`bulk-status bulk-status-${progress.status}`}>
@@ -116,8 +116,11 @@ export default function BulkOperationShell({
               Close
             </button>}
         </div>
-      </div>
-    </div>;
+      </div>;
+
+  if (renderMode === "inline") return dialog;
+
+  return <div className="bulk-overlay">{dialog}</div>;
 }
 
 /**
@@ -202,6 +205,7 @@ BulkOperationShell.propTypes = {
   pillStatusText: PropTypes.string,
   confirmWidth: PropTypes.string,
   processWidth: PropTypes.string,
+  renderMode: PropTypes.oneOf(["modal", "inline"]),
   children: PropTypes.node
 };
 BulkProgressBar.propTypes = {

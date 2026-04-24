@@ -8,6 +8,12 @@ export interface UseApiKeysReturn {
   setAnthropicApiKey: Dispatch<SetStateAction<string>>;
   openaiApiKey: string;
   setOpenaiApiKey: Dispatch<SetStateAction<string>>;
+  wavespeedApiKey: string;
+  setWavespeedApiKey: Dispatch<SetStateAction<string>>;
+  bflApiKey: string;
+  setBflApiKey: Dispatch<SetStateAction<string>>;
+  falApiKey: string;
+  setFalApiKey: Dispatch<SetStateAction<string>>;
   showApiKeyInput: boolean;
   setShowApiKeyInput: Dispatch<SetStateAction<boolean>>;
   hasAnthropicKey: boolean;
@@ -43,6 +49,15 @@ export default function useApiKeys(): UseApiKeysReturn {
   const [openaiApiKey, setOpenaiApiKey] = useState<string>(() =>
     readPersistedApiKey("illuminator:openaiApiKey")
   );
+  const [wavespeedApiKey, setWavespeedApiKey] = useState<string>(() =>
+    readPersistedApiKey("illuminator:wavespeedApiKey")
+  );
+  const [bflApiKey, setBflApiKey] = useState<string>(() =>
+    readPersistedApiKey("illuminator:bflApiKey")
+  );
+  const [falApiKey, setFalApiKey] = useState<string>(() =>
+    readPersistedApiKey("illuminator:falApiKey")
+  );
   const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
 
   // Persist API keys when enabled
@@ -52,14 +67,20 @@ export default function useApiKeys(): UseApiKeysReturn {
       if (persistApiKeys) {
         localStorage.setItem("illuminator:anthropicApiKey", anthropicApiKey);
         localStorage.setItem("illuminator:openaiApiKey", openaiApiKey);
+        localStorage.setItem("illuminator:wavespeedApiKey", wavespeedApiKey);
+        localStorage.setItem("illuminator:bflApiKey", bflApiKey);
+        localStorage.setItem("illuminator:falApiKey", falApiKey);
       } else {
         localStorage.removeItem("illuminator:anthropicApiKey");
         localStorage.removeItem("illuminator:openaiApiKey");
+        localStorage.removeItem("illuminator:wavespeedApiKey");
+        localStorage.removeItem("illuminator:bflApiKey");
+        localStorage.removeItem("illuminator:falApiKey");
       }
     } catch {
       /* ignored */
     }
-  }, [persistApiKeys, anthropicApiKey, openaiApiKey]);
+  }, [persistApiKeys, anthropicApiKey, openaiApiKey, wavespeedApiKey, bflApiKey, falApiKey]);
 
   const hasAnthropicKey: boolean = anthropicApiKey.length > 0;
   const hasRequiredKeys: boolean = hasAnthropicKey;
@@ -71,6 +92,12 @@ export default function useApiKeys(): UseApiKeysReturn {
     setAnthropicApiKey,
     openaiApiKey,
     setOpenaiApiKey,
+    wavespeedApiKey,
+    setWavespeedApiKey,
+    bflApiKey,
+    setBflApiKey,
+    falApiKey,
+    setFalApiKey,
     showApiKeyInput,
     setShowApiKeyInput,
     hasAnthropicKey,

@@ -26,7 +26,6 @@ import {
   HISTORIAN_NOTE_LABELS,
 } from "../lib/historianAnnotations.ts";
 import { resolveAnchorPhrase } from "../lib/fuzzyAnchor.ts";
-import styles from "./WikiPage.module.css";
 
 // ============================================================================
 // Disambiguation
@@ -50,7 +49,7 @@ export function DisambiguationNotice({ page, entityIndex, disambiguation, onNavi
   onNavigate: (pageId: string) => void;
 }>) {
   return (
-    <div className={styles.disambiguationNotice}>
+    <div className="disambiguation-notice">
       This page is about the {disambiguationTypeLabel(page, entityIndex)}. See also:
       {disambiguation
         .filter((d) => d.pageId !== page.id)
@@ -73,7 +72,7 @@ function DisambiguationLink({ entry, onNavigate }: Readonly<{
     if (e.key === "Enter" || e.key === " ") onNavigate(entry.pageId);
   }, [onNavigate, entry.pageId]);
   return (
-    <span className={styles.disambiguationLink} onClick={handleClick} role="button" tabIndex={0} onKeyDown={handleKeyDown}>
+    <span className="disambiguation-link" onClick={handleClick} role="button" tabIndex={0} onKeyDown={handleKeyDown}>
       {entry.title}
     </span>
   );
@@ -85,8 +84,8 @@ function DisambiguationLink({ entry, onNavigate }: Readonly<{
 
 export function TableOfContents({ sections }: Readonly<{ sections: Array<{ id: string; heading: string; level: number }> }>) {
   return (
-    <div className={styles.toc}>
-      <div className={styles.tocTitle}>Contents</div>
+    <div className="toc">
+      <div className="toc-title">Contents</div>
       {sections.map((section, i) => (
         <TocItem key={section.id} section={section} index={i} />
       ))}
@@ -101,7 +100,7 @@ function TocItem({ section, index }: Readonly<{ section: { id: string; heading: 
   }, [section.id]);
   return (
     <button
-      className={styles.tocItem}
+      className="toc-item"
       style={{ "--toc-indent": `${(section.level - 1) * 16}px` } as React.CSSProperties}
       onClick={handleClick}
     >
@@ -126,8 +125,8 @@ export function UnmatchedHistorianNotes({ page }: Readonly<{ page: WikiPage }>) 
   if (unmatched.length === 0) return null;
 
   return (
-    <div className={styles.unmatchedNotesSection}>
-      <div className={styles.unmatchedNotesHeading}>Historian&apos;s Notes</div>
+    <div className="unmatched-notes-section">
+      <div className="unmatched-notes-heading">Historian&apos;s Notes</div>
       {unmatched.map((note) => {
         const color = HISTORIAN_NOTE_COLORS[note.type] || HISTORIAN_NOTE_COLORS.commentary;
         const icon = HISTORIAN_NOTE_ICONS[note.type] || "\u2726";
@@ -135,10 +134,10 @@ export function UnmatchedHistorianNotes({ page }: Readonly<{ page: WikiPage }>) 
         return (
           <div
             key={note.noteId}
-            className={styles.unmatchedNoteCard}
+            className="unmatched-note-card"
             style={{ "--note-color": color } as React.CSSProperties}
           >
-            <div className={styles.noteTypeLabel}>
+            <div className="note-type-label">
               {icon} {label}
             </div>
             {note.text}
@@ -156,7 +155,7 @@ export function UnmatchedHistorianNotes({ page }: Readonly<{ page: WikiPage }>) 
 export function BacklinkButton({ link, onNavigate }: Readonly<{ link: WikiPage; onNavigate: (id: string) => void }>) {
   const handleClick = useCallback(() => onNavigate(link.id), [onNavigate, link.id]);
   return (
-    <button className={styles.backlinkItem} onClick={handleClick}>
+    <button className="backlink-item" onClick={handleClick}>
       {link.title}
     </button>
   );
@@ -174,7 +173,7 @@ function formatCategoryName(catId: string): string {
 export function CategoryButton({ catId, onNavigate }: Readonly<{ catId: string; onNavigate: (id: string) => void }>) {
   const handleClick = useCallback(() => onNavigate(`category-${catId}`), [onNavigate, catId]);
   return (
-    <button className={styles.categoryTag} onClick={handleClick}>
+    <button className="category-tag" onClick={handleClick}>
       {formatCategoryName(catId)}
     </button>
   );
@@ -211,6 +210,8 @@ interface SectionBlockProps {
   historianNotes: Optional<WikiHistorianNote[]>;
   narrativeStyleId: Optional<string>;
   layoutOverride: Optional<PageLayoutOverride>;
+  preResolvedNotes: Optional<import("../lib/historianAnnotations.ts").ResolvedFootnote[]>;
+  globalOrderedNotes: Optional<WikiHistorianNote[]>;
 }
 
 export function SectionBlock({
@@ -218,6 +219,7 @@ export function SectionBlock({
   sourceChronicleLinks, chronicleLinks,
   linkData, callbacks,
   historianNotes, narrativeStyleId, layoutOverride,
+  preResolvedNotes, globalOrderedNotes,
 }: Readonly<SectionBlockProps>) {
   const hideHeading = isLongFormProse && (section.heading === "Chronicle" || section.heading === "Narrative");
 
@@ -229,11 +231,11 @@ export function SectionBlock({
       {section.heading === "Relationships" && chronicleLinks.length > 0 && (
         <ChronicleGallery title="Chronicles" links={chronicleLinks} onNavigate={callbacks.onNavigate} />
       )}
-      <div id={section.id} className={styles.section}>
+      <div id={section.id} className="wp-section">
         {!hideHeading && (
           <>
-            <h2 className={styles.sectionHeading}>{section.heading}</h2>
-            <SectionDivider className={styles.sectionDividerSvg} />
+            <h2 className="section-heading">{section.heading}</h2>
+            <SectionDivider className="section-divider-svg" />
           </>
         )}
         <SectionWithImages
@@ -249,6 +251,8 @@ export function SectionBlock({
           isFirstChronicleSection={isLongFormProse && sectionIndex === 0}
           narrativeStyleId={narrativeStyleId}
           layoutOverride={layoutOverride}
+          preResolvedNotes={preResolvedNotes}
+          globalOrderedNotes={globalOrderedNotes}
         />
       </div>
     </React.Fragment>

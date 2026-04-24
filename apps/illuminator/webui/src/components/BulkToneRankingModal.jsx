@@ -36,7 +36,7 @@ function getPillText(progress) {
   return "";
 }
 
-export default function BulkToneRankingModal({ progress, onConfirm, onCancel, onClose }) {
+export default function BulkToneRankingModal({ progress, onConfirm, onCancel, onClose, renderMode }) {
   return (
     <BulkOperationShell
       pillId="bulk-tone-ranking"
@@ -48,6 +48,7 @@ export default function BulkToneRankingModal({ progress, onConfirm, onCancel, on
       confirmLabel={`Rank (${progress?.totalChronicles || 0} chronicles)`}
       statusText={progress ? getStatusText(progress) : ""}
       pillStatusText={progress ? getPillText(progress) : ""}
+      renderMode={renderMode}
     >
       {/* Confirmation screen */}
       {progress?.status === "confirming" && (

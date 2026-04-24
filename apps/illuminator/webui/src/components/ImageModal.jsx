@@ -76,9 +76,9 @@ function MetadataSidebar({ metadata, isOpen, onToggle }) {
 
   // Check if Claude refinement was used (original and final prompts differ)
   const wasRefined =
-    metadata.originalPrompt &&
-    metadata.finalPrompt &&
-    metadata.originalPrompt !== metadata.finalPrompt;
+    metadata.generation?.originalPrompt &&
+    metadata.generation?.finalPrompt &&
+    metadata.generation?.originalPrompt !== metadata.generation?.finalPrompt;
 
   return (
     <>
@@ -103,15 +103,15 @@ function MetadataSidebar({ metadata, isOpen, onToggle }) {
           <h4 className="imod-sidebar-heading">Image Metadata</h4>
 
           {/* Basic info */}
-          <MetadataRow label="Entity" value={metadata.entityName} />
-          <MetadataRow label="Kind" value={metadata.entityKind} />
-          <MetadataRow label="Culture" value={metadata.entityCulture} />
-          <MetadataRow label="Model" value={metadata.model} />
-          <MetadataRow label="Generated" value={formatDate(metadata.generatedAt)} />
+          <MetadataRow label="Entity" value={metadata.entity?.name} />
+          <MetadataRow label="Kind" value={metadata.entity?.kind} />
+          <MetadataRow label="Culture" value={metadata.entity?.culture} />
+          <MetadataRow label="Model" value={metadata.generation?.model} />
+          <MetadataRow label="Generated" value={formatDate(metadata.generation?.generatedAt)} />
           <MetadataRow label="File Size" value={formatSize(metadata.size)} />
 
           {/* Prompts section */}
-          {(metadata.originalPrompt || metadata.finalPrompt || metadata.revisedPrompt) && (
+          {(metadata.generation?.originalPrompt || metadata.generation?.finalPrompt || metadata.generation?.revisedPrompt) && (
             <>
               <div className="imod-sidebar-divider" />
               <div className="imod-sidebar-section-label">Prompts</div>
@@ -120,27 +120,27 @@ function MetadataSidebar({ metadata, isOpen, onToggle }) {
                 <>
                   <PromptSection
                     title="Original Prompt (Template)"
-                    content={metadata.originalPrompt}
+                    content={metadata.generation?.originalPrompt}
                     defaultExpanded={false}
                   />
                   <PromptSection
                     title="Refined Prompt (Claude)"
-                    content={metadata.finalPrompt}
+                    content={metadata.generation?.finalPrompt}
                     defaultExpanded={true}
                   />
                 </>
               ) : (
                 <PromptSection
                   title="Prompt (Sent to Model)"
-                  content={metadata.finalPrompt || metadata.originalPrompt}
+                  content={metadata.generation?.finalPrompt || metadata.generation?.originalPrompt}
                   defaultExpanded={true}
                 />
               )}
 
-              {metadata.revisedPrompt && (
+              {metadata.generation?.revisedPrompt && (
                 <PromptSection
                   title="Revised Prompt (DALL-E)"
-                  content={metadata.revisedPrompt}
+                  content={metadata.generation?.revisedPrompt}
                   defaultExpanded={false}
                 />
               )}

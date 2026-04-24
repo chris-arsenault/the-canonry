@@ -36,6 +36,8 @@ import {
 } from "../../lib/db/chronicleRepository";
 import { saveCostRecordWithDefaults, type CostType } from "../../lib/db/costRepository";
 import { resolveAnchorPhrase } from "../../lib/fuzzyAnchor";
+import { executeRegenerateImageRefsStep } from "./chronicleImageRefsTask";
+import { executeTagImageRefsStep } from "./chronicleTagImageRefsTask";
 import {
   selectEntitiesV2,
   buildV2Prompt,
@@ -372,9 +374,6 @@ function dispatchPostGenerationStep(
     case "title":
       return executeTitleStep(task, chronicleRecord, context);
     case "image_refs":
-      if (!task.chronicleContext) {
-        return { success: false, error: "Chronicle context required for image refs step" };
-      }
       return executeImageRefsStep(task, chronicleRecord, context);
     case "cover_image_scene":
       return executeCoverImageSceneStep(task, chronicleRecord, context);
@@ -382,6 +381,10 @@ function dispatchPostGenerationStep(
       return executeRegenerateSceneDescriptionStep(task, chronicleRecord, context);
     case "cover_image":
       return executeCoverImageStep(task, chronicleRecord, context);
+    case "regenerate_image_refs":
+      return executeRegenerateImageRefsStep(task, context);
+    case "tag_image_refs":
+      return executeTagImageRefsStep(task, context);
     default:
       return { success: false, error: `Unknown step: ${step}` };
   }
@@ -2103,22 +2106,13 @@ function buildTitleShapingUserPrompt(
   return parts.join("\n\n");
 }
 
-function formatImageRefEntities(
-  chronicleContext: ChronicleGenerationContext,
-  visualIdentities?: Record<string, string>
+function formatImageRefVisualIdentities(
+  visualIdentities?: Record<string, string>,
 ): string {
-  if (chronicleContext.entities.length === 0) return "(none)";
-
-  return chronicleContext.entities
-    .map((entity) => {
-      let line = `- ${entity.id}: ${entity.name} (${entity.kind})`;
-      const visual = visualIdentities?.[entity.id];
-      if (visual) {
-        line += `\n  Visual: ${visual}`;
-      }
-      return line;
-    })
-    .join("\n");
+  if (!visualIdentities) return "(none available)";
+  const entries = Object.entries(visualIdentities);
+  if (entries.length === 0) return "(none available)";
+  return entries.map(([id, thesis]) => `- ${id}: ${thesis}`).join("\n");
 }
 
 /**
@@ -2192,13 +2186,12 @@ function splitIntoChunks(
 
 function buildImageRefsPrompt(
   content: string,
-  chronicleContext: ChronicleGenerationContext,
-  visualIdentities?: Record<string, string>
+  _chronicleContext: ChronicleGenerationContext,
+  visualIdentities?: Record<string, string>,
 ): string {
-  const entityList = formatImageRefEntities(chronicleContext, visualIdentities);
+  const visualDisplay = formatImageRefVisualIdentities(visualIdentities);
   const chunks = splitIntoChunks(content);
 
-  // Build chunk display with markers (full text, no truncation)
   const chunksDisplay = chunks
     .map((chunk, i) => {
       return `### CHUNK ${i + 1} of ${chunks.length}
@@ -2209,33 +2202,29 @@ ${chunk.text}
 
   return `You are adding image references to a chronicle. Your task is to identify optimal placement points for images that enhance the narrative.
 
-## Available Entities
-${entityList}
+## Visual Identities
+"Entities" in this world include people, places, landmarks, artifacts, institutions, phenomena, and events — not just characters. The identities below describe what each entity looks like visually.
+${visualDisplay}
 
 ## Instructions
 The chronicle has been divided into ${chunks.length} chunks. For EACH chunk, decide whether it deserves an image (0 or 1 per chunk). This ensures images are distributed throughout the narrative.
 
-For each image, choose one type:
+Aim for visual variety across the chronicle. Mix scene types:
+- **Character moments** — a figure in action, a meeting, a confrontation
+- **Landscapes and places** — a city, a ruin, a coastline, a sacred grove
+- **Artifacts and objects** — a weapon, a treaty document, a symbol of power
+- **Groups and crowds** — armies, councils, migrations, ceremonies
+- **Atmosphere and environment** — weather, lighting, mood, aftermath
 
-1. **Entity Reference** (type: "entity_ref") - Use when a specific entity is prominently featured
-   - Best for: Introductions, key moments focused on a single entity
-
-2. **Prompt Request** (type: "prompt_request") - Use for scenes involving multiple entities or environments
-   - Best for: Multi-entity scenes, locations, action moments, atmospheric shots
-   - REQUIRED: Include involvedEntityIds with at least one entity that appears in the scene
-   - In sceneDescription, incorporate the Visual identity of involved entities so the image generator knows what figures look like
+For each image, provide a scene description:
+- Write a vivid 1-2 sentence description of the visual scene
+- Use the Visual Identities above for any entities that appear
+- involvedEntityIds should list entities relevant to the scene (the place it depicts, the artifact shown, the people present, etc.)
 
 ## Output Format
-Return a JSON object. For each image placement, provide an entry with anchorText from the relevant chunk:
+Return a JSON object:
 {
   "imageRefs": [
-    {
-      "type": "entity_ref",
-      "entityId": "<entity id from list above>",
-      "anchorText": "<exact 5-15 word phrase from the chronicle>",
-      "size": "small|medium|large|full-width",
-      "caption": "<optional>"
-    },
     {
       "type": "prompt_request",
       "sceneDescription": "<vivid 1-2 sentence scene description>",
@@ -2249,15 +2238,15 @@ Return a JSON object. For each image placement, provide an entry with anchorText
 
 ## Size Guidelines
 - small: 150px, supplementary/margin images
-- medium: 300px, standard single-entity images
+- medium: 300px, standard images
 - large: 450px, key scenes
-- full-width: 100%, establishing shots
+- full-width: 100%, establishing shots, landscapes, panoramas
 
 ## Rules
 - Suggest 0 or 1 image per chunk (total 2-5 images for the whole chronicle)
 - anchorText MUST be an exact phrase from that chunk's text
-- entityId and involvedEntityIds MUST use IDs from the Available Entities list
-- For prompt_request, involvedEntityIds MUST contain at least one entity ID
+- involvedEntityIds MUST use IDs from the Visual Identities list
+- involvedEntityIds should list at least one entity, but can be empty for pure atmosphere/environment scenes
 - Return valid JSON only, no markdown
 
 ## Chronicle Chunks

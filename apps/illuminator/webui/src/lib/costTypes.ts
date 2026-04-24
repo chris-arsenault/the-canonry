@@ -25,7 +25,9 @@ export type CostType =
   | "historianChronology" // Historian-assigned era year chronology
   | "historianPrep" // Historian reading notes for a chronicle
   | "eraNarrative" // Era narrative chapter/thread generation
-  | "chronicleQuickCheck"; // Quick check for unanchored entity references
+  | "chronicleQuickCheck" // Quick check for unanchored entity references
+  | "chronicleTagImageRefs" // Bulk tagging of scene image refs with styles
+  | "chronicleTagCoverImages"; // Bulk tagging of cover images with styles
 
 export interface CostRecord {
   id: string;

@@ -31,6 +31,8 @@ export type LLMCallType =
   | "chronicle.factCoverage" // Classify canon fact presence in chronicle narratives
   | "chronicle.toneRanking" // Rank historian annotation tones by suitability for chronicle
   | "chronicle.bulkToneRanking" // Batch tone ranking — all chronicles in one call
+  | "chronicle.batchTagImageRefs" // Batch tag image refs across multiple chronicles
+  | "chronicle.batchTagCoverImages" // Batch tag cover images across multiple chronicles
 
   // Palette
   | "palette.expansion" // Trait palette curation
@@ -55,7 +57,14 @@ export type LLMCallType =
   | "historian.eraNarrative.edit" // Era narrative: copy-edit pass
   | "historian.eraNarrative.coverImageScene" // Era narrative: cover image scene description
   | "historian.eraNarrative.imageRefs" // Era narrative: image reference placement
-  | "historian.motifVariation"; // Motif phrase variation for annotation deduplication
+  | "historian.motifVariation" // Motif phrase variation for annotation deduplication
+
+  // Entity Image Styles
+  | "entity.batchTagImageStyles" // Batch tag entities with artistic/composition/palette rankings
+
+  // Catalog
+  | "catalog.metadataFill" // Classify styles and tags from image prompt data
+  | "catalog.titleFill"; // Generate evocative titles from image prompt + style context
 
 export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   "description.narrative",
@@ -76,6 +85,8 @@ export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   "chronicle.factCoverage",
   "chronicle.toneRanking",
   "chronicle.bulkToneRanking",
+  "chronicle.batchTagImageRefs",
+  "chronicle.batchTagCoverImages",
   "palette.expansion",
   "dynamics.generation",
   "revision.summary",
@@ -91,6 +102,9 @@ export const ALL_LLM_CALL_TYPES: LLMCallType[] = [
   "historian.eraNarrative.coverImageScene",
   "historian.eraNarrative.imageRefs",
   "historian.motifVariation",
+  "entity.batchTagImageStyles",
+  "catalog.metadataFill",
+  "catalog.titleFill",
 ];
 
 export type LLMCallCategory =
@@ -101,7 +115,9 @@ export type LLMCallCategory =
   | "palette"
   | "dynamics"
   | "revision"
-  | "historian";
+  | "historian"
+  | "entity"
+  | "catalog";
 
 export interface LLMCallDefaults {
   model: string;
@@ -212,7 +228,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     defaults: {
       model: "claude-haiku-4-5-20251001",
       thinkingBudget: 0,
-      maxTokens: 1024,
+      maxTokens: 2048,
     },
     recommendedModels: ["claude-haiku-4-5-20251001"],
   },
@@ -223,7 +239,7 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     defaults: {
       model: "claude-haiku-4-5-20251001",
       thinkingBudget: 0,
-      maxTokens: 1024,
+      maxTokens: 2048,
     },
     recommendedModels: ["claude-haiku-4-5-20251001"],
   },
@@ -372,6 +388,30 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
       model: "claude-sonnet-4-6",
       thinkingBudget: 16384,
       maxTokens: 8192,
+    },
+    recommendedModels: ["claude-sonnet-4-6"],
+  },
+  "chronicle.batchTagImageRefs": {
+    label: "Batch Tag Image Refs",
+    description:
+      "Assigns artistic style, composition, and color palette rankings to image refs across multiple chronicles in one call",
+    category: "chronicle",
+    defaults: {
+      model: "claude-sonnet-4-6",
+      thinkingBudget: 10000,
+      maxTokens: 16384,
+    },
+    recommendedModels: ["claude-sonnet-4-6"],
+  },
+  "chronicle.batchTagCoverImages": {
+    label: "Batch Tag Cover Images",
+    description:
+      "Assigns artistic style, composition, and color palette rankings to cover images across multiple chronicles in one call",
+    category: "chronicle",
+    defaults: {
+      model: "claude-sonnet-4-6",
+      thinkingBudget: 10000,
+      maxTokens: 16384,
     },
     recommendedModels: ["claude-sonnet-4-6"],
   },
@@ -549,6 +589,46 @@ export const LLM_CALL_METADATA: Record<LLMCallType, LLMCallMetadata> = {
     },
     recommendedModels: ["claude-opus-4-6", "claude-sonnet-4-6"],
   },
+  "entity.batchTagImageStyles": {
+    label: "Batch Tag Entity Image Styles",
+    description:
+      "Assigns artistic style, composition, and color palette rankings to entity images in one call",
+    category: "entity",
+    defaults: {
+      model: "claude-sonnet-4-6",
+      thinkingBudget: 10000,
+      maxTokens: 16384,
+    },
+    recommendedModels: ["claude-sonnet-4-6"],
+  },
+  "catalog.metadataFill": {
+    label: "Classify Fill",
+    description:
+      "Classify images into artistic styles, composition styles, color palettes, and tags (batched)",
+    category: "catalog",
+    defaults: {
+      model: "claude-haiku-4-5-20251001",
+      thinkingBudget: 0,
+      maxTokens: 4096,
+      disableStreaming: true,
+      runInBrowser: true,
+    },
+    recommendedModels: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"],
+  },
+  "catalog.titleFill": {
+    label: "Title Fill",
+    description:
+      "Generate evocative titles for images from their prompt and style context (batched)",
+    category: "catalog",
+    defaults: {
+      model: "claude-opus-4-6",
+      thinkingBudget: 4096,
+      maxTokens: 4096,
+      disableStreaming: true,
+      runInBrowser: true,
+    },
+    recommendedModels: ["claude-opus-4-6", "claude-sonnet-4-6"],
+  },
 };
 
 export const CATEGORY_LABELS: Record<LLMCallCategory, string> = {
@@ -560,6 +640,8 @@ export const CATEGORY_LABELS: Record<LLMCallCategory, string> = {
   dynamics: "Dynamics Generation",
   revision: "Summary Revision",
   historian: "Historian",
+  entity: "Entity Images",
+  catalog: "Catalog",
 };
 
 export const CATEGORY_DESCRIPTIONS: Record<LLMCallCategory, string> = {
@@ -572,6 +654,8 @@ export const CATEGORY_DESCRIPTIONS: Record<LLMCallCategory, string> = {
   revision: "Batch revision of entity summaries and descriptions using world dynamics",
   historian:
     "Scholarly annotations with personality — commentary, corrections, and tongue-in-cheek observations",
+  entity: "Batch style assignment for entity image generation",
+  catalog: "Batch metadata generation for image catalog backfill",
 };
 
 // Group call types by category
@@ -592,6 +676,8 @@ export function getCallTypesByCategory(): Record<LLMCallCategory, LLMCallType[]>
       "chronicle.coverImageScene",
       "chronicle.toneRanking",
       "chronicle.bulkToneRanking",
+      "chronicle.batchTagImageRefs",
+      "chronicle.batchTagCoverImages",
     ],
     palette: ["palette.expansion"],
     dynamics: ["dynamics.generation"],
@@ -609,5 +695,7 @@ export function getCallTypesByCategory(): Record<LLMCallCategory, LLMCallType[]>
       "historian.eraNarrative.imageRefs",
       "historian.motifVariation",
     ],
+    entity: ["entity.batchTagImageStyles"],
+    catalog: ["catalog.metadataFill", "catalog.titleFill"],
   };
 }

@@ -18,6 +18,7 @@ import type {
 import { buildPageIndex, buildPageById } from "../lib/wikiBuilder.ts";
 import {
   getCompletedChroniclesForSimulation,
+  getChronicle,
   type ChronicleRecord,
 } from "../lib/chronicleStorage.ts";
 import { getPublishedStaticPagesForProject, type StaticPage } from "../lib/staticPageStorage.ts";
@@ -25,6 +26,8 @@ import {
   getCompletedEraNarrativesForSimulation,
   type EraNarrativeViewRecord,
 } from "../lib/eraNarrativeStorage.ts";
+import { getPageLayoutMap } from "../lib/pageLayoutStorage.ts";
+import type { PageLayoutOverride } from "../types/world.ts";
 import {
   buildProminenceScale,
   DEFAULT_PROMINENCE_DISTRIBUTION,
@@ -170,6 +173,7 @@ export function useWikiExplorerData({
   const [eraNarratives, setEraNarratives] = useState<EraNarrativeViewRecord[]>(
     () => preloadedEraNarratives ?? []
   );
+  const [pageLayouts, setPageLayouts] = useState<Map<string, PageLayoutOverride>>(new Map());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const simulationRunId = (
@@ -229,6 +233,16 @@ export function useWikiExplorerData({
     void load();
     return () => { cancelled = true; };
   }, [preloadedEraNarratives, simulationRunId]);
+
+  // Load page layout overrides from IndexedDB
+  useEffect(() => {
+    if (!simulationRunId) { setPageLayouts(new Map()); return; }
+    let cancelled = false;
+    void getPageLayoutMap(simulationRunId).then((map) => {
+      if (!cancelled) setPageLayouts(map);
+    });
+    return () => { cancelled = true; };
+  }, [simulationRunId]);
 
   const dataError = useMemo(() => validateWorldData(worldData), [worldData]);
   const prominenceScale = useMemo(
@@ -312,20 +326,38 @@ export function useWikiExplorerData({
     if (isRefreshing) return;
     setIsRefreshing(true);
     try {
-      const [loadedChronicles, loadedStaticPages] = await Promise.all([
+      const [loadedChronicles, loadedStaticPages, loadedLayouts] = await Promise.all([
         simulationRunId
           ? getCompletedChroniclesForSimulation(simulationRunId)
           : Promise.resolve([]),
         projectId ? getPublishedStaticPagesForProject(projectId) : Promise.resolve([]),
+        simulationRunId ? getPageLayoutMap(simulationRunId) : Promise.resolve(new Map<string, PageLayoutOverride>()),
       ]);
       setChronicles(normalizeChronicles(loadedChronicles));
       setStaticPages(normalizeStaticPages(loadedStaticPages));
+      setPageLayouts(loadedLayouts);
     } catch (err) {
       console.error("[WikiExplorer] Failed to refresh index:", err);
     } finally {
       setIsRefreshing(false);
     }
   }, [projectId, simulationRunId, isRefreshing]);
+
+  const handleRefreshChronicle = useCallback(async (chronicleId: string) => {
+    const [fresh, layouts] = await Promise.all([
+      getChronicle(chronicleId),
+      simulationRunId ? getPageLayoutMap(simulationRunId) : Promise.resolve(new Map<string, PageLayoutOverride>()),
+    ]);
+    if (layouts.size > 0) setPageLayouts(layouts);
+    if (!fresh) return;
+    setChronicles((prev) => {
+      const next = prev.map((c) => (c.chronicleId === chronicleId ? normalizeChronicles([fresh])[0] : c));
+      if (!prev.some((c) => c.chronicleId === chronicleId)) {
+        return normalizeChronicles([...prev, fresh]);
+      }
+      return next;
+    });
+  }, [simulationRunId]);
 
   return {
     dataError,
@@ -343,5 +375,7 @@ export function useWikiExplorerData({
     resolveEntityId,
     isRefreshing,
     handleRefreshIndex,
+    handleRefreshChronicle,
+    pageLayouts,
   };
 }

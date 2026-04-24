@@ -26,7 +26,7 @@ import type { TreeNodeData } from "./TreeNodeRenderer";
 import TreeNodeRenderer from "./TreeNodeRenderer";
 import ContentPalette, { PALETTE_ITEM_TYPE } from "./ContentPalette";
 import type { PaletteItemDragPayload } from "./ContentPalette";
-import PageLayoutEditor from "./PageLayoutEditor";
+
 import {
   createScaffold,
   addFolder,
@@ -319,13 +319,6 @@ export default function ContentTreeView({
               selectedFolderId={isSelectedFolder ? selectedNodeId : null}
               onAddContent={handleAddContent}
             />
-            {selectedNode && selectedNode.type !== "folder" && selectedNode.contentId && (
-              <PageLayoutEditor
-                pageId={selectedNode.contentId}
-                pageName={selectedNode.name}
-                simulationRunId={simulationRunId}
-              />
-            )}
           </div>
         </div>
       </DndProvider>

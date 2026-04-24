@@ -1,0 +1,175 @@
+.app {
+  min-height: 100vh;
+  padding-bottom: 36px;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+}
+
+.app-title {
+  font-family: "Playfair Display", serif;
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: #f0eee8;
+  letter-spacing: 0.02em;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-action-btn {
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.app-action-btn:hover:not(:disabled) {
+  border-color: var(--azure-border);
+  color: var(--azure-text);
+  background: var(--azure-dim);
+}
+
+.app-action-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.app-action-btn--active {
+  border-color: var(--azure-border);
+  color: var(--azure-text);
+  background: var(--azure-dim);
+}
+
+.app-compare-hint {
+  font-size: 0.72rem;
+  color: var(--azure-bright);
+  animation: hint-pulse 2s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.app-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 8px;
+  color: rgba(255, 100, 100, 0.7);
+}
+
+.app-error h2 {
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+.app-error p {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.app-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.85rem;
+}
+
+.app-clear-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 16px;
+  border: 1px solid var(--azure-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--azure-text);
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.app-clear-btn:hover {
+  background: var(--azure-dim);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────── */
+
+.app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  background: rgba(10, 10, 15, 0.92);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(86, 180, 232, 0.08);
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.app-footer img {
+  vertical-align: middle;
+}
+
+.app-footer-sep {
+  color: rgba(255, 255, 255, 0.15);
+}
+
+.app-footer-link {
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s;
+  padding: 0;
+  text-decoration: none;
+}
+
+.app-footer-link:hover {
+  color: var(--azure-text);
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding-bottom: 0;
+  }
+
+  .app-header {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  .app-title {
+    font-size: 1.2rem;
+  }
+
+  .app-footer {
+    display: none;
+  }
+}

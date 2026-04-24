@@ -31,7 +31,8 @@ import {
   executeTask as executeEnrichmentTask,
 } from "./enrichmentCore";
 import type { LLMClient } from "../lib/llmClient";
-import type { ImageClient } from "../lib/imageClient";
+import type { ImageClientInterface } from "./clients";
+import { isChronicleImage } from "../lib/imageTypes";
 import * as entityRepo from "../lib/db/entityRepository";
 
 // Worker context
@@ -43,7 +44,7 @@ const ctx: Worker = self as unknown as Worker;
 
 let config: WorkerConfig | null = null;
 let llmClient: LLMClient | null = null;
-let imageClient: ImageClient | null = null;
+let imageClient: ImageClientInterface | null = null;
 let currentTaskId: string | null = null;
 let isAborted = false;
 
@@ -95,7 +96,7 @@ async function persistResult(task: WorkerTask, result?: EnrichmentResult): Promi
         result.summary,
         result.description
       );
-    } else if (task.type === "image" && result.imageId && task.imageType !== "chronicle") {
+    } else if (task.type === "image" && result.imageId && !isChronicleImage(task.imageType)) {
       await entityRepo.applyImageResult(task.entityId, {
         imageId: result.imageId,
         generatedAt: result.generatedAt,

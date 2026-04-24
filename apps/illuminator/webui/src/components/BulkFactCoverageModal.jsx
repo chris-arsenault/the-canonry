@@ -31,7 +31,7 @@ function getPillText(progress) {
   return progress.status;
 }
 
-export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, onClose }) {
+export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, onClose, renderMode }) {
   const isConfirming = progress?.status === "confirming";
   const isTerminal =
     progress?.status === "complete" ||
@@ -49,6 +49,7 @@ export default function BulkFactCoverageModal({ progress, onConfirm, onCancel, o
       confirmLabel={`Analyze (${progress?.totalChronicles || 0} chronicles)`}
       statusText={progress ? getStatusText(progress) : ""}
       pillStatusText={progress ? getPillText(progress) : ""}
+      renderMode={renderMode}
     >
       {/* Confirmation screen */}
       {isConfirming && (

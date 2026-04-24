@@ -18,6 +18,11 @@ import FinalEditTab from "./FinalEditTab";
 import EntityCoveragePanel from "./EntityCoveragePanel";
 import HistorianConfigEditor from "./HistorianConfigEditor";
 import PrePrintPanel from "./PrePrintPanel";
+import TestImagePanel from "./TestImagePanel";
+import CurationTab from "./CurationTab";
+import CatalogTab from "./CatalogTab";
+import EntityCurationPanel from "./entity-curation/EntityCurationPanel";
+import BulkActionsTab from "./bulk-actions/BulkActionsTab";
 import { isHistorianConfigured } from "../lib/historianTypes";
 import { useIlluminatorModals } from "../lib/db/modalStore";
 import { useIlluminatorConfigStore } from "../lib/db/illuminatorConfigStore";
@@ -25,7 +30,7 @@ import { useEnrichmentQueueStore } from "../lib/db/enrichmentQueueStore";
 import { useEraTemporalInfo } from "../lib/db/indexSelectors";
 import React from "react";
 
-function EntitiesTab({ revisionFlow, historianFlow, ...props }) {
+function EntitiesTab({ revisionFlow, ...props }) {
   return (
     <div className="illuminator-content">
       <EntityBrowser
@@ -34,14 +39,11 @@ function EntitiesTab({ revisionFlow, historianFlow, ...props }) {
         onConfigChange={props.updateConfig}
         buildPrompt={props.buildPrompt}
         getVisualConfig={props.getVisualConfig}
+        resolveImageSize={props.resolveImageSize}
         styleLibrary={props.styleLibrary}
         imageGenSettings={props.imageGenSettings}
         onStartRevision={() => revisionFlow.handleOpenRevisionFilter()}
         isRevising={revisionFlow.isRevisionActive}
-        onBulkHistorianReview={historianFlow.handleStartBulkHistorianReview}
-        onBulkHistorianEdition={historianFlow.handleStartBulkHistorianEdition}
-        onBulkHistorianClear={historianFlow.handleStartBulkHistorianClear}
-        isBulkHistorianActive={historianFlow.isBulkHistorianActive}
         onNavigateToTab={props.setActiveTab}
       />
     </div>
@@ -74,8 +76,6 @@ function ChronicleTab({ backportFlow, historianFlow, ...props }) {
         entityGuidance={entityGuidance}
         cultureIdentities={cultureIdentities}
         onBackportLore={backportFlow.handleBackportLore}
-        onStartBulkBackport={() => backportFlow.handleStartBulkBackport()}
-        isBulkBackportActive={backportFlow.isBulkBackportActive}
         refreshTrigger={props.chronicleRefreshTrigger}
         imageModel={props.config.imageModel}
         onOpenImageSettings={() => useIlluminatorModals.getState().openImageSettings()}
@@ -84,8 +84,33 @@ function ChronicleTab({ backportFlow, historianFlow, ...props }) {
         historianConfigured={isHistorianConfigured(historianConfig)}
         historianConfig={historianConfig}
         onUpdateHistorianNote={historianFlow.handleUpdateHistorianNote}
-        onRefreshEraSummaries={props.handleRefreshEraSummaries}
         onNavigateToTab={props.setActiveTab}
+      />
+    </div>
+  );
+}
+
+function EntityCurationTab(props) {
+  return (
+    <div className="illuminator-content">
+      <EntityCurationPanel
+        styleLibrary={props.styleLibrary}
+      />
+    </div>
+  );
+}
+
+function BulkActionsTabWrapper(props) {
+  return (
+    <div className="illuminator-content">
+      <BulkActionsTab
+        styleLibrary={props.styleLibrary}
+        imageModel={props.config?.imageModel}
+        imageQuality={props.imageGenSettings?.imageQuality}
+        onEnqueue={props.enqueue}
+        backportFlow={props.backportFlow || {}}
+        historianFlow={props.historianFlow || {}}
+        onRefreshEraSummaries={props.handleRefreshEraSummaries}
       />
     </div>
   );
@@ -100,7 +125,7 @@ function CoverageTab(props) {
         simulationRunId={simulationRunId}
         onWorldContextChange={props.updateWorldContext}
       />
-      <EntityCoveragePanel simulationRunId={simulationRunId} />
+      <EntityCoveragePanel simulationRunId={simulationRunId} styleLibrary={props.styleLibrary} />
     </div>
   );
 }
@@ -312,6 +337,27 @@ function PreprintTab() {
   );
 }
 
+function TestImageTab(props) {
+  return (
+    <div className="illuminator-content">
+      <TestImagePanel
+        globalModel={props.config?.imageModel}
+        globalAspect={props.imageGenSettings?.imageSize}
+        styleLibrary={props.styleLibrary}
+        imageGenSettings={props.imageGenSettings}
+        buildPrompt={props.buildPrompt}
+      />
+    </div>
+  );
+}
+
+TestImageTab.propTypes = {
+  config: PropTypes.object,
+  imageGenSettings: PropTypes.object,
+  styleLibrary: PropTypes.object,
+  buildPrompt: PropTypes.func,
+};
+
 EntitiesTab.propTypes = {
   revisionFlow: PropTypes.object,
   historianFlow: PropTypes.object,
@@ -320,6 +366,7 @@ EntitiesTab.propTypes = {
   updateConfig: PropTypes.func,
   buildPrompt: PropTypes.func,
   getVisualConfig: PropTypes.func,
+  resolveImageSize: PropTypes.func,
   styleLibrary: PropTypes.object,
   imageGenSettings: PropTypes.object,
   setActiveTab: PropTypes.func,
@@ -410,6 +457,9 @@ HistorianTab.propTypes = {
 const TAB_COMPONENTS = {
   entities: EntitiesTab,
   chronicle: ChronicleTab,
+  curation: CurationTab,
+  entitycuration: EntityCurationTab,
+  bulkactions: BulkActionsTabWrapper,
   coverage: CoverageTab,
   finaledit: FinalEditTabWrapper,
   pages: PagesTab,
@@ -424,6 +474,8 @@ const TAB_COMPONENTS = {
   configure: ConfigureTab,
   historian: HistorianTab,
   preprint: PreprintTab,
+  testimage: TestImageTab,
+  catalog: CatalogTab,
 };
 
 export default function IlluminatorTabContent({ activeTab, ...props }) {

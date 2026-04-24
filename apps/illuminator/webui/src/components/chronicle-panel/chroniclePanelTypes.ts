@@ -5,9 +5,10 @@
 import type { ChronicleNavItem } from "../../lib/db/chronicleNav";
 import type { ChronicleRecord } from "../../lib/db/chronicleRepository";
 import type { EraNarrativeNavItem } from "../../lib/db/eraNarrativeNav";
-import type { StyleLibrary } from "@canonry/world-schema";
+import type { StyleLibrary, StyleSelection } from "@canonry/world-schema";
 import type { ImageGenSettings } from "../../hooks/useImageGenSettings";
 import type { QueueItem } from "../../lib/enrichmentTypes";
+import type { WorldContext, CultureIdentities } from "../../lib/promptBuilders";
 
 // ---------------------------------------------------------------------------
 // Entity / World types used throughout ChroniclePanel
@@ -78,25 +79,15 @@ export interface WizardEntity {
   updatedAt?: number;
 }
 
-export interface WorldContext {
-  name: string;
-  description: string;
-  toneFragments: string[];
-  canonFactsWithMetadata: unknown[];
-  factSelection?: unknown;
-  worldDynamics?: unknown;
-  proseHints?: Record<string, string>;
-  speciesConstraint?: string;
-}
-
 export interface HistorianConfig {
   persona?: string;
   [key: string]: unknown;
 }
 
-export interface CultureIdentities {
-  descriptive?: Record<string, string>;
-  [key: string]: unknown;
+export interface Culture {
+  id: string;
+  name: string;
+  styleKeywords?: string[];
 }
 
 export interface WorldData {
@@ -108,15 +99,6 @@ export interface WorldData {
   [key: string]: unknown;
 }
 
-// ---------------------------------------------------------------------------
-// Style selection
-// ---------------------------------------------------------------------------
-
-export interface StyleSelection {
-  artisticStyleId: string;
-  compositionStyleId: string;
-  colorPaletteId: string;
-}
 
 // ---------------------------------------------------------------------------
 // Queue item (simplified for what ChroniclePanel needs)
@@ -214,8 +196,6 @@ export interface ChroniclePanelProps {
   entityGuidance: Record<string, { proseHint?: string; [key: string]: unknown }>;
   cultureIdentities: CultureIdentities;
   onBackportLore: ((chronicleId: string) => void) | undefined;
-  onStartBulkBackport: () => void;
-  isBulkBackportActive: boolean;
   refreshTrigger: number;
   imageModel: string;
   onOpenImageSettings: () => void;
@@ -224,7 +204,6 @@ export interface ChroniclePanelProps {
   historianConfigured: boolean;
   historianConfig: HistorianConfig;
   onUpdateHistorianNote: (noteId: string) => void;
-  onRefreshEraSummaries: (() => Promise<number>) | undefined;
   onNavigateToTab: (tab: string) => void;
 }
 
@@ -232,4 +211,4 @@ export interface ChroniclePanelProps {
 // Re-exports for convenience
 // ---------------------------------------------------------------------------
 
-export type { ChronicleNavItem, ChronicleRecord, EraNarrativeNavItem, StyleLibrary, ImageGenSettings, QueueItem };
+export type { ChronicleNavItem, ChronicleRecord, EraNarrativeNavItem, StyleLibrary, StyleSelection, ImageGenSettings, QueueItem, WorldContext, CultureIdentities };

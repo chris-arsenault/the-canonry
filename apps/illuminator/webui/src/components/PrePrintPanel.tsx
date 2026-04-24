@@ -1,7 +1,7 @@
 /**
  * PrePrintPanel — Top-level panel for print preparation features.
  *
- * Three sub-tabs: Stats, Content Tree, Export.
+ * Four sub-tabs: Stats, Content Tree, Export, Upscale.
  * Loads all data on mount for the sub-views to use.
  */
 
@@ -22,9 +22,10 @@ import { getEraNarrativesForSimulation } from "../lib/db/eraNarrativeRepository"
 import StatsView from "./preprint/StatsView";
 import ContentTreeView from "./preprint/ContentTreeView";
 import ExportView from "./preprint/ExportView";
+import UpscaleView from "./preprint/UpscaleView";
 import "./PrePrintPanel.css";
 
-type SubTab = "stats" | "tree" | "export";
+type SubTab = "stats" | "tree" | "export" | "upscale";
 
 function collectChronicleImageIds(
   chronicles: ChronicleRecord[],
@@ -172,6 +173,7 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
     { id: "stats", label: "Stats" },
     { id: "tree", label: "Content Tree" },
     { id: "export", label: "Export" },
+    { id: "upscale", label: "Upscale" },
   ];
 
   return (
@@ -223,6 +225,13 @@ export default function PrePrintPanel({ projectId, simulationRunId }: Readonly<P
             treeState={treeState}
             projectId={projectId}
             simulationRunId={simulationRunId}
+          />
+        )}
+
+        {activeSubTab === "upscale" && (
+          <UpscaleView
+            images={allImages}
+            projectId={projectId}
           />
         )}
       </div>

@@ -7,7 +7,6 @@
 
 import type { Optional } from "@the-canonry/shared-components";
 import type { WikiSection, WikiSectionImage, ImageAspect } from "../types/world.ts";
-import styles from "./WikiPage.module.css";
 
 /**
  * Layout modes for chronicle sections:
@@ -109,17 +108,17 @@ export function getImageClassName(
   position: "left" | "right" = "left",
 ): string {
   if (isFloatImage(size)) {
-    const thumbClass = position === "left" ? styles.imageThumbLeft : styles.imageThumbRight;
-    let sizeClass = styles.imageLarge;
-    if (size === "small") sizeClass = styles.imageSmall;
-    else if (size === "medium") sizeClass = styles.imageMedium;
+    const thumbClass = position === "left" ? "image-thumb-left" : "image-thumb-right";
+    let sizeClass = "image-large";
+    if (size === "small") sizeClass = "image-small";
+    else if (size === "medium") sizeClass = "image-medium";
     return `${thumbClass} ${sizeClass}`;
   }
 
   // Block images
-  if (size === "full-width") return styles.imageFullWidth;
-  const alignClass = position === "right" ? styles.imageLargeRight : styles.imageLargeLeft;
-  return `${styles.imageLarge} ${alignClass}`;
+  if (size === "full-width") return "image-full-width";
+  const alignClass = position === "right" ? "image-large-right" : "image-large-left";
+  return `image-large ${alignClass}`;
 }
 
 /**
@@ -137,12 +136,9 @@ export function classifyAspect(width: number, height: number): ImageAspect {
  * Uses dynamic key lookup to avoid switch/fallback branching.
  */
 export function getInfoboxImageClass(aspect: Optional<ImageAspect>, isMobile: boolean): string {
-  const fallback = isMobile ? styles.infoboxImageMobile : styles.infoboxImage;
+  const fallback = isMobile ? "infobox-image-mobile" : "infobox-image";
   if (!aspect) return fallback;
-  const capitalized = aspect.charAt(0).toUpperCase() + aspect.slice(1);
-  const mobileKey = `infoboxImage${capitalized}Mobile`;
-  const baseKey = `infoboxImage${capitalized}`;
-  const s = styles as Record<string, string>;
-  if (isMobile) return s[mobileKey] ?? s[baseKey] ?? fallback;
-  return s[baseKey] ?? fallback;
+  const base = `infobox-image-${aspect}`;
+  if (isMobile) return `${base}-mobile`;
+  return base;
 }

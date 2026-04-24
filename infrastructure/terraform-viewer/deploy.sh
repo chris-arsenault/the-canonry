@@ -1,5 +1,5 @@
 #!/bin/bash
-# deploy.sh - Build viewer shell + required MFEs and deploy via Terraform
+# deploy.sh - Build viewer + pics apps and deploy via Terraform
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -18,8 +18,8 @@ build_app() {
     rm -rf dist
   fi
 
-  npm install
-  npm run build
+  pnpm install
+  pnpm run build
 
   sanity_check_dist "$app_path"
 }
@@ -50,39 +50,97 @@ sanity_check_dist() {
   fi
 }
 
-# Build viewer (chronicler source is imported directly, no separate MFE build needed)
+# Build both apps
 build_app "apps/viewer/webui"
+build_app "apps/pics/webui"
 
 # Ensure remote state bucket exists
 source "$REPO_ROOT/scripts/ensure-state-bucket.sh"
 
-# Deploy with Terraform
-# Terraform will:
-# 1. Upload all files to S3 with proper cache-control headers
-# 2. Automatically trigger CloudFront invalidation via action_trigger
+# Initialize Terraform
 cd "$SCRIPT_DIR"
 terraform init \
   -backend-config="bucket=${STATE_BUCKET}" \
   -backend-config="region=${STATE_REGION}"
-terraform apply
 
-# Optimize S3 image variants (raw -> webp/thumb) based on manifest
+# Try to inject catalog into pics index.html (optional — requires prior image sync)
+echo ""
+echo "==> Injecting catalog into pics index.html"
 IMAGE_BUCKET=$(terraform output -raw image_bucket_name 2>/dev/null || true)
-IMAGE_PREFIX="${IMAGE_PREFIX:-}"
 if [ -n "$IMAGE_BUCKET" ]; then
-  REGION_OUTPUT=$(terraform output -raw aws_region 2>/dev/null || true)
-  REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-$REGION_OUTPUT}}"
-  if [ -z "$REGION" ]; then
-    REGION="us-east-1"
+  echo "    Image bucket: ${IMAGE_BUCKET}"
+  echo "    Searching for catalog.json in bucket..."
+  CATALOG_MATCHES=$(aws s3api list-objects-v2 --bucket "$IMAGE_BUCKET" \
+    --query "Contents[?ends_with(Key, 'catalog.json')].{Key: Key, Size: Size}" \
+    --output json 2>/dev/null || echo "[]")
+  echo "    Found: ${CATALOG_MATCHES}"
+  CATALOG_KEY=$(echo "$CATALOG_MATCHES" | jq -r '.[0].Key // empty')
+
+  if [ -n "$CATALOG_KEY" ]; then
+    echo "    Using: s3://${IMAGE_BUCKET}/${CATALOG_KEY}"
+    aws s3 cp "s3://${IMAGE_BUCKET}/${CATALOG_KEY}" /tmp/pics-catalog.json
+    echo "    Downloaded ($(wc -c < /tmp/pics-catalog.json) bytes, $(jq '.images | length' /tmp/pics-catalog.json) images)"
+
+    # Patch baseUrl to viewer domain so pics app loads images cross-origin
+    VIEWER_URL=$(terraform output -raw website_url 2>/dev/null | sed 's|/$||')
+    if [ -n "$VIEWER_URL" ]; then
+      echo "    Patching catalog baseUrl to: ${VIEWER_URL}"
+      jq --arg url "$VIEWER_URL" '.baseUrl = $url' /tmp/pics-catalog.json > /tmp/pics-catalog-patched.json
+      mv /tmp/pics-catalog-patched.json /tmp/pics-catalog.json
+    fi
+
+    # Inject first N images into HTML for instant render
+    node "$REPO_ROOT/apps/pics/scripts/inject-catalog.mjs" /tmp/pics-catalog.json "$REPO_ROOT/apps/pics/webui/dist/index.html"
+    # Copy full catalog to pics dist so it's served from the pics static bucket
+    cp /tmp/pics-catalog.json "$REPO_ROOT/apps/pics/webui/dist/catalog.json"
+    echo "    Copied catalog.json to pics dist (background fetch)"
+    rm -f /tmp/pics-catalog.json
+  else
+    echo "    No catalog.json found in image bucket — skipping injection."
+    echo "    Run S3 sync from Canonry to generate it, then re-deploy."
   fi
-  export AWS_REGION="$REGION"
-  export AWS_DEFAULT_REGION="$REGION"
-  MANIFEST_KEY="${IMAGE_MANIFEST_KEY:-${IMAGE_PREFIX%/}/image-manifest.json}"
-  MANIFEST_KEY="${MANIFEST_KEY#/}"
-  echo "==> Optimizing image variants in s3://${IMAGE_BUCKET}/${MANIFEST_KEY}"
-  node "$REPO_ROOT/apps/viewer/webui/scripts/optimize-s3-images.mjs" --bucket "$IMAGE_BUCKET" --manifest-key "$MANIFEST_KEY" --region "$REGION"
+else
+  echo "    No existing state — skipping catalog injection (first deployment)."
 fi
+
+# Build OG Lambda (Rust)
+echo ""
+echo "==> Building OG Lambda"
+cd "$REPO_ROOT/backend"
+cargo lambda build --release -p og-server
+echo "    Built: target/lambda/og-server/bootstrap"
+
+# Extract OG metadata for pics (after catalog injection so catalog.json is present)
+echo ""
+echo "==> Extracting OG metadata for pics"
+PICS_CATALOG="$REPO_ROOT/apps/pics/webui/dist/catalog.json"
+if [ -f "$PICS_CATALOG" ]; then
+  node "$REPO_ROOT/apps/pics/scripts/extract-og-metadata.mjs" \
+    "$PICS_CATALOG" \
+    "$REPO_ROOT/apps/pics/webui/dist/og-metadata.json"
+else
+  echo "    No catalog.json in pics dist — skipping OG extraction."
+fi
+
+# Re-extract viewer OG metadata with catalog for image dimensions
+# (postbuild ran extract-og without catalog; now we have it from S3)
+echo ""
+echo "==> Re-extracting viewer OG metadata (with image dimensions from catalog)"
+if [ -f "$PICS_CATALOG" ]; then
+  cd "$REPO_ROOT/apps/viewer/webui"
+  CATALOG_PATH="$PICS_CATALOG" npx tsx ./scripts/extract-og-metadata.mts
+else
+  echo "    No catalog — viewer OG images will lack dimensions."
+fi
+
+# Deploy everything
+cd "$SCRIPT_DIR"
+terraform apply
 
 echo ""
 echo "==> Deployment complete!"
 terraform output website_url
+PICS_URL=$(terraform output -raw pics_website_url 2>/dev/null || true)
+if [ -n "$PICS_URL" ]; then
+  echo "Pics: ${PICS_URL}"
+fi

@@ -24,6 +24,16 @@
   box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
 }
 
+/* Inline panel (rendered inside a parent container, not as overlay) */
+.bulk-inline-panel {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  max-height: 600px;
+}
+
 /* Header */
 .bulk-header {
   padding: 16px 20px;

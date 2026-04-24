@@ -24,15 +24,11 @@ function formatLLMConfig(config) {
 }
 export default function VersionsTab({
   item,
-  versions,
-  selectedVersionId,
-  compareToVersionId,
-  activeVersionId,
+  versionState,
   isGenerating,
   onSelectVersion,
   onSelectCompareVersion,
   onSetActiveVersion,
-  onDeleteVersion,
   onCompareVersions,
   onCombineVersions,
   onRegenerateFull,
@@ -44,6 +40,7 @@ export default function VersionsTab({
   combineRunning,
   copyEditRunning
 }) {
+  const { versions, selectedVersionId, compareToVersionId, activeVersionId, handleDeleteVersion } = versionState;
   const [editingCombineInstructions, setEditingCombineInstructions] = useState(false);
   const [combineInstructionsDraft, setCombineInstructionsDraft] = useState("");
 
@@ -59,7 +56,7 @@ export default function VersionsTab({
   return <div>
       {/* Version Selector */}
       <div className="vtab-selector-wrap">
-        <ChronicleVersionSelector versions={versions} selectedVersionId={selectedVersionId} activeVersionId={activeVersionId} compareToVersionId={compareToVersionId} onSelectVersion={onSelectVersion} onSelectCompareVersion={onSelectCompareVersion} onSetActiveVersion={onSetActiveVersion} onDeleteVersion={onDeleteVersion} disabled={isGenerating} />
+        <ChronicleVersionSelector versions={versions} selectedVersionId={selectedVersionId} activeVersionId={activeVersionId} compareToVersionId={compareToVersionId} onSelectVersion={onSelectVersion} onSelectCompareVersion={onSelectCompareVersion} onSetActiveVersion={onSetActiveVersion} onDeleteVersion={handleDeleteVersion} disabled={isGenerating} />
       </div>
 
       {/* Compare & Combine */}
@@ -232,15 +229,11 @@ export default function VersionsTab({
 }
 VersionsTab.propTypes = {
   item: PropTypes.object,
-  versions: PropTypes.array,
-  selectedVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  compareToVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  activeVersionId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  versionState: PropTypes.object,
   isGenerating: PropTypes.bool,
   onSelectVersion: PropTypes.func,
   onSelectCompareVersion: PropTypes.func,
   onSetActiveVersion: PropTypes.func,
-  onDeleteVersion: PropTypes.func,
   onCompareVersions: PropTypes.func,
   onCombineVersions: PropTypes.func,
   onRegenerateFull: PropTypes.func,

@@ -118,6 +118,276 @@ export function BulkSummaryToast({ result, onDismiss }: Readonly<BulkSummaryToas
 }
 
 // ---------------------------------------------------------------------------
+// BulkImageRefToast
+// ---------------------------------------------------------------------------
+
+interface BulkImageRefToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function BulkImageRefToast({ result, onDismiss }: Readonly<BulkImageRefToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    const plural = result.count !== 1 ? "s" : "";
+    message = `Enqueued image ref regeneration for ${result.count} chronicle${plural}`;
+  } else {
+    message = "No chronicles with image refs to regenerate";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BulkTagImageRefToast
+// ---------------------------------------------------------------------------
+
+interface BulkTagImageRefToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function BulkTagImageRefToast({ result, onDismiss }: Readonly<BulkTagImageRefToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    const plural = result.count !== 1 ? "s" : "";
+    message = `Enqueued image ref tagging for ${result.count} chronicle${plural}`;
+  } else {
+    message = "No chronicles with image refs to tag";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BulkClearImageRefToast
+// ---------------------------------------------------------------------------
+
+interface BulkClearImageRefToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function BulkClearImageRefToast({ result, onDismiss }: Readonly<BulkClearImageRefToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    const plural = result.count !== 1 ? "s" : "";
+    message = `Cleared image refs from ${result.count} chronicle${plural}`;
+  } else {
+    message = "No chronicles with image refs to clear";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AssignImageStyleToast
+// ---------------------------------------------------------------------------
+
+interface AssignImageStyleToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function AssignImageStyleToast({ result, onDismiss }: Readonly<AssignImageStyleToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    const plural = result.count !== 1 ? "s" : "";
+    message = `Assigned styles to ${result.count} image ref${plural}`;
+  } else {
+    message = "No image refs with ranked styles to assign";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AssignCoverImageStyleToast
+// ---------------------------------------------------------------------------
+
+interface AssignCoverImageStyleToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function AssignCoverImageStyleToast({ result, onDismiss }: Readonly<AssignCoverImageStyleToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    const plural = result.count !== 1 ? "s" : "";
+    message = `Assigned styles to ${result.count} cover image${plural}`;
+  } else {
+    message = "No cover images with ranked styles to assign";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AssignSecondaryStyleToast
+// ---------------------------------------------------------------------------
+
+interface AssignSecondaryStyleToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function AssignSecondaryStyleToast({ result, onDismiss }: Readonly<AssignSecondaryStyleToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    const plural = result.count !== 1 ? "s" : "";
+    message = `Assigned secondary styles to ${result.count} image${plural}`;
+  } else {
+    message = "No images with primary assignments + ranked styles to assign secondaries";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BulkGenerateSceneToast
+// ---------------------------------------------------------------------------
+
+interface BulkGenerateSceneToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function BulkGenerateSceneToast({ result, onDismiss }: Readonly<BulkGenerateSceneToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    message = `Enqueued ${result.count} scene image${result.count !== 1 ? "s" : ""} for generation`;
+  } else {
+    message = "No eligible scene refs to generate (need assigned styles and no existing image)";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BulkGenerateCoverImageToast
+// ---------------------------------------------------------------------------
+
+interface BulkGenerateCoverImageToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function BulkGenerateCoverImageToast({ result, onDismiss }: Readonly<BulkGenerateCoverImageToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    message = `Enqueued ${result.count} cover image${result.count !== 1 ? "s" : ""} for generation`;
+  } else {
+    message = "No eligible cover images to generate (need assigned styles and no existing image)";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BulkClearSceneImageToast
+// ---------------------------------------------------------------------------
+
+interface BulkClearSceneImageToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function BulkClearSceneImageToast({ result, onDismiss }: Readonly<BulkClearSceneImageToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    message = `Cleared ${result.count} scene image${result.count !== 1 ? "s" : ""}`;
+  } else {
+    message = "No scene images to clear";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BulkGenerateCoverSceneToast
+// ---------------------------------------------------------------------------
+
+interface BulkGenerateCoverSceneToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function BulkGenerateCoverSceneToast({ result, onDismiss }: Readonly<BulkGenerateCoverSceneToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    message = `Enqueued cover scene generation for ${result.count} chronicle${result.count !== 1 ? "s" : ""}`;
+  } else {
+    message = "No eligible chronicles for cover scene generation";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BulkClearCoverImageToast
+// ---------------------------------------------------------------------------
+
+interface BulkClearCoverImageToastProps {
+  result: OperationResult;
+  onDismiss: () => void;
+}
+
+export function BulkClearCoverImageToast({ result, onDismiss }: Readonly<BulkClearCoverImageToastProps>) {
+  let message: string;
+  if (result.count && result.count > 0) {
+    message = `Cleared cover images from ${result.count} chronicle${result.count !== 1 ? "s" : ""}`;
+  } else {
+    message = "No cover images to clear";
+  }
+
+  return (
+    <Toast variant="success" onDismiss={onDismiss}>
+      {message}
+    </Toast>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // ResetBackportToast
 // ---------------------------------------------------------------------------
 

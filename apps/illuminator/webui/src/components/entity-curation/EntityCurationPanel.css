@@ -1,0 +1,18 @@
+/* EntityCurationPanel — two-rail layout */
+
+.ecp-workspace {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: 100%;
+  min-height: 0;
+}
+
+.ecp-left-rail {
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+}
+
+.ecp-center-rail {
+  overflow-y: auto;
+  min-height: 0;
+}

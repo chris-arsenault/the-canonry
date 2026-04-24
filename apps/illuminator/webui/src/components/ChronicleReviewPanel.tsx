@@ -17,6 +17,8 @@ import CohesionReportViewer from "./CohesionReportViewer";
 import ImageModal from "./ImageModal";
 import ChronicleWorkspace from "./chronicle-workspace/ChronicleWorkspace";
 import ChronicleVersionSelector from "./chronicle-workspace/ChronicleVersionSelector";
+import { useVersionState } from "./chronicle-workspace/useVersionState";
+import type { ResolvedVersion, VersionState } from "./chronicle-workspace/useVersionState";
 import type { ChronicleRecord } from "../lib/chronicleTypes";
 import type {
   StyleSelection,
@@ -33,20 +35,11 @@ import "./ChronicleReviewPanel.css";
 // Types
 // ============================================================================
 
-/** Minimal version info derived from generation history */
-interface VersionEntry {
-  id: string;
-  content: string;
-  wordCount: number;
-  shortLabel: string;
-  label: string;
-}
-
 interface PerspectiveSynthesisViewerProps {
   synthesis: ChronicleRecord["perspectiveSynthesis"];
 }
 
-interface AssembledContentViewerProps {
+interface ValidationContentViewerProps {
   content: string;
   wordCount: number;
   onCopy: () => void;
@@ -83,6 +76,7 @@ interface WorkspaceRouteProps {
   onUnpublish: () => void;
   onGenerateCoverImageScene: () => void;
   onGenerateCoverImage: () => void;
+  onResetCoverImage: () => void;
   styleSelection: StyleSelection;
   imageSize: string;
   imageQuality: string;
@@ -112,6 +106,7 @@ interface WorkspaceRouteProps {
   simulationRunId: string;
   worldSchema: Record<string, unknown>;
   entities: EntityNavItem[];
+  fullEntityNavMap?: Map<string, EntityNavItem>;
   styleLibrary: StyleLibrary | null;
   cultures: Array<{ id: string; name: string }>;
   cultureIdentities: CultureIdentities;
@@ -119,6 +114,8 @@ interface WorkspaceRouteProps {
   eras: Array<{ id: string; name: string }>;
   events: Array<Record<string, unknown>>;
   onNavigateToTab: (tab: string) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
 interface ValidationReadyViewProps {
@@ -242,16 +239,16 @@ function PerspectiveSynthesisViewer({ synthesis }: Readonly<PerspectiveSynthesis
 }
 
 // ============================================================================
-// AssembledContentViewer (kept for validation_ready)
+// ValidationContentViewer (kept for validation_ready)
 // ============================================================================
 
-function AssembledContentViewer({
+function ValidationContentViewer({
   content,
   wordCount,
   onCopy,
   compareContent,
   compareLabel,
-}: Readonly<AssembledContentViewerProps>) {
+}: Readonly<ValidationContentViewerProps>) {
   const diffParts = useMemo<Change[] | null>(() => {
     if (!compareContent) return null;
     return diffWords(compareContent, content);
@@ -307,127 +304,6 @@ function AssembledContentViewer({
   );
 }
 
-// ============================================================================
-// useVersionManagement — version selection + comparison state for
-// ValidationReadyView, extracted to tame line count and complexity.
-// ============================================================================
-
-function useVersionManagement(
-  item: ChronicleRecord,
-  onDeleteVersion?: (versionId: string) => void,
-) {
-  const versions = useMemo<VersionEntry[]>(() => {
-    const sorted = [...(item.generationHistory ?? [])].sort(
-      (a, b) => a.generatedAt - b.generatedAt,
-    );
-    const seen = new Set<string>();
-    const unique: typeof sorted = [];
-    for (const version of sorted) {
-      if (seen.has(version.versionId)) continue;
-      seen.add(version.versionId);
-      unique.push(version);
-    }
-    return unique.map((version, index) => {
-      const samplingLabel = version.sampling ?? "unspecified";
-      return {
-        id: version.versionId,
-        content: version.content,
-        wordCount: version.wordCount,
-        shortLabel: `V${index + 1}`,
-        label: `Version ${index + 1} \u2022 ${new Date(version.generatedAt).toLocaleString()} \u2022 sampling ${samplingLabel}`,
-      };
-    });
-  }, [item.generationHistory]);
-
-  const activeVersionId = item.activeVersionId ?? versions[versions.length - 1]?.id;
-
-  const [selectedVersionId, setSelectedVersionId] = useState(activeVersionId);
-  const [compareToVersionId, setCompareToVersionId] = useState("");
-
-  // Reset selections during render when chronicle or active version changes
-  const activeKey = `${activeVersionId}|${item.chronicleId}`;
-  const [prevActiveKey, setPrevActiveKey] = useState(activeKey);
-  if (activeKey !== prevActiveKey) {
-    setPrevActiveKey(activeKey);
-    setSelectedVersionId(activeVersionId);
-    setCompareToVersionId("");
-  }
-
-  // Keep selected/compare versions valid during render when version list changes
-  if (versions.length > 0) {
-    const hasSelected = versions.some((v) => v.id === selectedVersionId);
-    if (!hasSelected) {
-      const hasActive = versions.some((v) => v.id === activeVersionId);
-      const next = hasActive ? activeVersionId : versions[versions.length - 1].id;
-      setSelectedVersionId(next);
-      if (compareToVersionId && compareToVersionId === next) setCompareToVersionId("");
-    } else if (compareToVersionId) {
-      const hasCompare = versions.some((v) => v.id === compareToVersionId);
-      if (!hasCompare || compareToVersionId === selectedVersionId) setCompareToVersionId("");
-    }
-  }
-
-  const selectedVersion = useMemo(
-    () => versions.find((v) => v.id === selectedVersionId) ?? versions[versions.length - 1],
-    [versions, selectedVersionId],
-  );
-  const compareToVersion = useMemo(
-    () => (compareToVersionId ? versions.find((v) => v.id === compareToVersionId) : null),
-    [versions, compareToVersionId],
-  );
-
-  const handleDeleteVersion = useCallback(
-    (versionId: string) => {
-      if (!versionId || versions.length === 0) return;
-
-      const index = versions.findIndex((v) => v.id === versionId);
-      let nextSelected = selectedVersionId;
-      if (index !== -1) {
-        nextSelected = versions[index + 1]?.id ?? versions[index - 1]?.id ?? selectedVersionId;
-      }
-      if (nextSelected === versionId) {
-        const hasActive = versions.some((v) => v.id === activeVersionId);
-        nextSelected = hasActive ? activeVersionId : versions[versions.length - 1].id;
-      }
-
-      if (nextSelected && nextSelected !== selectedVersionId) {
-        setSelectedVersionId(nextSelected);
-      }
-      if (compareToVersionId === versionId || compareToVersionId === nextSelected) {
-        setCompareToVersionId("");
-      }
-
-      onDeleteVersion?.(versionId);
-    },
-    [versions, selectedVersionId, activeVersionId, compareToVersionId, onDeleteVersion],
-  );
-
-  const versionContentMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const v of versions) map.set(v.id, v.content);
-    return map;
-  }, [versions]);
-
-  const versionLabelMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const v of versions) map.set(v.id, v.shortLabel);
-    return map;
-  }, [versions]);
-
-  return {
-    versions,
-    activeVersionId,
-    selectedVersionId,
-    compareToVersionId,
-    selectedVersion,
-    compareToVersion,
-    versionContentMap,
-    versionLabelMap,
-    setSelectedVersionId,
-    setCompareToVersionId,
-    handleDeleteVersion,
-  };
-}
 
 // ============================================================================
 // PreviewSection — version selector + diff viewer for ValidationReadyView
@@ -435,33 +311,21 @@ function useVersionManagement(
 
 interface PreviewSectionProps {
   item: ChronicleRecord;
-  versions: VersionEntry[];
-  selectedVersionId: string;
-  activeVersionId: string;
-  compareToVersionId: string;
-  selectedVersion: VersionEntry | undefined;
-  compareToVersion: VersionEntry | null | undefined;
+  versionState: VersionState;
   isGenerating: boolean;
-  onSelectVersion: (id: string) => void;
-  onSelectCompareVersion: (id: string) => void;
   onSetActiveVersion: (versionId: string) => void;
-  onDeleteVersion: (versionId: string) => void;
 }
 
 function PreviewSection({
   item,
-  versions,
-  selectedVersionId,
-  activeVersionId,
-  compareToVersionId,
-  selectedVersion,
-  compareToVersion,
+  versionState,
   isGenerating,
-  onSelectVersion,
-  onSelectCompareVersion,
   onSetActiveVersion,
-  onDeleteVersion,
 }: Readonly<PreviewSectionProps>) {
+  const { versions, selectedVersionId, activeVersionId, compareToVersionId,
+    selectedVersion, compareToVersion, setSelectedVersionId, setCompareToVersionId,
+    handleDeleteVersion } = versionState;
+
   const wordCountFn = useCallback(
     (text: string) => text?.split(/\s+/).filter(Boolean).length ?? 0,
     [],
@@ -474,10 +338,10 @@ function PreviewSection({
 
   const handleSelectVersion = useCallback(
     (id: string) => {
-      onSelectVersion(id);
-      if (id === compareToVersionId) onSelectCompareVersion("");
+      setSelectedVersionId(id);
+      if (id === compareToVersionId) setCompareToVersionId("");
     },
-    [onSelectVersion, compareToVersionId, onSelectCompareVersion],
+    [setSelectedVersionId, compareToVersionId, setCompareToVersionId],
   );
 
   const handleCopy = useCallback(() => {
@@ -496,13 +360,13 @@ function PreviewSection({
           activeVersionId={activeVersionId}
           compareToVersionId={compareToVersionId}
           onSelectVersion={handleSelectVersion}
-          onSelectCompareVersion={onSelectCompareVersion}
+          onSelectCompareVersion={setCompareToVersionId}
           onSetActiveVersion={onSetActiveVersion}
-          onDeleteVersion={onDeleteVersion}
+          onDeleteVersion={handleDeleteVersion}
           disabled={isGenerating}
         />
       </div>
-      <AssembledContentViewer
+      <ValidationContentViewer
         content={selectedVersion?.content ?? item.assembledContent}
         wordCount={selectedVersion?.wordCount ?? wordCountFn(item.assembledContent)}
         onCopy={handleCopy}
@@ -552,7 +416,7 @@ function ValidationReadyView({
     [],
   );
 
-  const vm = useVersionManagement(item, onDeleteVersion);
+  const vm = useVersionState(item.generationHistory, item.activeVersionId, item.chronicleId, onDeleteVersion);
 
   const getVersionLabel = useCallback(
     (versionId: string) => vm.versionLabelMap.get(versionId) ?? "Unknown",
@@ -642,17 +506,9 @@ function ValidationReadyView({
       )}
       <PreviewSection
         item={item}
-        versions={vm.versions}
-        selectedVersionId={vm.selectedVersionId}
-        activeVersionId={vm.activeVersionId}
-        compareToVersionId={vm.compareToVersionId}
-        selectedVersion={vm.selectedVersion}
-        compareToVersion={vm.compareToVersion}
+        versionState={vm}
         isGenerating={isGenerating}
-        onSelectVersion={vm.setSelectedVersionId}
-        onSelectCompareVersion={vm.setCompareToVersionId}
         onSetActiveVersion={onUpdateChronicleActiveVersion}
-        onDeleteVersion={vm.handleDeleteVersion}
       />
       <ImageModal
         isOpen={imageModal.open}
@@ -703,6 +559,7 @@ export default function ChronicleReviewPanel({
   // Cover image
   onGenerateCoverImageScene,
   onGenerateCoverImage,
+  onResetCoverImage,
   styleSelection,
   imageSize,
   imageQuality,
@@ -745,6 +602,7 @@ export default function ChronicleReviewPanel({
   simulationRunId,
   worldSchema,
   entities,
+  fullEntityNavMap,
   styleLibrary,
   cultures,
   cultureIdentities,
@@ -752,6 +610,8 @@ export default function ChronicleReviewPanel({
   eras,
   events,
   onNavigateToTab,
+  activeTab,
+  setActiveTab,
 }: ChronicleReviewPanelProps) {
 
   if (!item) return null;
@@ -793,6 +653,7 @@ export default function ChronicleReviewPanel({
         onUnpublish={onUnpublish}
         onGenerateCoverImageScene={onGenerateCoverImageScene}
         onGenerateCoverImage={onGenerateCoverImage}
+        onResetCoverImage={onResetCoverImage}
         styleSelection={styleSelection}
         imageSize={imageSize}
         imageQuality={imageQuality}
@@ -817,6 +678,7 @@ export default function ChronicleReviewPanel({
         simulationRunId={simulationRunId}
         worldSchema={worldSchema}
         entities={entities}
+        fullEntityNavMap={fullEntityNavMap}
         styleLibrary={styleLibrary}
         cultures={cultures}
         cultureIdentities={cultureIdentities}
@@ -824,6 +686,8 @@ export default function ChronicleReviewPanel({
         eras={eras}
         events={events}
         onNavigateToTab={onNavigateToTab}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
       />
     );
   }

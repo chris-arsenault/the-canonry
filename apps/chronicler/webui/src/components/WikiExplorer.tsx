@@ -9,31 +9,23 @@
 
 import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback } from "react";
 import type { Optional } from "@the-canonry/shared-components";
-import type { SerializedPageIndex, LoreData, WorldState } from "../types/world.ts";
+import type { SerializedPageIndex, LoreData, WorldState, PageLayoutOverride } from "../types/world.ts";
 import type { ChronicleRecord } from "../lib/chronicleStorage.ts";
 import type { StaticPage } from "../lib/staticPageStorage.ts";
 import type { EraNarrativeViewRecord } from "../lib/eraNarrativeStorage.ts";
 import { useBreakpoint } from "../hooks/useBreakpoint.ts";
 import { useWikiExplorerData } from "../hooks/useWikiExplorerData.ts";
+import { useViewerPreferences, type ViewerPreferences } from "../hooks/useViewerPreferences.ts";
+import {
+  type RoutingMode, RoutingModeContext,
+  parsePageId, buildPageUrl, currentLocation, navigateTo, navigationEvent,
+} from "../hooks/useRoutingMode.ts";
 import WikiNav from "./WikiNav.tsx";
 import ChronicleIndex from "./ChronicleIndex.tsx";
 import WikiPageView from "./WikiPage.tsx";
 import { HomePage } from "./WikiExplorerHome.tsx";
 import { PagesIndex, PageCategoryIndex } from "./WikiExplorerPages.tsx";
 import { ParchmentTexture, PageFrame, DEFAULT_PARCHMENT_CONFIG } from "./Ornaments.tsx";
-import styles from "./WikiExplorer.module.css";
-
-function parseHashPageId(): string | null {
-  const hash = window.location.hash;
-  if (!hash || hash === "#/" || hash === "#") return null;
-  const match = hash.match(/^#\/page\/(.+)$/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-function buildPageHash(pageId: string | null): string {
-  if (!pageId) return "#/";
-  return `#/page/${pageId.split("/").map((s) => encodeURIComponent(s)).join("/")}`;
-}
 
 function buildChronicleFilter(currentPageId: string | null) {
   if (currentPageId === "chronicles-story") return { kind: "format" as const, format: "story" as const };
@@ -50,14 +42,40 @@ function buildChronicleFilter(currentPageId: string | null) {
   return { kind: "all" as const };
 }
 
+/** Merge viewer preferences on top of per-page layout override.
+ *  Viewer "default" = no override → fall through to page-level value. */
+function mergeViewerPrefs(
+  pageLayout: PageLayoutOverride | undefined,
+  viewerPrefs: ViewerPreferences,
+): PageLayoutOverride | undefined {
+  const hasViewerOverride =
+    viewerPrefs.annotationDisplay !== "default" ||
+    viewerPrefs.annotationPosition !== "default" ||
+    viewerPrefs.imageLayout !== "default";
+  if (!hasViewerOverride) return pageLayout;
+
+  const base: PageLayoutOverride = pageLayout ?? {
+    pageId: "", simulationRunId: "", updatedAt: 0,
+  };
+  return {
+    ...base,
+    annotationDisplay: viewerPrefs.annotationDisplay !== "default"
+      ? viewerPrefs.annotationDisplay : base.annotationDisplay,
+    annotationPosition: viewerPrefs.annotationPosition !== "default"
+      ? viewerPrefs.annotationPosition : base.annotationPosition,
+    imageLayout: viewerPrefs.imageLayout !== "default"
+      ? viewerPrefs.imageLayout : base.imageLayout,
+  };
+}
+
 function DataErrorScreen({ error }: Readonly<{ error: { message: string; details: string } }>) {
   return (
-    <div className={styles.container}>
-      <div className={styles.errorContainer}>
-        <div className={styles.errorCard}>
-          <h2 className={styles.errorTitle}>{error.message}</h2>
-          <p className={styles.errorDetails}>{error.details}</p>
-          <div className={styles.errorFix}>
+    <div className="we-container">
+      <div className="error-container">
+        <div className="error-card">
+          <h2 className="error-title">{error.message}</h2>
+          <p className="error-details">{error.details}</p>
+          <div className="error-fix">
             <strong>How to fix:</strong>
             <ol>
               <li>In the Canonry shell, click the <strong>&quot;Run Slots&quot;</strong> dropdown in the top navigation bar</li>
@@ -82,6 +100,8 @@ interface WikiExplorerProps {
   preloadedEraNarratives: Optional<EraNarrativeViewRecord[]>;
   prebakedParchmentUrl: Optional<string>;
   precomputedPageIndex: Optional<SerializedPageIndex>;
+  /** "hash" for #/page/{id} (default, Canonry shell), "path" for /page/{id} (viewer site). */
+  routingMode: Optional<RoutingMode>;
 }
 
 function WikiExplorerSidebar({ children, isMobile, isSidebarOpen, onOpenSidebar, onCloseSidebar }: Readonly<{
@@ -92,48 +112,52 @@ function WikiExplorerSidebar({ children, isMobile, isSidebarOpen, onOpenSidebar,
     if (e.key === "Enter" || e.key === " ") onCloseSidebar();
   }, [onCloseSidebar]);
 
-  if (!isMobile) return <div className={styles.sidebar}>{children}</div>;
+  if (!isMobile) return <div className="sidebar">{children}</div>;
   return (
     <>
-      <button className={styles.menuButton} onClick={onOpenSidebar} aria-label="Open navigation menu">☰</button>
+      <button className="menu-button" onClick={onOpenSidebar} aria-label="Open navigation menu">☰</button>
       {isSidebarOpen && (
         <>
-          <div className={styles.sidebarBackdrop} onClick={onCloseSidebar} role="button" tabIndex={0} onKeyDown={handleBackdropKeyDown} />
-          <div className={styles.sidebarDrawer}>{children}</div>
+          <div className="sidebar-backdrop" onClick={onCloseSidebar} role="button" tabIndex={0} onKeyDown={handleBackdropKeyDown} />
+          <div className="sidebar-drawer">{children}</div>
         </>
       )}
     </>
   );
 }
 
-function useHashNavigation(
+function useUrlNavigation(
+  mode: RoutingMode,
   resolvePageId: (id: string | null) => string | null,
   resolveUrlId: (id: string | null) => string | null,
   requestedPageId: Optional<string | null>,
   onRequestedPageConsumed: Optional<() => void>,
 ) {
-  const [currentPageId, setCurrentPageId] = useState<string | null>(() => parseHashPageId());
+  const [currentPageId, setCurrentPageId] = useState<string | null>(() => parsePageId(mode));
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Sync state from browser back/forward (popstate) or hash navigation (hashchange)
   useEffect(() => {
-    const handleHashChange = () => {
-      const rawPageId = parseHashPageId();
+    const handleUrlChange = () => {
+      const rawPageId = parsePageId(mode);
       const pageId = resolvePageId(rawPageId);
       setCurrentPageId(pageId);
       setSearchQuery("");
       if (rawPageId) {
         const canonicalUrlId = resolveUrlId(rawPageId);
         if (canonicalUrlId) {
-          const canonicalHash = buildPageHash(canonicalUrlId);
-          if (window.location.hash !== canonicalHash) window.history.replaceState(null, "", canonicalHash);
+          const canonicalUrl = buildPageUrl(mode, canonicalUrlId);
+          if (currentLocation(mode) !== canonicalUrl) window.history.replaceState(null, "", canonicalUrl);
         }
       }
     };
-    handleHashChange();
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [resolvePageId, resolveUrlId]);
+    handleUrlChange();
+    const event = navigationEvent(mode);
+    window.addEventListener(event, handleUrlChange);
+    return () => window.removeEventListener(event, handleUrlChange);
+  }, [mode, resolvePageId, resolveUrlId]);
 
+  // External navigation from parent component (e.g. search, brand button)
   useLayoutEffect(() => {
     if (!requestedPageId) return;
     const resolvedPageId = resolvePageId(requestedPageId);
@@ -141,25 +165,51 @@ function useHashNavigation(
     setCurrentPageId(resolvedPageId);
     setSearchQuery("");
     const urlId = resolveUrlId(requestedPageId) ?? requestedPageId;
-    const newHash = buildPageHash(urlId);
-    if (window.location.hash !== newHash) window.location.hash = newHash;
+    const newUrl = buildPageUrl(mode, urlId);
+    if (currentLocation(mode) !== newUrl) navigateTo(mode, newUrl);
     onRequestedPageConsumed?.();
-  }, [requestedPageId, onRequestedPageConsumed, resolvePageId, resolveUrlId]);
+  }, [mode, requestedPageId, onRequestedPageConsumed, resolvePageId, resolveUrlId]);
 
-  return { currentPageId, searchQuery, setSearchQuery };
+  // Navigate imperatively — updates both URL and React state.
+  // In hash mode, setting the hash triggers hashchange → handleUrlChange → state update.
+  // In path mode, pushState does NOT trigger popstate, so we update state directly.
+  const navigate = useCallback((pageId: string) => {
+    const resolvedPageId = resolvePageId(pageId);
+    const urlId = resolveUrlId(pageId) ?? pageId;
+    const newUrl = buildPageUrl(mode, urlId);
+    if (currentLocation(mode) !== newUrl) navigateTo(mode, newUrl);
+    if (mode === "path") {
+      setCurrentPageId(resolvedPageId);
+      setSearchQuery("");
+    }
+    // In hash mode, the hashchange listener handles state update
+  }, [mode, resolvePageId, resolveUrlId]);
+
+  const navigateHome = useCallback(() => {
+    const homeUrl = buildPageUrl(mode, null);
+    navigateTo(mode, homeUrl);
+    if (mode === "path") {
+      setCurrentPageId(null);
+      setSearchQuery("");
+    }
+  }, [mode]);
+
+  return { currentPageId, searchQuery, setSearchQuery, navigate, navigateHome };
 }
 
 // eslint-disable-next-line complexity -- content router dispatching to 5 page types (chronicle index, pages index, category, entity page, home) based on URL path classification
-function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEntity, worldData, breakpoint }: Readonly<{
+function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEntity, worldData, breakpoint, viewerPrefs }: Readonly<{
   currentPageId: string | null;
   data: ReturnType<typeof useWikiExplorerData>;
   onNavigate: (id: string) => void;
   onNavigateToEntity: (id: string) => void;
   worldData: WorldState;
   breakpoint: "mobile" | "tablet" | "desktop";
+  viewerPrefs: ViewerPreferences;
 }>) {
   const { getPage, pageIndex, entityIndex, indexAsPages, chroniclePages,
-    eraNarrativePages, staticPagesAsWikiPages, eraNarrativeByEraId, prominenceScale } = data;
+    eraNarrativePages, staticPagesAsWikiPages, eraNarrativeByEraId, prominenceScale,
+    handleRefreshChronicle, pageLayouts } = data;
 
   const isChronicleIndex = currentPageId?.startsWith("chronicles") === true;
   const isPagesIndex = currentPageId === "pages";
@@ -206,7 +256,9 @@ function WikiExplorerContent({ currentPageId, data, onNavigate, onNavigateToEnti
   if (currentPage) {
     return <WikiPageView page={currentPage} pages={indexAsPages} entityIndex={entityIndex}
       disambiguation={currentDisambiguation} onNavigate={onNavigate}
-      onNavigateToEntity={onNavigateToEntity} prominenceScale={prominenceScale} breakpoint={breakpoint} />;
+      onNavigateToEntity={onNavigateToEntity} prominenceScale={prominenceScale} breakpoint={breakpoint}
+      layoutOverride={mergeViewerPrefs(pageLayouts.get(currentPage.id), viewerPrefs)}
+      onRefreshChronicle={currentPage.type === "chronicle" ? handleRefreshChronicle : undefined} />;
   }
   return <HomePage worldData={worldData} pages={indexAsPages} chronicles={chroniclePages}
     staticPages={staticPagesAsWikiPages} categories={pageIndex.categories}
@@ -219,7 +271,9 @@ export default function WikiExplorer({
   requestedPageId, onRequestedPageConsumed,
   preloadedChronicles, preloadedStaticPages, preloadedEraNarratives,
   prebakedParchmentUrl, precomputedPageIndex,
+  routingMode: routingModeProp,
 }: Readonly<WikiExplorerProps>) {
+  const mode: RoutingMode = routingModeProp ?? "hash";
   const breakpoint = useBreakpoint();
   const isMobile = breakpoint === "mobile";
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -231,52 +285,54 @@ export default function WikiExplorer({
   const { resolvePageId, resolveUrlId, resolveEntityId,
     handleRefreshIndex: refreshIndex, dataError } = data;
 
-  const { currentPageId, searchQuery, setSearchQuery } = useHashNavigation(
-    resolvePageId, resolveUrlId, requestedPageId, onRequestedPageConsumed
+  const { currentPageId, searchQuery, setSearchQuery, navigate, navigateHome } = useUrlNavigation(
+    mode, resolvePageId, resolveUrlId, requestedPageId, onRequestedPageConsumed
   );
 
   const handleNavigate = useCallback((pageId: string) => {
-    const urlId = resolveUrlId(pageId) ?? pageId;
-    const newHash = buildPageHash(urlId);
-    if (window.location.hash !== newHash) window.location.hash = newHash;
+    navigate(pageId);
     if (isMobile) setIsSidebarOpen(false);
-  }, [isMobile, resolveUrlId]);
+  }, [navigate, isMobile]);
 
   const handleNavigateToEntity = useCallback((entityId: string) => {
     const resolved = resolveEntityId(entityId);
     if (resolved) handleNavigate(resolved);
   }, [resolveEntityId, handleNavigate]);
 
-  const handleGoHome = useCallback(() => { window.location.hash = "#/"; }, []);
+  const handleGoHome = useCallback(() => { navigateHome(); }, [navigateHome]);
   const handleRefresh = useCallback(() => void refreshIndex(), [refreshIndex]);
   const openSidebar = useCallback(() => setIsSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);
+  const { prefs: viewerPrefs, update: updateViewerPrefs } = useViewerPreferences();
 
   if (dataError) return <DataErrorScreen error={dataError} />;
 
   return (
-    <div className={styles.container}>
-      <WikiExplorerSidebar isMobile={isMobile} isSidebarOpen={isSidebarOpen}
-        onOpenSidebar={openSidebar} onCloseSidebar={closeSidebar}>
-        {/* eslint-disable-next-line local/max-jsx-props -- WikiNav genuinely requires 13 props covering navigation state, search, data sources, and mobile drawer control */}
-        <WikiNav
-          categories={data.pageIndex.categories} pages={data.indexAsPages}
-          chronicles={data.chroniclePages} staticPages={data.staticPagesAsWikiPages}
-          currentPageId={currentPageId} searchQuery={searchQuery}
-          onSearchQueryChange={setSearchQuery} onNavigate={handleNavigate}
-          onGoHome={handleGoHome} onRefreshIndex={handleRefresh}
-          isRefreshing={data.isRefreshing} isDrawer={isMobile} onCloseDrawer={closeSidebar}
-        />
-      </WikiExplorerSidebar>
-      <div className={styles.main}>
-        <ParchmentTexture className={styles.parchmentOverlay} config={DEFAULT_PARCHMENT_CONFIG} prebakedUrl={prebakedParchmentUrl} />
-        <PageFrame className={styles.pageFrame} />
-        <div className={isMobile ? styles.contentMobile : styles.content}>
-          <WikiExplorerContent currentPageId={currentPageId} data={data}
-            onNavigate={handleNavigate} onNavigateToEntity={handleNavigateToEntity}
-            worldData={worldData} breakpoint={breakpoint} />
+    <RoutingModeContext.Provider value={mode}>
+      <div className="we-container">
+        <WikiExplorerSidebar isMobile={isMobile} isSidebarOpen={isSidebarOpen}
+          onOpenSidebar={openSidebar} onCloseSidebar={closeSidebar}>
+          {/* eslint-disable-next-line local/max-jsx-props -- WikiNav genuinely requires 13 props covering navigation state, search, data sources, and mobile drawer control */}
+          <WikiNav
+            categories={data.pageIndex.categories} pages={data.indexAsPages}
+            chronicles={data.chroniclePages} staticPages={data.staticPagesAsWikiPages}
+            currentPageId={currentPageId} searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery} onNavigate={handleNavigate}
+            onGoHome={handleGoHome} onRefreshIndex={handleRefresh}
+            isRefreshing={data.isRefreshing} isDrawer={isMobile} onCloseDrawer={closeSidebar}
+            viewerPrefs={viewerPrefs} onViewerPrefsUpdate={updateViewerPrefs}
+          />
+        </WikiExplorerSidebar>
+        <div className="we-main">
+          <ParchmentTexture className="parchment-overlay" config={DEFAULT_PARCHMENT_CONFIG} prebakedUrl={prebakedParchmentUrl} />
+          <PageFrame className="page-frame" />
+          <div className={isMobile ? "we-content-mobile" : "we-content"}>
+            <WikiExplorerContent currentPageId={currentPageId} data={data}
+              onNavigate={handleNavigate} onNavigateToEntity={handleNavigateToEntity}
+              worldData={worldData} breakpoint={breakpoint} viewerPrefs={viewerPrefs} />
+          </div>
         </div>
       </div>
-    </div>
+    </RoutingModeContext.Provider>
   );
 }

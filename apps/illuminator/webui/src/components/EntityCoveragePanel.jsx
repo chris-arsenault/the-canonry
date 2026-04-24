@@ -54,7 +54,7 @@ function expectedForProminence(value) {
       return 0;
   }
 }
-const SECTION_IDS = ["suggestions", "backrefs", "history", "culture", "events", "potential", "eras", "integration"];
+const SECTION_IDS = ["suggestions", "backrefs", "history", "culture", "events", "potential", "eras", "integration", "imagestyles"];
 const SECTION_LABELS = {
   suggestions: "Chronicle Suggestions",
   backrefs: "Chronicle Backrefs per Entity",
@@ -63,7 +63,8 @@ const SECTION_LABELS = {
   events: "Rare Event Coverage",
   potential: "Untapped Story Potential",
   eras: "Era Coverage Gaps",
-  integration: "Lore Integration Gaps"
+  integration: "Lore Integration Gaps",
+  imagestyles: "Image Style Coverage"
 };
 const SECTION_DESCRIPTIONS = {
   suggestions: "Uncovered events by action type — expand to see involved entities, era, and significance",
@@ -73,7 +74,8 @@ const SECTION_DESCRIPTIONS = {
   events: "High-significance events not yet selected for any chronicle",
   potential: "Story potential score vs actual chronicle usage — find underused narrative anchors",
   eras: "Chronicle distribution across eras — find underexplored time periods",
-  integration: "Pipeline completeness — description, backrefs, history, historian notes, image"
+  integration: "Pipeline completeness — description, backrefs, history, historian notes, image",
+  imagestyles: "Artistic style, composition, and color palette usage across chronicle image ref suggestions"
 };
 
 // ============================================================================
@@ -1966,6 +1968,270 @@ function IntegrationSection({
 }
 
 // ============================================================================
+// Section 8: Image Style Coverage
+// ============================================================================
+
+/**
+ * Collect suggested style/composition/palette IDs from all chronicle image refs.
+ * Returns { artisticCounts, compositionCounts, paletteCounts } — each a Map<id, count>.
+ */
+/** Count how many refs each style/composition/palette appears in across ANY ranked position */
+function computeEverRankedCounts(chronicles) {
+  const artistic = new Map();
+  const composition = new Map();
+  const palette = new Map();
+
+  for (const c of chronicles) {
+    const refs = c.imageRefs?.refs;
+    if (!refs) continue;
+    for (const ref of refs) {
+      if (ref.type !== "prompt_request") continue;
+      if (ref.rankedArtisticStyleIds) for (const id of ref.rankedArtisticStyleIds) artistic.set(id, (artistic.get(id) || 0) + 1);
+      if (ref.rankedCompositionStyleIds) for (const id of ref.rankedCompositionStyleIds) composition.set(id, (composition.get(id) || 0) + 1);
+      if (ref.rankedColorPaletteIds) for (const id of ref.rankedColorPaletteIds) palette.set(id, (palette.get(id) || 0) + 1);
+    }
+  }
+
+  return { artistic, composition, palette };
+}
+
+function computeImageStyleCounts(chronicles) {
+  const artisticCounts = new Map();
+  const compositionCounts = new Map();
+  const paletteCounts = new Map();
+
+  for (const c of chronicles) {
+    const refs = c.imageRefs?.refs;
+    if (!refs) continue;
+    for (const ref of refs) {
+      if (ref.type !== "prompt_request") continue;
+      if (ref.suggestedArtisticStyleId) {
+        artisticCounts.set(ref.suggestedArtisticStyleId, (artisticCounts.get(ref.suggestedArtisticStyleId) || 0) + 1);
+      }
+      if (ref.suggestedCompositionStyleId) {
+        compositionCounts.set(ref.suggestedCompositionStyleId, (compositionCounts.get(ref.suggestedCompositionStyleId) || 0) + 1);
+      }
+      if (ref.suggestedColorPaletteId) {
+        paletteCounts.set(ref.suggestedColorPaletteId, (paletteCounts.get(ref.suggestedColorPaletteId) || 0) + 1);
+      }
+    }
+  }
+
+  return { artisticCounts, compositionCounts, paletteCounts };
+}
+
+function StyleCountTable({ title, counts, library, nameKey, everRankedCounts }) {
+  if (!library || library.length === 0) return null;
+  const total = [...counts.values()].reduce((a, b) => a + b, 0);
+  // All library items, sorted by assigned count descending
+  const rows = library.map(s => ({
+    id: s.id,
+    name: s[nameKey || "name"],
+    count: counts.get(s.id) || 0,
+    rankedCount: everRankedCounts ? (everRankedCounts.get(s.id) || 0) : 0,
+  })).sort((a, b) => b.count - a.count || b.rankedCount - a.rankedCount);
+
+  const usedCount = rows.filter(r => r.count > 0).length;
+
+  return (
+    <div className="ecp-image-style-group">
+      <div className="ecp-image-style-group-header">
+        <span className="ecp-image-style-group-title">{title}</span>
+        <span className="ecp-auto-count">{usedCount}/{rows.length} assigned, {total} total refs</span>
+      </div>
+      <TableWrap>
+        <thead>
+          <tr>
+            <StaticTh>Name</StaticTh>
+            <StaticTh right>Assigned</StaticTh>
+            <StaticTh right>Selected</StaticTh>
+            <StaticTh>Bar</StaticTh>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(r => {
+            const pct = total > 0 ? (r.count / total) * 100 : 0;
+            return (
+              <tr key={r.id} className={r.count === 0 && r.rankedCount === 0 ? "ecp-color-muted" : ""}>
+                <td className="ec-name" title={r.id}>{r.name}</td>
+                <td className="ec-number">{r.count || "–"}</td>
+                <td className="ec-number">{r.rankedCount || "–"}</td>
+                <td className="ecp-bar-cell">
+                  {r.count > 0 && (
+                    <div
+                      className="ecp-bar-fill"
+                      style={{ width: `${Math.max(2, pct)}%` }}
+                      title={`${pct.toFixed(1)}%`}
+                    />
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </TableWrap>
+    </div>
+  );
+}
+
+function NeverRankedList({ title, items }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="ecp-never-ranked-group">
+      <span className="ecp-never-ranked-title">{title}</span>
+      <span className="ecp-never-ranked-count">({items.length})</span>
+      <div className="ecp-never-ranked-items">
+        {items.map(item => (
+          <span key={item.id} className="ecp-never-ranked-item" title={item.id}>{item.name}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+NeverRankedList.propTypes = {
+  title: PropTypes.string,
+  items: PropTypes.array
+};
+
+function ImageStylesSection({ chronicles, styleLibrary, expanded }) {
+  const counts = useMemo(
+    () => computeImageStyleCounts(chronicles),
+    [chronicles]
+  );
+
+  const everRanked = useMemo(
+    () => computeEverRankedCounts(chronicles),
+    [chronicles]
+  );
+
+  const { totalTagged, duplicateCombos, duplicateGroups } = useMemo(() => {
+    let n = 0;
+    const comboMap = new Map();
+    for (const c of chronicles) {
+      const refs = c.imageRefs?.refs;
+      if (!refs) continue;
+      const title = c.title || c.name || c.chronicleId;
+      for (const ref of refs) {
+        if (ref.type !== "prompt_request") continue;
+        if (ref.suggestedArtisticStyleId || ref.suggestedCompositionStyleId || ref.suggestedColorPaletteId) {
+          n++;
+        }
+        if (ref.suggestedArtisticStyleId && ref.suggestedCompositionStyleId && ref.suggestedColorPaletteId) {
+          const key = `${ref.suggestedArtisticStyleId}|${ref.suggestedCompositionStyleId}|${ref.suggestedColorPaletteId}`;
+          if (!comboMap.has(key)) comboMap.set(key, []);
+          comboMap.get(key).push({ chronicle: title, refId: ref.refId });
+        }
+      }
+    }
+    let dupes = 0;
+    const groups = [];
+    for (const [key, entries] of comboMap) {
+      if (entries.length > 1) {
+        dupes += entries.length;
+        groups.push({ key, entries });
+      }
+    }
+    return { totalTagged: n, duplicateCombos: dupes, duplicateGroups: groups };
+  }, [chronicles]);
+
+  const neverRanked = useMemo(() => {
+    if (!styleLibrary) return { artistic: [], composition: [], palette: [] };
+    return {
+      artistic: styleLibrary.artisticStyles.filter(s => !everRanked.artistic.has(s.id)),
+      composition: styleLibrary.compositionStyles.filter(s => !s.id.startsWith("chronicle-") && !everRanked.composition.has(s.id)),
+      palette: styleLibrary.colorPalettes.filter(p => !everRanked.palette.has(p.id)),
+    };
+  }, [styleLibrary, everRanked]);
+
+  const neverRankedTotal = neverRanked.artistic.length + neverRanked.composition.length + neverRanked.palette.length;
+
+  const unusedCount = useMemo(() => {
+    let unused = 0;
+    if (styleLibrary) {
+      for (const s of styleLibrary.artisticStyles) {
+        if (!counts.artisticCounts.has(s.id)) unused++;
+      }
+      for (const s of styleLibrary.compositionStyles) {
+        if (!counts.compositionCounts.has(s.id)) unused++;
+      }
+      for (const p of styleLibrary.colorPalettes) {
+        if (!counts.paletteCounts.has(p.id)) unused++;
+      }
+    }
+    return unused;
+  }, [styleLibrary, counts]);
+
+  if (!expanded) return unusedCount;
+
+  if (totalTagged === 0) {
+    return (
+      <div className="ecp-empty-section">
+        No image refs have been tagged yet. Run &quot;Tag Image Refs&quot; from bulk actions first.
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <SectionToolbar>
+        <span className="ecp-auto-count">
+          {totalTagged} tagged image refs across {chronicles.filter(c => c.imageRefs?.refs?.some(r => r.type === "prompt_request" && r.suggestedArtisticStyleId)).length} chronicles
+          {duplicateCombos > 0 && <span className="ecp-color-muted"> · ⚠ {duplicateCombos} duplicate combos</span>}
+        </span>
+      </SectionToolbar>
+      {duplicateGroups.length > 0 && (
+        <div className="ecp-never-ranked-section">
+          <div className="ecp-never-ranked-header">Duplicate Style Combinations ({duplicateCombos} refs in {duplicateGroups.length} groups)</div>
+          {duplicateGroups.map(({ key, entries }) => {
+            const [aId, cId, pId] = key.split("|");
+            const aName = styleLibrary?.artisticStyles.find(s => s.id === aId)?.name || aId;
+            const cName = styleLibrary?.compositionStyles.find(s => s.id === cId)?.name || cId;
+            const pName = styleLibrary?.colorPalettes.find(p => p.id === pId)?.name || pId;
+            return (
+              <div key={key} className="ecp-never-ranked-group" style={{ marginBottom: "0.5em" }}>
+                <div className="ecp-never-ranked-title">({aName} + {cName} + {pName})</div>
+                {entries.map(e => (
+                  <div key={e.refId} className="ecp-color-muted" style={{ paddingLeft: "1em", fontSize: "0.85em" }}>
+                    {e.chronicle}:{e.refId}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {neverRankedTotal > 0 && (
+        <div className="ecp-never-ranked-section">
+          <div className="ecp-never-ranked-header">Never Selected by LLM ({neverRankedTotal} styles not picked in any ranking)</div>
+          <NeverRankedList title="Artistic" items={neverRanked.artistic} />
+          <NeverRankedList title="Composition" items={neverRanked.composition} />
+          <NeverRankedList title="Palette" items={neverRanked.palette} />
+        </div>
+      )}
+      <StyleCountTable
+        title="Artistic Styles"
+        counts={counts.artisticCounts}
+        library={styleLibrary?.artisticStyles}
+        everRankedCounts={everRanked.artistic}
+      />
+      <StyleCountTable
+        title="Composition Styles"
+        counts={counts.compositionCounts}
+        library={styleLibrary?.compositionStyles}
+        everRankedCounts={everRanked.composition}
+      />
+      <StyleCountTable
+        title="Color Palettes"
+        counts={counts.paletteCounts}
+        library={styleLibrary?.colorPalettes}
+        everRankedCounts={everRanked.palette}
+      />
+    </div>
+  );
+}
+
+// ============================================================================
 // Main component
 // ============================================================================
 
@@ -2091,8 +2357,21 @@ IntegrationSection.propTypes = {
   entityBackportedCount: PropTypes.object,
   expanded: PropTypes.bool
 };
+StyleCountTable.propTypes = {
+  title: PropTypes.string,
+  counts: PropTypes.object,
+  library: PropTypes.array,
+  nameKey: PropTypes.string,
+  everRankedCounts: PropTypes.object
+};
+ImageStylesSection.propTypes = {
+  chronicles: PropTypes.array,
+  styleLibrary: PropTypes.object,
+  expanded: PropTypes.bool
+};
 export default function EntityCoveragePanel({
-  simulationRunId
+  simulationRunId,
+  styleLibrary
 }) {
   // Events and relationships are always in memory (simple store pattern, no nav/detail split)
   const narrativeEvents = useNarrativeEvents();
@@ -2233,6 +2512,24 @@ export default function EntityCoveragePanel({
             return gaps >= 3;
           }).length;
           break;
+        case "imagestyles":
+          {
+            let unused = 0;
+            if (styleLibrary) {
+              const counts = computeImageStyleCounts(analysisData.chronicles);
+              for (const s of styleLibrary.artisticStyles) {
+                if (!counts.artisticCounts.has(s.id)) unused++;
+              }
+              for (const s of styleLibrary.compositionStyles) {
+                if (!counts.compositionCounts.has(s.id)) unused++;
+              }
+              for (const p of styleLibrary.colorPalettes) {
+                if (!counts.paletteCounts.has(p.id)) unused++;
+              }
+            }
+            sectionUnderutilCounts[sectionId] = unused;
+            break;
+          }
       }
     }
   }
@@ -2299,6 +2596,13 @@ export default function EntityCoveragePanel({
         entities: fullEntities,
         entityBackportedCount: analysis.entityBackportedCount
       }
+    },
+    imagestyles: {
+      Component: ImageStylesSection,
+      props: {
+        chronicles: analysisData.chronicles,
+        styleLibrary
+      }
     }
   };
   return <div className="ecp-wrapper">
@@ -2332,5 +2636,6 @@ export default function EntityCoveragePanel({
     </div>;
 }
 EntityCoveragePanel.propTypes = {
-  simulationRunId: PropTypes.string
+  simulationRunId: PropTypes.string,
+  styleLibrary: PropTypes.object
 };

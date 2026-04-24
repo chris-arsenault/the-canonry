@@ -83,6 +83,7 @@ interface AwsSyncModalProps {
   onPreviewUploads: () => void;
   onPullImages: () => void;
   onSyncImages: () => void;
+  onReconcileManifest: () => void;
   onExportSnapshot: () => void;
   onImportSnapshot: () => void;
 }
@@ -267,6 +268,7 @@ function S3StorageSection({
   onPreviewUploads,
   onPullImages,
   onSyncImages,
+  onReconcileManifest,
 }: Pick<
   AwsSyncModalProps,
   | "config"
@@ -279,6 +281,7 @@ function S3StorageSection({
   | "onPreviewUploads"
   | "onPullImages"
   | "onSyncImages"
+  | "onReconcileManifest"
 > & { awsReady: boolean }) {
   return (
     <div className="aws-section">
@@ -328,6 +331,14 @@ function S3StorageSection({
           onClick={onSyncImages}
         >
           Push Images to S3
+        </button>
+        <button
+          className="btn-sm"
+          disabled={!awsReady || status.state === "working"}
+          onClick={onReconcileManifest}
+          title="Rebuild manifest from S3 object listing — recovers from interrupted uploads"
+        >
+          Reconcile Manifest
         </button>
       </div>
       {browseState.loading && (
@@ -487,6 +498,7 @@ export default function AwsSyncModal({
   onPreviewUploads,
   onPullImages,
   onSyncImages,
+  onReconcileManifest,
   onExportSnapshot,
   onImportSnapshot,
 }: Readonly<AwsSyncModalProps>) {
@@ -560,6 +572,7 @@ export default function AwsSyncModal({
             onPreviewUploads={onPreviewUploads}
             onPullImages={onPullImages}
             onSyncImages={onSyncImages}
+            onReconcileManifest={onReconcileManifest}
           />
           <UseS3Toggle checked={Boolean(config.useS3Images)} onUpdateConfig={onUpdateConfig} />
           <DataSnapshotSection

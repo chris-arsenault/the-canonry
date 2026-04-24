@@ -48,14 +48,11 @@ export interface EntityBrowserProps {
   onConfigChange: (partial: Partial<EntityBrowserConfig>) => void;
   buildPrompt: (entity: unknown, type: string) => string;
   getVisualConfig?: (entity: unknown) => Record<string, unknown>;
+  resolveImageSize?: (entity: unknown) => string | undefined;
   styleLibrary: StyleLibraryProp | null;
   imageGenSettings: ImageGenSettings;
   onStartRevision?: () => void;
   isRevising?: boolean;
-  onBulkHistorianReview?: (ids: string[]) => void;
-  onBulkHistorianEdition?: (ids: string[], reEdit?: boolean) => void;
-  onBulkHistorianClear?: (ids: string[]) => void;
-  isBulkHistorianActive?: boolean;
   onNavigateToTab?: (tab: string) => void;
 }
 

@@ -10,6 +10,7 @@
 
 import { useEffect, useRef } from "react";
 import type { QueueItem } from "../lib/enrichmentTypes";
+import { isChronicleImage } from "../lib/imageTypes";
 import { useChronicleStore } from "../lib/db/chronicleStore";
 import {
   updateChronicleCoverImageStatus,
@@ -71,6 +72,7 @@ function processChronicleImageTask(
   chronicleIds: Set<string>
 ): void {
   if (!task.chronicleId || !task.imageRefId) return;
+
   const isCover = task.imageRefId === "__cover_image__";
   const imageId = task.result?.imageId ?? "";
   queueChronicleImageUpdate(
@@ -117,6 +119,7 @@ function queueEraNarrativeImageUpdate(
 function processEraNarrativeImageTask(task: QueueItem, updates: Promise<unknown>[]): void {
   const narrativeId = task.chronicleId;
   if (!narrativeId || !task.imageRefId) return;
+
   const isCover = task.imageRefId === "__cover_image__";
   const imageId = task.result?.imageId ?? "";
   queueEraNarrativeImageUpdate(
@@ -137,7 +140,7 @@ function dispatchCompletedTask(
   updates: Promise<unknown>[],
   chronicleIds: Set<string>
 ): boolean {
-  if (task.type === "image" && task.imageType === "chronicle") {
+  if (task.type === "image" && isChronicleImage(task.imageType)) {
     processChronicleImageTask(task, updates, chronicleIds);
     return false;
   }
@@ -156,6 +159,11 @@ function dispatchCompletedTask(
     } else {
       console.log("[ChronicleQueueWatcher] No chronicleId found on task, triggering refreshAll");
       return true;
+    }
+    // Batch tasks may include additional chronicle IDs
+    const batchIds = (task as Record<string, unknown>).chronicleIds as string[] | undefined;
+    if (batchIds) {
+      for (const id of batchIds) chronicleIds.add(id);
     }
   }
   return false;
@@ -181,7 +189,7 @@ export function useChronicleQueueWatcher(queue: QueueItem[]): void {
         item.type === "entityChronicle" ||
         item.type === "historianPrep" ||
         (item.type === "image" &&
-          (item.imageType === "chronicle" || item.imageType === "era_narrative"))
+          (isChronicleImage(item.imageType) || item.imageType === "era_narrative"))
     );
 
     const completedTasks = chronicleTasks.filter(

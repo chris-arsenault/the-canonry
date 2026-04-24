@@ -55,6 +55,9 @@ export interface ImageBackend {
   /** Load metadata (dimensions, entity info) for a set of images */
   getMetadata(imageIds: string[]): Promise<Map<string, ImageEntryMetadata>>;
 
+  /** Get alternate versions of an image (other generations at the same logical slot) */
+  getAlternates(imageId: string): Promise<AlternateGroup | null>;
+
   /** Release resources (revoke object URLs, close DB connections) */
   cleanup(): void;
 }
@@ -66,4 +69,24 @@ export interface CachedUrl {
   url: string;
   /** Whether URL.revokeObjectURL() is needed on cleanup */
   needsRevoke: boolean;
+}
+
+/**
+ * A version of an image at the same logical slot.
+ * URL points to the S3 location (available in S3-mode bundles only).
+ */
+export interface ImageVersion {
+  imageId: string;
+  generatedAt: number;
+  url: string;
+}
+
+/**
+ * Group of image versions sharing the same logical slot
+ * (e.g., multiple regenerations of the same entity portrait).
+ * `activeId` is the currently-selected version that entities/chronicles point to.
+ */
+export interface AlternateGroup {
+  activeId: string;
+  versions: ImageVersion[];
 }

@@ -41,5 +41,8 @@ export { useEditorState } from './hooks/useEditorState';
 export { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 export { useExpandSingle, useExpandSet, useExpandBoolean, expandableProps } from './hooks/useExpandState';
 
+// Image display
+export { ImageDisplay } from './ImageDisplay';
+
 // Utils
 export { getElementValidation } from './utils/validation';

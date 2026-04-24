@@ -176,32 +176,23 @@ export default function ImagesTab({
   item,
   isGenerating,
   entityMap,
+  versionState,
+  imageConfig,
+  imageRefCallbacks,
   onGenerateCoverImageScene,
   onGenerateCoverImage,
+  onResetCoverImage,
   onImageClick,
-  onGenerateChronicleImage,
-  onResetChronicleImage,
-  onRegenerateDescription,
-  onUpdateChronicleAnchorText,
-  onUpdateChronicleImageSize,
-  onUpdateChronicleImageJustification,
-  styleLibrary,
-  styleSelection,
-  cultures,
-  cultureIdentities,
-  worldContext,
-  imageSize,
-  imageQuality,
-  imageModel,
-  imageGenSettings,
-  onOpenImageSettings,
   chronicleText,
-  versions,
-  activeVersionId,
   onApplyImageRefSelections,
-  onSelectExistingImage,
-  onSelectExistingCoverImage
+  fullEntityNavMap,
 }) {
+  const { versions, activeVersionId } = versionState;
+  const { styleLibrary, styleSelection, cultures, cultureIdentities, worldContext,
+    imageSize, imageQuality, imageModel, imageGenSettings, onOpenImageSettings } = imageConfig;
+  const { onGenerateChronicleImage, onResetChronicleImage, onRegenerateDescription,
+    onUpdateChronicleAnchorText, onUpdateChronicleImageSize, onUpdateChronicleImageJustification,
+    onSelectExistingImage, onSelectExistingCoverImage } = imageRefCallbacks;
   // Compatibility analysis state
   const [compatibilityAnalysis, setCompatibilityAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -288,6 +279,32 @@ export default function ImagesTab({
                 />
               )}
               {item.coverImage?.sceneDescription && <div className="itab-scene-desc">{item.coverImage.sceneDescription}</div>}
+              {item.coverImage?.visualTags?.length > 0 && (
+                <div className="cip-visual-tags">
+                  {item.coverImage.visualTags.map((tag) => (
+                    <span key={tag} className="cip-visual-tag">{tag}</span>
+                  ))}
+                </div>
+              )}
+              {item.coverImage?.suggestedArtisticStyleId && (
+                <div className="cip-suggested-styles">
+                  {item.coverImage.suggestedArtisticStyleId && (
+                    <span className="cip-suggested-style" title={`Style: ${item.coverImage.suggestedArtisticStyleId}`}>
+                      ✦ {styleLibrary?.artisticStyles?.find(s => s.id === item.coverImage.suggestedArtisticStyleId)?.name || item.coverImage.suggestedArtisticStyleId}
+                    </span>
+                  )}
+                  {item.coverImage.suggestedCompositionStyleId && (
+                    <span className="cip-suggested-style" title={`Composition: ${item.coverImage.suggestedCompositionStyleId}`}>
+                      ◈ {styleLibrary?.compositionStyles?.find(s => s.id === item.coverImage.suggestedCompositionStyleId)?.name || item.coverImage.suggestedCompositionStyleId}
+                    </span>
+                  )}
+                  {item.coverImage.suggestedColorPaletteId && (
+                    <span className="cip-suggested-style" title={`Palette: ${item.coverImage.suggestedColorPaletteId}`}>
+                      ◉ {styleLibrary?.colorPalettes?.find(p => p.id === item.coverImage.suggestedColorPaletteId)?.name || item.coverImage.suggestedColorPaletteId}
+                    </span>
+                  )}
+                </div>
+              )}
               <CoverImagePreview imageId={item.coverImage?.generatedImageId} onImageClick={onImageClick} />
             </div>
             <div className="itab-cover-actions">
@@ -300,6 +317,9 @@ export default function ImagesTab({
                     </button>}
                 {onSelectExistingCoverImage && item.coverImage && !isGenerating && <button onClick={() => setShowCoverImagePicker(true)} className="ilu-action-btn itab-cover-btn itab-cover-btn-enabled">
                     Select Existing
+                  </button>}
+                {onResetCoverImage && item.coverImage && (item.coverImage.status === "generating" || item.coverImage.status === "failed" || item.coverImage.status === "complete") && <button onClick={onResetCoverImage} className="ilu-action-btn itab-cover-btn itab-cover-btn-enabled" title="Reset cover image status back to pending">
+                    Reset
                   </button>}
               </div>
             </div>
@@ -326,7 +346,7 @@ export default function ImagesTab({
             Image Anchors
             <span className="itab-anchors-count">({item.imageRefs.refs?.length || 0} placed)</span>
           </div>
-          <ChronicleImagePanel imageRefs={item.imageRefs} entities={entityMap} onGenerateImage={onGenerateChronicleImage} onResetImage={onResetChronicleImage} onRegenerateDescription={onRegenerateDescription} onUpdateAnchorText={onUpdateChronicleAnchorText} onUpdateSize={onUpdateChronicleImageSize} onUpdateJustification={onUpdateChronicleImageJustification} onSelectExistingImage={onSelectExistingImage} projectId={item.projectId} chronicleId={item.chronicleId} chronicleText={chronicleText} isGenerating={isGenerating} styleLibrary={styleLibrary} styleSelection={styleSelection} cultures={cultures} cultureIdentities={cultureIdentities} worldContext={worldContext} chronicleTitle={item.title || item.name} imageSize={imageSize} imageQuality={imageQuality} imageModel={imageModel} imageGenSettings={imageGenSettings} onOpenImageSettings={onOpenImageSettings} />
+          <ChronicleImagePanel imageRefs={item.imageRefs} entities={entityMap} onGenerateImage={onGenerateChronicleImage} onResetImage={onResetChronicleImage} onRegenerateDescription={onRegenerateDescription} onUpdateAnchorText={onUpdateChronicleAnchorText} onUpdateSize={onUpdateChronicleImageSize} onUpdateJustification={onUpdateChronicleImageJustification} onSelectExistingImage={onSelectExistingImage} projectId={item.projectId} chronicleId={item.chronicleId} chronicleText={chronicleText} isGenerating={isGenerating} styleLibrary={styleLibrary} styleSelection={styleSelection} cultures={cultures} cultureIdentities={cultureIdentities} worldContext={worldContext} chronicleTitle={item.title || item.name} imageSize={imageSize} imageQuality={imageQuality} imageModel={imageModel} imageGenSettings={imageGenSettings} onOpenImageSettings={onOpenImageSettings} fullEntityNavMap={fullEntityNavMap} selectedEntityIds={item.selectedEntityIds} />
         </div>}
 
       {!item.imageRefs && !(onGenerateCoverImageScene || onGenerateCoverImage) && <div className="ilu-empty itab-empty">
@@ -359,29 +379,14 @@ ImagesTab.propTypes = {
   item: PropTypes.object.isRequired,
   isGenerating: PropTypes.bool,
   entityMap: PropTypes.object,
+  versionState: PropTypes.object,
+  imageConfig: PropTypes.object,
+  imageRefCallbacks: PropTypes.object,
   onGenerateCoverImageScene: PropTypes.func,
   onGenerateCoverImage: PropTypes.func,
+  onResetCoverImage: PropTypes.func,
   onImageClick: PropTypes.func,
-  onGenerateChronicleImage: PropTypes.func,
-  onResetChronicleImage: PropTypes.func,
-  onRegenerateDescription: PropTypes.func,
-  onUpdateChronicleAnchorText: PropTypes.func,
-  onUpdateChronicleImageSize: PropTypes.func,
-  onUpdateChronicleImageJustification: PropTypes.func,
-  styleLibrary: PropTypes.object,
-  styleSelection: PropTypes.object,
-  cultures: PropTypes.array,
-  cultureIdentities: PropTypes.object,
-  worldContext: PropTypes.object,
-  imageSize: PropTypes.string,
-  imageQuality: PropTypes.string,
-  imageModel: PropTypes.string,
-  imageGenSettings: PropTypes.object,
-  onOpenImageSettings: PropTypes.func,
   chronicleText: PropTypes.string,
-  versions: PropTypes.array,
-  activeVersionId: PropTypes.string,
   onApplyImageRefSelections: PropTypes.func,
-  onSelectExistingImage: PropTypes.func,
-  onSelectExistingCoverImage: PropTypes.func
+  fullEntityNavMap: PropTypes.object,
 };

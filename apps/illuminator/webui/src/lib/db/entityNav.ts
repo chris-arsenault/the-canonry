@@ -75,6 +75,7 @@ export interface EntityNavItem {
   // These drive badge rendering and status determination in the list view.
   hasDescription: boolean; // !!(entity.summary && entity.description)
   hasVisualThesis: boolean; // !!entity.enrichment?.text?.visualThesis
+  visualThesis?: string; // entity.enrichment?.text?.visualThesis — one-sentence visual signal
   imageId?: string; // entity.enrichment?.image?.imageId — presence = has image
   descriptionCost?: number; // entity.enrichment?.text?.actualCost — for cost display
   imageCost?: number; // entity.enrichment?.image?.actualCost
@@ -88,6 +89,11 @@ export interface EntityNavItem {
   hasHistorianEdition: boolean; // descriptionHistory contains a 'historian-edition' source entry
   historianEditionCount: number; // count of historian-edition entries in descriptionHistory
   descriptionWordCount: number; // word count of current description for token estimation
+  hasImageStyle: boolean; // !!entity.enrichment?.imageStyle?.suggestedArtisticStyleId
+  suggestedArtisticStyleId?: string;
+  suggestedCompositionStyleId?: string;
+  suggestedColorPaletteId?: string;
+  curationComplete: boolean;
 }
 
 export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
@@ -104,6 +110,7 @@ export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
     eraId: entity.eraId,
     hasDescription: !!(entity.summary && entity.description),
     hasVisualThesis: !!entity.enrichment?.text?.visualThesis,
+    visualThesis: entity.enrichment?.text?.visualThesis,
     imageId: entity.enrichment?.image?.imageId,
     descriptionCost: entity.enrichment?.text?.actualCost,
     imageCost: entity.enrichment?.image?.actualCost,
@@ -123,5 +130,10 @@ export function buildEntityNavItem(entity: PersistedEntity): EntityNavItem {
       (h: { source?: string }) => h.source === "historian-edition"
     ).length,
     descriptionWordCount: entity.description ? entity.description.split(/\s+/).length : 0,
+    hasImageStyle: !!entity.enrichment?.imageStyle?.suggestedArtisticStyleId,
+    suggestedArtisticStyleId: entity.enrichment?.imageStyle?.suggestedArtisticStyleId,
+    suggestedCompositionStyleId: entity.enrichment?.imageStyle?.suggestedCompositionStyleId,
+    suggestedColorPaletteId: entity.enrichment?.imageStyle?.suggestedColorPaletteId,
+    curationComplete: !!entity.enrichment?.curationComplete,
   };
 }

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="ice" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#b8d4e3"/>
+      <stop offset="100%" style="stop-color:#4a7c9b"/>
+    </linearGradient>
+  </defs>
+  <!-- Hexagonal ice crystal / aperture -->
+  <polygon points="16,2 27.5,8.5 27.5,23.5 16,30 4.5,23.5 4.5,8.5"
+    fill="none" stroke="url(#ice)" stroke-width="1.5"/>
+  <!-- Inner facets -->
+  <line x1="16" y1="2" x2="16" y2="30" stroke="url(#ice)" stroke-width="0.8" opacity="0.5"/>
+  <line x1="4.5" y1="8.5" x2="27.5" y2="23.5" stroke="url(#ice)" stroke-width="0.8" opacity="0.5"/>
+  <line x1="27.5" y1="8.5" x2="4.5" y2="23.5" stroke="url(#ice)" stroke-width="0.8" opacity="0.5"/>
+  <!-- Central aperture diamond -->
+  <polygon points="16,10 22,16 16,22 10,16"
+    fill="url(#ice)" opacity="0.25"/>
+  <polygon points="16,10 22,16 16,22 10,16"
+    fill="none" stroke="url(#ice)" stroke-width="1.2"/>
+</svg>

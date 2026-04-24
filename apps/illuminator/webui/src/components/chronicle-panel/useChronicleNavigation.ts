@@ -18,6 +18,7 @@ import type {
 } from "./chroniclePanelTypes";
 import type { StyleLibrary } from "@canonry/world-schema";
 import type { ChronicleFilterBarProps } from "./ChronicleFilterBar";
+import type { PersistedEntity } from "../../lib/db/illuminatorDb";
 
 interface UseChronicleNavigationParams {
   queue: ChronicleQueueItem[];
@@ -27,10 +28,10 @@ interface UseChronicleNavigationParams {
   simulationRunId: string;
   navEntities: EntityNavItem[] | null;
   entityNavMap: Map<string, EntityNavItem>;
-  fullEntities: Array<Record<string, unknown>>;
+  fullEntities: PersistedEntity[];
   narrativeEvents: Array<Record<string, unknown>> | null;
   relationships: Array<Record<string, unknown>> | null;
-  fullEntityMapRef: React.RefObject<Map<string, Record<string, unknown>>>;
+  fullEntityMapRef: React.RefObject<Map<string, PersistedEntity>>;
 }
 
 export function useChronicleNavigation({

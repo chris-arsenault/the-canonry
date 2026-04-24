@@ -7,6 +7,8 @@
  * - Prompts that USE this data effectively
  */
 
+import { isFluxModel } from "./imageSettings";
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -21,6 +23,12 @@ export interface StyleInfo {
   compositionPromptFragment?: string;
   /** Color palette prompt fragment (e.g., "warm earth tones: terracotta, amber, ochre...") */
   colorPalettePromptFragment?: string;
+  /** Hex color array from the palette's swatchColors: [primary[], secondary[]] */
+  colorPaletteSwatchColors?: [string[], string[]];
+  /** Per-style negative cues (e.g., "photorealistic, CGI, 3D render") */
+  artisticNegativePrompt?: string;
+  /** Named artist to anchor style (e.g. "in the style of Van Gogh") — used by Flux 1.1 */
+  artistExemplar?: string;
   /** Additional culture-specific style keywords */
   cultureKeywords?: string[];
   /**
@@ -512,7 +520,8 @@ export function buildImagePromptFromGuidance(
   cultureIdentities: CultureIdentities,
   worldContext: WorldContext,
   entityContext: EntityContext,
-  styleInfo?: StyleInfo
+  styleInfo?: StyleInfo,
+  imageModel?: string
 ): string {
   const e = entityContext.entity;
   const kind = e.kind;
@@ -543,9 +552,12 @@ export function buildImagePromptFromGuidance(
           .join("\n")}`
       : "";
 
-  // Style sections
+  // Artist exemplar and palette hex are Flux-specific — GPT/DALL-E refuse
+  // named artist references and hex arrays. Only include them for Flux models.
+  const isFlux = imageModel ? isFluxModel(imageModel) : false;
+
   const styleSection = styleInfo?.artisticPromptFragment
-    ? `STYLE: ${styleInfo.artisticPromptFragment}`
+    ? `STYLE: ${styleInfo.artisticPromptFragment}${isFlux && styleInfo.artistExemplar ? ` [Artist exemplar: ${styleInfo.artistExemplar}]` : ""}`
     : "";
 
   let colorPaletteSection = "";
@@ -554,6 +566,10 @@ export function buildImagePromptFromGuidance(
       ? styleInfo.colorPalettePromptFragment
       : `COLOR PALETTE: ${styleInfo.colorPalettePromptFragment}`;
   }
+
+  const paletteHexSection = isFlux && styleInfo?.colorPaletteSwatchColors?.length
+    ? `PALETTE HEX: ${JSON.stringify(styleInfo.colorPaletteSwatchColors)}`
+    : "";
 
   const compositionSection = styleInfo?.compositionPromptFragment
     ? `COMPOSITION: ${styleInfo.compositionPromptFragment}`
@@ -577,12 +593,13 @@ export function buildImagePromptFromGuidance(
     "",
     styleSection,
     colorPaletteSection,
+    paletteHexSection,
     compositionSection,
     "RENDER: Favor stylized exaggeration over anatomical realism. Push proportions to emphasize the thesis.",
     "",
     `SETTING: ${worldContext.name}`,
     "",
-    `AVOID: ${guidance.imageAvoid}`,
+    `AVOID: ${[guidance.imageAvoid, styleInfo?.artisticNegativePrompt].filter(Boolean).join(". ")}`,
   ];
 
   return parts
@@ -649,6 +666,17 @@ const SIZE_COMPOSITION_HINTS: Record<string, string> = {
 };
 
 /**
+ * Cast member for entity disambiguation in image prompts.
+ * Tells the image model what species/type each entity is.
+ */
+export interface CastMember {
+  name: string;
+  kind: string;
+  subtype?: string;
+  culture?: string;
+}
+
+/**
  * Context for building chronicle scene image prompts
  */
 export interface ChronicleSceneContext {
@@ -664,22 +692,46 @@ export interface ChronicleSceneContext {
     description?: string;
     speciesConstraint?: string;
   };
+  /** Entities involved in the scene — used for species/type disambiguation */
+  cast?: CastMember[];
+}
+
+/**
+ * Format a cast member as "Name (kind/subtype, culture)" or "Name (kind, culture)".
+ */
+function formatCastLabel(member: CastMember): string {
+  const type = member.subtype ? `${member.kind}/${member.subtype}` : member.kind;
+  return member.culture ? `${type}, ${member.culture}` : type;
+}
+
+/**
+ * Build a CAST section listing involved entities with their species/type.
+ */
+function buildCastSection(cast: CastMember[]): string {
+  if (cast.length === 0) return "";
+  const entries = cast.map((m) => `${m.name} (${formatCastLabel(m)})`);
+  return `CAST: ${entries.join(", ")}`;
 }
 
 /**
  * Build an image prompt for chronicle scene/montage images.
  * Rendering directives (STYLE/PALETTE/COMPOSITION) come first as primary authority.
- * No entity lookups — visual identity is baked into the scene description by the scene LLM.
+ * Cast context provides species/type disambiguation for involved entities.
+ * Scene description should be pre-annotated by the caller using annotateEntityNames.
  */
 export function buildChronicleScenePrompt(
   context: ChronicleSceneContext,
-  styleInfo?: StyleInfo
+  styleInfo?: StyleInfo,
+  imageModel?: string
 ): string {
-  const { sceneDescription, size, chronicleTitle, world } = context;
+  const { sceneDescription, size, chronicleTitle, world, cast } = context;
 
-  // Rendering directives first — these are the primary visual authority
+  // Rendering directives first — these are the primary visual authority.
+  // Artist exemplar and palette hex are Flux-specific — GPT/DALL-E refuse them.
+  const isFlux = imageModel ? isFluxModel(imageModel) : false;
+
   const styleSection = styleInfo?.artisticPromptFragment
-    ? `STYLE: ${styleInfo.artisticPromptFragment}`
+    ? `STYLE: ${styleInfo.artisticPromptFragment}${isFlux && styleInfo.artistExemplar ? ` [Artist exemplar: ${styleInfo.artistExemplar}]` : ""}`
     : "";
 
   let colorPaletteSection = "";
@@ -689,12 +741,19 @@ export function buildChronicleScenePrompt(
       : `COLOR PALETTE: ${styleInfo.colorPalettePromptFragment}`;
   }
 
+  const paletteHexSection = isFlux && styleInfo?.colorPaletteSwatchColors?.length
+    ? `PALETTE HEX: ${JSON.stringify(styleInfo.colorPaletteSwatchColors)}`
+    : "";
+
   const compositionHint = SIZE_COMPOSITION_HINTS[size] || SIZE_COMPOSITION_HINTS.medium;
   const compositionSection = styleInfo?.compositionPromptFragment
     ? `COMPOSITION: ${styleInfo.compositionPromptFragment}`
     : `COMPOSITION: ${compositionHint}`;
 
   const sizeHint = `SIZE HINT: ${compositionHint}`;
+
+  // Cast context for entity disambiguation
+  const castSection = cast?.length ? buildCastSection(cast) : "";
 
   // Scene content
   const worldDescSuffix = world?.description ? ` - ${world.description}` : "";
@@ -709,16 +768,18 @@ export function buildChronicleScenePrompt(
   const parts = [
     styleSection,
     colorPaletteSection,
+    paletteHexSection,
     compositionSection,
     sizeHint,
     "",
+    castSection,
     `SCENE: ${sceneDescription}`,
     chronicleTitle ? `FROM: "${chronicleTitle}"` : "",
     "",
     worldSection,
     speciesSection,
     "",
-    "AVOID: Human figures, humanoid hands or fingers, human body proportions. Modern elements, anachronistic technology, text overlays, watermarks",
+    `AVOID: ${["Human figures, humanoid hands or fingers, human body proportions. Modern elements, anachronistic technology, text overlays, watermarks", styleInfo?.artisticNegativePrompt].filter(Boolean).join(". ")}`,
   ];
 
   return parts

@@ -1,0 +1,217 @@
+.ss-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+/* --- Progress bar --- */
+
+.ss-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ss-progress-bar {
+  height: 100%;
+  background: var(--azure);
+  opacity: 0.5;
+  will-change: width;
+}
+
+/* --- Toolbar --- */
+
+.ss-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  z-index: 2;
+}
+
+.ss-toolbar-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ss-counter {
+  font-size: 0.78rem;
+  color: rgba(86, 180, 232, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Glassmorphic buttons */
+.ss-btn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.85);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.ss-btn:hover {
+  background: rgba(0, 0, 0, 0.6);
+  border-color: var(--azure-border);
+  color: var(--azure-bright);
+}
+
+.ss-btn-close {
+  font-size: 1.1rem;
+}
+
+/* --- Nav arrows --- */
+
+.ss-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ss-nav:hover {
+  background: rgba(0, 0, 0, 0.55);
+  border-color: var(--azure-border);
+  color: var(--azure-bright);
+}
+
+.ss-nav-prev { left: 12px; }
+.ss-nav-next { right: 12px; }
+
+/* --- Image --- */
+
+.ss-image-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.ss-image {
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: contain;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.ss-image-loaded {
+  opacity: 1;
+}
+
+/* --- Caption --- */
+
+.ss-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 20px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ss-title {
+  display: block;
+  font-family: "Playfair Display", serif;
+  font-size: 1rem;
+  color: #f0eee8;
+}
+
+.ss-entity {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(86, 180, 232, 0.45);
+  margin-top: 2px;
+}
+
+/* --- Mobile: toolbar to bottom center --- */
+
+@media (max-width: 640px) {
+  .ss-toolbar {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    justify-content: center;
+    padding: 0 0 max(16px, env(safe-area-inset-bottom)) 0;
+    gap: 10px;
+  }
+
+  .ss-counter {
+    position: absolute;
+    top: 12px;
+    left: 14px;
+    font-size: 0.72rem;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 3px 8px;
+    border-radius: 10px;
+  }
+
+  .ss-nav {
+    width: 36px;
+    height: 36px;
+    font-size: 1.5rem;
+  }
+
+  .ss-nav-prev { left: 4px; }
+  .ss-nav-next { right: 4px; }
+
+  .ss-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.72rem;
+  }
+
+  .ss-btn-close {
+    font-size: 1rem;
+  }
+
+  .ss-caption {
+    bottom: 60px;
+  }
+}

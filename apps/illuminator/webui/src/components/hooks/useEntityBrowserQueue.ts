@@ -37,6 +37,8 @@ export function useEntityBrowserQueue(
   getStatus: GetStatusFn,
   buildPrompt: (entity: unknown, type: string) => string,
   getVisualConfig: ((entity: unknown) => Record<string, unknown>) | undefined,
+  resolveImageSize: ((entity: unknown) => string | undefined) | undefined,
+  resolveImageStyleIds: ((entity: unknown) => { artisticStyleId?: string; compositionStyleId?: string; colorPaletteId?: string }) | undefined,
   config: EntityBrowserConfig,
   imageGenSettings: ImageGenSettings,
   prominenceScale: ProminenceScale
@@ -54,11 +56,11 @@ export function useEntityBrowserQueue(
           : {};
       const imageOverrides =
         type === "image"
-          ? { imageSize: imageGenSettings.imageSize, imageQuality: imageGenSettings.imageQuality }
+          ? { imageSize: resolveImageSize?.(entity) || imageGenSettings.imageSize, imageQuality: imageGenSettings.imageQuality }
           : {};
       getEnqueue()([{ entity, type, prompt, ...visualConfig, ...imageOverrides }]);
     },
-    [buildPrompt, getVisualConfig, imageGenSettings.imageSize, imageGenSettings.imageQuality]
+    [buildPrompt, getVisualConfig, resolveImageSize, imageGenSettings.imageSize, imageGenSettings.imageQuality]
   );
 
   const cancelItem = useCallback(
@@ -103,11 +105,12 @@ export function useEntityBrowserQueue(
       entity,
       type: "image",
       prompt: buildPrompt(entity, "image"),
-      imageSize: imageGenSettings.imageSize,
+      imageSize: resolveImageSize?.(entity) || imageGenSettings.imageSize,
       imageQuality: imageGenSettings.imageQuality,
+      ...resolveImageStyleIds?.(entity),
     }));
     if (items.length > 0) getEnqueue()(items);
-  }, [selectedIds, navEntities, getStatus, buildPrompt, config.minProminenceForImage, config.requireDescription, imageGenSettings.imageSize, imageGenSettings.imageQuality, prominenceScale]);
+  }, [selectedIds, navEntities, getStatus, buildPrompt, config.minProminenceForImage, config.requireDescription, resolveImageSize, resolveImageStyleIds, imageGenSettings.imageSize, imageGenSettings.imageQuality, prominenceScale]);
 
   const regenSelectedDescriptions = useCallback(async () => {
     const completeIds: string[] = [];
@@ -142,11 +145,12 @@ export function useEntityBrowserQueue(
       entity,
       type: "image",
       prompt: buildPrompt(entity, "image"),
-      imageSize: imageGenSettings.imageSize,
+      imageSize: resolveImageSize?.(entity) || imageGenSettings.imageSize,
       imageQuality: imageGenSettings.imageQuality,
+      ...resolveImageStyleIds?.(entity),
     }));
     if (items.length > 0) getEnqueue()(items);
-  }, [selectedIds, navEntities, getStatus, buildPrompt, config.minProminenceForImage, imageGenSettings.imageSize, imageGenSettings.imageQuality, prominenceScale]);
+  }, [selectedIds, navEntities, getStatus, buildPrompt, config.minProminenceForImage, resolveImageSize, resolveImageStyleIds, imageGenSettings.imageSize, imageGenSettings.imageQuality, prominenceScale]);
 
   const queueAllMissingDescriptions = useCallback(async () => {
     const missingIds = filteredNavItems
@@ -182,12 +186,13 @@ export function useEntityBrowserQueue(
         entity,
         type: "image",
         prompt: buildPrompt(entity, "image"),
-        imageSize: imageGenSettings.imageSize,
+        imageSize: resolveImageSize?.(entity) || imageGenSettings.imageSize,
         imageQuality: imageGenSettings.imageQuality,
+        ...resolveImageStyleIds?.(entity),
       });
     }
     if (items.length > 0) getEnqueue()(items);
-  }, [filteredNavItems, getStatus, buildPrompt, getVisualConfig, config.minProminenceForImage, config.requireDescription, imageGenSettings.imageSize, imageGenSettings.imageQuality, prominenceScale]);
+  }, [filteredNavItems, getStatus, buildPrompt, getVisualConfig, config.minProminenceForImage, config.requireDescription, resolveImageSize, resolveImageStyleIds, imageGenSettings.imageSize, imageGenSettings.imageQuality, prominenceScale]);
 
   return {
     queueItem,
